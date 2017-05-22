@@ -47,6 +47,7 @@ typedef struct _type_assertion_t {
  **/
 typedef struct {
 	uint32_t                cb_setup:1;    /*!< Indicates if we have already installed the type callback for this type info */
+	uint32_t                output:1;      /*!< The flag indicates if this pipe is a input pipe */
 	char*                   name;          /*!< The name of the type */
 	uint32_t                full_size;     /*!< The size of the header section */
 	uint32_t                used_size;     /*!< The size of the header data we actually used */
@@ -68,9 +69,18 @@ struct _pstd_type_model_t {
 };
 
 /**
+ * @brief The pipe header
+ **/
+typedef struct __attribute__((packed)) {
+	size_t valid_size;   /*!< The valid size */
+	char   data[0];
+} _header_buf_t;
+
+/**
  * @brief The type context instance 
  **/
 struct _pstd_type_instance_t {
+	uint32_t                    heapmem:1;   /*!< Indicates if this instance uses the heap memory */
 	const pstd_type_model_t*    model;       /*!< The underlying type model */
 	uintptr_t __padding__[0];
 	char                        buffer[0];   /*!< The actual buffer memory */
@@ -147,7 +157,7 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 	{
 		runtime_api_pipe_id_t i;
 		for(i = (runtime_api_pipe_id_t)(PIPE_GET_ID(pipe) + 1); i < model->pipe_max; i ++)
-			model->type_info[i].buf_begin += typeinfo->used_size + sizeof(size_t);
+			model->type_info[i].buf_begin += typeinfo->used_size + sizeof(_header_buf_t);
 	}
 
 	rc = 0;
@@ -206,6 +216,13 @@ static inline int _ensure_pipe_typeinfo(pstd_type_model_t* ctx, pipe_t pipe)
 			ERROR_RETURN_LOG(int, "Cannot setup the type callback function for the pipe");
 
 		ctx->type_info[pid].cb_setup = 1;
+
+		runtime_api_pipe_flags_t flags;
+
+		if(ERROR_CODE(int) == pipe_cntl(pipe, PIPE_CNTL_GET_FLAGS, &flags))
+			ERROR_RETURN_LOG(int, "Cannot get the flag of the pipe");
+
+		ctx->type_info[pid].output = RUNTIME_API_PIPE_IS_OUTPUT(flags);
 	}
 
 	return 0;
@@ -366,7 +383,8 @@ static inline size_t _inst_buf_size(const pstd_type_model_t* model)
 
 	runtime_api_pipe_id_t last = (runtime_api_pipe_id_t)(model->pipe_max - 1);
 
-	return (size_t)(model->type_info[last].buf_begin + model->type_info[last].used_size + sizeof(size_t));
+	return (size_t)(model->type_info[last].buf_begin + model->type_info[last].used_size + 
+			                                           model->type_info[last].used_size > 0 ? sizeof(_header_buf_t) : 0);
 }
 
 size_t pstd_type_instance_size(const pstd_type_model_t* model)
@@ -388,6 +406,8 @@ pstd_type_instance_t* pstd_type_instance_new(const pstd_type_model_t* model, voi
 	if(NULL != ret && NULL == (ret = (pstd_type_instance_t*)malloc(size)))
 		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the type context instance");
 
+	ret->heapmem = (mem == NULL);
+
 	runtime_api_pipe_id_t i;
 	for(i = 0; i < model->pipe_max; i ++)
 		if(model->type_info[i].used_size > 0)
@@ -396,16 +416,124 @@ pstd_type_instance_t* pstd_type_instance_new(const pstd_type_model_t* model, voi
 	return ret;
 }
 
-#if 0
-size_t pstd_typeinfo_read(const pstd_typeinfo_t* context, pstd_typeinfo_accessor_t accessor, void* buf, size_t bufsize)
+int pstd_type_instance_free(pstd_type_instance_t* inst)
 {
-	if(NULL == context || ERROR_CODE(pstd_typeinfo_accessor_t) == accessor || accessor >= context->accessor_cnt || NULL == buf)
+	if(NULL == inst)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	const _accessor_t* obj = context->accessor + accessor;
+	runtime_api_pipe_id_t i;
+	int rc = 0;
+	for(i = 0; i < inst->model->pipe_max; i ++)
+		if(inst->model->type_info[i].output)
+		{
+			const _header_buf_t* buf = (const _header_buf_t*)(inst->buffer + inst->model->type_info[i].buf_begin);
+			const char* data = buf->data;
+			size_t bytes_to_write = buf->valid_size;
+			while(bytes_to_write > 0)
+			{
+				size_t bytes_written = pipe_hdr_write(RUNTIME_API_PIPE_FROM_ID(i), data, bytes_to_write);
+				if(ERROR_CODE(size_t) == bytes_written)
+				{
+					LOG_ERROR("Cannot write header to the pipe, bytes remaining: %zu", bytes_to_write);
+					rc = ERROR_CODE(int);
+					break;
+				}
+				bytes_to_write -= bytes_written;
+				data += bytes_written;
+			}
+		}
 
-	if(!obj->init) ERROR_RETURN_LOG(int, "Accessor haven't been initialized yet");
-
-
+	if(inst->heapmem) 
+		free(inst);
+	return rc;
 }
-#endif
+/**
+ * @brief Ensure we have read the nbytes-th bytes in the header
+ * @param inst the type context instance
+ * @param accessor the accessor object
+ * @param nbytes how many bytes we need to ensure
+ * @return status code
+ **/
+int _ensure_header_read(pstd_type_instance_t* inst, const _accessor_t* accessor, size_t nbytes)
+{
+	const _typeinfo_t* typeinfo = inst->model->type_info + PIPE_GET_ID(accessor->pipe);
+	_header_buf_t* buffer = (_header_buf_t*)(inst->buffer + typeinfo->buf_begin);
+	size_t bytes_can_read = typeinfo->used_size - buffer->valid_size;
+
+	while(buffer->valid_size < nbytes)
+	{
+		size_t rc = pipe_hdr_read(accessor->pipe, buffer->data + buffer->valid_size, bytes_can_read);
+		if(ERROR_CODE(size_t) == rc)
+			ERROR_RETURN_LOG(int, "Cannot read header");
+
+		if(rc == 0)
+		{
+			int eof_rc = pipe_eof(accessor->pipe);
+			if(ERROR_CODE(int) == eof_rc)
+				ERROR_RETURN_LOG(int, "pipe_eof returns an error");
+
+			if(eof_rc)
+				ERROR_RETURN_LOG(int, "Unexpected end of data stream");
+		}
+
+		bytes_can_read -= rc;
+		buffer->valid_size += rc;
+	}
+
+	return 0;
+}
+
+size_t pstd_type_read(pstd_type_instance_t* inst, pstd_type_accessor_t accessor, void* buf, size_t bufsize)
+{
+	if(NULL == inst || ERROR_CODE(pstd_type_accessor_t) == accessor || NULL == buf || accessor >= inst->model->accessor_cnt) 
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
+
+	const _accessor_t* obj = inst->model->accessor + accessor;
+
+	if(bufsize > obj->size) bufsize = obj->size;
+
+	if(bufsize == 0) return 0;
+
+	if(ERROR_CODE(int) == _ensure_header_read(inst, obj, obj->offset + bufsize))
+		ERROR_RETURN_LOG(size_t, "Cannot ensure the header buffer is valid");
+
+	const _header_buf_t* buffer = (const _header_buf_t*)(inst->buffer + PIPE_GET_ID(obj->pipe));
+	memcpy(buf, buffer->data + obj->offset, bufsize);
+
+	return bufsize;
+}
+
+static inline int _ensure_header_write(pstd_type_instance_t* inst, const _accessor_t* accessor, size_t nbytes)
+{
+	const _typeinfo_t* typeinfo = inst->model->type_info + PIPE_GET_ID(accessor->pipe);
+	_header_buf_t* buffer = (_header_buf_t*)(inst->buffer + typeinfo->buf_begin);
+	if(nbytes >= buffer->valid_size) return 0;
+
+	size_t bytes_to_fill = nbytes - buffer->valid_size;
+
+	memset(buffer->data + buffer->valid_size, 0, bytes_to_fill);
+
+	buffer->valid_size = nbytes;
+
+	return 0;
+}
+
+int pstd_type_write(pstd_type_instance_t* inst, pstd_type_accessor_t accessor, const void* buf, size_t bufsize)
+{
+	if(NULL == inst || ERROR_CODE(pstd_type_accessor_t) == accessor || NULL == buf || accessor >= inst->model->accessor_cnt)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+	
+	const _accessor_t* obj = inst->model->accessor + accessor;
+
+	if(bufsize > obj->size) bufsize = obj->size;
+
+	if(bufsize == 0) return 0;
+
+	if(ERROR_CODE(int) == _ensure_header_write(inst, obj, obj->offset + bufsize))
+		ERROR_RETURN_LOG(int, "Cannot ensure the header buffer is valid");
+	
+	_header_buf_t* buffer = (_header_buf_t*)(inst->buffer + PIPE_GET_ID(obj->pipe));
+	memcpy(buffer->data + obj->offset, buf, bufsize);
+
+	return 0;
+}

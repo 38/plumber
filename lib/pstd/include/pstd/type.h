@@ -102,7 +102,7 @@ int pstd_type_instance_free(pstd_type_instance_t* inst);
  * @param bufsize  The size of the buffer
  * @return The number of bytes has been read to the buffer
  **/
-size_t pstd_type_read(pstd_type_instance_t* inst, pstd_type_accessor_t accessor, void* buf, size_t bufsize);
+size_t pstd_type_instance_read(pstd_type_instance_t* inst, pstd_type_accessor_t accessor, void* buf, size_t bufsize);
 
 /**
  * @brief Read typed primitive from the context and accessor
@@ -111,15 +111,12 @@ size_t pstd_type_read(pstd_type_instance_t* inst, pstd_type_accessor_t accessor,
  * @param accessor The accessor
  * @return The read result or error code
  **/
-#define PSTD_TYPEINFO_READ_PRIMITIVE(type, inst, accessor) ({\
+#define PSTD_TYPE_INST_READ_PRIMITIVE(type, inst, accessor) ({\
 		type _resbuf;\
-		if(sizeof(_resbuf) != accessor.size) \
-			_resbuf = ERROR_CODE(type);\
-		else \
 		{\
 			pstd_type_instance_t* _inst = inst; \
-			typeinfo_accessor_t _acc;\
-			if(sizeof(_resbuf) != pstd_type_read(_inst, _acc, &resbuf, sizeof(resbuf)))\
+			pstd_type_accessor_t _acc = accessor;\
+			if(sizeof(_resbuf) != pstd_type_instance_read(_inst, _acc, &_resbuf, sizeof(_resbuf)))\
 				_resbuf = ERROR_CODE(type);\
 		}\
 		_resbuf;\
@@ -137,7 +134,7 @@ size_t pstd_type_read(pstd_type_instance_t* inst, pstd_type_accessor_t accessor,
  *       If the buffer size is larger than the size of the memory regoin the accessor refer to
  *       we just simple drop the extra data
  **/
-int pstd_type_write(pstd_type_instance_t* inst, pstd_type_accessor_t accessor, const void* buf, size_t bufsize);
+int pstd_type_instance_write(pstd_type_instance_t* inst, pstd_type_accessor_t accessor, const void* buf, size_t bufsize);
 
 /**
  * @brief Write a primitive to the typed pipe header
@@ -146,12 +143,12 @@ int pstd_type_write(pstd_type_instance_t* inst, pstd_type_accessor_t accessor, c
  * @param value    The value we want to write
  * @return status code
  **/
-#define PSTD_TYPEINFO_WRITE_PRIMITIVE(inst, accessor, value) ({\
+#define PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, accessor, value) ({\
 		typeof(value) _buf = value;\
-		pstd_type_inst_t* _inst = context; \
-		typeinfo_accessor_t _acc;\
+		pstd_type_instance_t* _inst = inst; \
+		pstd_type_accessor_t _acc = accessor;\
 		int rc;\
-		if(ERROR_CODE(int) == typeinfo_write(_inst, _acc, &buf, sizeof(_buf)))\
+		if(ERROR_CODE(int) == pstd_type_instance_write(_inst, _acc, &_buf, sizeof(_buf)))\
 			rc = ERROR_CODE(int);\
 		rc;\
 	})
