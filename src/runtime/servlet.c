@@ -52,18 +52,38 @@ static inline const char * _search_for_binary(const char* binary)
 		string_buffer_t strbuf;
 
 		string_buffer_open(buffer, sizeof(buffer), &strbuf);
+
 		string_buffer_append(*cell, &strbuf);
-		string_buffer_append("/" RUNTIME_SERVLET_FILENAME_PREFIX, &strbuf);
-		string_buffer_append(binary, &strbuf);
-		string_buffer_append(RUNTIME_SERVLET_FILENAME_SUFFIX, &strbuf);
-		string_buffer_close(&strbuf);
 
-		LOG_DEBUG("Looking for shared object %s", buffer);
+		const char *begin, *end;
+		for(begin = end = binary; ; end ++)
+			if(*end == '/' || *end == 0 ) 
+			{
+				if(begin < end) 
+				{
+					if(*end != 0) 
+						string_buffer_append("/", &strbuf);
+					else
+						string_buffer_append("/" RUNTIME_SERVLET_FILENAME_PREFIX, &strbuf);
 
-		if(access(buffer, F_OK) == 0)
+					string_buffer_append_range(begin, end, &strbuf);
+				}
+				if(*end == 0) break;
+				begin = end + 1;
+			}
+
+		if(begin < end)
 		{
-			LOG_DEBUG("Found shared object %s", buffer);
-			return buffer;
+			string_buffer_append(RUNTIME_SERVLET_FILENAME_SUFFIX, &strbuf);
+			string_buffer_close(&strbuf);
+
+			LOG_DEBUG("Looking for shared object %s", buffer);
+
+			if(access(buffer, F_OK) == 0)
+			{
+				LOG_DEBUG("Found shared object %s", buffer);
+				return buffer;
+			}
 		}
 	}
 

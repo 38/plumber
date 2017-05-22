@@ -37,6 +37,15 @@ void string_buffer_open(char* buffer, size_t size, string_buffer_t* res);
 size_t string_buffer_append(const char* str, string_buffer_t* buf);
 
 /**
+ * @brief Append a string to the string buffer. If the buffer is full, trucate the input string
+ * @param begin The begin of the range
+ * @param end   The end of the range
+ * @param buf   The target string buffer
+ * @return status code
+ **/
+size_t string_buffer_append_range(const char* begin, const char* end, string_buffer_t* buf);
+
+/**
  * @brief append a string to the string buffer, similar to string_buffer_append, but takes format string
  * @param buf the target string buffer
  * @param fmt the formatting string

@@ -31,7 +31,7 @@ size_t string_buffer_append(const char* str, string_buffer_t* buf)
 
 size_t string_buffer_appendf(string_buffer_t* buf, const char* fmt, ...)
 {
-	if(buf->size < 1) return 0;
+	if(buf->size <= 1) return 0;
 
 	va_list ap;
 	va_start(ap,fmt);
@@ -56,4 +56,21 @@ const char* string_buffer_close(string_buffer_t* buf)
 	buf->size --;
 
 	return buf->result;
+}
+
+size_t string_buffer_append_range(const char* begin, const char* end, string_buffer_t* buf)
+{
+	if(NULL == begin || NULL == end || begin >= end || buf->size == 0) return 0;
+
+	size_t to_write = (size_t)(end - begin);
+
+	if(to_write + 1 > buf->size)
+		to_write = buf->size - 1;
+
+	memcpy(buf->buffer, begin, to_write);
+
+	buf->size -= to_write;
+	buf->buffer += to_write;
+
+	return to_write;
 }
