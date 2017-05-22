@@ -22,5 +22,5 @@ set(LOCAL_INCLUDE ${PLUMBER_V8_INCLUDE})
 set(LOCAL_CFLAGS ${PLUMBER_V8_CFLAGS})
 set(INSTALL yes)
 install_includes("${SOURCE_PATH}/lib" "lib/plumber/javascript" "*.js")
-set(NAMESPACE language_binding)
+set(NAMESPACE language)
 

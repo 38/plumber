@@ -7,8 +7,8 @@ insmod "mem_pipe"
 scheduler.worker.nthreads = 4
 
 serv = {
-	req := "pyservlet parser";
-	res := "pyservlet writer";
+	req := "language/pyservlet parser";
+	res := "language/pyservlet writer";
 	
 	() -> "in" req "out" -> "in" res "out" -> ();
 }

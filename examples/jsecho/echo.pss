@@ -5,7 +5,7 @@ insmod "pssm";
 scheduler.worker.nthreads = 4;    //the number of working thread
 
 serv = {
-	ech := "javascript cat.js 1";
+	ech := "language/javascript cat.js 1";
 	() -> "input" ech "output" ->();
 }
 start serv;
