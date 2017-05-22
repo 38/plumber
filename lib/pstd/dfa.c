@@ -4,8 +4,8 @@
 #include <error.h>
 #include <pservlet.h>
 
-#include <bio.h>
-#include <dfa.h>
+#include <pstd/bio.h>
+#include <pstd/dfa.h>
 
 /**
  * @brief The actual data structure for the DFA

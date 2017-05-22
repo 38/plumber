@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include <err.h>
+#include <proto/err.h>
 
 /**
  * @brief error description of error code

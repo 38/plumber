@@ -49,11 +49,12 @@
 #include <stdio.h>
 
 #include <error.h>
-#include <ref.h>
-#include <type.h>
-#include <err.h>
-#include <db.h>
-#include <cache.h>
+
+#include <proto/ref.h>
+#include <proto/type.h>
+#include <proto/err.h>
+#include <proto/db.h>
+#include <proto/cache.h>
 
 /**
  * @brief initialize the libproto

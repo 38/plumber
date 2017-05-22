@@ -9,8 +9,8 @@
 #include <stdio.h>
 
 #include <package_config.h>
-#include <err.h>
-#include <ref.h>
+#include <proto/err.h>
+#include <proto/ref.h>
 
 /**
  * @brief a name segment

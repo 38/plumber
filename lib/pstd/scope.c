@@ -7,7 +7,7 @@
 
 #include <error.h>
 #include <pservlet.h>
-#include <scope.h>
+#include <pstd/scope.h>
 
 static inline pipe_t _ensure_pipe(pipe_t current, const char* func)
 {

@@ -11,7 +11,7 @@
 #include <error.h>
 
 #include <pstd.h>
-#include <types/string.h>
+#include <pstd/types/string.h>
 
 /**
  * @brief the actuall data structure for the PSTD string type

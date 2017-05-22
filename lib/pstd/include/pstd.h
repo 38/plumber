@@ -15,14 +15,15 @@ extern "C" {
 #include <sys/stat.h>
 
 #include <pservlet.h>
-#include <mempool.h>
-#include <bio.h>
-#include <option.h>
-#include <thread.h>
-#include <scope.h>
-#include <onexit.h>
-#include <fcache.h>
-#include <dfa.h>
+#include <pstd/mempool.h>
+#include <pstd/bio.h>
+#include <pstd/option.h>
+#include <pstd/thread.h>
+#include <pstd/scope.h>
+#include <pstd/onexit.h>
+#include <pstd/fcache.h>
+#include <pstd/dfa.h>
+#include <pstd/type.h>
 
 #	ifdef __cplusplus
 }

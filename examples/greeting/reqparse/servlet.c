@@ -6,7 +6,7 @@
 
 #include <pservlet.h>
 #include <pstd.h>
-#include <types/string.h>
+#include <pstd/types/string.h>
 
 #include <stdlib.h>
 

@@ -7,7 +7,8 @@
 
 #include <error.h>
 #include <pservlet.h>
-#include <thread.h>
+
+#include <pstd/thread.h>
 #define _THREAD_LOCAL_MAGIC ((uintptr_t)0x544c4d6167696321ull)
 struct _pstd_thread_local_t {
 	uintptr_t	magic;     /*!< the magic number used to identify this is a thread local object */

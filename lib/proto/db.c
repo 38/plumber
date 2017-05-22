@@ -8,12 +8,12 @@
 #include <stdint.h>
 
 #include <package_config.h>
-#include <err.h>
-#include <ref.h>
-#include <type.h>
-#include <cache.h>
-#include <db.h>
-#include <assert.h>
+#include <proto/err.h>
+#include <proto/ref.h>
+#include <proto/type.h>
+#include <proto/cache.h>
+#include <proto/db.h>
+#include <proto/assert.h>
 
 static int _init_count = 0;
 

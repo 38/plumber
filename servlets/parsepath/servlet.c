@@ -9,7 +9,7 @@
 #include <pstd.h>
 #include <proto.h>
 
-#include <types/string.h>
+#include <pstd/types/string.h>
 
 typedef struct {
 	uint32_t prefix_level;   /*!< How many level of directory are considered to be prefix */

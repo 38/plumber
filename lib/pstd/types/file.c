@@ -9,10 +9,9 @@
 #include <sys/stat.h>
 
 #include <error.h>
-#include <log.h>
 
 #include <pstd.h>
-#include <types/file.h>
+#include <pstd/types/file.h>
 
 /**
  * @brief the actual data structure for a file reference

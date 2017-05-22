@@ -4,7 +4,7 @@
 #include <error.h>
 
 #include <pservlet.h>
-#include <onexit.h>
+#include <pstd/onexit.h>
 
 int pstd_onexit(pstd_onexit_callback_t callback, void* data)
 {

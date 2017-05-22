@@ -14,9 +14,9 @@
 
 #include <pservlet.h>
 
-#include <fcache.h>
-#include <onexit.h>
-#include <mempool.h>
+#include <pstd/fcache.h>
+#include <pstd/onexit.h>
+#include <pstd/mempool.h>
 
 /**
  * @brief the size of the cache hash table

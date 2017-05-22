@@ -6,9 +6,9 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <err.h>
-#include <ref.h>
-#include <type.h>
+#include <proto/err.h>
+#include <proto/ref.h>
+#include <proto/type.h>
 
 /**
  * @brief the file header for a protocol type description file

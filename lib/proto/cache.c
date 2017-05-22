@@ -10,11 +10,11 @@
 #include <sys/stat.h>
 
 #include <package_config.h>
-#include <err.h>
-#include <ref.h>
-#include <type.h>
-#include <cache.h>
-#include <db.h>
+#include <proto/err.h>
+#include <proto/ref.h>
+#include <proto/type.h>
+#include <proto/cache.h>
+#include <proto/db.h>
 
 /**
  * @brief one node in the hash table

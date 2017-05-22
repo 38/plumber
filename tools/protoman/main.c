@@ -12,7 +12,7 @@
 #include <errno.h>
 
 #include <proto.h>
-#include <cache.h>
+#include <proto/cache.h>
 
 #include <log.h>
 #include <lexer.h>
