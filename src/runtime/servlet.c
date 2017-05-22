@@ -72,15 +72,18 @@ static inline const char * _search_for_binary(const char* binary)
 				begin = end + 1;
 			}
 
-		string_buffer_append(RUNTIME_SERVLET_FILENAME_SUFFIX, &strbuf);
-		string_buffer_close(&strbuf);
-
-		LOG_DEBUG("Looking for shared object %s", buffer);
-
-		if(access(buffer, F_OK) == 0)
+		if(begin < end)
 		{
-			LOG_DEBUG("Found shared object %s", buffer);
-			return buffer;
+			string_buffer_append(RUNTIME_SERVLET_FILENAME_SUFFIX, &strbuf);
+			string_buffer_close(&strbuf);
+
+			LOG_DEBUG("Looking for shared object %s", buffer);
+
+			if(access(buffer, F_OK) == 0)
+			{
+				LOG_DEBUG("Found shared object %s", buffer);
+				return buffer;
+			}
 		}
 	}
 
