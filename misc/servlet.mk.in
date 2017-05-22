@@ -1,0 +1,31 @@
+include build.mk
+PS_INC=@PYSERVLET_INCLUDE@
+PS_LD=@PYSERVLET_LIBPATH@
+
+CSRC=$(filter %.c, $(SRC))
+CPPSRC=$(filter %.cpp, $(SRC))
+CCSRC=$(filter %.cc, $(SRC))
+
+COBJS=$(patsubst %.c,%.o,$(CSRC))
+CPPOBJS=$(patsubst %.cpp,%.o,$(CPPSRC))
+CCOBJS=$(patsubst %.cc,%.o,$(CCSRC))
+
+
+default: lib$(TARGET).so
+
+$(COBJS): %.o: %.c
+	$(CC) -c -fPIC -I$(PS_INC) -o $@ $^ $(CFLAGS)
+	
+$(CPPOBJS): %.o: %.cpp
+	$(CXX) -c -fPIC -I$(PS_INC) -o $@ $^ $(CFLAGS)
+
+$(CCOBJS): %.o: %.cc
+	$(CXX) -c -fPIC -I$(PS_INC) -o $@ $^ $(CFLAGS)
+
+lib$(TARGET).so: $(COBJS) $(CPPOBJS) $(CCOBJS) $(OBJS)
+	$(LINKER) -fPIC -shared -Wl,-soname,$@ -o $(OUTPUT)/$@ $^ $(LDFLAGS) -L$(PS_LD) -lpservlet
+
+.PHONY: clean default
+
+clean:
+	rm -f $(COBJS) $(CPPOBJS) $(CCOBJS) $(foreach i,$(TARGET),$(OUTPUT)/lib$(i).so)

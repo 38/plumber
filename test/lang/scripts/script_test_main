@@ -1,0 +1,105 @@
+#!/usr/bin/python
+import subprocess
+import sys
+import re
+import os
+import time
+import traceback
+#if [ "`${OBJDIR}/pscript ${OBJDIR}/test/lang/basic_program_1.in`" = "hello world" ]
+#then
+#	echo "Passed"
+#else
+#	exit 1
+#fi
+
+def read_test_case_property(filename):
+    fp = file(filename)
+    inside_case = False
+    inside_expected = False
+    name = "undefined"
+    expected = []
+    for line in fp:
+        line = line.strip()
+        if line[0] == '#': line = line[1:]
+        elif line[:2] == '//': line = line[2:]
+        if line == "CaseBegin" and inside_case == False: 
+            inside_case = True
+        if line == "CaseBegin" or inside_case == False: 
+            continue;
+        if not inside_expected:
+            if line[:5] == "Name:":
+                name = line[5:].strip()
+            elif line[:9] == "Expected:":
+                inside_expected = True
+                line = line[9:].strip()
+        if inside_expected and line:
+            if line[0] == '<':
+                if line[-1] != '>': 
+                    print >>sys.stderr, "E\tInvalid case description syntax"
+                    return None, []
+                expected.append(line[1:-1])
+            elif line == "CaseEnd":
+                return (name, expected)
+    print >>sys.stderr, "E\tUnexpected end of file, missing EndCase?"
+    return None, []
+
+def readenv(name):
+    if name in os.environ:
+        return os.environ[name]
+    else:
+        print >>sys.stderr, "E\tEnvironment variable $OBJDIR is undefined"
+        exit(1)
+
+def run_test_script(filename):
+    name, expected = read_test_case_property(filename)
+    if not name: return (name, False, 0)
+    print >>sys.stderr, "I\tLaunching test case %s"%name
+    start_time = time.time()
+    proc = subprocess.Popen(["valgrind", 
+                             "--errors-for-leak-kinds=definite,reachable", 
+                             "--leak-check=full", 
+                             "--error-exitcode=1", 
+                             pscript_binary, 
+                             filename], stdout=subprocess.PIPE)
+    for lineno, expected_line in enumerate(expected):
+        line = proc.stdout.readline()
+        if not line or line.strip() != expected_line:
+            print >>sys.stderr, "E\tUnmatched line #%d: expected `%s', got `%s'"%(lineno, expected_line, line.strip())
+            proc.kill();
+            return (name, False, time.time() - start_time)
+    if proc.stdout.readline():
+        print >>sys.stderr, "E\tOutput limit excceeded"
+        proc.kill()
+        return (name, False, time.time() - start_time)
+    if proc.returncode:
+        print >>sys.stderr, "E\tTest case return an non-zero return code"
+        return (name, False, time.time() - start_time)
+    return (name, True, time.time() - start_time)
+
+def test_one(filename):
+    name = "<unknown>"
+    result = False
+    exectime = 0
+    try:
+        name, result, exectime = run_test_script(filename)
+    except Exception:
+        traceback.print_exc()
+    print "Test case %s %s in %.2f ms"%(name, ["failed", "passed"][result], exectime * 1000)
+    return result
+
+def test_all():
+    failed = 0
+    for filename in os.listdir(case_dir):
+        if filename[-3:] == ".in":
+            filename = case_dir + filename
+            if not test_one(filename):
+                failed += 1
+    if failed: exit(1)
+
+if __name__ == "__main__":
+    pscript_binary = "%s/pscript"%readenv("OBJDIR")
+    case_dir = "%s/test/lang/scripts/"%readenv("OBJDIR")
+    if len(sys.argv) > 1:
+        test_one(sys.argv[1])
+    else:
+        test_all()

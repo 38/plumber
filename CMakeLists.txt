@@ -1,0 +1,16 @@
+cmake_minimum_required(VERSION 2.8)
+project(plumber)
+
+include("${CMAKE_CURRENT_SOURCE_DIR}/build/macros.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/build/setup.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/build/config.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/build/libplumber.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/build/package.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/build/servlet.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/build/example.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/build/test.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/build/misc.cmake")
+
+message("--------------------------------------------------------------")
+message(${CONF})
+message("--------------------------------------------------------------")

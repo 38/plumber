@@ -1,0 +1,46 @@
+/*
+CaseBegin
+	Name: module_init_flags
+	Expected: <undefined>
+	          <undefined>
+			  <mem_pipe installed>
+			  <pssm installed>
+			  <1>
+			  <1>
+			  <mem_pipe has been previously installed>
+			  <pssm has been previously installed>
+CaseEnd
+*/
+echo pipe.mem
+echo mem.pool
+
+if(pipe.mem == undefined) 
+{
+	insmod "mem_pipe";
+	echo "mem_pipe installed"
+}
+else echo "mem_pipe has been previously installed"
+
+if(plumber.std == undefined) 
+{
+	insmod "pssm";
+	echo "pssm installed"
+}
+else echo "pssm has been previously installed";
+
+echo pipe.mem
+echo plumber.std
+
+if(pipe.mem == undefined) 
+{
+	insmod "mem_pipe";
+	echo "mem_pipe installed"
+}
+else echo "mem_pipe has been previously installed"
+
+if(plumber.std == undefined) 
+{
+	insmod "pssm";
+	echo "pssm installed"
+}
+else echo "pssm has been previously installed";

@@ -1,0 +1,8 @@
+insmod "mem_pipe";
+insmod "tcp_pipe 1234";
+serv = {
+	ech := "pyservlet echo";
+	() -> "in" ech "out" ->();
+}
+start serv;
+

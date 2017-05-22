@@ -1,0 +1,7 @@
+package plumber.std.servlet.readfile;
+
+type Result {
+	plumber.std.request_local.File   file;
+	plumber.std.request_local.String redirect;
+	uint32                           status;
+};

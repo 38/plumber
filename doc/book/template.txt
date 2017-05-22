@@ -1,0 +1,66 @@
+<html>
+	<head>
+		<title>$title$</title>
+		<link rel="stylesheet" type="text/css" href="github-markdown.css"> </link>
+		<style>
+			body {
+				margin: 0;
+			}
+			.content{
+				box-sizing:border-box;
+				min-width:200px;
+				max-width:980px;
+				margin:0 auto;
+				padding:25px;
+			}
+			.link-bar {
+				width: 100%;
+				height: 25px;
+				position: fixed;
+				z-index: 998;
+			}
+			.prev-link {
+				float:left;
+				z-index: 999;
+				margin-left: 15px;
+			}
+			.next-link {
+				float:right;
+				z-index: 999;
+				margin-right: 15px;
+			}
+			.link-bar-bg {
+				z-index: -999;
+				position: absolute;
+				background-color: white;
+				height: 100%;
+				width: 100%;
+			    box-shadow: 0px 2px 5px #888888;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="link-bar"> 
+			$if(prev)$
+				<div class="prev-link"> 
+					<a href="$prev$">&lt;&lt;Previous</a>|$ptitle$
+				</div>
+			$endif$
+			$if(next)$
+				<div class="next-link">
+					$ntitle$|<a href="$next$">Next&gt;&gt;</a>
+				</div>
+			$endif$
+			<div class="link-bar-bg"></div>
+		</div>
+		<div class="content">
+			<article class="markdown-body">
+				<h1 class="title">$title$</h1>
+
+				<div class="toc">$toc$</div>
+
+				$body$
+			</article>
+		</div>
+	</body>
+</html>

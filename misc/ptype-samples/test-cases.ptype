@@ -1,0 +1,97 @@
+package graphics;
+
+type Vector2f {
+	float	value[2];
+};
+
+type Vector3f {
+	float	value[3];
+};
+
+type Point2D : Vector2f {
+	alias value[0] x;
+	alias value[1] y;
+};
+
+type Point3D : Vector3f {
+	alias value[0] x;
+	alias value[1] y;
+	alias value[2] z;
+};
+
+type ColorRGB : Vector3f {
+	alias value[0] red;
+	alias value[1] green;
+	alias value[2] blue;
+};
+
+type Triangle2D {
+	Point2D vertices[3];
+};
+
+type Triangle3D {
+	Point3D vertices[3];
+};
+
+type ColoredTriangle3D : Triangle3D {
+	ColorRGB   color;
+};
+
+type FlattenColoredTriangle3D: ColoredTriangle3D {
+	alias vertices[0].x x0;
+	alias vertices[1].x x1;
+	alias vertices[2].x x2;
+	alias vertices[0].y y0;
+	alias vertices[1].y y1;
+	alias vertices[2].y y2;
+	alias vertices[0].z z0;
+	alias vertices[1].z z1;
+	alias vertices[2].z z2;
+	alias color.red     r;
+	alias color.green   g;
+	alias color.blue    b;
+};
+
+type HDTest {
+	float	data[10][10][10][10];
+};
+
+type HDTestx {
+	HDTest hdtest;
+}
+
+type HDTest1 : HDTestx {
+	alias hdtest.data[9][9]  mydata;
+};
+
+type HDTest2 : HDTest1 {
+	alias mydata[8] mydata1;
+};
+
+type HDTest3 : HDTest2 {
+	alias mydata1[7] a;
+};
+
+type HDTest4 {
+	HDTest3 test[3][3][3][3];
+	alias test[1][2][3][4].hdtest.data[1][2][3][4] value;
+	alias test[1][2]       xx;
+	alias xx[3][4]         yy;
+	alias yy.hdtest.data   zz;
+	alias zz[9][9][9][9]   rr;
+}
+
+type CATestA: CATestB {
+
+}
+
+type CATestB: CATestA {
+
+}
+
+type CAAliasA {
+	alias a b;
+	alias b c;
+	alias c d;
+	alias d a;
+}

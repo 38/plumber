@@ -1,0 +1,15 @@
+set(LOCAL_CFLAGS "")
+set(LOCAL_LIBS plumber dl)
+
+aux_source_directory(${SOURCE_PATH}/reqparse servlet_FILES)
+set_source_files_properties(${servlet_FILES} PROPERTIES COMPILE_FLAGS ${CFLAGS})
+add_library(reqparse SHARED ${servlet_FILES})
+target_link_libraries(reqparse pservlet pstd ${GLOBAL_LIBS} ${EXEC_LIBS})
+set_target_properties(reqparse PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${TARGET_PREFIX})
+
+set(servlet_FILES )
+aux_source_directory(${SOURCE_PATH}/resgen servlet_FILES)
+set_source_files_properties(${servlet_FILES} PROPERTIES COMPILE_FLAGS ${CFLAGS})
+add_library(resgen SHARED ${servlet_FILES})
+target_link_libraries(resgen pservlet pstd ${GLOBAL_LIBS} ${EXEC_LIBS})
+set_target_properties(resgen PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${TARGET_PREFIX})

@@ -1,0 +1,46 @@
+/*
+CaseBegin
+	Name: if_else
+	Expected: <0>
+	          <1>
+			  <1>
+			  <2>
+              <xxx>
+              <yyy>
+              <zzz>
+              <rrr>
+			  <1>
+			  <2>
+			  <3>
+CaseEnd
+*/
+if(0)
+	echo 1
+else
+	echo 0
+
+if(1)
+	echo 1
+else
+	echo 0
+
+if(1) {
+	echo 1
+	echo 2
+}
+
+for(var i = 0; i < 4; i = i + 1)
+	if(i == 0)
+		echo "xxx"
+	else if(i == 1) 
+		echo "yyy"
+	else if(i == 2)
+		echo "zzz"
+	else
+		echo "rrr"
+
+if(1) if(1) if(0) ; else echo 1;
+if(1) if(0) if(1) ; else echo 1;
+if(1) if(0) if(0) ; else echo 1; else echo 2; else echo 3;
+if(0) if(1) if(1) ; else echo 1; else echo 2; else echo 3;
+

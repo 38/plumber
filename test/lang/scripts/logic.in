@@ -1,0 +1,97 @@
+/*
+CaseBegin
+	Name: logic_expression
+	Expected: <Basic>
+			  <1>
+			  <0>
+			  <1>
+			  <1>
+			  <0>
+			  <0>
+			  <0>
+			  <0>
+			  <0>
+			  <0>
+			  <1>
+			  <1>
+			  <1>
+			  <0>
+			  <Undefined Cmp>
+			  <1>
+			  <1>
+			  <1>
+			  <0>
+			  <0>
+			  <Logic>
+			  <0>
+			  <0>
+			  <0>
+			  <1>
+			  <0>
+			  <1>
+			  <1>
+			  <1>
+			  <1>
+			  <0>
+			  <Undefined Logic>
+			  <0>
+			  <0>
+			  <0>
+			  <0>
+			  <0>
+			  <0>
+			  <0>
+			  <1>
+			  <1>
+			  <0>
+			  <undefined>
+CaseEnd
+*/
+echo "Basic"
+echo 2!=1
+echo 2==1
+echo 2>=1
+echo 2>1
+echo 2<1
+echo 2<=1
+echo !1
+echo "a" == "b"
+echo "a" >= "b"
+echo "a" > "b"
+echo "a" < "b"
+echo "a" <= "b"
+echo "a" != "b"
+echo !"a"
+
+echo "Undefined Cmp"
+echo a == undefined
+echo undefined == a
+echo undefined == undefined
+a = 0
+echo a == undefined
+echo undefined == a
+
+echo "Logic"
+echo 0 && 0
+echo 1 && 0
+echo 0 && 1
+echo 1 && 1
+echo 0 || 0
+echo 1 || 0
+echo 0 || 1
+echo 1 || 1
+echo !0
+echo !1
+
+echo "Undefined Logic"
+echo undefined && 0
+echo 0 && undefined
+echo undefined && 1
+echo 1 && undefined
+echo undefined && undefined
+echo undefined || 0
+echo 0 || undefined
+echo 1 || undefined
+echo undefined || 1
+echo undefined || undefined
+echo undefined

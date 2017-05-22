@@ -1,0 +1,48 @@
+/**
+ * Copyright (C) 2017, Hao Hou
+ **/
+#ifndef __PROTO_PACKAGE_CONF_H__
+#define __PROTO_PACKAGE_CONF_H__ 
+
+/** @brief indicates the system type */
+#ifndef __@SYSMACRO@__
+#   define __@SYSMACRO@__
+#endif
+
+#ifdef __LINUX__
+#include <linux/limits.h>
+#else
+#	error("Type of operating system is not supported");
+#endif
+
+/**
+ * @brief the initial size used when the name reference object load
+ **/
+#	define PROTO_REF_NAME_INIT_SIZE @LIB_PROTO_REF_NAME_INIT_SIZE@
+
+/** 
+ * @brief the number of slots in the protocol caching table
+ **/
+#	define PROTO_CACHE_HASH_SIZE @LIB_PROTO_CACHE_HASH_SIZE@
+
+/**
+ * @brief the default database root
+ **/
+#	define PROTO_CACHE_DEFAULT_DB_ROOT "@CMAKE_INSTALL_PREFIX@/@LIB_PROTO_DEFAULT_DB_ROOT@"
+
+/**
+ * @brief the protocol type description file suffix
+ **/
+#	define PROTO_CACHE_PROTO_FILE_SUFFIX ".@LIB_PROTO_FILE_SUFFIX@"
+
+/**
+ * @brief the reverse dependency list suffix
+ **/
+#	define PROTO_CACHE_REVDEP_FILE_SUFFIX ".@LIB_PROTO_REVDEP_SUFFIX@"
+
+/**
+ * @brief the reverse dependecy buffer's initial size
+ **/
+#	define PROTO_CACHE_REVDEP_INIT_SIZE @LIB_PROTO_CACHE_REVDEP_INIT_SIZE@
+
+#endif /* __PROTO_PACKAGE_CONF_H__ */

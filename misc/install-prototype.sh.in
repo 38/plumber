@@ -1,0 +1,6 @@
+#!/bin/sh
+for prototype in `echo "@PROTO_FILES_TO_INSTALL@" | awk 'BEGIN{RS = ";"; ORS="\n"}{print $1}'`
+do
+	@CMAKE_CURRENT_BINARY_DIR@/bin/protoman --update --yes --force ${prototype}
+done
+

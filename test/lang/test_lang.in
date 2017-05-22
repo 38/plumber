@@ -1,0 +1,25 @@
+/* test comment */
+/* test multiline
+   comment
+*/
+//test this 
+#also comments
+set /* test again */ echo visualize start
+include "testfile\15\101\102"
+$a123_456_ABC = 223
+0xff
+{}
+=
+(
+)
+@[
+]
+{
+}
+<
+>
+;
+.
+:=
+->
+0377

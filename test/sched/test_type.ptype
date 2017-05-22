@@ -1,0 +1,37 @@
+package test.sched.typing;
+
+type Compressed { }
+
+type Encrypted { }
+
+type GZipCompressed : Compressed { }
+
+type ZlibCompressed : Compressed { }
+
+type RSAEncrypted : Encrypted { }
+
+type DESEncrypted : Encrypted { }
+
+type Vector3f {
+	float  values[3];
+}
+
+type Point : Vector3f {
+	alias values[0] x;
+	alias values[1] y;
+	alias values[2] z;
+}
+
+type Triangle {
+	Point vert[3];
+}
+
+type ColorRGB : Vector3f {
+	alias values[0] r;
+	alias values[1] g;
+	alias values[2] b;
+}
+
+type ColoredTriangle : Triangle {
+	ColorRGB color;
+}

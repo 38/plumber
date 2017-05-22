@@ -1,0 +1,7 @@
+set(TYPE shared-library)
+set(LOCAL_CFLAGS "-fPIC")
+set(LOCAL_LIBS)
+set(PACKAGE_CONF_INSTALL_PATH "include/proto")
+set(INSTALL "yes")
+install_includes("${SOURCE_PATH}/include" "include/proto" "*.h")
+install_includes("${CMAKE_SOURCE_DIR}/include/" "include/proto" "error.h")

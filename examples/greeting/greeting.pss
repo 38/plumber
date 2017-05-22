@@ -1,0 +1,11 @@
+insmod "tcp_pipe 8889";
+insmod "mem_pipe";
+insmod "pssm";
+runtime.servlet.path = ".";
+scheduler.worker.default_itc_pipe = "pipe.mem"
+
+start {
+	reqparse := "reqparse";
+	resgen   := "resgen";
+	() -> "request" reqparse "user-agent" -> "user-agent" resgen "response" -> ();
+};

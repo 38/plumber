@@ -1,0 +1,13 @@
+macro(install_includes include_dir target_prefix file_pattern)
+	file(GLOB children "${include_dir}/*")
+	file(GLOB headers "${include_dir}/${file_pattern}")
+	foreach(child ${children})
+		if(IS_DIRECTORY ${child})
+			if(NOT "${child}" STREQUAL "${include_dir}")
+				install(DIRECTORY ${child} DESTINATION ${target_prefix} FILES_MATCHING PATTERN "${file_pattern}")
+			endif(NOT "${child}" STREQUAL "${include_dir}")
+		endif(IS_DIRECTORY ${child})
+	endforeach(child ${children})
+	install(FILES ${headers} DESTINATION ${target_prefix})
+endmacro(install_includes include_dir target_prefix)
+

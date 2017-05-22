@@ -1,0 +1,167 @@
+#!/usr/bin/python
+import datetime
+import sys
+import argparse
+import time
+
+color = {
+    'F': '\033[39;41m',
+    'E': '\033[31m',
+    'W': '\033[33m',
+    'N': '\033[34m',
+    'I': '\033[39m',
+    'T': '\033[35m',
+    'D': '\033[32m'
+}
+
+vim_level = {
+        'F': 'fatal',
+        'E': 'error',
+        'W': 'warning',
+        'N': 'notice',
+        'I': 'info',
+        'T': 'trace',
+        'D': 'debug'
+}
+
+class LogRecord(object):
+    def __init__(self, line):
+        line = line.strip()
+        self.level = line[0]
+        line = line[2:]
+        self.time = float(line[:line.index('|')])
+        line = line[line.index('|') + 1:]
+        self.func = line[:line.index('@')]
+        line = line[line.index('@') + 1:]
+        self.file = line[:line.index(':')]
+        line = line[line.index(':') + 1:]
+        self.line = int(line[:line.index(']')])
+        line = line[line.index(']') + 1:]
+        self.message = line.strip()
+    def get_str(self, fmt):
+        return fmt.format(line=self.line,
+                          time=datetime.datetime.fromtimestamp(self.time),
+                          level=self.level,
+                          func=self.func,
+                          message=self.message,
+                          lineno=self.line,
+                          filename=self.file,
+                          vim_level=vim_level[self.level])
+
+    def get_color_str(self, fmt):
+        fmt = color[self.level] + fmt + "\033[0m"
+        return self.get_str(fmt)
+
+class LogFile(object):
+    def __init__(self, filenames, follow=False):
+        self._fps = [open(f, "r") for f in filenames]
+        self._last = [None for _ in filenames]
+        self._follow = follow
+    def __del__(self):
+        for filep in self._fps:
+            if filep != None:
+                filep.close()
+    def __iter__(self):
+        return self
+    def set_follow(self, value):
+        self._follow = value
+    def next(self):
+        while True:
+            mind = -1
+            for i in range(len(self._last)):
+                if self._last[i] is None:
+                    line = self._fps[i].readline()
+                    if line is None or line == "":
+                        continue
+                    self._last[i] = LogRecord(line)
+                    if mind == -1: mind = i
+                else:
+                    if mind == -1: mind = i
+            if mind == -1:
+                if not self._follow:
+                    raise StopIteration()
+                else:
+                    time.sleep(0.05)
+            else:
+                break
+        start = mind
+        for i in range(start + 1, len(self._last)):
+            if self._last[i] and self._last[i].time < self._last[mind].time:
+                mind = i
+        ret = self._last[mind]
+        self._last[mind] = None
+        return ret
+
+
+parser = argparse.ArgumentParser(description="The Plumber Log Formatter")
+parser.add_argument('log_files', type=str, nargs='*',
+                    help='The log files to show')
+parser.add_argument('--follow', '-w', dest='follow',
+                    help='wait for new message', action='store_true')
+parser.add_argument('--timestamp', '-t', dest='timestamp',
+                    help='show the timestamp', action='store_true')
+parser.add_argument('--filename', '-f', dest='filename',
+                    help='show the filename', action='store_true')
+parser.add_argument('--lineno', '-l', dest='lineno',
+                    help='show line number', action='store_true')
+parser.add_argument('--level', '-L', dest='level',
+                    help='show log level', action='store_true')
+parser.add_argument('--func', '-F', dest='func',
+                    help='show function name', action='store_true')
+parser.add_argument('--color', '-c', dest='color',
+                    help='use color for different log levels', action='store_true', default=False)
+parser.add_argument('--last', '-n', dest='last',
+                    help='show last N lines', type=int, nargs=1, action='store', default=0)
+parser.add_argument('--quickfix', '-Q', dest='quickfix', 
+                    help='display the log message in the quickfix format, follow, do not use color',
+                    action='store_true')
+
+args = parser.parse_args(sys.argv[1:])
+
+fmt = "{filename}:{lineno}:1:{vim_level}:[{time}] {message}"
+
+if not args.quickfix:
+    fmtstr = []
+    if args.level:
+        fmtstr.append('[{level}]')
+    if args.timestamp:
+        fmtstr.append('[{time}]')
+    if args.filename:
+        fmtstr.append('[{filename}]')
+    if args.func:
+        fmtstr.append('[{func}]')
+    if args.lineno:
+        fmtstr.append('[line:{lineno}]')
+
+    if not fmtstr:
+        fmt = "[{time}][{level}][{func}]"
+    else:
+        fmt = "".join(fmtstr)
+    fmt += "\t{message}"
+else:
+    args.color = False
+    args.follow = True
+
+files = LogFile(args.log_files, args.follow) if len(args.log_files) else LogFile(["/dev/stdin"])
+
+last = [None for _ in xrange(args.last[0])] if args.last else []
+if last:
+    files.set_follow(False)
+    nxt = 0
+    for lr in files:
+        last[nxt] = lr
+        nxt = (nxt + 1) % len(last)
+    for i in range(nxt + 1, nxt + len(last) + 1):
+        lr = last[i%len(last)]
+        if lr:
+            if args.color:
+                print lr.get_color_str(fmt)
+            else:
+                print lr.get_str(fmt)
+    files.set_follow(args.follow)
+
+for lr in files:
+    if args.color:
+        print lr.get_color_str(fmt)
+    else:
+        print lr.get_str(fmt)

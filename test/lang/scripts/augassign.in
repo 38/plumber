@@ -1,0 +1,28 @@
+/*
+CaseBegin
+    Name: augassign
+    Expected: <0>
+              <2>
+              <1>
+              <10>
+              <5>
+              <1>
+			  <8>
+CaseEnd
+*/
+a = 0
+echo a
+a += 2
+echo a
+a -= 1
+echo a
+a *=10
+echo a
+a /= 2
+echo a
+a %= 2
+echo a
+a += a
+a += a
+a += a
+echo a

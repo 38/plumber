@@ -1,0 +1,33 @@
+#####################setup the TCP connection pool############################
+module.tcp.size = 65536  /* the connection pool size */
+module.tcp.ttl  = 240    /* time to live */
+module.tcp.port = 80 + 1 * (2 + 3) + 4     /* listen the 80 port */
+
+//define the file server
+fileserver = {
+	parse_req := "getpath" @[color = green];
+	dup_path  := "dup 2";
+	mime_type := "mime bin/test/lang/test_mime_types.in";
+	read_file := "read doc/doxygen/html";
+	error     := "cat 2";
+	gen_res   := "response" @[color = green];
+
+	() -> "request" parse_req "path" -> "in" dup_path {
+		"out0" -> "path" mime_type "mime" -> "mime";
+		"out1" -> "path" read_file {
+			"content" -> "content";
+			"size"    -> "size";
+		}
+	} gen_res "response" -> ();
+
+	{
+		parse_req "error" -> "in0";
+		read_file "error" -> "in1";
+	} error "out" -> "error" gen_res;
+};
+
+/* dump the visualization graph */
+visualize fileserver >>> "/dev/stdout";
+
+/* then start the file server */
+//start fileserver

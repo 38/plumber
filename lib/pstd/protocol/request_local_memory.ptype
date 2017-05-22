@@ -1,0 +1,24 @@
+package plumber.std.request_local;
+
+/* Request local memory is the memory that is managed
+   by the scheduler and enforce Copy-On-Write on it */
+type MemoryObject {
+	request_local_token	token;   //The token is an identifier for the memory
+};
+
+/* The type for the ditionary type */
+type Dictionary : MemoryObject {
+	uint32	key_size;  //The size of the key
+	uint32  val_size;  //The size of the value
+};
+
+/* The type for managed string */
+type String : MemoryObject {};
+
+type File : MemoryObject {};
+
+/* An array buffer */
+type ArrayBuffer : MemoryObject {
+	uint32  elem_size;   //The element size
+	uint32  count;       //The number of elmeents
+};

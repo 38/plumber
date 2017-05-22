@@ -1,0 +1,30 @@
+#!/bin/zsh
+for ext in {'[ch]pp','[ch]',py,js,cmake,vim,pss,ptype}
+do
+	if [ ! -z "$(git ls-files '*.'${ext})" ]
+	then
+		wc -l $(git ls-files '*.'${ext}) | tail -n 1 | awk '{print "'${ext}'",$1}'
+	fi
+done | \
+awk \
+'
+	BEGIN {
+		name["[ch]pp"] = "C++";
+		name["[ch]"] = "C";
+		name["py"] = "Python"
+		name["js"] = "JS"
+		name["cmake"] = "CMake"
+		name["vim"] = "Vim"
+		name["pss"] = "PScript"
+		name["ptype"] = "TypeDef" 
+	}
+	{
+		sum += $2; 
+		lang[$1] = $2
+	} 
+	END {
+		for(i in lang) 
+			print name[i]"\t"lang[i]"\t"lang[i]*100/sum"%"
+		print "Total\t"sum"\t100%"
+	}' | \
+sort -nk 2  

@@ -1,0 +1,239 @@
+/**
+ * Copyright (C) 2017, Hao Hou
+ **/
+
+#define LEXER_TOKEN_NAME
+
+#include <stdarg.h>
+#include <stdio.h>
+#include <getopt.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+#include <proto.h>
+#include <cache.h>
+
+#include <log.h>
+#include <lexer.h>
+#include <compiler.h>
+#include <sandbox.h>
+
+
+int main(int argc, char** argv)
+{	
+	int i;
+	for(i = 1; i < argc; i ++)
+	{
+		lexer_t* lexer = lexer_new(argv[i]);
+		if(NULL == lexer) exit(1);
+#if 0
+		for(;;)
+		{
+			lexer_token_t* token = lexer_next_token(lexer);
+			if(NULL == lexer) 
+			{
+				lexer_free(lexer);
+				exit(1);
+			}
+
+			if(NULL == token) 
+			{
+				break;
+			}
+			
+			if(token->type == LEXER_TOKEN_EOF) 
+			{
+				lexer_token_free(token);
+				break;
+			}
+
+			if(token->type == LEXER_TOKEN_ID)
+				LOG_ERROR("%s(%s)", lexer_token_name[token->type], token->data->id);
+			else if(token->type == LEXER_TOKEN_NUMBER) 
+				LOG_ERROR("%s(%u)", lexer_token_name[token->type], token->data->number);
+			else LOG_ERROR("%s", lexer_token_name[token->type]);
+			lexer_token_free(token);
+		}
+#endif
+		compiler_options_t opt = {
+			.padding_size = 8,
+			.lexer = lexer
+		};
+
+		compiler_result_t* result = compiler_compile(opt);
+
+		LOG_DEBUG("%p", result);
+
+		lexer_free(lexer);
+	}
+
+	LOG_DEBUG("%p", proto_type_new(0, NULL, 0));
+	static char buf[1024];
+	const proto_err_t* err = proto_err_stack();
+	for(;err != NULL; err = err->child)
+	{
+		LOG_DEBUG("Err: %s", proto_err_str(err, buf, sizeof(buf)));
+	}
+	proto_err_clear();
+
+	proto_ref_typeref_t* test_inherit = proto_ref_typeref_new(32);
+	proto_ref_typeref_append(test_inherit, "testInheritate");
+
+	proto_ref_typeref_t* point2d = proto_ref_typeref_new(32);
+	proto_ref_typeref_append(point2d, "graphics");
+	proto_ref_typeref_append(point2d, "point2d");
+
+	proto_ref_nameref_t* alias = proto_ref_nameref_new(32);
+	proto_ref_nameref_append_symbol(alias, "x");
+	proto_ref_nameref_append_symbol(alias, "w");
+	proto_ref_nameref_append_subscript(alias, 3);
+	proto_ref_nameref_append_subscript(alias, 2);
+	proto_ref_nameref_append_subscript(alias, 1);
+	proto_ref_nameref_append_symbol(alias, "z");
+
+	proto_type_t* proto = proto_type_new(32, test_inherit, 8);
+	proto_type_append_atomic(proto, "x", 8, NULL);
+	proto_type_append_atomic(proto, "y", 4, NULL);
+	proto_type_append_atomic(proto, "z", 4, NULL);
+	proto_type_append_atomic(proto, "w", 4, NULL);
+	proto_type_append_atomic(proto, "c", 1, NULL);
+	proto_type_append_atomic(proto, "r", 8, NULL);
+	proto_type_append_compound(proto, "cc", NULL, point2d);
+	proto_type_append_alias(proto, "ww", alias);
+
+	printf("%d\n", proto_type_get_size(proto));
+
+	for(i = 0; i < (int)proto_type_get_size(proto); i ++)
+	{
+		char buf[1024];
+		printf("%s\n", proto_type_entity_str(proto_type_get_entity(proto, (uint32_t)i), buf, sizeof(buf)));
+	}
+
+	proto_type_dump(proto, "/tmp/test.proto");
+
+	proto_type_free(proto);
+
+	proto_err_clear();
+
+	proto = proto_type_load("/tmp/test.proto");
+	
+	for(err = proto_err_stack() ;err != NULL; err = err->child)
+	{
+		LOG_DEBUG("Err: %s", proto_err_str(err, buf, sizeof(buf)));
+	}
+	
+	printf("%d\n", proto_type_get_size(proto));
+
+	for(i = 0; i < (int)proto_type_get_size(proto); i ++)
+	{
+		char buf[1024];
+		printf("%s\n", proto_type_entity_str(proto_type_get_entity(proto, (uint32_t)i), buf, sizeof(buf)));
+	}
+
+	proto_type_free(proto);
+
+	compiler_options_t options = {
+		.padding_size = 8,
+		.lexer = lexer_new("/tmp/test.ptype")
+	};
+
+	compiler_result_t* result = compiler_compile(options);
+
+	printf("%p\n", result);
+
+	compiler_type_t* type;
+	for(type = result->type_list; NULL != type; type = type->next)
+	{
+		proto = type->proto_type;
+		puts(type->name);
+		for(i = 0; i < (int)proto_type_get_size(proto); i ++)
+		{
+			char buf[1024];
+			printf("%s\n", proto_type_entity_str(proto_type_get_entity(proto, (uint32_t)i), buf, sizeof(buf)));
+		}
+
+		char buf[1024];
+		snprintf(buf, sizeof(buf), "/tmp/proto_%s.proto", type->name);
+		proto_type_dump(proto, buf);
+
+	}
+
+	lexer_free(options.lexer);
+
+	compiler_result_free(result);
+
+	proto_db_init();
+
+	proto_cache_set_root("/tmp/protodb");
+
+	printf("%p\n", proto_db_query_type("graphics/Vector3f"));
+	printf("%p\n", proto_db_query_type("graphics/Vector3f"));
+	printf("%p\n", proto_db_query_type("graphics/ColoredTriangle3D"));
+	printf("%p\n", proto_db_query_type("graphics/ColoredTriangle3D"));
+
+	printf("%u\n", proto_db_type_size("graphics/ColoredTriangle3D"));
+	printf("%u\n", proto_db_type_size("graphics/Vector3f"));
+	printf("%u\n", proto_db_type_size("graphics/Vector2f"));
+	printf("%u\n", proto_db_type_size("graphics/FlattenColoredTriangle3D"));
+	
+	uint32_t sz;
+
+	printf("%u ", proto_db_type_offset("graphics/FlattenColoredTriangle3D", "color.value[2]", &sz));
+	printf("%u\n", sz);
+	printf("%u ", proto_db_type_offset("graphics/HDTest2", "mydata1[3]", &sz));
+	printf("%u\n", sz);
+	printf("%u ", proto_db_type_offset("graphics/HDTest3", "a", &sz));
+	printf("%u\n", sz);
+	printf("%u ", proto_db_type_offset("graphics/HDTest4", "rr", &sz));
+	printf("%u\n", sz);
+	printf("%u ", proto_db_type_offset("graphics/HDTest4", "zz", &sz));
+	printf("%u\n", sz);
+	printf("%u ", proto_db_type_offset("graphics/HDTest4", "test[0][0][0][1].hdtest.data[9][9][9][9]", &sz));
+	printf("%u\n", sz);
+
+	printf("%u\n", proto_db_type_size("graphics/CATestA"));
+	printf("%u\n", proto_db_type_size("graphics/CAAliasA"));
+	
+	printf("%u\n", proto_db_type_offset("graphics/CAAliasA", "a", NULL));
+
+
+
+	printf("validate %d\n", proto_db_type_validate("graphics/ColoredTriangle3D"));
+	printf("validate %d\n", proto_db_type_validate("graphics/Vector3f"));
+	printf("validate %d\n", proto_db_type_validate("graphics/Vector2f"));
+	printf("validate %d\n", proto_db_type_validate("graphics/FlattenColoredTriangle3D"));
+	printf("validate %d\n", proto_db_type_validate("graphics/HDTest"));
+	printf("validate %d\n", proto_db_type_validate("graphics/HDTestx"));
+	printf("validate %d\n", proto_db_type_validate("graphics/HDTest2"));
+	printf("validate %d\n", proto_db_type_validate("graphics/HDTest3"));
+	printf("validate %d\n", proto_db_type_validate("graphics/HDTest4"));
+	printf("validate %d\n", proto_db_type_validate("graphics/CAAliasA"));
+	printf("validate %d\n", proto_db_type_validate("graphics/UndefinedRef"));
+
+	sandbox_t* sandbox = sandbox_new(SANDBOX_FORCE_UPDATE);
+#if 0
+	sandbox_delete_type(sandbox, "graphics/Point3D");
+	sandbox_delete_type(sandbox, "graphics/Point2D");
+#else
+	proto_type_t* mytype = proto_type_new(32, NULL, 8);
+	sandbox_insert_type(sandbox, "graphics/Point3D", mytype);
+#endif
+	
+	sandbox_op_t sbuf[128];
+	proto_err_clear();
+	printf("sandbox: %u\n", sandbox_dry_run(sandbox, sbuf, sizeof(sbuf) / sizeof(sbuf[0])));
+	
+	
+	sandbox_free(sandbox);
+
+	proto_cache_sandbox_mode(1);
+	printf("%p\n", proto_cache_get_type("graphics/Point3D", NULL, NULL));
+	proto_cache_sandbox_mode(0);
+	printf("%p\n", proto_cache_get_type("graphics/Point3D", NULL, NULL));
+
+	proto_db_finalize();
+
+	proto_err_clear();
+
+	return 0;
+}

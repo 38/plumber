@@ -1,0 +1,40 @@
+<package>        := package <name-space-path>
+<primitive-type> := int8|int16|int32|int64|uint8|uint16|uint32|uint64|float|double|char|address
+<scalar-type>    := <type-name> | <primitive-type>
+<field-ref>      := <field-name> | <field-ref>.<field-name>
+<name-alias>     := alias <field-ref> <field-name>
+<array>          := <type>[<int>]
+<type>           := <scalar-type> | <name-alias> | <array>
+<field>          := <field-name> : <type>
+<type-defition>  := type <type-name> [:<base-type>[,<base-type>]]{
+						<field1>
+						.......
+						<fieldN>
+				 }
+<type-alias>     := type <identifier> <identifier>
+<import>         := import <type-name>[,<type-name>]
+<export>         := export <type-name>[,<type-name>]
+
+<basetype>[8]
+
+alias <another-field>
+
+import xxxx;
+
+type point : point2 {
+	double  a;
+	double  b;
+	double  c;
+	address d;
+	alias x e;
+	alias y f;
+	alias z g;
+};
+
+type StorageToken { 
+	uint32 id
+}
+
+type point PointImplementation
+
+export point2, point3;

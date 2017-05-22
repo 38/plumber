@@ -1,0 +1,7 @@
+/* 
+CaseBegin
+	Name: hello_world
+	Expected: <hello world>
+CaseEnd
+*/
+echo "hello world"

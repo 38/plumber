@@ -1,0 +1,56 @@
+test = "x"
+abcc = 0x123
+def = test #let's try a comment 
+/*lalala*/   echo "this is a test"
+module.tcp.port = 8888
+echo module.tcp.port;
+visualize test >>> "/tmp/aaa.dot";
+start def;
+graph={
+	request := "http-parser a b c" @[color = green]
+	readfile := "read xxxx" @[color = red];
+	response := "response" #comment
+	another  := variable @[color = black]
+
+	request "path" -> "filename" readfile {
+		"content" -> "args";
+		"error"   -> "error";
+	} response;
+	
+	{
+		()-> "input" request "error" -> "in0" readfile;
+		readfile "error" -> "in1";
+		response "error" -> "in2";
+		request {
+			"err1" -> "in3"
+			"err1" -> "in4"
+		};
+		
+	} another "output" -> "test_pipe" another;
+
+	response "out" -> ();
+	() -> "111" response "222" -> ();
+	() -> "333" response;
+	response "444" -> ();
+	() -> "123" response another "456" -> ()
+
+}
+this_should_be_0 = 1
+
+a = 1 b = 2 c = {}
+
+graph1 = {
+	node := "test";
+	{
+		() -> "pipe";
+	} node;
+	node {
+		"pipe" -> ();
+	};
+
+	{
+		() -> "pipe" node "pipe" -> "pipe";
+		node "pipe" -> ();
+	}node;
+}
+

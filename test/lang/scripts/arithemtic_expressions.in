@@ -1,0 +1,33 @@
+/* 
+CaseBegin
+	Name: arithemtic_expression
+	Expected: <2>
+			  <11>
+			  <1>
+			  <9>
+			  <The result is 5>
+			  <5>
+			  <-1>
+			  <6>
+			  <0>
+			  <-6>
+			  <0>
+			  <1>
+			  <-1>
+CaseEnd
+*/
+echo 1 + 1
+echo 1 + 2 * 3 - 4 * (5 - 6)
+echo 0 - (1 - 1 - 1)
+a = 3
+b = 4
+echo a * (b - 1)
+echo "The result is " + (2 + 3)
+echo 2 + 3
+echo 2 - 3
+echo 2 * 3
+echo 2 / 3
+echo -2 * 3
+echo -2 / -3
+echo 4 % 3
+echo -4 % 3

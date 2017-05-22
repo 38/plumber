@@ -1,0 +1,46 @@
+// This is a test type def
+
+package graphics;
+
+/* define a 2D point
+ * This is the test case
+ * for the lexer
+ **/
+packed type point_2d {
+	double  x;       /*!< The x value */
+	double  y;       /*!< the y value */
+	alias x column;  #!< we can also define a name alias
+	alias y row;     //!< also in different styles
+};
+
+type point_3d : point_2d {
+	double  z;        /*!< the Z value */
+	alias z depth;
+};
+
+type triangle_2d {
+	point_2d   vertex[3];
+};
+
+type triangle_3d {
+	point_3d   vectex[3];
+};
+
+type triangle_2d_legacy : triangle_2d {
+	alias vertex[0].x x0;
+	alias vertex[0].y y0;
+	alias vertex[1].x x1;
+	alias vertex[1].x x1;
+	alias vertex[2].y y2;
+	alias vertex[2].y y2;
+};
+
+type triangle_2d_original {
+	double x0;
+	double y0;
+	double x1;
+	double y1;
+	double x2;
+	double y2;
+};
+

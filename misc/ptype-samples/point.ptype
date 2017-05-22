@@ -1,0 +1,23 @@
+type Point1D {
+	double x;
+};
+
+type Point2D : Point1D {
+	double y;
+	alias x column;
+	alias y row;
+}
+
+type Rectangle {
+	Point2D upper_left;
+	Point2D lower_right;
+};
+
+type Rectangle_Legacy : Rectangle {
+	alias upper_left.x x0;
+	alias upper_left.y y0;
+	alias lower_right.x x1;
+	alias lower_right.y y1;
+}
+
+export Point1D, Point2D, Rectangle;

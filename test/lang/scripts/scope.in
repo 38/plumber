@@ -1,0 +1,37 @@
+/*
+	CaseBegin
+		Name: Scope test
+		Expected: <4>
+				  <4>
+				  <100>
+				  <0>
+				  <4>
+				  <yes>
+	CaseEnd
+*/
+a = 3;
+
+{
+	a = a + 1;
+	echo a
+}
+echo a
+
+{
+	var a;
+	a = 0;
+	{
+		var a;
+		a = 100;
+		echo a;
+	}
+	echo a
+}
+
+echo a
+
+{
+	var a;
+	if(a == undefined) echo "yes"
+	else echo "no"
+}

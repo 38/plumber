@@ -1,0 +1,133 @@
+#ifndef __PLUMBER_CONFIG_H__
+/** @indicates the system type */
+#   define __@SYSMACRO@__
+
+/** @breif the source code root */
+#   define __PLUMBER_SOURCE_ROOT__ "@CMAKE_CURRENT_SOURCE_DIR@"
+
+/** @brief the default log level */
+#ifndef LOG_LEVEL
+#   define LOG_LEVEL @LOG@
+#endif
+
+/** @brief the plumber version number */
+#   define PLUMBER_VERSION @PLUMBER_VERSION@
+
+/** @brief default log config file name */
+#	define LOG_DEFAULT_CONFIG_FILE @LOG_DEFAULT_CONFIG_FILE@
+
+/** @brief where can I find the config file */
+#   define CONFIG_PATH @CONFIG_PATH@
+
+/**
+ * @brief the default servlet search path 
+ **/
+#	define RUNTIME_SERVLET_DEFAULT_SEARCH_PATH @RUNTIME_SERVLET_DEFAULT_SEARCH_PATH@
+
+/** @brief the symbol name for the servlet metadata */
+#   define RUNTIME_SERVLET_DEFINE_SYM @RUNTIME_SERVLET_DEFINE_SYM@
+
+/** @brief the symbol name for the address table */
+#	define RUNTIME_ADDRESS_TABLE_SYM @RUNTIME_ADDRESS_TABLE_SYM@
+
+/** @brief the initial size of the slot servlet table */
+#	define RUNTIME_SERVLET_TAB_INIT_SIZE @RUNTIME_SERVLET_TAB_INIT_SIZE@
+
+/** @brief the maximum servlet name length */
+#	define RUNTIME_SERVLET_NAME_LEN @RUNTIME_SERVLET_NAME_LEN@
+
+/** @brief the maximum length of a pipe name */
+#	define RUNTIME_PIPE_NAME_LEN @RUNTIME_PIPE_NAME_LEN@
+
+/** @brief the intial size of a PDT */
+#	define RUNTIME_PDT_INIT_SIZE @RUNTIME_PDT_INIT_SIZE@
+
+/** @brief the initial size of node list of the service buffer  */
+#   define SCHED_SERVICE_BUFFER_NODE_LIST_INIT_SIZE @SCHED_SERVICE_BUFFER_NODE_LIST_INIT_SIZE@
+
+/** @brief the initial size of the out going list for each service buffer node */
+#   define SCHED_SERVICE_BUFFER_OUT_GOING_LIST_INIT_SIZE @SCHED_SERVICE_BUFFER_OUT_GOING_LIST_INIT_SIZE@
+
+/** @brief the number of slots in the scheduler task hash table */
+#	define SCHED_TASK_TABLE_SLOT_SIZE @SCHED_TASK_TABLE_SLOT_SIZE@
+
+/** @brief indicates if we need to compile test pipe module  */
+#   define DO_NOT_COMPILE_ITC_MODULE_TEST @DO_NOT_COMPILE_ITC_MODULE_TEST@
+
+/** @brief the maximum size of event queue for a module */
+#	define ITC_MODULE_EVENT_QUEUE_SIZE @ITC_MODULE_EVENT_QUEUE_SIZE@
+
+
+/** @brief the init size of the event queue vector */
+#	define ITC_EQUEUE_VEC_INIT_SIZE @ITC_EQUEUE_VEC_INIT_SIZE@
+
+/** @brief the init size of the plumber service definition script search path vector */
+#	define LANG_LEX_SEARCH_LIST_INIT_SIZE @LANG_LEX_SEARCH_LIST_INIT_SIZE@
+
+/** @brief the init size of the servlet search path vector */
+#	define RUNTIME_SERVLET_SEARCH_PATH_INIT_SIZE @RUNTIME_SERVLET_SEARCH_PATH_INIT_SIZE@
+
+/** @brief the number of hash slots in a string table for the service script */
+#   define LANG_BYTECODE_HASH_SIZE @LANG_BYTECODE_HASH_SIZE@
+
+/** @brief the initial size for the label vector */
+#	define LANG_BYTECODE_LABEL_VECTOR_INIT_SIZE @LANG_BYTECODE_LABEL_VECTOR_INIT_SIZE@
+
+/** @brief the initial size for a bytecode table */
+#   define LANG_BYTECODE_LIST_INIT_SIZE @LANG_BYTECODE_LIST_INIT_SIZE@
+
+/** @brief the initial size of the memory pool used by the bytecode table's hash map */
+#	define LANG_BYTECODE_HASH_POOL_INIT_SIZE @LANG_BYTECODE_HASH_POOL_INIT_SIZE@
+
+/** @brief the number of hash slots in a service graph node hash */
+#	define LANG_COMPILER_NODE_HASH_SIZE @LANG_COMPILER_NODE_HASH_SIZE@
+
+/** @brief the inital size of the memory pool used by the service graph node hash */
+#	define LANG_COMPILER_NODE_HASH_POOL_INIT_SIZE @LANG_COMPILER_NODE_HASH_POOL_INIT_SIZE@
+
+/** @brief the number of hash slots in a PSS environment hashmap */
+#	define LANG_VM_ENV_HASH_SIZE @LANG_VM_ENV_HASH_SIZE@
+
+/** @brief the initial size of the memory pool used by the PSS environment hashmap */
+#	define LANG_VM_ENV_POOL_INIT_SIZE @LANG_VM_ENV_POOL_INIT_SIZE@
+
+/** @brief the initial size of the param list used by a PSS VM */
+#	define LANG_VM_PARAM_INIT_SIZE @LANG_VM_PARAM_INIT_SIZE@
+
+/** @brief the initial size for a lexer to read the file content */
+#	define LANG_LEX_FILE_BUF_INIT_SIZE @LANG_LEX_FILE_BUF_INIT_SIZE@
+
+/** @brief the initial vector size for the property table */
+#	define LANG_PROP_CALLBACK_VEC_INIT_SIZE @LANG_PROP_CALLBACK_VEC_INIT_SIZE@
+
+/** @brief the default size of a worker loop's event queue */
+#	define SCHED_LOOP_EVENT_QUEUE_SIZE @SCHED_LOOP_EVENT_QUEUE_SIZE@
+
+/** @brief the maximum length of a path in the module addressing table */
+#   define ITC_MODTAB_MAX_PATH @ITC_MODTAB_MAX_PATH@
+
+/** @brief the initial size of a cnode boundary array */
+#	define SCHED_CNODE_BOUNDARY_INIT_SIZE @SCHED_CNODE_BOUNDARY_INIT_SIZE@
+
+/** @brief the initial thread capacity for the profiler */
+#	define SCHED_PROF_INIT_THREAD_CAPACITY @SCHED_PROF_INIT_THREAD_CAPACITY@
+
+/** @brief the default RC file path for the PSS interpreter */
+#   define PSCRIPT_DEFAULT_RC_FILE @PSCRIPT_DEFAULT_RC_FILE@
+
+/** @brief the initial size for the entry table */
+#	define SCHED_RSCOPE_ENTRY_TABLE_INIT_SIZE @SCHED_RSCOPE_ENTRY_TABLE_INIT_SIZE@
+
+/** @brief the maximum size for the entry table */
+#	define SCHED_RSCOPE_ENTRY_TABLE_SIZE_LIMIT @SCHED_RSCOPE_ENTRY_TABLE_SIZE_LIMIT@
+
+/** @brief the hash table size for a service node type inferrer's environment table */
+#	define SCHED_TYPE_ENV_HASH_SIZE @SCHED_TYPE_ENV_HASH_SIZE@
+
+/** @brief the maximum size of the concrete type */
+#	define  SCHED_TYPE_MAX @SCHED_TYPE_MAX@
+
+/** @brief the protodb root used for the test cases */
+#	define TEST_PROTODB_ROOT "@TESTING_PROTODB_ROOT@"
+
+#endif

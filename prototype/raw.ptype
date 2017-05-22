@@ -1,0 +1,4 @@
+package plumber.base;
+
+/* The raw type is used as the place holder for a untyped pipe */
+type Raw {}
