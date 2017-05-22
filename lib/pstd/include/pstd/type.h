@@ -58,7 +58,7 @@ int pstd_type_model_free(pstd_type_model_t* model);
  * @param result The result buffer
  * @return Status code
  **/
-pstd_type_accessor_t pstd_type_get_accessor(pstd_type_model_t* model, pipe_t pipe, const char* field_expr);
+pstd_type_accessor_t pstd_type_model_get_accessor(pstd_type_model_t* model, pipe_t pipe, const char* field_expr);
 
 /**
  * @brief Add a type assertion to the given pipe
@@ -69,7 +69,7 @@ pstd_type_accessor_t pstd_type_get_accessor(pstd_type_model_t* model, pipe_t pip
  * @param data      The additional data we want to pass 
  * @return status code 
  **/
-int pstd_type_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_assertion_t assertion, const void* data);
+int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_assertion_t assertion, const void* data);
 
 /**
  * @brief Comput the size of the type context instance for the given type model

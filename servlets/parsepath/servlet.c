@@ -40,14 +40,7 @@ static inline int _write_string(pstd_type_instance_t* inst, pstd_type_accessor_t
 
 	 return PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, accessor, token);
 }
-/**
- * @brief Write path to the target pipe
- * @param target the target pipe
- * @param begin  the begin pointer
- * @param end    the end pointer
- * @param n      the number of segments
- * @return status code
- **/
+
 static inline int _write_path(pstd_type_instance_t* inst, pstd_type_accessor_t accessor, char const* const* begin, char const* const* end, uint32_t n)
 {
 	pstd_string_t* result = pstd_string_new(128);
@@ -220,16 +213,16 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	if(NULL == (ctx->model = pstd_type_model_new()))
 		ERROR_RETURN_LOG(int, "Cannot create type model");
 
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->prefix_token = pstd_type_get_accessor(ctx->model, ctx->prefix, "token")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->prefix_token = pstd_type_model_get_accessor(ctx->model, ctx->prefix, "token")))
 		ERROR_RETURN_LOG(int, "Cannot get accessor for field prefix.token");
 
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->relative_token = pstd_type_get_accessor(ctx->model, ctx->relative, "token")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->relative_token = pstd_type_model_get_accessor(ctx->model, ctx->relative, "token")))
 		ERROR_RETURN_LOG(int, "Cannot get accessor for field relative.token");
 
-	if(ctx->need_extname && ERROR_CODE(pstd_type_accessor_t) == (ctx->extname_token = pstd_type_get_accessor(ctx->model, ctx->extname, "token")))
+	if(ctx->need_extname && ERROR_CODE(pstd_type_accessor_t) == (ctx->extname_token = pstd_type_model_get_accessor(ctx->model, ctx->extname, "token")))
 		ERROR_RETURN_LOG(int, "Cannot get the accessor for field extname.token");
 
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->origin_token = pstd_type_get_accessor(ctx->model, ctx->origin, "token")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->origin_token = pstd_type_model_get_accessor(ctx->model, ctx->origin, "token")))
 		ERROR_RETURN_LOG(int, "Cannot get the accesor for field origin.token");
 
 	return 0;
@@ -272,8 +265,7 @@ static inline int _unload(void* ctxbuf)
 }
 
 SERVLET_DEF = {
-	.desc = "Parse a HTTP path from the input pipe and output the prefix and relative path as string."
-		    "If the path is invalid, the error pipe will be written with some dummy bytes to active the error handling actions.",
+	.desc = "Parse a HTTP path from the input pipe and output the prefix and relative path as string.",
 	.version = 0x0,
 	.size = sizeof(context_t),
 	.init = _init,

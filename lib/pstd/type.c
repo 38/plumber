@@ -299,7 +299,7 @@ ERR:
 
 int pstd_type_model_free(pstd_type_model_t* model)
 {
-	if(NULL != model)
+	if(NULL == model)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(model->accessor != NULL)
@@ -342,7 +342,7 @@ int pstd_type_model_free(pstd_type_model_t* model)
 	return 0;
 }
 
-pstd_type_accessor_t pstd_typeinfo_get_accessor(pstd_type_model_t* model, pipe_t pipe, const char* field_expr)
+pstd_type_accessor_t pstd_type_model_get_accessor(pstd_type_model_t* model, pipe_t pipe, const char* field_expr)
 {
 	if(NULL == model || NULL == field_expr || RUNTIME_API_PIPE_IS_VIRTUAL(pipe) || ERROR_CODE(pipe_t) == pipe)
 		ERROR_RETURN_LOG(pstd_type_accessor_t, "Invalid arguments");
@@ -350,7 +350,7 @@ pstd_type_accessor_t pstd_typeinfo_get_accessor(pstd_type_model_t* model, pipe_t
 	return _accessor_alloc(model, pipe, field_expr);
 }
 
-int pstd_type_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_assertion_t assertion, const void* data)
+int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_assertion_t assertion, const void* data)
 {
 	if(NULL == model || NULL == assertion || ERROR_CODE(pipe_t) == pipe || RUNTIME_API_PIPE_IS_VIRTUAL(pipe))
 		ERROR_RETURN_LOG(int, "Invalid arguments");
