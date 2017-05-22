@@ -60,7 +60,7 @@ typedef struct {
  * @brief The type context for a servlet instance
  **/
 struct _pstd_type_model_t {
-	runtime_api_pipe_id_t        pipe_cap;    /*!< The pipe info array capacity */
+	uint32_t                     pipe_cap;    /*!< The pipe info array capacity */
 	runtime_api_pipe_id_t        pipe_max;    /*!< The upper bound of the pipe id */
 	_typeinfo_t*                 type_info;   /*!< The type information */     
 	_acc_t                       accessor_cap;/*!< The capacity of the accessor table */
@@ -201,7 +201,7 @@ static inline int _ensure_pipe_typeinfo(pstd_type_model_t* ctx, pipe_t pipe)
 
 		memset(newbuf + sizeof(ctx->type_info[0]) * ctx->pipe_cap, 0,  sizeof(ctx->type_info[0]) * ctx->pipe_cap);
 
-		ctx->pipe_cap = (runtime_api_pipe_id_t)(ctx->pipe_cap * 2u);
+		ctx->pipe_cap <<= 1u;
 		ctx->type_info = newbuf;
 	}
 

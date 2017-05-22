@@ -25,10 +25,6 @@ typedef uint32_t pstd_type_accessor_t;
 typedef struct _pstd_type_instance_t pstd_type_instance_t;
 
 /**
- * @brief The type model instance
- **/
-
-/**
  * @brief The function used as the type assertion
  * @param type The type name
  * @param data The additional data to this assertion
