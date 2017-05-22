@@ -52,9 +52,26 @@ static inline const char * _search_for_binary(const char* binary)
 		string_buffer_t strbuf;
 
 		string_buffer_open(buffer, sizeof(buffer), &strbuf);
+
 		string_buffer_append(*cell, &strbuf);
-		string_buffer_append("/" RUNTIME_SERVLET_FILENAME_PREFIX, &strbuf);
-		string_buffer_append(binary, &strbuf);
+
+		const char *begin, *end;
+		for(begin = end = binary; ; end ++)
+			if(*end == '/' || *end == 0 ) 
+			{
+				if(begin < end) 
+				{
+					if(*end != 0) 
+						string_buffer_append("/", &strbuf);
+					else
+						string_buffer_append("/" RUNTIME_SERVLET_FILENAME_PREFIX, &strbuf);
+
+					string_buffer_append_range(begin, end, &strbuf);
+				}
+				if(*end == 0) break;
+				begin = end + 1;
+			}
+
 		string_buffer_append(RUNTIME_SERVLET_FILENAME_SUFFIX, &strbuf);
 		string_buffer_close(&strbuf);
 

@@ -43,6 +43,18 @@ int test_string_buffer_appendf()
 
 	return 0;
 }
+int test_string_buffer_range()
+{
+	char buffer[20];
+	string_buffer_t b;
+	string_buffer_open(buffer, sizeof(buffer), &b);
+	const char str[] = "123456789012345678901234567890";
+	ASSERT(string_buffer_append_range(str, str + sizeof(str) - 1, &b) == 19, CLEANUP_NOP);
+	ASSERT_STREQ(string_buffer_close(&b), "1234567890123456789", CLEANUP_NOP);
+
+	return 0;
+}
+
 int test_string_buffer_empty()
 {
 	char buffer[10];
@@ -59,5 +71,6 @@ TEST_LIST_BEGIN
     TEST_CASE(test_string_buffer),
     TEST_CASE(test_string_buffer_truncate),
     TEST_CASE(test_string_buffer_empty),
-    TEST_CASE(test_string_buffer_appendf)
+    TEST_CASE(test_string_buffer_appendf),
+	TEST_CASE(test_string_buffer_range)
 TEST_LIST_END;
