@@ -55,13 +55,12 @@ static int _exec(void* ctxbuf)
 		int eof_rc = pipe_eof(ctx->input);
 		if(ERROR_CODE(int) == eof_rc)
 			ERROR_LOG_GOTO(ERR, "Cannot check if the input comes to end");
+		else if(eof_rc) break;
 
 		char readbuf[1024];
 		size_t read_rc = pipe_read(ctx->input, readbuf, sizeof(readbuf));
 		if(ERROR_CODE(size_t) == read_rc)
 			ERROR_LOG_GOTO(ERR, "Cannot read from the input");
-		else if(read_rc)
-			break;
 
 		if(ERROR_CODE(size_t) == pstd_string_write(string, readbuf, read_rc))
 			ERROR_LOG_GOTO(ERR, "Cannot write to string");
