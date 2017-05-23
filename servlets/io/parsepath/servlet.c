@@ -29,16 +29,14 @@ typedef struct {
 
 static inline int _write_string(pstd_type_instance_t* inst, pstd_type_accessor_t accessor, pstd_string_t* str)
 {
-	 
 	 scope_token_t token;
-
 	 if(ERROR_CODE(scope_token_t) == (token = pstd_string_commit(str)))
-	 {
-		 pstd_string_free(str);
-		 ERROR_RETURN_LOG(int, "Cannot commit string object to RLS");
-	 }
-
+		 ERROR_LOG_GOTO(ERR, "Cannot commit string object to RLS");
+	 
 	 return PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, accessor, token);
+ERR:
+	 pstd_string_free(str);
+	 return ERROR_CODE(int);;
 }
 
 static inline int _write_path(pstd_type_instance_t* inst, pstd_type_accessor_t accessor, char const* const* begin, char const* const* end, uint32_t n)
@@ -46,35 +44,19 @@ static inline int _write_path(pstd_type_instance_t* inst, pstd_type_accessor_t a
 	pstd_string_t* result = pstd_string_new(128);
 	if(NULL == result) ERROR_RETURN_LOG(int, "Cannot create new string object for the path");
 
-	const char sep = '/';
+	for(; n > 0; n --, begin ++, end ++)
+		if(ERROR_CODE(size_t) == pstd_string_write(result, "/", 1) ||
+		   ERROR_CODE(size_t) == pstd_string_write(result, begin[0], (size_t)(end[0] - begin[0])))
+			ERROR_RETURN_LOG(int, "RLS string write error");
 
-	 if(ERROR_CODE(size_t) == pstd_string_write(result, &sep, 1)) 
-		 ERROR_RETURN_LOG(int, "Cannot write bytes to range");
-
-	 uint32_t i;
-	 for(i = 0; i < n; i ++)
-	 {
-		 if(i > 0 && ERROR_CODE(size_t) == pstd_string_write(result, &sep, 1))
-			 ERROR_RETURN_LOG(int, "Cannot write seperator");
-
-		 if(ERROR_CODE(size_t) == pstd_string_write(result, begin[i], (size_t)(end[i] - begin[i])))
-			 ERROR_RETURN_LOG(int, "Cannot write the segment to string");
-	 }
-
-	 return _write_string(inst, accessor, result);
+	return _write_string(inst, accessor, result);
 }
 
-/**
- * @brief Simpify the path, for example a/b/c/../d ==&gt; a/b/d etc <br/>
- *        If the path is out of current root, return an error case
- * @param path The path to simpify
- * @param ctx The servlet context
- * @return the result stirng, NULL on error case
- **/
 static inline int _simplify_path(scope_token_t path_token, const context_t* ctx, pstd_type_instance_t* inst)
 {
 	const pstd_string_t* pathstr = pstd_string_from_rls(path_token);
 	if(NULL == pathstr) ERROR_RETURN_LOG(int, "Cannot get string object from RLS");
+
 	const char* path = pstd_string_value(pathstr);
 	if(NULL == path) ERROR_RETURN_LOG(int, "Cannot get the value of the string");
 
@@ -83,32 +65,25 @@ static inline int _simplify_path(scope_token_t path_token, const context_t* ctx,
 	 * otehr than '/'. Thus, if the maximum length of path allowed is PATH_MAX, the maximum number
 	 * of segment is less than PATH_MAX / 2 */
 	const char *bs[PATH_MAX / 2 + 1], *es[PATH_MAX / 2 + 1];
-	const char *begin = path, *end = path;
+	const char *begin = path + (path[0] == '/'), *end = path + (path[0] == '/');
 	const char *extname = NULL;
-	int changed = 0;
-	if(path[0] == '/') path ++;
+	int32_t sp = 0, simplified = 0;
 	
-	int32_t sp = 0;
 	for(;sp >= 0;end++)
 	    if(*end == '/' || *end == 0)
 	    {
-		    if(begin < end)
-		    {
-				/* If there's an non-empty segment */
-			    if(end - begin == 2 && begin[0] == '.' && begin[1] == '.') 
-					sp --, changed = 1;
-			    else if(end - begin > 1 || begin[0] != '.') 
-					bs[sp] = begin, es[sp] = end, sp ++;
-				else changed = 1;
-		    }
-			else changed = 1;
-			/* Then let's move on to the next segment, which sould start with the next char after current one */
-		    begin = end + 1;
-		    if(*end == 0) break;
-			extname = NULL;
+			if(end - begin == 2 && begin[0] == '.' && begin[1] == '.')  /* Pop the stack when the segment is .. */
+				sp --, simplified = 1;
+			else if((end - begin == 1 && begin[0] == '.') || (end - begin == 0)) /* Silently swallow the segment if the segment is empty or . */
+				simplified = 1;
+			else /* Otherwise push everything to stack */ 
+				bs[sp] = begin, es[sp] = end, sp ++;
+		   
+			begin = end + 1;
+			if(*end == 0) break;
+			else extname = NULL;
 	    }
-		else if(ctx->need_extname && *end == '.')
-			extname = end + 1;
+		else if(ctx->need_extname && *end == '.') extname = end + 1;
 
 	/* If we pop the stack too much, this should not be allowed */
 	if(sp < 0) 
@@ -128,13 +103,13 @@ static inline int _simplify_path(scope_token_t path_token, const context_t* ctx,
 		start += ctx->prefix_level;
 	}
 
-	if(ctx->prefix_level == 0 && !changed)
+	if(ctx->prefix_level == 0 && !simplified)
 	{
 		/* If the path haven't been changed, we can reuse the string directly */
 		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, ctx->relative_token, path_token))
 			ERROR_RETURN_LOG(int, "Cannot write the relative path to pipe");
 	}
-	else if(ERROR_CODE(int) == _write_path(inst, ctx->relative_token, bs, es, (uint32_t)(sp) - ctx->prefix_level))
+	else if(ERROR_CODE(int) == _write_path(inst, ctx->relative_token, bs, es, (uint32_t)(sp) - start))
 		ERROR_RETURN_LOG(int, "Cannot write the relative path to pipe");
 
 	if(NULL != extname)

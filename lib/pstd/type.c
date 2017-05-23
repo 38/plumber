@@ -135,7 +135,7 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 	/* Check all the assertions */
 	_type_assertion_t* assertion;
 	for(assertion = typeinfo->assertion_list; NULL != assertion; assertion = assertion->next)
-		if(ERROR_CODE(int) == assertion->func(typename, assertion->data))
+		if(ERROR_CODE(int) == assertion->func(pipe, typename, assertion->data))
 			ERROR_LOG_GOTO(ERR, "Type assertion failed");
 
 	/* Fill the offset info into accessors */

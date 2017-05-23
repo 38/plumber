@@ -26,11 +26,12 @@ typedef struct _pstd_type_instance_t pstd_type_instance_t;
 
 /**
  * @brief The function used as the type assertion
+ * @param pipe The pipe descriptor
  * @param type The type name
  * @param data The additional data to this assertion
  * @return status code
  **/
-typedef int (*pstd_type_assertion_t)(const char* type, const void* data);
+typedef int (*pstd_type_assertion_t)(pipe_t pipe, const char* type, const void* data);
 
 /**
  * @brief Create a new pipe type model object
