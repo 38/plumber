@@ -100,7 +100,7 @@ static inline int _parse_int(const char* str, int64_t* result)
 	char* next;
 	*result = strtoll(str, &next, 0);
 
-	if(*next != '0') return ERROR_CODE(int);
+	if(*next != 0) return ERROR_CODE(int);
 	return 0;
 }
 

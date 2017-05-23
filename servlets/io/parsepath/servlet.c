@@ -71,8 +71,13 @@ static inline int _write_path(pstd_type_instance_t* inst, pstd_type_accessor_t a
  * @param ctx The servlet context
  * @return the result stirng, NULL on error case
  **/
-static inline int _simplify_path(const char* path, const context_t* ctx, pstd_type_instance_t* inst)
+static inline int _simplify_path(scope_token_t path_token, const context_t* ctx, pstd_type_instance_t* inst)
 {
+	const pstd_string_t* pathstr = pstd_string_from_rls(path_token);
+	if(NULL == pathstr) ERROR_RETURN_LOG(int, "Cannot get string object from RLS");
+	const char* path = pstd_string_value(pathstr);
+	if(NULL == path) ERROR_RETURN_LOG(int, "Cannot get the value of the string");
+
 	/* The reason why we only have PATH_MAX / 2 segments is because we define the segment as
 	 * *non-empty* string seperated by slash '/'. Which means we *must* have at least one char
 	 * otehr than '/'. Thus, if the maximum length of path allowed is PATH_MAX, the maximum number
@@ -80,6 +85,8 @@ static inline int _simplify_path(const char* path, const context_t* ctx, pstd_ty
 	const char *bs[PATH_MAX / 2 + 1], *es[PATH_MAX / 2 + 1];
 	const char *begin = path, *end = path;
 	const char *extname = NULL;
+	int changed = 0;
+	if(path[0] == '/') path ++;
 	
 	int32_t sp = 0;
 	for(;sp >= 0;end++)
@@ -89,10 +96,12 @@ static inline int _simplify_path(const char* path, const context_t* ctx, pstd_ty
 		    {
 				/* If there's an non-empty segment */
 			    if(end - begin == 2 && begin[0] == '.' && begin[1] == '.') 
-					sp --;
+					sp --, changed = 1;
 			    else if(end - begin > 1 || begin[0] != '.') 
 					bs[sp] = begin, es[sp] = end, sp ++;
+				else changed = 1;
 		    }
+			else changed = 1;
 			/* Then let's move on to the next segment, which sould start with the next char after current one */
 		    begin = end + 1;
 		    if(*end == 0) break;
@@ -119,7 +128,13 @@ static inline int _simplify_path(const char* path, const context_t* ctx, pstd_ty
 		start += ctx->prefix_level;
 	}
 
-	if(ERROR_CODE(int) == _write_path(inst, ctx->relative_token, bs, es, (uint32_t)(sp) - ctx->prefix_level))
+	if(ctx->prefix_level == 0 && !changed)
+	{
+		/* If the path haven't been changed, we can reuse the string directly */
+		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, ctx->relative_token, path_token))
+			ERROR_RETURN_LOG(int, "Cannot write the relative path to pipe");
+	}
+	else if(ERROR_CODE(int) == _write_path(inst, ctx->relative_token, bs, es, (uint32_t)(sp) - ctx->prefix_level))
 		ERROR_RETURN_LOG(int, "Cannot write the relative path to pipe");
 
 	if(NULL != extname)
@@ -144,7 +159,7 @@ static int _set_options(uint32_t idx, pstd_option_param_t* params, uint32_t npar
 
 	switch(what)
 	{
-		case 'I':
+		case 'L':
 			if(params[0].intval < 0 || params[0].intval > PATH_MAX / 2 + 1)
 				ERROR_RETURN_LOG(int, "Invalid prefix level %"PRId64, params[0].intval);
 			ctx->prefix_level = (uint32_t)params[0].intval;
@@ -234,19 +249,18 @@ int _exec(void* ctxbuf)
 
 	pstd_type_instance_t* inst = NULL;
 	size_t sz = pstd_type_instance_size(ctx->model);
-	char buf[sz];
+	if(ERROR_CODE(size_t) == sz) 
+		ERROR_RETURN_LOG(int, "Cannot get the size of the model");
 	
-	if(ERROR_CODE(size_t) == sz) ERROR_LOG_GOTO(ERR, "Cannot get the size of the model");
+	char buf[sz];
 	if(NULL == (inst = pstd_type_instance_new(ctx->model, buf)))
 		ERROR_LOG_GOTO(ERR, "Cannot create the model");
 
 	scope_token_t token;
-	if(ERROR_CODE(scope_token_t) != (token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->origin_token)))
+	if(ERROR_CODE(scope_token_t) == (token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->origin_token)))
 		ERROR_LOG_GOTO(ERR, "Cannot read the RLS token from input");
-	const pstd_string_t* input = pstd_string_from_rls(token);
-	if(NULL == input) ERROR_LOG_GOTO(ERR, "Cannot retrive string from the token");
 
-	if(ERROR_CODE(int) == _simplify_path(pstd_string_value(input), ctx, inst))
+	if(ERROR_CODE(int) == _simplify_path(token, ctx, inst))
 		ERROR_LOG_GOTO(ERR, "Cannot simplify the path");
 
 	return pstd_type_instance_free(inst);

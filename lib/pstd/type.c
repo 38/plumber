@@ -400,6 +400,7 @@ pstd_type_instance_t* pstd_type_instance_new(const pstd_type_model_t* model, voi
 		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the type context instance");
 
 	ret->heapmem = (mem == NULL);
+	ret->model = model;
 
 	runtime_api_pipe_id_t i;
 	for(i = 0; i < model->pipe_max; i ++)
