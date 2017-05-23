@@ -47,6 +47,7 @@ typedef struct _type_assertion_t {
  **/
 typedef struct {
 	uint32_t                cb_setup:1;    /*!< Indicates if we have already installed the type callback for this type info */
+	uint32_t                init:1;        /*!< If the type info has been initialized */
 	char*                   name;          /*!< The name of the type */
 	uint32_t                full_size;     /*!< The size of the header section */
 	uint32_t                used_size;     /*!< The size of the header data we actually used */
@@ -159,6 +160,8 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 			model->type_info[i].buf_begin += typeinfo->used_size + sizeof(_header_buf_t);
 	}
 
+	typeinfo->init = 1u;
+
 	rc = 0;
 
 ERR:
@@ -215,7 +218,6 @@ static inline int _ensure_pipe_typeinfo(pstd_type_model_t* ctx, pipe_t pipe)
 			ERROR_RETURN_LOG(int, "Cannot setup the type callback function for the pipe");
 
 		ctx->type_info[pid].cb_setup = 1;
-
 	}
 
 	return 0;
@@ -419,7 +421,8 @@ int pstd_type_instance_free(pstd_type_instance_t* inst)
 	int rc = 0;
 	for(i = 0; i < inst->model->pipe_max; i ++)
 	{
-		if(inst->model->type_info[i].used_size == 0) continue;
+
+		if(!inst->model->type_info[i].init || inst->model->type_info[i].used_size == 0) continue;
 
 		runtime_api_pipe_flags_t flags;
 
@@ -479,7 +482,12 @@ int _ensure_header_read(pstd_type_instance_t* inst, const _accessor_t* accessor,
 				ERROR_RETURN_LOG(int, "pipe_eof returns an error");
 
 			if(eof_rc)
-				ERROR_RETURN_LOG(int, "Unexpected end of data stream");
+			{
+				if(buffer->valid_size > 0)
+					ERROR_RETURN_LOG(int, "Unexpected end of data stream");
+				else /* We are ok with the zero input */
+					return 0;
+			}
 		}
 
 		bytes_can_read -= rc;
@@ -496,6 +504,11 @@ size_t pstd_type_instance_read(pstd_type_instance_t* inst, pstd_type_accessor_t 
 
 	const _accessor_t* obj = inst->model->accessor + accessor;
 
+	/* It's possible the pipe is unassigned in the graph, so that we do not have any type info at this point
+	 * In this case, we must stop at this point */
+	if(!inst->model->accessor[accessor].init)
+		return 0;
+
 	if(bufsize > obj->size) bufsize = obj->size;
 
 	if(bufsize == 0) return 0;
@@ -504,7 +517,11 @@ size_t pstd_type_instance_read(pstd_type_instance_t* inst, pstd_type_accessor_t 
 		ERROR_RETURN_LOG(size_t, "Cannot ensure the header buffer is valid");
 
 	const _header_buf_t* buffer = (const _header_buf_t*)(inst->buffer + inst->model->type_info[PIPE_GET_ID(obj->pipe)].buf_begin);
-	memcpy(buf, buffer->data + obj->offset, bufsize);
+
+	if(buffer->valid_size > 0)
+		memcpy(buf, buffer->data + obj->offset, bufsize);
+	else 
+		return 0;
 
 	return bufsize;
 }
@@ -530,6 +547,8 @@ int pstd_type_instance_write(pstd_type_instance_t* inst, pstd_type_accessor_t ac
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 	
 	const _accessor_t* obj = inst->model->accessor + accessor;
+
+	if(!obj->init) return 0;
 
 	if(bufsize > obj->size) bufsize = obj->size;
 

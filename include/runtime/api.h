@@ -416,6 +416,8 @@ typedef struct {
 	 * @param callback the callback function pointer
 	 * @param pipe     the pipe descriptor we want to set the callback
 	 * @param data     the additional data to be passed to the callback function
+	 * @note  Because the type inferrer only work on the assigned pipes, so even though the type of unassigned pipes are known
+	 *        the callback function won't be called. 
 	 * @return status code
 	 * @todo implement this
 	 **/

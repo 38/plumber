@@ -143,7 +143,7 @@ int pstd_type_instance_write(pstd_type_instance_t* inst, pstd_type_accessor_t ac
 		typeof(value) _buf = value;\
 		pstd_type_instance_t* _inst = inst; \
 		pstd_type_accessor_t _acc = accessor;\
-		int rc;\
+		int rc = 0;\
 		if(ERROR_CODE(int) == pstd_type_instance_write(_inst, _acc, &_buf, sizeof(_buf)))\
 			rc = ERROR_CODE(int);\
 		rc;\
