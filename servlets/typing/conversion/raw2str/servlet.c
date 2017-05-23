@@ -95,7 +95,7 @@ static int _unload(void* ctxbuf)
 }
 
 SERVLET_DEF = {
-	.desc = "Convert a string to Raw",
+	.desc = "Convert a Raw to String",
 	.version = 0x0,
 	.size = sizeof(context_t),
 	.init = _init,
