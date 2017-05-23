@@ -63,8 +63,8 @@ pstd_type_accessor_t pstd_type_model_get_accessor(pstd_type_model_t* model, pipe
  * @param model     The type model
  * @param pipe      The target pipe descriptor
  * @param assertion The assertion function
- * @param data      The additional data we want to pass 
- * @return status code 
+ * @param data      The additional data we want to pass
+ * @return status code
  **/
 int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_assertion_t assertion, const void* data);
 
@@ -76,7 +76,7 @@ int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_asse
 size_t pstd_type_instance_size(const pstd_type_model_t* model);
 
 /**
- * @brief Create a new type instance object 
+ * @brief Create a new type instance object
  * @note  For each typed header IO, the servlet should create a type instance
  * @param model The type model we create the instance for
  * @param mem do not allocate memory, use the given pointer
@@ -109,15 +109,15 @@ size_t pstd_type_instance_read(pstd_type_instance_t* inst, pstd_type_accessor_t 
  * @return The read result or error code
  **/
 #define PSTD_TYPE_INST_READ_PRIMITIVE(type, inst, accessor) ({\
-		type _resbuf;\
-		{\
-			pstd_type_instance_t* _inst = inst; \
-			pstd_type_accessor_t _acc = accessor;\
-			if(sizeof(_resbuf) != pstd_type_instance_read(_inst, _acc, &_resbuf, sizeof(_resbuf)))\
-				_resbuf = ERROR_CODE(type);\
-		}\
-		_resbuf;\
-	})
+	    type _resbuf;\
+	    {\
+		    pstd_type_instance_t* _inst = inst; \
+		    pstd_type_accessor_t _acc = accessor;\
+		    if(sizeof(_resbuf) != pstd_type_instance_read(_inst, _acc, &_resbuf, sizeof(_resbuf)))\
+		        _resbuf = ERROR_CODE(type);\
+	    }\
+	    _resbuf;\
+    })
 
 /**
  * @brief Write data to the pipe header, this *must* be called inside exec task
@@ -141,14 +141,14 @@ int pstd_type_instance_write(pstd_type_instance_t* inst, pstd_type_accessor_t ac
  * @return status code
  **/
 #define PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, accessor, value) ({\
-		typeof(value) _buf = value;\
-		pstd_type_instance_t* _inst = inst; \
-		pstd_type_accessor_t _acc = accessor;\
-		int rc = 0;\
-		if(ERROR_CODE(int) == pstd_type_instance_write(_inst, _acc, &_buf, sizeof(_buf)))\
-			rc = ERROR_CODE(int);\
-		rc;\
-	})
+	    typeof(value) _buf = value;\
+	    pstd_type_instance_t* _inst = inst; \
+	    pstd_type_accessor_t _acc = accessor;\
+	    int rc = 0;\
+	    if(ERROR_CODE(int) == pstd_type_instance_write(_inst, _acc, &_buf, sizeof(_buf)))\
+	        rc = ERROR_CODE(int);\
+	    rc;\
+    })
 
 
 #endif /* __PSTD_PIPETYPE_H__ */

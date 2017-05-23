@@ -15,13 +15,13 @@
 #include <pstd/type.h>
 
 /**
- * @brief The internal alias for the pstd_typeinfo_accessor_t 
+ * @brief The internal alias for the pstd_typeinfo_accessor_t
  **/
 typedef pstd_type_accessor_t _acc_t;
 
 /**
  * @brief Represent a accessor data
- * @note  Because we allows type variables, so that we actually do not 
+ * @note  Because we allows type variables, so that we actually do not
  *        query the type info util the type callback is called
  **/
 typedef struct _accessor_t {
@@ -43,7 +43,7 @@ typedef struct _type_assertion_t {
 } _type_assertion_t;
 
 /**
- * @brief Represent the type information for one pipe 
+ * @brief Represent the type information for one pipe
  **/
 typedef struct {
 	uint32_t                cb_setup:1;    /*!< Indicates if we have already installed the type callback for this type info */
@@ -62,7 +62,7 @@ typedef struct {
 struct _pstd_type_model_t {
 	uint32_t                     pipe_cap;    /*!< The pipe info array capacity */
 	runtime_api_pipe_id_t        pipe_max;    /*!< The upper bound of the pipe id */
-	_typeinfo_t*                 type_info;   /*!< The type information */     
+	_typeinfo_t*                 type_info;   /*!< The type information */
 	_acc_t                       accessor_cap;/*!< The capacity of the accessor table */
 	_acc_t                       accessor_cnt;/*!< The size of the accessor table */
 	_accessor_t*                 accessor;    /*!< The accessor table */
@@ -77,7 +77,7 @@ typedef struct __attribute__((packed)) {
 } _header_buf_t;
 
 /**
- * @brief The type context instance 
+ * @brief The type context instance
  **/
 struct _pstd_type_instance_t {
 	uint32_t                    heapmem:1;   /*!< Indicates if this instance uses the heap memory */
@@ -87,19 +87,19 @@ struct _pstd_type_instance_t {
 };
 
 /**
- * @brief Output the libproto error information in the log 
+ * @brief Output the libproto error information in the log
  * @param err The error object
  * @return nothing
  **/
 static inline void _proto_err_stack(const proto_err_t* err)
 {
 	char buffer[128];
-	
+
 	if(NULL == err && NULL == (err = proto_err_stack())) return;
 
 	LOG_ERROR("libproto error: %s", proto_err_str(err, buffer, sizeof(buffer)));
-	if(NULL != err->child) 
-		_proto_err_stack(err->child);
+	if(NULL != err->child)
+	    _proto_err_stack(err->child);
 }
 
 /**
@@ -118,36 +118,36 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 	/* Duplicate the typename */
 	size_t namelen = strlen(typename) + 1;
 	if(NULL == (typeinfo->name = (char*)malloc(namelen)))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the type name");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the type name");
 
 	memcpy(typeinfo->name, typename, namelen);
-	
+
 	int rc  = ERROR_CODE(int);
 
 	if(ERROR_CODE(int) == proto_init())
-		ERROR_LOG_GOTO(ERR, "Cannot initialize libproto");
+	    ERROR_LOG_GOTO(ERR, "Cannot initialize libproto");
 
 	/* Get the full size of the header */
 	if(ERROR_CODE(uint32_t) == (typeinfo->full_size = proto_db_type_size(typename)))
-		ERROR_LOG_GOTO(ERR, "Cannot get the full size of type %s", typename);
+	    ERROR_LOG_GOTO(ERR, "Cannot get the full size of type %s", typename);
 
 
 	/* Check all the assertions */
 	_type_assertion_t* assertion;
 	for(assertion = typeinfo->assertion_list; NULL != assertion; assertion = assertion->next)
-		if(ERROR_CODE(int) == assertion->func(pipe, typename, assertion->data))
-			ERROR_LOG_GOTO(ERR, "Type assertion failed");
+	    if(ERROR_CODE(int) == assertion->func(pipe, typename, assertion->data))
+	        ERROR_LOG_GOTO(ERR, "Type assertion failed");
 
 	/* Fill the offset info into accessors */
 	_accessor_t* accessor;
 	for(accessor = typeinfo->accessor_list; NULL != accessor; accessor = accessor->next)
 	{
 		if(ERROR_CODE(uint32_t) == (accessor->offset = proto_db_type_offset(typename, accessor->field, &accessor->size)))
-			ERROR_LOG_GOTO(ERR, "Cannot get the type param for %s.%s", typename, accessor->field);
+		    ERROR_LOG_GOTO(ERR, "Cannot get the type param for %s.%s", typename, accessor->field);
 		accessor->init = 1;
 
 		if(typeinfo->used_size < accessor->offset + accessor->size)
-			typeinfo->used_size = accessor->offset + accessor->size;
+		    typeinfo->used_size = accessor->offset + accessor->size;
 	}
 
 	/* Update the buffer offest information.
@@ -157,7 +157,7 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 	{
 		runtime_api_pipe_id_t i;
 		for(i = (runtime_api_pipe_id_t)(PIPE_GET_ID(pipe) + 1); i < model->pipe_max; i ++)
-			model->type_info[i].buf_begin += typeinfo->used_size + sizeof(_header_buf_t);
+		    model->type_info[i].buf_begin += typeinfo->used_size + sizeof(_header_buf_t);
 	}
 
 	typeinfo->init = 1u;
@@ -199,7 +199,7 @@ static inline int _ensure_pipe_typeinfo(pstd_type_model_t* ctx, pipe_t pipe)
 	{
 		_typeinfo_t* newbuf = (_typeinfo_t*)realloc(ctx->type_info, sizeof(ctx->type_info[0]) * ctx->pipe_cap * 2);
 		if(NULL == newbuf)
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot resize the type info array");
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot resize the type info array");
 
 		memset(newbuf + sizeof(ctx->type_info[0]) * ctx->pipe_cap, 0,  sizeof(ctx->type_info[0]) * ctx->pipe_cap);
 
@@ -209,13 +209,13 @@ static inline int _ensure_pipe_typeinfo(pstd_type_model_t* ctx, pipe_t pipe)
 
 	/* We don't need to update the buf_begin field, because we current don't know the size, and all
 	 * the offset are 0 */
-	if(ctx->pipe_max < pid + 1u) 
-		ctx->pipe_max = (runtime_api_pipe_id_t)(pid + 1u);
+	if(ctx->pipe_max < pid + 1u)
+	    ctx->pipe_max = (runtime_api_pipe_id_t)(pid + 1u);
 
 	if(!ctx->type_info[pid].cb_setup)
 	{
 		if(ERROR_CODE(int) == pipe_set_type_callback(pipe, _on_pipe_type_determined, ctx))
-			ERROR_RETURN_LOG(int, "Cannot setup the type callback function for the pipe");
+		    ERROR_RETURN_LOG(int, "Cannot setup the type callback function for the pipe");
 
 		ctx->type_info[pid].cb_setup = 1;
 	}
@@ -236,7 +236,7 @@ static inline _acc_t _accessor_alloc(pstd_type_model_t* ctx, pipe_t pipe, const 
 	{
 		_accessor_t* newbuf = (_accessor_t*)realloc(ctx->accessor, sizeof(ctx->accessor[0]) * ctx->accessor_cap * 2);
 		if(NULL == newbuf)
-			ERROR_RETURN_LOG_ERRNO(_acc_t, "Cannot resize the accessor array");
+		    ERROR_RETURN_LOG_ERRNO(_acc_t, "Cannot resize the accessor array");
 
 		ctx->accessor_cap *= 2;
 		ctx->accessor = newbuf;
@@ -249,14 +249,14 @@ static inline _acc_t _accessor_alloc(pstd_type_model_t* ctx, pipe_t pipe, const 
 	size_t len = strlen(field_expr) + 1;
 
 	if(NULL == (accessor->field = (char*)malloc(len)))
-		ERROR_RETURN_LOG_ERRNO(_acc_t, "Cannot allocate the field expression buffer");
+	    ERROR_RETURN_LOG_ERRNO(_acc_t, "Cannot allocate the field expression buffer");
 
 	memcpy(accessor->field, field_expr, len);
 
 	accessor->pipe = pipe;
 
 	if(ERROR_CODE(int) == _ensure_pipe_typeinfo(ctx, pipe))
-		ERROR_RETURN_LOG_ERRNO(_acc_t, "Cannot resize the typeinfo array");
+	    ERROR_RETURN_LOG_ERRNO(_acc_t, "Cannot resize the typeinfo array");
 
 	accessor->next = ctx->type_info[PIPE_GET_ID(pipe)].accessor_list;
 	ctx->type_info[PIPE_GET_ID(pipe)].accessor_list = accessor;
@@ -274,12 +274,12 @@ pstd_type_model_t* pstd_type_model_new()
 	ret->pipe_cap = 32;       /*! TODO: magic number */
 
 	if(NULL == (ret->type_info = (_typeinfo_t*)calloc(ret->pipe_cap, sizeof(ret->type_info[0]))))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for for the typeinfo array");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for for the typeinfo array");
 
 	ret->accessor_cnt = 0;
 	ret->accessor_cap = 32;   /*!< TODO: magic number */
 	if(NULL == (ret->accessor = (_accessor_t*)malloc(ret->accessor_cap * sizeof(ret->accessor[0]))))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the accessor array");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the accessor array");
 
 	return ret;
 ERR:
@@ -295,15 +295,15 @@ ERR:
 int pstd_type_model_free(pstd_type_model_t* model)
 {
 	if(NULL == model)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(model->accessor != NULL)
 	{
 		_acc_t i;
 		for(i = 0; i < model->accessor_cnt; i ++)
 		{
-			if(NULL != model->accessor[i].field) 
-				free(model->accessor[i].field);
+			if(NULL != model->accessor[i].field)
+			    free(model->accessor[i].field);
 		}
 
 		free(model->accessor);
@@ -324,9 +324,9 @@ int pstd_type_model_free(pstd_type_model_t* model)
 			}
 
 			if(NULL != model->type_info[i].name)
-				free(model->type_info[i].name);
+			    free(model->type_info[i].name);
 		}
-		
+
 		/* We do not need to dispose the accessor list, because we do not hold the ownership of the accessors */
 
 		free(model->type_info);
@@ -340,7 +340,7 @@ int pstd_type_model_free(pstd_type_model_t* model)
 pstd_type_accessor_t pstd_type_model_get_accessor(pstd_type_model_t* model, pipe_t pipe, const char* field_expr)
 {
 	if(NULL == model || NULL == field_expr || RUNTIME_API_PIPE_IS_VIRTUAL(pipe) || ERROR_CODE(pipe_t) == pipe)
-		ERROR_RETURN_LOG(pstd_type_accessor_t, "Invalid arguments");
+	    ERROR_RETURN_LOG(pstd_type_accessor_t, "Invalid arguments");
 
 	return _accessor_alloc(model, pipe, field_expr);
 }
@@ -348,16 +348,16 @@ pstd_type_accessor_t pstd_type_model_get_accessor(pstd_type_model_t* model, pipe
 int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_assertion_t assertion, const void* data)
 {
 	if(NULL == model || NULL == assertion || ERROR_CODE(pipe_t) == pipe || RUNTIME_API_PIPE_IS_VIRTUAL(pipe))
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(ERROR_CODE(int) == _ensure_pipe_typeinfo(model, pipe))
-		ERROR_RETURN_LOG(int, "Cannot resize the typeinfo array");
+	    ERROR_RETURN_LOG(int, "Cannot resize the typeinfo array");
 
 	_typeinfo_t* typeinfo = model->type_info + PIPE_GET_ID(pipe);
 
 	_type_assertion_t* obj = (_type_assertion_t*)malloc(sizeof(*assertion));
 	if(NULL == obj)
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the type assertion object");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the type assertion object");
 
 	obj->func = assertion;
 	obj->data = data;
@@ -378,14 +378,14 @@ static inline size_t _inst_buf_size(const pstd_type_model_t* model)
 
 	runtime_api_pipe_id_t last = (runtime_api_pipe_id_t)(model->pipe_max - 1);
 
-	return (size_t)(model->type_info[last].buf_begin + model->type_info[last].used_size + 
-			                                           (model->type_info[last].used_size > 0 ? sizeof(_header_buf_t) : 0));
+	return (size_t)(model->type_info[last].buf_begin + model->type_info[last].used_size +
+	                                                   (model->type_info[last].used_size > 0 ? sizeof(_header_buf_t) : 0));
 }
 
 size_t pstd_type_instance_size(const pstd_type_model_t* model)
 {
 	if(NULL == model)
-		ERROR_RETURN_LOG(size_t, "Invalid arguments");
+	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 	return sizeof(pstd_type_instance_t) + _inst_buf_size(model);
 }
@@ -393,21 +393,21 @@ size_t pstd_type_instance_size(const pstd_type_model_t* model)
 pstd_type_instance_t* pstd_type_instance_new(const pstd_type_model_t* model, void* mem)
 {
 	if(NULL == model)
-		ERROR_PTR_RETURN_LOG("Invalid arguments");
+	    ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	size_t size = sizeof(pstd_type_instance_t) + _inst_buf_size(model);
 	pstd_type_instance_t* ret = (pstd_type_instance_t*)mem;
 
 	if(NULL == ret && NULL == (ret = (pstd_type_instance_t*)malloc(size)))
-		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the type context instance");
+	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the type context instance");
 
 	ret->heapmem = (mem == NULL);
 	ret->model = model;
 
 	runtime_api_pipe_id_t i;
 	for(i = 0; i < model->pipe_max; i ++)
-		if(model->type_info[i].used_size > 0)
-			*(size_t*)(ret->buffer + model->type_info[i].buf_begin) = 0;
+	    if(model->type_info[i].used_size > 0)
+	        *(size_t*)(ret->buffer + model->type_info[i].buf_begin) = 0;
 
 	return ret;
 }
@@ -415,7 +415,7 @@ pstd_type_instance_t* pstd_type_instance_new(const pstd_type_model_t* model, voi
 int pstd_type_instance_free(pstd_type_instance_t* inst)
 {
 	if(NULL == inst)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	runtime_api_pipe_id_t i;
 	int rc = 0;
@@ -452,8 +452,8 @@ int pstd_type_instance_free(pstd_type_instance_t* inst)
 		}
 	}
 
-	if(inst->heapmem) 
-		free(inst);
+	if(inst->heapmem)
+	    free(inst);
 	return rc;
 }
 /**
@@ -473,20 +473,20 @@ int _ensure_header_read(pstd_type_instance_t* inst, const _accessor_t* accessor,
 	{
 		size_t rc = pipe_hdr_read(accessor->pipe, buffer->data + buffer->valid_size, bytes_can_read);
 		if(ERROR_CODE(size_t) == rc)
-			ERROR_RETURN_LOG(int, "Cannot read header");
+		    ERROR_RETURN_LOG(int, "Cannot read header");
 
 		if(rc == 0)
 		{
 			int eof_rc = pipe_eof(accessor->pipe);
 			if(ERROR_CODE(int) == eof_rc)
-				ERROR_RETURN_LOG(int, "pipe_eof returns an error");
+			    ERROR_RETURN_LOG(int, "pipe_eof returns an error");
 
 			if(eof_rc)
 			{
 				if(buffer->valid_size > 0)
-					ERROR_RETURN_LOG(int, "Unexpected end of data stream");
+				    ERROR_RETURN_LOG(int, "Unexpected end of data stream");
 				else /* We are ok with the zero input */
-					return 0;
+				    return 0;
 			}
 		}
 
@@ -499,29 +499,29 @@ int _ensure_header_read(pstd_type_instance_t* inst, const _accessor_t* accessor,
 
 size_t pstd_type_instance_read(pstd_type_instance_t* inst, pstd_type_accessor_t accessor, void* buf, size_t bufsize)
 {
-	if(NULL == inst || ERROR_CODE(pstd_type_accessor_t) == accessor || NULL == buf || accessor >= inst->model->accessor_cnt) 
-		ERROR_RETURN_LOG(size_t, "Invalid arguments");
+	if(NULL == inst || ERROR_CODE(pstd_type_accessor_t) == accessor || NULL == buf || accessor >= inst->model->accessor_cnt)
+	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 	const _accessor_t* obj = inst->model->accessor + accessor;
 
 	/* It's possible the pipe is unassigned in the graph, so that we do not have any type info at this point
 	 * In this case, we must stop at this point */
 	if(!inst->model->accessor[accessor].init)
-		return 0;
+	    return 0;
 
 	if(bufsize > obj->size) bufsize = obj->size;
 
 	if(bufsize == 0) return 0;
 
 	if(ERROR_CODE(int) == _ensure_header_read(inst, obj, obj->offset + bufsize))
-		ERROR_RETURN_LOG(size_t, "Cannot ensure the header buffer is valid");
+	    ERROR_RETURN_LOG(size_t, "Cannot ensure the header buffer is valid");
 
 	const _header_buf_t* buffer = (const _header_buf_t*)(inst->buffer + inst->model->type_info[PIPE_GET_ID(obj->pipe)].buf_begin);
 
 	if(buffer->valid_size > 0)
-		memcpy(buf, buffer->data + obj->offset, bufsize);
-	else 
-		return 0;
+	    memcpy(buf, buffer->data + obj->offset, bufsize);
+	else
+	    return 0;
 
 	return bufsize;
 }
@@ -544,8 +544,8 @@ static inline int _ensure_header_write(pstd_type_instance_t* inst, const _access
 int pstd_type_instance_write(pstd_type_instance_t* inst, pstd_type_accessor_t accessor, const void* buf, size_t bufsize)
 {
 	if(NULL == inst || ERROR_CODE(pstd_type_accessor_t) == accessor || NULL == buf || accessor >= inst->model->accessor_cnt)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
-	
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+
 	const _accessor_t* obj = inst->model->accessor + accessor;
 
 	if(!obj->init) return 0;
@@ -555,8 +555,8 @@ int pstd_type_instance_write(pstd_type_instance_t* inst, pstd_type_accessor_t ac
 	if(bufsize == 0) return 0;
 
 	if(ERROR_CODE(int) == _ensure_header_write(inst, obj, obj->offset + bufsize))
-		ERROR_RETURN_LOG(int, "Cannot ensure the header buffer is valid");
-	
+	    ERROR_RETURN_LOG(int, "Cannot ensure the header buffer is valid");
+
 	_header_buf_t* buffer = (_header_buf_t*)(inst->buffer + inst->model->type_info[PIPE_GET_ID(obj->pipe)].buf_begin);
 	memcpy(buffer->data + obj->offset, buf, bufsize);
 

@@ -72,5 +72,5 @@ TEST_LIST_BEGIN
     TEST_CASE(test_string_buffer_truncate),
     TEST_CASE(test_string_buffer_empty),
     TEST_CASE(test_string_buffer_appendf),
-	TEST_CASE(test_string_buffer_range)
+    TEST_CASE(test_string_buffer_range)
 TEST_LIST_END;

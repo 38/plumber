@@ -31,8 +31,8 @@ static inline int _write_string(pstd_type_instance_t* inst, pstd_type_accessor_t
 {
 	 scope_token_t token;
 	 if(ERROR_CODE(scope_token_t) == (token = pstd_string_commit(str)))
-		 ERROR_LOG_GOTO(ERR, "Cannot commit string object to RLS");
-	 
+	     ERROR_LOG_GOTO(ERR, "Cannot commit string object to RLS");
+
 	 return PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, accessor, token);
 ERR:
 	 pstd_string_free(str);
@@ -45,9 +45,9 @@ static inline int _write_path(pstd_type_instance_t* inst, pstd_type_accessor_t a
 	if(NULL == result) ERROR_RETURN_LOG(int, "Cannot create new string object for the path");
 
 	for(; n > 0; n --, begin ++, end ++)
-		if(ERROR_CODE(size_t) == pstd_string_write(result, "/", 1) ||
-		   ERROR_CODE(size_t) == pstd_string_write(result, begin[0], (size_t)(end[0] - begin[0])))
-			ERROR_RETURN_LOG(int, "RLS string write error");
+	    if(ERROR_CODE(size_t) == pstd_string_write(result, "/", 1) ||
+	       ERROR_CODE(size_t) == pstd_string_write(result, begin[0], (size_t)(end[0] - begin[0])))
+	        ERROR_RETURN_LOG(int, "RLS string write error");
 
 	return _write_string(inst, accessor, result);
 }
@@ -68,25 +68,25 @@ static inline int _simplify_path(scope_token_t path_token, const context_t* ctx,
 	const char *begin = path + (path[0] == '/'), *end = path + (path[0] == '/');
 	const char *extname = NULL;
 	int32_t sp = 0, simplified = 0;
-	
+
 	for(;sp >= 0;end++)
 	    if(*end == '/' || *end == 0)
 	    {
-			if(end - begin == 2 && begin[0] == '.' && begin[1] == '.')  /* Pop the stack when the segment is .. */
-				sp --, simplified = 1;
-			else if((end - begin == 1 && begin[0] == '.') || (end - begin == 0)) /* Silently swallow the segment if the segment is empty or . */
-				simplified = 1;
-			else /* Otherwise push everything to stack */ 
-				bs[sp] = begin, es[sp] = end, sp ++;
-		   
-			begin = end + 1;
-			if(*end == 0) break;
-			else extname = NULL;
+		    if(end - begin == 2 && begin[0] == '.' && begin[1] == '.')  /* Pop the stack when the segment is .. */
+		        sp --, simplified = 1;
+		    else if((end - begin == 1 && begin[0] == '.') || (end - begin == 0)) /* Silently swallow the segment if the segment is empty or . */
+		        simplified = 1;
+		    else /* Otherwise push everything to stack */
+		        bs[sp] = begin, es[sp] = end, sp ++;
+
+		    begin = end + 1;
+		    if(*end == 0) break;
+		    else extname = NULL;
 	    }
-		else if(ctx->need_extname && *end == '.') extname = end + 1;
+	    else if(ctx->need_extname && *end == '.') extname = end + 1;
 
 	/* If we pop the stack too much, this should not be allowed */
-	if(sp < 0) 
+	if(sp < 0)
 	{
 		size_t rc;
 		while(0 == (rc = pipe_write(ctx->invalid, "", 1)));
@@ -98,7 +98,7 @@ static inline int _simplify_path(scope_token_t path_token, const context_t* ctx,
 	if(ctx->prefix_level > 0 && ctx->prefix_level <= (uint32_t)sp)
 	{
 		if(ERROR_CODE(int) == _write_path(inst, ctx->prefix_token, bs, es, ctx->prefix_level))
-			ERROR_RETURN_LOG(int, "Cannot write the path to pipe");
+		    ERROR_RETURN_LOG(int, "Cannot write the path to pipe");
 
 		start += ctx->prefix_level;
 	}
@@ -107,19 +107,19 @@ static inline int _simplify_path(scope_token_t path_token, const context_t* ctx,
 	{
 		/* If the path haven't been changed, we can reuse the string directly */
 		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, ctx->relative_token, path_token))
-			ERROR_RETURN_LOG(int, "Cannot write the relative path to pipe");
+		    ERROR_RETURN_LOG(int, "Cannot write the relative path to pipe");
 	}
 	else if(ERROR_CODE(int) == _write_path(inst, ctx->relative_token, bs, es, (uint32_t)(sp) - start))
-		ERROR_RETURN_LOG(int, "Cannot write the relative path to pipe");
+	    ERROR_RETURN_LOG(int, "Cannot write the relative path to pipe");
 
 	if(NULL != extname)
 	{
 		pstd_string_t* buf = pstd_string_new(16);
 		if(ERROR_CODE(size_t) == pstd_string_write(buf, extname, strlen(extname)))
-			ERROR_RETURN_LOG(int, "Cannot write extension name to string object");
+		    ERROR_RETURN_LOG(int, "Cannot write extension name to string object");
 
 		if(ERROR_CODE(int) == _write_string(inst, ctx->extname_token, buf))
-			ERROR_RETURN_LOG(int, "Cannot write the extension name to the pipe");
+		    ERROR_RETURN_LOG(int, "Cannot write the extension name to the pipe");
 	}
 
 	return 0;
@@ -135,15 +135,15 @@ static int _set_options(uint32_t idx, pstd_option_param_t* params, uint32_t npar
 	switch(what)
 	{
 		case 'L':
-			if(params[0].intval < 0 || params[0].intval > PATH_MAX / 2 + 1)
-				ERROR_RETURN_LOG(int, "Invalid prefix level %"PRId64, params[0].intval);
-			ctx->prefix_level = (uint32_t)params[0].intval;
-			return 0;
+		    if(params[0].intval < 0 || params[0].intval > PATH_MAX / 2 + 1)
+		        ERROR_RETURN_LOG(int, "Invalid prefix level %"PRId64, params[0].intval);
+		    ctx->prefix_level = (uint32_t)params[0].intval;
+		    return 0;
 		case 'e':
-			ctx->need_extname = 1;
-			return 0;
+		    ctx->need_extname = 1;
+		    return 0;
 		default:
-			ERROR_RETURN_LOG(int, "Invalid option %c", what);
+		    ERROR_RETURN_LOG(int, "Invalid option %c", what);
 	}
 }
 
@@ -167,7 +167,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 			.short_opt    = 'e',
 			.description  = "Produce the extension name to the extension name pipe",
 			.pattern      = "",
-			.handler      = _set_options 
+			.handler      = _set_options
 		},
 		{
 			.long_opt     = "help",
@@ -183,37 +183,37 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	static const char* strtype = "plumber/std/request_local/String";
 
 	if(opt_rc !=  argc)
-		ERROR_RETURN_LOG(int, "Invalid servlet initialization string, use --help for the usage of the servlet");
+	    ERROR_RETURN_LOG(int, "Invalid servlet initialization string, use --help for the usage of the servlet");
 
 	if(ERROR_CODE(pipe_t) == (ctx->origin = pipe_define("origin", PIPE_INPUT, strtype)))
-		ERROR_RETURN_LOG(int, "Cannot define the input pipe for original path");
+	    ERROR_RETURN_LOG(int, "Cannot define the input pipe for original path");
 
 	if(ERROR_CODE(pipe_t) == (ctx->prefix = pipe_define("prefix", PIPE_OUTPUT, strtype)))
-		ERROR_RETURN_LOG(int, "Cannot define the output pipe for the prefix");
+	    ERROR_RETURN_LOG(int, "Cannot define the output pipe for the prefix");
 
 	if(ERROR_CODE(pipe_t) == (ctx->relative = pipe_define("relative", PIPE_OUTPUT, strtype)))
-		ERROR_RETURN_LOG(int, "Cannot define the output pipe for the relative path");
+	    ERROR_RETURN_LOG(int, "Cannot define the output pipe for the relative path");
 
 	if(ctx->need_extname && ERROR_CODE(pipe_t) == (ctx->extname = pipe_define("extname", PIPE_OUTPUT, strtype)))
-		ERROR_RETURN_LOG(int, "Cannot define the output pipe for the externsion name");
+	    ERROR_RETURN_LOG(int, "Cannot define the output pipe for the externsion name");
 
 	if(ERROR_CODE(pipe_t) == (ctx->invalid = pipe_define("invalid", PIPE_OUTPUT, NULL)))
-		ERROR_RETURN_LOG(int, "Cannot define the output pipe for the invalid bit");
+	    ERROR_RETURN_LOG(int, "Cannot define the output pipe for the invalid bit");
 
 	if(NULL == (ctx->model = pstd_type_model_new()))
-		ERROR_RETURN_LOG(int, "Cannot create type model");
+	    ERROR_RETURN_LOG(int, "Cannot create type model");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->prefix_token = pstd_type_model_get_accessor(ctx->model, ctx->prefix, "token")))
-		ERROR_RETURN_LOG(int, "Cannot get accessor for field prefix.token");
+	    ERROR_RETURN_LOG(int, "Cannot get accessor for field prefix.token");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->relative_token = pstd_type_model_get_accessor(ctx->model, ctx->relative, "token")))
-		ERROR_RETURN_LOG(int, "Cannot get accessor for field relative.token");
+	    ERROR_RETURN_LOG(int, "Cannot get accessor for field relative.token");
 
 	if(ctx->need_extname && ERROR_CODE(pstd_type_accessor_t) == (ctx->extname_token = pstd_type_model_get_accessor(ctx->model, ctx->extname, "token")))
-		ERROR_RETURN_LOG(int, "Cannot get the accessor for field extname.token");
+	    ERROR_RETURN_LOG(int, "Cannot get the accessor for field extname.token");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->origin_token = pstd_type_model_get_accessor(ctx->model, ctx->origin, "token")))
-		ERROR_RETURN_LOG(int, "Cannot get the accesor for field origin.token");
+	    ERROR_RETURN_LOG(int, "Cannot get the accesor for field origin.token");
 
 	return 0;
 }
@@ -224,19 +224,19 @@ int _exec(void* ctxbuf)
 
 	pstd_type_instance_t* inst = NULL;
 	size_t sz = pstd_type_instance_size(ctx->model);
-	if(ERROR_CODE(size_t) == sz) 
-		ERROR_RETURN_LOG(int, "Cannot get the size of the model");
-	
+	if(ERROR_CODE(size_t) == sz)
+	    ERROR_RETURN_LOG(int, "Cannot get the size of the model");
+
 	char buf[sz];
 	if(NULL == (inst = pstd_type_instance_new(ctx->model, buf)))
-		ERROR_LOG_GOTO(ERR, "Cannot create the model");
+	    ERROR_LOG_GOTO(ERR, "Cannot create the model");
 
 	scope_token_t token;
 	if(ERROR_CODE(scope_token_t) == (token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->origin_token)))
-		ERROR_LOG_GOTO(ERR, "Cannot read the RLS token from input");
+	    ERROR_LOG_GOTO(ERR, "Cannot read the RLS token from input");
 
 	if(ERROR_CODE(int) == _simplify_path(token, ctx, inst))
-		ERROR_LOG_GOTO(ERR, "Cannot simplify the path");
+	    ERROR_LOG_GOTO(ERR, "Cannot simplify the path");
 
 	return pstd_type_instance_free(inst);
 

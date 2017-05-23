@@ -136,22 +136,22 @@ int runtime_task_start(runtime_task_t *task)
 	switch(RUNTIME_TASK_FLAG_GET_ACTION(task->flags))
 	{
 		case RUNTIME_TASK_FLAG_ACTION_INIT:
-			if(NULL != task->servlet->bin->define->init)
-		    	rc = task->servlet->bin->define->init(task->servlet->argc, (char const* const*)task->servlet->argv, task->servlet->data);
-			else 
-				rc = 0;
+		    if(NULL != task->servlet->bin->define->init)
+		        rc = task->servlet->bin->define->init(task->servlet->argc, (char const* const*)task->servlet->argv, task->servlet->data);
+		    else
+		        rc = 0;
 		    break;
 		case RUNTIME_TASK_FLAG_ACTION_EXEC:
-			if(NULL != task->servlet->bin->define->exec)
-		    	rc = task->servlet->bin->define->exec(task->servlet->data);
-			else
-				rc = 0;
+		    if(NULL != task->servlet->bin->define->exec)
+		        rc = task->servlet->bin->define->exec(task->servlet->data);
+		    else
+		        rc = 0;
 		    break;
 		case RUNTIME_TASK_FLAG_ACTION_UNLOAD:
-			if(NULL != task->servlet->bin->define->unload)
-		    	rc = task->servlet->bin->define->unload(task->servlet->data);
-			else
-				rc = 0;
+		    if(NULL != task->servlet->bin->define->unload)
+		        rc = task->servlet->bin->define->unload(task->servlet->data);
+		    else
+		        rc = 0;
 		    break;
 		default:
 		    LOG_ERROR("Invalid action bit");

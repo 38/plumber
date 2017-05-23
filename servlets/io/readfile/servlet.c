@@ -22,23 +22,23 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	context_t* ctx = (context_t*)ctxbuf;
 
 	static const char* strtype = "plumber/std/request_local/String";
-	
+
 	if(ERROR_CODE(pipe_t) == (ctx->path = pipe_define("path", PIPE_INPUT, strtype)))
-		ERROR_RETURN_LOG(int, "Cannot create input pipe");
+	    ERROR_RETURN_LOG(int, "Cannot create input pipe");
 
 	if(ERROR_CODE(pipe_t) == (ctx->result = pipe_define("result", PIPE_OUTPUT, strtype)))
-		ERROR_RETURN_LOG(int, "Cannot create the output pipe");
-	
+	    ERROR_RETURN_LOG(int, "Cannot create the output pipe");
+
 	if(ERROR_CODE(int) == proto_init())
-		ERROR_RETURN_LOG(int, "Cannot initialize the libproto");
+	    ERROR_RETURN_LOG(int, "Cannot initialize the libproto");
 
 	if(ERROR_CODE(uint32_t) == (ctx->token_ofs = proto_db_type_offset(strtype, "token", NULL)))
-		ERROR_LOG_GOTO(RET, "Cannot get the offset of token in the string type");
+	    ERROR_LOG_GOTO(RET, "Cannot get the offset of token in the string type");
 
 	ret = 0;
 RET:
 	if(ERROR_CODE(int) == proto_finalize())
-		ERROR_RETURN_LOG(int, "Cannot finalize the libproto");
+	    ERROR_RETURN_LOG(int, "Cannot finalize the libproto");
 
 	return ret;
 }
