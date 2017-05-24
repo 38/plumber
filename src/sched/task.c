@@ -678,7 +678,8 @@ sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx)
 int sched_task_free(sched_task_t* task)
 {
 	int rc = 0;
-	_request_entry_t* req = _request_entry_find(task->ctx, task->request);
+	sched_task_context_t* ctx = task->ctx;
+	_request_entry_t* req = _request_entry_find(ctx, task->request);
 	if(NULL == req) rc = ERROR_CODE(int);
 
 	if(NULL != task->exec_task)
@@ -690,7 +691,7 @@ int sched_task_free(sched_task_t* task)
 	if(NULL != req && 0 == --req->num_pending_tasks)
 	{
 		LOG_DEBUG("Request %"PRIu64" is done", req->request_id);
-		if(ERROR_CODE(int) == _request_entry_delete(task->ctx, req->request_id))
+		if(ERROR_CODE(int) == _request_entry_delete(ctx, req->request_id))
 		    rc = ERROR_CODE(int);
 	}
 
