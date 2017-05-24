@@ -6,6 +6,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include <predict.h>
 #include <error.h>
 #include <plumber.h>
 
