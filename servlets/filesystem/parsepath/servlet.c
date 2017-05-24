@@ -44,6 +44,9 @@ static inline int _write_path(pstd_type_instance_t* inst, pstd_type_accessor_t a
 	pstd_string_t* result = pstd_string_new(128);
 	if(NULL == result) ERROR_RETURN_LOG(int, "Cannot create new string object for the path");
 
+	if(n == 0 && ERROR_CODE(size_t) == pstd_string_write(result, "/", 1))
+		ERROR_RETURN_LOG(int, "RLS string write error");
+
 	for(; n > 0; n --, begin ++, end ++)
 	    if(ERROR_CODE(size_t) == pstd_string_write(result, "/", 1) ||
 	       ERROR_CODE(size_t) == pstd_string_write(result, begin[0], (size_t)(end[0] - begin[0])))
@@ -75,7 +78,7 @@ static inline int _simplify_path(scope_token_t path_token, const context_t* ctx,
 		    if(end - begin == 2 && begin[0] == '.' && begin[1] == '.')  /* Pop the stack when the segment is .. */
 		        sp --, simplified = 1;
 		    else if((end - begin == 1 && begin[0] == '.') || (end - begin == 0)) /* Silently swallow the segment if the segment is empty or . */
-		        simplified = 1;
+		        simplified = 1;  /* TODO: We have a flaw here, because the path / will be marked simplified but output is identical, Nothing to do with the correctness */
 		    else /* Otherwise push everything to stack */
 		        bs[sp] = begin, es[sp] = end, sp ++;
 
@@ -93,23 +96,17 @@ static inline int _simplify_path(scope_token_t path_token, const context_t* ctx,
 		return ERROR_CODE(size_t) != rc ? 0 : ERROR_CODE(int);
 	}
 
-	uint32_t start = 0;
+	uint32_t nprefix = (ctx->prefix_level > (uint32_t)sp) ? 0 : ctx->prefix_level;
+	if(ctx->prefix_token > 0 && ERROR_CODE(int) == _write_path(inst, ctx->prefix_token, bs, es, nprefix))
+		ERROR_RETURN_LOG(int, "Cannot write the path to pipe");
 
-	if(ctx->prefix_level > 0 && ctx->prefix_level <= (uint32_t)sp)
-	{
-		if(ERROR_CODE(int) == _write_path(inst, ctx->prefix_token, bs, es, ctx->prefix_level))
-		    ERROR_RETURN_LOG(int, "Cannot write the path to pipe");
-
-		start += ctx->prefix_level;
-	}
-
-	if(ctx->prefix_level == 0 && !simplified)
+	if(nprefix == 0 && !simplified)
 	{
 		/* If the path haven't been changed, we can reuse the string directly */
 		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, ctx->relative_token, path_token))
 		    ERROR_RETURN_LOG(int, "Cannot write the relative path to pipe");
 	}
-	else if(ERROR_CODE(int) == _write_path(inst, ctx->relative_token, bs, es, (uint32_t)(sp) - start))
+	else if(ERROR_CODE(int) == _write_path(inst, ctx->relative_token, bs + nprefix, es + nprefix, (uint32_t)(sp) - nprefix))
 	    ERROR_RETURN_LOG(int, "Cannot write the relative path to pipe");
 
 	if(NULL != extname)
