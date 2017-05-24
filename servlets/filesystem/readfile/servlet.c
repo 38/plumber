@@ -15,6 +15,10 @@ typedef struct {
 
 static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 {
+#ifndef LOG_ERROR_ENABLED
+	(void)argv;
+#endif /* LOG_ERROR_ENABLED */
+
 	int ret = ERROR_CODE(int);
 
 	if(argc != 2) ERROR_RETURN_LOG(int, "Usage: %s <root-directory>", argv[1]);

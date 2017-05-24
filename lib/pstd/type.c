@@ -93,6 +93,7 @@ struct _pstd_type_instance_t {
  **/
 static inline void _proto_err_stack(const proto_err_t* err)
 {
+#ifdef LOG_ERROR_ENABLED
 	char buffer[128];
 
 	if(NULL == err && NULL == (err = proto_err_stack())) return;
@@ -100,6 +101,9 @@ static inline void _proto_err_stack(const proto_err_t* err)
 	LOG_ERROR("libproto error: %s", proto_err_str(err, buffer, sizeof(buffer)));
 	if(NULL != err->child)
 	    _proto_err_stack(err->child);
+#else /* LOG_ERROR_ENABLED */
+	(void)err;
+#endif /* LOG_ERROR_ENABLED */
 }
 
 /**
