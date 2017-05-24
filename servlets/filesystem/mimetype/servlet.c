@@ -219,7 +219,7 @@ ERR:
 }
 
 SERVLET_DEF = {
-	.desc = "Guess the MIME type of the given file extension name",
+	.desc = "Guess the MIME type from the given file extension name",
 	.version = 0x0,
 	.size = sizeof(context_t),
 	.init = _init,
