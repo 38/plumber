@@ -153,7 +153,9 @@ static inline void* _sched_main(void* data)
 
 	context->started = 1;
 
-	if(ERROR_CODE(int) == sched_task_init_thread())
+	sched_task_context_t* stc = NULL;
+
+	if(NULL == (stc = sched_task_context_new()))
 	    ERROR_LOG_ERRNO_GOTO(KILLED, "Cannot initialize the thread locals for the scheduler thread %u", context->thread_id);
 
 	if(ERROR_CODE(int) == sched_rscope_init_thread())
@@ -212,21 +214,21 @@ static inline void* _sched_main(void* data)
 		switch(current.type)
 		{
 			case SCHED_LOOP_EVENT_TYPE_ITC:
-			    if(sched_task_new_request(_service, current.itc.in, current.itc.out) == ERROR_CODE(sched_task_request_t))
+			    if(sched_task_new_request(stc, _service, current.itc.in, current.itc.out) == ERROR_CODE(sched_task_request_t))
 			        LOG_ERROR("Cannot add the incoming request to scheduler");
 			    break;
 			default:
 			    LOG_WARNING("Invalid schedluer event type");
 		}
 
-		while(sched_step_next(_mod_mem) > 0 && !_killed);
+		while(sched_step_next(stc, _mod_mem) > 0 && !_killed);
 	}
 
 KILLED:
 
 	LOG_INFO("Scheduler thread %u gets killed", context->thread_id);
 
-	if(ERROR_CODE(int) == sched_task_finalize_thread())
+	if(NULL != stc && ERROR_CODE(int) == sched_task_context_free(stc))
 	    LOG_WARNING("Cannot finalize the thread locals for scheduler %d", context->thread_id);
 
 	if(ERROR_CODE(int) == sched_rscope_finalize_thread())

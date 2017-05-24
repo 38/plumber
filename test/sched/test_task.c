@@ -20,6 +20,8 @@ runtime_api_pipe_id_t B_in_1, B_in_2, B_out, B_err;
 
 itc_module_type_t mod_test, mod_mem;
 
+sched_task_context_t* stc = NULL;
+
 int args[] = {1,2,3,4,5,6,7,8,9,10};
 
 int load_servlet()
@@ -106,11 +108,11 @@ int single_node_test()
 		ASSERT_OK(itc_module_pipe_deallocate(input[0]), goto ERR);
 		input[0] = NULL;
 
-		ASSERT_RETOK(sched_task_request_t, sched_task_new_request(service, input[1], output[0]), goto ERR);
+		ASSERT_RETOK(sched_task_request_t, sched_task_new_request(stc, service, input[1], output[0]), goto ERR);
 		input[1] = NULL;
 		output[0] = NULL;
 
-		ASSERT_PTR(task = sched_task_next_ready_task(), goto TASK_ERR);
+		ASSERT_PTR(task = sched_task_next_ready_task(stc), goto TASK_ERR);
 
 		ASSERT_OK(runtime_task_start(task->exec_task), goto TASK_ERR);
 
@@ -121,7 +123,7 @@ int single_node_test()
 		ASSERT_OK(sched_task_free(task), goto TASK_ERR);
 		task = NULL;
 
-		ASSERT(NULL == sched_task_next_ready_task(), goto ERR);
+		ASSERT(NULL == sched_task_next_ready_task(stc), goto ERR);
 		ASSERT(result == data * 7, goto ERR);
 		continue;
 TASK_ERR:
@@ -201,9 +203,9 @@ static inline int request_test(int seed)
 	if(itc_module_pipe_deallocate(sp[0]) == ERROR_CODE(int)) goto ERR;
 	sched_task_request_t reqid;
 
-	if((reqid = sched_task_new_request(service, sp[1], out[0])) == ERROR_CODE(sched_task_request_t)) goto ERR;
+	if((reqid = sched_task_new_request(stc, service, sp[1], out[0])) == ERROR_CODE(sched_task_request_t)) goto ERR;
 
-	while(NULL != (task = sched_task_next_ready_task()))
+	while(NULL != (task = sched_task_next_ready_task(stc)))
 	{
 		uint32_t size, i;
 		const sched_service_pipe_descriptor_t* result;
@@ -218,14 +220,14 @@ static inline int request_test(int seed)
 			if(sched_task_output_pipe(task, result[i].source_pipe_desc, pipes[0]) == ERROR_CODE(int))
 			    goto LERR;
 
-			if(sched_task_input_pipe(task->service, task->request, result[i].destination_node_id, result[i].destination_pipe_desc, pipes[1]) < 0)
+			if(sched_task_input_pipe(stc, task->service, task->request, result[i].destination_node_id, result[i].destination_pipe_desc, pipes[1]) < 0)
 			    goto LERR;
 		}
 
 		if(runtime_task_start(task->exec_task) < 0)
 		    goto LERR;
 
-		if(1 != sched_task_request_status(reqid))
+		if(1 != sched_task_request_status(stc, reqid))
 		    goto LERR;
 
 		sched_task_free(task);
@@ -247,7 +249,7 @@ LERR:
 		return -1;
 	}
 
-	if(0 != sched_task_request_status(reqid))
+	if(0 != sched_task_request_status(stc, reqid))
 	    return -1;
 
 	return 0;
@@ -359,9 +361,9 @@ int pipe_disable()
 	ASSERT_OK(module_test_set_request(&a, sizeof(uint32_t)), goto ERR);
 
 	itc_module_pipe_accept(mod_test, param, &in, &out);
-	sched_task_new_request(service, in, out);
+	sched_task_new_request(stc, service, in, out);
 
-	while((src = sched_step_next(mod_mem)) > 0);
+	while((src = sched_step_next(stc, mod_mem)) > 0);
 
 	ASSERT_OK(src, goto ERR);
 
@@ -450,9 +452,9 @@ int task_cancel()
 	ASSERT_OK(module_test_set_request(message, strlen(message)), goto ERR);
 
 	itc_module_pipe_accept(mod_test, param, &in, &out);
-	sched_task_new_request(service, in, out);
+	sched_task_new_request(stc, service, in, out);
 
-	while((src = sched_step_next(mod_mem)) > 0);
+	while((src = sched_step_next(stc, mod_mem)) > 0);
 
 	ASSERT_OK(src, goto ERR);
 
@@ -489,7 +491,7 @@ int setup()
 	mod_mem = itc_modtab_get_module_type_from_path("pipe.mem");
 	ASSERT(ERROR_CODE(itc_module_type_t) != mod_mem, CLEANUP_NOP);
 	ASSERT_OK(runtime_servlet_append_search_path(TESTDIR), CLEANUP_NOP);
-	ASSERT_OK(sched_task_init_thread(), CLEANUP_NOP);
+	ASSERT_PTR(stc = sched_task_context_new(), CLEANUP_NOP);
 
 	return 0;
 }
@@ -505,7 +507,7 @@ int teardown()
 	{
 		ASSERT_OK(sched_service_free(service), CLEANUP_NOP);
 	}
-	ASSERT_OK(sched_task_finalize_thread(), CLEANUP_NOP);
+	ASSERT_OK(sched_task_context_free(stc), CLEANUP_NOP);
 	return 0;
 }
 

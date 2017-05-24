@@ -96,14 +96,18 @@ int main(int argc, char** argv)
 	itc_module_type_t mod_tcp = itc_modtab_get_module_type_from_path("pipe.tcp.port_8888");
 	itc_module_type_t mem_pipe = itc_modtab_get_module_type_from_path("pipe.mem");
 
+	sched_task_context_t* stc = sched_task_context_new();
+
 	for(;!_stopped;)
 	{
 		itc_module_pipe_t *in, *out;
 		itc_module_pipe_accept(mod_tcp, request_param, &in, &out);
-		sched_task_new_request(service, in, out);
+		sched_task_new_request(stc, service, in, out);
 
-		while(sched_step_next(mem_pipe) > 0);
+		while(sched_step_next(stc, mem_pipe) > 0);
 	}
+
+	sched_task_context_free(stc);
 
 	return 0;
 }

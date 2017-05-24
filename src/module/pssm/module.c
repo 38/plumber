@@ -17,13 +17,22 @@
 #include <utils/thread.h>
 #include <utils/static_assertion.h>
 
-#include <error.h>
-#include <runtime/api.h>
 #include <itc/module_types.h>
 #include <itc/module.h>
-#include <module/pssm/module.h>
+
+#include <error.h>
+#include <runtime/api.h>
+#include <runtime/pdt.h>
+#include <runtime/servlet.h>
+#include <runtime/task.h>
+#include <runtime/stab.h>
+
+#include <sched/service.h>
 #include <sched/rscope.h>
+#include <sched/task.h>
 #include <sched/step.h>
+
+#include <module/pssm/module.h>
 
 /**
  * @brief the actual data strcuture for an allocated memory chucnk

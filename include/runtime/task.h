@@ -83,6 +83,17 @@ runtime_task_t* runtime_task_new(runtime_servlet_t* servlet, runtime_task_flags_
 int runtime_task_start(runtime_task_t* task);
 
 /**
+ * @brief This is the fast version to start an exec task
+ * @details This function is dangerous, because it won't do param check and will assume
+ *          The task is exec task. In addition, it do not recover the current task variable
+ *          This function is completely for performance purpose, because most of the task
+ *          are exec task and we should have a way to do it faster
+ * @param task The task to start
+ * @return status code
+ **/
+int runtime_task_start_exec_fast(runtime_task_t* task);
+
+/**
  * @brief get current task
  * @return the task object of current task, NULL if there's an error
  **/

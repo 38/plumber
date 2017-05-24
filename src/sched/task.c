@@ -34,19 +34,16 @@ typedef struct _request_entry_t {
 } _request_entry_t;
 
 /**
- * @brief the hash table that used to store tasks
- * @note do not use the array, because for the array, we need to allocate this for even a
- *       event loop, which is waste of memory
+ * @brief The context used by a task table
  **/
-static __thread _task_entry_t** _task_table = NULL;
-/** @brief the request information hash table, which maps the request id to the request entry */
-static __thread _request_entry_t** _request_table = NULL;
-/** @brief the ready queue head */
-static __thread _task_entry_t* _queue_head = NULL;
-/** @brief the read queue tail */
-static __thread _task_entry_t* _queue_tail = NULL;
-/** @brief the sizeo of the ready queue */
-static __thread uint32_t  _queue_size = 0;
+struct _sched_task_context_t {
+	_task_entry_t**       task_table;     /*!< The hash table used to organize tasks */
+	_request_entry_t**    request_table;  /*!< The requet information table, maps the request id to the request entry */
+	_task_entry_t*        queue_head;     /*!< The ready queue head */
+	_task_entry_t*        queue_tail;     /*!< The ready queue tail */
+	uint32_t              queue_size;     /*!< The size of the queue */
+};
+
 /** @brief the memory pool used for the task entry */
 static mempool_objpool_t* _task_pool = NULL;
 /** @brief the memory pool used for the request entrt */
@@ -57,12 +54,12 @@ static mempool_objpool_t* _request_pool = NULL;
  * @param task the task to insert
  * @return nothing
  **/
-static inline void _enqueue(_task_entry_t* task)
+static inline void _enqueue(sched_task_context_t* ctx, _task_entry_t* task)
 {
-	if(NULL != _queue_tail) _queue_tail->next = task;
-	else _queue_head = task;
-	_queue_tail = task;
-	_queue_size ++;
+	if(NULL != ctx->queue_tail) ctx->queue_tail->next = task;
+	else ctx->queue_head = task;
+	ctx->queue_tail = task;
+	ctx->queue_size ++;
 }
 
 /**
@@ -70,13 +67,13 @@ static inline void _enqueue(_task_entry_t* task)
  * @note this will remove and return the first task in the queue
  * @return the first task in the queue, if the queue is empty, return NULL
  **/
-static inline _task_entry_t* _dequeue()
+static inline _task_entry_t* _dequeue(sched_task_context_t* ctx)
 {
-	if(_queue_size == 0) return NULL;
-	_task_entry_t* ret = _queue_head;
-	if(NULL == (_queue_head = _queue_head->next))
-	    _queue_tail = NULL;
-	_queue_size --;
+	if(ctx->queue_size == 0) return NULL;
+	_task_entry_t* ret = ctx->queue_head;
+	if(NULL == (ctx->queue_head = ctx->queue_head->next))
+	    ctx->queue_tail = NULL;
+	ctx->queue_size --;
 	return ret;
 }
 
@@ -126,11 +123,11 @@ static inline int _request_entry_free(_request_entry_t* entry)
  * @param request the request id we want to look for
  * @return the request entry object, or NULL if not found
  **/
-static inline _request_entry_t* _request_entry_find(sched_task_request_t request)
+static inline _request_entry_t* _request_entry_find(const sched_task_context_t* ctx, sched_task_request_t request)
 {
 	uint32_t slot = (uint32_t)(request % SCHED_TASK_TABLE_SLOT_SIZE);
 	_request_entry_t* ret;
-	for(ret = _request_table[slot]; NULL != ret && request != ret->request_id; ret = ret->next);
+	for(ret = ctx->request_table[slot]; NULL != ret && request != ret->request_id; ret = ret->next);
 	return ret;
 }
 /**
@@ -139,14 +136,14 @@ static inline _request_entry_t* _request_entry_find(sched_task_request_t request
  * @param request the request id
  * @return the newly created entry or NULL on error case
  **/
-static inline _request_entry_t* _request_entry_insert(sched_task_request_t request)
+static inline _request_entry_t* _request_entry_insert(sched_task_context_t* ctx, sched_task_request_t request)
 {
 	uint32_t slot = (uint32_t)(request % SCHED_TASK_TABLE_SLOT_SIZE);
 	_request_entry_t* ret = _request_entry_new(request);
 	if(NULL == ret) ERROR_PTR_RETURN_LOG("Canont create new request node for the request");
 
-	ret->next = _request_table[slot];
-	return _request_table[slot] = ret;
+	ret->next = ctx->request_table[slot];
+	return ctx->request_table[slot] = ret;
 }
 
 /**
@@ -154,22 +151,22 @@ static inline _request_entry_t* _request_entry_insert(sched_task_request_t reque
  * @param request the request id
  * @return the number of entry has been deleted or error code
  **/
-static inline int _request_entry_delete(sched_task_request_t request)
+static inline int _request_entry_delete(sched_task_context_t* ctx, sched_task_request_t request)
 {
 	uint32_t slot = (uint32_t)(request % SCHED_TASK_TABLE_SLOT_SIZE);
 	_request_entry_t* prev = NULL;
 
 	/* if the request we are looking for is not the first */
-	if(_request_table[slot] == NULL || _request_table[slot]->request_id != request)
+	if(ctx->request_table[slot] == NULL || ctx->request_table[slot]->request_id != request)
 	{
-		for(prev = _request_table[slot];
+		for(prev = ctx->request_table[slot];
 		    prev != NULL && prev->next != NULL && prev->next->request_id != request;
 		    prev = prev->next);
 		if(prev == NULL || prev->next == NULL) return 0;
 	}
 
-	_request_entry_t* to_delete = NULL == prev ? _request_table[slot] : prev->next;
-	if(prev == NULL) _request_table[slot] = to_delete->next;
+	_request_entry_t* to_delete = NULL == prev ? ctx->request_table[slot] : prev->next;
+	if(prev == NULL) ctx->request_table[slot] = to_delete->next;
 	else prev->next = to_delete->next;
 
 	if(ERROR_CODE(int) == _request_entry_free(to_delete))
@@ -203,15 +200,16 @@ static inline int _task_guareentee_instantiated(_task_entry_t* task)
 	return 0;
 }
 
-static inline _task_entry_t* _task_entry_new(const sched_service_t* service, sched_task_request_t request, sched_service_node_id_t node)
+static inline _task_entry_t* _task_entry_new(sched_task_context_t* ctx, const sched_service_t* service, sched_task_request_t request, sched_service_node_id_t node)
 {
 	/* The reason why we initialize the pool here is beacuse we may want to start multiple thread later,
 	 * But init function won't get called when a thread gets spawn. So it init here. */
-	_request_entry_t* req = _request_entry_find(request);
+	_request_entry_t* req = _request_entry_find(ctx, request);
 	if(NULL == req) ERROR_PTR_RETURN_LOG("Cannot get the request entry object");
 
 	_task_entry_t* ret = mempool_objpool_alloc(_task_pool, 0);
 	if(NULL == ret) ERROR_PTR_RETURN_LOG("Cannot allocate memory for the new task entry");
+	ret->task.ctx = ctx;
 	ret->task.exec_task = NULL;
 	ret->prev = ret->next = NULL;
 
@@ -239,40 +237,40 @@ ERR:
 	return NULL;
 }
 
-static inline _task_entry_t* _task_table_find(const sched_service_t* service, sched_task_request_t request, sched_service_node_id_t node)
+static inline _task_entry_t* _task_table_find(const sched_task_context_t* ctx, const sched_service_t* service, sched_task_request_t request, sched_service_node_id_t node)
 {
 	uint32_t h = _hash(service, request, node);
 
 	_task_entry_t* ret;
-	_task_entry_t** table = _task_table;
+	_task_entry_t** table = ctx->task_table;
 	for(ret = table[h];
 	    NULL != ret && (ret->task.service != service || ret->task.request != request || ret->task.node != node);
 	    ret = ret->next);
 	return ret;
 }
 
-static inline _task_entry_t* _task_table_insert(const sched_service_t* service, sched_task_request_t request, sched_service_node_id_t node)
+static inline _task_entry_t* _task_table_insert(sched_task_context_t* ctx, const sched_service_t* service, sched_task_request_t request, sched_service_node_id_t node)
 {
-	_task_entry_t* ret = _task_entry_new(service, request, node);
+	_task_entry_t* ret = _task_entry_new(ctx, service, request, node);
 
 	if(NULL == ret) ERROR_PTR_RETURN_LOG("Cannot create new task for service");
 
 	uint32_t h = _hash(service, request, node);
 
-	ret->next = _task_table[h];
-	if(NULL != _task_table[h]) _task_table[h]->prev = ret;
-	_task_table[h] = ret;
+	ret->next = ctx->task_table[h];
+	if(NULL != ctx->task_table[h]) ctx->task_table[h]->prev = ret;
+	ctx->task_table[h] = ret;
 
 	return ret;
 }
 
 
-static inline void _task_table_delete(_task_entry_t* task)
+static inline void _task_table_delete(sched_task_context_t* ctx, _task_entry_t* task)
 {
 	uint32_t h = _hash(task->task.service, task->task.request, task->task.node);
 
 	if(task->prev != NULL) task->prev->next = task->next;
-	else _task_table[h] = task->next;
+	else ctx->task_table[h] = task->next;
 	if(task->next != NULL) task->next->prev = task->prev;
 
 	task->prev = task->next = NULL;
@@ -287,28 +285,39 @@ int sched_task_init()
 	return 0;
 }
 
-int sched_task_init_thread()
+sched_task_context_t* sched_task_context_new()
 {
-	if(NULL == _task_table && NULL == (_task_table = (_task_entry_t**)calloc(SCHED_TASK_TABLE_SLOT_SIZE, sizeof(_task_table[0]))))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the task hash table");
+	sched_task_context_t* ret = (sched_task_context_t*)calloc(1, sizeof(*ret));
 
-	if(NULL == _request_table && NULL == (_request_table = (_request_entry_t**)calloc(SCHED_TASK_TABLE_SLOT_SIZE, sizeof(_request_table[0]))))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the request hash table");
-	return 0;
+	if(NULL == (ret->task_table = (_task_entry_t**)calloc(SCHED_TASK_TABLE_SLOT_SIZE, sizeof(ret->task_table[0]))))
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the task hash table");
+
+	if(NULL == (ret->request_table = (_request_entry_t**)calloc(SCHED_TASK_TABLE_SLOT_SIZE, sizeof(ret->request_table[0]))))
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the request hash table");
+	return ret;
+
+ERR:
+	if(NULL != ret->task_table) free(ret->task_table);
+	if(NULL != ret->request_table) free(ret->request_table);
+	free(ret);
+	return NULL;
 }
 
-int sched_task_finalize_thread()
+int sched_task_context_free(sched_task_context_t* ctx)
 {
+	if(NULL == ctx)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
 	int i = 0;
 	int rc = 0;
 
 	/* dispose the task table first */
-	if(_task_table != NULL)
+	if(ctx->task_table != NULL)
 	{
 		for(i = 0; i < SCHED_TASK_TABLE_SLOT_SIZE; i ++)
 		{
 			_task_entry_t* ptr;
-			for(ptr = _task_table[i]; NULL != ptr;)
+			for(ptr = ctx->task_table[i]; NULL != ptr;)
 			{
 				_task_entry_t* cur = ptr;
 				ptr = ptr->next;
@@ -327,7 +336,7 @@ int sched_task_finalize_thread()
 		}
 
 		_task_entry_t *ptr;
-		for(ptr = _queue_head; ptr;)
+		for(ptr = ctx->queue_head; ptr;)
 		{
 			_task_entry_t* cur = ptr;
 			ptr = ptr->next;
@@ -343,16 +352,16 @@ int sched_task_finalize_thread()
 				rc = ERROR_CODE(int);
 			}
 		}
-		free(_task_table);
+		free(ctx->task_table);
 	}
 
 	/* then dispose the request table */
-	if(NULL != _request_table)
+	if(NULL != ctx->request_table)
 	{
 		for(i = 0; i < SCHED_TASK_TABLE_SLOT_SIZE; i ++)
 		{
 			_request_entry_t* req;
-			for(req = _request_table[i]; NULL != req;)
+			for(req = ctx->request_table[i]; NULL != req;)
 			{
 				_request_entry_t* cur = req;
 				req = req->next;
@@ -364,8 +373,10 @@ int sched_task_finalize_thread()
 			}
 		}
 
-		free(_request_table);
+		free(ctx->request_table);
 	}
+
+	free(ctx);
 
 	return rc;
 }
@@ -396,7 +407,7 @@ int sched_task_finalize()
  * @param claim indicates if we needs claim the onwership of the pipe
  * @return status code
  **/
-static inline int _task_add_pipe(_task_entry_t* task, runtime_api_pipe_id_t pipe, itc_module_pipe_t* handle, int claim)
+static inline int _task_add_pipe( _task_entry_t* task, runtime_api_pipe_id_t pipe, itc_module_pipe_t* handle, int claim)
 {
 	if(NULL == task || NULL == handle || pipe == ERROR_CODE(runtime_api_pipe_id_t)) ERROR_RETURN_LOG(int, "Invalid arguments");
 
@@ -432,14 +443,14 @@ int sched_task_pipe_ready(sched_task_t* task)
 		LOG_TRACE("this task <RequestId=%"PRIu64", NodeId=%"PRIu32"> is ready to run, "
 		          "remove it from the task table and add it to ready queue",
 		          task->request, task->node);
-		_task_table_delete(task_internal);
-		_enqueue(task_internal);
+		_task_table_delete(task->ctx, task_internal);
+		_enqueue(task->ctx, task_internal);
 	}
 
 	return 0;
 }
 
-sched_task_request_t sched_task_new_request(const sched_service_t* service, itc_module_pipe_t* input_pipe, itc_module_pipe_t* output_pipe)
+sched_task_request_t sched_task_new_request(sched_task_context_t* ctx, const sched_service_t* service, itc_module_pipe_t* input_pipe, itc_module_pipe_t* output_pipe)
 {
 	static __thread sched_task_request_t ret = 0;
 	const sched_service_pipe_descriptor_t* pipe_model;
@@ -448,19 +459,19 @@ sched_task_request_t sched_task_new_request(const sched_service_t* service, itc_
 
 	if(NULL == service || NULL == input_pipe || NULL == output_pipe) ERROR_RETURN_LOG(sched_task_request_t, "Invalid arguments");
 
-	if(NULL == (req_ent = (_request_entry_insert(ret))))
+	if(NULL == (req_ent = (_request_entry_insert(ctx, ret))))
 	    ERROR_RETURN_LOG(sched_task_request_t, "Cannot create new request entry object");
 
 	pipe_model = sched_service_to_pipe_desc(service);
 
-	in_task = _task_table_insert(service, ret, pipe_model->source_node_id);
+	in_task = _task_table_insert(ctx, service, ret, pipe_model->source_node_id);
 
 	if(NULL == in_task) ERROR_LOG_GOTO(ERR, "Cannot create input task for the incoming request");
 
 	/* If the input node and output node are actually the same one, we do not need do insertion any more */
 	out_task = (pipe_model->source_node_id == pipe_model->destination_node_id) ?
 	           in_task:
-	           _task_table_insert(service, ret, pipe_model->destination_node_id);
+	           _task_table_insert(ctx, service, ret, pipe_model->destination_node_id);
 
 	if(NULL == out_task) ERROR_LOG_GOTO(ERR, "Cannot create output task for the incoming request");
 
@@ -476,22 +487,22 @@ sched_task_request_t sched_task_new_request(const sched_service_t* service, itc_
 	((itc_module_pipe_ownership_t*)input_pipe)->owner = in_task;
 	((itc_module_pipe_ownership_t*)output_pipe)->owner = out_task;
 
-	_task_table_delete(in_task);
-	_enqueue(in_task);
+	_task_table_delete(ctx, in_task);
+	_enqueue(ctx, in_task);
 
 	LOG_INFO("Request object #%"PRIu64" has been created", ret);
 	return ret ++;
 ERR:
-	_request_entry_delete(ret);
+	_request_entry_delete(ctx, ret);
 	return ERROR_CODE(sched_task_request_t);
 }
 
-int sched_task_input_pipe(const sched_service_t* service, sched_task_request_t request,
+int sched_task_input_pipe(sched_task_context_t* ctx, const sched_service_t* service, sched_task_request_t request,
                           sched_service_node_id_t node, runtime_api_pipe_id_t pipe,
                           itc_module_pipe_t* handle)
 {
-	_task_entry_t* task = _task_table_find(service, request, node);
-	if(NULL == task) task = _task_table_insert(service, request, node);
+	_task_entry_t* task = _task_table_find(ctx, service, request, node);
+	if(NULL == task) task = _task_table_insert(ctx, service, request, node);
 
 	if(ERROR_CODE(int) == _task_add_pipe(task, pipe, handle, 1))
 	    ERROR_RETURN_LOG(int, "Cannot add pipe to the task");
@@ -577,10 +588,10 @@ __attribute__((used)) static inline const char* _get_task_args(const _task_entry
  * @param pid the target pipe id
  * @return the status code
  **/
-static inline int _pipe_cancel(const sched_service_t* service, sched_task_request_t request, sched_service_node_id_t node, runtime_api_pipe_id_t pid)
+static inline int _pipe_cancel(sched_task_context_t* ctx, const sched_service_t* service, sched_task_request_t request, sched_service_node_id_t node, runtime_api_pipe_id_t pid)
 {
-	_task_entry_t* receiver = _task_table_find(service, request, node);
-	if(NULL == receiver) receiver = _task_table_insert(service, request, node);
+	_task_entry_t* receiver = _task_table_find(ctx, service, request, node);
+	if(NULL == receiver) receiver = _task_table_insert(ctx, service, request, node);
 
 	if(NULL == receiver) ERROR_RETURN_LOG(int, "Cannot get the receiver task");
 
@@ -593,11 +604,11 @@ static inline int _pipe_cancel(const sched_service_t* service, sched_task_reques
 	    return 0;
 }
 
-sched_task_t* sched_task_next_ready_task()
+sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx)
 {
 	for(;;)
 	{
-		_task_entry_t* next = _dequeue();
+		_task_entry_t* next = _dequeue(ctx);
 		if(NULL == next) return NULL;
 
 		/* Check if this task is cancelled */
@@ -620,7 +631,7 @@ sched_task_t* sched_task_next_ready_task()
 				if(NULL == result) ERROR_PTR_RETURN_LOG("Cannot get outgoing pipe for task");
 
 				for(i = 0; i < size; i ++)
-				    if(ERROR_CODE(int) == _pipe_cancel(next->task.service, next->task.request, result[i].destination_node_id, result[i].destination_pipe_desc))
+				    if(ERROR_CODE(int) == _pipe_cancel(ctx, next->task.service, next->task.request, result[i].destination_node_id, result[i].destination_pipe_desc))
 				        ERROR_PTR_RETURN_LOG("Cannot cancel the downstream pipe");
 			}
 			else
@@ -630,7 +641,7 @@ sched_task_t* sched_task_next_ready_task()
 
 				uint32_t i;
 				for(i = 0; i < boundary->count; i ++)
-				    if(ERROR_CODE(int) == _pipe_cancel(next->task.service, next->task.request, boundary->dest[i].node_id, boundary->dest[i].pipe_desc))
+				    if(ERROR_CODE(int) == _pipe_cancel(ctx, next->task.service, next->task.request, boundary->dest[i].node_id, boundary->dest[i].pipe_desc))
 				        ERROR_PTR_RETURN_LOG("Cannot cancel the cluster boundary pipe");
 
 				if(boundary->output_cancelled)
@@ -639,10 +650,10 @@ sched_task_t* sched_task_next_ready_task()
 					sched_service_node_id_t output = sched_service_get_output_node(next->task.service);
 					if(ERROR_CODE(sched_service_node_id_t) == output) ERROR_PTR_RETURN_LOG("Cannot get the output node id");
 
-					_task_entry_t* out_task = _task_table_find(next->task.service, next->task.request, output);
+					_task_entry_t* out_task = _task_table_find(ctx, next->task.service, next->task.request, output);
 					if(NULL == out_task) ERROR_PTR_RETURN_LOG("Cannot cancel the output task");
 
-					_task_table_delete(out_task);
+					_task_table_delete(ctx, out_task);
 
 					if(ERROR_CODE(int) == sched_task_free(&out_task->task)) ERROR_PTR_RETURN_LOG("Cannot dispose the output task");
 				}
@@ -667,7 +678,7 @@ sched_task_t* sched_task_next_ready_task()
 int sched_task_free(sched_task_t* task)
 {
 	int rc = 0;
-	_request_entry_t* req = _request_entry_find(task->request);
+	_request_entry_t* req = _request_entry_find(task->ctx, task->request);
 	if(NULL == req) rc = ERROR_CODE(int);
 
 	if(NULL != task->exec_task)
@@ -679,18 +690,18 @@ int sched_task_free(sched_task_t* task)
 	if(NULL != req && 0 == --req->num_pending_tasks)
 	{
 		LOG_DEBUG("Request %"PRIu64" is done", req->request_id);
-		if(ERROR_CODE(int) == _request_entry_delete(req->request_id))
+		if(ERROR_CODE(int) == _request_entry_delete(task->ctx, req->request_id))
 		    rc = ERROR_CODE(int);
 	}
 
 	return rc;
 }
 
-int sched_task_request_status(sched_task_request_t request)
+int sched_task_request_status(const sched_task_context_t* ctx, sched_task_request_t request)
 {
 	if(ERROR_CODE(sched_task_request_t) == request)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	return NULL != _request_entry_find(request);
+	return NULL != _request_entry_find(ctx, request);
 }
 

@@ -92,7 +92,7 @@ static __thread thread_t* _thread_obj = NULL;
  **/
 static inline uint32_t _get_thread_id()
 {
-	if(_thread_id == ERROR_CODE(uint32_t))
+	if(PREDICT_FALSE(_thread_id == ERROR_CODE(uint32_t)))
 	{
 		uint32_t claimed_id;
 		do {

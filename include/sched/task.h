@@ -11,6 +11,12 @@
  **/
 #ifndef __PLUMBER_SCHED_TASK_H__
 #define __PLUMBER_SCHED_TASK_H__
+
+/**
+ * @brief The scheduler task context 
+ **/
+typedef struct _sched_task_context_t sched_task_context_t;
+
 /**
  * @brief the request identifier
  **/
@@ -20,6 +26,7 @@ typedef uint64_t sched_task_request_t;
  * @brief the type for a scheduler task
  **/
 typedef struct {
+	sched_task_context_t*    ctx;     /*!< The scheduler task context */
 	const sched_service_t*   service; /*!< the service that owns this task */
 	sched_rscope_t*          scope;   /*!< the request local scope for this task */
 	sched_service_node_id_t  node;    /*!< the node id for this task */
@@ -41,51 +48,55 @@ int sched_task_init();
 int sched_task_finalize();
 
 /**
- * @brief initialize the single thread
+ * @brief Initialize a new scheduler task context
  * @return status code
  **/
-int sched_task_init_thread();
+sched_task_context_t* sched_task_context_new();
 
 /**
- * @brief the finaization function called by the scheduler thread
+ * @brief Dispose a used scheduler task context
  * @return status code
  **/
-int sched_task_finalize_thread();
+int sched_task_context_free(sched_task_context_t* ctx);
 
 /**
  * @brief notify the task table there's an incoming request
+ * @param ctx The scheduler task context
  * @param service the target service
  * @param input_pipe the input of this request
  * @param output_pipe the output for this request
  * @return the request identifier or negative status code
  **/
-sched_task_request_t sched_task_new_request(const sched_service_t* service, itc_module_pipe_t* input_pipe, itc_module_pipe_t* output_pipe);
+sched_task_request_t sched_task_new_request(sched_task_context_t* ctx, const sched_service_t* service, itc_module_pipe_t* input_pipe, itc_module_pipe_t* output_pipe);
 
 /**
  * @brief notify the task table there's a newly create pipe which can connect to the given node, given pipe
  *        if there's no task for this request on this node, create a new task
  *        It will return a ready task if this turns out that one task becomes mature
  * @param service the target service
+ * @param ctx The scheduler task context
  * @param node the target node
  * @param request the request ID
  * @param pipe the target pipe of the node
  * @param handle the pipe handle
  * @return status code
  **/
-int sched_task_input_pipe(const sched_service_t* service, sched_task_request_t request,
+int sched_task_input_pipe(sched_task_context_t* ctx, const sched_service_t* service, sched_task_request_t request,
                           sched_service_node_id_t node, runtime_api_pipe_id_t pipe,
                           itc_module_pipe_t* handle);
 
 /**
  * @brief get next runnable task, and remove the task from the list
  * @note  the caller should create all the output pipes before actually launch the task
+ * @param ctx The scheduler task context
  * @return the ready task or NULL when error happens
  **/
-sched_task_t* sched_task_next_ready_task();
+sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx);
 
 /**
  * @brief dispose a task that is already launched
  * @param task the task to dispose
+ * @param ctx The scheduler task context
  * @return status code
  **/
 int sched_task_free(sched_task_t* task);
@@ -93,6 +104,7 @@ int sched_task_free(sched_task_t* task);
 /**
  * @brief notify that this task has a pipe gets ready
  * @param task the task to notify
+ * @param ctx The scheduler task context
  * @return status code
  **/
 int sched_task_pipe_ready(sched_task_t* task);
@@ -104,6 +116,7 @@ int sched_task_pipe_ready(sched_task_t* task);
  * @param task the target task
  * @param pipe the target pipe id
  * @param handle the pipe handle to set
+ * @param ctx The scheduler task context
  * @return status code
  **/
 int sched_task_output_pipe(sched_task_t* task, runtime_api_pipe_id_t pipe, itc_module_pipe_t* handle);
@@ -118,6 +131,7 @@ int sched_task_output_pipe(sched_task_t* task, runtime_api_pipe_id_t pipe, itc_m
  * @param task the target task
  * @param pipe the target pipe id
  * @param handle the pipe handle
+ * @param ctx The scheduler task context
  * @return status code
  **/
 int sched_task_output_shadow(sched_task_t* task, runtime_api_pipe_id_t pipe, itc_module_pipe_t* handle);
@@ -127,6 +141,7 @@ int sched_task_output_shadow(sched_task_t* task, runtime_api_pipe_id_t pipe, itc
  *        be cancelled and all the downstream pipes are cancelled
  * @note  this does not change the ready state, so another pipe_ready call is reuiqred to get the task in ready state
  * @param task the target task
+ * @param ctx The scheduler task context
  * @return status code
  **/
 int sched_task_input_cancelled(sched_task_t* task);
@@ -137,6 +152,6 @@ int sched_task_input_cancelled(sched_task_t* task);
  * @param request the request id
  * @return if the scheduler is currently working on this (or in the pending state), or error code
  **/
-int sched_task_request_status(sched_task_request_t request);
+int sched_task_request_status(const sched_task_context_t* ctx, sched_task_request_t request);
 
 #endif /* __PLUMBER_SCHED_TASK_H__ */

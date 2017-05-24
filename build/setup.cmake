@@ -54,7 +54,12 @@ endif(NOT "$ENV{CXX}" STREQUAL "")
 message("Compiler: ${CMAKE_C_COMPILER}")
 message("Log Level: ${LOG}")
 message("Optimization Level: ${OPTLEVEL}")
+
 set(CFLAGS $ENV{CFLAGS}\ -O${OPTLEVEL}\ -Wconversion\ -Wextra\ -Wall\ -Werror\ -g)
+
+if("${OPTLEVEL}" STREQUAL "3")
+	set(CFLAGS ${CFLAGS}\ -DFULL_OPTIMIZATION)
+endif("${OPTLEVEL}" STREQUAL "3")
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/${INCLUDE_DIR}" 
 	                "${CMAKE_CURRENT_BINARY_DIR}")

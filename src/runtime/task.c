@@ -119,6 +119,19 @@ runtime_task_t* runtime_task_new(runtime_servlet_t* servlet, runtime_task_flags_
 	return ret;
 
 }
+
+int runtime_task_start_exec_fast(runtime_task_t* task)
+{
+	LOG_TRACE("%s Task (TID = %d) started", task->servlet->bin->name, task->id);
+
+	_current_task = task;
+
+	if(NULL != task->servlet->bin->define->exec)
+		return task->servlet->bin->define->exec(task->servlet->data);
+
+	return 0;
+}
+
 int runtime_task_start(runtime_task_t *task)
 {
 	if(NULL == task)

@@ -13,14 +13,14 @@ sched_rscope_t* sched_step_current_scope()
 	return _current_request_scope;
 }
 
-int sched_step_next(itc_module_type_t type)
+int sched_step_next(sched_task_context_t* stc, itc_module_type_t type)
 {
 	sched_task_t* task = NULL;
 	uint32_t size, i;
 	const sched_service_pipe_descriptor_t* result;
 	itc_module_pipe_t *pipes[2];
 
-	task = sched_task_next_ready_task();
+	task = sched_task_next_ready_task(stc);
 
 	if(NULL == task)
 	{
@@ -81,7 +81,7 @@ int sched_step_next(itc_module_type_t type)
 		if(pipes[0] != NULL && sched_task_output_pipe(task, result[i].source_pipe_desc, pipes[0]) == ERROR_CODE(int))
 		    ERROR_LOG_GOTO(LERR, "Cannot assign output pipe to the task");
 
-		if(sched_task_input_pipe(task->service, task->request, result[i].destination_node_id, result[i].destination_pipe_desc, pipes[1]) == ERROR_CODE(int))
+		if(sched_task_input_pipe(stc, task->service, task->request, result[i].destination_node_id, result[i].destination_pipe_desc, pipes[1]) == ERROR_CODE(int))
 		    ERROR_LOG_GOTO(LERR, "Cannot assign the input pipe to the downstream task");
 	}
 
@@ -93,7 +93,11 @@ int sched_step_next(itc_module_type_t type)
 	counter ++;
 #endif
 	_current_request_scope = task->scope;
-	if(runtime_task_start(task->exec_task) == ERROR_CODE(int))
+#ifdef FULL_OPTIMIZATION
+	if(runtime_task_start_exec_fast(task->exec_task) == ERROR_CODE(int))
+#else
+	if(runtime_task_start_exec(task->exec_task) == ERROR_CODE(int))
+#endif
 	{
 #ifdef ENABLE_PROFILER
 		if(sched_service_profiler_timer_stop(task->service) == ERROR_CODE(int))
