@@ -45,7 +45,7 @@ int setup()
 	ASSERT_PTR(lang_lex_get_script_search_paths()[0], CLEANUP_NOP);
 	ASSERT_STREQ(lang_lex_get_script_search_paths()[0], TESTDIR, CLEANUP_NOP);
 	ASSERT(lang_lex_get_num_script_search_paths() == 1, CLEANUP_NOP);
-	ASSERT_OK(runtime_servlet_append_search_path(TESTDIR"/../../examples/fileserver/"), CLEANUP_NOP);
+	ASSERT_OK(runtime_servlet_append_search_path(TESTDIR), CLEANUP_NOP);
 
 	return 0;
 }

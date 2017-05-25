@@ -331,6 +331,8 @@ static void* _thread_main(void* data)
 	do {
 		stack->id = _next_thread_id;
 	} while(!__sync_bool_compare_and_swap(&_next_thread_id, stack->id, stack->id + 1));
+#else
+	_thread_obj = (thread_t*)data;
 #endif
 
 	thread_t* thread = (thread_t*)data;
@@ -366,6 +368,8 @@ int thread_run_test_main(thread_test_main_t func)
 	    ret->stack = (_stack_t*)(ret->mem + offset - sizeof(_stack_t));
 	else
 	    ret->stack = (_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(_stack_t));
+
+	ret->stack->thread = NULL;
 
 	pthread_attr_t attr;
 	void* rc;

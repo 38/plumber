@@ -5,12 +5,12 @@ module.tcp.port = 80 + 1 * (2 + 3) + 4     /* listen the 80 port */
 
 //define the file server
 fileserver = {
-	parse_req := "getpath" @[color = green];
-	dup_path  := "dup 2";
-	mime_type := "mime bin/test/lang/test_mime_types.in";
-	read_file := "read doc/doxygen/html";
-	error     := "cat 2";
-	gen_res   := "response" @[color = green];
+	parse_req := "serv_node request -> path error" @[color = green];
+	dup_path  := "serv_node in -> out0 out1";
+	mime_type := "serv_node path -> mime";
+	read_file := "serv_node path -> content size error";
+	error     := "serv_node in0 in1 -> out";
+	gen_res   := "serv_node content size mime error -> response" @[color = green];
 
 	() -> "request" parse_req "path" -> "in" dup_path {
 		"out0" -> "path" mime_type "mime" -> "mime";
