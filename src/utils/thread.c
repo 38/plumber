@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <signal.h>
+#include <unistd.h>
 #include <pthread.h>
 #include <sys/prctl.h>
 
@@ -82,7 +83,7 @@ struct _thread_t {
 	_cleanup_hook_t* hooks;    /*!< the cleanup hooks */
 	thread_type_t type;        /*!< the type of this thread */
 #ifdef STACK_SIZE
-	char          mem[(STACK_SIZE + sizeof(_stack_t)) * 2]; /*!< The memory used for task */
+	char          mem[STACK_SIZE * 2 + sizeof(_stack_t)]; /*!< The memory used for task */
 	_stack_t*     stack;       /*!< The stack we need to use */
 #endif
 };
@@ -366,12 +367,15 @@ int thread_run_test_main(thread_test_main_t func)
 	else
 		ret->stack = (_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(_stack_t));
 
+	size_t page_size = (size_t)getpagesize();
+	size_t stack_size = (((size_t)(ret->mem + sizeof(ret->mem) - ret->stack->base)) / page_size) * page_size;
+
 	pthread_attr_t attr;
 	void* rc;
 	if(pthread_attr_init(&attr) < 0)
 		goto ERR;
 
-	if(pthread_attr_setstack(&attr, ret->stack->base, STACK_SIZE) < 0)
+	if(pthread_attr_setstack(&attr, ret->stack->base, stack_size) < 0)
 		goto ERR;
 	
 	if(pthread_create(&ret->handle, &attr, _start_main, func) < 0)
@@ -418,6 +422,11 @@ thread_t* thread_new(thread_main_t main, void* data, thread_type_t type)
 		ret->stack = (_stack_t*)(ret->mem + offset - sizeof(_stack_t));
 	else
 		ret->stack = (_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(_stack_t));
+	
+	size_t page_size = (size_t)getpagesize();
+	size_t stack_size = (((size_t)(ret->mem + sizeof(ret->mem) - ret->stack->base)) / page_size) * page_size;
+
+	LOG_DEBUG("Actual stack size: 0x%zx bytes", stack_size);
 
 	ret->stack->thread = ret;
 

@@ -13,7 +13,13 @@
 #define __PLUMBER_SCHED_TASK_H__
 
 /**
- * @brief The scheduler task context 
+ * @brief The scheduler task context (STC)
+ * @note  This is the scheduler's task context, for each scheduler thread we have
+ *        a isolated scheduler task context, which include a task table, a read
+ *        task queue and metadata. <br/>
+ *        Before we introduces this, the context is implemented by a group of thread
+ *        locals, however, the performance penalty is so high. So that we introduced
+ *        this context
  **/
 typedef struct _sched_task_context_t sched_task_context_t;
 
@@ -96,7 +102,6 @@ sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx);
 /**
  * @brief dispose a task that is already launched
  * @param task the task to dispose
- * @param ctx The scheduler task context
  * @return status code
  **/
 int sched_task_free(sched_task_t* task);
@@ -104,7 +109,6 @@ int sched_task_free(sched_task_t* task);
 /**
  * @brief notify that this task has a pipe gets ready
  * @param task the task to notify
- * @param ctx The scheduler task context
  * @return status code
  **/
 int sched_task_pipe_ready(sched_task_t* task);
@@ -116,7 +120,6 @@ int sched_task_pipe_ready(sched_task_t* task);
  * @param task the target task
  * @param pipe the target pipe id
  * @param handle the pipe handle to set
- * @param ctx The scheduler task context
  * @return status code
  **/
 int sched_task_output_pipe(sched_task_t* task, runtime_api_pipe_id_t pipe, itc_module_pipe_t* handle);
@@ -131,7 +134,6 @@ int sched_task_output_pipe(sched_task_t* task, runtime_api_pipe_id_t pipe, itc_m
  * @param task the target task
  * @param pipe the target pipe id
  * @param handle the pipe handle
- * @param ctx The scheduler task context
  * @return status code
  **/
 int sched_task_output_shadow(sched_task_t* task, runtime_api_pipe_id_t pipe, itc_module_pipe_t* handle);
@@ -141,7 +143,6 @@ int sched_task_output_shadow(sched_task_t* task, runtime_api_pipe_id_t pipe, itc
  *        be cancelled and all the downstream pipes are cancelled
  * @note  this does not change the ready state, so another pipe_ready call is reuiqred to get the task in ready state
  * @param task the target task
- * @param ctx The scheduler task context
  * @return status code
  **/
 int sched_task_input_cancelled(sched_task_t* task);

@@ -408,7 +408,7 @@ int sched_task_finalize()
  * @param claim indicates if we needs claim the onwership of the pipe
  * @return status code
  **/
-static inline int _task_add_pipe( _task_entry_t* task, runtime_api_pipe_id_t pipe, itc_module_pipe_t* handle, int claim)
+static inline int _task_add_pipe(_task_entry_t* task, runtime_api_pipe_id_t pipe, itc_module_pipe_t* handle, int claim)
 {
 	if(NULL == task || NULL == handle || pipe == ERROR_CODE(runtime_api_pipe_id_t)) ERROR_RETURN_LOG(int, "Invalid arguments");
 

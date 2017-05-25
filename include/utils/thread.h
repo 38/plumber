@@ -46,7 +46,19 @@ typedef enum {
 typedef struct _thread_t thread_t;
 
 /**
- * @brief The test main function
+ * @brief The main function used for the testing envionment
+ * @note This function should only used for testing purpose <br/>
+ *       Because when we enabled the aligned stack by specifying the size of
+ *       the stack, we will be able to use a simple integer arithmetic to figure out
+ *       the thread id, which is light-weight. <br/>
+ *       However, the price we have to pay for doing this, is that the main thread is
+ *       an exception and if you called the get_thread_id then you will be in trouble.<br/>
+ *       This is not a big issue in libplumber code, since the main thread is converted
+ *       to dispatcher thread and do not use any thread utilities at all. <br/>
+ *       However, in the test cases, there's a lot of example of calling the thread related
+ *       utils from the main thread, which causes crash. <br/>
+ *       To address this, we have to make the main function for the test cases using an aligned
+ *       stack. And this is the way for us to initialize a thread with aligned stack at this point
  **/
 typedef int (*thread_test_main_t)();
 
@@ -192,9 +204,11 @@ thread_type_t thread_get_current_type();
 const char* thread_type_name(thread_type_t type, char* buf, size_t size);
 
 /**
- * @brief Run the test main function
+ * @brief Run the main function for testing, for more information see the 
+ *        documentation for thread_test_main_t
+ * @param main the testing main function 
  * @return exit code
- * @note this function do not require initalization
+ * @note This function does not require the entire system initialized
  **/
 int thread_run_test_main(thread_test_main_t main);
 #endif

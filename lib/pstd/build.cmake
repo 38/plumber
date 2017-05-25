@@ -1,6 +1,6 @@
 set(TYPE shared-library)
 set(LOCAL_CFLAGS "-fPIC")
-set(LOCAL_LIBS plumber pservlet)
+set(LOCAL_LIBS pservlet)
 set(LOCAL_SOURCE types)
 set(INSTALL "yes")
 install_includes("${SOURCE_PATH}/include" "include/pstd" "*.h")
