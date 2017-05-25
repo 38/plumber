@@ -108,7 +108,6 @@ int sched_step_next(sched_task_context_t* stc, itc_module_type_t type)
 #ifdef ENABLE_PROFILER
 	if(sched_service_profiler_timer_stop(task->service) == ERROR_CODE(int))
 	    LOG_WARNING("Cannot stop the profiler");
-	_current_request_scope = NULL;
 	if(counter > 10000)
 	{
 		sched_service_profiler_flush(task->service);

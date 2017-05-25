@@ -288,9 +288,10 @@ int thread_pset_free(thread_pset_t* pset)
 
 void* thread_pset_acquire(thread_pset_t* pset)
 {
+#ifndef FULL_OPTIMIZATION
 	if(PREDICT_FALSE(NULL == pset))
 	    ERROR_PTR_RETURN_LOG("Invalid arguments");
-
+#endif
 	return _get_current_pointer(pset);
 }
 
