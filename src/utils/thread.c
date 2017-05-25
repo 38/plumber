@@ -64,8 +64,9 @@ typedef struct _cleanup_hook_t {
  * @brief The thread local storage
  **/
 typedef struct {
-	uint32_t id;              /*!< The thread id */
-	uintptr_t __padding__[0];
+	uint32_t  id;              /*!< The thread id */
+	thread_t* thread;          /*!< The thread object */
+	uintptr_t  __padding__[0];
 	char base[0];             /*!< The base address of the stack */
 } _stack_t;
 #endif
@@ -91,17 +92,17 @@ struct _thread_t {
  * @brief indicates which thread is it
  **/
 static __thread uint32_t _thread_id = ERROR_CODE(uint32_t);
+
+/**
+ * @brief current thread object
+ **/
+static __thread thread_t* _thread_obj = NULL;
 #endif
 
 /**
  * @brief used to assign an untagged thread a thread id
  **/
 static uint32_t _next_thread_id = 0;
-
-/**
- * @brief current thread object
- **/
-static __thread thread_t* _thread_obj = NULL;
 
 #ifdef STACK_SIZE
 /**
@@ -318,7 +319,6 @@ static void* _thread_main(void* data)
 #endif 
 
 	thread_t* thread = (thread_t*)data;
-	_thread_obj = thread;
 	void* ret = thread->main(thread->arg);
 
 	_cleanup_hook_t* ptr;
@@ -405,6 +405,8 @@ thread_t* thread_new(thread_main_t main, void* data, thread_type_t type)
 	else
 		ret->stack = (_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(_stack_t));
 
+	ret->stack->thread = ret;
+
 	pthread_attr_t attr;
 	if(pthread_attr_init(&attr) < 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create attribute of the thread");
@@ -427,7 +429,7 @@ ERR:
 
 thread_t* thread_get_current()
 {
-	return _thread_obj;
+	return _get_current_stack()->thread;
 }
 
 int thread_add_cleanup_hook(thread_cleanup_t func, void* data)
