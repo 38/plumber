@@ -282,7 +282,7 @@ int mempool_objpool_free(mempool_objpool_t* pool)
  * @param tlp the thread local pool we want to store the result
  * @return the number of objects that has been allocated, or error code
  **/
-static inline uint32_t _global_alloc(mempool_objpool_t* pool, _thread_local_pool_t* tlp)
+__attribute__((noinline)) static uint32_t _global_alloc(mempool_objpool_t* pool, _thread_local_pool_t* tlp)
 {
 	uint32_t ret = ERROR_CODE(uint32_t);
 
@@ -380,8 +380,11 @@ void* mempool_objpool_alloc(mempool_objpool_t* pool, int fill_zero)
 
 	/* First try to get the object from the local pool */
 	_thread_local_pool_t* tlp = thread_pset_acquire(pool->local_pool);
+
+#ifdef FULL_OPTIMIZATION
 	if(PREDICT_FALSE(NULL == tlp))
 	    ERROR_PTR_RETURN_LOG("Cannot acquire the thread local pool for current thread TID=%u", thread_get_id());
+#endif
 
 	if(PREDICT_FALSE(tlp->count == 0))
 	{
