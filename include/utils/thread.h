@@ -46,6 +46,11 @@ typedef enum {
 typedef struct _thread_t thread_t;
 
 /**
+ * @brief The test main function
+ **/
+typedef int (*thread_test_main_t)();
+
+/**
  * @brief the function type for the main function of a thread
  * @param data the user-defined data
  * @return the result
@@ -185,5 +190,12 @@ thread_type_t thread_get_current_type();
  * @note the output format should be [type1,type2,type3]...
  **/
 const char* thread_type_name(thread_type_t type, char* buf, size_t size);
+
+/**
+ * @brief Run the test main function
+ * @return exit code
+ * @note this function do not require initalization
+ **/
+int thread_run_test_main(thread_test_main_t main);
 
 #endif

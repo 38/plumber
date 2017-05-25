@@ -58,7 +58,7 @@ message("Optimization Level: ${OPTLEVEL}")
 set(CFLAGS $ENV{CFLAGS}\ -O${OPTLEVEL}\ -Wconversion\ -Wextra\ -Wall\ -Werror\ -g)
 
 if("${OPTLEVEL}" STREQUAL "3")
-	set(CFLAGS ${CFLAGS}\ -DFULL_OPTIMIZATION)
+	set(CFLAGS ${CFLAGS}\ -DFULL_OPTIMIZATION\ -DSTACK_SIZE=0x200000)
 endif("${OPTLEVEL}" STREQUAL "3")
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/${INCLUDE_DIR}" 

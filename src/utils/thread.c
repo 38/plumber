@@ -59,22 +59,39 @@ typedef struct _cleanup_hook_t {
 	struct _cleanup_hook_t* next;   /*!< the next callback function */
 } _cleanup_hook_t;
 
+#ifdef STACK_SIZE
+/**
+ * @brief The thread local storage
+ **/
+typedef struct {
+	uint32_t id;              /*!< The thread id */
+	uintptr_t __padding__[0];
+	char base[0];             /*!< The base address of the stack */
+} _stack_t;
+#endif
+
 /**
  * @brief the actual data structure for a thread object
  * @note the cleanup hook is actually a stack, the latest added function will be executed first
  **/
 struct _thread_t {
-	pthread_t     handle;    /*!< the pthread handle */
-	thread_main_t main;      /*!< the thread main function */
-	void*         arg;       /*!< the thread argument */
-	_cleanup_hook_t* hooks;  /*!< the cleanup hooks */
-	thread_type_t type;      /*!< the type of this thread */
+	pthread_t     handle;      /*!< the pthread handle */
+	thread_main_t main;        /*!< the thread main function */
+	void*         arg;         /*!< the thread argument */
+	_cleanup_hook_t* hooks;    /*!< the cleanup hooks */
+	thread_type_t type;        /*!< the type of this thread */
+#ifdef STACK_SIZE
+	char          mem[(STACK_SIZE + sizeof(_stack_t)) * 2]; /*!< The memory used for task */
+	_stack_t*     stack;       /*!< The stack we need to use */
+#endif
 };
 
+#ifndef STACK_SIZE
 /**
  * @brief indicates which thread is it
  **/
 static __thread uint32_t _thread_id = ERROR_CODE(uint32_t);
+#endif
 
 /**
  * @brief used to assign an untagged thread a thread id
@@ -86,12 +103,29 @@ static uint32_t _next_thread_id = 0;
  **/
 static __thread thread_t* _thread_obj = NULL;
 
+#ifdef STACK_SIZE
+/**
+ * @brief Get the current stack object 
+ * @return The pointer of current stack
+ * @note This only works with the thread created by thread_new
+ **/
+static inline _stack_t* _get_current_stack()
+{
+	uintptr_t addr = (uintptr_t)&addr;
+	addr = addr - addr % STACK_SIZE - sizeof(_stack_t);
+	return (_stack_t*)addr;
+}
+#endif
+
 /**
  * @brief get the thread id of current thread
  * @return the thread id
  **/
 static inline uint32_t _get_thread_id()
 {
+#ifdef STACK_SIZE
+	return _get_current_stack()->id;
+#else
 	if(PREDICT_FALSE(_thread_id == ERROR_CODE(uint32_t)))
 	{
 		uint32_t claimed_id;
@@ -104,6 +138,7 @@ static inline uint32_t _get_thread_id()
 		LOG_DEBUG("Assign new thread ID %u to thread", claimed_id);
 	}
 	return _thread_id;
+#endif
 }
 
 static inline void* _get_current_pointer(thread_pset_t* pset)
@@ -273,6 +308,14 @@ uint32_t thread_get_id()
 
 static void* _thread_main(void* data)
 {
+#ifdef STACK_SIZE
+	_stack_t* stack = _get_current_stack();
+
+	do {
+		stack->id = _next_thread_id;
+	} while(!__sync_bool_compare_and_swap(&_next_thread_id, stack->id, stack->id + 1));
+#endif 
+
 	thread_t* thread = (thread_t*)data;
 	_thread_obj = thread;
 	void* ret = thread->main(thread->arg);
@@ -283,6 +326,55 @@ static void* _thread_main(void* data)
 	        LOG_WARNING("Thread cleanup function <func = %p, arg = %p> returned with an error", ptr->func, ptr->arg);
 
 	return ret;
+}
+
+#ifdef STACK_SIZE
+static void* _start_main(void *ctx)
+{
+	_get_current_stack()->id = 0;
+	_next_thread_id = 1;
+	thread_test_main_t func = (thread_test_main_t)ctx;;
+	if(func() == 0) return ctx;
+	return NULL;
+}
+#endif
+
+int thread_run_test_main(thread_test_main_t func)
+{
+#ifdef STACK_SIZE
+	thread_t* ret = (thread_t*)malloc(sizeof(thread_t));
+	if(NULL == ret) return -1;
+	
+	uintptr_t offset = (STACK_SIZE - ((uintptr_t)ret->mem) % STACK_SIZE) % STACK_SIZE;
+	if(offset >= sizeof(_stack_t)) 
+		ret->stack = (_stack_t*)(ret->mem + offset - sizeof(_stack_t));
+	else
+		ret->stack = (_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(_stack_t));
+
+	pthread_attr_t attr;
+	void* rc;
+	if(pthread_attr_init(&attr) < 0)
+		goto ERR;
+
+	if(pthread_attr_setstack(&attr, ret->stack->base, STACK_SIZE) < 0)
+		goto ERR;
+	
+	if(pthread_create(&ret->handle, &attr, _start_main, func) < 0)
+		goto ERR;
+
+	if(pthread_join(ret->handle, &rc) < 0) 
+		goto ERR;
+
+	free(ret);
+
+	if(NULL == rc) return -1;
+	return 0;
+ERR:
+	free(ret);
+	return -1;
+#else
+	return func();
+#endif
 }
 
 thread_t* thread_new(thread_main_t main, void* data, thread_type_t type)
@@ -305,9 +397,26 @@ thread_t* thread_new(thread_main_t main, void* data, thread_type_t type)
 	ret->arg  = data;
 	ret->hooks = NULL;
 	ret->type = type;
+#ifdef STACK_SIZE
+	uintptr_t offset = (STACK_SIZE - ((uintptr_t)ret->mem) % STACK_SIZE) % STACK_SIZE;
+	if(offset >= sizeof(_stack_t)) 
+		ret->stack = (_stack_t*)(ret->mem + offset - sizeof(_stack_t));
+	else
+		ret->stack = (_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(_stack_t));
 
+	pthread_attr_t attr;
+	if(pthread_attr_init(&attr) < 0)
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create attribute of the thread");
+
+	if(pthread_attr_setstack(&attr, ret->stack->base, STACK_SIZE) < 0)
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the base address of the stack");
+	
+	if(pthread_create(&ret->handle, &attr, _thread_main, ret) < 0)
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot start the thread");
+#else
 	if(pthread_create(&ret->handle, NULL, _thread_main, ret) < 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot start the thread");
+#endif
 
 	return ret;
 ERR:

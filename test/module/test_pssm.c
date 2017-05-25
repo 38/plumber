@@ -5,6 +5,8 @@
 #include <pthread.h>
 #include <module/builtins.h>
 
+#include <utils/thread.h>
+
 runtime_stab_entry_t mem_pool_sid;
 runtime_stab_entry_t thread_local_test_sid;
 int thread_local_test_ok;
@@ -46,12 +48,12 @@ void* test_thread(void* data)
 
 int test_thread_local()
 {
-	pthread_t thread[32];
+	thread_t* thread[32];
 	int i;
 	for(i = 0; i < 32; i ++)
-	    pthread_create(thread + i, NULL, test_thread, NULL);
+		ASSERT_PTR(thread[i] = thread_new(test_thread, NULL, THREAD_TYPE_GENERIC), CLEANUP_NOP);
 	for(i = 0; i < 32; i ++)
-	    pthread_join(thread[i], NULL);
+		ASSERT_OK(thread_free(thread[i], NULL), CLEANUP_NOP);
 
 	ASSERT_OK(thread_local_test_ok, CLEANUP_NOP);
 

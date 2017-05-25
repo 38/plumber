@@ -8,6 +8,7 @@
 #include <testenv.h>
 #include <utils/log.h>
 #include <utils/mempool/objpool.h>
+#include <utils/thread.h>
 #include <module/builtins.h>
 
 #include <proto.h>
@@ -58,10 +59,9 @@ static const char * const stage_message[] = {
 	"teardown test cases",
 	"finalize plumber"
 };
-int main(int argc, const char** argv)
+
+int testmain()
 {
-	(void) argc;
-	(void) argv;
 	int stage = -1;
 	if(plumber_init() < 0)
 	{
@@ -108,6 +108,17 @@ int main(int argc, const char** argv)
 		stage = 3;
 		goto ERR;
 	}
+	return result;
+ERR:
+	fprintf(stderr, "failed to %s", stage_message[stage]);
+	if(stage > 1 && stage < 2) teardown();
+	if(stage > 0 && stage < 3) plumber_finalize();
+	return -1;
+}
+
+int main()
+{
+	int ret = thread_run_test_main(testmain);
 	if(__memory_check)
 	{
 		__print_memory_leakage();
@@ -115,16 +126,12 @@ int main(int argc, const char** argv)
 	if(__memory_check && __check_memory_allocation() < 0)
 	{
 		fprintf(stderr, "detect memory issues, run the program with valgrind\n");
-		return -1;
+		ret = -1;
 	}
 	if(!__memory_check)
 	{
 		fprintf(stderr, "Warning: memory leak check is disabled\n");
 	}
-	return result;
-ERR:
-	fprintf(stderr, "failed to %s", stage_message[stage]);
-	if(stage > 1 && stage < 2) teardown();
-	if(stage > 0 && stage < 3) plumber_finalize();
-	return -1;
+
+	return ret;
 }

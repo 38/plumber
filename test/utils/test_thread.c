@@ -3,10 +3,9 @@
  **/
 #include <testenv.h>
 #include <utils/thread.h>
-#include <pthread.h>
 #define N 128
-uint32_t data[N];
-uint32_t data2[N];
+uint32_t data[N * 2];
+uint32_t data2[N * 2];
 
 thread_pset_t* pset1, *pset2;
 
@@ -68,27 +67,30 @@ static inline void* thread_main(void* ptr)
 }
 int run()
 {
-	pthread_t t[N];
+	thread_t* t[N];
 	uint32_t i;
 	for(i = 0; i < N; i ++)
-	    ASSERT_OK(pthread_create(t + i, NULL, thread_main, NULL), CLEANUP_NOP);
+	    ASSERT_PTR(t[i] = thread_new(thread_main, NULL, THREAD_TYPE_GENERIC), CLEANUP_NOP);
 
 	for(i = 0; i < N; i ++)
 	{
 		void* ret;
-		ASSERT_OK(pthread_join(t[i], &ret), CLEANUP_NOP);
+		ASSERT_OK(thread_free(t[i], &ret), CLEANUP_NOP);
 		ASSERT_PTR(ret, CLEANUP_NOP);
 	}
 	return 0;
 }
 int dispose()
 {
-	uint32_t i;
-	for(i = 0; i < N; i ++)
-	    ASSERT(data[i] == 10, CLEANUP_NOP);
+	uint32_t i, j = 0;
+	for(i = 0; i < 2 * N; i ++)
+		if(data[i] == 10) j ++;
+	ASSERT(j == N, CLEANUP_NOP);
 
-	for(i = 0; i < N; i ++)
-	    ASSERT(data2[i] == 20, CLEANUP_NOP);
+	j = 0;
+	for(i = 0; i < 2 * N; i ++)
+		if(data[i] == 10) j ++;
+	ASSERT(j == N, CLEANUP_NOP);
 
 	ASSERT_OK(thread_pset_free(pset1), CLEANUP_NOP);
 	ASSERT_OK(thread_pset_free(pset2), CLEANUP_NOP);
