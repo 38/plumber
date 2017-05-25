@@ -45,22 +45,22 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	uint32_t i;
 	context_t* ctx = (context_t*)ctxbuf;
 	if(argc != 2)
-		ERROR_RETURN_LOG(int, "Usage: %s <path to mime.types file>", argv[0]);
-	
+	    ERROR_RETURN_LOG(int, "Usage: %s <path to mime.types file>", argv[0]);
+
 	if(NULL == (ctx->type_model = pstd_type_model_new()))
-		ERROR_RETURN_LOG(int, "Cannot create type model");
+	    ERROR_RETURN_LOG(int, "Cannot create type model");
 
 	if(ERROR_CODE(pipe_t) == (ctx->extname = pipe_define("extname", PIPE_INPUT, "plumber/std/request_local/String")))
-		ERROR_RETURN_LOG(int, "Cannot create pipe 'extname'");
+	    ERROR_RETURN_LOG(int, "Cannot create pipe 'extname'");
 
 	if(ERROR_CODE(pipe_t) == (ctx->mimetype = pipe_define("mimetype", PIPE_OUTPUT, "plumber/std/request_local/String")))
-		ERROR_RETURN_LOG(int, "Cannot create pipe 'mimetype'");
+	    ERROR_RETURN_LOG(int, "Cannot create pipe 'mimetype'");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->extname_token = pstd_type_model_get_accessor(ctx->type_model, ctx->extname, "token")))
-		ERROR_RETURN_LOG(int, "Cannnot get the accessor for extname.token");
+	    ERROR_RETURN_LOG(int, "Cannnot get the accessor for extname.token");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->mimetype_token = pstd_type_model_get_accessor(ctx->type_model, ctx->mimetype, "token")))
-		ERROR_RETURN_LOG(int, "Cannot get the accessor for mimetype.token");
+	    ERROR_RETURN_LOG(int, "Cannot get the accessor for mimetype.token");
 
 	FILE* fp = fopen(argv[1], "r");
 	if(NULL == fp) ERROR_RETURN_LOG_ERRNO(int, "Cannot open the mime type file: %s", argv[1]);
@@ -93,11 +93,11 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 
 			hashnode_t* node = (hashnode_t*)malloc(sizeof(hashnode_t));
 			if(NULL == node)
-				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the hash table");
+			    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the hash table");
 
 			node->hashcode = hashcode;
 			if(NULL == (node->mimetype = (char*)malloc((size_t)(mime_end - mime_begin + 1))))
-				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the MIME type string");
+			    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the MIME type string");
 
 			memcpy(node->mimetype, mime_begin, (size_t)(mime_end - mime_begin));
 
@@ -107,12 +107,12 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 			ctx->hash[hashcode % HASH_SIZE] = node;
 		}
 	}
-	
+
 	fclose(fp);
 
 	return 0;
 ERR:
-	
+
 	for(i = 0; i < HASH_SIZE; i ++)
 	{
 		hashnode_t* ptr = ctx->hash[i];
@@ -127,7 +127,7 @@ ERR:
 
 	if(NULL != fp) fclose(fp);
 
-	if(NULL != ctx->type_model) pstd_type_model_free(ctx->type_model); 
+	if(NULL != ctx->type_model) pstd_type_model_free(ctx->type_model);
 
 	return ERROR_CODE(int);
 }
@@ -149,8 +149,8 @@ int _unload(void* ctxbuf)
 		}
 	}
 
-	if(NULL != ctx->type_model) 
-		return pstd_type_model_free(ctx->type_model);
+	if(NULL != ctx->type_model)
+	    return pstd_type_model_free(ctx->type_model);
 
 	return 0;
 }
@@ -158,15 +158,15 @@ static inline int _write_str(pstd_type_instance_t* inst, pstd_type_accessor_t ac
 {
 	pstd_string_t* pstr = pstd_string_new(32);
 	if(NULL == pstr)
-		ERROR_RETURN_LOG(int, "Cannot allocate memory for the pstd_string object");
+	    ERROR_RETURN_LOG(int, "Cannot allocate memory for the pstd_string object");
 	if(ERROR_CODE(size_t) == pstd_string_write(pstr, str, strlen(str) + 1))
-		ERROR_LOG_GOTO(ERR, "Cannot write the text to the pstd_string object");
+	    ERROR_LOG_GOTO(ERR, "Cannot write the text to the pstd_string object");
 
 	scope_token_t token = pstd_string_commit(pstr);
 	if(ERROR_CODE(scope_token_t) == token)
-		ERROR_LOG_GOTO(ERR, "Cannot commit the string to the RLS");
+	    ERROR_LOG_GOTO(ERR, "Cannot commit the string to the RLS");
 	else
-		pstr = NULL;
+	    pstr = NULL;
 
 	return PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, accessor, token);
 ERR:
@@ -186,15 +186,15 @@ int _exec(void* ctxbuf)
 
 	scope_token_t token;
 	if(ERROR_CODE(scope_token_t) == (token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->extname_token)))
-		ERROR_LOG_GOTO(ERR, "Cannot read the scope token");
+	    ERROR_LOG_GOTO(ERR, "Cannot read the scope token");
 
 	const pstd_string_t* str = pstd_string_from_rls(token);
-	if(NULL == str) 
-		ERROR_LOG_GOTO(ERR, "Cannot load string from RLS");
+	if(NULL == str)
+	    ERROR_LOG_GOTO(ERR, "Cannot load string from RLS");
 
 	const char* cstr = pstd_string_value(str);
 	if(NULL == cstr)
-		ERROR_LOG_GOTO(ERR, "Cannot get the value of the stirng");
+	    ERROR_LOG_GOTO(ERR, "Cannot get the value of the stirng");
 
 	size_t len = strlen(cstr);
 	if(len > sizeof(uint64_t)) len = sizeof(uint64_t);
@@ -208,10 +208,10 @@ int _exec(void* ctxbuf)
 	if(NULL != node) result = node->mimetype;
 
 	if(ERROR_CODE(int) == _write_str(inst, ctx->mimetype_token, result))
-		ERROR_LOG_GOTO(ERR, "Cannot write the string to the output");
+	    ERROR_LOG_GOTO(ERR, "Cannot write the string to the output");
 
 	if(ERROR_CODE(int) == pstd_type_instance_free(inst))
-		ERROR_RETURN_LOG(int, "Cannot dispose the type instance object");
+	    ERROR_RETURN_LOG(int, "Cannot dispose the type instance object");
 	return 0;
 ERR:
 	if(NULL != inst) pstd_type_instance_free(inst);

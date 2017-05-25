@@ -180,9 +180,9 @@ static inline uint32_t _hash(const sched_service_t* service, sched_task_request_
 {
 	uintptr_t service_id = (uintptr_t)service;
 	uint64_t hash = service_id +
-					(service_id << 32) +
-		            (request_id << 16) +
-					node_id;
+	                (service_id << 32) +
+	                (request_id << 16) +
+	                node_id;
 	return (uint32_t)(hash % SCHED_TASK_TABLE_SLOT_SIZE);
 }
 
@@ -307,7 +307,7 @@ ERR:
 int sched_task_context_free(sched_task_context_t* ctx)
 {
 	if(NULL == ctx)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	int i = 0;
 	int rc = 0;

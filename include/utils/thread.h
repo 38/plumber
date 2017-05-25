@@ -204,9 +204,9 @@ thread_type_t thread_get_current_type();
 const char* thread_type_name(thread_type_t type, char* buf, size_t size);
 
 /**
- * @brief Run the main function for testing, for more information see the 
+ * @brief Run the main function for testing, for more information see the
  *        documentation for thread_test_main_t
- * @param main the testing main function 
+ * @param main the testing main function
  * @return exit code
  * @note This function does not require the entire system initialized
  **/

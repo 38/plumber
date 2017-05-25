@@ -51,9 +51,9 @@ int test_thread_local()
 	thread_t* thread[32];
 	int i;
 	for(i = 0; i < 32; i ++)
-		ASSERT_PTR(thread[i] = thread_new(test_thread, NULL, THREAD_TYPE_GENERIC), CLEANUP_NOP);
+	    ASSERT_PTR(thread[i] = thread_new(test_thread, NULL, THREAD_TYPE_GENERIC), CLEANUP_NOP);
 	for(i = 0; i < 32; i ++)
-		ASSERT_OK(thread_free(thread[i], NULL), CLEANUP_NOP);
+	    ASSERT_OK(thread_free(thread[i], NULL), CLEANUP_NOP);
 
 	ASSERT_OK(thread_local_test_ok, CLEANUP_NOP);
 

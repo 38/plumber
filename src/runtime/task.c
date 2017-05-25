@@ -127,7 +127,7 @@ int runtime_task_start_exec_fast(runtime_task_t* task)
 	_current_task = task;
 
 	if(NULL != task->servlet->bin->define->exec)
-		return task->servlet->bin->define->exec(task->servlet->data);
+	    return task->servlet->bin->define->exec(task->servlet->data);
 
 	return 0;
 }

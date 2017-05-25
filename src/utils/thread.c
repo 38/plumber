@@ -107,7 +107,7 @@ static uint32_t _next_thread_id = 0;
 
 #ifdef STACK_SIZE
 /**
- * @brief Get the current stack object 
+ * @brief Get the current stack object
  * @return The pointer of current stack
  * @note This only works with the thread created by thread_new
  **/
@@ -144,10 +144,10 @@ static inline uint32_t _get_thread_id()
 }
 /**
  * @brief Allocate the pointer for current thread
- * @note  Because GCC always wants to inline anything if possible on -O3, 
+ * @note  Because GCC always wants to inline anything if possible on -O3,
  *        However, this inline is harmful, because the allocation will only
  *        happen limited times. So this inline causes the function needs to
- *        save more registers than it actally needs 
+ *        save more registers than it actally needs
  * @param pset The pointer set
  * @param tid  The thread id
  * @return pointer has been allocated
@@ -331,7 +331,7 @@ static void* _thread_main(void* data)
 	do {
 		stack->id = _next_thread_id;
 	} while(!__sync_bool_compare_and_swap(&_next_thread_id, stack->id, stack->id + 1));
-#endif 
+#endif
 
 	thread_t* thread = (thread_t*)data;
 	void* ret = thread->main(thread->arg);
@@ -360,12 +360,12 @@ int thread_run_test_main(thread_test_main_t func)
 #ifdef STACK_SIZE
 	thread_t* ret = (thread_t*)malloc(sizeof(thread_t));
 	if(NULL == ret) return -1;
-	
+
 	uintptr_t offset = (STACK_SIZE - ((uintptr_t)ret->mem) % STACK_SIZE) % STACK_SIZE;
-	if(offset >= sizeof(_stack_t)) 
-		ret->stack = (_stack_t*)(ret->mem + offset - sizeof(_stack_t));
+	if(offset >= sizeof(_stack_t))
+	    ret->stack = (_stack_t*)(ret->mem + offset - sizeof(_stack_t));
 	else
-		ret->stack = (_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(_stack_t));
+	    ret->stack = (_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(_stack_t));
 
 	size_t page_size = (size_t)getpagesize();
 	size_t stack_size = (((size_t)(ret->mem + sizeof(ret->mem) - ret->stack->base)) / page_size) * page_size;
@@ -373,16 +373,16 @@ int thread_run_test_main(thread_test_main_t func)
 	pthread_attr_t attr;
 	void* rc;
 	if(pthread_attr_init(&attr) < 0)
-		goto ERR;
+	    goto ERR;
 
 	if(pthread_attr_setstack(&attr, ret->stack->base, stack_size) < 0)
-		goto ERR;
-	
-	if(pthread_create(&ret->handle, &attr, _start_main, func) < 0)
-		goto ERR;
+	    goto ERR;
 
-	if(pthread_join(ret->handle, &rc) < 0) 
-		goto ERR;
+	if(pthread_create(&ret->handle, &attr, _start_main, func) < 0)
+	    goto ERR;
+
+	if(pthread_join(ret->handle, &rc) < 0)
+	    goto ERR;
 
 	free(ret);
 
@@ -418,11 +418,11 @@ thread_t* thread_new(thread_main_t main, void* data, thread_type_t type)
 	ret->type = type;
 #ifdef STACK_SIZE
 	uintptr_t offset = (STACK_SIZE - ((uintptr_t)ret->mem) % STACK_SIZE) % STACK_SIZE;
-	if(offset >= sizeof(_stack_t)) 
-		ret->stack = (_stack_t*)(ret->mem + offset - sizeof(_stack_t));
+	if(offset >= sizeof(_stack_t))
+	    ret->stack = (_stack_t*)(ret->mem + offset - sizeof(_stack_t));
 	else
-		ret->stack = (_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(_stack_t));
-	
+	    ret->stack = (_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(_stack_t));
+
 	size_t page_size = (size_t)getpagesize();
 	size_t stack_size = (((size_t)(ret->mem + sizeof(ret->mem) - ret->stack->base)) / page_size) * page_size;
 
@@ -435,8 +435,8 @@ thread_t* thread_new(thread_main_t main, void* data, thread_type_t type)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create attribute of the thread");
 
 	if(pthread_attr_setstack(&attr, ret->stack->base, STACK_SIZE) < 0)
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the base address of the stack");
-	
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the base address of the stack");
+
 	if(pthread_create(&ret->handle, &attr, _thread_main, ret) < 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot start the thread");
 #else

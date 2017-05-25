@@ -84,12 +84,12 @@ int dispose()
 {
 	uint32_t i, j = 0;
 	for(i = 0; i < 2 * N; i ++)
-		if(data[i] == 10) j ++;
+	    if(data[i] == 10) j ++;
 	ASSERT(j == N, CLEANUP_NOP);
 
 	j = 0;
 	for(i = 0; i < 2 * N; i ++)
-		if(data[i] == 10) j ++;
+	    if(data[i] == 10) j ++;
 	ASSERT(j == N, CLEANUP_NOP);
 
 	ASSERT_OK(thread_pset_free(pset1), CLEANUP_NOP);

@@ -45,7 +45,7 @@ static inline int _write_path(pstd_type_instance_t* inst, pstd_type_accessor_t a
 	if(NULL == result) ERROR_RETURN_LOG(int, "Cannot create new string object for the path");
 
 	if(n == 0 && ERROR_CODE(size_t) == pstd_string_write(result, "/", 1))
-		ERROR_RETURN_LOG(int, "RLS string write error");
+	    ERROR_RETURN_LOG(int, "RLS string write error");
 
 	for(; n > 0; n --, begin ++, end ++)
 	    if(ERROR_CODE(size_t) == pstd_string_write(result, "/", 1) ||
@@ -98,7 +98,7 @@ static inline int _simplify_path(scope_token_t path_token, const context_t* ctx,
 
 	uint32_t nprefix = (ctx->prefix_level > (uint32_t)sp) ? 0 : ctx->prefix_level;
 	if(ctx->prefix_token > 0 && ERROR_CODE(int) == _write_path(inst, ctx->prefix_token, bs, es, nprefix))
-		ERROR_RETURN_LOG(int, "Cannot write the path to pipe");
+	    ERROR_RETURN_LOG(int, "Cannot write the path to pipe");
 
 	if(nprefix == 0 && !simplified)
 	{
