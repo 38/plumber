@@ -197,5 +197,4 @@ const char* thread_type_name(thread_type_t type, char* buf, size_t size);
  * @note this function do not require initalization
  **/
 int thread_run_test_main(thread_test_main_t main);
-
 #endif

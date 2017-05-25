@@ -55,11 +55,13 @@ message("Compiler: ${CMAKE_C_COMPILER}")
 message("Log Level: ${LOG}")
 message("Optimization Level: ${OPTLEVEL}")
 
-set(CFLAGS $ENV{CFLAGS}\ -O${OPTLEVEL}\ -Wconversion\ -Wextra\ -Wall\ -Werror\ -g)
+if("${OPTLEVEL}" GREATER "3")
+	set(OPT_CFLAGS "-DFULL_OPTIMIZATION -DSTACK_SIZE=0x200000")
+	set(OPTLEVEL 3)
+	message("FYI: you are configuring the project into a full optimization mode, which will enable some unsafe optimization")
+endif("${OPTLEVEL}" GREATER "3")
 
-if("${OPTLEVEL}" STREQUAL "3")
-	set(CFLAGS ${CFLAGS}\ -DFULL_OPTIMIZATION\ -DSTACK_SIZE=0x200000)
-endif("${OPTLEVEL}" STREQUAL "3")
+set(CFLAGS "$ENV{CFLAGS} -O${OPTLEVEL} ${OPT_CFLAGS} -Wconversion -Wextra -Wall -Werror -g")
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/${INCLUDE_DIR}" 
 	                "${CMAKE_CURRENT_BINARY_DIR}")

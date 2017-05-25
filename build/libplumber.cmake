@@ -6,11 +6,11 @@ set(local_cflags ${CFLAGS})
 find_package(OpenSSL)
 set_source_files_properties(${src_files} PROPERTIES COMPILE_FLAGS "${CFLAGS} -I${OPENSSL_INCLUDE_DIR}")
 
-if("${STATIC}" STREQUAL "yes")
-	add_library(plumber ${src_files})
-else("${STATIC}" STREQUAL "yes")
+if("${SHARED_LIBPLUMBER}" STREQUAL "yes")
 	add_library(plumber SHARED ${src_files})
-endif("${STATIC}" STREQUAL "yes")
+else("${SHARED_LIBPLUMBER}" STREQUAL "yes")
+	add_library(plumber ${src_files})
+endif("${SHARED_LIBPLUMBER}" STREQUAL "yes")
 
 target_link_libraries(plumber ${OPENSSL_LIBRARIES} ${GLOBAL_LIBS} proto)
 

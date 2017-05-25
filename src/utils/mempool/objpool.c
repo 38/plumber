@@ -367,7 +367,9 @@ RET:
 
 void* mempool_objpool_alloc(mempool_objpool_t* pool, int fill_zero)
 {
+#ifdef FULL_OPTIMIZATION
 	if(PREDICT_FALSE(NULL == pool)) ERROR_PTR_RETURN_LOG("Invalid arguments");
+#endif
 	if(PREDICT_FALSE(_is_pool_disabled(pool)))
 	{
 		if(fill_zero) return calloc(1, pool->obj_size);
@@ -437,8 +439,10 @@ static inline int _global_dealloc(mempool_objpool_t* pool, _cached_object_t* beg
 
 int mempool_objpool_dealloc(mempool_objpool_t* pool, void* mem)
 {
+#ifdef FULL_OPTIMIZATION
 	if(PREDICT_FALSE(NULL == pool || NULL == mem))
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
+#endif
 
 	if(PREDICT_FALSE(_is_pool_disabled(pool)))
 	{

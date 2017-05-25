@@ -34,11 +34,12 @@ add_custom_target(uninstall
 	COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
 add_custom_target(show-flags
-	COMMAND echo "Compiler = ${CMAKE_C_COMPILER}" && 
-	        echo "Log Level = ${LOG}" &&
-			echo "Optimaization = ${OPTLEVEL}" &&
+	COMMAND echo "Compiler       = ${CMAKE_C_COMPILER}" && 
+	        echo "Log Level      = ${LOG}" &&
+			echo "Optimaization  = ${OPTLEVEL}" &&
 			echo "Compiler Flags = ${CFLAGS}" &&
-			echo "Static Library = ${STATIC}" &&
+			echo "Linker Flags   = ${LIBS}" &&
+			echo "Shared Libplumber = ${SHARED_LIBPLUMBER}" &&
 			echo "Config CommandLine: $ENV{CFLAGS} CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} cmake -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DPLUMBER_V8_PREFIX=${PLUMBER_V8_PREFIX} -DLOG=${LOG} -DOPTLEVEL=${OPTLEVEL} ${package_status} ${option_status} ${CMAKE_SOURCE_DIR}" )	
 
 add_custom_target(book

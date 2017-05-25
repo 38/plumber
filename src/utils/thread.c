@@ -141,24 +141,25 @@ static inline uint32_t _get_thread_id()
 	return _thread_id;
 #endif
 }
-
-static inline void* _get_current_pointer(thread_pset_t* pset)
+/**
+ * @brief Allocate the pointer for current thread
+ * @note  Because GCC always wants to inline anything if possible on -O3, 
+ *        However, this inline is harmful, because the allocation will only
+ *        happen limited times. So this inline causes the function needs to
+ *        save more registers than it actally needs 
+ * @param pset The pointer set
+ * @param tid  The thread id
+ * @return pointer has been allocated
+ **/
+__attribute__((noinline)) static void* _allocate_current_pointer(thread_pset_t* pset, uint32_t tid)
 {
-	uint32_t tid = _get_thread_id();
-
-	_pointer_array_t* current = pset->array;
-
-	/* If the pointer for the thread is already there */
-	if(PREDICT_TRUE(current->size > tid))
-	    return current->ptr[tid];
-
 	if(pthread_mutex_lock(&pset->resize_lock) < 0)
 	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot acquire the resize lock");
 
 	/* Then the thread should be the only one executing this code,
 	 * At the same time, we need to check again, in case the pointer
 	 * has been created during the time of the thread being blocked */
-	current = pset->array;
+	_pointer_array_t* current = pset->array;
 	if(current->size > tid)
 	{
 		if(pthread_mutex_unlock(&pset->resize_lock) < 0)
@@ -209,6 +210,19 @@ ERR:
 	}
 
 	return NULL;
+}
+
+static inline void* _get_current_pointer(thread_pset_t* pset)
+{
+	uint32_t tid = _get_thread_id();
+
+	_pointer_array_t* current = pset->array;
+
+	/* If the pointer for the thread is already there */
+	if(PREDICT_TRUE(current->size > tid))
+	    return current->ptr[tid];
+
+	return _allocate_current_pointer(pset, tid);
 }
 
 thread_pset_t* thread_pset_new(uint32_t init_size, thread_pset_allocate_t alloc, thread_pset_deallocate_t dealloc, const void* data)
@@ -429,7 +443,11 @@ ERR:
 
 thread_t* thread_get_current()
 {
+#ifdef STACK_SIZE
 	return _get_current_stack()->thread;
+#else
+	return _thread_obj;
+#endif
 }
 
 int thread_add_cleanup_hook(thread_cleanup_t func, void* data)
