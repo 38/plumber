@@ -367,15 +367,12 @@ int thread_run_test_main(thread_test_main_t func)
 	else
 	    ret->stack = (_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(_stack_t));
 
-	size_t page_size = (size_t)getpagesize();
-	size_t stack_size = (((size_t)(ret->mem + sizeof(ret->mem) - ret->stack->base)) / page_size) * page_size;
-
 	pthread_attr_t attr;
 	void* rc;
 	if(pthread_attr_init(&attr) < 0)
 	    goto ERR;
 
-	if(pthread_attr_setstack(&attr, ret->stack->base, stack_size) < 0)
+	if(pthread_attr_setstack(&attr, ret->stack->base, STACK_SIZE) < 0)
 	    goto ERR;
 
 	if(pthread_create(&ret->handle, &attr, _start_main, func) < 0)
@@ -423,18 +420,13 @@ thread_t* thread_new(thread_main_t main, void* data, thread_type_t type)
 	else
 	    ret->stack = (_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(_stack_t));
 
-	size_t page_size = (size_t)getpagesize();
-	size_t stack_size = (((size_t)(ret->mem + sizeof(ret->mem) - ret->stack->base)) / page_size) * page_size;
-
-	LOG_DEBUG("Actual stack size: 0x%zx bytes", stack_size);
-
 	ret->stack->thread = ret;
 
 	pthread_attr_t attr;
 	if(pthread_attr_init(&attr) < 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create attribute of the thread");
 
-	if(pthread_attr_setstack(&attr, ret->stack->base, stack_size) < 0)
+	if(pthread_attr_setstack(&attr, ret->stack->base, STACK_SIZE) < 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the base address of the stack");
 
 	if(pthread_create(&ret->handle, &attr, _thread_main, ret) < 0)
