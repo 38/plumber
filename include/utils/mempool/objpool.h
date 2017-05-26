@@ -58,10 +58,9 @@ int mempool_objpool_free(mempool_objpool_t* pool);
 /**
  * @brief allocate a new object from the pool
  * @param pool the target memory pool
- * @param fill_zero indicates if we need fill with zeros
  * @return the allocated memory, NULL on error cases
  **/
-void* mempool_objpool_alloc(mempool_objpool_t* pool, int fill_zero);
+void* mempool_objpool_alloc(mempool_objpool_t* pool);
 
 /**
  * @brief return the pool memory to the pool

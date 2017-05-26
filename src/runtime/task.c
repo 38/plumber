@@ -65,7 +65,7 @@ static inline runtime_task_t* _task_new(runtime_servlet_t* servlet, uint32_t act
 			if(pthread_mutex_unlock(&_pool_mutex) < 0)
 			    LOG_WARNING_ERRNO("Cannot release the pool mutex");
 		}
-		ret = mempool_objpool_alloc(servlet->task_pool, 0);
+		ret = mempool_objpool_alloc(servlet->task_pool);
 	}
 	else
 	    ret = (runtime_task_t*)malloc(sizeof(runtime_task_t));

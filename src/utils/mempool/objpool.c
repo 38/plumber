@@ -76,10 +76,14 @@ static int _pool_disabled = 0;
  **/
 static uint32_t _thread_object_max = 0x10000;
 
+#ifndef FULL_OPTIMIZATION
 /**
  * @brief the size of one page in current operating system
  **/
 static uint32_t _pagesize = 0;
+#else
+static const uint32_t _pagesize = 4096;
+#endif
 
 /**
  * @brief allocate a new page for the memory pool
@@ -208,7 +212,9 @@ mempool_objpool_t* mempool_objpool_new(uint32_t size)
 	if(NULL == ret)
 	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the memory pool");
 
+#ifndef FULL_OPTIMIZATION
 	if(_pagesize == 0) _pagesize = (uint32_t)getpagesize();
+#endif
 
 	if(size < sizeof(_cached_object_t)) size = sizeof(_cached_object_t);
 	if(size % sizeof(uintptr_t) > 0) size = (uint32_t)((size / sizeof(uintptr_t) + 1) * sizeof(uintptr_t));
@@ -365,17 +371,8 @@ RET:
 	return ret;
 }
 
-void* mempool_objpool_alloc(mempool_objpool_t* pool, int fill_zero)
+static inline void* _mempool_objpool_alloc_no_check(mempool_objpool_t* pool)
 {
-#ifdef FULL_OPTIMIZATION
-	if(PREDICT_FALSE(NULL == pool)) ERROR_PTR_RETURN_LOG("Invalid arguments");
-#endif
-	if(PREDICT_FALSE(_is_pool_disabled(pool)))
-	{
-		if(fill_zero) return calloc(1, pool->obj_size);
-		else return malloc(pool->obj_size);
-	}
-
 	void* ret = NULL;
 
 	/* First try to get the object from the local pool */
@@ -405,9 +402,18 @@ void* mempool_objpool_alloc(mempool_objpool_t* pool, int fill_zero)
 
 	if(PREDICT_FALSE(NULL == ret))
 	    LOG_ERROR("Cannot allocate memory from the object pool");
-	if(fill_zero) memset(ret, 0, pool->obj_size);
-
+	
 	return ret;
+}
+
+void* mempool_objpool_alloc(mempool_objpool_t* pool)
+{
+	if(PREDICT_FALSE(NULL == pool)) ERROR_PTR_RETURN_LOG("Invalid arguments");
+	
+	if(PREDICT_FALSE(_is_pool_disabled(pool)))
+		return malloc(pool->obj_size);
+
+	return _mempool_objpool_alloc_no_check(pool);
 }
 
 int mempool_objpool_disabled(int val)

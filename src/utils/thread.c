@@ -44,9 +44,11 @@ typedef struct _cleanup_hook_t {
 struct _thread_t {
 	pthread_t     handle;      /*!< the pthread handle */
 	thread_main_t main;        /*!< the thread main function */
+#ifndef STACK_SIZE
+	thread_type_t type;        /*!< the type of this thread */
+#endif
 	void*         arg;         /*!< the thread argument */
 	_cleanup_hook_t* hooks;    /*!< the cleanup hooks */
-	thread_type_t type;        /*!< the type of this thread */
 #ifdef STACK_SIZE
 	char             mem[STACK_SIZE * 2 + sizeof(thread_stack_t)]; /*!< The memory used for task */
 	thread_stack_t*  stack;       /*!< The stack we need to use */
@@ -368,7 +370,6 @@ thread_t* thread_new(thread_main_t main, void* data, thread_type_t type)
 	ret->main = main;
 	ret->arg  = data;
 	ret->hooks = NULL;
-	ret->type = type;
 #ifdef STACK_SIZE
 	uintptr_t offset = (STACK_SIZE - ((uintptr_t)ret->mem) % STACK_SIZE) % STACK_SIZE;
 	if(offset >= sizeof(thread_stack_t))
@@ -377,6 +378,7 @@ thread_t* thread_new(thread_main_t main, void* data, thread_type_t type)
 	    ret->stack = (thread_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(thread_stack_t));
 
 	ret->stack->thread = ret;
+	ret->stack->type = type;
 
 	pthread_attr_t attr;
 	if(pthread_attr_init(&attr) < 0)
@@ -388,6 +390,7 @@ thread_t* thread_new(thread_main_t main, void* data, thread_type_t type)
 	if(pthread_create(&ret->handle, &attr, _thread_main, ret) < 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot start the thread");
 #else
+	ret->type = type;
 	if(pthread_create(&ret->handle, NULL, _thread_main, ret) < 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot start the thread");
 #endif
@@ -464,12 +467,14 @@ void thread_set_name(const char* name)
 	prctl(PR_SET_NAME, name, 0, 0, 0);
 }
 
+#ifndef STACK_SIZE 
 thread_type_t thread_get_current_type()
 {
 	const thread_t* thread = thread_get_current();
 
 	return NULL != thread ? thread->type : THREAD_TYPE_GENERIC;
 }
+#endif
 
 const char* thread_type_name(thread_type_t type, char* buf, size_t size)
 {

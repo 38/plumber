@@ -24,7 +24,7 @@ static inline uintptr_t _p2u(void* mem)
 int pool_allocation()
 {
 	void* mem;
-	ASSERT_PTR(mem = mempool_objpool_alloc(pool, 0), CLEANUP_NOP);
+	ASSERT_PTR(mem = mempool_objpool_alloc(pool), CLEANUP_NOP);
 	uintptr_t addr = _p2u(&mem);
 	ASSERT((addr & (sizeof(uintptr_t) - 1)) == 0, CLEANUP_NOP);
 	memset(mem, -1, 11);
@@ -32,9 +32,8 @@ int pool_allocation()
 	ASSERT(mempool_objpool_get_page_count(pool) == 1, CLEANUP_NOP);
 
 	void *mem2;
-	ASSERT_PTR(mem2 = mempool_objpool_alloc(pool, 1), CLEANUP_NOP);
+	ASSERT_PTR(mem2 = mempool_objpool_alloc(pool), CLEANUP_NOP);
 	ASSERT(mem == mem2, CLEANUP_NOP);
-	ASSERT(*(uint64_t*)mem2 == 0, CLEANUP_NOP);
 	ASSERT(mempool_objpool_get_page_count(pool) == 1, CLEANUP_NOP);
 
 	uint32_t i;
@@ -42,7 +41,7 @@ int pool_allocation()
 	for(i = 0; i < 4096; i ++)
 	{
 		void* p;
-		ASSERT_PTR(p = mempool_objpool_alloc(pool, 0), CLEANUP_NOP);
+		ASSERT_PTR(p = mempool_objpool_alloc(pool), CLEANUP_NOP);
 		ASSERT_OK(mempool_objpool_dealloc(pool, p), CLEANUP_NOP);
 		ASSERT(p != mem, CLEANUP_NOP);
 		if(NULL != last)
@@ -55,7 +54,7 @@ int pool_allocation()
 
 	void *ptr[4096];
 	for(i = 0; i < 4096; i ++)
-	    ASSERT_PTR(ptr[i] = mempool_objpool_alloc(pool, 0), CLEANUP_NOP);
+	    ASSERT_PTR(ptr[i] = mempool_objpool_alloc(pool), CLEANUP_NOP);
 
 	qsort(ptr, 4096, sizeof(void*), compare);
 
@@ -73,7 +72,7 @@ int pool_allocation()
 	    ASSERT(ptr[i-1] != ptr[i], CLEANUP_NOP);
 
 	for(i = 0; i < 4096; i ++)
-	    ASSERT_PTR(ptr[i] = mempool_objpool_alloc(pool, 0), CLEANUP_NOP);
+	    ASSERT_PTR(ptr[i] = mempool_objpool_alloc(pool), CLEANUP_NOP);
 
 	ASSERT(pc == mempool_objpool_get_page_count(pool), CLEANUP_NOP);
 
@@ -90,7 +89,7 @@ int disabled_pool()
 
 	void *ptr[4096];
 	for(i = 0; i < 4096; i ++)
-	    ASSERT_PTR(ptr[i] = mempool_objpool_alloc(pool, 0), CLEANUP_NOP);
+	    ASSERT_PTR(ptr[i] = mempool_objpool_alloc(pool), CLEANUP_NOP);
 
 	for(i = 0; i < 4096; i ++)
 	    ASSERT_OK(mempool_objpool_dealloc(pool, ptr[i]), CLEANUP_NOP);
@@ -98,7 +97,7 @@ int disabled_pool()
 	ASSERT_OK(mempool_objpool_disabled(1), CLEANUP_NOP);
 
 	void* mem;
-	ASSERT_PTR(mem = mempool_objpool_alloc(pool, 0), CLEANUP_NOP);
+	ASSERT_PTR(mem = mempool_objpool_alloc(pool), CLEANUP_NOP);
 	for(i = 0; i < 4096; i ++)
 	    ASSERT(mem != ptr[i], CLEANUP_NOP);
 
@@ -106,7 +105,7 @@ int disabled_pool()
 
 	ASSERT_OK(mempool_objpool_disabled(0), CLEANUP_NOP);
 
-	ASSERT_PTR(mem = mempool_objpool_alloc(pool, 0), CLEANUP_NOP);
+	ASSERT_PTR(mem = mempool_objpool_alloc(pool), CLEANUP_NOP);
 	for(i = 0; i < 4096; i ++)
 	    if(mem == ptr[i]) break;
 	ASSERT(i < 4096, CLEANUP_NOP);

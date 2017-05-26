@@ -126,6 +126,7 @@ typedef struct _thread_pset_t {
  **/
 typedef struct {
 	uint32_t  id;              /*!< The thread id */
+	thread_type_t type;        /*!< the type of this thread */
 	thread_t* thread;          /*!< The thread object */
 	uintptr_t  __padding__[0];
 	char base[0];             /*!< The base address of the stack */
@@ -210,13 +211,6 @@ int thread_kill(thread_t* thread, int signal);
 int thread_free(thread_t* thread, void** ret);
 
 /**
- * @brief get the current type of the thread
- * @return the thread type
- * @return the thread type or status code
- **/
-thread_type_t thread_get_current_type();
-
-/**
  * @brief convert the thread name to the human readable string
  * @param type the thread type code
  * @param buf  the result buffer
@@ -243,7 +237,7 @@ int thread_run_test_main(thread_test_main_t main);
  **/
 static inline thread_stack_t* thread_get_current_stack()
 {
-	volatile uintptr_t addr = (uintptr_t)&addr;
+	uintptr_t addr = (uintptr_t)&addr;
 	addr = addr - addr % STACK_SIZE - sizeof(thread_stack_t);
 	return (thread_stack_t*)addr;
 }
@@ -263,6 +257,11 @@ static inline void* thread_pset_acquire(thread_pset_t* pset)
 	return _thread_allocate_current_pointer(pset, tid);
 }
 
+static inline thread_type_t thread_get_current_type()
+{
+	return thread_get_current_stack()->type;
+}
+
 #	else
 /**
  * @brief acquire the pointer for current thread from the thread local pointer set
@@ -272,5 +271,12 @@ static inline void* thread_pset_acquire(thread_pset_t* pset)
  * @return the thread local pointer or NULL on error
  **/
 void* thread_pset_acquire(thread_pset_t* pset);
+
+/**
+ * @brief get the current type of the thread
+ * @return the thread type
+ * @return the thread type or status code
+ **/
+thread_type_t thread_get_current_type();
 #	endif
 #endif

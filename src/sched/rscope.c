@@ -197,8 +197,10 @@ static inline runtime_api_scope_token_t _entry_alloc()
 		ret = _entry_table.cached;
 		_entry_table.cached = _entry_table.data[ret].next;
 
-		if(NULL == (_entry_table.data[ret].data = mempool_objpool_alloc(_entity_pool, 1)))
+		if(NULL == (_entry_table.data[ret].data = mempool_objpool_alloc(_entity_pool)))
 		    ERROR_RETURN_LOG_ERRNO(runtime_api_scope_token_t, "Cannot allocate memory for the entity data pool");
+		else
+			memset(_entry_table.data[ret].data, 0, sizeof(*_entry_table.data[ret].data));
 
 		return ret;
 	}
@@ -220,8 +222,10 @@ static inline runtime_api_scope_token_t _entry_alloc()
 	}
 
 	ret = _entry_table.unused;
-	if(NULL == (_entry_table.data[ret].data = mempool_objpool_alloc(_entity_pool, 1)))
+	if(NULL == (_entry_table.data[ret].data = mempool_objpool_alloc(_entity_pool)))
 	    ERROR_RETURN_LOG_ERRNO(runtime_api_scope_token_t, "Cannot allocate memory for the entity data pool");
+	else
+		memset(_entry_table.data[ret].data, 0, sizeof(*_entry_table.data[ret].data));
 
 	_entry_table.data[ret].next = _NULL_ENTRY;
 	_entry_table.unused ++;
@@ -233,7 +237,7 @@ sched_rscope_t* sched_rscope_new()
 {
 	static __thread uint64_t next_scope_id = 0;
 
-	sched_rscope_t* ret = mempool_objpool_alloc(_rscope_pool, 0);
+	sched_rscope_t* ret = mempool_objpool_alloc(_rscope_pool);
 
 	if(NULL == ret)
 	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the request local scope");
@@ -357,7 +361,7 @@ sched_rscope_stream_t* sched_rscope_stream_open(runtime_api_scope_token_t token)
 	    ERROR_PTR_RETURN_LOG("The byte stream interface is not fully supported by the RLS entity %u",
 	    token);
 
-	sched_rscope_stream_t* ret = mempool_objpool_alloc(_stream_pool, 0);
+	sched_rscope_stream_t* ret = mempool_objpool_alloc(_stream_pool);
 
 	if(NULL == ret)
 	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the stream handle object for RLS token %u" , token);

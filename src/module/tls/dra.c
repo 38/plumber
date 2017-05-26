@@ -163,7 +163,7 @@ static inline mempool_objpool_t* _get_small_object_pool(size_t size)
  **/
 static inline _dra_t* _buffer_dra_new(module_tls_dra_param_t draparam, const void* buffer, size_t size)
 {
-	_dra_t* ret = (_dra_t*)mempool_objpool_alloc(_dra_pool, 0);
+	_dra_t* ret = (_dra_t*)mempool_objpool_alloc(_dra_pool);
 
 	if(NULL == ret)
 	    ERROR_PTR_RETURN_LOG("Cannot allocate new DRA object");
@@ -184,7 +184,7 @@ static inline _dra_t* _buffer_dra_new(module_tls_dra_param_t draparam, const voi
 	}
 	else
 	{
-		if(NULL == (ret->buffer_page = (int8_t*)mempool_objpool_alloc(small_pool, 0)))
+		if(NULL == (ret->buffer_page = (int8_t*)mempool_objpool_alloc(small_pool)))
 		    ERROR_LOG_GOTO(ERR, "Cannot allocate the buffer page from small buffer pool");
 
 		ret->data_size = size;
@@ -210,7 +210,7 @@ ERR:
  **/
 static inline _dra_t* _callback_dra_new(module_tls_dra_param_t draparam, itc_module_data_source_t data_source)
 {
-	_dra_t* ret = (_dra_t*)mempool_objpool_alloc(_dra_pool, 0);
+	_dra_t* ret = (_dra_t*)mempool_objpool_alloc(_dra_pool);
 
 	if(NULL == ret)
 	    ERROR_PTR_RETURN_LOG("Cannot allocate new DRA object");

@@ -86,7 +86,7 @@ static inline _task_entry_t* _dequeue(sched_task_context_t* ctx)
 static inline _request_entry_t* _request_entry_new(sched_task_request_t request)
 {
 	LOG_DEBUG("New request entry has been created");
-	_request_entry_t* ret = (_request_entry_t*)mempool_objpool_alloc(_request_pool, 0);
+	_request_entry_t* ret = (_request_entry_t*)mempool_objpool_alloc(_request_pool);
 	if(NULL == ret)
 	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the new request");
 	if(NULL == (ret->scope = sched_rscope_new()))
@@ -209,7 +209,7 @@ static inline _task_entry_t* _task_entry_new(sched_task_context_t* ctx, const sc
 	_request_entry_t* req = _request_entry_find(ctx, request);
 	if(NULL == req) ERROR_PTR_RETURN_LOG("Cannot get the request entry object");
 
-	_task_entry_t* ret = mempool_objpool_alloc(_task_pool, 0);
+	_task_entry_t* ret = mempool_objpool_alloc(_task_pool);
 	if(NULL == ret) ERROR_PTR_RETURN_LOG("Cannot allocate memory for the new task entry");
 	ret->task.ctx = ctx;
 	ret->task.exec_task = NULL;

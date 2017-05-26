@@ -350,7 +350,7 @@ static int _cleanup(void* __restrict ctx)
  **/
 static inline _tls_context_t* _tls_context_new(_module_context_t* context)
 {
-	_tls_context_t* ret = mempool_objpool_alloc(context->tls_pool, 0);
+	_tls_context_t* ret = mempool_objpool_alloc(context->tls_pool);
 
 	if(NULL == ret) ERROR_PTR_RETURN_LOG("Cannot allocate memory for the new TLS context");
 

@@ -246,7 +246,7 @@ static inline int _pool_alloc(uint32_t size, void** retbuf)
 	if(NULL == pool) ERROR_RETURN_LOG(int, "Cannot get the memory pool");
 
 	_memory_chunck_t* chunck;
-	if(NULL == (chunck = (_memory_chunck_t*)mempool_objpool_alloc(pool, 0)))
+	if(NULL == (chunck = (_memory_chunck_t*)mempool_objpool_alloc(pool)))
 	    ERROR_RETURN_LOG(int, "Cannot allocate memory from the memory pool");
 
 	chunck->size = size;

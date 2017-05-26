@@ -260,8 +260,8 @@ int itc_module_pipe_allocate(itc_module_type_t type, uint32_t hint,
 	if(NULL == out_pipe && NULL == in_pipe)
 	    ERROR_RETURN_LOG(int, "Invalid arguments: Both input and output buffer are NULL");
 
-	itc_module_pipe_t* __restrict in = (NULL != in_pipe) ? (itc_module_pipe_t*)mempool_objpool_alloc(pool, 0) : NULL;
-	itc_module_pipe_t* __restrict out = (NULL != out_pipe) ? (itc_module_pipe_t*)mempool_objpool_alloc(pool, 0) : NULL;
+	itc_module_pipe_t* __restrict in = (NULL != in_pipe) ? (itc_module_pipe_t*)mempool_objpool_alloc(pool) : NULL;
+	itc_module_pipe_t* __restrict out = (NULL != out_pipe) ? (itc_module_pipe_t*)mempool_objpool_alloc(pool) : NULL;
 
 	if((NULL != in_pipe && NULL == in) || (NULL != out_pipe && NULL == out))
 	    ERROR_LOG_GOTO(ERR, "Cannot allocate memory for pipe allocation");
@@ -753,8 +753,8 @@ int itc_module_pipe_accept(itc_module_type_t type, itc_module_pipe_param_t param
 
 	if(module->accept == NULL) ERROR_RETURN_LOG(int, "Module doesn't support accept");
 
-	itc_module_pipe_t* __restrict in = (itc_module_pipe_t*)mempool_objpool_alloc(pool, 0);
-	itc_module_pipe_t* __restrict out = (itc_module_pipe_t*)mempool_objpool_alloc(pool, 0);
+	itc_module_pipe_t* __restrict in = (itc_module_pipe_t*)mempool_objpool_alloc(pool);
+	itc_module_pipe_t* __restrict out = (itc_module_pipe_t*)mempool_objpool_alloc(pool);
 
 	if(NULL == in || NULL == out) ERROR_LOG_GOTO(ERR, "Cannot allcoate memory for the new pipe");
 
@@ -1135,7 +1135,7 @@ itc_module_pipe_t* itc_module_pipe_fork(itc_module_pipe_t* handle, runtime_api_p
 	if((inst = _get_module(source_handle)) == NULL)
 	    ERROR_PTR_RETURN_LOG("Invalid source handle");
 
-	itc_module_pipe_t* ret = (itc_module_pipe_t*)mempool_objpool_alloc(inst->handle_pool, 0);
+	itc_module_pipe_t* ret = (itc_module_pipe_t*)mempool_objpool_alloc(inst->handle_pool);
 	if(NULL == ret) ERROR_PTR_RETURN_LOG("Cannot allocate memory for the forked pipe");
 
 	ret->owner = NULL;

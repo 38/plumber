@@ -200,7 +200,7 @@ static inline _async_buf_page_t* _async_buf_data_page_new()
  **/
 static inline _async_buf_page_t* _async_buf_data_source_page_new(const itc_module_data_source_t data_source)
 {
-	_async_buf_page_t* ret = (_async_buf_page_t*)mempool_objpool_alloc(_async_data_source_pool, 0);
+	_async_buf_page_t* ret = (_async_buf_page_t*)mempool_objpool_alloc(_async_data_source_pool);
 	if(NULL == ret)
 	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the data source page");
 
@@ -217,7 +217,7 @@ static inline _async_buf_page_t* _async_buf_data_source_page_new(const itc_modul
  */
 static inline _async_handle_t* _async_handle_new(_module_context_t* ctx)
 {
-	_async_handle_t* ret = (_async_handle_t*)mempool_objpool_alloc(_async_handle_pool, 0);
+	_async_handle_t* ret = (_async_handle_t*)mempool_objpool_alloc(_async_handle_pool);
 	if(NULL == ret)
 	    ERROR_PTR_RETURN_LOG_ERRNO("cannot allocate memory for new async data handle");
 
