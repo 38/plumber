@@ -1209,7 +1209,7 @@ int itc_module_pipe_set_error(itc_module_pipe_t* handle)
 	return 0;
 }
 
-int itc_module_pipe_touched(const itc_module_pipe_t* handle)
+int itc_module_pipe_is_touched(const itc_module_pipe_t* handle)
 {
 	if(NULL == handle || handle->stat.type != _PSTAT_TYPE_OUTPUT)
 		ERROR_RETURN_LOG(int, "Invalid arguments");

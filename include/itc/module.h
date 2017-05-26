@@ -332,6 +332,6 @@ int itc_module_pipe_set_error(itc_module_pipe_t* handle);
  * @param handle The handle to check
  * @return check result, or error code
  **/
-int itc_module_pipe_touched(const itc_module_pipe_t* handle);
+int itc_module_pipe_is_touched(const itc_module_pipe_t* handle);
 
 #endif /* __PLUMBER_ITC_MODULE__ */

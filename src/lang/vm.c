@@ -728,7 +728,7 @@ static inline int _service_visualize(lang_vm_t* vm, uint32_t serv_reg, uint32_t 
 				string_buffer_appendf(&outbuf, "<P%u>%s", i, name);
 			}
 		}
-		fprintf(fout, "}|%s|{%s}}\", %s];\n", node_ptr->name, string_buffer_close(&outbuf), node_ptr->graphviz);
+		fprintf(fout, "}|{<Pnull>N|%s|<Perr>E}|{%s}}\", %s];\n", node_ptr->name, string_buffer_close(&outbuf), node_ptr->graphviz);
 	}
 
 	/* dump the pipes */
@@ -744,11 +744,11 @@ static inline int _service_visualize(lang_vm_t* vm, uint32_t serv_reg, uint32_t 
 		if(NULL == name) ERROR_LOG_GOTO(CLEANUP, "Cannot get name for the pipe port");
 		
 		if(strcmp(name, "__null__") == 0)
-			fprintf(fout, "\tnode_%u->node_%u:P%u[style = dashed, color = blue];\n", 
+			fprintf(fout, "\tnode_%u:Pnull->node_%u:P%u[style = dashed, color = blue];\n", 
 				    pipe_ptr->pipe.source_node_id, 
 		            pipe_ptr->pipe.destination_node_id, pipe_ptr->pipe.destination_pipe_desc);
 		else if(strcmp(name, "__error__") == 0)
-			fprintf(fout, "\tnode_%u->node_%u:P%u[style = dashed, color = red];\n", 
+			fprintf(fout, "\tnode_%u:Perr->node_%u:P%u[style = dashed, color = red];\n", 
 				    pipe_ptr->pipe.source_node_id, 
 		            pipe_ptr->pipe.destination_node_id, pipe_ptr->pipe.destination_pipe_desc);
 		else 
