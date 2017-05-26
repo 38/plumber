@@ -100,8 +100,7 @@ static inline const char* _read_string(pstd_type_instance_t* inst, pstd_type_acc
 		ERROR_PTR_RETURN_LOG("Cannot access path.token");
 
 	const pstd_string_t* pstr = pstd_string_from_rls(token);
-	if(NULL == pstr)
-		ERROR_PTR_RETURN_LOG("Cannot retrive string object from the RLS");
+	if(NULL == pstr) ERROR_PTR_RETURN_LOG("Cannot retrive string object from the RLS");
 
 	return pstd_string_value(pstr);
 }
@@ -121,22 +120,19 @@ static int _exec(void* ctxbuf)
 	if(NULL == inst) ERROR_RETURN_LOG(int, "Cannot create type instance");
 
 	const char* path = _read_string(inst, ctx->path_token);
-	if(NULL == path)
-		ERROR_LOG_GOTO(ERR, "Cannot get the path");
+	if(NULL == path) ERROR_LOG_GOTO(ERR, "Cannot get the path");
 	
 	char pathbuf[PATH_MAX];
 	int len = snprintf(pathbuf, sizeof(pathbuf), "%s/%s", ctx->root, path);
 
 	struct stat st;
-	if(pstd_fcache_stat(pathbuf, &st) == ERROR_CODE(int))
-		goto RET_404;
+	if(pstd_fcache_stat(pathbuf, &st) == ERROR_CODE(int)) goto RET_404;
 
 	if(!(st.st_mode & S_IFREG))
 	{
 		if((size_t)len > sizeof(pathbuf)) len = sizeof(pathbuf);
 		snprintf(pathbuf + len, sizeof(pathbuf) - (size_t)len, "%s", "index.html");
-		if(pstd_fcache_stat(pathbuf, &st) == ERROR_CODE(int))
-			goto RET_404;
+		if(pstd_fcache_stat(pathbuf, &st) == ERROR_CODE(int)) goto RET_404;
 		else 
 		{
 			if(NULL == (redir = pstd_string_new(sizeof(pathbuf))))
@@ -146,8 +142,7 @@ static int _exec(void* ctxbuf)
 
 			if(ERROR_CODE(scope_token_t) == (redir_token = pstd_string_commit(redir)))
 				ERROR_LOG_GOTO(ERR, "Cannot commit the redirect string to the token");
-			else
-				redir = NULL;
+			else redir = NULL;
 			goto RET_302;
 		}
 	}
