@@ -459,8 +459,10 @@ int _mempool_objpool_dealloc_no_check(mempool_objpool_t* pool, void* mem)
 {
 
 	_thread_local_pool_t* tlp = thread_pset_acquire(pool->local_pool);
+#ifndef FULL_OPTIMIZATION
 	if(PREDICT_FALSE(NULL == tlp))
 	    ERROR_RETURN_LOG(int, "Cannot acquire the thread local pool for current thread TID=%u", thread_get_id());
+#endif
 
 	_cached_object_t* cur = (_cached_object_t*)mem;
 	cur->prev = NULL;
