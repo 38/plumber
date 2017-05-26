@@ -202,30 +202,6 @@ static size_t _write(void* __restrict ctx, const void* __restrict buffer, size_t
 	return ret;
 }
 
-static size_t _read_inplace(void * __restrict ctx, void const* __restrict * __restrict result, size_t nbytes, void* __restrict pipe)
-{
-	(void) ctx;
-	module_handle_t* handle = (module_handle_t*)pipe;
-
-	if(handle->type != _INPUT)
-	    ERROR_RETURN_LOG(size_t, "Invalid type of pipe, a read function cannot take a input pipe");
-
-	uint32_t ret = handle->current_page->size - handle->page_offset;
-
-	if(ret > nbytes) ret = (uint32_t)nbytes;
-
-	*result = handle->current_page->data + handle->page_offset;
-
-	handle->page_offset += ret;
-	while(handle->page_offset == handle->current_page->size)
-	{
-		handle->page_offset = 0;
-		handle->current_page = handle->current_page->next;
-	}
-
-	return ret;
-}
-
 static int _fork(void* __restrict ctx, void* __restrict dest, void* __restrict src, const void* __restrict args)
 {
 	(void) ctx;
@@ -278,7 +254,6 @@ itc_module_t module_mem_module_def = {
 	.read = _read,
 	.write = _write,
 	.fork = _fork,
-	.read_inplace = _read_inplace,
 	.has_unread_data = _has_unread_data,
 	.get_path = _get_path
 };

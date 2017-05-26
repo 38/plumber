@@ -137,27 +137,6 @@ static size_t write(void* __restrict ctx, const void* __restrict buffer, size_t 
 	return nbytes;
 }
 
-static size_t read_inplace(void* __restrict ctx, void const* __restrict * __restrict result, size_t nbytes, void* __restrict pipe)
-{
-	(void)ctx;
-	module_handle_t* handle = (module_handle_t*)pipe;
-
-	if(handle->type != 1)
-	{
-		LOG_ERROR("wrong pipe type");
-		return ERROR_CODE(size_t);
-	}
-
-	if(nbytes - handle->position > TEST_BUFFER_SIZE) nbytes = TEST_BUFFER_SIZE - handle->position;
-
-	*result = handle->buffer + handle->position;
-
-	handle->position += nbytes;
-
-	return nbytes;
-}
-
-
 static int accept(void* __restrict ctx, const void* __restrict args, void* __restrict in, void* __restrict out)
 {
 	(void) ctx;
@@ -260,7 +239,6 @@ itc_module_t module_test_module_def = {
 	.deallocate = deallocate,
 	.read = read,
 	.write = write,
-	.read_inplace = read_inplace,
 	.accept = accept,
 	.has_unread_data = _has_unread_data,
 	.cntl = _cntl,

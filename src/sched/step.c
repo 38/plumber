@@ -103,7 +103,7 @@ int sched_step_next(sched_task_context_t* stc, itc_module_type_t type)
 		if(sched_service_profiler_timer_stop(task->service) == ERROR_CODE(int))
 		    LOG_WARNING("Cannot stop the profiler");
 #endif
-		ERROR_LOG_GOTO(LERR, "Task failed");
+		ERROR_LOG_GOTO(TASK_FAILED, "Task failed");
 	}
 #ifdef ENABLE_PROFILER
 	if(sched_service_profiler_timer_stop(task->service) == ERROR_CODE(int))
@@ -114,11 +114,54 @@ int sched_step_next(sched_task_context_t* stc, itc_module_type_t type)
 		counter = 0;
 	}
 #endif
+	runtime_api_pipe_id_t null_pid = RUNTIME_API_PIPE_TO_PID(task->exec_task->servlet->sig_null);
 
+	if(task->exec_task->pipes[null_pid] != NULL)
+	{
+		for(i = 0; i < size; i ++)
+		{
+			int touched = 0;
+			if(result[i].source_pipe_desc != task->exec_task->servlet->sig_null &&
+			   result[i].source_pipe_desc != task->exec_task->servlet->sig_null &&
+			   ERROR_CODE(int) == (touched = itc_module_pipe_touched(task->exec_task->pipes[RUNTIME_API_PIPE_TO_PID(result[i].source_pipe_desc)])))
+				ERROR_LOG_GOTO(LERR, "Cannot check if the pipe has been touched");
+			if(touched) break;
+		}
+		if(i == size)
+		{
+			LOG_DEBUG("The servlet produces zero output, set the __null__ signal");
+			size_t rc;
+			for(;0 == (rc = itc_module_pipe_write("", 1, task->exec_task->pipes[null_pid])););
+			if(ERROR_CODE(size_t) == rc) ERROR_LOG_GOTO(LERR, "Cannot touch the null signal pipe");
+		}
+	}
+
+	goto CLEANUP;
+TASK_FAILED:
+
+	/* First, the error code means all the output is not reliable */
+	for(i = 0; i < size; i ++)
+	{
+		if(result[i].source_pipe_desc != task->exec_task->servlet->sig_null &&
+		   result[i].source_pipe_desc != task->exec_task->servlet->sig_error &&
+		   ERROR_CODE(int) == itc_module_pipe_set_error(task->exec_task->pipes[RUNTIME_API_PIPE_TO_PID(result[i].source_pipe_desc)]))
+			ERROR_LOG_GOTO(LERR, "Cannot set the error state to all the output pipes");
+	}
+
+	/* Then we need to touch the error pipe */
+	runtime_api_pipe_id_t error_pid = RUNTIME_API_PIPE_TO_PID(task->exec_task->servlet->sig_error);
+	if(task->exec_task->pipes[error_pid] != NULL)
+	{
+		size_t rc;
+		for(;0 == (rc = itc_module_pipe_write("", 1, task->exec_task->pipes[error_pid])););
+		if(ERROR_CODE(size_t) == rc) ERROR_LOG_GOTO(LERR, "Cannot touch the error signal pipe");
+	}
+
+	/* At this point, we are good to go */
+CLEANUP:
 	if(sched_task_free(task) < 0) LOG_WARNING("Cannot dispose task");
 
 	return 1;
-
 LERR:
 	if(task) sched_task_free(task);
 	return ERROR_CODE(int);

@@ -18,7 +18,6 @@ typedef struct {
 	pipe_t prefix;           /*!< The pipe outputs the prefix */
 	pipe_t relative;         /*!< The relative path */
 	pipe_t extname;          /*!< The extension name of the path, only valid when the extension name mode is open */
-	pipe_t invalid;          /*!< The pipe will be written when the path is invalid */
 
 	pstd_type_model_t*    model;          /*!< The type model we used */
 	pstd_type_accessor_t  origin_token;   /*!< The origin token */
@@ -88,13 +87,8 @@ static inline int _simplify_path(scope_token_t path_token, const context_t* ctx,
 	    }
 	    else if(ctx->need_extname && *end == '.') extname = end + 1;
 
-	/* If we pop the stack too much, this should not be allowed */
-	if(sp < 0)
-	{
-		size_t rc;
-		while(0 == (rc = pipe_write(ctx->invalid, "", 1)));
-		return ERROR_CODE(size_t) != rc ? 0 : ERROR_CODE(int);
-	}
+	/* If we pop the stack too much, this should not be allowed, so we produce zero output */
+	if(sp < 0) return 0;
 
 	uint32_t nprefix = (ctx->prefix_level > (uint32_t)sp) ? 0 : ctx->prefix_level;
 	if(ctx->prefix_token > 0 && ERROR_CODE(int) == _write_path(inst, ctx->prefix_token, bs, es, nprefix))
@@ -193,9 +187,6 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 
 	if(ctx->need_extname && ERROR_CODE(pipe_t) == (ctx->extname = pipe_define("extname", PIPE_OUTPUT, strtype)))
 	    ERROR_RETURN_LOG(int, "Cannot define the output pipe for the externsion name");
-
-	if(ERROR_CODE(pipe_t) == (ctx->invalid = pipe_define("invalid", PIPE_OUTPUT, NULL)))
-	    ERROR_RETURN_LOG(int, "Cannot define the output pipe for the invalid bit");
 
 	if(NULL == (ctx->model = pstd_type_model_new()))
 	    ERROR_RETURN_LOG(int, "Cannot create type model");

@@ -315,5 +315,23 @@ const char* itc_module_get_path(itc_module_type_t module, char* buffer, size_t s
  * @return status code
  **/
 int itc_module_on_exit(itc_module_type_t module);
+/**
+ * @brief Set the error flag of the pipe
+ * @note Originally, the error flag is autoamtically managed by the framework.
+ *       But when the servlet returns a failure code, all the output is not
+ *       reliable at this point, thus, we want to set all the pipe belongs
+ *       to this servlet to error state. That is why we need this function.
+ * @param handle The handle to set
+ * @return status code
+ **/
+int itc_module_pipe_set_error(itc_module_pipe_t* handle);
+
+/**
+ * @brief Check if the output pipe contains non-zero output
+ * @note This only works with output side of the pipe
+ * @param handle The handle to check
+ * @return check result, or error code
+ **/
+int itc_module_pipe_touched(const itc_module_pipe_t* handle);
 
 #endif /* __PLUMBER_ITC_MODULE__ */

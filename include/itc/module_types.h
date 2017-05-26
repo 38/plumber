@@ -197,18 +197,6 @@ typedef struct {
 	size_t   (*read)(void* __restrict context, void* __restrict buffer, size_t bytes_to_read, void* __restrict handle);
 
 	/**
-	 * @brief read number of bytes from the pipe, but do not copy the content from the buffer
-	 *        instead pass a point to the buffer back, and the length of the valid memory can be used as well
-	 * @note deprecated function, should not be used
-	 * @param context the context for this module instance
-	 * @param bytes_to_read the bytes to read
-	 * @param buffer carries the pointer to the buffer back the caller
-	 * @param handle the reference to the pipe to read
-	 * @return number of bytes has been read or an negative error code
-	 **/
-	size_t   (*read_inplace)(void* __restrict context, void const* __restrict * __restrict buffer, size_t bytes_to_read, void* __restrict handle);
-
-	/**
 	 * @brief write bytes to pipe
 	 * @details it's not guareenteed that the function will write all the provided data to the pipe. It will return the number of bytes it
 	 *         has been written to the pipe. (Note that 0 return value is a valid return value, which means there's no data has been written

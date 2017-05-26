@@ -121,16 +121,6 @@ static size_t _write(void * __restrict ctx, const void* __restrict buffer, size_
 
 }
 
-static size_t _read_inplace(void * __restrict ctx, void const *__restrict * __restrict result, size_t nbytes, void* __restrict pipe)
-{
-	(void)ctx;
-	(void)result;
-	(void)nbytes;
-	(void)pipe;
-	LOG_ERROR("FIXME: we should implement the interface _buffer_release");
-	return ERROR_CODE(size_t);
-}
-
 static int _has_unread(void* __restrict ctx, void* __restrict pipe)
 {
 	(void)ctx;
@@ -182,7 +172,6 @@ itc_module_t module_file_module_def = {
 	.read = _read,
 	.write = _write,
 	.fork = _fork,
-	.read_inplace = _read_inplace,
 	.has_unread_data = _has_unread,
 	.get_path = _get_path
 };

@@ -718,37 +718,6 @@ static size_t _read(void* __restrict ctx, void* __restrict buffer, size_t bytes_
 	return bytes_from_buffer;
 }
 
-static size_t _read_inplace(void* __restrict ctx, void const* __restrict * __restrict buffer, size_t nbytes, void* __restrict in)
-{
-	(void) ctx;
-	_handle_t* handle = (_handle_t*)in;
-
-	if(handle->dir != _DIR_IN)
-	{
-		LOG_ERROR("Invalid type of handle, expected read, but get write");
-		return ERROR_CODE(size_t);
-	}
-
-
-	if(_read_to_buffer(handle) == ERROR_CODE(int)) return 0;
-
-	size_t ret = nbytes;
-
-	if(handle->state->unread_bytes > 0)
-	{
-		handle->last_read_offset = handle->state->total_bytes - handle->state->unread_bytes;
-		*buffer = ((char *const *)handle->state->buffer) + handle->state->total_bytes - handle->state->unread_bytes;
-
-		if(ret > handle->state->unread_bytes)
-		    ret = handle->state->unread_bytes;
-
-		handle->state->unread_bytes -= ret;
-	}
-	else ret = 0;
-
-	return ret;
-}
-
 /**
  * @brief ensure the async loop is started
  * @param context the context we need to ensure
@@ -1349,7 +1318,6 @@ itc_module_t module_tcp_module_def = {
 	.accept = _accept,
 	.deallocate = _dealloc,
 	.read = _read,
-	.read_inplace = _read_inplace,
 	.write = _write,
 	.write_callback = _write_callback,
 	.has_unread_data = _has_unread,

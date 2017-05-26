@@ -1183,7 +1183,6 @@ itc_module_t module_tls_module_def = {
 	.accept = _accept,
 	.deallocate = _dealloc,
 	.read = _read,
-	.read_inplace = NULL,
 	.write = _write,
 	.write_callback = _write_callback,
 	.eom = _eom,

@@ -415,7 +415,7 @@ int itc_module_pipe_deallocate(itc_module_pipe_t* handle)
 			if(handle->stat.type == _PSTAT_TYPE_OUTPUT)   /* and it's the upstream pipe */
 			{
 				_update_shared_flags(handle);
-				if(!handle->stat.o_touched && _notify_pipe_cancelled(handle) == ERROR_CODE(int))
+				if((!handle->stat.o_touched || handle->stat.error) && _notify_pipe_cancelled(handle) == ERROR_CODE(int))
 				    LOG_WARNING("Cannot cancel the unused pipe");
 			}
 		}
@@ -1198,4 +1198,21 @@ int itc_module_on_exit(itc_module_type_t module)
 	    LOG_DEBUG("The on exit module call for module instance %s returns successfully", inst->path);
 
 	return 0;
+}
+
+int itc_module_pipe_set_error(itc_module_pipe_t* handle)
+{
+	if(NULL == handle) ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	handle->stat.error = 1;
+
+	return 0;
+}
+
+int itc_module_pipe_touched(const itc_module_pipe_t* handle)
+{
+	if(NULL == handle || handle->stat.type != _PSTAT_TYPE_OUTPUT)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	return handle->stat.o_touched && !handle->stat.error;
 }
