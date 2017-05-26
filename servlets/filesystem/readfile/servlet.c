@@ -55,7 +55,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	size_t rlen = ctx->root_len = strlen(argv[1]);
 	if(NULL == (ctx->root = (char*)malloc(rlen + 1)))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the readfile root");
-	memcpy(ctx->root, argv[1], rlen);
+	memcpy(ctx->root, argv[1] + 1, rlen);
 	
 	if(NULL == (ctx->type_model = pstd_type_model_new()))
 		ERROR_RETURN_LOG(int, "Cannot create type model for servlet");
