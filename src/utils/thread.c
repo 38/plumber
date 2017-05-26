@@ -29,29 +29,6 @@ static const char* _type_name[] = {
 };
 
 /**
- * @brief the actual pointer array used to store the pointers
- **/
-typedef struct _pointer_array_t {
-	struct _pointer_array_t* unused; /*!< currently unused pointer array */
-	uint32_t size;                   /*!< the size of the pointer */
-	uintptr_t __padding__[0];
-	void*    ptr[0];                 /*!< the actual pointers for each thread */
-} _pointer_array_t;
-STATIC_ASSERTION_LAST(_pointer_array_t, ptr);
-STATIC_ASSERTION_SIZE(_pointer_array_t, ptr, 0);
-
-/**
- * @brief the actual data structure for the thread local pointer set
- **/
-struct _thread_pset_t {
-	pthread_mutex_t resize_lock;  /*!< the resize lock for this pointer set */
-	const void*     data;         /*!< the additional data passed to the allocator/deallocator */
-	thread_pset_allocate_t alloc; /*!< the allocation function */
-	thread_pset_deallocate_t dealloc; /*!< the deallocation function */
-	_pointer_array_t* array;      /*!< the actual pointer array */
-};
-
-/**
  * @brief the represent a cleanup hook
  **/
 typedef struct _cleanup_hook_t {
@@ -59,18 +36,6 @@ typedef struct _cleanup_hook_t {
 	void*            arg;    /*!< the argument */
 	struct _cleanup_hook_t* next;   /*!< the next callback function */
 } _cleanup_hook_t;
-
-#ifdef STACK_SIZE
-/**
- * @brief The thread local storage
- **/
-typedef struct {
-	uint32_t  id;              /*!< The thread id */
-	thread_t* thread;          /*!< The thread object */
-	uintptr_t  __padding__[0];
-	char base[0];             /*!< The base address of the stack */
-} _stack_t;
-#endif
 
 /**
  * @brief the actual data structure for a thread object
@@ -83,8 +48,8 @@ struct _thread_t {
 	_cleanup_hook_t* hooks;    /*!< the cleanup hooks */
 	thread_type_t type;        /*!< the type of this thread */
 #ifdef STACK_SIZE
-	char          mem[STACK_SIZE * 2 + sizeof(_stack_t)]; /*!< The memory used for task */
-	_stack_t*     stack;       /*!< The stack we need to use */
+	char             mem[STACK_SIZE * 2 + sizeof(thread_stack_t)]; /*!< The memory used for task */
+	thread_stack_t*  stack;       /*!< The stack we need to use */
 #endif
 };
 
@@ -105,20 +70,6 @@ static __thread thread_t* _thread_obj = NULL;
  **/
 static uint32_t _next_thread_id = 0;
 
-#ifdef STACK_SIZE
-/**
- * @brief Get the current stack object
- * @return The pointer of current stack
- * @note This only works with the thread created by thread_new
- **/
-static inline _stack_t* _get_current_stack()
-{
-	uintptr_t addr = (uintptr_t)&addr;
-	addr = addr - addr % STACK_SIZE - sizeof(_stack_t);
-	return (_stack_t*)addr;
-}
-#endif
-
 /**
  * @brief get the thread id of current thread
  * @return the thread id
@@ -126,7 +77,7 @@ static inline _stack_t* _get_current_stack()
 static inline uint32_t _get_thread_id()
 {
 #ifdef STACK_SIZE
-	return _get_current_stack()->id;
+	return thread_get_current_stack()->id;
 #else
 	if(PREDICT_FALSE(_thread_id == ERROR_CODE(uint32_t)))
 	{
@@ -152,7 +103,7 @@ static inline uint32_t _get_thread_id()
  * @param tid  The thread id
  * @return pointer has been allocated
  **/
-__attribute__((noinline)) static void* _allocate_current_pointer(thread_pset_t* pset, uint32_t tid)
+__attribute__((noinline)) void* _thread_allocate_current_pointer(thread_pset_t* pset, uint32_t tid)
 {
 	if(pthread_mutex_lock(&pset->resize_lock) < 0)
 	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot acquire the resize lock");
@@ -160,7 +111,7 @@ __attribute__((noinline)) static void* _allocate_current_pointer(thread_pset_t* 
 	/* Then the thread should be the only one executing this code,
 	 * At the same time, we need to check again, in case the pointer
 	 * has been created during the time of the thread being blocked */
-	_pointer_array_t* current = pset->array;
+	thread_pointer_array_t* current = pset->array;
 	if(current->size > tid)
 	{
 		if(pthread_mutex_unlock(&pset->resize_lock) < 0)
@@ -173,7 +124,7 @@ __attribute__((noinline)) static void* _allocate_current_pointer(thread_pset_t* 
 	for(;new_size <= tid; new_size *= 2);
 	LOG_TRACE("Resizing the pointer array from size %u to %u", current->size, new_size);
 
-	_pointer_array_t* new_array = (_pointer_array_t*)malloc(new_size * sizeof(void*) + sizeof(_pointer_array_t));
+	thread_pointer_array_t* new_array = (thread_pointer_array_t*)malloc(new_size * sizeof(void*) + sizeof(thread_pointer_array_t));
 	uint32_t i = 1;
 	if(NULL == new_array)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the new array");
@@ -217,13 +168,13 @@ static inline void* _get_current_pointer(thread_pset_t* pset)
 {
 	uint32_t tid = _get_thread_id();
 
-	_pointer_array_t* current = pset->array;
+	thread_pointer_array_t* current = pset->array;
 
 	/* If the pointer for the thread is already there */
 	if(PREDICT_TRUE(current->size > tid))
 	    return current->ptr[tid];
 
-	return _allocate_current_pointer(pset, tid);
+	return _thread_allocate_current_pointer(pset, tid);
 }
 
 thread_pset_t* thread_pset_new(uint32_t init_size, thread_pset_allocate_t alloc, thread_pset_deallocate_t dealloc, const void* data)
@@ -244,7 +195,7 @@ thread_pset_t* thread_pset_new(uint32_t init_size, thread_pset_allocate_t alloc,
 	ret->alloc = alloc;
 	ret->dealloc = dealloc;
 
-	if(NULL == (ret->array = (_pointer_array_t*)calloc(1, sizeof(_pointer_array_t) + sizeof(void*) * init_size)))
+	if(NULL == (ret->array = (thread_pointer_array_t*)calloc(1, sizeof(thread_pointer_array_t) + sizeof(void*) * init_size)))
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the poitner array");
 
 	for(i = 0; i < init_size; i ++)
@@ -289,7 +240,7 @@ int thread_pset_free(thread_pset_t* pset)
 		    rc = ERROR_CODE(int);
 	    }
 
-	_pointer_array_t* ptr, *tmp;
+	thread_pointer_array_t* ptr, *tmp;
 	for(ptr = pset->array; ptr != NULL; )
 	{
 		tmp = ptr;
@@ -301,7 +252,7 @@ int thread_pset_free(thread_pset_t* pset)
 
 	return rc;
 }
-
+#ifndef STACK_SIZE
 void* thread_pset_acquire(thread_pset_t* pset)
 {
 #ifndef FULL_OPTIMIZATION
@@ -310,6 +261,7 @@ void* thread_pset_acquire(thread_pset_t* pset)
 #endif
 	return _get_current_pointer(pset);
 }
+#endif
 
 const void* thread_pset_get_callback_data(thread_pset_t* pset)
 {
@@ -326,7 +278,7 @@ uint32_t thread_get_id()
 static void* _thread_main(void* data)
 {
 #ifdef STACK_SIZE
-	_stack_t* stack = _get_current_stack();
+	thread_stack_t* stack = thread_get_current_stack();
 
 	do {
 		stack->id = _next_thread_id;
@@ -349,7 +301,7 @@ static void* _thread_main(void* data)
 #ifdef STACK_SIZE
 static void* _start_main(void *ctx)
 {
-	_get_current_stack()->id = 0;
+	thread_get_current_stack()->id = 0;
 	_next_thread_id = 1;
 	thread_test_main_t func = (thread_test_main_t)ctx;;
 	if(func() == 0) return ctx;
@@ -364,10 +316,10 @@ int thread_run_test_main(thread_test_main_t func)
 	if(NULL == ret) return -1;
 
 	uintptr_t offset = (STACK_SIZE - ((uintptr_t)ret->mem) % STACK_SIZE) % STACK_SIZE;
-	if(offset >= sizeof(_stack_t))
-	    ret->stack = (_stack_t*)(ret->mem + offset - sizeof(_stack_t));
+	if(offset >= sizeof(thread_stack_t))
+	    ret->stack = (thread_stack_t*)(ret->mem + offset - sizeof(thread_stack_t));
 	else
-	    ret->stack = (_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(_stack_t));
+	    ret->stack = (thread_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(thread_stack_t));
 
 	ret->stack->thread = NULL;
 
@@ -419,10 +371,10 @@ thread_t* thread_new(thread_main_t main, void* data, thread_type_t type)
 	ret->type = type;
 #ifdef STACK_SIZE
 	uintptr_t offset = (STACK_SIZE - ((uintptr_t)ret->mem) % STACK_SIZE) % STACK_SIZE;
-	if(offset >= sizeof(_stack_t))
-	    ret->stack = (_stack_t*)(ret->mem + offset - sizeof(_stack_t));
+	if(offset >= sizeof(thread_stack_t))
+	    ret->stack = (thread_stack_t*)(ret->mem + offset - sizeof(thread_stack_t));
 	else
-	    ret->stack = (_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(_stack_t));
+	    ret->stack = (thread_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(thread_stack_t));
 
 	ret->stack->thread = ret;
 
@@ -449,7 +401,7 @@ ERR:
 thread_t* thread_get_current()
 {
 #ifdef STACK_SIZE
-	return _get_current_stack()->thread;
+	return thread_get_current_stack()->thread;
 #else
 	return _thread_obj;
 #endif

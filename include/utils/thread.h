@@ -5,6 +5,8 @@
  * @brief the thread utilites
  * @file utils/thread.h
  **/
+#include <utils/static_assertion.h>
+#include <predict.h>
 #ifndef __PLUMBER_UTILS_THREAD_H__
 #define __PLUMBER_UTILS_THREAD_H__
 
@@ -78,13 +80,6 @@ typedef void* (*thread_main_t)(void* data);
 typedef int (*thread_cleanup_t)(void* thread_data, void* cleanup_data);
 
 /**
- * @brief the thread local pointer set
- * @details this is a implementation of a set of lock less pointers, each thread owns it's own pointer
- *          and it's able to automatically resize when the new thread is created
- **/
-typedef struct _thread_pset_t thread_pset_t;
-
-/**
  * @brief the callback function that is used when the object needs to create a new pointer to the new thread
  * @param tid the thread id
  * @param data the additional data passed in to the allocator
@@ -101,6 +96,43 @@ typedef void* (*thread_pset_allocate_t)(uint32_t tid, const void* data);
 typedef int (*thread_pset_deallocate_t)(void* mem, const void* data);
 
 /**
+ * @brief the actual pointer array used to store the pointers
+ **/
+typedef struct _thread_pointer_array_t {
+	struct _thread_pointer_array_t* unused; /*!< currently unused pointer array */
+	uint32_t size;                          /*!< the size of the pointer */
+	uintptr_t __padding__[0];
+	void*    ptr[0];                        /*!< the actual pointers for each thread */
+} thread_pointer_array_t;
+STATIC_ASSERTION_LAST(thread_pointer_array_t, ptr);
+STATIC_ASSERTION_SIZE(thread_pointer_array_t, ptr, 0);
+
+/**
+ * @brief the thread local pointer set
+ * @details this is a implementation of a set of lock less pointers, each thread owns it's own pointer
+ *          and it's able to automatically resize when the new thread is created
+ **/
+typedef struct _thread_pset_t {
+	pthread_mutex_t resize_lock;  /*!< the resize lock for this pointer set */
+	const void*     data;         /*!< the additional data passed to the allocator/deallocator */
+	thread_pset_allocate_t alloc; /*!< the allocation function */
+	thread_pset_deallocate_t dealloc; /*!< the deallocation function */
+	thread_pointer_array_t* array;      /*!< the actual pointer array */
+} thread_pset_t;
+
+#ifdef STACK_SIZE
+/**
+ * @brief Represent a thread stack
+ **/
+typedef struct {
+	uint32_t  id;              /*!< The thread id */
+	thread_t* thread;          /*!< The thread object */
+	uintptr_t  __padding__[0];
+	char base[0];             /*!< The base address of the stack */
+} thread_stack_t;
+#endif
+
+/**
  * @brief create a new thread local pointer object
  * @param init_size the initial size of the pointer array
  * @param alloc the allocation callback
@@ -115,15 +147,6 @@ thread_pset_t* thread_pset_new(uint32_t init_size, thread_pset_allocate_t alloc,
  * @return status code
  **/
 int thread_pset_free(thread_pset_t* pset);
-
-/**
- * @brief acquire the pointer for current thread from the thread local pointer set
- * @param pset the pointer set to acquire
- * @note if the pointer desn't exist for current thread, the alloc function will be called and
- *       will be assigned to this thread
- * @return the thread local pointer or NULL on error
- **/
-void* thread_pset_acquire(thread_pset_t* pset);
 
 /**
  * @brief get the additional data that needs to be passed in to the callback
@@ -211,4 +234,43 @@ const char* thread_type_name(thread_type_t type, char* buf, size_t size);
  * @note This function does not require the entire system initialized
  **/
 int thread_run_test_main(thread_test_main_t main);
+
+#	ifdef STACK_SIZE
+/**
+ * @brief Get the current stack object
+ * @return The pointer of current stack
+ * @note This only works with the thread created by thread_new
+ **/
+static inline thread_stack_t* thread_get_current_stack()
+{
+	volatile uintptr_t addr = (uintptr_t)&addr;
+	addr = addr - addr % STACK_SIZE - sizeof(thread_stack_t);
+	return (thread_stack_t*)addr;
+}
+
+__attribute__((noinline)) void* _thread_allocate_current_pointer(thread_pset_t* pset, uint32_t tid);
+
+static inline void* thread_pset_acquire(thread_pset_t* pset)
+{
+	uint32_t tid = thread_get_current_stack()->id;
+	
+	thread_pointer_array_t* current = pset->array;
+
+	/* If the pointer for the thread is already there */
+	if(PREDICT_TRUE(current->size > tid))
+	    return current->ptr[tid];
+
+	return _thread_allocate_current_pointer(pset, tid);
+}
+
+#	else
+/**
+ * @brief acquire the pointer for current thread from the thread local pointer set
+ * @param pset the pointer set to acquire
+ * @note if the pointer desn't exist for current thread, the alloc function will be called and
+ *       will be assigned to this thread
+ * @return the thread local pointer or NULL on error
+ **/
+void* thread_pset_acquire(thread_pset_t* pset);
+#	endif
 #endif
