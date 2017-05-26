@@ -289,6 +289,12 @@ runtime_servlet_t* runtime_servlet_new(const runtime_servlet_binary_t* binary, u
 	if(NULL == (ret->pdt = pdt = runtime_pdt_new()))
 	    ERROR_LOG_GOTO(ERR, "cannot allocate PDT for the servlet instance of %s", binary->name);
 
+	if(ERROR_CODE(runtime_api_pipe_t) == (ret->sig_null = runtime_pdt_insert(pdt, "__null__", RUNTIME_API_PIPE_OUTPUT, NULL)))
+		ERROR_LOG_GOTO(ERR, "Cannot insert default __null__ pipe to servlet PDT");
+
+	if(ERROR_CODE(runtime_api_pipe_t) == (ret->sig_error = runtime_pdt_insert(pdt, "__error__", RUNTIME_API_PIPE_OUTPUT, NULL)))
+		ERROR_LOG_GOTO(ERR, "Cannot insert default __error__ pipe to servlet PDT");
+
 	/* Copy the argument list */
 	ret->argc = argc;
 	if(NULL == (ret->argv = arguments = (char**)malloc(sizeof(char*) * argc)))

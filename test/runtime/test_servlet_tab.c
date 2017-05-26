@@ -37,7 +37,7 @@ int test_servlet_invalid_args()
 
 int test_servlet_num_pipes()
 {
-	ASSERT(runtime_stab_num_pipes(id) == 3, CLEANUP_NOP);
+	ASSERT(runtime_stab_num_pipes(id) == 5, CLEANUP_NOP);
 
 	ASSERT(runtime_stab_num_pipes(ERROR_CODE(runtime_stab_entry_t)) == ERROR_CODE(size_t), CLEANUP_NOP);
 
@@ -46,9 +46,9 @@ int test_servlet_num_pipes()
 
 int test_servlet_find_pipe_by_name()
 {
-	ASSERT(runtime_stab_get_pipe(id, "test_pipe_0") == 0, CLEANUP_NOP);
-	ASSERT(runtime_stab_get_pipe(id, "test_pipe_1") == 1, CLEANUP_NOP);
-	ASSERT(runtime_stab_get_pipe(id, "test_pipe_2") == 2, CLEANUP_NOP);
+	ASSERT(runtime_stab_get_pipe(id, "test_pipe_0") == 2, CLEANUP_NOP);
+	ASSERT(runtime_stab_get_pipe(id, "test_pipe_1") == 3, CLEANUP_NOP);
+	ASSERT(runtime_stab_get_pipe(id, "test_pipe_2") == 4, CLEANUP_NOP);
 	ASSERT(runtime_stab_get_pipe(id, "test_pipe_3") == ERROR_CODE(runtime_api_pipe_id_t), CLEANUP_NOP);
 
 	return 0;

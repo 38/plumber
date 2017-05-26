@@ -79,16 +79,16 @@ int test_pipe_open()
 	ASSERT_PTR(pdt, CLEANUP_NOP);
 
 	for(i = 0; i < pipe_open_n; i ++)
-	    ASSERT((unsigned)pipe_open_rc[i] == i, CLEANUP_NOP);
+	    ASSERT((unsigned)pipe_open_rc[i] == i + 2, CLEANUP_NOP);
 
 	for(i = 0; i < pipe_open_n; i ++)
-	    ASSERT(runtime_pdt_get_flags_by_pd(pdt, (runtime_api_pipe_id_t)i) == (runtime_api_pipe_flags_t)(i * 3), CLEANUP_NOP);
+	    ASSERT(runtime_pdt_get_flags_by_pd(pdt, (runtime_api_pipe_id_t)(i + 2)) == (runtime_api_pipe_flags_t)(i * 3), CLEANUP_NOP);
 
 	for(i = 0; i < pipe_open_n; i ++)
 	{
 		static char buf[128];
 		snprintf(buf, sizeof(buf), "test%d", i);
-		ASSERT(runtime_pdt_get_pd_by_name(pdt, buf) == (runtime_api_pipe_id_t)i, CLEANUP_NOP);
+		ASSERT(runtime_pdt_get_pd_by_name(pdt, buf) == (runtime_api_pipe_id_t)(i + 2), CLEANUP_NOP);
 	}
 
 	ASSERT(pipe_open_dup_rc == ERROR_CODE(runtime_api_pipe_id_t), CLEANUP_NOP);
@@ -120,7 +120,7 @@ int test_pipe_read()
 	runtime_task_t* task = runtime_stab_create_exec_task(sid, RUNTIME_TASK_FLAG_ACTION_EXEC);
 	ASSERT_PTR(task, CLEANUP_NOP);
 
-	ASSERT(task->npipes == pipe_open_n, runtime_task_free(task));
+	ASSERT(task->npipes == pipe_open_n + 2, runtime_task_free(task));
 
 	itc_module_pipe_t* input_side = NULL;
 

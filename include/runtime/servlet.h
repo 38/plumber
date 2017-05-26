@@ -40,6 +40,8 @@ typedef struct{
 	runtime_pdt_t*                  pdt;        /*!< The pipe name table */
 	mempool_objpool_t*              task_pool;  /*!< The memory pool for the task created from this servlet */
 	const void*                     owner;      /*!< The pointer used to make a back reference to the service node owns this servlet */
+	runtime_api_pipe_t              sig_null;   /*!< The pipe used as the zero output signal */
+	runtime_api_pipe_t              sig_error;  /*!< The pipe used as the internal error signal */
 	uintptr_t __padding__[0];
 	char                            data[0];    /*!< The additional global memory space for this servlet */
 } runtime_servlet_t;

@@ -113,7 +113,7 @@ int service_validation_circular_dep()
 	static sched_service_node_id_t nodes[6];
 
 	ASSERT_PTR(buffer = sched_service_buffer_new(), CLEANUP_NOP);
-	ASSERT_OK(sched_service_buffer_allow_reuse_servlet(serv_buf), CLEANUP_NOP);
+	ASSERT_OK(sched_service_buffer_allow_reuse_servlet(buffer), CLEANUP_NOP);
 
 	ASSERT_RETOK(sched_service_node_id_t, nodes[0] = sched_service_buffer_add_node(buffer, servA), FB);
 	ASSERT_RETOK(sched_service_node_id_t, nodes[1] = sched_service_buffer_add_node(buffer, servB), FB);
