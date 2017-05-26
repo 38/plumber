@@ -18,6 +18,7 @@
 typedef struct {
 	uint32_t token_ofs; /*!< The offset of the token */
 	char*    root;      /*!< The root directory */
+	size_t   root_len;  /*!< The length of the root */
 	pipe_t   path;      /*!< The path to the file to read */
 	pipe_t   result;    /*!< The read result of the file */
 	pstd_type_model_t*   type_model;    /*!< The servlet type model */
@@ -51,7 +52,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 
 	ctx->type_model = NULL;
 	
-	size_t rlen = strlen(argv[1]);
+	size_t rlen = ctx->root_len = strlen(argv[1]);
 	if(NULL == (ctx->root = (char*)malloc(rlen + 1)))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the readfile root");
 	memcpy(ctx->root, argv[1], rlen);
@@ -123,7 +124,7 @@ static int _exec(void* ctxbuf)
 	if(NULL == path) ERROR_LOG_GOTO(ERR, "Cannot get the path");
 	
 	char pathbuf[PATH_MAX];
-	int len = snprintf(pathbuf, sizeof(pathbuf), "%s/%s", ctx->root, path);
+	int len = snprintf(pathbuf, sizeof(pathbuf), "%s%s", ctx->root, path);
 
 	struct stat st;
 	if(pstd_fcache_stat(pathbuf, &st) == ERROR_CODE(int)) goto RET_404;
@@ -137,7 +138,7 @@ static int _exec(void* ctxbuf)
 		{
 			if(NULL == (redir = pstd_string_new(sizeof(pathbuf))))
 				ERROR_LOG_GOTO(ERR, "Cannot create redirect path");
-			if(ERROR_CODE(size_t) == pstd_string_printf(redir, "%s", pathbuf))
+			if(ERROR_CODE(size_t) == pstd_string_printf(redir, "%s", pathbuf + ctx->root_len))
 				ERROR_LOG_GOTO(ERR, "Cannot write path to string");
 
 			if(ERROR_CODE(scope_token_t) == (redir_token = pstd_string_commit(redir)))

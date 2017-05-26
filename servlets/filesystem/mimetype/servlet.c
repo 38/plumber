@@ -215,7 +215,7 @@ int _exec(void* ctxbuf)
 	return 0;
 ERR:
 	if(NULL != inst) pstd_type_instance_free(inst);
-	return 0;
+	return ERROR_CODE(int);
 }
 
 SERVLET_DEF = {
