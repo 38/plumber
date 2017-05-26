@@ -22,6 +22,17 @@ extern test_case_t test_list[];
 int setup();
 int teardown();
 
+#if FULL_OPTIMIZATION
+void* mempool_objpool_alloc(mempool_objpool_t* pool)
+{
+	return mempool_objpool_alloc_checked(pool);
+}
+int mempool_objpool_dealloc(mempool_objpool_t* pool, void* mem)
+{
+	return mempool_objpool_dealloc_checked(pool, mem);
+}
+#endif
+
 #ifdef ALLOW_IGNORE_MEMORY_LEAK
 void __disable_memory_check()
 {

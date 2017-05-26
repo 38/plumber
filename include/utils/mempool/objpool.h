@@ -62,6 +62,10 @@ int mempool_objpool_free(mempool_objpool_t* pool);
  **/
 void* mempool_objpool_alloc(mempool_objpool_t* pool);
 
+#if defined(TESTING_CODE) && defined(FULL_OPTIMIZATION)
+void* mempool_objpool_alloc_checked(mempool_objpool_t* pool);
+#endif
+
 /**
  * @brief return the pool memory to the pool
  * @param pool the target pool
@@ -69,6 +73,10 @@ void* mempool_objpool_alloc(mempool_objpool_t* pool);
  * @return the stauts code
  **/
 int mempool_objpool_dealloc(mempool_objpool_t* pool, void* mem);
+
+#if defined(TESTING_CODE) && defined(FULL_OPTIMIZATION)
+int mempool_objpool_dealloc_checked(mempool_objpool_t* pool, void* mem);
+#endif
 
 /**
  * @brief set the flag indicates if the objpool needs to be disabled

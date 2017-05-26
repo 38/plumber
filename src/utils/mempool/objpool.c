@@ -370,8 +370,11 @@ RET:
 	    ERROR_RETURN_LOG_ERRNO(uint32_t, "Cannot release the pool mutex");
 	return ret;
 }
-
-static inline void* _mempool_objpool_alloc_no_check(mempool_objpool_t* pool)
+#ifdef FULL_OPTIMIZATION
+__attribute__((weak, alias("_mempool_objpool_alloc_no_check"))) 
+void* mempool_objpool_alloc(mempool_objpool_t* pool);
+#endif
+void* _mempool_objpool_alloc_no_check(mempool_objpool_t* pool)
 {
 	void* ret = NULL;
 
@@ -405,14 +408,16 @@ static inline void* _mempool_objpool_alloc_no_check(mempool_objpool_t* pool)
 	
 	return ret;
 }
-
-void* mempool_objpool_alloc(mempool_objpool_t* pool)
+#ifdef FULL_OPTIMIZATION
+void* mempool_objpool_alloc_checked(mempool_objpool_t* pool)
+#else
+void* mempool_objpool_alloc(mempool_objpool_t* pool) 
+#endif
 {
 	if(PREDICT_FALSE(NULL == pool)) ERROR_PTR_RETURN_LOG("Invalid arguments");
 	
 	if(PREDICT_FALSE(_is_pool_disabled(pool)))
 		return malloc(pool->obj_size);
-
 	return _mempool_objpool_alloc_no_check(pool);
 }
 
@@ -446,18 +451,12 @@ static inline int _global_dealloc(mempool_objpool_t* pool, _cached_object_t* beg
 	return 0;
 }
 
-int mempool_objpool_dealloc(mempool_objpool_t* pool, void* mem)
-{
 #ifdef FULL_OPTIMIZATION
-	if(PREDICT_FALSE(NULL == pool || NULL == mem))
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+__attribute__((weak, alias("_mempool_objpool_dealloc_no_check"))) 
+int mempool_objpool_dealloc(mempool_objpool_t* pool, void* mem);
 #endif
-
-	if(PREDICT_FALSE(_is_pool_disabled(pool)))
-	{
-		free(mem);
-		return 0;
-	}
+int _mempool_objpool_dealloc_no_check(mempool_objpool_t* pool, void* mem)
+{
 
 	_thread_local_pool_t* tlp = thread_pset_acquire(pool->local_pool);
 	if(PREDICT_FALSE(NULL == tlp))
@@ -492,6 +491,24 @@ int mempool_objpool_dealloc(mempool_objpool_t* pool, void* mem)
 	}
 
 	return 0;
+}
+
+#ifdef FULL_OPTIMIZATION
+int mempool_objpool_dealloc_checked(mempool_objpool_t* pool, void* mem)
+#else
+int mempool_objpool_dealloc(mempool_objpool_t* pool, void* mem)
+#endif
+{
+	if(PREDICT_FALSE(NULL == pool || NULL == mem))
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(PREDICT_FALSE(_is_pool_disabled(pool)))
+	{
+		free(mem);
+		return 0;
+	}
+
+	return _mempool_objpool_dealloc_no_check(pool, mem);
 }
 
 uint32_t mempool_objpool_get_obj_size(const mempool_objpool_t* pool)
