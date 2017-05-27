@@ -37,22 +37,22 @@ static int _set_option(uint32_t idx, pstd_option_param_t* params, uint32_t npara
 	switch(what)
 	{
 		case 'r':
-			expected_mode = MODE_REGEX;
-			field = "token";
-			goto SET_MODE;
+		    expected_mode = MODE_REGEX;
+		    field = "token";
+		    goto SET_MODE;
 		case 'n':
-			if(nparams != 1 || params[0].type != PSTD_OPTION_STRING)
-				ERROR_RETURN_LOG(int, "The field expression is expected");
-			expected_mode = MODE_NUMERIC;
-			field = params[0].strval; 
+		    if(nparams != 1 || params[0].type != PSTD_OPTION_STRING)
+		        ERROR_RETURN_LOG(int, "The field expression is expected");
+		    expected_mode = MODE_NUMERIC;
+		    field = params[0].strval;
 SET_MODE:
-			if(ctx->mode != MODE_MATCH)
-				ERROR_RETURN_LOG(int, "Only one mode specifier can be passed");
-			ctx->mode = expected_mode;
-			ctx->field = field;
-			break;
+		    if(ctx->mode != MODE_MATCH)
+		        ERROR_RETURN_LOG(int, "Only one mode specifier can be passed");
+		    ctx->mode = expected_mode;
+		    ctx->field = field;
+		    break;
 		default:
-			ERROR_RETURN_LOG(int, "Invalid option");
+		    ERROR_RETURN_LOG(int, "Invalid option");
 	}
 
 	return 0;
@@ -89,41 +89,41 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	ctx->field = "token";
 	ctx->output = NULL;
 	ctx->type_model = NULL;
-	
+
 	uint32_t opt_rc = pstd_option_parse(opts, sizeof(opts) / sizeof(opts[0]), argc, argv, ctx);
 
 	ctx->ncond = argc - opt_rc;
-		
+
 	if(ctx->mode == MODE_NUMERIC)
 	{
 		if(ERROR_CODE(pipe_t) == (ctx->cond = pipe_define("cond", PIPE_INPUT, "$Tcond")))
-			ERROR_RETURN_LOG(int, "Cannot define the condition pipe");
+		    ERROR_RETURN_LOG(int, "Cannot define the condition pipe");
 	}
 	else if(ERROR_CODE(pipe_t) == (ctx->cond = pipe_define("cond", PIPE_INPUT, "plumber/std/request_local/String")))
-		ERROR_RETURN_LOG(int, "Cannot define the condition pipe");
+	    ERROR_RETURN_LOG(int, "Cannot define the condition pipe");
 
 	if(ERROR_CODE(pipe_t) == (ctx->data = pipe_define("data", PIPE_INPUT, "$Tdata")))
-		ERROR_RETURN_LOG(int, "Cannot define the data input pipe");
+	    ERROR_RETURN_LOG(int, "Cannot define the data input pipe");
 
 	if(NULL == (ctx->output = (pipe_t*)malloc(sizeof(ctx->output[0]) * (ctx->ncond + 1))))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the output array");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the output array");
 
 	uint32_t i;
 	for(i = 0; i < ctx->ncond; i ++)
 	{
 		if(ERROR_CODE(pipe_t) == (ctx->output[i] = pipe_define_pattern("out%u", PIPE_MAKE_SHADOW(ctx->data) | PIPE_DISABLED, "$Tdata", i)))
-			ERROR_LOG_GOTO(ERR, "Cannot define the output pipe");
+		    ERROR_LOG_GOTO(ERR, "Cannot define the output pipe");
 		/* TODO: process the pattern */
 	}
 
 	if(ERROR_CODE(pipe_t) == (ctx->output[ctx->ncond] = pipe_define("default", PIPE_MAKE_SHADOW(ctx->data) | PIPE_DISABLED, "$Tdata")))
-		ERROR_LOG_GOTO(ERR, "Cannot define the default output pipe");
+	    ERROR_LOG_GOTO(ERR, "Cannot define the default output pipe");
 
 	if(NULL == (ctx->type_model = pstd_type_model_new()))
-		ERROR_LOG_GOTO(ERR, "Cannot create type model");
+	    ERROR_LOG_GOTO(ERR, "Cannot create type model");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->cond_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->cond, ctx->field)))
-		ERROR_LOG_GOTO(ERR, "Cannot get the accessor for the input type");
+	    ERROR_LOG_GOTO(ERR, "Cannot get the accessor for the input type");
 
 	return 0;
 ERR:

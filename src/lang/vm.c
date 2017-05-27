@@ -721,7 +721,7 @@ static inline int _service_visualize(lang_vm_t* vm, uint32_t serv_reg, uint32_t 
 			{
 				if(strcmp("__null__", name) == 0 ||
 				   strcmp("__error__", name) == 0)
-					continue;
+				    continue;
 
 				if(first_output) first_output = 0;
 				else string_buffer_append("|", &outbuf);
@@ -736,24 +736,24 @@ static inline int _service_visualize(lang_vm_t* vm, uint32_t serv_reg, uint32_t 
 	{
 		for(node_ptr = service->nodes; NULL != node_ptr && pipe_ptr->pipe.source_node_id != node_ptr->nid; node_ptr = node_ptr->next);
 		if(node_ptr == NULL) ERROR_LOG_GOTO(CLEANUP, "Cannot find the servlet node id");
-		
+
 		const runtime_pdt_t* pdt = runtime_stab_get_pdt(node_ptr->sid);
 		if(NULL == pdt) ERROR_LOG_GOTO(CLEANUP, "Cannot get PDT for servlet instance SID = %u", node_ptr->sid);
-		
+
 		const char* name = runtime_pdt_get_name(pdt, RUNTIME_API_PIPE_TO_PID(pipe_ptr->pipe.source_pipe_desc));
 		if(NULL == name) ERROR_LOG_GOTO(CLEANUP, "Cannot get name for the pipe port");
-		
+
 		if(strcmp(name, "__null__") == 0)
-			fprintf(fout, "\tnode_%u:Pnull->node_%u:P%u[style = dashed, color = blue];\n", 
-				    pipe_ptr->pipe.source_node_id, 
+		    fprintf(fout, "\tnode_%u:Pnull->node_%u:P%u[style = dashed, color = blue];\n",
+		            pipe_ptr->pipe.source_node_id,
 		            pipe_ptr->pipe.destination_node_id, pipe_ptr->pipe.destination_pipe_desc);
 		else if(strcmp(name, "__error__") == 0)
-			fprintf(fout, "\tnode_%u:Perr->node_%u:P%u[style = dashed, color = red];\n", 
-				    pipe_ptr->pipe.source_node_id, 
+		    fprintf(fout, "\tnode_%u:Perr->node_%u:P%u[style = dashed, color = red];\n",
+		            pipe_ptr->pipe.source_node_id,
 		            pipe_ptr->pipe.destination_node_id, pipe_ptr->pipe.destination_pipe_desc);
-		else 
-			fprintf(fout, "\tnode_%u:P%u->node_%u:P%u;\n", 
-				    pipe_ptr->pipe.source_node_id, pipe_ptr->pipe.source_pipe_desc,
+		else
+		    fprintf(fout, "\tnode_%u:P%u->node_%u:P%u;\n",
+		            pipe_ptr->pipe.source_node_id, pipe_ptr->pipe.source_pipe_desc,
 		            pipe_ptr->pipe.destination_node_id, pipe_ptr->pipe.destination_pipe_desc);
 	}
 

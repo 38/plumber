@@ -467,7 +467,7 @@ void thread_set_name(const char* name)
 	prctl(PR_SET_NAME, name, 0, 0, 0);
 }
 
-#ifndef STACK_SIZE 
+#ifndef STACK_SIZE
 thread_type_t thread_get_current_type()
 {
 	const thread_t* thread = thread_get_current();

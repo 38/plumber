@@ -247,7 +247,7 @@ __attribute__((noinline)) void* _thread_allocate_current_pointer(thread_pset_t* 
 static inline void* thread_pset_acquire(thread_pset_t* pset)
 {
 	uint32_t tid = thread_get_current_stack()->id;
-	
+
 	thread_pointer_array_t* current = pset->array;
 
 	/* If the pointer for the thread is already there */

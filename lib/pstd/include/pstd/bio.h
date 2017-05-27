@@ -99,7 +99,7 @@ int pstd_bio_write_scope_token(pstd_bio_t* pstd_bio, scope_token_t token);
  * @return number of bytes has written
  **/
 size_t pstd_bio_printf(pstd_bio_t* pstd_bio, const char* fmt, ...)
-	__attribute__((format (printf, 2, 3)));
+    __attribute__((format (printf, 2, 3)));
 
 /**
  * @brief write a string to a BIO object

@@ -200,7 +200,7 @@ static inline runtime_api_scope_token_t _entry_alloc()
 		if(NULL == (_entry_table.data[ret].data = mempool_objpool_alloc(_entity_pool)))
 		    ERROR_RETURN_LOG_ERRNO(runtime_api_scope_token_t, "Cannot allocate memory for the entity data pool");
 		else
-			memset(_entry_table.data[ret].data, 0, sizeof(*_entry_table.data[ret].data));
+		    memset(_entry_table.data[ret].data, 0, sizeof(*_entry_table.data[ret].data));
 
 		return ret;
 	}
@@ -225,7 +225,7 @@ static inline runtime_api_scope_token_t _entry_alloc()
 	if(NULL == (_entry_table.data[ret].data = mempool_objpool_alloc(_entity_pool)))
 	    ERROR_RETURN_LOG_ERRNO(runtime_api_scope_token_t, "Cannot allocate memory for the entity data pool");
 	else
-		memset(_entry_table.data[ret].data, 0, sizeof(*_entry_table.data[ret].data));
+	    memset(_entry_table.data[ret].data, 0, sizeof(*_entry_table.data[ret].data));
 
 	_entry_table.data[ret].next = _NULL_ENTRY;
 	_entry_table.unused ++;

@@ -371,7 +371,7 @@ RET:
 	return ret;
 }
 #ifdef FULL_OPTIMIZATION
-__attribute__((weak, alias("_mempool_objpool_alloc_no_check"))) 
+__attribute__((weak, alias("_mempool_objpool_alloc_no_check")))
 void* mempool_objpool_alloc(mempool_objpool_t* pool);
 #endif
 void* _mempool_objpool_alloc_no_check(mempool_objpool_t* pool)
@@ -405,19 +405,19 @@ void* _mempool_objpool_alloc_no_check(mempool_objpool_t* pool)
 
 	if(PREDICT_FALSE(NULL == ret))
 	    LOG_ERROR("Cannot allocate memory from the object pool");
-	
+
 	return ret;
 }
 #ifdef FULL_OPTIMIZATION
 void* mempool_objpool_alloc_checked(mempool_objpool_t* pool)
 #else
-void* mempool_objpool_alloc(mempool_objpool_t* pool) 
+void* mempool_objpool_alloc(mempool_objpool_t* pool)
 #endif
 {
 	if(PREDICT_FALSE(NULL == pool)) ERROR_PTR_RETURN_LOG("Invalid arguments");
-	
+
 	if(PREDICT_FALSE(_is_pool_disabled(pool)))
-		return malloc(pool->obj_size);
+	    return malloc(pool->obj_size);
 	return _mempool_objpool_alloc_no_check(pool);
 }
 
@@ -452,7 +452,7 @@ static inline int _global_dealloc(mempool_objpool_t* pool, _cached_object_t* beg
 }
 
 #ifdef FULL_OPTIMIZATION
-__attribute__((weak, alias("_mempool_objpool_dealloc_no_check"))) 
+__attribute__((weak, alias("_mempool_objpool_dealloc_no_check")))
 int mempool_objpool_dealloc(mempool_objpool_t* pool, void* mem);
 #endif
 int _mempool_objpool_dealloc_no_check(mempool_objpool_t* pool, void* mem)
