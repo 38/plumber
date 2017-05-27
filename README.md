@@ -1,14 +1,14 @@
 Plumber [![Build Status](http://plumberserver.com:8123/job/Plumber/badge/icon)](http://plumberserver.com:8123/job/Plumber/)
 ----
 
-#What is Plumber
+# What is Plumber
 Plumber is a software infrastructure based on the concept of "pipe". It provides a runtime environment 
 for pipe based, asynchronized, ultra lightweight micro-service we called servlet and a high-level domain specific 
 language to describe the high-level software architecture. The Plumber framework has multiple language bindings,
 and user should be able to develop each part of their software in the language that fits the task most. Currently
 we support C, C++, Javascript and Python, and new language support is coming.
 
-#Try Plumber
+# Try Plumber
 Currently we have a automated tool to build an isolated sandbox environment. To get the sandbox environment, 
 using the following command
 
@@ -22,7 +22,7 @@ After you get the code, use
 To initialize the Plumber isolated environment. Then you can go to src/ directory, compile and run the examples 
 there. 
 
-#General Idea of Plumber
+# General Idea of Plumber
 Unlike traditional service framework, which modelling the component as a request-response based "service", 
 by which means for each request, the caller is responsible for handling the response. Plumber use an innovative
 model which is called pipe. Each component do not need to return any value to the caller, but provide the result 
@@ -48,7 +48,7 @@ main function to a normal program).
 Plumber provides servlet a flexible protocol system and protocol management tools. All the pipes are strong typed and the Plumber
 runtime will be able to discover the incompatible protocols, etc. 
 
-#How to compile?
+# How to compile?
 To compile this project you need CMake 2.6 or later. 
 
 	cmake . && make 
@@ -59,22 +59,22 @@ You can set environment variable to change the compile options. To learn all the
 
 to see the full configuration parameters. 
 
-#Language Support
-### C/C++ support
+# Language Support
+## C/C++ support
 Plumber supports all the language that can produce native binary code and supports dynamic link. 
 Currently we only have the header definition for C and C++. 
 
-### Python support
+## Python support
 If you want to compile PyServlet you need python development file installed on you computer. 
 To compile this project with default configuration.
 
-### For javascript support:
+## For javascript support:
 You need the plumberv8 project built and installed in your computer and configure Plumber with the following 
 configure parameter
 
 	cmake -DPLUMBER_V8_PREFIX=<your-plumber-v8-install-prefix> -Dbuild_javascript=yes .
 
-##How to build native servlet
+## How to build native servlet
 To build you own user-space program, you need to compile your code with libpservlet which is a part of this repository. The libpservlet provides your code some functions.
 
 	#include <pservlet.h>
@@ -140,8 +140,8 @@ To load the servlet.
 
 For javascript, we need to use the servlet called javascript.
 
-#Build a service
-###Alternatively, Using the Plumber Service Script 
+# Build a service
+## Alternatively, Using the Plumber Service Script 
 For example a simple static file server can be described by the following script
 
 	include "config.pss"
