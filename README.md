@@ -12,7 +12,7 @@ we support C, C++, Javascript and Python, and new language support is coming.
 Currently we have a automated tool to build an isolated sandbox environment. To get the sandbox environment, 
 using the following command
 
-	git clone --recursive http://github.com/38/plumber_examples.git
+	git clone --recursive https://github.com/38/plumber_examples.git
 
 After you get the code, use 
 
