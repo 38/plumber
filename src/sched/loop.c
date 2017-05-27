@@ -174,7 +174,13 @@ static inline void* _sched_main(void* data)
 			abstime.tv_sec = now.tv_sec+1;
 			abstime.tv_nsec = 0;
 
-			/* TODO: (Async Task) we also want the async task's event weak up the cond var */
+			/* TODO: (Async Task) we also want the async task's event wake up the cond var 
+			 *                    However, since we changed the desgin, we probably do not
+			 *                    need to handle this case at this point, because the async
+			 *                    task thread should also be a ITC event source. 
+			 *                    Then we don't need the type of sched_loop_event_t, instead
+			 *                    we add another field in itc_equeue_event_t for the task event
+			 **/
 			if(pthread_mutex_lock(&context->mutex) < 0) LOG_WARNING_ERRNO("Cannot acquire the scheduler event mutex");
 			while(context->rear == context->front)
 			{
@@ -188,7 +194,7 @@ static inline void* _sched_main(void* data)
 
 		LOG_TRACE("Scheduler Thread %u: new event acquired", context->thread_id);
 
-		/* TODO: (Async Task) then at this point the thread event queue is not necessarily non-empty any more */
+		/* TODO: Confused - (Async Task) then at this point the thread event queue is not necessarily non-empty any more */
 
 		uint32_t position = context->front & (context->size - 1);
 		sched_loop_event_t current = context->events[position];
