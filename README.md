@@ -1,4 +1,4 @@
-Plumber
+Plumber [![Build Status](http://plumberserver.com:8123/job/Plumber/badge/icon)](http://plumberserver.com:8123/job/Plumber/)
 ----
 
 ##What is Plumber
