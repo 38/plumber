@@ -122,7 +122,7 @@ int sched_step_next(sched_task_context_t* stc, itc_module_type_t type)
 		{
 			int touched = 0;
 			if(result[i].source_pipe_desc != task->exec_task->servlet->sig_null &&
-			   result[i].source_pipe_desc != task->exec_task->servlet->sig_null &&
+			   result[i].source_pipe_desc != task->exec_task->servlet->sig_error &&
 			   ERROR_CODE(int) == (touched = itc_module_pipe_is_touched(task->exec_task->pipes[RUNTIME_API_PIPE_TO_PID(result[i].source_pipe_desc)])))
 				ERROR_LOG_GOTO(LERR, "Cannot check if the pipe has been touched");
 			if(touched) break;
