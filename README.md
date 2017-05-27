@@ -1,9 +1,6 @@
 Plumber
 ----
 
-[TOC]
-
-
 ##What is Plumber
 Plumber is a software infrastructure based on the concept of "pipe". It provides a runtime environment 
 for pipe based, asynchronized, ultra lightweight micro-service we called servlet and a high-level domain specific 
