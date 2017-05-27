@@ -16,6 +16,7 @@ using the following command
 
 After you get the code, use 
 
+	cd plumber_examples
 	./init 
 
 To initialize the Plumber isolated environment. Then you can go to src/ directory, compile and run the examples 
