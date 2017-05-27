@@ -1,7 +1,7 @@
 Plumber [![Build Status](http://plumberserver.com:8123/job/Plumber/badge/icon)](http://plumberserver.com:8123/job/Plumber/)
 ----
 
-##What is Plumber
+#What is Plumber
 Plumber is a software infrastructure based on the concept of "pipe". It provides a runtime environment 
 for pipe based, asynchronized, ultra lightweight micro-service we called servlet and a high-level domain specific 
 language to describe the high-level software architecture. The Plumber framework has multiple language bindings,
@@ -22,7 +22,7 @@ After you get the code, use
 To initialize the Plumber isolated environment. Then you can go to src/ directory, compile and run the examples 
 there. 
 
-##General Idea of Plumber
+#General Idea of Plumber
 Unlike traditional service framework, which modelling the component as a request-response based "service", 
 by which means for each request, the caller is responsible for handling the response. Plumber use an innovative
 model which is called pipe. Each component do not need to return any value to the caller, but provide the result 
@@ -48,7 +48,7 @@ main function to a normal program).
 Plumber provides servlet a flexible protocol system and protocol management tools. All the pipes are strong typed and the Plumber
 runtime will be able to discover the incompatible protocols, etc. 
 
-##How to compile?
+#How to compile?
 To compile this project you need CMake 2.6 or later. 
 
 	cmake . && make 
@@ -59,7 +59,7 @@ You can set environment variable to change the compile options. To learn all the
 
 to see the full configuration parameters. 
 
-##Language Support
+#Language Support
 ### C/C++ support
 Plumber supports all the language that can produce native binary code and supports dynamic link. 
 Currently we only have the header definition for C and C++. 
@@ -129,7 +129,7 @@ And then make the servlet using command
 
 	make -f <your-plumber-install-prefix>/lib/plumber/servlet.mk
 
-## How to use scripting language for servlet
+# How to use scripting language for servlet
 
 For the scripting language, instead of loading the servlet bindary itself, you need to load the script loader servlet.
 For python, you need use pyservlet as the script loader, for example, if we have myservlet.py as the servlet, we can use
@@ -140,7 +140,7 @@ To load the servlet.
 
 For javascript, we need to use the servlet called javascript.
 
-##Build a service
+#Build a service
 ###Alternatively, Using the Plumber Service Script 
 For example a simple static file server can be described by the following script
 
@@ -173,7 +173,7 @@ For example a simple static file server can be described by the following script
 	/* then start the file server */
 	start fileserver
 
-## Profiling
+# Profiling
 The service infrastructure provide two ways for profiling, one is use the Plumber built-in servlet profiler, 
 which is just accumulate the execution time of this servlet. This is useful when you are looking at why the
 service runs slow, because it provides a good way to discover the bottleneck. **This feature is disabled by 
