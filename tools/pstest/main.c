@@ -19,7 +19,8 @@ static struct option _options[] = {
 	{"list",    no_argument,        0,  'l'},
 	{"version", no_argument,        0,  'v'},
 	{"path",    required_argument,  0,  's'},
-	{"pipe",    required_argument,  0,  'p'}
+	{"pipe",    required_argument,  0,  'p'},
+	{NULL,      0,                  0,   0 }
 };
 
 static inline int _load_default_module()
