@@ -11,6 +11,19 @@ language to describe the high-level software architecture. The Plumber framework
 and user should be able to develop each part of their software in the language that fits the task most. Currently
 we support C, C++, Javascript and Python, and new language support is coming.
 
+#Try Plumber
+Currently we have a automated tool to build an isolated sandbox environment. To get the sandbox environment, 
+using the following command
+
+	git clone --recursive http://github.com/38/plumber_examples.git
+
+After you get the code, use 
+
+	./init 
+
+To initialize the Plumber isolated environment. Then you can go to src/ directory, compile and run the examples 
+there. 
+
 ##General Idea of Plumber
 Unlike traditional service framework, which modelling the component as a request-response based "service", 
 by which means for each request, the caller is responsible for handling the response. Plumber use an innovative
@@ -22,29 +35,31 @@ communication are transparent to servlet using pipe API. And a pipe can be eithe
 boarder or even a load balancer. The goal of Plumber software infrastructure is the software shouldn't aware if itself is
 running on a single machine or a large cluster.
 
-The servlet is ultra ligthweight service, by which means multiple servlet can share a same worker thread and occupy minmum
+The servlet is a small piece of code runs under the Plumber runtime environment. 
+It's an ultra ligthweight service, by which means multiple servlet can share a same worker thread and occupy minmum
 amount of resources. The isolation provided by the traditional micro-service architecture still applies, each servlet only
-have data dependency with servlet. 
+have data dependency with servlet. The programming model of a servlet is quite simple, it takes one or more input, and produces 
+one or more output. For each time the exec function is called, the servlet reads data from input pipes and produces result and
+write it to output. Plumber has a few APIs provided to servlet. Each servlet is a really strighforward program, which reads from 
+the input pipes and writes the result ot the output pipes. The Plumber runtime environment provides a simple UNIX-like abstraction 
+API for pipe manipulations. And the details of the network and inter-servlet communication are completely hidden by the environment. 
 
-##Introduction to Servlet
-A servlet is a user space program, or a micro-service. The programming model of a servlet is quite simple, 
-it takes one or more input, and produces one or more output. For each time the exec function is called, 
-the servlet reads data from input pipes and produces result and write it to output. Plumber has a few APIs 
-provided to user-space servlets. Each servlet is a really strighforward program, which reads from the input 
-pipes and writes the result ot the output pipes. The Plumber runtime environment provides a simple UNIX-like 
-abstraction API for pipe manipulations. And the details of the network and inter-servlet communication are completely hidden by the environment.
+For each servlet it should have a initialization function, a finalization function and a execuate function (which is similar to a 
+main function to a normal program).
 
-For each servlet it should have a initialization function, a finalization function and a execuate function (which is similar to a main function to a normal program).
+Plumber provides servlet a flexible protocol system and protocol management tools. All the pipes are strong typed and the Plumber
+runtime will be able to discover the incompatible protocols, etc. 
 
 ##How to compile?
 To compile this project you need CMake 2.6 or later. 
 
 	cmake . && make 
-You can set environment variable to change the compile options. 
-To learn all the configuration, use 
+
+You can set environment variable to change the compile options. To learn all the configuration, use 
 
 	make show-flags 
-to see the full configuration parameters.
+
+to see the full configuration parameters. 
 
 ##Language Support
 ### C/C++ support
@@ -159,36 +174,6 @@ For example a simple static file server can be described by the following script
 	visualize fileserver >>> "/dev/stdout";
 	/* then start the file server */
 	start fileserver
-
-###Create a service using Service Buffer API (Not recommended)
-First, you should make a service definition buffer
-
-	sched_service_buffer_t* buffer = sched_service_buffer_new();
-Then, you should add nodes to the service buffer. And you may need to call runtime_stab_load to load a servlet from disk.
-	
-	char* args[] = {"test_servlet", "foo", "bar"};
-	runtime_stab_entry_t servlet = runtime_stab_load(sizeof(args) / sizeof(args[0]), args);
-	sched_service_node_id_t node = sched_service_buffer_add_node(buffer, node);
-Then, add pipes between nodes. Assume we have two servlets loaded and add to the service definition buffer, nodeA is servletA added to the buffer, nodeB is servletB added to buffer.
-
-	runtime_api_pipe_t src_pipe = runtime_stab_get_pipe(servletA, "output");
-	runtime_api_pipe_t dst_pipe = runtime_stab_get_pipe(servletB, "input");
-	sched_service_pipe_descriptor_t pd = {
-		.source_node_id = nodeA,
-		.source_pipe_desc = src_pipe,
-		.destination_node_id = nodeB,
-		.destination_pipe_desc = dst_pipe
-	};
-	sched_service_buffer_add_pipe(buffer, pd);
-
-After all the nodes and pipes are added, we can build the service definition from buffer
-	
-	sched_service_t* service = sched_service_from_buffer(buffer);
-
-Then, let's start the service
-
-	sched_loop(service);
-
 
 ## Profiling
 The service infrastructure provide two ways for profiling, one is use the Plumber built-in servlet profiler, 
