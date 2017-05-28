@@ -135,12 +135,15 @@ static inline uint32_t _thread_type_to_idx()
 {
 	thread_type_t thread_type = thread_get_current_type();
 
-	thread_type_t type_mask = 1;
-	uint32_t ret;
-	for(ret = 0; ret < THREAD_NUM_TYPES && type_mask != thread_type; ret ++, type_mask <<= 1);
-
-	return ret;
+	switch(thread_type)
+	{
+		case THREAD_TYPE_EVENT:  return 0;
+		case THREAD_TYPE_WORKER: return 1;
+		case THREAD_TYPE_IO:     return 2;
+		default:                 return 3;
+	}
 }
+STATIC_ASSERTION_EQ_ID(THREAD_NUM_IS_3, THREAD_NUM_TYPES, 3);
 
 /**
  * @brief get the current cached object limit
@@ -451,6 +454,19 @@ static inline int _global_dealloc(mempool_objpool_t* pool, _cached_object_t* beg
 	return 0;
 }
 
+__attribute__((noinline)) static int _do_global_dealloc(mempool_objpool_t* pool, _thread_local_pool_t* tlp, uint32_t cache_limit)
+{
+	_cached_object_t* new_end = tlp->exceeded->prev;
+	if(PREDICT_FALSE(ERROR_CODE(int) == _global_dealloc(pool, tlp->exceeded, tlp->end)))
+		ERROR_RETURN_LOG(int, "Cannot deallocate the exceeded objects to the global pool");
+
+	tlp->exceeded = NULL;
+	tlp->end = new_end;
+	tlp->end->next = NULL;
+	tlp->count = cache_limit;
+
+	return 0;
+}
 #ifdef FULL_OPTIMIZATION
 __attribute__((weak, alias("_mempool_objpool_dealloc_no_check")))
 int mempool_objpool_dealloc(mempool_objpool_t* pool, void* mem);
@@ -480,17 +496,8 @@ int _mempool_objpool_dealloc_no_check(mempool_objpool_t* pool, void* mem)
 
 	tlp->count ++;
 
-	if(PREDICT_FALSE(tlp->count > cache_limit * 2))
-	{
-		_cached_object_t* new_end = tlp->exceeded->prev;
-		if(PREDICT_FALSE(ERROR_CODE(int) == _global_dealloc(pool, tlp->exceeded, tlp->end)))
-		    ERROR_RETURN_LOG(int, "Cannot deallocate the exceeded objects to the global pool");
-
-		tlp->exceeded = NULL;
-		tlp->end = new_end;
-		tlp->end->next = NULL;
-		tlp->count = cache_limit;
-	}
+	if(PREDICT_FALSE(tlp->count > cache_limit * 2)) 
+		return _do_global_dealloc(pool, tlp, cache_limit);
 
 	return 0;
 }
