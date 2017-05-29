@@ -617,7 +617,7 @@ static int _accept(void* __restrict ctx, const void* __restrict args, void* __re
 
 	if(module_tcp_pool_connection_get(context->conn_pool, &conn) == ERROR_CODE(int))
 	{
-		LOG_ERROR("cannot get active request form tne connection pool");
+		LOG_ERROR("Cannot get active request form tne connection pool");
 		return ERROR_CODE(int);
 	}
 
