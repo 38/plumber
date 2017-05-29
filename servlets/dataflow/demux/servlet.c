@@ -6,11 +6,16 @@
 #include <errno.h>
 #include <regex.h>
 #include <time.h>
+#include <stdint.h>
+#include <stdio.h>
+
+#include <utils/hash/murmurhash3.h>
 
 #include <pservlet.h>
 #include <pstd.h>
 
-#include <utils/hash/murmurhash3.h>
+#include <pstd/types/string.h>
+
 
 #define HASH_SIZE 97
 
@@ -20,13 +25,9 @@
 typedef struct hashnode_t {
 	uint64_t hashcode[2];     /*!< The hash code */
 	char*    value;           /*!< The actual value */
+	pipe_t   pipe;
 	struct hashnode_t* next;  /*!< The next hash node */
 } hashnode_t;
-
-typedef struct {
-	regex_t regex;
-	int     init;
-} regex_pattern_t;
 
 /**
  * @brief The context of the servlet 
@@ -47,7 +48,7 @@ typedef struct {
 
 	union {
 		hashnode_t**         string;  /*!< The hash table used for string hash */
-		regex_pattern_t*     regex;   /*!< The reuglar expression pattern table */
+		regex_t*             regex;   /*!< The reuglar expression pattern table */
 		void*                generic; /*!< The generic pointer */
 	} pattern_table;          /*!< The pattern table */
 
@@ -55,7 +56,7 @@ typedef struct {
 	pstd_type_accessor_t  cond_acc;        /*!< The condition accessor */
 } context_t;
 
-static inline hashnode_t* _hashnode_new(const char* str, uint32_t seed)
+static inline hashnode_t* _hashnode_new(const char* str, pipe_t pipe, uint32_t seed)
 {
 	hashnode_t* ret = (hashnode_t*)malloc(sizeof(*ret));
 	if(NULL == ret) 
@@ -70,23 +71,24 @@ static inline hashnode_t* _hashnode_new(const char* str, uint32_t seed)
 	}
 
 	memcpy(ret->value, str, sz);
+	ret->pipe = pipe;
 
 	ret->next = NULL;
 	return ret;
 }
-static inline uint32_t _hash_get_slot(hashnode_t* node)
+static inline uint32_t _hash_get_slot(const uint64_t* hashcode)
 {
 	uint32_t multipler = 2 * (uint32_t)(0x800000000000ull % HASH_SIZE);
-	return (uint32_t)((multipler * node->hashcode[0]) + node->hashcode[1]) % HASH_SIZE;  
+	return (uint32_t)((multipler * hashcode[0]) + hashcode[1]) % HASH_SIZE;  
 }
 
-static inline int _hashnode_insert(context_t* ctx, const char* str)
+static inline int _hashnode_insert(context_t* ctx, const char* str, pipe_t pipe)
 {
-	hashnode_t* node = _hashnode_new(str, ctx->seed);
+	hashnode_t* node = _hashnode_new(str, pipe, ctx->seed);
 	if(NULL == node) 
 		ERROR_RETURN_LOG(int, "Cannot create new node for the hash table");
 
-	uint32_t slot = _hash_get_slot(node);
+	uint32_t slot = _hash_get_slot(node->hashcode);
 
 	node->next = ctx->pattern_table.string[slot];
 	ctx->pattern_table.string[slot] = node;
@@ -100,6 +102,24 @@ static inline int _hashnode_free(hashnode_t* node)
 	free(node);
 
 	return 0;
+}
+
+static inline const hashnode_t* _hash_find(const context_t* ctx, const char* str)
+{
+	size_t len = strlen(str);
+	uint64_t hashcode[2];
+	murmurhash3_128(str, len, ctx->seed, hashcode);
+
+	uint32_t slot = _hash_get_slot(hashcode);
+	const hashnode_t* ret;
+
+	for(ret = ctx->pattern_table.string[slot]; 
+		NULL != ret && 
+		ret->hashcode[0] == hashcode[0] && 
+		ret->hashcode[1] == hashcode[1]; 
+		ret = ret->next);
+
+	return ret;
 }
 
 static int _set_option(uint32_t idx, pstd_option_param_t* params, uint32_t nparams, const pstd_option_t* options, uint32_t n, void* args)
@@ -202,7 +222,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	switch(ctx->mode)
 	{
 		case MODE_REGEX:
-			if(NULL == (ctx->pattern_table.regex = (regex_pattern_t*)calloc(ctx->ncond, sizeof(regex_pattern_t))))
+			if(NULL == (ctx->pattern_table.regex = (regex_t*)calloc(ctx->ncond, sizeof(ctx->pattern_table.regex[0]))))
 				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the regular expression array");
 			break;
 		case MODE_MATCH:
@@ -217,22 +237,24 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	int rc;
 	for(i = 0; i < ctx->ncond; i ++)
 	{
+		char regbuf[1024];
 		if(ERROR_CODE(pipe_t) == (ctx->output[i] = pipe_define_pattern("out%u", PIPE_MAKE_SHADOW(ctx->data) | PIPE_DISABLED, "$Tdata", i)))
 		    ERROR_LOG_GOTO(ERR, "Cannot define the output pipe");
 		switch(ctx->mode)
 		{
 			case MODE_REGEX:
-				if(0 == (rc = regcomp(&ctx->pattern_table.regex[i].regex, argv[opt_rc + i], 0)))
-					ctx->pattern_table.regex->init = 1;
-				else
+				snprintf(regbuf, sizeof(regbuf), "^%s$", argv[opt_rc + i]);
+				if(0 != (rc = regcomp(ctx->pattern_table.regex + i, regbuf, 0)))
 				{
+#ifdef LOG_ERROR_ENABLED
 					char buffer[1024];
-					regerror(rc, &ctx->pattern_table.regex[i].regex, buffer, sizeof(buffer));
+					regerror(rc, ctx->pattern_table.regex + i, buffer, sizeof(buffer));
+#endif
 					ERROR_LOG_GOTO(ERR, "Can't compile regex: %s", buffer);
 				}
 				break;
 			case MODE_MATCH:
-				if(ERROR_CODE(int) == _hashnode_insert(ctx, argv[opt_rc + i]))
+				if(ERROR_CODE(int) == _hashnode_insert(ctx, argv[opt_rc + i], ctx->output[i]))
 					ERROR_LOG_GOTO(ERR, "Can't insert the pattern to hash table");
 				break;
 			case MODE_NUMERIC:
@@ -247,7 +269,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	    ERROR_LOG_GOTO(ERR, "Cannot create type model");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->cond_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->cond, ctx->field)))
-	    ERROR_LOG_GOTO(ERR, "Cannot get the accessor for the input type");
+		ERROR_LOG_GOTO(ERR, "Cannot get the accessor for the input type");
 
 	return 0;
 ERR:
@@ -256,11 +278,8 @@ ERR:
 	if(ctx->pattern_table.generic != NULL)
 	{
 		if(ctx->mode == MODE_REGEX)
-		{
 			for(i = 0; i < ctx->ncond; i ++)
-				regfree(&ctx->pattern_table.regex[i].regex);
-			free(ctx->pattern_table.regex);
-		}
+				regfree(ctx->pattern_table.regex + i);
 		else if(ctx->mode == MODE_MATCH)
 		{
 			for(i =0; i < HASH_SIZE; i ++)
@@ -280,10 +299,107 @@ ERR:
 	return ERROR_CODE(int);
 }
 
+static inline int _exec_match(context_t* ctx, pstd_type_instance_t* inst)
+{
+	scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->cond_acc);
+
+	if(ERROR_CODE(scope_token_t) == token)
+		ERROR_RETURN_LOG(int, "Cannot read the scope token from the cond pipe");
+
+	const pstd_string_t* ps = pstd_string_from_rls(token);
+	if(NULL == ps)
+		ERROR_RETURN_LOG(int, "Cannot read string from the RLS");
+
+	const char* str = pstd_string_value(ps);
+	if(NULL == str) ERROR_RETURN_LOG(int, "Cannot get the string value");
+
+	const hashnode_t* node = _hash_find(ctx, str);
+
+	pipe_t picked = ctx->output[ctx->ncond];
+
+	if(NULL == node) picked = node->pipe;
+
+	return pipe_cntl(picked, PIPE_CNTL_CLR_FLAG, PIPE_DISABLED);
+}
+
+static inline int _exec_numeric(context_t* ctx, pstd_type_instance_t* inst)
+{
+	uint32_t value = PSTD_TYPE_INST_READ_PRIMITIVE(uint32_t, inst, ctx->cond_acc);
+
+	pipe_t picked = ctx->output[value >= ctx->ncond ? ctx->ncond : value];
+
+	return pipe_cntl(picked, PIPE_CNTL_CLR_FLAG, PIPE_DISABLED);
+}
+
+static inline int _exec_regex(context_t* ctx, pstd_type_instance_t* inst)
+{
+	scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->cond_acc);
+
+	if(ERROR_CODE(scope_token_t) == token)
+		ERROR_RETURN_LOG(int, "Cannot read the scope token from the cond pipe");
+
+	const pstd_string_t* ps = pstd_string_from_rls(token);
+	if(NULL == ps)
+		ERROR_RETURN_LOG(int, "Cannot read string from the RLS");
+
+	const char* str = pstd_string_value(ps);
+	if(NULL == str) ERROR_RETURN_LOG(int, "Cannot get the string value");
+	
+	pipe_t picked = ctx->output[ctx->ncond];
+
+	uint32_t i;
+	for(i = 0; i < ctx->ncond; i ++)
+	{
+		int rc = regexec(ctx->pattern_table.regex + i, str, 0, NULL, 0);
+		if(rc == 0) break;
+		else if(rc != REG_NOMATCH)
+		{
+#ifdef LOG_ERROR_ENABLED
+			char buffer[1024];
+			regerror(rc, ctx->pattern_table.regex + i, buffer, sizeof(buffer));
+#endif
+			ERROR_RETURN_LOG(int, "Regex error: %s", buffer);
+		}
+	}
+
+	return pipe_cntl(picked, PIPE_CNTL_CLR_FLAG, PIPE_DISABLED);
+}
+
+static inline int _exec(void* ctxbuf)
+{
+	context_t* ctx = (context_t*)ctxbuf;
+	
+	int rc;
+	size_t tisz = pstd_type_instance_size(ctx->type_model);
+	if(ERROR_CODE(size_t) == tisz) ERROR_RETURN_LOG(int, "Cannot get the size of the type model");
+	char tibuf[tisz];
+	pstd_type_instance_t* inst = pstd_type_instance_new(ctx->type_model, tibuf);
+	if(NULL == inst) ERROR_RETURN_LOG(int, "Cannot create the type instance");
+
+	switch(ctx->mode)
+	{
+		case MODE_MATCH:
+			rc = _exec_match(ctx, inst);
+		case MODE_NUMERIC:
+			rc = _exec_numeric(ctx, inst);
+		case MODE_REGEX:
+			rc = _exec_regex(ctx, inst);
+		default:
+			LOG_ERROR("Invalid servlet mode");
+			rc = ERROR_CODE(int);
+	}
+
+	if(ERROR_CODE(int) == pstd_type_instance_free(inst))
+		ERROR_RETURN_LOG(int, "Cannot dipsoes the type instance");
+
+	return rc;
+}
+
 static inline int _unload(void* ctxbuf)
 {
 	context_t* ctx = (context_t*)ctxbuf;
 	int rc = 0;
+	uint32_t i;
 
 	if(NULL != ctx->output) free(ctx->output);
 	if(NULL != ctx->type_model && ERROR_CODE(int) == pstd_type_model_free(ctx->type_model))
@@ -292,15 +408,10 @@ static inline int _unload(void* ctxbuf)
 	if(ctx->pattern_table.generic != NULL)
 	{
 		if(ctx->mode == MODE_REGEX)
-		{
-			uint32_t i;
 			for(i = 0; i < ctx->ncond; i ++)
-				regfree(&ctx->pattern_table.regex[i].regex);
-			free(ctx->pattern_table.regex);
-		}
+				regfree(ctx->pattern_table.regex + i);
 		else if(ctx->mode == MODE_MATCH)
 		{
-			uint32_t i;
 			for(i = 0; i < HASH_SIZE; i ++)
 			{
 				hashnode_t *ptr, *cur;
@@ -323,6 +434,7 @@ SERVLET_DEF = {
 	.desc = "The demultiplexer, which takes N inputs and one condition, produces the copy of selected input",
 	.version = 0,
 	.size = sizeof(context_t),
-	.init = _init,
-	.unload = _unload
+	.init   = _init,
+	.unload = _unload,
+	.exec   = _exec
 };
