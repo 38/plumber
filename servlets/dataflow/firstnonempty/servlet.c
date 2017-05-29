@@ -74,7 +74,7 @@ static int _copy_header(const context_t* ctx, pipe_t pipe)
 		size_t rc = pipe_hdr_read(pipe, hdrbuf + ctx->header_size - rem, rem);
 		if(ERROR_CODE(size_t) == rc)
 		    ERROR_RETURN_LOG(int, "Cannot read the typed header");
-		rem += (uint32_t)rc;
+		rem -= (uint32_t)rc;
 	}
 
 	rem = ctx->header_size;

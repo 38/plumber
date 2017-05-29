@@ -78,7 +78,7 @@ static inline hashnode_t* _hashnode_new(const char* str, pipe_t pipe, uint32_t s
 }
 static inline uint32_t _hash_get_slot(const uint64_t* hashcode)
 {
-	uint32_t multipler = 2 * (uint32_t)(0x800000000000ull % HASH_SIZE);
+	uint32_t multipler = (2 * (uint32_t)((1ull << 63) % HASH_SIZE)) % HASH_SIZE;
 	return (uint32_t)((multipler * hashcode[0]) + hashcode[1]) % HASH_SIZE;  
 }
 
@@ -115,8 +115,8 @@ static inline const hashnode_t* _hash_find(const context_t* ctx, const char* str
 
 	for(ret = ctx->pattern_table.string[slot]; 
 		NULL != ret && 
-		ret->hashcode[0] == hashcode[0] && 
-		ret->hashcode[1] == hashcode[1]; 
+		ret->hashcode[0] != hashcode[0] && 
+		ret->hashcode[1] != hashcode[1]; 
 		ret = ret->next);
 
 	return ret;
@@ -317,7 +317,7 @@ static inline int _exec_match(context_t* ctx, pstd_type_instance_t* inst)
 
 	pipe_t picked = ctx->output[ctx->ncond];
 
-	if(NULL == node) picked = node->pipe;
+	if(NULL != node) picked = node->pipe;
 
 	return pipe_cntl(picked, PIPE_CNTL_CLR_FLAG, PIPE_DISABLED);
 }
@@ -380,10 +380,13 @@ static inline int _exec(void* ctxbuf)
 	{
 		case MODE_MATCH:
 			rc = _exec_match(ctx, inst);
+			break;
 		case MODE_NUMERIC:
 			rc = _exec_numeric(ctx, inst);
+			break;
 		case MODE_REGEX:
 			rc = _exec_regex(ctx, inst);
+			break;
 		default:
 			LOG_ERROR("Invalid servlet mode");
 			rc = ERROR_CODE(int);
