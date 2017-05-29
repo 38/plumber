@@ -428,7 +428,7 @@ int pstd_type_instance_free(pstd_type_instance_t* inst)
 
 		if(!inst->model->type_info[i].init || inst->model->type_info[i].used_size == 0) continue;
 
-		runtime_api_pipe_flags_t flags;
+		runtime_api_pipe_flags_t flags = PIPE_INPUT;
 
 		if(ERROR_CODE(int) == pipe_cntl(RUNTIME_API_PIPE_FROM_ID(i), PIPE_CNTL_GET_FLAGS, &flags))
 		{
