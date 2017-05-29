@@ -132,7 +132,7 @@ static int _exec(void* ctxbuf)
 	if(!(st.st_mode & S_IFREG))
 	{
 		if((size_t)len > sizeof(pathbuf)) len = sizeof(pathbuf);
-		snprintf(pathbuf + len, sizeof(pathbuf) - (size_t)len, "%s", "index.html");
+		snprintf(pathbuf + len, sizeof(pathbuf) - (size_t)len, "/%s", "index.html");
 		if(pstd_fcache_stat(pathbuf, &st) == ERROR_CODE(int)) goto RET_404;
 		else
 		{
