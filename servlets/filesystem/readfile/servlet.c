@@ -125,6 +125,7 @@ static int _exec(void* ctxbuf)
 
 	char pathbuf[PATH_MAX];
 	int len = snprintf(pathbuf, sizeof(pathbuf), "%s%s", ctx->root, path);
+	if(len > PATH_MAX) ERROR_LOG_GOTO(ERR, "The path is too long");
 
 	struct stat st;
 	if(pstd_fcache_stat(pathbuf, &st) == ERROR_CODE(int)) goto RET_404;
@@ -132,7 +133,10 @@ static int _exec(void* ctxbuf)
 	if(!(st.st_mode & S_IFREG))
 	{
 		if((size_t)len > sizeof(pathbuf)) len = sizeof(pathbuf);
-		snprintf(pathbuf + len, sizeof(pathbuf) - (size_t)len, "/%s", "index.html");
+		if(len > 0 && pathbuf[len - 1] == '/')
+			snprintf(pathbuf + len, sizeof(pathbuf) - (size_t)len, "%s", "index.html");
+		else
+			snprintf(pathbuf + len, sizeof(pathbuf) - (size_t)len, "/%s", "index.html");
 		if(pstd_fcache_stat(pathbuf, &st) == ERROR_CODE(int)) goto RET_404;
 		else
 		{
@@ -171,7 +175,7 @@ RET_200:
 	status = 200;
 
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, ctx->file_token, file_token))
-	    ERROR_LOG_GOTO(ERR, "Cannot write redirect.token");
+	    ERROR_LOG_GOTO(ERR, "Cannot write file.token");
 
 	goto RET;
 RET:
