@@ -16,15 +16,16 @@
 
 #include <pstd/types/string.h>
 
-
-#define HASH_SIZE 97
+/**
+ * @brief The size of the hash table used for the pattern
+ **/
+#define HASH_SIZE 31
 
 /**
  * @brief The pattern hash table 
  **/
 typedef struct hashnode_t {
 	uint64_t hashcode[2];     /*!< The hash code */
-	char*    value;           /*!< The actual value */
 	pipe_t   pipe;
 	struct hashnode_t* next;  /*!< The next hash node */
 } hashnode_t;
@@ -56,32 +57,43 @@ typedef struct {
 	pstd_type_accessor_t  cond_acc;        /*!< The condition accessor */
 } context_t;
 
+/**
+ * @brief Create a new hash node for the pattern
+ * @param str the pattern string
+ * @param pipe the pipe we could enable
+ * @param seed the seed of the hash function
+ * @return the newly created hash node
+ **/
 static inline hashnode_t* _hashnode_new(const char* str, pipe_t pipe, uint32_t seed)
 {
 	hashnode_t* ret = (hashnode_t*)malloc(sizeof(*ret));
-	if(NULL == ret) 
-		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the hash code");
+	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the hash code");
 	size_t sz = strlen(str);
 	murmurhash3_128(str, sz, seed, ret->hashcode);
 
-	if(NULL == (ret->value = (char*)malloc(sz + 1)))
-	{
-		free(ret);
-		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the value");
-	}
-
-	memcpy(ret->value, str, sz);
 	ret->pipe = pipe;
-
 	ret->next = NULL;
 	return ret;
 }
+/**
+ * @brief Compute which hash slot we should look at
+ * @param hashcode The 128 bit hash code
+ * @note  This is actually computes the modular of the entire 128 bit integer
+ * @return The slot id
+ **/
 static inline uint32_t _hash_get_slot(const uint64_t* hashcode)
 {
-	uint32_t multipler = (2 * (uint32_t)((1ull << 63) % HASH_SIZE)) % HASH_SIZE;
-	return (uint32_t)((multipler * hashcode[0]) + hashcode[1]) % HASH_SIZE;  
+	static const uint32_t multipler = (2 * (uint32_t)((1ull << 63) % HASH_SIZE)) % HASH_SIZE;
+	return (uint32_t)(multipler * hashcode[1] + hashcode[0]) % HASH_SIZE;  
 }
 
+/**
+ * @brief  Intert a new pattern to the pattern hash table
+ * @param  ctx The servlet context
+ * @param  str The pattern string
+ * @param  pipe The pipe we should activated on this pattern
+ * @return status code
+ **/
 static inline int _hashnode_insert(context_t* ctx, const char* str, pipe_t pipe)
 {
 	hashnode_t* node = _hashnode_new(str, pipe, ctx->seed);
@@ -96,14 +108,12 @@ static inline int _hashnode_insert(context_t* ctx, const char* str, pipe_t pipe)
 	return 0;
 }
 
-static inline int _hashnode_free(hashnode_t* node)
-{
-	if(NULL != node->value) free(node->value);
-	free(node);
-
-	return 0;
-}
-
+/**
+ * @brief Find the hash node which matches the pattern
+ * @param ctx The servlet context
+ * @param str The string to match
+ * @return The hash node has been found
+ **/
 static inline const hashnode_t* _hash_find(const context_t* ctx, const char* str)
 {
 	size_t len = strlen(str);
@@ -122,9 +132,18 @@ static inline const hashnode_t* _hash_find(const context_t* ctx, const char* str
 	return ret;
 }
 
+/**
+ * @brief Parse the servlet initialization options
+ * @param idx The option index in the option definition array
+ * @param params The array of the pointers 
+ * @param nparams How many parameters for this option
+ * @param options The option definition array
+ * @param n How many opitions defined in the option definition array
+ * @param args The additional arguments
+ * @return status code
+ **/
 static int _set_option(uint32_t idx, pstd_option_param_t* params, uint32_t nparams, const pstd_option_t* options, uint32_t n, void* args)
 {
-	(void)nparams;
 	(void)n;
 	char what = options[idx].short_opt;
 	context_t* ctx = (context_t*)args;
@@ -137,10 +156,12 @@ static int _set_option(uint32_t idx, pstd_option_param_t* params, uint32_t npara
 		    field = "token";
 		    goto SET_MODE;
 		case 'n':
-		    if(nparams != 1 || params[0].type != PSTD_OPTION_STRING)
-		        ERROR_RETURN_LOG(int, "The field expression is expected");
+		    if(nparams != 2 || params[0].type != PSTD_OPTION_STRING ||
+			   params[1].type != PSTD_OPTION_TYPE_INT)
+		        ERROR_RETURN_LOG(int, "--numeric <field_expr> <num-outputs>");
 		    expected_mode = MODE_NUMERIC;
 		    field = params[0].strval;
+			ctx->ncond = (uint32_t)params[1].intval;
 SET_MODE:
 		    if(ctx->mode != MODE_MATCH)
 		        ERROR_RETURN_LOG(int, "Only one mode specifier can be passed");
@@ -169,7 +190,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 			.long_opt    = "numeric",
 			.short_opt   = 'n',
 			.description = "Use the numeric mode",
-			.pattern     = "S",
+			.pattern     = "SI",
 			.handler     = _set_option
 		},
 		{
@@ -191,7 +212,8 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	if(ERROR_CODE(uint32_t) == opt_rc)
 		ERROR_RETURN_LOG(int, "Invalid servlet initialization string, for more information, use pstest -l %s --help", argv[0]);
 
-	ctx->ncond = argc - opt_rc;
+	if(ctx->mode  != MODE_NUMERIC)
+		ctx->ncond = argc - opt_rc;
 
 	if(ctx->mode == MODE_NUMERIC)
 	{
@@ -209,7 +231,8 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	
 	ctx->pattern_table.generic = NULL;
 	ctx->type_model = NULL;
-		
+	
+	/* We just initalize the seed with the nanosecond number in the startup timestamp, which is quite random */
 	struct timespec ts;
 	if(clock_gettime(CLOCK_REALTIME, &ts) < 0)
 	{
@@ -289,7 +312,7 @@ ERR:
 				{
 					cur = ptr;
 					ptr = ptr->next;
-					_hashnode_free(cur);
+					free(cur);
 				}
 			}
 			free(ctx->pattern_table.string);
@@ -422,8 +445,7 @@ static inline int _unload(void* ctxbuf)
 				{
 					cur = ptr;
 					ptr = ptr->next;
-					if(ERROR_CODE(int) == _hashnode_free(cur))
-						rc = ERROR_CODE(int);
+					free(cur);
 				}
 			}
 			free(ctx->pattern_table.string);
