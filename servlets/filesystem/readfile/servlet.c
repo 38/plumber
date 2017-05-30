@@ -53,6 +53,8 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	ctx->type_model = NULL;
 
 	size_t rlen = ctx->root_len = strlen(argv[1]);
+	if(rlen >= PATH_MAX - 1) 
+		ERROR_RETURN_LOG(int, "The root path is too long");
 	if(NULL == (ctx->root = (char*)malloc(rlen + 1)))
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the readfile root");
 	memcpy(ctx->root, argv[1], rlen + 1);
@@ -124,19 +126,25 @@ static int _exec(void* ctxbuf)
 	if(NULL == path) ERROR_LOG_GOTO(ERR, "Cannot get the path");
 
 	char pathbuf[PATH_MAX];
-	int len = snprintf(pathbuf, sizeof(pathbuf), "%s%s", ctx->root, path);
-	if(len > PATH_MAX) ERROR_LOG_GOTO(ERR, "The path is too long");
+	size_t len = ctx->root_len;
+	if(len > 0) memcpy(pathbuf, ctx->root, len);
 
+	size_t path_len = strlen(path);
+	if(path_len + len + 1 >= sizeof(pathbuf)) goto RET_404;
+	memcpy(pathbuf + len, path, path_len + 1);
+	len += path_len;
+	
 	struct stat st;
 	if(pstd_fcache_stat(pathbuf, &st) == ERROR_CODE(int)) goto RET_404;
 
 	if(!(st.st_mode & S_IFREG))
 	{
-		if((size_t)len > sizeof(pathbuf)) len = sizeof(pathbuf);
-		if(len > 0 && pathbuf[len - 1] == '/')
-		    snprintf(pathbuf + len, sizeof(pathbuf) - (size_t)len, "%s", "index.html");
-		else
-		    snprintf(pathbuf + len, sizeof(pathbuf) - (size_t)len, "/%s", "index.html");
+		if(len > 0 && pathbuf[len - 1] != '/') pathbuf[len ++] = '/';
+
+		static const char index_file[] = "index.html";
+		if(sizeof(pathbuf) < sizeof(index_file) + len) goto RET_404;
+		memcpy(pathbuf + len, index_file, sizeof(index_file));
+
 		if(pstd_fcache_stat(pathbuf, &st) == ERROR_CODE(int)) goto RET_404;
 		else
 		{
