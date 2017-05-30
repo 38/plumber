@@ -4,7 +4,7 @@
 
 /**
  * @brief The service graph type checker
- * @detials This is the implementation of the strong type service graph
+ * @details This is the implementation of the strong type service graph
  * @note <h1>Notes on the pipe type equations</h1>
  *       We abstract the type inference problem of a service graph to a group of type equations. <br/>
  *       <h2>Basic concepts</h2>

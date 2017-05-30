@@ -7,7 +7,7 @@
  *        in the plumber user-space code. <br/>
  *        For example the user-space cache system uses this function clean up the cache memory when the
  *        framework exits
- * @file pstd/include/onexit.h
+ * @file pstd/include/pstd/onexit.h
  **/
 #ifndef __PSTD_ONEXIT_H__
 #define __PSTD_ONEXIT_H__

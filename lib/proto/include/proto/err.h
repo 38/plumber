@@ -10,7 +10,7 @@
  *          however, instead of dumping a log about the error, the library will create an error stack about
  *          the error at this point. <br/>
  *          The error utils is thread safe, which means the error stack is a thread local
- * @file proto/include/err.h
+ * @file proto/include/proto/err.h
  **/
 #ifndef __PROTO_ERR_H__
 #define __PROTO_ERR_H__

@@ -10,7 +10,7 @@
  *          accessed. <br/>
  *          The first approach has an issue with updating the base types. <br/>
  *          So we need a group reference utilities to maintain, dump, load, access reference data.
- *  @file proto/include/ref.h
+ *  @file proto/include/proto/ref.h
  **/
 
 #ifndef __PROTO_REF_H__

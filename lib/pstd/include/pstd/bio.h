@@ -3,7 +3,7 @@
  **/
 /**
  * @brief the high level bufferred pipe IO
- * @file pstd/include/bio.h
+ * @file pstd/include/pstd/bio.h
  **/
 #ifndef __PSTD_BIO_H__
 #define __PSTD_BIO_H__

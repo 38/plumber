@@ -3,7 +3,7 @@
  **/
 /**
  * @brief the memory pool utilies
- * @file pstd/include/mempool.h
+ * @file pstd/include/pstd/mempool.h
  **/
 #ifndef __PSTD_MEMPOOL_H__
 #define __PSTD_MEMPOOL_H__

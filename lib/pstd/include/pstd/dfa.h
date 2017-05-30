@@ -3,7 +3,7 @@
  **/
 /**
  * @brief The deterministic finite automata used for protocol parser with a slow IO pipe
- * @file pstd/include/dfa.h
+ * @file pstd/include/pstd/dfa.h
  * @details This is the helper functions to write the protocol parser on a slow pipe like TCP pipe
  *          Because we need to handle different cases, like the pipe is waiting for data, etc.
  *          It assume the pipe supports push/pop state and follows the persist flags, otherwise
@@ -69,7 +69,6 @@ typedef enum {
 /**
  * @brief run DFA on the given pipe
  * @param input the input pipe
- * @param bufsize the size of the buffer
  * @param ops the operation callbacks
  * @param data additional data pass to ops functions
  * @return status code

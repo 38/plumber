@@ -3,7 +3,7 @@
  **/
 /**
  * @brief the header for the module related APIs
- * @file pservlet/include/module.h
+ * @file pservlet/include/pservlet/module.h
  **/
 #include <error.h>
 #ifndef __PSERVLET_MODULE_H__

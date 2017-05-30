@@ -174,10 +174,10 @@ static inline void* _sched_main(void* data)
 			abstime.tv_sec = now.tv_sec+1;
 			abstime.tv_nsec = 0;
 
-			/* TODO: (Async Task) we also want the async task's event wake up the cond var 
+			/* TODO: (Async Task) we also want the async task's event wake up the cond var
 			 *                    However, since we changed the desgin, we probably do not
 			 *                    need to handle this case at this point, because the async
-			 *                    task thread should also be a ITC event source. 
+			 *                    task thread should also be a ITC event source.
 			 *                    Then we don't need the type of sched_loop_event_t, instead
 			 *                    we add another field in itc_equeue_event_t for the task event
 			 **/

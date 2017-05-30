@@ -53,6 +53,7 @@ static mempool_objpool_t* _request_pool = NULL;
 /**
  * @brief enqueue a task to the ready quee
  * @param task the task to insert
+ * @param ctx The scheduler context
  * @return nothing
  **/
 static inline void _enqueue(sched_task_context_t* ctx, _task_entry_t* task)
@@ -122,6 +123,7 @@ static inline int _request_entry_free(_request_entry_t* entry)
 /**
  * @brief find the request entry object for the given request id
  * @param request the request id we want to look for
+ * @param ctx The scheduler task context
  * @return the request entry object, or NULL if not found
  **/
 static inline _request_entry_t* _request_entry_find(const sched_task_context_t* ctx, sched_task_request_t request)
@@ -135,6 +137,7 @@ static inline _request_entry_t* _request_entry_find(const sched_task_context_t* 
  * @brief inset a new request entry with the given request id to the request table
  * @note this do not guarantee the uniqueness of the request id in the table
  * @param request the request id
+ * @param ctx The scheduler task context
  * @return the newly created entry or NULL on error case
  **/
 static inline _request_entry_t* _request_entry_insert(sched_task_context_t* ctx, sched_task_request_t request)
@@ -150,6 +153,7 @@ static inline _request_entry_t* _request_entry_insert(sched_task_context_t* ctx,
 /**
  * @brief delete the request entry object from the request table if the entry exists
  * @param request the request id
+ * @param ctx The scheduler context
  * @return the number of entry has been deleted or error code
  **/
 static inline int _request_entry_delete(sched_task_context_t* ctx, sched_task_request_t request)
@@ -587,6 +591,7 @@ __attribute__((used)) static inline const char* _get_task_args(const _task_entry
  * @param request the request id
  * @param node the target node id
  * @param pid the target pipe id
+  @param ctx The scheduler task context
  * @return the status code
  **/
 static inline int _pipe_cancel(sched_task_context_t* ctx, const sched_service_t* service, sched_task_request_t request, sched_service_node_id_t node, runtime_api_pipe_id_t pid)

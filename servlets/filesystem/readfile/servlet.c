@@ -134,9 +134,9 @@ static int _exec(void* ctxbuf)
 	{
 		if((size_t)len > sizeof(pathbuf)) len = sizeof(pathbuf);
 		if(len > 0 && pathbuf[len - 1] == '/')
-			snprintf(pathbuf + len, sizeof(pathbuf) - (size_t)len, "%s", "index.html");
+		    snprintf(pathbuf + len, sizeof(pathbuf) - (size_t)len, "%s", "index.html");
 		else
-			snprintf(pathbuf + len, sizeof(pathbuf) - (size_t)len, "/%s", "index.html");
+		    snprintf(pathbuf + len, sizeof(pathbuf) - (size_t)len, "/%s", "index.html");
 		if(pstd_fcache_stat(pathbuf, &st) == ERROR_CODE(int)) goto RET_404;
 		else
 		{

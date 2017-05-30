@@ -3,7 +3,7 @@
  **/
 /**
  * @brief the header file for the HTTP request parser servlet
- * @file servlets/httpreq/include/httpreq.h
+ * @file servlets/network/http/httpreq/include/httpreq.h
  **/
 #ifndef __HTTPREQ_H__
 #define __HTTPREQ_H__

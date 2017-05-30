@@ -3,7 +3,7 @@
  **/
 /**
  * @brief The helper function for the pipe types
- * @file  pstd/include/type.h
+ * @file  pstd/include/pstd/type.h
  **/
 #ifndef __PSTD_TYPE_H__
 #define __PSTD_TYPE_H__
@@ -35,7 +35,6 @@ typedef int (*pstd_type_assertion_t)(pipe_t pipe, const char* type, const void* 
 
 /**
  * @brief Create a new pipe type model object
- * @parm pipe The pipe we want to create the type info object for
  * @return the newly create pipe, NULL on error  case
  **/
 pstd_type_model_t* pstd_type_model_new();
@@ -48,11 +47,10 @@ pstd_type_model_t* pstd_type_model_new();
 int pstd_type_model_free(pstd_type_model_t* model);
 
 /**
- * @param Register an accessor for the given pipe and field expression
+ * @brief Register an accessor for the given pipe and field expression
  * @param model The typeinfo context
  * @param pipe The pipe descriptor
  * @param field_expr The field expression
- * @param result The result buffer
  * @return Status code
  **/
 pstd_type_accessor_t pstd_type_model_get_accessor(pstd_type_model_t* model, pipe_t pipe, const char* field_expr);
@@ -104,7 +102,7 @@ size_t pstd_type_instance_read(pstd_type_instance_t* inst, pstd_type_accessor_t 
 /**
  * @brief Read typed primitive from the context and accessor
  * @param type The type we want to read
- * @parma inst The type context instance
+ * @param inst The type context instance
  * @param accessor The accessor
  * @return The read result or error code
  **/

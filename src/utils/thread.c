@@ -95,6 +95,8 @@ static inline uint32_t _get_thread_id()
 	return _thread_id;
 #endif
 }
+
+__attribute__((noinline))
 /**
  * @brief Allocate the pointer for current thread
  * @note  Because GCC always wants to inline anything if possible on -O3,
@@ -105,7 +107,7 @@ static inline uint32_t _get_thread_id()
  * @param tid  The thread id
  * @return pointer has been allocated
  **/
-__attribute__((noinline)) void* _thread_allocate_current_pointer(thread_pset_t* pset, uint32_t tid)
+void* _thread_allocate_current_pointer(thread_pset_t* pset, uint32_t tid)
 {
 	if(pthread_mutex_lock(&pset->resize_lock) < 0)
 	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot acquire the resize lock");

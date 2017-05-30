@@ -14,7 +14,7 @@
  * @todo    This implementaiton can not across the machine boarder (Because it uses the customized
  *          callback functions) We need to make this a built-in RLS type once we start working on
  *          the strong-typed pipes
- * @file    pstd/include/types/string.h
+ * @file    pstd/include/pstd/types/string.h
  **/
 #ifndef __PSTD_TYPES_STRING_H__
 #define __PSTD_TYPES_STRING_H__

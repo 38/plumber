@@ -37,9 +37,11 @@ pipe_t pipe_define(const char* name, pipe_flags_t flag, const char* type_expr);
  * @brief create a named pipe with the pattern
  * @param pattern the pattern of the name
  * @param flag the pipe creation flags
+ * @param type_expr The type expression
  * @return the newly defined pipe
  **/
-pipe_t pipe_define_pattern(const char* pattern, pipe_flags_t flag, const char* type_expr, ...);
+pipe_t pipe_define_pattern(const char* pattern, pipe_flags_t flag, const char* type_expr, ...)
+    __attribute__((format (printf, 1, 4)));
 
 /**
  * @brief create a pipe list

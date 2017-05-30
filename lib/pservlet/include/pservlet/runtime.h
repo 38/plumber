@@ -3,7 +3,7 @@
  **/
 /**
  * @brief the functions related to the plumber runtime
- * @file pservlet/include/runtime.h
+ * @file pservlet/include/pservlet/runtime.h
  **/
 #ifndef __PSERVLET_RUNTIME_H__
 #define __PSERVLET_RUNTIME_H__

@@ -151,6 +151,7 @@ int sched_task_input_cancelled(sched_task_t* task);
  * @brief check the status of the request, which is either  working on that or not
  * @note this function is only used for testing
  * @param request the request id
+ * @param ctx The scheduler task context
  * @return if the scheduler is currently working on this (or in the pending state), or error code
  **/
 int sched_task_request_status(const sched_task_context_t* ctx, sched_task_request_t request);

@@ -2,7 +2,7 @@
  * Copyright (C) 2017, Hao Hou
  **/
 /**
- * @brief The implementation of Murmurhash 3 
+ * @brief The implementation of Murmurhash 3
  * @file utils/hash/murmurhash3.h
  **/
 #ifndef __PLUMBER_UTILS_HASH_MURMURHASH3_H__

@@ -3,7 +3,7 @@
  **/
 /**
  * @brief the PSTD servlet argument parser
- * @file pstd/include/option.h
+ * @file pstd/include/pstd/option.h
  **/
 #ifndef __PSTD_OPTION_H__
 #define __PSTD_OPTION_H__

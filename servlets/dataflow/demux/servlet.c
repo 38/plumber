@@ -22,7 +22,7 @@
 #define HASH_SIZE 31
 
 /**
- * @brief The pattern hash table 
+ * @brief The pattern hash table
  **/
 typedef struct hashnode_t {
 	uint64_t hashcode[2];     /*!< The hash code */
@@ -31,7 +31,7 @@ typedef struct hashnode_t {
 } hashnode_t;
 
 /**
- * @brief The context of the servlet 
+ * @brief The context of the servlet
  **/
 typedef struct {
 	enum {
@@ -84,7 +84,7 @@ static inline hashnode_t* _hashnode_new(const char* str, pipe_t pipe, uint32_t s
 static inline uint32_t _hash_get_slot(const uint64_t* hashcode)
 {
 	static const uint32_t multipler = (2 * (uint32_t)((1ull << 63) % HASH_SIZE)) % HASH_SIZE;
-	return (uint32_t)(multipler * hashcode[1] + hashcode[0]) % HASH_SIZE;  
+	return (uint32_t)(multipler * hashcode[1] + hashcode[0]) % HASH_SIZE;
 }
 
 /**
@@ -97,8 +97,8 @@ static inline uint32_t _hash_get_slot(const uint64_t* hashcode)
 static inline int _hashnode_insert(context_t* ctx, const char* str, pipe_t pipe)
 {
 	hashnode_t* node = _hashnode_new(str, pipe, ctx->seed);
-	if(NULL == node) 
-		ERROR_RETURN_LOG(int, "Cannot create new node for the hash table");
+	if(NULL == node)
+	    ERROR_RETURN_LOG(int, "Cannot create new node for the hash table");
 
 	uint32_t slot = _hash_get_slot(node->hashcode);
 
@@ -123,11 +123,11 @@ static inline const hashnode_t* _hash_find(const context_t* ctx, const char* str
 	uint32_t slot = _hash_get_slot(hashcode);
 	const hashnode_t* ret;
 
-	for(ret = ctx->pattern_table.string[slot]; 
-		NULL != ret && 
-		ret->hashcode[0] != hashcode[0] && 
-		ret->hashcode[1] != hashcode[1]; 
-		ret = ret->next);
+	for(ret = ctx->pattern_table.string[slot];
+	    NULL != ret &&
+	    ret->hashcode[0] != hashcode[0] &&
+	    ret->hashcode[1] != hashcode[1];
+	    ret = ret->next);
 
 	return ret;
 }
@@ -135,7 +135,7 @@ static inline const hashnode_t* _hash_find(const context_t* ctx, const char* str
 /**
  * @brief Parse the servlet initialization options
  * @param idx The option index in the option definition array
- * @param params The array of the pointers 
+ * @param params The array of the pointers
  * @param nparams How many parameters for this option
  * @param options The option definition array
  * @param n How many opitions defined in the option definition array
@@ -157,11 +157,11 @@ static int _set_option(uint32_t idx, pstd_option_param_t* params, uint32_t npara
 		    goto SET_MODE;
 		case 'n':
 		    if(nparams != 2 || params[0].type != PSTD_OPTION_STRING ||
-			   params[1].type != PSTD_OPTION_TYPE_INT)
+		       params[1].type != PSTD_OPTION_TYPE_INT)
 		        ERROR_RETURN_LOG(int, "--numeric <field_expr> <num-outputs>");
 		    expected_mode = MODE_NUMERIC;
 		    field = params[0].strval;
-			ctx->ncond = (uint32_t)params[1].intval;
+		    ctx->ncond = (uint32_t)params[1].intval;
 SET_MODE:
 		    if(ctx->mode != MODE_MATCH)
 		        ERROR_RETURN_LOG(int, "Only one mode specifier can be passed");
@@ -210,10 +210,10 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	uint32_t opt_rc = pstd_option_parse(opts, sizeof(opts) / sizeof(opts[0]), argc, argv, ctx);
 
 	if(ERROR_CODE(uint32_t) == opt_rc)
-		ERROR_RETURN_LOG(int, "Invalid servlet initialization string, for more information, use pstest -l %s --help", argv[0]);
+	    ERROR_RETURN_LOG(int, "Invalid servlet initialization string, for more information, use pstest -l %s --help", argv[0]);
 
 	if(ctx->mode  != MODE_NUMERIC)
-		ctx->ncond = argc - opt_rc;
+	    ctx->ncond = argc - opt_rc;
 
 	if(ctx->mode == MODE_NUMERIC)
 	{
@@ -225,13 +225,13 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 
 	if(ERROR_CODE(pipe_t) == (ctx->data = pipe_define("data", PIPE_INPUT, "$Tdata")))
 	    ERROR_RETURN_LOG(int, "Cannot define the data input pipe");
-	
+
 	if(NULL == (ctx->output = (pipe_t*)malloc(sizeof(ctx->output[0]) * (ctx->ncond + 1))))
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the output array");
-	
+
 	ctx->pattern_table.generic = NULL;
 	ctx->type_model = NULL;
-	
+
 	/* We just initalize the seed with the nanosecond number in the startup timestamp, which is quite random */
 	struct timespec ts;
 	if(clock_gettime(CLOCK_REALTIME, &ts) < 0)
@@ -245,15 +245,15 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	switch(ctx->mode)
 	{
 		case MODE_REGEX:
-			if(NULL == (ctx->pattern_table.regex = (regex_t*)calloc(ctx->ncond, sizeof(ctx->pattern_table.regex[0]))))
-				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the regular expression array");
-			break;
+		    if(NULL == (ctx->pattern_table.regex = (regex_t*)calloc(ctx->ncond, sizeof(ctx->pattern_table.regex[0]))))
+		        ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the regular expression array");
+		    break;
 		case MODE_MATCH:
-			if(NULL == (ctx->pattern_table.string = (hashnode_t**)calloc(HASH_SIZE, sizeof(hashnode_t*))))
-				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the string pattern table");
-			break;
+		    if(NULL == (ctx->pattern_table.string = (hashnode_t**)calloc(HASH_SIZE, sizeof(hashnode_t*))))
+		        ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the string pattern table");
+		    break;
 		case MODE_NUMERIC:
-			break;
+		    break;
 	}
 
 	uint32_t i;
@@ -266,22 +266,22 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 		switch(ctx->mode)
 		{
 			case MODE_REGEX:
-				snprintf(regbuf, sizeof(regbuf), "^%s$", argv[opt_rc + i]);
-				if(0 != (rc = regcomp(ctx->pattern_table.regex + i, regbuf, 0)))
-				{
+			    snprintf(regbuf, sizeof(regbuf), "^%s$", argv[opt_rc + i]);
+			    if(0 != (rc = regcomp(ctx->pattern_table.regex + i, regbuf, 0)))
+			    {
 #ifdef LOG_ERROR_ENABLED
-					char buffer[1024];
-					regerror(rc, ctx->pattern_table.regex + i, buffer, sizeof(buffer));
+				    char buffer[1024];
+				    regerror(rc, ctx->pattern_table.regex + i, buffer, sizeof(buffer));
 #endif
-					ERROR_LOG_GOTO(ERR, "Can't compile regex: %s", buffer);
-				}
-				break;
+				    ERROR_LOG_GOTO(ERR, "Can't compile regex: %s", buffer);
+			    }
+			    break;
 			case MODE_MATCH:
-				if(ERROR_CODE(int) == _hashnode_insert(ctx, argv[opt_rc + i], ctx->output[i]))
-					ERROR_LOG_GOTO(ERR, "Can't insert the pattern to hash table");
-				break;
+			    if(ERROR_CODE(int) == _hashnode_insert(ctx, argv[opt_rc + i], ctx->output[i]))
+			        ERROR_LOG_GOTO(ERR, "Can't insert the pattern to hash table");
+			    break;
 			case MODE_NUMERIC:
-				break;
+			    break;
 		}
 	}
 
@@ -292,7 +292,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	    ERROR_LOG_GOTO(ERR, "Cannot create type model");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->cond_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->cond, ctx->field)))
-		ERROR_LOG_GOTO(ERR, "Cannot get the accessor for the input type");
+	    ERROR_LOG_GOTO(ERR, "Cannot get the accessor for the input type");
 
 	return 0;
 ERR:
@@ -301,8 +301,8 @@ ERR:
 	if(ctx->pattern_table.generic != NULL)
 	{
 		if(ctx->mode == MODE_REGEX)
-			for(i = 0; i < ctx->ncond; i ++)
-				regfree(ctx->pattern_table.regex + i);
+		    for(i = 0; i < ctx->ncond; i ++)
+		        regfree(ctx->pattern_table.regex + i);
 		else if(ctx->mode == MODE_MATCH)
 		{
 			for(i =0; i < HASH_SIZE; i ++)
@@ -327,11 +327,11 @@ static inline int _exec_match(context_t* ctx, pstd_type_instance_t* inst)
 	scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->cond_acc);
 
 	if(ERROR_CODE(scope_token_t) == token)
-		ERROR_RETURN_LOG(int, "Cannot read the scope token from the cond pipe");
+	    ERROR_RETURN_LOG(int, "Cannot read the scope token from the cond pipe");
 
 	const pstd_string_t* ps = pstd_string_from_rls(token);
 	if(NULL == ps)
-		ERROR_RETURN_LOG(int, "Cannot read string from the RLS");
+	    ERROR_RETURN_LOG(int, "Cannot read string from the RLS");
 
 	const char* str = pstd_string_value(ps);
 	if(NULL == str) ERROR_RETURN_LOG(int, "Cannot get the string value");
@@ -359,15 +359,15 @@ static inline int _exec_regex(context_t* ctx, pstd_type_instance_t* inst)
 	scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->cond_acc);
 
 	if(ERROR_CODE(scope_token_t) == token)
-		ERROR_RETURN_LOG(int, "Cannot read the scope token from the cond pipe");
+	    ERROR_RETURN_LOG(int, "Cannot read the scope token from the cond pipe");
 
 	const pstd_string_t* ps = pstd_string_from_rls(token);
 	if(NULL == ps)
-		ERROR_RETURN_LOG(int, "Cannot read string from the RLS");
+	    ERROR_RETURN_LOG(int, "Cannot read string from the RLS");
 
 	const char* str = pstd_string_value(ps);
 	if(NULL == str) ERROR_RETURN_LOG(int, "Cannot get the string value");
-	
+
 	pipe_t picked = ctx->output[ctx->ncond];
 
 	uint32_t i;
@@ -391,7 +391,7 @@ static inline int _exec_regex(context_t* ctx, pstd_type_instance_t* inst)
 static inline int _exec(void* ctxbuf)
 {
 	context_t* ctx = (context_t*)ctxbuf;
-	
+
 	int rc;
 	size_t tisz = pstd_type_instance_size(ctx->type_model);
 	if(ERROR_CODE(size_t) == tisz) ERROR_RETURN_LOG(int, "Cannot get the size of the type model");
@@ -402,21 +402,21 @@ static inline int _exec(void* ctxbuf)
 	switch(ctx->mode)
 	{
 		case MODE_MATCH:
-			rc = _exec_match(ctx, inst);
-			break;
+		    rc = _exec_match(ctx, inst);
+		    break;
 		case MODE_NUMERIC:
-			rc = _exec_numeric(ctx, inst);
-			break;
+		    rc = _exec_numeric(ctx, inst);
+		    break;
 		case MODE_REGEX:
-			rc = _exec_regex(ctx, inst);
-			break;
+		    rc = _exec_regex(ctx, inst);
+		    break;
 		default:
-			LOG_ERROR("Invalid servlet mode");
-			rc = ERROR_CODE(int);
+		    LOG_ERROR("Invalid servlet mode");
+		    rc = ERROR_CODE(int);
 	}
 
 	if(ERROR_CODE(int) == pstd_type_instance_free(inst))
-		ERROR_RETURN_LOG(int, "Cannot dipsoes the type instance");
+	    ERROR_RETURN_LOG(int, "Cannot dipsoes the type instance");
 
 	return rc;
 }
@@ -429,13 +429,13 @@ static inline int _unload(void* ctxbuf)
 
 	if(NULL != ctx->output) free(ctx->output);
 	if(NULL != ctx->type_model && ERROR_CODE(int) == pstd_type_model_free(ctx->type_model))
-		rc = ERROR_CODE(int);
-	
+	    rc = ERROR_CODE(int);
+
 	if(ctx->pattern_table.generic != NULL)
 	{
 		if(ctx->mode == MODE_REGEX)
-			for(i = 0; i < ctx->ncond; i ++)
-				regfree(ctx->pattern_table.regex + i);
+		    for(i = 0; i < ctx->ncond; i ++)
+		        regfree(ctx->pattern_table.regex + i);
 		else if(ctx->mode == MODE_MATCH)
 		{
 			for(i = 0; i < HASH_SIZE; i ++)

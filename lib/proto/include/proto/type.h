@@ -7,7 +7,7 @@
  *         type. It allows name alias, inheritance, primitive types and paddings. <br/>
  *         The protocol type can be load/dump from a file. And this is used as the basic data structure
  *         of the protocol system.
- * @file proto/include/type.h
+ * @file proto/include/proto/type.h
  **/
 
 #ifndef __PROTO_TYPE_H__

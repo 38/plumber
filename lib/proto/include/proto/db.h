@@ -6,7 +6,7 @@
  * @brief The protocol type database system
  * @details This is the system that actually manages all the type registered in the
  *         system. It will use a cache for all the loaded types
- * @file proto/include/db.h
+ * @file proto/include/proto/db.h
  **/
 
 #ifndef __PROTO_DB_H_

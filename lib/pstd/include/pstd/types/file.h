@@ -7,7 +7,7 @@
  *         reference of a file on the filesystem. By having the file RLS, we will be able
  *         to avoid passing the file content through the pipe (especially for the large files)
  *         Also, the file RLS can be cached, so that we can avoid disk IO in this way
- * @file pstd/include/types/file.h
+ * @file pstd/include/pstd/types/file.h
  **/
 #ifndef __PSTD_TYPE_FILE_H__
 #define __PSTD_TYPE_FILE_H__

@@ -4,7 +4,7 @@
 
 /**
  * @brief The language binding with C
- * @file proto/include/protoapi.h
+ * @file proto/include/proto/protoapi.h
  **/
 #ifndef __PROTO_PROTOAPI_H__
 #define __PROTO_PROTOAPI_H__

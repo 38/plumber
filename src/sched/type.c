@@ -318,7 +318,7 @@ static inline int _env_merge(_env_t* env, const char* varname, char const* const
  * @param service the service
  * @param env the environment table
  * @param incomings the incoming pipe table
- * @parma incoming_count the size of incoming pipe table
+ * @param incoming_count the size of incoming pipe table
  * @return status code
  **/
 static inline int _solve_ces(const sched_service_t* service, _env_t* env, const sched_service_pipe_descriptor_t* incomings, uint32_t incoming_count)
@@ -544,7 +544,7 @@ ERR:
 
 /**
  * @brief perform type checking and inference on the given node of the given service
- * @param servic the target service
+ * @param service the target service
  * @param node the node we want to infer
  * @return status code
  **/

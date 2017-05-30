@@ -280,6 +280,7 @@ int mempool_objpool_free(mempool_objpool_t* pool)
 	return rc;
 }
 
+__attribute__((noinline))
 /**
  * @brief perform a global allocation from the global object memory pool
  * @note  this function will get min(alloc_unit, 2 * cache_limit - local_count) memory objects from the global pool.
@@ -291,7 +292,7 @@ int mempool_objpool_free(mempool_objpool_t* pool)
  * @param tlp the thread local pool we want to store the result
  * @return the number of objects that has been allocated, or error code
  **/
-__attribute__((noinline)) static uint32_t _global_alloc(mempool_objpool_t* pool, _thread_local_pool_t* tlp)
+static uint32_t _global_alloc(mempool_objpool_t* pool, _thread_local_pool_t* tlp)
 {
 	uint32_t ret = ERROR_CODE(uint32_t);
 
@@ -458,7 +459,7 @@ __attribute__((noinline)) static int _do_global_dealloc(mempool_objpool_t* pool,
 {
 	_cached_object_t* new_end = tlp->exceeded->prev;
 	if(PREDICT_FALSE(ERROR_CODE(int) == _global_dealloc(pool, tlp->exceeded, tlp->end)))
-		ERROR_RETURN_LOG(int, "Cannot deallocate the exceeded objects to the global pool");
+	    ERROR_RETURN_LOG(int, "Cannot deallocate the exceeded objects to the global pool");
 
 	tlp->exceeded = NULL;
 	tlp->end = new_end;
@@ -496,8 +497,8 @@ int _mempool_objpool_dealloc_no_check(mempool_objpool_t* pool, void* mem)
 
 	tlp->count ++;
 
-	if(PREDICT_FALSE(tlp->count > cache_limit * 2)) 
-		return _do_global_dealloc(pool, tlp, cache_limit);
+	if(PREDICT_FALSE(tlp->count > cache_limit * 2))
+	    return _do_global_dealloc(pool, tlp, cache_limit);
 
 	return 0;
 }

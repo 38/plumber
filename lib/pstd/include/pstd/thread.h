@@ -3,7 +3,7 @@
  **/
 /**
  * @brief The thread utils for pstd library
- * @file pstd/include/thread.h
+ * @file pstd/include/pstd/thread.h
  **/
 #ifndef __PSTD_THREAD_H__
 

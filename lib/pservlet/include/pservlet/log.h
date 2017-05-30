@@ -4,7 +4,7 @@
 
 /**
  * @brief the utils that is used for servlet logging
- * @file pservlet/include/log.h
+ * @file pservlet/include/pservlet/log.h
  **/
 #ifndef __LOG_H__
 #define __LOG_H__

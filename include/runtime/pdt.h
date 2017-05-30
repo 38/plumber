@@ -37,9 +37,9 @@ int runtime_pdt_free(runtime_pdt_t* table);
  * @param name the name to be added
  * @param flags the flags of this named pipe
  * @param type_expr the type expression for this pipe
- * @note  The pipe can be strong typed, and the type expression is the description for the pipe typing system. <br/>
+ * @note  The pipe can be strong typed, and the type expression is the description for the pipe typing system. <br>
  *        For each pipe, we actually have a structured data scheme. The typed header comes first, and then a blob data
- *        body section following behind. </br>
+ *        body section following behind. <br>
  *        For the pipe without strong typing, it can be treated as a strong-typed pipe with a header of 0 length. <br/>
  *        The type expression can be either a concrete type or a type pattern. The concrete type is actually a typename
  *        for the libproto centrialized type system. For example, <br/>
@@ -129,6 +129,7 @@ const char* runtime_pdt_type_expr(const runtime_pdt_t* table, runtime_api_pipe_i
  * @param table the target PDT
  * @param pid the pipe ID
  * @param callback the callback function
+ * @param data The additional data passed to the hook callback
  * @return status code
  **/
 int runtime_pdt_set_type_hook(runtime_pdt_t* table, runtime_api_pipe_id_t pid, runtime_api_pipe_type_callback_t callback, void* data);

@@ -5,7 +5,7 @@
  * @brief The request local scope
  * @details This is the wrapper function for the request local scope infrastructure, which manages the
  *          pointers shared among the tasks of the same request
- * @file pstd/include/scope.h
+ * @file pstd/include/pstd/scope.h
  **/
 #ifndef __PSTD_SCOPE_H__
 #define __PSTD_SCOPE_H__

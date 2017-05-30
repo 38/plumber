@@ -3,7 +3,7 @@
  **/
 /**
  * @brief the assertion utils
- * @file proto/include/assert.h
+ * @file proto/include/proto/assert.h
  **/
 #ifndef __PROTO_ASSERT_H__
 #define __PROTO_ASSERT_H__
