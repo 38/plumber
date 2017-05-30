@@ -13,6 +13,8 @@
 
 #include <v8engine.hpp>
 
+#include <config.h>
+
 #include <pservlet.h>
 #include <pstd.h>
 
@@ -419,12 +421,13 @@ char* Servlet::Context::load_script_from_file(const char* filename, const char* 
 	const char* script_path = NULL;
 	char path_buffer[PATH_MAX];
 	struct stat stat_res;
+	const char* paths[] = {secure_getenv("JSPATH"), INSTALL_PREFIX"/lib/plumber/javascript", NULL};
 	if(access(filename, R_OK) != F_OK || lstat(filename, &stat_res) != 0 || !S_ISREG(stat_res.st_mode))
 	{
-		const char* js_path = secure_getenv("JSPATH");
-		size_t len = 0;
-		if(NULL != js_path)
+		for(int i = paths[0] == NULL ? 1 : 0; paths[i] != NULL; i ++)
 		{
+			const char* js_path = paths[i];
+			size_t len = 0;
 			for(const char* ptr = js_path; ; ptr ++)
 			{
 				if(*ptr == ':' || *ptr == 0)

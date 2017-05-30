@@ -130,4 +130,7 @@
 /** @brief the protodb root used for the test cases */
 #	define TEST_PROTODB_ROOT "@TESTING_PROTODB_ROOT@"
 
+/** @brief The install prefix */
+#	define INSTALL_PREFIX "@CMAKE_INSTALL_PREFIX@" 
+
 #endif

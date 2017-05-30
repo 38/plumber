@@ -90,9 +90,14 @@ _JSFUNCTION(define)
 
 	_READ_STR(name, 0);
 	_READ_I32(flags, 1);
-	_READ_STR(type_expr, 2);
 
-	args.GetReturnValue().Set((int32_t)pipe_define(name, (pipe_flags_t)flags, type_expr));
+	if(!args[2]->IsUndefined())
+	{
+		_READ_STR(type_expr, 2);
+		args.GetReturnValue().Set((int32_t)pipe_define(name, (pipe_flags_t)flags, type_expr));
+	}
+	else
+		args.GetReturnValue().Set((int32_t)pipe_define(name, (pipe_flags_t)flags, NULL));
 }
 
 _JSFUNCTION(import)
