@@ -416,6 +416,7 @@ ERR:
  **/
 static inline int _service_add_node(lang_vm_t* vm, uint32_t service_reg, uint32_t target_reg, uint32_t name_reg, uint32_t args_reg, uint32_t graphviz_reg)
 {
+	/* TODO: we need handle the virtual node case */
 	if(target_reg >= vm->num_reg)
 	    ERROR_RETURN_LOG(int, "Invalid target register");
 
@@ -638,8 +639,9 @@ CLEANUP:
  * @param pipe_reg the register for the pipe register
  * @return status code
  **/
-static inline int _service_input_output(lang_vm_t* vm, int out, uint32_t serv_reg, uint32_t node_reg, uint32_t pipe_reg)
+static inline int _service_input_output(lang_vm_t* vm, int out, uint32_t serv_reg, uint32_t node_reg, uint32_t pipe_reg, uint32_t name_reg)
 {
+	(void)name_reg;  /* TODO: setup named ports */
 	_GET_PARAM(SERVICE, serv);
 	lang_vm_service_t* service = serv_val->data.service;
 	if(service->initialized)
@@ -1583,11 +1585,13 @@ static inline int _exec_invoke(lang_vm_t* vm, uint32_t pc)
 		        ERROR_RETURN_LOG(int, "Cannot add a node");
 		    break;
 		case LANG_BYTECODE_BUILTIN_INPUT:
-		    if(ERROR_CODE(int) == _service_input_output(vm, 0, _get_param(vm, 0), _get_param(vm, 1), _get_param(vm, 2)))
+		    if(ERROR_CODE(int) == _service_input_output(vm, 0, _get_param(vm, 0), _get_param(vm, 1), _get_param(vm, 2), 
+						                                vector_length(vm->params) > 3 ? _get_param(vm, 3) : ERROR_CODE(uint32_t)))
 		        ERROR_RETURN_LOG(int, "Cannot set input");
 		    break;
 		case LANG_BYTECODE_BUILTIN_OUTPUT:
-		    if(ERROR_CODE(int) == _service_input_output(vm, 1, _get_param(vm, 0), _get_param(vm, 1), _get_param(vm, 2)))
+		    if(ERROR_CODE(int) == _service_input_output(vm, 1, _get_param(vm, 0), _get_param(vm, 1), _get_param(vm, 2),
+						                                vector_length(vm->params) > 3 ? _get_param(vm, 3) : ERROR_CODE(uint32_t)))
 		        ERROR_RETURN_LOG(int, "Cannot set output");
 		    break;
 		case LANG_BYTECODE_BUILTIN_GRAPHVIZ:

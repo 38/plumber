@@ -582,11 +582,12 @@ static inline int _process_pending_list(lang_compiler_t* compiler, _service_grap
                                         _service_graph_pending_list_t* list, uint32_t left_node, uint32_t right_node)
 {
 	_service_graph_pending_list_t out = {NULL, NULL};
-	uint32_t result_reg = ERROR_CODE(uint32_t);
-	uint32_t sour_pipe_reg = ERROR_CODE(uint32_t);
-	uint32_t dest_pipe_reg = ERROR_CODE(uint32_t);
 	for(; NULL != list->head; )
 	{
+		uint32_t result_reg = ERROR_CODE(uint32_t);
+		uint32_t sour_pipe_reg = ERROR_CODE(uint32_t);
+		uint32_t dest_pipe_reg = ERROR_CODE(uint32_t);
+		uint32_t name_reg =  ERROR_CODE(uint32_t);
 		_service_graph_pending_edge_t* ptr = list->head;
 		list->head = list->head->next;
 
@@ -652,11 +653,22 @@ static inline int _process_pending_list(lang_compiler_t* compiler, _service_grap
 			_REGALLOC(dest_pipe_reg, goto LOOP_ERR);
 			_INS_2OP(move, _OP(REG,reg, dest_pipe_reg), _OP(STRID, strid, ptr->destination_pipe), goto LOOP_ERR);
 			_INS_1OP(pusharg, _OP(REG, reg, dest_pipe_reg), goto LOOP_ERR);
+
+			/* If this is a named pipe, so we push the name argument */
+			if(ptr->source_pipe != ERROR_CODE(uint32_t))
+			{
+				_REGALLOC(name_reg, goto LOOP_ERR);
+				_INS_2OP(move, _OP(REG, reg, name_reg), _OP(STRID, strid, ptr->source_pipe), goto LOOP_ERR);
+				_INS_1OP(pusharg, _OP(REG, reg, name_reg), goto LOOP_ERR);
+			}
+
 			/* invoke */
 			_REGALLOC(result_reg, goto LOOP_ERR);
 			_INS_2OP(invoke, _OP(REG, reg, result_reg), _OP(BUILTIN, builtin, LANG_BYTECODE_BUILTIN_INPUT), goto LOOP_ERR);
 			_REGFREE(result_reg, goto LOOP_ERR);
 			_REGFREE(dest_pipe_reg, goto LOOP_ERR);
+			_REGFREE(name_reg, goto LOOP_ERR);
+			
 			if(!ptr->stack) free(ptr);
 		}
 		else if(ptr->type == _OUTPUT && ptr->source_node != _UNDETERMINED)
@@ -670,11 +682,22 @@ static inline int _process_pending_list(lang_compiler_t* compiler, _service_grap
 			_REGALLOC(sour_pipe_reg, goto LOOP_ERR);
 			_INS_2OP(move, _OP(REG,reg, sour_pipe_reg), _OP(STRID, strid, ptr->source_pipe), goto LOOP_ERR);
 			_INS_1OP(pusharg, _OP(REG, reg, sour_pipe_reg), goto LOOP_ERR);
+
+			/* If this is a named pipe, so we push the name argument */
+			if(ptr->source_pipe != ERROR_CODE(uint32_t))
+			{
+				_REGALLOC(name_reg, goto LOOP_ERR);
+				_INS_2OP(move, _OP(REG, reg, name_reg), _OP(STRID, strid, ptr->source_pipe), goto LOOP_ERR);
+				_INS_1OP(pusharg, _OP(REG, reg, name_reg), goto LOOP_ERR);
+			}
+
 			/* invoke */
 			_REGALLOC(result_reg, goto LOOP_ERR);
 			_INS_2OP(invoke, _OP(REG, reg, result_reg), _OP(BUILTIN, builtin, LANG_BYTECODE_BUILTIN_OUTPUT), goto LOOP_ERR);
 			_REGFREE(result_reg, goto LOOP_ERR);
 			_REGFREE(sour_pipe_reg, goto LOOP_ERR);
+			_REGFREE(name_reg, goto LOOP_ERR);
+
 			if(!ptr->stack) free(ptr);
 		}
 		else
@@ -696,6 +719,7 @@ LOOP_ERR:
 		_REGFREE(sour_pipe_reg, /* NOP */);
 		_REGFREE(dest_pipe_reg, /* NOP */);
 		_REGFREE(result_reg, /* NOP */);
+		_REGFREE(name_reg, /* NOP */);
 		goto ERR;
 	}
 	*list = out;
@@ -827,9 +851,17 @@ static inline int _service_graph_pipe_input(lang_compiler_t* compiler, _service_
                                             _service_graph_pending_list_t* result, _service_graph_pending_edge_t* buf)
 {
 	_consume(compiler, 1);
-	/* check we have ()-> */
+
+	uint32_t nameid = ERROR_CODE(uint32_t);
+	if(LANG_LEX_TOKEN_STRING == _peek(compiler, 0)->type)
+	{
+		if(ERROR_CODE(uint32_t) == (nameid = lang_bytecode_table_acquire_string_id(compiler->bc_tab, _peek(compiler, 0)->value.s)))
+			_INTERNAL_ERROR_LOG("Cannot acquirer the string id from the bytecode table", return ERROR_CODE(int));
+		_consume(compiler, 1);
+	}
+
 	if(LANG_LEX_TOKEN_RPARENTHESIS != _peek(compiler, 0)->type || LANG_LEX_TOKEN_ARROW != _peek(compiler, 1)->type)
-	    _COMPILE_ERROR("`() ->' is expected", return ERROR_CODE(int));
+	    _COMPILE_ERROR("Either input port or named port is expected", return ERROR_CODE(int));
 	_consume(compiler, 2);
 
 	const lang_lex_token_t* token = _peek(compiler, 0);
@@ -843,6 +875,7 @@ static inline int _service_graph_pipe_input(lang_compiler_t* compiler, _service_
 
 	_consume(compiler, 1);
 	buf->type = _INPUT;
+	buf->source_pipe = nameid;
 	buf->destination_node = _UNDETERMINED;
 	buf->destination_pipe = pipe;
 	buf->stack = 1;
@@ -873,6 +906,14 @@ static inline int _service_graph_pipe_output(lang_compiler_t* compiler, _service
 	/* we assume that the caller has alread examined it must be a output pipe */
 	_consume(compiler, 3);
 
+	uint32_t nameid = ERROR_CODE(uint32_t);
+	if(_peek(compiler, 0)->type == LANG_LEX_TOKEN_STRING)
+	{
+		if(ERROR_CODE(uint32_t) == (nameid = lang_bytecode_table_acquire_string_id(compiler->bc_tab, _peek(compiler, 0)->value.s)))
+			_INTERNAL_ERROR_LOG("Cannot acquirer the string id from the bytecode table", return ERROR_CODE(int));
+		_consume(compiler, 1);
+	}
+
 	if(_peek(compiler, 0)->type == LANG_LEX_TOKEN_RPARENTHESIS)
 	    _consume(compiler, 1);
 	else
@@ -881,6 +922,7 @@ static inline int _service_graph_pipe_output(lang_compiler_t* compiler, _service
 	buf->type = _OUTPUT;
 	buf->source_node = left_node;
 	buf->source_pipe = pipe;
+	buf->destination_pipe = nameid;
 	buf->stack = 1;
 	buf->level = context->level;
 	buf->next = NULL;

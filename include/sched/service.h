@@ -97,6 +97,17 @@ sched_service_node_id_t sched_service_buffer_add_node(sched_service_buffer_t* bu
 sched_service_node_id_t sched_service_buffer_add_virtual_node(sched_service_buffer_t* buffer, const sched_service_buffer_t* vnode);
 
 /**
+ * @brief Add a named input for the service buffer, this is used when the service buffer is using as a virtual node
+ * @param buffer The service buffer we want to set the virtual named input
+ * @param name The name of the service
+ * @param is_input Indicates if this virtual named port is a input node
+ * @param nid The node id 
+ * @param pid The pipe id, which should be a input pipe
+ * @return A pipe id which used to identify which virtual named input we are talking about, ERROR_CODE possible
+ **/
+runtime_api_pipe_id_t sched_service_buffer_add_named_port(sched_service_buffer_t* buffer, const char* name, int is_input, sched_service_node_id_t nid, runtime_api_pipe_id_t pid);
+
+/**
  * @brief add a pipe between two nodes
  * @param buffer the target service buffer
  * @param desc the pipe
