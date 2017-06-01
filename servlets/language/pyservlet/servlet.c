@@ -340,6 +340,26 @@ static inline int _init_ppi()
 	Py_Initialize();
 	PyEval_InitThreads();
 
+	/* Let's make the python interpreter able to find what we need */
+	PyObject* path = PySys_GetObject("path");
+	if(NULL == path)
+		ERROR_RETURN_LOG(int, "Cannot get the Python Script search path");
+	else if(!PyList_Check(path))
+		ERROR_RETURN_LOG(int, "Unexpected type of sys.path, list expected");
+	else
+	{
+		PyObject* servlet_lib_path = PyString_FromString(INSTALL_PREFIX"/lib/plumber/python");
+
+		if(servlet_lib_path == NULL)
+			ERROR_RETURN_LOG(int, "Cannot create new string for the servlet lib path");
+
+		if(0 != PyList_Append(path, servlet_lib_path))
+		{
+			Py_DECREF(servlet_lib_path);
+			ERROR_RETURN_LOG(int, "Cannot append the additional library path to the Python library path search dir");
+		}
+	}
+
 	static PyMethodDef methods[] = {
 		/* Pipe manipulation */
 		{"pipe_define",    _pyservlet_define,     METH_VARARGS,     "Define a named pipe"},
@@ -378,6 +398,7 @@ static inline int _init_ppi()
 		PyModule_AddIntConstant(_module, "LOG_TRACE",   TRACE);
 		PyModule_AddIntConstant(_module, "LOG_DEBUG",   DEBUG);
 	}
+		
 
 	if(NULL == _module)
 	{
