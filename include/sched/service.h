@@ -20,6 +20,19 @@ typedef struct _sched_cnode_info_t sched_cnode_info_t;
 typedef uint32_t sched_service_node_id_t;
 
 /**
+ * @brief Indicates this node is a virtual node, which is made up by 
+ *        connecting different node into a service buffer
+ **/
+#define SCHED_SERVICE_VNODE_MASK (0x80000000u)
+
+/**
+ * @brief Check if current node id stands for a virtual node
+ * @param node the node ID
+ * @return If the node is a virtual node
+ **/
+#define SCHED_SERVICE_IS_VNODE(node) ((ndoe)&SCHED_SERVICE_IS_VNODE)
+
+/**
  * @brief define a service
  **/
 typedef struct _sched_service_t sched_service_t;
@@ -73,6 +86,15 @@ int sched_service_buffer_allow_reuse_servlet(sched_service_buffer_t* buffer);
  * @return the node ID or negative error code
  **/
 sched_service_node_id_t sched_service_buffer_add_node(sched_service_buffer_t* buffer, runtime_stab_entry_t sid);
+
+/**
+ * @brief Add a new virtual node which is a reference to another service buffer
+ * @note  Service buffer can also be used as a logic node which is actually serveral different connected node
+ * @param buffer the service buffer to connect
+ * @param vnode the virtual node
+ * @return The node id, the node ID should be the ID that is used for virtual node only 
+ **/
+sched_service_node_id_t sched_service_buffer_add_virtual_node(sched_service_buffer_t* buffer, const sched_service_buffer_t* vnode);
 
 /**
  * @brief add a pipe between two nodes
