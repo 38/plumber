@@ -108,6 +108,14 @@ sched_service_node_id_t sched_service_buffer_add_virtual_node(sched_service_buff
 runtime_api_pipe_id_t sched_service_buffer_add_named_port(sched_service_buffer_t* buffer, const char* name, int is_input, sched_service_node_id_t nid, runtime_api_pipe_id_t pid);
 
 /**
+ * @brief Get the name of the virtual node port from the pipe id
+ * @param buffer The target service buffer
+ * @param pipe   The pipe ID
+ * @return The name of the port, NULL if there's any error
+ **/
+const char* sched_service_buffer_get_port_name(const sched_service_buffer_t* buffer, runtime_api_pipe_id_t pipe);
+
+/**
  * @brief add a pipe between two nodes
  * @param buffer the target service buffer
  * @param desc the pipe
