@@ -405,10 +405,9 @@ int Servlet::Context::setup(const char* filename, uint32_t argc, char const * co
 
 int Servlet::Context::ensure_thread_ready()
 {
-	if(NULL == pstd_thread_local_get(_thread_context))
-	    ERROR_RETURN_LOG(int, "The thread local context is not initialized");
+	void* ctx = _thread_context_new(0, this);
 
-	return 0;
+	return _thread_context_free(ctx, this);
 }
 
 /******************************** Static Methods **************************************************/

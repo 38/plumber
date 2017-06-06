@@ -47,7 +47,7 @@ int exec(void* args)
 	pstd_string_t* str = pstd_string_new(0);
 #endif
 
-	int written = 0;
+	int written = 0, has_user_agent = 0;
 	while((rc = pstd_bio_getc(in, &ch)) > 0)
 	{
 		written ++;
@@ -70,6 +70,7 @@ int exec(void* args)
 #else
 				pstd_string_write(str, &ch, 1);
 #endif
+				has_user_agent = 1;
 			}
 		}
 		else if(found > 1)
@@ -78,6 +79,15 @@ int exec(void* args)
 			else found = 2;
 			if(found >= 6) break;
 		}
+	}
+
+	if(!has_user_agent)
+	{
+#ifdef NO_SCOPE_PTR 
+		pstd_bio_write(out, "Unknown", 7);
+#else
+		pstd_string_write(str, "Unknown", 7);
+#endif
 	}
 
 #ifndef NO_SCOPE_PTR

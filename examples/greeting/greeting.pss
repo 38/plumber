@@ -3,6 +3,7 @@ insmod "mem_pipe";
 insmod "pssm";
 runtime.servlet.path = ".";
 scheduler.worker.default_itc_pipe = "pipe.mem"
+scheduler.worker.nthreads = 8
 
 start {
 	reqparse := "reqparse";
