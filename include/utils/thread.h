@@ -279,4 +279,15 @@ void* thread_pset_acquire(thread_pset_t* pset);
  **/
 thread_type_t thread_get_current_type();
 #	endif
+
+#	ifdef STACK_SIZE
+/**
+ * @brief Start the main function with an aligned stack
+ * @param main The main function
+ * @param argc The number of argument
+ * @param argc The argument array
+ * @return the exit code
+ **/
+int thread_start_with_aligned_stack(int (*main)(int argc, char** argv), int argc, char** argv);
+#	endif
 #endif

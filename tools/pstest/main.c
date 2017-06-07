@@ -9,6 +9,7 @@
 #include <utils/log.h>
 #include <error.h>
 #include <module/builtins.h>
+#include <utils/thread.h>
 itc_module_type_t mod_file;
 
 int list = 0;
@@ -261,7 +262,18 @@ void run_task(uint32_t argc, char const* const* argv)
 	}
 }
 
+#ifndef STACK_SIZE
 int main(int argc, char** argv)
+#else
+int _program(int argc, char** argv);
+
+int main(int argc, char** argv)
+{
+	return thread_start_with_aligned_stack(_program, argc, argv); 
+}
+
+int _program(int argc, char** argv)
+#endif
 {
 	int opt_idx, c, current = 1;
 	for(;(c = getopt_long(argc, argv, "p:s:hlv", _options, &opt_idx)) >= 0;)
