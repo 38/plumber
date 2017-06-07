@@ -130,6 +130,8 @@ _JSFUNCTION(import)
 
 	int rc = Servlet::Context::import_script(isolate, script, filename);
 
+	if(NULL != script) delete[] script;
+
 	if(ERROR_CODE(int) == rc)
 	    return;
 }

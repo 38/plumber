@@ -85,7 +85,9 @@ __attribute__((noinline, used)) static int arch_switch_stack(void* baseaddr, siz
 {
 	register void* rsp   asm ("rsp");
 	register int   rc    asm ("eax");
-	void volatile ** stack = (void volatile **)(((uintptr_t)baseaddr) + size - 2 * sizeof(void*));
+	size_t offset = sizeof(void*);
+	offset = offset + ((((~offset)&0xf) + 1)&0xf);
+	void volatile ** stack = (void volatile **)(((uintptr_t)baseaddr) + size - offset);
 	stack[1] = rsp;
 	asm volatile (
 		"movq %3, %%rsp\n"

@@ -37,6 +37,14 @@ struct _ScopeWatcher {
 	T* _ptr;
 };
 
+template <typename T>
+struct _ScopeArrayWatcher {
+	_ScopeArrayWatcher(T* ptr) : _ptr(ptr) {}
+	~ _ScopeArrayWatcher() { delete[] _ptr; }
+	private:
+	T* _ptr;
+};
+
 static v8::Platform* _platform = NULL;
 static uint32_t _init_count = 0;
 static pstd_thread_local_t* _isolate_collection;
@@ -246,7 +254,7 @@ void* Servlet::Context::thread_init()
 			if(func.IsEmpty()) _E("init is not a function");
 
 			v8::Handle<v8::Value>* args = new v8::Handle<v8::Value>[_argc];
-			_ScopeWatcher<v8::Handle<v8::Value> > scope_watcher(args);
+			_ScopeArrayWatcher<v8::Handle<v8::Value> > scope_watcher(args);
 
 			for(uint32_t i = 0; i < _argc; i ++)
 			    args[i] = v8::String::NewFromUtf8(isolate, _argv[i]);
