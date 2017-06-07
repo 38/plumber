@@ -1,5 +1,7 @@
-find_file(PLUMBER_V8_CONFIG bin/plumber-v8-config 
-	      PATHS ${PLUMBER_V8_PREFIX})
+unset(PLUMBER_V8_CONFIG CACHE)
+find_file(PLUMBER_V8_CONFIG plumber-v8-config 
+		  PATHS ${PLUMBER_V8_PREFIX}/bin
+		  NO_DEFAULT_PATH)
 
 if(NOT "${build_javascript}" STREQUAL "yes")
 	set(build_javascript "no")
