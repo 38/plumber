@@ -83,7 +83,7 @@ int exec(void* args)
 
 	if(!has_user_agent)
 	{
-#ifdef NO_SCOPE_PTR 
+#ifdef NO_SCOPE_PTR
 		pstd_bio_write(out, "Unknown", 7);
 #else
 		pstd_string_write(str, "Unknown", 7);

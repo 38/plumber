@@ -348,7 +348,7 @@ int thread_run_test_main(thread_test_main_t func)
 	free(ret);
 
 	if(NULL == rc) return -1;
-	return 0; 
+	return 0;
 ERR:
 	free(ret);
 	return -1;
@@ -510,7 +510,7 @@ const char* thread_type_name(thread_type_t type, char* buf, size_t size)
 int thread_start_with_aligned_stack(int (*main)(int argc, char** argv), int argc, char** argv)
 {
 	static thread_t th = {};
-	
+
 	uintptr_t offset = (STACK_SIZE - ((uintptr_t)th.mem) % STACK_SIZE) % STACK_SIZE;
 	if(offset >= sizeof(thread_stack_t))
 	    th.stack = (thread_stack_t*)(th.mem + offset - sizeof(thread_stack_t));
@@ -525,7 +525,7 @@ int thread_start_with_aligned_stack(int (*main)(int argc, char** argv), int argc
 		th.stack->id = _next_thread_id;
 	} while(!__sync_bool_compare_and_swap(&_next_thread_id, th.stack->id, th.stack->id + 1));
 
-	
+
 	return arch_switch_stack(th.stack->base, STACK_SIZE, main, argc, argv);
 }
 #endif

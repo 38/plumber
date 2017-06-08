@@ -82,7 +82,7 @@ static inline void arch_atomic_sw_assignment_u32(uint32_t* var, uint32_t val)
  * @return status code
  **/
 
-__attribute__((noinline, used)) static int arch_switch_stack(void* baseaddr, size_t size, int (*main)(int, char **), int argc, char** argv) 
+__attribute__((noinline, used)) static int arch_switch_stack(void* baseaddr, size_t size, int (*main)(int, char **), int argc, char** argv)
 {
 
 	size_t offset = sizeof(void*);
@@ -92,10 +92,10 @@ __attribute__((noinline, used)) static int arch_switch_stack(void* baseaddr, siz
 	int rc;
 	/* Because clang do not support named register variables, we need handle it differently */
 	asm volatile (
-		"movq %%rsp, (%0)\n"
-		:
-		: "r"(stack)
-		:
+	    "movq %%rsp, (%0)\n"
+:
+	    : "r"(stack)
+:
 	);
 #else
 	register void* rsp   asm ("rsp");
@@ -103,22 +103,22 @@ __attribute__((noinline, used)) static int arch_switch_stack(void* baseaddr, siz
 	stack[0] = rsp;
 #endif
 	asm volatile (
-		"movq %3, %%rsp\n"
-		"\tmovl %0, %%edi\n"
-		"\tmovq %1, %%rsi\n"
-		"\tcall  *%2\n"
-		"\tpop %%rdx\n"
-		"\tmovq %%rdx, %%rsp\n"
-		: 
-		: "r"(argc), "r"(argv), "r"(main), "r"(stack)
-		: "edi", "rsi", "rdx"
+	    "movq %3, %%rsp\n"
+	    "\tmovl %0, %%edi\n"
+	    "\tmovq %1, %%rsi\n"
+	    "\tcall  *%2\n"
+	    "\tpop %%rdx\n"
+	    "\tmovq %%rdx, %%rsp\n"
+:
+	    : "r"(argc), "r"(argv), "r"(main), "r"(stack)
+	    : "edi", "rsi", "rdx"
 	);
 #ifdef __clang__
 	asm volatile (
-		"movl %%eax, %0"
-		: "=r"(rc)
-		:
-		:
+	    "movl %%eax, %0"
+	    : "=r"(rc)
+:
+:
 	);
 #endif
 	return rc;

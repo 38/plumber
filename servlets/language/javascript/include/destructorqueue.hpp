@@ -4,7 +4,7 @@
 
 /**
  * @brief The callback function queue
- * @details Currently, V8 may crash if we call a javascript function during GC. 
+ * @details Currently, V8 may crash if we call a javascript function during GC.
  *          So we need a queue put all the destructor in the queue and run it later
  * @file javascript/include/destructorqueue.hpp
  **/
@@ -44,7 +44,7 @@ namespace Servlet {
 		DestructorQueue();
 
 		/**
-		 * @brief dispose a used queue 
+		 * @brief dispose a used queue
 		 **/
 		~DestructorQueue();
 
@@ -53,10 +53,10 @@ namespace Servlet {
 		 * @param desc The desctructor
 		 * @return status code
 		 **/
-		int add(v8::Persistent<v8::Function>* desc); 
+		int add(v8::Persistent<v8::Function>* desc);
 
 		/**
-		 * @brief Flush the queue, execute and dispose all the registered callbacks 
+		 * @brief Flush the queue, execute and dispose all the registered callbacks
 		 * @return status code
 		 **/
 		int flush();

@@ -132,7 +132,7 @@ int _program(int argc, char** argv);
 
 int main(int argc, char** argv)
 {
-	return thread_start_with_aligned_stack(_program, argc, argv); 
+	return thread_start_with_aligned_stack(_program, argc, argv);
 }
 
 int _program(int argc, char** argv)

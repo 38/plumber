@@ -117,7 +117,7 @@ static inline void* _thread_dqueue_new(uint32_t tid, const void* data)
 static inline int _thread_dqueue_free(void* mem, const void* data)
 {
 	(void)data;
-	
+
 	Servlet::DestructorQueue* queue = (Servlet::DestructorQueue*)mem;
 
 	delete queue;
@@ -405,7 +405,7 @@ int Servlet::Context::setup(const char* filename, uint32_t argc, char const * co
 			pstd_thread_local_free(_isolate_collection);
 			ERROR_RETURN_LOG(int, "Cannot create thread local object pool");
 		}
-	
+
 		if(NULL == (_thread_descturctor_queues = pstd_thread_local_new(_thread_dqueue_new, _thread_dqueue_free, this)))
 		{
 			pstd_thread_local_free(_isolate_collection);
@@ -442,9 +442,9 @@ int Servlet::Context::setup(const char* filename, uint32_t argc, char const * co
 }
 
 int Servlet::Context::ensure_thread_ready()
-{       
+{
 	if(NULL == pstd_thread_local_get(_thread_context))
-		ERROR_RETURN_LOG(int, "The thread local context is not initialized");
+	    ERROR_RETURN_LOG(int, "The thread local context is not initialized");
 	return 0;
 }
 

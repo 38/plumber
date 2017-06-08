@@ -98,7 +98,7 @@ _JSFUNCTION(define)
 		args.GetReturnValue().Set((int32_t)pipe_define(name, (pipe_flags_t)flags, type_expr));
 	}
 	else
-		args.GetReturnValue().Set((int32_t)pipe_define(name, (pipe_flags_t)flags, NULL));
+	    args.GetReturnValue().Set((int32_t)pipe_define(name, (pipe_flags_t)flags, NULL));
 }
 
 _JSFUNCTION(import)
@@ -209,7 +209,7 @@ struct _SentinelData {
 		Servlet::DestructorQueue* queue = Servlet::Context::get_destructor_queue();
 
 		if(NULL == queue)
-			LOG_ERROR("Cannot get the destructor queue for current thread");
+		    LOG_ERROR("Cannot get the destructor queue for current thread");
 
 		queue->flush();
 
@@ -226,9 +226,9 @@ struct _SentinelData {
 		Servlet::DestructorQueue* queue = Servlet::Context::get_destructor_queue();
 
 		if(NULL == queue)
-			LOG_ERROR("Cannot get the destructor queue for current thread");
+		    LOG_ERROR("Cannot get the destructor queue for current thread");
 		else if(queue->add(callback) == ERROR_CODE(int))
-			LOG_ERROR("Cannot add the destructor to the queue");
+		    LOG_ERROR("Cannot add the destructor to the queue");
 	}
 };
 

@@ -53,8 +53,8 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	ctx->type_model = NULL;
 
 	size_t rlen = ctx->root_len = strlen(argv[1]);
-	if(rlen >= PATH_MAX - 1) 
-		ERROR_RETURN_LOG(int, "The root path is too long");
+	if(rlen >= PATH_MAX - 1)
+	    ERROR_RETURN_LOG(int, "The root path is too long");
 	if(NULL == (ctx->root = (char*)malloc(rlen + 1)))
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the readfile root");
 	memcpy(ctx->root, argv[1], rlen + 1);
@@ -133,7 +133,7 @@ static int _exec(void* ctxbuf)
 	if(path_len + len + 1 >= sizeof(pathbuf)) goto RET_404;
 	memcpy(pathbuf + len, path, path_len + 1);
 	len += path_len;
-	
+
 	struct stat st;
 	if(pstd_fcache_stat(pathbuf, &st) == ERROR_CODE(int)) goto RET_404;
 
