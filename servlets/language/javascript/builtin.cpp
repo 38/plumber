@@ -206,6 +206,13 @@ struct _SentinelData {
 	v8::Persistent<v8::Function>* callback;
 	_SentinelData(v8::Isolate* isolate, v8::Local<v8::Object>& _sentinel, v8::Local<v8::Function>& _callback)
 	{
+		Servlet::DestructorQueue* queue = Servlet::Context::get_destructor_queue();
+
+		if(NULL == queue)
+			LOG_ERROR("Cannot get the destructor queue for current thread");
+
+		queue->flush();
+
 		sentinel.Reset(isolate, _sentinel);
 		(callback = new v8::Persistent<v8::Function>())->Reset(isolate, _callback);
 		sentinel.SetWeak<_SentinelData>(this, _on_destory, v8::WeakCallbackType::kParameter);
