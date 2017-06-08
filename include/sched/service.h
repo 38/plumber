@@ -20,6 +20,19 @@ typedef struct _sched_cnode_info_t sched_cnode_info_t;
 typedef uint32_t sched_service_node_id_t;
 
 /**
+ * @brief Indicates this node is a virtual node, which is made up by 
+ *        connecting different node into a service buffer
+ **/
+#define SCHED_SERVICE_VNODE_MASK (0x80000000u)
+
+/**
+ * @brief Check if current node id stands for a virtual node
+ * @param node the node ID
+ * @return If the node is a virtual node
+ **/
+#define SCHED_SERVICE_IS_VNODE(node) ((ndoe)&SCHED_SERVICE_IS_VNODE)
+
+/**
  * @brief define a service
  **/
 typedef struct _sched_service_t sched_service_t;
@@ -73,6 +86,34 @@ int sched_service_buffer_allow_reuse_servlet(sched_service_buffer_t* buffer);
  * @return the node ID or negative error code
  **/
 sched_service_node_id_t sched_service_buffer_add_node(sched_service_buffer_t* buffer, runtime_stab_entry_t sid);
+
+/**
+ * @brief Add a new virtual node which is a reference to another service buffer
+ * @note  Service buffer can also be used as a logic node which is actually serveral different connected node
+ * @param buffer the service buffer to connect
+ * @param vnode the virtual node
+ * @return The node id, the node ID should be the ID that is used for virtual node only 
+ **/
+sched_service_node_id_t sched_service_buffer_add_virtual_node(sched_service_buffer_t* buffer, const sched_service_buffer_t* vnode);
+
+/**
+ * @brief Add a named input for the service buffer, this is used when the service buffer is using as a virtual node
+ * @param buffer The service buffer we want to set the virtual named input
+ * @param name The name of the service
+ * @param is_input Indicates if this virtual named port is a input node
+ * @param nid The node id 
+ * @param pid The pipe id, which should be a input pipe
+ * @return A pipe id which used to identify which virtual named input we are talking about, ERROR_CODE possible
+ **/
+runtime_api_pipe_id_t sched_service_buffer_add_named_port(sched_service_buffer_t* buffer, const char* name, int is_input, sched_service_node_id_t nid, runtime_api_pipe_id_t pid);
+
+/**
+ * @brief Get the name of the virtual node port from the pipe id
+ * @param buffer The target service buffer
+ * @param pipe   The pipe ID
+ * @return The name of the port, NULL if there's any error
+ **/
+const char* sched_service_buffer_get_port_name(const sched_service_buffer_t* buffer, runtime_api_pipe_id_t pipe);
 
 /**
  * @brief add a pipe between two nodes
