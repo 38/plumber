@@ -1,7 +1,6 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
-
 #include <plumber.h>
 #include <utils/log.h>
 #include <module/builtins.h>
@@ -9,6 +8,9 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#include <utils/thread.h>
+#include <arch/arch.h>
 
 static int _stopped = 0;
 sched_service_t* service;
@@ -50,7 +52,7 @@ static inline int _load_default_module(uint16_t port)
 	return rc;
 }
 
-int main(int argc, char** argv)
+int _entry_point(int argc, char** argv)
 {
 	(void) argc;
 	(void) argv;
@@ -110,4 +112,13 @@ int main(int argc, char** argv)
 	sched_task_context_free(stc);
 
 	return 0;
+}
+
+int main(int argc, char** argv)
+{
+#ifdef STACK_SIZE
+	return thread_start_with_aligned_stack(_entry_point, argc, argv);
+#else
+	return _entry_point(argc, argv);
+#endif
 }
