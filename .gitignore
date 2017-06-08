@@ -65,3 +65,6 @@ lib/*/package_config.h
 tools/*/package_config.h
 
 install-prototype.sh
+
+# The directory specified vimrc
+vimrc
