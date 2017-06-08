@@ -170,6 +170,7 @@ ERR:
 	return NULL;
 }
 
+#ifndef STACK_SIZE
 static inline void* _get_current_pointer(thread_pset_t* pset)
 {
 	uint32_t tid = _get_thread_id();
@@ -182,6 +183,7 @@ static inline void* _get_current_pointer(thread_pset_t* pset)
 
 	return _thread_allocate_current_pointer(pset, tid);
 }
+#endif
 
 thread_pset_t* thread_pset_new(uint32_t init_size, thread_pset_allocate_t alloc, thread_pset_deallocate_t dealloc, const void* data)
 {

@@ -1,7 +1,9 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
+#include <constants.h>
 
+#if MODULE_TLS_ENABLED
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -1196,3 +1198,4 @@ itc_module_t module_tls_module_def = {
 	.set_property = _set_prop,
 	.cntl = _cntl
 };
+#endif

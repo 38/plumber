@@ -36,6 +36,9 @@ constant(CONFIG_PATH \".\")
 ##LibPlumber Configurations
 constant(DO_NOT_COMPILE_ITC_MODULE_TEST 0)
 
+##OpenSSL
+constant(MODULE_TLS_ENABLED 1)
+
 constant(RUNTIME_SERVLET_DEFINE_SYM __servdef__)
 constant(RUNTIME_ADDRESS_TABLE_SYM __plumber_address_table)
 constant(RUNTIME_SERVLET_TAB_INIT_SIZE 32)

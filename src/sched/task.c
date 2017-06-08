@@ -183,8 +183,8 @@ static inline int _request_entry_delete(sched_task_context_t* ctx, sched_task_re
 static inline uint32_t _hash(const sched_service_t* service, sched_task_request_t request_id, sched_service_node_id_t node_id)
 {
 	uintptr_t service_id = (uintptr_t)service;
-	uint64_t hash = service_id +
-	                (service_id << 32) +
+	uint64_t hash = ((uint64_t)service_id << (8 * (sizeof(uint64_t) - sizeof(uintptr_t)))) +
+	                ((uint64_t)service_id << 32) +
 	                (request_id << 16) +
 	                node_id;
 	return (uint32_t)(hash % SCHED_TASK_TABLE_SLOT_SIZE);

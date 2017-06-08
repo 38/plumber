@@ -250,7 +250,7 @@ static inline int _entry_matches(const _cache_entry_t* entry, const uint64_t* ex
 		    return 0;
 #endif
 		time_t ts = time(NULL);
-		return ((ts - entry->timestamp) > _cache_ttl()) ? -1 : 1;
+		return ((uint32_t)(ts - entry->timestamp) > _cache_ttl()) ? -1 : 1;
 	}
 
 	return 0;

@@ -1,6 +1,9 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
+#include <constants.h>
+
+#if MODULE_TLS_ENABLED
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -513,3 +516,4 @@ size_t module_tls_dra_write_buffer(module_tls_dra_param_t draparam, const char* 
 
 	return ret;
 }
+#endif

@@ -133,4 +133,7 @@
 /** @brief The install prefix */
 #	define INSTALL_PREFIX "@CMAKE_INSTALL_PREFIX@" 
 
+/** @brief Indicates if TLS module is enabled */
+#	define MODULE_TLS_ENABLED @MODULE_TLS_ENABLED@
+
 #endif
