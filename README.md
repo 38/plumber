@@ -3,25 +3,11 @@ Plumber [![Build Status](http://plumberserver.com:8123/job/Plumber/badge/icon)](
 
 # Quick start
 
+- [Plumber Project Site](http://plumberserver.com)
 - [Plumber Main Project](https://github.com/38/plumber)
 - [Plumber Examples Repository](https://github.com/38/plumber_example)
 - [Introduction to Plumber (Slides)](http://plumberserver.com/slides/index.html?slideshow=plumber-intro)
 - [Explaination for the Plumber Based Static Content Server](http://plumberserver.com/fileserver_example/explained_fileserver_pss.html)
-
-You can try Plumber in a sandbox environment with the Plumber Examples Repository
-
-```
-	git clone --recursive https://github.com/38/plumber_examples.git
-	cd plumber_examples && ./init
-```
-
-# What is Plumber
-
-Plumber is a software infrastructure based on the concept of "pipe". It provides a runtime environment 
-for pipe based, asynchronized, ultra lightweight micro-service we called servlet and a high-level domain specific 
-language to describe the high-level software architecture. The Plumber framework has multiple language bindings,
-and user should be able to develop each part of their software in the language that fits the task most. Currently
-we support C, C++, Javascript and Python, and new language support is coming.
 
 # Try Plumber
 Currently we have a automated tool to build an isolated sandbox environment. To get the sandbox environment, 
@@ -36,6 +22,15 @@ After you get the code, use
 
 To initialize the Plumber isolated environment. Then you can go to src/ directory, compile and run the examples 
 there. 
+
+
+# What is Plumber
+
+Plumber is a software infrastructure based on the concept of "pipe". It provides a runtime environment 
+for pipe based, asynchronized, ultra lightweight micro-service we called servlet and a high-level domain specific 
+language to describe the high-level software architecture. The Plumber framework has multiple language bindings,
+and user should be able to develop each part of their software in the language that fits the task most. Currently
+we support C, C++, Javascript and Python, and new language support is coming.
 
 # General Idea of Plumber
 Unlike traditional service framework, which modelling the component as a request-response based "service", 
