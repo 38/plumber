@@ -1,7 +1,22 @@
 Plumber [![Build Status](http://plumberserver.com:8123/job/Plumber/badge/icon)](http://plumberserver.com:8123/job/Plumber/)
 ----
 
+# Quick start
+
+- [Plumber Main Project](https://github.com/38/plumber)
+- [Plumber Examples Repository](https://github.com/38/plumber_example)
+- [Introduction to Plumber (Slides)](http://plumberserver.com/slides/index.html?slideshow=plumber-intro)
+- [Explaination for the Plumber Based Static Content Server](http://plumberserver.com/fileserver_example/explained_fileserver_pss.html)
+
+You can try Plumber in a sandbox environment with the Plumber Examples Repository
+
+```
+	git clone --recursive https://github.com/38/plumber_examples.git
+	cd plumber_examples && ./init
+```
+
 # What is Plumber
+
 Plumber is a software infrastructure based on the concept of "pipe". It provides a runtime environment 
 for pipe based, asynchronized, ultra lightweight micro-service we called servlet and a high-level domain specific 
 language to describe the high-level software architecture. The Plumber framework has multiple language bindings,
