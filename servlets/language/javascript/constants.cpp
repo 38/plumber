@@ -14,6 +14,7 @@
 
 #include <blob.hpp>
 #include <objectpool.hpp>
+#include <destructorqueue.hpp>
 #include <context.hpp>
 
 template <unsigned Value>

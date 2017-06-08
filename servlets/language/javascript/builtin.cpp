@@ -14,6 +14,7 @@
 
 #include <blob.hpp>
 #include <objectpool.hpp>
+#include <destructorqueue.hpp>
 #include <context.hpp>
 #include <builtin.hpp>
 
@@ -202,52 +203,25 @@ struct _SentinelData {
 		delete param;
 	}
 	v8::Persistent<v8::Object>    sentinel;
-	v8::Persistent<v8::Function>  callback;
+	v8::Persistent<v8::Function>* callback;
 	_SentinelData(v8::Isolate* isolate, v8::Local<v8::Object>& _sentinel, v8::Local<v8::Function>& _callback)
 	{
 		sentinel.Reset(isolate, _sentinel);
-		callback.Reset(isolate, _callback);
+		(callback = new v8::Persistent<v8::Function>())->Reset(isolate, _callback);
 		sentinel.SetWeak<_SentinelData>(this, _on_destory, v8::WeakCallbackType::kParameter);
 		sentinel.MarkIndependent();
 	}
 
 	~_SentinelData()
 	{
-
-		v8::Isolate* isolate = v8::Isolate::GetCurrent();
-		v8::HandleScope handle_scope(isolate);
-		v8::Local<v8::Function> func = v8::Local<v8::Function>::New(isolate, callback);
-		if(!func.IsEmpty())
-		{
-			v8::TryCatch trycatch(isolate);
-			v8::Handle<v8::Value> result = func->Call(func, 0, (v8::Handle<v8::Value>*)NULL);
-			if(result.IsEmpty())
-			{
-#if LOG_LEVEL >= ERROR
-				v8::Local<v8::Message> message = trycatch.Message();
-				v8::String::Utf8Value exception_str(message->Get());
-				LOG_ERROR("Uncaught Javascript Exception: %s", *exception_str);
-				v8::Local<v8::StackTrace> backtrace = message->GetStackTrace();
-				if(!backtrace.IsEmpty())
-				{
-					int frame_count = backtrace->GetFrameCount(),i;
-					for(i = 0; i < frame_count; i ++)
-					{
-						v8::Local<v8::StackFrame> frame = backtrace->GetFrame((uint32_t)i);
-						v8::String::Utf8Value path(frame->GetScriptName());
-						v8::String::Utf8Value func(frame->GetFunctionName());
-#ifdef LOG_ERROR_ENABLED
-						int line = frame->GetLineNumber();
-						int col  = frame->GetColumn();
-						LOG_ERROR("[%d] at %s(%s:%d:%d)",i, *func, *path, line, col);
-#endif
-					}
-				}
-#endif
-			}
-		}
 		sentinel.Reset();
-		callback.Reset();
+
+		Servlet::DestructorQueue* queue = Servlet::Context::get_destructor_queue();
+
+		if(NULL == queue)
+			LOG_ERROR("Cannot get the destructor queue for current thread");
+		else if(queue->add(callback) == ERROR_CODE(int))
+			LOG_ERROR("Cannot add the destructor to the queue");
 	}
 };
 

@@ -9,6 +9,7 @@
 
 #include <blob.hpp>
 #include <objectpool.hpp>
+#include <destructorqueue.hpp>
 #include <context.hpp>
 #include <constants.hpp>
 #include <builtin.hpp>

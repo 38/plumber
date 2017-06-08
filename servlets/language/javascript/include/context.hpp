@@ -147,6 +147,12 @@ namespace Servlet{
 		 * @return the object pool for current thread
 		 **/
 		static Servlet::ObjectPool::Pool* get_object_pool();
+
+		/**
+		 * @brief Get the destructor queue for current thread
+		 * @return The destructor queue for this thread
+		 **/
+		static Servlet::DestructorQueue* get_destructor_queue();
 	};
 }
 #endif /* __SERVLETS_JAVASCRIPT_CONTEXT_H__ */
