@@ -1,4 +1,4 @@
-set tags+=@CMAKE_CURRENT_BINARY_DIR@
+set tags+=@CMAKE_CURRENT_BINARY_DIR@/tags
 command Build make -C @CMAKE_CURRENT_BINARY_DIR@
 command UpdateTags make -C @CMAKE_CURRENT_BINARY_DIR@ tags
 command Install make -C @CMAKE_CURRENT_BINARY_DIR@ install
