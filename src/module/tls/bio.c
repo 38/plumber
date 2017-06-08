@@ -1,6 +1,9 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
+#include <constants.h>
+
+#if MODULE_TLS_ENABLED
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -238,3 +241,4 @@ static BIO_METHOD _method = {
 	.bgets = NULL,
 	.callback_ctrl = NULL
 };
+#endif

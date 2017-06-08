@@ -4,7 +4,10 @@
 /**
  * @brief the API header for TLS module
  **/
-#ifndef __MODULE_TLS_API_H__
+
+#include <constants.h>
+
+#if !defined(__MODULE_TLS_API_H__) && MODULE_TLS_ENABLED
 #define __MODULE_TLS_API_H__
 
 /**

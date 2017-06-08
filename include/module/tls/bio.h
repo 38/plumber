@@ -5,7 +5,10 @@
  * @brief the OpenSSL BIO interface wrapper for a TCP pipe
  * @file module/tls/bio.h
  **/
-#ifndef __PLUMBER_MODULE_TLS_BIO_H__
+
+#include <constants.h>
+
+#if !defined(__PLUMBER_MODULE_TLS_BIO_H__) && MODULE_TLS_ENABLED
 #define __PLUMBER_MODULE_TLS_BIO_H__
 #define MODULE_TLS_BIO_TYPE (0x7f000000ull | BIO_TYPE_SOURCE_SINK)
 

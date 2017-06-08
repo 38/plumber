@@ -7,7 +7,9 @@
  *         converts the raw callback to encrypted callback
  * @file   module/tls/dra.h
  **/
-#ifndef __PLUMBER_MODULE_TLS_DRA_H__
+#include <constants.h>
+
+#if !defined(__PLUMBER_MODULE_TLS_DRA_H__) && MODULE_TLS_ENABLED
 #define __PLUMBER_MODULE_TLS_DRA_H__
 
 /**

@@ -9,6 +9,7 @@
 
 #include <blob.hpp>
 #include <objectpool.hpp>
+#include <destructorqueue.hpp>
 #include <context.hpp>
 #include <constants.hpp>
 #include <builtin.hpp>
@@ -51,7 +52,6 @@ int init(uint32_t argc, char const* const* argv, void* data)
 		LOG_ERROR("C++ Exception: %s", ex.what());
 		ERROR_RETURN_LOG(int, "Cannot initialize the context: %s", ex.what());
 	}
-
 	if(context->ensure_thread_ready() == ERROR_CODE(int))
 	    ERROR_RETURN_LOG(int, "Cannot initialize the thread local context");
 

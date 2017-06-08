@@ -12,6 +12,7 @@
 #include <constants.h>
 #include <utils/string.h>
 #include <unistd.h>
+#include <utils/thread.h>
 
 #ifdef GPROFTOOLS
 #include <gperftools/profiler.h>
@@ -124,7 +125,18 @@ static void _stop(int signo)
 	sched_loop_kill();
 }
 
+#ifndef STACK_SIZE
 int main(int argc, char** argv)
+#else
+int _program(int argc, char** argv);
+
+int main(int argc, char** argv)
+{
+	return thread_start_with_aligned_stack(_program, argc, argv);
+}
+
+int _program(int argc, char** argv)
+#endif
 {
 	signal(SIGPIPE, SIG_IGN);
 

@@ -165,7 +165,7 @@ static int _set_option(uint32_t idx, pstd_option_param_t* params, uint32_t npara
 SET_MODE:
 		    if(ctx->mode != MODE_MATCH)
 		        ERROR_RETURN_LOG(int, "Only one mode specifier can be passed");
-		    ctx->mode = expected_mode;
+		    ctx->mode = (uint32_t)expected_mode;
 		    ctx->field = field;
 		    break;
 		default:

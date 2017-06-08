@@ -1,10 +1,17 @@
 #Build the main library
 set(src_files )
 file(GLOB_RECURSE src_files "${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE_DIR}/*.c")
-set(local_cflags ${CFLAGS})
 
-find_package(OpenSSL)
-set_source_files_properties(${src_files} PROPERTIES COMPILE_FLAGS "${CFLAGS} -I${OPENSSL_INCLUDE_DIR}")
+if("${MODULE_TLS_ENABLED}" EQUAL "1")
+	find_package(OpenSSL)
+	set(OPENSSL_INCLUDE_DIR "-I{OPENSSL_INCLUDE_DIR}")
+else("${MODULE_TLS_ENABLED}" EQUAL "1")
+	message("Notice: TLS support is disabled")
+	set(OPENSSL_INCLUDE_DIR )
+	set(OPENSSL_LIBRARIES )
+endif("${MODULE_TLS_ENABLED}" EQUAL "1")
+
+set_source_files_properties(${src_files} PROPERTIES COMPILE_FLAGS "${CFLAGS} ${OPENSSL_INCLUDE_DIR}")
 
 if("${SHARED_LIBPLUMBER}" STREQUAL "yes")
 	add_library(plumber SHARED ${src_files})

@@ -21,6 +21,7 @@
 #include <blob.hpp>
 #include <objectpool.hpp>
 #include <isolate.hpp>
+#include <destructorqueue.hpp>
 #include <context.hpp>
 #include <global.hpp>
 
@@ -37,10 +38,19 @@ struct _ScopeWatcher {
 	T* _ptr;
 };
 
+template <typename T>
+struct _ScopeArrayWatcher {
+	_ScopeArrayWatcher(T* ptr) : _ptr(ptr) {}
+	~ _ScopeArrayWatcher() { delete[] _ptr; }
+	private:
+	T* _ptr;
+};
+
 static v8::Platform* _platform = NULL;
 static uint32_t _init_count = 0;
 static pstd_thread_local_t* _isolate_collection;
 static pstd_thread_local_t* _thread_object_pools;
+static pstd_thread_local_t* _thread_descturctor_queues;
 
 static inline void* _isolate_new(uint32_t tid, const void* data)
 {
@@ -92,6 +102,25 @@ static inline int _thread_context_free(void* mem, const void* data)
 	if(NULL == data) ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	delete (Servlet::Global*)mem;
+
+	return 0;
+}
+
+static inline void* _thread_dqueue_new(uint32_t tid, const void* data)
+{
+	(void)tid;
+	(void)data;
+
+	return (void*)(new Servlet::DestructorQueue());
+}
+
+static inline int _thread_dqueue_free(void* mem, const void* data)
+{
+	(void)data;
+
+	Servlet::DestructorQueue* queue = (Servlet::DestructorQueue*)mem;
+
+	delete queue;
 
 	return 0;
 }
@@ -186,8 +215,7 @@ v8::Handle<v8::Function> Servlet::Context::_get_servlet_function(v8::Local<v8::C
 
 Servlet::Context::Context()
 {
-
-
+	_thread_context = NULL;
 	_main_script = NULL;
 	_main_script_filename = NULL;
 	_context_json = NULL;
@@ -200,6 +228,7 @@ Servlet::Context::~Context()
 	{
 		if(NULL != _isolate_collection) pstd_thread_local_free(_isolate_collection);
 		if(NULL != _thread_object_pools) pstd_thread_local_free(_thread_object_pools);
+		if(NULL != _thread_descturctor_queues) pstd_thread_local_free(_thread_descturctor_queues);
 		v8::V8::Dispose();
 		v8::V8::ShutdownPlatform();
 		delete _platform;
@@ -246,7 +275,7 @@ void* Servlet::Context::thread_init()
 			if(func.IsEmpty()) _E("init is not a function");
 
 			v8::Handle<v8::Value>* args = new v8::Handle<v8::Value>[_argc];
-			_ScopeWatcher<v8::Handle<v8::Value> > scope_watcher(args);
+			_ScopeArrayWatcher<v8::Handle<v8::Value> > scope_watcher(args);
 
 			for(uint32_t i = 0; i < _argc; i ++)
 			    args[i] = v8::String::NewFromUtf8(isolate, _argv[i]);
@@ -377,6 +406,14 @@ int Servlet::Context::setup(const char* filename, uint32_t argc, char const * co
 			ERROR_RETURN_LOG(int, "Cannot create thread local object pool");
 		}
 
+		if(NULL == (_thread_descturctor_queues = pstd_thread_local_new(_thread_dqueue_new, _thread_dqueue_free, this)))
+		{
+			pstd_thread_local_free(_isolate_collection);
+			pstd_thread_local_free(_thread_object_pools);
+			ERROR_RETURN_LOG(int, "Cannot create thread local for the destructor queue");
+		}
+
+
 		v8::V8::InitializeICUDefaultLocation(PLUMBER_V8_BLOB_DATA_PATH);
 		v8::V8::InitializeExternalStartupData(PLUMBER_V8_BLOB_DATA_PATH);
 
@@ -390,6 +427,7 @@ int Servlet::Context::setup(const char* filename, uint32_t argc, char const * co
 
 	if(NULL == (_thread_context = pstd_thread_local_new(_thread_context_new, _thread_context_free, this)))
 	    ERROR_RETURN_LOG(int, "Cannot create thread local for the global context");
+
 	_main_script = Servlet::Context::load_script_from_file(filename);
 
 	if(NULL == _main_script) ERROR_RETURN_LOG(int, "Cannot load script file");
@@ -407,7 +445,6 @@ int Servlet::Context::ensure_thread_ready()
 {
 	if(NULL == pstd_thread_local_get(_thread_context))
 	    ERROR_RETURN_LOG(int, "The thread local context is not initialized");
-
 	return 0;
 }
 
@@ -519,4 +556,10 @@ Servlet::ObjectPool::Pool* Servlet::Context::get_object_pool()
 {
 	if(NULL == _thread_object_pools) ERROR_PTR_RETURN_LOG("The thread local for object pools hasn't been initialized");
 	return (Servlet::ObjectPool::Pool*) pstd_thread_local_get(_thread_object_pools);
+}
+
+Servlet::DestructorQueue* Servlet::Context::get_destructor_queue()
+{
+	if(NULL == _thread_descturctor_queues) ERROR_PTR_RETURN_LOG("The thread local for destructor queue hasn't been initialized");
+	return (Servlet::DestructorQueue*) pstd_thread_local_get(_thread_descturctor_queues);
 }
