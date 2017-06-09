@@ -60,31 +60,31 @@ STATIC_ASSERTION_LT(PSS_BYTECODE_RTYPE_COUNT, 256);
 /**
  * @brief The actual operation code used in the instruction 
  * @details 
- *     |  Instruction  |             Example                 |                Behavior               |
- *     |:------------  |:----------------------------------- |---------------------------------------|
- *     |  DICT_NEW     | **DICT_NEW** R_out                  | R_taget = new Dictionary() |
- *     |  CLOSURE_NEW  | **CLOSURE_NEW** R_func, R_out       | Make a closure combines current stack frame with the code carried by R_func and store it in out   | 
- *     |  INT_LOAD     | **INT_LOAD(n)** R_out               | R_out    = n |
- *     |  STR_LOAD     | **STR_LOAD(n)** R_out               | R_out    = string_table(n) |
- *     |  CODE_LOAD    | **CODE_LOAD(n)** R_out              | R_out    = code_table(n) |
- *     |  LENGTH       | **LENGTH** R_in, R_out              | R_out    = R_in.length, only valid when R_in is string, dict and code |
- *     |  GET_VAL      | **GET_VAL** R_obj, R_key, R_out     | R_out    = R_obj[R_key], only valid when R_obj is a string or dict and R_key will be converted to string anyway |
- *     |  SET_VAL      | **SET_VAL** R_in, R_obj, R_key      | R_obj[R_key] = R_out, only valid when R_obj is a string or dict and R_key will be converted to string anyway |
- *     |  GET_KEY      | **GET_KEY** R_obj, R_idx, R_out     | R_out    = the R_idx-th key in the R_obj, only valid when R_obj is a dict |
- *     |  CALL         | **CALL** R_func, R_arg, R_out       | R_out    = R_func(R_arg) |
- *     |  BUILTIN      | **BUILTIN** R_name, R_arg, R_out    | R_out    = &lt;builtin function named R_name&gt;(R_arg) |
- *     |  JUMP         | **JUMP** R_address                  | Jump to R_address |
- *     |  JZ           | **JZ** R_cond, R_address            | if(R_cond == 0) jump R_address; |
- *     |  ADD          | **ADD** R_1, R_2, R_out             | R_out    = R_1 + R_2 (Numeric plus or string concatenate or list concatenate) |
- *     |  SUB          | **SUB** R_1, R_2, R_out             | R_out    = R_1 - R_2 (Only valid when R_1 and R_2 are int) |
- *     |  MUL          | **MUL** R_1, R_2, R_out             | R_out    = R_1 * R_2 (Only valid when R_1 and R_2 are int) |
- *     |  DIV          | **DIV** R_1, R_2, R_out             | R_out    = R_1 / R_2 (Only valid when R_1 and R_2 are int) |
- *     |  LT           | **LT** R_1, R_2, R_out              | R_out    = R_1 &lt; R_2 (Numeric comparasion, List comparasion or string ) |
- *     |  EQ           | **EQ** R_1, R_2, R_out              | R_out    = R_1 == R_2 |
- *     |  AND          | **AND** R_1, R_2, R_out             | R_out    = R_1 && R_2 |
- *     |  OR           | **OR** R_1,  R_2, R_out             | R_out    = R_1 or R_2 |
- *     |  XOR          | **XOR** R_1, R_2, R_out             | R_out    = R_1 ^ R_2 |
- *     |  MOVE         | **MOVE** R_in, R_out                | R_out    = R_in |
+ *     |  Instruction  |             Example                   |                Behavior               |
+ *     |:------------  |:-----------------------------------   |---------------------------------------|
+ *     |  DICT_NEW     | **DICT_NEW** *R_out*                  | *R_taget* = new Dictionary() |
+ *     |  CLOSURE_NEW  | **CLOSURE_NEW** *R_func*, *R_out*     | Make a closure combines current stack frame with the code carried by *R_func* and store it in out   | 
+ *     |  INT_LOAD     | **INT_LOAD(n)** *R_out*               | *R_out*    = n |
+ *     |  STR_LOAD     | **STR_LOAD(n)** *R_out*               | *R_out*    = string_table(n) |
+ *     |  CODE_LOAD    | **CODE_LOAD(n)** *R_out*              | *R_out*    = code_table(n) |
+ *     |  LENGTH       | **LENGTH** *R_in*, *R_out*            | *R_out*    = *R_in*.length, only valid when *R_in* is string, dict and code |
+ *     |  GET_VAL      | **GET_VAL** *R_obj*, *R_key*, *R_out* | *R_out*   = *R_obj*[*R_key*], only valid when *R_obj* is a string or dict and *R_key* will be converted to string anyway |
+ *     |  SET_VAL      | **SET_VAL** *R_in*, *R_obj*, *R_key*  | *R_obj*[*R_key*] = *R_out*, only valid when *R_obj* is a string or dict and *R_key* will be converted to string anyway |
+ *     |  GET_KEY      | **GET_KEY** *R_obj*, *R_idx*, *R_out* | *R_out*    = the *R_idx*-th key in the *R_obj*, only valid when *R_obj* is a dict |
+ *     |  CALL         | **CALL** *R_func*, *R_arg*, *R_out*   | *R_out*    = *R_func*(*R_arg*) |
+ *     |  BUILTIN      | **BUILTIN** *R_name*, *R_arg*, *R_out*| *R_out*    = &lt;builtin function named *R_name*&gt;(*R_arg*) |
+ *     |  JUMP         | **JUMP** *R_address*                  | Jump to *R_address* |
+ *     |  JZ           | **JZ** *R_cond*, *R_address*          | if(*R_cond* == 0) jump *R_address*; |
+ *     |  ADD          | **ADD** *R_1*, *R_2*, *R_out*         | *R_out*    = *R_1* + *R_2* (Numeric plus or string concatenate or list concatenate) |
+ *     |  SUB          | **SUB** *R_1*, *R_2*, *R_out*         | *R_out*    = *R_1* - *R_2* (Only valid when *R_1* and *R_2* are int) |
+ *     |  MUL          | **MUL** *R_1*, *R_2*, *R_out*         | *R_out*    = *R_1* * *R_2* (Only valid when *R_1* and *R_2* are int) |
+ *     |  DIV          | **DIV** *R_1*, *R_2*, *R_out*         | *R_out*    = *R_1* / *R_2* (Only valid when *R_1* and *R_2* are int) |
+ *     |  LT           | **LT** *R_1*, *R_2*, *R_out*          | *R_out*    = *R_1* &lt; *R_2* (Numeric comparasion, List comparasion or string ) |
+ *     |  EQ           | **EQ** *R_1*, *R_2*, *R_out*          | *R_out*    = *R_1* == *R_2* |
+ *     |  AND          | **AND** *R_1*, *R_2*, *R_out*         | *R_out*    = *R_1* && *R_2* |
+ *     |  OR           | **OR** *R_1*,  *R_2*, *R_out*         | *R_out*    = *R_1* or *R_2* |
+ *     |  XOR          | **XOR** *R_1*, *R_2*, *R_out*         | *R_out*    = *R_1* ^ *R_2* |
+ *     |  MOVE         | **MOVE** *R_in*, *R_out*              | *R_out*    = *R_in* |
  **/
 typedef enum {
 	PSS_BYTECODE_OPCODE_DICT_NEW,
@@ -154,7 +154,7 @@ typedef struct _pss_bytecode_segment_t pss_bytecode_segment_t;
 typedef struct _pss_byteode_table_t pss_bytecode_table_t;
 
 /**
- * @biref Create a empty bytecode table
+ * @brief Create a empty bytecode table
  * @return the newly created bytecode table, NULL on error case
  **/
 pss_bytecode_table_t* pss_bytecode_table_new();
@@ -205,7 +205,7 @@ pss_bytecode_segment_t* pss_bytecode_segment_new();
 
 /**
  * @brief Dispose a used bytecode table
- * @param table the used bytecode table
+ * @param segment the used bytecode table
  * @return status code
  **/
 int pss_bytecode_segment_free(pss_bytecode_segment_t* segment);
@@ -219,7 +219,7 @@ int pss_bytecode_segment_free(pss_bytecode_segment_t* segment);
  * @note  the varargs is the register list, end with ERROR_CODE(int)
  * @return status code
  **/
-int pss_bytecode_segment_append_instruction(pss_bytecode_segment_t* segment, pss_bytecode_opcode_t opcode, int num, const char* str, ...);
+int pss_bytecode_segment_append_inst(pss_bytecode_segment_t* segment, pss_bytecode_opcode_t opcode, int num, const char* str, ...);
 
 /**
  * @brief Get the instruction information header at given address in the bytecode segment
@@ -231,6 +231,16 @@ int pss_bytecode_segment_append_instruction(pss_bytecode_segment_t* segment, pss
  * @param regbuf The buffer used to return the register list
  * @return status code
  **/
-int pss_bytecode_segment_get_instruction(const pss_bytecode_segment_t* segment, uint32_t addr, pss_bytecode_info_t* infobuf, int* numbuf, char const** strbuf, int const ** regbuf);
+int pss_bytecode_segment_get_inst(const pss_bytecode_segment_t* segment, uint32_t addr, pss_bytecode_info_t* infobuf, int* numbuf, char const** strbuf, int const ** regbuf);
+
+/**
+ * @brief Get the human-readable representation of the instruction at the address addr in the segment
+ * @param segment the segment we want to peek
+ * @param addr    The address
+ * @param buf     The string buffer
+ * @param sz      The string buffer size
+ * @return        The result string representation of the instruction
+ **/
+const char* pss_bytecode_segment_inst_str(const pss_bytecode_segment_t* segment, uint32_t addr, char* buf, size_t sz);
 
 #endif /* __PSS_BYTECODE_H__ */
