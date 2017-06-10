@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017, Feng Liu
  **/
 
 /**
@@ -9,10 +10,12 @@
 #ifndef __PSS_LOG_H__
 #define __PSS_LOG_H__
 
+#include <stdarg.h>
+
 /**
  * @brief The function pointer type for logging
  **/
-typedef void (*pss_log_write_func_t)(int level, const char* file, const char* func, int line, const char* fmt, ...);
+typedef void (*pss_log_write_func_t)(int level, const char* file, const char* func, int line, const char* fmt, va_list ap);
 
 /**
  * @brief Set the logging callback function
