@@ -1,5 +1,5 @@
 set(TYPE static-library)
-set(LOCAL_CFLAGS "-fPIC")
+set(LOCAL_CFLAGS)
 set(LOCAL_LIBS)
 set(PACKAGE_CONF_INSTALL_PATH "include/pss")
 set(INSTALL "yes")

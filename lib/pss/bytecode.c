@@ -32,7 +32,6 @@ static const _bytecode_desc_t _bytecode[] = {
 	_BYTECODE(CLOSURE_NEW  , NEW      , CLOSURE,     0,    2),   /* closure-new R0, R1*/
 	_BYTECODE(INT_LOAD     , LOAD     , INT    ,     1,    1),   /* int-load(3) R0 */
 	_BYTECODE(STR_LOAD     , LOAD     , STR    ,     1,    1),   /* str-load(3) R0 */
-	_BYTECODE(CODE_LOAD    , LOAD     , CODE   ,     1,    1),   /* str-load(3) R0 */
 	_BYTECODE(LENGTH       , LEN      , GENERIC,     0,    2),   /* length R0, R1: R1 = R0.length */
 	_BYTECODE(GET_VAL      , GETVAL   , GENERIC,     0,    3),   /* get R0, R1, R2: R2 = R0[R1] */
 	_BYTECODE(SET_VAL      , SETVAL   , GENERIC,     0,    3),   /* set R0, R1, R2: R1[R2] = R0 */
@@ -50,7 +49,9 @@ static const _bytecode_desc_t _bytecode[] = {
 	_BYTECODE(AND          , AND      , GENERIC,     0,    3),   /* and R0, R1, R2 = R2 = R0 and R1 */
 	_BYTECODE(OR           , OR       , GENERIC,     0,    3),   /* or R0, R1, R2 = R2 = R0 or R1 */
 	_BYTECODE(XOR          , XOR      , GENERIC,     0,    3),   /* xor R0, R1, R2 = R2 = R0 xor R1 */
-	_BYTECODE(MOVE         , MOVE     , GENERIC,     0,    2)    /* move R0, R1 = R0 = R1 */
+	_BYTECODE(MOVE         , MOVE     , GENERIC,     0,    2),   /* move R0, R1 = R0 = R1 */
+	_BYTECODE(GLOBAL_GET   , GLOBALGET, GENERIC,     0,    2),
+	_BYTECODE(GLOBAL_SET   , GLOBALSET, GENERIC,     0,    2) 
 };
 /**
  * We should make sure we have everything we need in the list
@@ -61,3 +62,21 @@ static const _bytecode_desc_t _bytecode[] = {
 STATIC_ASSERTION_EQ_ID(__filled_all_bytecode__, sizeof(_bytecode) / sizeof(_bytecode[0]), PSS_BYTECODE_OPCODE_COUNT);
 
 #undef _BYTECODE
+
+/**
+ * @brief The data structure for a string table 
+ **/
+typedef struct {
+	size_t    capacity;   /*!< The capacity of the string table */
+	size_t    size;       /*!< The actual size of the string table */
+	uintptr_t __padding__[0];
+	char*     string[0];     /*!< The string array */
+} _string_table_t;
+STATIC_ASSERTION_LAST(_string_table_t, string);
+STATIC_ASSERTION_SIZE(_string_table_t, string, 0);
+#if 0
+static inline _string_table_t* _string_table_new(size_t init_cap)
+{
+	_string_table_t* ret = (_string_table_t*)malloc(sizeof(_string_table_t) + sizeof(char*) * init_cap);
+}
+#endif

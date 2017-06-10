@@ -50,6 +50,8 @@ typedef enum {
 	PSS_BYTECODE_OP_OR,     /*!< Boolean or */
 	PSS_BYTECODE_OP_XOR,    /*!< Boolean xor */
 	PSS_BYTECODE_OP_MOVE,   /*!< Data transfer */
+	PSS_BYTECODE_OP_GLOBALGET,  /*!< Get the global variable */
+	PSS_BYTECODE_OP_GLOBALSET,  /*!< Set the gloabl variable */
 	/* DO NOT INSERT ITEMS BELOW */
 	PSS_BYTECODE_OP_COUNT
 } pss_bytecode_op_t;
@@ -64,7 +66,6 @@ typedef enum {
 	PSS_BYTECODE_RTYPE_INT,     /*!< The instruction is about interger operation */
 	PSS_BYTECODE_RTYPE_DICT,    /*!< Dict operations */
 	PSS_BYTECODE_RTYPE_STR,     /*!< String operations */
-	PSS_BYTECODE_RTYPE_CODE,    /*!< A function body */
 	PSS_BYTECODE_RTYPE_CLOSURE, /*!< Closure operations */
 	PSS_BYTECODE_RTYPE_UNDEF,   /*!< Undefiend operations */
 	/* DO NOT INSERT ITEMS BELOW */
@@ -81,7 +82,6 @@ STATIC_ASSERTION_LT(PSS_BYTECODE_RTYPE_COUNT, 256);
  *     |  CLOSURE_NEW  | **CLOSURE_NEW** *R_func*, *R_out*     | Make a closure combines current stack frame with the code carried by *R_func* and store it in out   | 
  *     |  INT_LOAD     | **INT_LOAD(n)** *R_out*               | *R_out*    = n |
  *     |  STR_LOAD     | **STR_LOAD(n)** *R_out*               | *R_out*    = string_table(n) |
- *     |  CODE_LOAD    | **CODE_LOAD(n)** *R_out*              | *R_out*    = code_table(n) |
  *     |  LENGTH       | **LENGTH** *R_in*, *R_out*            | *R_out*    = *R_in*.length, only valid when *R_in* is string, dict and code |
  *     |  GET_VAL      | **GET_VAL** *R_obj*, *R_key*, *R_out* | *R_out*   = *R_obj*[*R_key*], only valid when *R_obj* is a string or dict and *R_key* will be converted to string anyway |
  *     |  SET_VAL      | **SET_VAL** *R_in*, *R_obj*, *R_key*  | *R_obj*[*R_key*] = *R_out*, only valid when *R_obj* is a string or dict and *R_key* will be converted to string anyway |
@@ -100,13 +100,14 @@ STATIC_ASSERTION_LT(PSS_BYTECODE_RTYPE_COUNT, 256);
  *     |  OR           | **OR** *R_1*,  *R_2*, *R_out*         | *R_out*    = *R_1* or *R_2* |
  *     |  XOR          | **XOR** *R_1*, *R_2*, *R_out*         | *R_out*    = *R_1* ^ *R_2* |
  *     |  MOVE         | **MOVE** *R_in*, *R_out*              | *R_out*    = *R_in* |
+ *     |  GLOBAL_GET   | **GLOBAL_GET** *R_name*, *R_out*      | *R_out*    = global[*R_name*]|
+ *     |  GLOBAL_SET   | **GLOBAL_SET** *R_in*, *R_name*       | global[*R_name*] = *R_in* |
  **/
 typedef enum {
 	PSS_BYTECODE_OPCODE_DICT_NEW,
 	PSS_BYTECODE_OPCODE_CLOSURE_NEW,
 	PSS_BYTECODE_OPCODE_INT_LOAD,
 	PSS_BYTECODE_OPCODE_STR_LOAD,
-	PSS_BYTECODE_OPCODE_CODE_LOAD,
 	PSS_BYTECODE_OPCODE_LENGTH,
 	PSS_BYTECODE_OPCODE_GET_VAL,
 	PSS_BYTECODE_OPCODE_SET_VAL,
@@ -125,6 +126,8 @@ typedef enum {
 	PSS_BYTECODE_OPCODE_OR,
 	PSS_BYTECODE_OPCODE_XOR,
 	PSS_BYTECODE_OPCODE_MOVE,
+	PSS_BYTECODE_OPCODE_GLOBAL_GET,
+	PSS_BYTECODE_OPCODE_GLOBAL_SET,
 	/* DO NOT INSERT ITEMS BELOW */
 	PSS_BYTECODE_OPCODE_COUNT
 } pss_bytecode_opcode_t;
@@ -140,25 +143,17 @@ typedef struct {
 } pss_bytecode_info_t;
 
 /**
- * @brief Represents a valid opcode
- **/
-typedef struct {
-	pss_bytecode_opcode_t opcode;
-	const char*           name;
-} pss_bytecode_desc_t;
-
-/**
  * @brief An actual instruction
  **/
 typedef struct {
 	pss_bytecode_opcode_t opcode;   /*!< The opcode */
-	int*                  num;      /*!< The numeric literal list */
+	int                   num;      /*!< The numeric literal list */
 	uint16_t*             reg;      /*!< The register reference */
 } pss_bytecode_inst_t;
 
 /**
  * @brief Represent a bytecode segment, every function is a bytecode segment 
- * @note Each bytecode segments holds an constant table
+ * @note Segment contains a bytecode series, an param + closure local regiester map + string table 
  **/
 typedef struct _pss_bytecode_segment_t pss_bytecode_segment_t;
 
