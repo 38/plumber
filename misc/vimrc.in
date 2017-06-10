@@ -1,7 +1,10 @@
 set tags+=@CMAKE_CURRENT_BINARY_DIR@/tags
-command Build make -C @CMAKE_CURRENT_BINARY_DIR@
-command UpdateTags make -C @CMAKE_CURRENT_BINARY_DIR@ tags
-command Install make -C @CMAKE_CURRENT_BINARY_DIR@ install
-command Test make -C @CMAKE_CURRENT_BINARY_DIR@ test
-command Clean make -C @CMAKE_CURRENT_BINARY_DIR@ clean
+command! Build make -C @CMAKE_CURRENT_BINARY_DIR@
+command! UpdateTags make -C @CMAKE_CURRENT_BINARY_DIR@ tags
+command! Install make -C @CMAKE_CURRENT_BINARY_DIR@ install
+command! Test make -C @CMAKE_CURRENT_BINARY_DIR@ test
+command! Clean make -C @CMAKE_CURRENT_BINARY_DIR@ clean
+command! -nargs=1 BuildCommand !cd @CMAKE_CURRENT_BINARY_DIR@ && <args> 
 
+map BU :Build <CR>
+map UT :UpdateTags <CR>
