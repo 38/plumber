@@ -107,8 +107,9 @@ struct _pss_bytecode_segment_t {
  * @brief The module file header
  **/
 typedef struct {
-	uint64_t magic_num;    /*!< The magic number */
-	uint32_t nseg;         /*!< How many segments in the module */
+	uint64_t magic_num;           /*!< The magic number */
+	uint32_t nseg;                /*!< How many segments in the module */
+	pss_bytecode_segid_t entry_point;  /*!< The entry point segment */
 } __attribute__((packed)) _module_header_t;
 
 /**
@@ -581,3 +582,53 @@ int pss_bytecode_module_free(pss_bytecode_module_t* module)
 	return rc;
 }
 
+pss_bytecode_segid_t pss_bytecode_module_append(pss_bytecode_module_t* module, pss_bytecode_segment_t* segment)
+{
+	if(NULL == module || NULL == segment)
+		ERROR_RETURN_LOG(pss_bytecode_segid_t, "Invalid arguments");
+
+	if(module->header.nseg >= module->capacity)
+	{
+		pss_bytecode_segment_t** new_segs = (pss_bytecode_segment_t**)realloc(module->segs, module->capacity * sizeof(pss_bytecode_segment_t*));
+
+		if(NULL == new_segs)
+			ERROR_RETURN_LOG_ERRNO(pss_bytecode_segid_t, "Cannot resize the segment");
+
+		module->capacity *= 2;
+		module->segs = new_segs;
+	}
+
+	pss_bytecode_segid_t ret;
+
+	module->segs[ret = (module->header.nseg ++)] = segment;
+
+	return ret;
+}
+
+const pss_bytecode_segment_t* pss_bytecode_module_get_seg(const pss_bytecode_module_t* module, pss_bytecode_segid_t id)
+{
+	if(NULL == module || ERROR_CODE(pss_bytecode_segid_t) == id)
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+	if(module->header.nseg >= id) ERROR_PTR_RETURN_LOG("Invalid segment id");
+
+	return module->segs[id];
+}
+
+pss_bytecode_segid_t pss_bytecode_table_get_entry_point(const pss_bytecode_module_t* module)
+{
+	if(NULL == module)
+		ERROR_RETURN_LOG(pss_bytecode_segid_t, "Invalid arguments");
+
+	return module->header.entry_point;
+}
+
+int pss_bytecode_module_set_entry_point(pss_bytecode_module_t* module, pss_bytecode_segid_t id)
+{
+	if(NULL == module)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	module->header.entry_point = id;
+
+	return 0;
+}

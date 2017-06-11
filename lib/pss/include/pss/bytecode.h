@@ -200,9 +200,10 @@ int pss_bytecode_module_free(pss_bytecode_module_t* module);
  * @brief Append a segment to the bytecode table
  * @param module the target module
  * @param segment the segment to add
+ * @note This function will take the onwership of the segment 
  * @return The segment id, or error code
  **/
-pss_bytecode_segid_t pss_bytecode_module_append(pss_bytecode_module_t* module, const pss_bytecode_segment_t* segment);
+pss_bytecode_segid_t pss_bytecode_module_append(pss_bytecode_module_t* module, pss_bytecode_segment_t* segment);
 
 /**
  * @brief Get the segment from the id
@@ -225,7 +226,7 @@ pss_bytecode_segid_t pss_bytecode_table_get_entry_point(const pss_bytecode_modul
  * @param id the entry point segment id
  * @return status code
  **/
-int pss_bytecode_module_set_entry_point(pss_bytecode_module_t* moudle, pss_bytecode_segid_t id);
+int pss_bytecode_module_set_entry_point(pss_bytecode_module_t* module, pss_bytecode_segid_t id);
 
 /**
  * @brief Create a new bytecode segment
