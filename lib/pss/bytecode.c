@@ -64,19 +64,37 @@ STATIC_ASSERTION_EQ_ID(__filled_all_bytecode__, sizeof(_bytecode) / sizeof(_byte
 #undef _BYTECODE
 
 /**
- * @brief The data structure for a string table 
+ * @brief The data structure for an internal table
  **/
 typedef struct {
 	size_t    capacity;   /*!< The capacity of the string table */
 	size_t    size;       /*!< The actual size of the string table */
 	uintptr_t __padding__[0];
-	char*     string[0];     /*!< The string array */
-} _string_table_t;
-STATIC_ASSERTION_LAST(_string_table_t, string);
-STATIC_ASSERTION_SIZE(_string_table_t, string, 0);
-#if 0
-static inline _string_table_t* _string_table_new(size_t init_cap)
-{
-	_string_table_t* ret = (_string_table_t*)malloc(sizeof(_string_table_t) + sizeof(char*) * init_cap);
-}
-#endif
+	union {
+		char*                 string[0];     /*!< The string array */
+		pss_bytecode_regid_t  regid[0];      /*!< The register ID array */
+		pss_bytecode_inst_t   inst[0];       /*!< The instruction array */
+	};
+} _table_t;
+STATIC_ASSERTION_LAST(_table_t, string);
+STATIC_ASSERTION_SIZE(_table_t, string, 0);
+
+/**
+ * @brief The actual structure for the segment
+ **/
+struct _pss_bytecode_segment_t {
+	_table_t*         string_table;   /*!< The string constant table for this code segment */
+	_table_t*         argument_table; /*!< The argument table, which indicates what register needs to be initialied by the callee */
+	_table_t*         code_table;     /*!< The table of the function body */
+};
+
+/**
+ * @brief The internal data structure for a bytecode table
+ **/
+struct _pss_byteode_table_t {
+	uint32_t count;                  /*!< The number of the bytecode segments in the bytecode table */
+	uintptr_t __padding__[0];
+	pss_bytecode_segment_t segs[0];  /*!< The code segment array */
+};
+
+

@@ -175,6 +175,13 @@ typedef struct _pss_byteode_table_t pss_bytecode_table_t;
 pss_bytecode_table_t* pss_bytecode_table_new();
 
 /**
+ * @brief Load a bytecode table from disk 
+ * @param path The filename to load
+ * @return the bytecode table, NULL on error cases
+ **/
+pss_bytecode_table_t* pss_bytecode_table_load(const char* path);
+
+/**
  * @brief Dispose a used bytecode table
  * @param table The bytecode table to dispose
  * @return status code
