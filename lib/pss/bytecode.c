@@ -69,16 +69,21 @@ STATIC_ASSERTION_EQ_ID(__filled_all_bytecode__, sizeof(_bytecode) / sizeof(_byte
 #undef _BYTECODE
 
 /**
+ * @brief The type of the table 
+ **/
+typedef enum {
+	_TABLE_TYPE_STR,
+	_TABLE_TYPE_REG,
+	_TABLE_TYPE_INST
+} _table_type_t;
+
+/**
  * @brief The data structure for internal data tables
  **/
 typedef struct {
-	uint32_t    capacity;   /*!< The capacity of the string table */
-	uint32_t    size;       /*!< The actual size of the string table */
-	enum {
-		_TABLE_TYPE_STR,  /*!< This is a string table */
-		_TABLE_TYPE_REG,  /*!< This is a register table */
-		_TABLE_TYPE_INST  /*!< This is an instruction table */
-	} type;               /*!< What kind of table it is */
+	uint32_t      capacity;   /*!< The capacity of the string table */
+	uint32_t      size;       /*!< The actual size of the string table */
+	_table_type_t type;               /*!< What kind of table it is */
 	uintptr_t __padding__[0];
 	union {
 		char*                 string[0];     /*!< The string array */
@@ -93,18 +98,27 @@ STATIC_ASSERTION_SIZE(_table_t, string, 0);
  * @brief The actual structure for the segment
  **/
 struct _pss_bytecode_segment_t {
-	_table_t*         string_table;   /*!< The string constant table for this code segment */
 	_table_t*         argument_table; /*!< The argument table, which indicates what register needs to be initialied by the callee */
+	_table_t*         string_table;   /*!< The string constant table for this code segment */
 	_table_t*         code_table;     /*!< The table of the function body */
 };
+
+/**
+ * @brief The module file header
+ **/
+typedef struct {
+	uint64_t magic_num;    /*!< The magic number */
+	uint32_t nseg;         /*!< How many segments in the module */
+} __attribute__((packed)) _module_header_t;
 
 /**
  * @brief The internal data structure for a bytecode table
  **/
 struct _pss_bytecode_module_t {
-	uint32_t count;                  /*!< The number of the bytecode segments in the bytecode table */
+	_module_header_t header;                /*!< The number of the bytecode segments in the bytecode table */
+	uint32_t         capacity;              /*!< The capacity of the bytecode table */
 	uintptr_t __padding__[0];
-	pss_bytecode_segment_t segs[0];  /*!< The code segment array */
+	pss_bytecode_segment_t segs[0];         /*!< The code segment array */
 };
 STATIC_ASSERTION_SIZE(pss_bytecode_module_t, segs, 0);
 STATIC_ASSERTION_LAST(pss_bytecode_module_t, segs);
@@ -112,7 +126,19 @@ STATIC_ASSERTION_LAST(pss_bytecode_module_t, segs);
 /**
  * @brief The magic number used to identify the PSS bytecode file header
  **/
-const uint64_t _file_header = 0x76737065ffffffull;
+const uint64_t _file_magic = 0x76737065ffffffull;
+
+/**
+ * @brief Get the opcode information from the opcode
+ * @param opcode the opcode we are interseted in
+ * @return the information about the opocde
+ **/
+static inline const pss_bytecode_info_t* _opcode_info(pss_bytecode_opcode_t opcode)
+{
+	if(opcode >= PSS_BYTECODE_OPCODE_COUNT || opcode < 0)
+		ERROR_PTR_RETURN_LOG("Invalid instruction opcode = %x", opcode);
+	return &_bytecode[opcode].info;
+}
 
 /**
  * @brief Dump a instruction to the output file
@@ -122,17 +148,40 @@ const uint64_t _file_header = 0x76737065ffffffull;
  **/
 static inline int _dump_inst(const pss_bytecode_inst_t* inst, FILE* out)
 {
-	if(inst->opcode >= PSS_BYTECODE_OPCODE_COUNT)
-		ERROR_RETURN_LOG(int, "Invalid instruction opcode = %x", inst->opcode);
-	const pss_bytecode_info_t* info = &_bytecode[inst->opcode].info;
+	const pss_bytecode_info_t* info = _opcode_info(inst->opcode);
+
+	if(NULL == info) return ERROR_CODE(int);
 
 	if(1 != fwrite(&inst->opcode, sizeof(inst->opcode), 1, out))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the opcode to the output file");
 	if(info->has_const && 1 != fwrite(&inst->num, sizeof(inst->num), 1, out))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the const number to the output file");
 
-	if(info->num_regs != fwrite(inst->reg, sizeof(pss_bytecode_regid_t) * info->num_regs, 1, out))
+	if(1 != fwrite(inst->reg, sizeof(pss_bytecode_regid_t) * info->num_regs, 1, out))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the register list to the file");
+
+	return 0;
+}
+
+/**
+ * @brief Load the instruction from input file
+ * @param buf  The buffer for the instruction has been loaded
+ * @param in   The input file pointer
+ * @return status code
+ **/
+static inline int _load_inst(pss_bytecode_inst_t* buf, FILE* in)
+{
+	if(1 != fread(&buf->opcode, sizeof(buf->opcode), 1, in))
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot read opcode of the instruction");
+
+	const pss_bytecode_info_t* info = _opcode_info(buf->opcode);
+	if(NULL == info) return ERROR_CODE(int);
+
+	if(info->has_const && 1 != fread(&buf->num, sizeof(buf->num), 1, in))
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot read the number constant from the instruction");
+
+	if(1 != fread(buf->reg, sizeof(pss_bytecode_regid_t) * info->num_regs, 1, in))
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot read the register operand list");
 
 	return 0;
 }
@@ -153,6 +202,77 @@ static inline int _dump_string(const char* str, FILE* out)
 	if(1 != fwrite(str, size, 1, out))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the string content to output file");
 
+	return 0;
+}
+
+/**
+ * @brief Load string from the output file
+ * @param in the input file pointer
+ * @return The string loaded from file
+ **/
+static inline char* _load_string(FILE* in)
+{
+	uint32_t size;
+	if(1 != fread(&size, sizeof(size), 1, in))
+		ERROR_PTR_RETURN_LOG("Cannot read string length from the string table");
+
+	char* ret = (char*)malloc(size + 1);
+	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the string");
+
+	if(1 != fread(ret, size, 1, in))
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read string content from the input file");
+
+	ret[size] = 0;
+	return ret;
+ERR:
+	if(NULL != ret) free(ret);
+	return NULL;
+}
+
+
+/**
+ * @brief Create a new data table
+ * @param cap the initial capacity of the table
+ * @param type The type of the table
+ * @return the newly created table
+ **/
+static inline _table_t* _table_new(uint32_t cap, _table_type_t type)
+{
+	size_t elem_size;
+	switch(type)
+	{
+		case _TABLE_TYPE_REG:
+			elem_size = sizeof(((_table_t*)NULL)->regid[0]);
+			break;
+		case _TABLE_TYPE_STR:
+			elem_size = sizeof(((_table_t*)NULL)->string[0]);
+			break;
+		case _TABLE_TYPE_INST:
+			elem_size = sizeof(((_table_t*)NULL)->inst[0]);
+			break;
+	}
+	_table_t* ret = (_table_t*)malloc(sizeof(_table_t) + elem_size * cap);
+
+	if(NULL == ret) 
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the table");
+
+	ret->capacity = cap;
+	ret->size = 0;
+	ret->type =  type;
+
+	return ret;
+}
+
+static inline int _table_free(_table_t* table)
+{
+	uint32_t i;
+	for(i = 0; i < table->size; i ++)
+		if(table->type == _TABLE_TYPE_STR)
+		{
+			free(table->string[i]);
+			break;
+		}
+	free(table);
 	return 0;
 }
 
@@ -190,6 +310,47 @@ static inline int _dump_table(const _table_t* table, FILE* out)
 }
 
 /**
+ * @brief Load a table from the bytecode file
+ * @param type The type of the table
+ * @param in The input file pointer
+ * @return The newly loaded table
+ **/
+static inline _table_t* _load_table(_table_type_t type, FILE* in)
+{
+	uint32_t size;
+	if(fread(&size, sizeof(size), 1, in) != 1)
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot read the size of the table");
+
+	_table_t* ret = _table_new(size, type);
+	if(NULL == ret)
+		ERROR_PTR_RETURN_LOG("Cannot create the table in memory");
+
+	if(type == _TABLE_TYPE_REG)
+	{
+		if(1 != fread(ret->regid, sizeof(ret->regid[0]) * size, 1, in))
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the register ids from the register ID table");
+	}
+	else if(type == _TABLE_TYPE_STR)
+	{
+		uint32_t i;
+		for(i = 0; i < size; i ++)
+			if(NULL == (ret->string[i] = _load_string(in)))
+				ERROR_LOG_ERRNO_GOTO(STR_ERR, "Cannot read the string table from the input file");
+		goto RET;
+STR_ERR:
+		for(; i > 0; i --)
+			free(ret->string[i - 1]);
+		goto ERR;
+	}
+RET:
+	ret->size = size;
+	return ret;
+ERR:
+	if(NULL != ret) _table_free(ret);
+	return NULL;
+}
+
+/**
  * @brief Dump an bytecode segment to the bytecode file
  * @param seg The segment to dump
  * @param out The output file pointer
@@ -217,25 +378,22 @@ static inline int _dump_segment(const pss_bytecode_segment_t* seg, FILE* out)
  **/
 static inline int _dump_module(const pss_bytecode_module_t* module, FILE* out)
 {
-	if(1 != fwrite(module, sizeof(*module), 1, out))
+	if(1 != fwrite(&module->header, sizeof(module->header), 1, out))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the table header to the file");
 
 	uint32_t i;
-	for(i = 0; i < module->count; i ++)
+	for(i = 0; i < module->header.nseg; i ++)
 		if(ERROR_CODE(int) == _dump_segment(module->segs + i, out))
 			ERROR_RETURN_LOG(int, "Cannot dump segment to the bytecode file");
 
 	return 0;
 }
 
-int pss_bytecode_table_dump(const pss_bytecode_module_t* module, const char* path)
+int pss_bytecode_module_dump(const pss_bytecode_module_t* module, const char* path)
 {
 	if(NULL == module || NULL == path) ERROR_RETURN_LOG(int, "Invalid arguments");
 	FILE* fp = fopen(path, "wb");
 	if(NULL == fp) ERROR_RETURN_LOG_ERRNO(int, "Cannot open file %s for write", path);
-
-	if(1 != fwrite(&_file_header, sizeof(_file_header), 1, fp))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot write the file header");
 
 	if(ERROR_CODE(int) == _dump_module(module, fp))
 		ERROR_LOG_GOTO(ERR, "Cannot dump the bytecode table content");
@@ -250,4 +408,104 @@ ERR:
 	}
 
 	return ERROR_CODE(int);
+}
+
+/**
+ * @brief Allocate an empty bytecode module object
+ * @param cap The initial capacity of the module
+ * @return status code
+ **/
+static inline pss_bytecode_module_t* _module_new(uint32_t cap)
+{
+	pss_bytecode_module_t* ret = (pss_bytecode_module_t*)calloc(1, sizeof(pss_bytecode_module_t) + sizeof(pss_bytecode_segment_t) * cap);
+
+	if(NULL == ret) 
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new module");
+
+	ret->header.magic_num = _file_magic;
+	ret->header.nseg = 0;
+	ret->capacity =cap;
+
+	return ret;
+}
+
+static inline int _load_segment(pss_bytecode_segment_t* buf, FILE* in)
+{
+	buf->string_table = NULL;
+	buf->code_table = NULL;
+	buf->argument_table = NULL;
+
+	if(NULL == (buf->argument_table = _load_table(_TABLE_TYPE_REG, in)))
+		ERROR_RETURN_LOG(int, "Cannot load the register table");
+
+	if(NULL == (buf->string_table = _load_table(_TABLE_TYPE_STR, in)))
+		ERROR_LOG_GOTO(ERR, "Cannot load the string table");
+
+	if(NULL == (buf->code_table = _load_table(_TABLE_TYPE_INST, in)))
+		ERROR_LOG_GOTO(ERR, "Cannot load the instruction table");
+
+	return 0;
+
+ERR:
+	if(NULL != buf->argument_table) _table_free(buf->argument_table);
+
+	if(NULL != buf->string_table) _table_free(buf->string_table);
+
+	if(NULL != buf->code_table) _table_free(buf->code_table);
+
+	return ERROR_CODE(int);
+
+}
+
+pss_bytecode_module_t* pss_bytecode_module_new()
+{
+	return _module_new(32 /* TODO: make this configurable */);
+}
+
+pss_bytecode_module_t* pss_bytecode_module_load(const char* path)
+{
+	uint32_t i = 0;
+	if(NULL == path) ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+	FILE* fp = fopen(path, "wb");
+	pss_bytecode_module_t* ret = NULL;
+
+	if(NULL == fp) ERROR_PTR_RETURN_LOG_ERRNO("Cannot open file %s for read", path);
+
+	_module_header_t header;
+
+	if(1 == fread(&header, sizeof(header), 1, fp))
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the file header");
+
+	if(header.magic_num != _file_magic) ERROR_LOG_ERRNO_GOTO(ERR, "Invalid file format");
+
+	if(NULL == (ret = _module_new(header.nseg)))
+		ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the module to load");
+
+	/* Copy the header form the file */
+	ret->header = header;
+	ret->capacity = header.nseg;
+
+	for(i = 0; i < header.nseg; i ++)
+		if(ERROR_CODE(int) == _load_segment(ret->segs + i, fp))
+			ERROR_LOG_GOTO(ERR, "Cannot load the segment");
+
+	fclose(fp);
+	return ret;
+ERR:
+	if(NULL != fp) fclose(fp);
+	if(NULL != ret)
+	{
+		uint32_t j;
+		for(j = 0; j < i; i ++)
+		{
+			if(NULL != ret->segs[i].string_table) _table_free(ret->segs[i].string_table);
+			if(NULL != ret->segs[i].argument_table) _table_free(ret->segs[i].argument_table);
+			if(NULL != ret->segs[i].code_table) _table_free(ret->segs[i].code_table);
+		}
+
+		free(ret);
+	}
+
+	return NULL;
 }

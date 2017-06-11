@@ -144,7 +144,7 @@ typedef struct {
 	pss_bytecode_op_t      operation:8;                          /*!< The operation code */
 	pss_bytecode_rtype_t   rtype:8;                              /*!< The return type code */
 	uint8_t                has_const:1;                          /*!< If the instruction contains a const */
-	uint8_t                num_regs:7;                            /*!< How many registers */
+	uint8_t                num_regs:2;                            /*!< How many registers */
 } pss_bytecode_info_t;
 
 /**
@@ -153,7 +153,7 @@ typedef struct {
 typedef struct {
 	pss_bytecode_opcode_t opcode;   /*!< The opcode */
 	int                   num;      /*!< The numeric literal list */
-	pss_bytecode_regid_t* reg;      /*!< The register reference */
+	pss_bytecode_regid_t  reg[4];   /*!< The register reference */
 } pss_bytecode_inst_t;
 
 /**
