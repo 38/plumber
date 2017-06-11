@@ -117,11 +117,8 @@ typedef struct {
 struct _pss_bytecode_module_t {
 	_module_header_t header;                /*!< The number of the bytecode segments in the bytecode table */
 	uint32_t         capacity;              /*!< The capacity of the bytecode table */
-	uintptr_t __padding__[0];
-	pss_bytecode_segment_t* segs[0];        /*!< The code segment array */
+	pss_bytecode_segment_t** segs;        /*!< The code segment array */
 };
-STATIC_ASSERTION_SIZE(pss_bytecode_module_t, segs, 0);
-STATIC_ASSERTION_LAST(pss_bytecode_module_t, segs);
 
 /**
  * @brief The magic number used to identify the PSS bytecode file header
@@ -229,6 +226,20 @@ ERR:
 	return NULL;
 }
 
+static inline size_t _table_elem_size(_table_type_t type)
+{
+	switch(type)
+	{
+		case _TABLE_TYPE_REG:
+			return sizeof(((_table_t*)NULL)->regid[0]);
+		case _TABLE_TYPE_STR:
+			return sizeof(((_table_t*)NULL)->string[0]);
+		case _TABLE_TYPE_INST:
+			return sizeof(((_table_t*)NULL)->inst[0]);
+		default:
+			return ERROR_CODE(size_t);
+	}
+}
 
 /**
  * @brief Create a new data table
@@ -238,19 +249,7 @@ ERR:
  **/
 static inline _table_t* _table_new(uint32_t cap, _table_type_t type)
 {
-	size_t elem_size;
-	switch(type)
-	{
-		case _TABLE_TYPE_REG:
-			elem_size = sizeof(((_table_t*)NULL)->regid[0]);
-			break;
-		case _TABLE_TYPE_STR:
-			elem_size = sizeof(((_table_t*)NULL)->string[0]);
-			break;
-		case _TABLE_TYPE_INST:
-			elem_size = sizeof(((_table_t*)NULL)->inst[0]);
-			break;
-	}
+	size_t elem_size = _table_elem_size(type);
 	_table_t* ret = (_table_t*)malloc(sizeof(_table_t) + elem_size * cap);
 
 	if(NULL == ret) 
@@ -263,6 +262,30 @@ static inline _table_t* _table_new(uint32_t cap, _table_type_t type)
 	return ret;
 }
 
+/**
+ * @brief Make sure the table contains one more space
+ * @param talbe The table to ensure
+ * @return The pointer has been resized
+ **/
+static inline _table_t* _table_ensure_space(_table_t* table)
+{
+	if(table->size >= table->capacity)
+	{
+		size_t elem_size = _table_elem_size(table->type);
+		_table_t* ret = (_table_t*)realloc(table, sizeof(_table_t) + elem_size * table->capacity * 2);
+		if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot resize the table");
+		ret->capacity = ret->capacity * 2;
+		return ret;
+	}
+
+	return table;
+}
+
+/**
+ * @brief Dispose a used table
+ * @param table The table to dispose
+ * @return status code
+ **/
 static inline int _table_free(_table_t* table)
 {
 	uint32_t i;
@@ -417,43 +440,60 @@ ERR:
  **/
 static inline pss_bytecode_module_t* _module_new(uint32_t cap)
 {
-	pss_bytecode_module_t* ret = (pss_bytecode_module_t*)calloc(1, sizeof(pss_bytecode_module_t) + sizeof(pss_bytecode_segment_t) * cap);
+	pss_bytecode_module_t* ret = (pss_bytecode_module_t*)calloc(1, sizeof(pss_bytecode_module_t));
 
 	if(NULL == ret) 
 		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new module");
 
+	if(NULL == (ret->segs = (pss_bytecode_segment_t**)malloc(sizeof(pss_bytecode_segment_t*) * cap)))
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the segment table");
+
 	ret->header.magic_num = _file_magic;
 	ret->header.nseg = 0;
-	ret->capacity =cap;
+	ret->capacity = cap;
 
 	return ret;
+ERR:
+	free(ret);
+	return NULL;
 }
 
-static inline int _load_segment(pss_bytecode_segment_t* buf, FILE* in)
+/**
+ * @brief Load segment from the input file
+ * @param in the input file pointer
+ * @return status code
+ **/
+static inline pss_bytecode_segment_t* _load_segment(FILE* in)
 {
-	buf->string_table = NULL;
-	buf->code_table = NULL;
-	buf->argument_table = NULL;
+	pss_bytecode_segment_t* ret = (pss_bytecode_segment_t*)malloc(sizeof(pss_bytecode_segment_t));
+	if(NULL == ret) 
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new segment");
 
-	if(NULL == (buf->argument_table = _load_table(_TABLE_TYPE_REG, in)))
-		ERROR_RETURN_LOG(int, "Cannot load the register table");
+	ret->string_table = NULL;
+	ret->code_table = NULL;
+	ret->argument_table = NULL;
 
-	if(NULL == (buf->string_table = _load_table(_TABLE_TYPE_STR, in)))
+	if(NULL == (ret->argument_table = _load_table(_TABLE_TYPE_REG, in)))
+		ERROR_LOG_GOTO(ERR, "Cannot load the register table");
+
+	if(NULL == (ret->string_table = _load_table(_TABLE_TYPE_STR, in)))
 		ERROR_LOG_GOTO(ERR, "Cannot load the string table");
 
-	if(NULL == (buf->code_table = _load_table(_TABLE_TYPE_INST, in)))
+	if(NULL == (ret->code_table = _load_table(_TABLE_TYPE_INST, in)))
 		ERROR_LOG_GOTO(ERR, "Cannot load the instruction table");
 
-	return 0;
+	return ret;
 
 ERR:
-	if(NULL != buf->argument_table) _table_free(buf->argument_table);
+	if(NULL != ret->argument_table) _table_free(ret->argument_table);
 
-	if(NULL != buf->string_table) _table_free(buf->string_table);
+	if(NULL != ret->string_table) _table_free(ret->string_table);
 
-	if(NULL != buf->code_table) _table_free(buf->code_table);
+	if(NULL != ret->code_table) _table_free(ret->code_table);
 
-	return ERROR_CODE(int);
+	free(ret);
+
+	return NULL;
 
 }
 
@@ -487,15 +527,8 @@ pss_bytecode_module_t* pss_bytecode_module_load(const char* path)
 	ret->capacity = header.nseg;
 
 	for(i = 0; i < header.nseg; i ++)
-	{
-		if(NULL == (ret->segs[i] = (pss_bytecode_segment_t*)malloc(sizeof(pss_bytecode_segment_t))))
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate new segment");
-		if(ERROR_CODE(int) == _load_segment(ret->segs[i], fp))
-		{
-			free(ret->segs[i]);
+		if(NULL == (ret->segs[i] = _load_segment(fp)))
 			ERROR_LOG_GOTO(ERR, "Cannot load the segment");
-		}
-	}
 
 	fclose(fp);
 	return ret;
@@ -512,8 +545,39 @@ ERR:
 			free(ret->segs[i]);
 		}
 
+		free(ret->segs);
 		free(ret);
 	}
 
 	return NULL;
 }
+
+int pss_bytecode_module_free(pss_bytecode_module_t* module)
+{
+	int rc;
+
+	uint32_t i;
+	for(i =0 ; i < module->header.nseg; i ++)
+	{
+		pss_bytecode_segment_t* seg = module->segs[i];
+
+		if(NULL != seg)
+		{
+			if(NULL != seg->string_table && ERROR_CODE(int) == _table_free(seg->string_table))
+				rc = ERROR_CODE(int);
+
+			if(NULL != seg->argument_table && ERROR_CODE(int) == _table_free(seg->argument_table))
+				rc = ERROR_CODE(int);
+
+			if(NULL != seg->code_table && ERROR_CODE(int) == _table_free(seg->code_table))
+				rc = ERROR_CODE(int);
+		}
+
+		free(seg);
+	}
+
+	free(module);
+
+	return rc;
+}
+
