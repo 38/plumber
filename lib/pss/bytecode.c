@@ -118,7 +118,7 @@ struct _pss_bytecode_module_t {
 	_module_header_t header;                /*!< The number of the bytecode segments in the bytecode table */
 	uint32_t         capacity;              /*!< The capacity of the bytecode table */
 	uintptr_t __padding__[0];
-	pss_bytecode_segment_t segs[0];         /*!< The code segment array */
+	pss_bytecode_segment_t* segs[0];        /*!< The code segment array */
 };
 STATIC_ASSERTION_SIZE(pss_bytecode_module_t, segs, 0);
 STATIC_ASSERTION_LAST(pss_bytecode_module_t, segs);
@@ -383,7 +383,7 @@ static inline int _dump_module(const pss_bytecode_module_t* module, FILE* out)
 
 	uint32_t i;
 	for(i = 0; i < module->header.nseg; i ++)
-		if(ERROR_CODE(int) == _dump_segment(module->segs + i, out))
+		if(ERROR_CODE(int) == _dump_segment(module->segs[i], out))
 			ERROR_RETURN_LOG(int, "Cannot dump segment to the bytecode file");
 
 	return 0;
@@ -487,8 +487,15 @@ pss_bytecode_module_t* pss_bytecode_module_load(const char* path)
 	ret->capacity = header.nseg;
 
 	for(i = 0; i < header.nseg; i ++)
-		if(ERROR_CODE(int) == _load_segment(ret->segs + i, fp))
+	{
+		if(NULL == (ret->segs[i] = (pss_bytecode_segment_t*)malloc(sizeof(pss_bytecode_segment_t))))
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate new segment");
+		if(ERROR_CODE(int) == _load_segment(ret->segs[i], fp))
+		{
+			free(ret->segs[i]);
 			ERROR_LOG_GOTO(ERR, "Cannot load the segment");
+		}
+	}
 
 	fclose(fp);
 	return ret;
@@ -499,9 +506,10 @@ ERR:
 		uint32_t j;
 		for(j = 0; j < i; i ++)
 		{
-			if(NULL != ret->segs[i].string_table) _table_free(ret->segs[i].string_table);
-			if(NULL != ret->segs[i].argument_table) _table_free(ret->segs[i].argument_table);
-			if(NULL != ret->segs[i].code_table) _table_free(ret->segs[i].code_table);
+			if(NULL != ret->segs[j]->string_table) _table_free(ret->segs[j]->string_table);
+			if(NULL != ret->segs[j]->argument_table) _table_free(ret->segs[j]->argument_table);
+			if(NULL != ret->segs[j]->code_table) _table_free(ret->segs[j]->code_table);
+			free(ret->segs[i]);
 		}
 
 		free(ret);
