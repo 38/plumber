@@ -12,6 +12,11 @@
 #define __PSS_BYTECODE_H__
 
 /**
+ * @brief Represent a register ID, it should be 0 to 65536 
+ **/
+typedef uint16_t pss_bytecode_regid_t;
+
+/**
  * @brief The identifier of a segment in a bytecode table
  **/
 typedef uint32_t pss_bytecode_segid_t;
@@ -148,7 +153,7 @@ typedef struct {
 typedef struct {
 	pss_bytecode_opcode_t opcode;   /*!< The opcode */
 	int                   num;      /*!< The numeric literal list */
-	uint16_t*             reg;      /*!< The register reference */
+	pss_bytecode_regid_t* reg;      /*!< The register reference */
 } pss_bytecode_inst_t;
 
 /**
@@ -219,6 +224,25 @@ pss_bytecode_segment_t* pss_bytecode_segment_new();
  * @return status code
  **/
 int pss_bytecode_segment_free(pss_bytecode_segment_t* segment);
+
+/**
+ * @brief Append a new register to the argument list
+ * @note  In each segment, we have an argument list, which is a list of register id, it means
+ *        We need to set all the register in the argument list as the call argument
+ * @param segment The code segment to add 
+ * @param regid   The register id 
+ **/
+int pss_bytecode_segment_append_arg(pss_bytecode_segment_t* segment, pss_bytecode_regid_t regid);
+
+/**
+ * @brief Get the argument list from a code segment
+ * @param segment the code segment
+ * @param resbuf  The result buffer
+ * @return The number of registers has been returned
+ * @note This funciton actually expose the segment internal memory to the callee, so
+ *       the callee should not dispose the return value
+ **/
+int pss_bytecode_segment_get_args(const pss_bytecode_segment_t* segment, pss_bytecode_regid_t const** resbuf);
 
 /**
  * @brief Allocate a new label in the bytecode table
