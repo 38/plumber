@@ -163,61 +163,69 @@ typedef struct {
 typedef struct _pss_bytecode_segment_t pss_bytecode_segment_t;
 
 /**
- * @brief represents a bytecode table, each source code file will be compiled to a source table
+ * @brief represents a bytecode module, each source code file will be compiled to a bytecode module
  * @note  The bytecode table contains multiple bytecode segments, and each segments as an id
  **/
-typedef struct _pss_byteode_table_t pss_bytecode_table_t;
+typedef struct _pss_bytecode_module_t pss_bytecode_module_t;
 
 /**
  * @brief Create a empty bytecode table
- * @return the newly created bytecode table, NULL on error case
+ * @return the newly created bytecode module, NULL on error case
  **/
-pss_bytecode_table_t* pss_bytecode_table_new();
+pss_bytecode_module_t* pss_bytecode_module_new();
 
 /**
  * @brief Load a bytecode table from disk 
  * @param path The filename to load
- * @return the bytecode table, NULL on error cases
+ * @return the bytecode module, NULL on error cases
  **/
-pss_bytecode_table_t* pss_bytecode_table_load(const char* path);
+pss_bytecode_module_t* pss_bytecode_module_load(const char* path);
+
+/**
+ * @brief Dump a in memory bytecode table to disk
+ * /@param mdoule The bytecode module to dump
+ * @param path  The path to the target file
+ * @return status code
+ **/
+int pss_bytecode_module_dump(const pss_bytecode_module_t* module, const char* path);
 
 /**
  * @brief Dispose a used bytecode table
  * @param table The bytecode table to dispose
  * @return status code
  **/
-int pss_bytecode_table_free(pss_bytecode_table_t* table);
+int pss_bytecode_module_free(pss_bytecode_module_t* module);
 
 /**
  * @brief Append a segment to the bytecode table
- * @param table the bytecode table
+ * @param module the target module
  * @param segment the segment to add
  * @return The segment id, or error code
  **/
-pss_bytecode_segid_t pss_bytecode_table_append(pss_bytecode_table_t* table, const pss_bytecode_segment_t* segment);
+pss_bytecode_segid_t pss_bytecode_module_append(pss_bytecode_module_t* module, const pss_bytecode_segment_t* segment);
 
 /**
  * @brief Get the segment from the id
- * @param table The table we want to get
+ * @param module The module we want to get the function in
  * @param id The id we want to query
  * @return the segment or NULL on error
  **/
-const pss_bytecode_segment_t* pss_bytecode_table_get(const pss_bytecode_table_t* table, pss_bytecode_segid_t id);
+const pss_bytecode_segment_t* pss_bytecode_module_get_seg(const pss_bytecode_module_t* module, pss_bytecode_segid_t id);
 
 /**
  * @brief Get the segment id of the entry point of this bytecode table
- * @param table The bytecode table 
+ * @param module The bytecode module
  * @return The segment ID for the entry point or error code
  **/
-pss_bytecode_segid_t pss_bytecode_table_get_entry_point(const pss_bytecode_table_t* table);
+pss_bytecode_segid_t pss_bytecode_table_get_entry_point(const pss_bytecode_module_t* module);
 
 /**
  * @brief Set the entry point segment id of the given bytecode table
- * @param table The bytecode table to set
+ * @param module The bytecode module
  * @param id the entry point segment id
  * @return status code
  **/
-int pss_bytecode_table_set_entry_point(pss_bytecode_table_t* table, pss_bytecode_segid_t  id);
+int pss_bytecode_module_set_entry_point(pss_bytecode_module_t* moudle, pss_bytecode_segid_t id);
 
 /**
  * @brief Create a new bytecode segment
