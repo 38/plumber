@@ -105,7 +105,7 @@ typedef enum {
 typedef  struct {
 	_table_type_t type;       /*!< What kind of table it is */
 	uint32_t      size;       /*!< The actual size of the string table */
-} _table_header_t;    /*!< The header of the table */
+} __attribute__((packed)) _table_header_t;    /*!< The header of the table */
 
 /**
  * @brief The data structure for internal data tables
