@@ -22,14 +22,75 @@ typedef uint16_t pss_bytecode_regid_t;
 typedef uint32_t pss_bytecode_segid_t;
 
 /**
+ * @brief The numeric literal type
+ **/
+typedef int64_t pss_bytecode_numeric_t;
+
+/**
  * @brief The address which is used to addressing one instruction inside a code segment
  **/
 typedef uint32_t pss_bytecode_addr_t;
+/**
+ * @brief We need to make sure we can use the pss_bytecode_numeric_t as address type internally
+ *        If this assertion fails, it may indicates we can not represent all the instruction address
+ *        with the pss_bytecode_numeric_t type
+ **/
+STATIC_ASSERTION_EQ_ID(__pss_bytecode_addr_range__, ERROR_CODE(pss_bytecode_addr_t), (pss_bytecode_numeric_t)ERROR_CODE(pss_bytecode_addr_t));
 
 /**
  * @brief The in-segment label id
  **/
 typedef uint32_t pss_bytecode_label_t;
+
+/**
+ * @brief The type of argument
+ **/
+typedef enum {
+	PSS_BYTECODE_ARGTYPE_END = (uintptr_t)NULL,   /*!< Indicates this is the end of the argument list */
+	PSS_BYTECODE_ARGTYPE_STRING,                  /*!< Indicates this argument is a string */
+	PSS_BYTECODE_ARGTYPE_NUMERIC,                 /*!< Indicates this is a numeric argument */
+	PSS_BYTECODE_ARGTYPE_LABEL,                   /*!< Indicates this is a label argument */
+	PSS_BYTECODE_ARGTYPE_REGISTER                 /*!< Indicates this is a register argument */
+} pss_bytecode_argtype_t;
+
+/**
+ * @brief Check the argument type and return the converted value
+ * @note If the type checking fails generate a compile error
+ **/
+#define _PSS_BYTECODE_ARGTYPE_CHECK(type, value) \
+	({ \
+		type ret = (value);\
+	 	ret;\
+	})
+
+/**
+ * @brief Make an string argument
+ * @param value The string expression
+ **/
+#define PSS_BYTECODE_ARG_STRING(value) PSS_BYTECODE_ARGTYPE_STRING, _PSS_BYTECODE_ARGTYPE_CHECK(const char*, value)
+
+/**
+ * @Brief Make a nuermic argument 
+ * @param value the numeric expression
+ **/
+#define PSS_BYTECODE_ARG_NUMERIC(value) PSS_BYTECODE_ARGTYPE_NUMERIC, _PSS_BYTECODE_ARGTYPE_CHECK(pss_bytecode_numeric_t, value)
+
+/**
+ * @brief Make a label argument
+ * @param value The label expression
+ **/
+#define PSS_BYTECODE_ARG_LABEL(value) PSS_BYTECODE_ARGTYPE_LABEL, _PSS_BYTECODE_ARGTYPE_CHECK(pss_bytecode_label_t, value)
+
+/**
+ * @Brief Make register argument
+ * @param value The register expression
+ **/
+#define PSS_BYTECODE_ARG_REGISTER(value) PSS_BYTECODE_ARGTYPE_REGISTER, _PSS_BYTECODE_ARGTYPE_CHECK(pss_bytecode_regid_t, value)
+
+/**
+ * @brief The end of the argument list of a instructoin
+ **/
+#define PSS_BYTECODE_ARG_END NULL
 
 /**
  * @brief The code used to identify what kinds of operation it is 
@@ -113,6 +174,7 @@ typedef enum {
 	PSS_BYTECODE_OPCODE_CLOSURE_NEW,
 	PSS_BYTECODE_OPCODE_INT_LOAD,
 	PSS_BYTECODE_OPCODE_STR_LOAD,
+	PSS_BYTECODE_OPCODE_UNDEF_LOAD,
 	PSS_BYTECODE_OPCODE_LENGTH,
 	PSS_BYTECODE_OPCODE_GET_VAL,
 	PSS_BYTECODE_OPCODE_SET_VAL,
@@ -141,20 +203,27 @@ typedef enum {
  * @brief The information about the bytecode operation
  **/
 typedef struct {
+	const char*            name;                                 /*!< The name of the instruction */
 	pss_bytecode_op_t      operation:8;                          /*!< The operation code */
 	pss_bytecode_rtype_t   rtype:8;                              /*!< The return type code */
 	uint8_t                has_const:1;                          /*!< If the instruction contains a const */
-	uint8_t                num_regs:2;                            /*!< How many registers */
+	uint8_t                string_ref:1;                         /*!< If the const in the instruction is a reference to string */ 
+	uint8_t                num_regs:2;                           /*!< How many registers */
 } pss_bytecode_info_t;
 
 /**
- * @brief An actual instruction
+ * @brief The instruction data
  **/
 typedef struct {
-	pss_bytecode_opcode_t opcode;   /*!< The opcode */
-	int                   num;      /*!< The numeric literal list */
-	pss_bytecode_regid_t  reg[4];   /*!< The register reference */
-} pss_bytecode_inst_t;
+	const pss_bytecode_info_t* info;    /*!< The information about this instruction */
+	pss_bytecode_opcode_t      opcode;  /*!< The operation code */
+	union {
+		pss_bytecode_numeric_t     num;  /*!< The numeric const */
+		pss_bytecode_addr_t        addr; /*!< The address const */
+	};
+	const char*                    str;  /*!< The string const */
+	pss_bytecode_regid_t           reg[4];  /*!< The register ID */
+} pss_bytecode_instruction_t;
 
 /**
  * @brief Represent a bytecode segment, every function is a bytecode segment 
@@ -230,9 +299,11 @@ int pss_bytecode_module_set_entry_point(pss_bytecode_module_t* module, pss_bytec
 
 /**
  * @brief Create a new bytecode segment
+ * @param argc How many arguments this segment will take to run
+ * @param argv The actual argument register id list
  * @return The newly created bytecode segment
  **/
-pss_bytecode_segment_t* pss_bytecode_segment_new();
+pss_bytecode_segment_t* pss_bytecode_segment_new(pss_bytecode_regid_t argc, const pss_bytecode_regid_t* argv);
 
 /**
  * @brief Dispose a used bytecode table
@@ -240,15 +311,6 @@ pss_bytecode_segment_t* pss_bytecode_segment_new();
  * @return status code
  **/
 int pss_bytecode_segment_free(pss_bytecode_segment_t* segment);
-
-/**
- * @brief Append a new register to the argument list
- * @note  In each segment, we have an argument list, which is a list of register id, it means
- *        We need to set all the register in the argument list as the call argument
- * @param segment The code segment to add 
- * @param regid   The register id 
- **/
-int pss_bytecode_segment_append_arg(pss_bytecode_segment_t* segment, pss_bytecode_regid_t regid);
 
 /**
  * @brief Get the argument list from a code segment
@@ -287,29 +349,29 @@ int pss_bytecode_segment_patch_label(pss_bytecode_segment_t* segment, pss_byteco
  * @brief Append a new instruction to the segment
  * @param segment The segment we want append the instruction to
  * @param opcode The opcode we want to append
- * @param num    The numeric constant for this instruction, if the instruction do not requires an constant, it will be ignored
- * @param str    The string constant for this instruction, if the instruction do not requires an string const, it will be ignored
- * @param label  The label we want to use as an numeric constant placeholder 
- * @note  the varargs is the register list, end with ERROR_CODE(int)
+ * @note  The instruciton argument list should be provided using the PSS_BYTECODE_ARG_* macro and ends with
+ *         PSS_BYTECODE_ARG_END
  * @return The address of the newly appended instruction
  **/
-pss_bytecode_addr_t  pss_bytecode_segment_append_inst(pss_bytecode_segment_t* segment, 
-		                                              pss_bytecode_opcode_t opcode, 
-		                                              int num, pss_bytecode_label_t label, const char* str, 
-													  ...) __attribute__((sentinel));
+pss_bytecode_addr_t  pss_bytecode_segment_append_code(pss_bytecode_segment_t* segment, pss_bytecode_opcode_t opcode, ...) __attribute__((sentinel)); 
+/**
+ * @brief Make sure if we put an NULL pointer to the end of the argument list, the function can interpret the 
+ *        NULL pointer as the PSS_BYTECODE_ARG_END
+ **/
+STATIC_ASSERTION_EQ_ID(__pss_bytecode_segment_check_sentinel_size__,
+		               sizeof(void*) < sizeof(pss_bytecode_argtype_t) ? sizeof(pss_bytecode_argtype_t) : sizeof(void*),
+					   sizeof(void*));
+STATIC_ASSERTION_EQ_ID(__pss_bytecode_segment_check_sentinel_value__, 0, PSS_BYTECODE_ARGTYPE_END);
+
 
 /**
  * @brief Get the instruction information header at given address in the bytecode segment
  * @param segment the segment we want to access
  * @param addr The address 
- * @param infobuf The buffer used to return the instruction info
- * @param numbuf The buffer used to return the numeric consetant
- * @param strbuf The buffer used to return the string constant
- * @param regbuf The buffer used to return the register list
+ * @param buf The buffer used to return the instruction info
  * @return status code
  **/
-int pss_bytecode_segment_get_inst(const pss_bytecode_segment_t* segment, pss_bytecode_addr_t addr, 
-		                          pss_bytecode_info_t* infobuf, int* numbuf, char const** strbuf, int const ** regbuf);
+int pss_bytecode_segment_get_inst(const pss_bytecode_segment_t* segment, pss_bytecode_addr_t addr, pss_bytecode_instruction_t* buf);
 
 /**
  * @brief Get the human-readable representation of the instruction at the address addr in the segment
@@ -321,4 +383,18 @@ int pss_bytecode_segment_get_inst(const pss_bytecode_segment_t* segment, pss_byt
  **/
 const char* pss_bytecode_segment_inst_str(const pss_bytecode_segment_t* segment, pss_bytecode_addr_t addr, char* buf, size_t sz);
 
+
+/**
+ * @brief Dump the content of the code segment to log
+ * @note  This will procedure info level log
+ * @return status code
+ **/
+int pss_bytecode_segment_logdump(const pss_bytecode_segment_t* segment);
+
+/**
+ * @brief Dump the content of module to log
+ * @note This will produce info level log
+ * @return status code
+ **/
+int pss_bytecode_module_logdump(const pss_bytecode_module_t* module);
 #endif /* __PSS_BYTECODE_H__ */

@@ -5,6 +5,23 @@ command! Install make -C @CMAKE_CURRENT_BINARY_DIR@ install
 command! Test make -C @CMAKE_CURRENT_BINARY_DIR@ test
 command! Clean make -C @CMAKE_CURRENT_BINARY_DIR@ clean
 command! -nargs=1 BuildCommand !cd @CMAKE_CURRENT_BINARY_DIR@ && <args> 
+command! RunCurrentTest exec "!cd @CMAKE_CURRENT_BINARY_DIR@ && " . GetCurrentTestCase(expand("%:r"))
+command! RunCurrentTestValgrind exec "!cd @CMAKE_CURRENT_BINARY_DIR@ && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ". GetCurrentTestCase(expand("%:r")) 
 
 map BU :Build <CR>
 map UT :UpdateTags <CR>
+
+function! GetCurrentTestCase(source)
+	let relative = split(substitute(a:source, "@CMAKE_CURRENT_SOURCE_DIR@" . "/", "", ""), "/")
+	if l:relative[0] == "test"
+		"This is a core test
+		return "bin/test" . l:relative[1] . "/" . substitute(l:relative[2], "test_", l:relative[1])
+	else 
+		if l:relative[0] == "lib"
+			"This is a package test
+			return "bin/test/package/" . l:relative[1] . "/package_" . l:relative[1] . "_" . l:relative[3]
+		else
+			return ""
+		endif
+	endif
+endfunction
