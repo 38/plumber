@@ -17,7 +17,7 @@
 
 #define END PSS_BYTECODE_ARG_END
 
-char expected_inst[32][1024];
+char expected_inst[48][1024];
 
 int code_generation_test()
 {
@@ -27,7 +27,7 @@ int code_generation_test()
 	pss_bytecode_regid_t regs[] = {2,1,4,3,0};
 
 	uint32_t i = 0;
-	for(i = 0; i < 10; i ++)
+	for(i = 0; i < 128; i ++)
 	{
 		pss_bytecode_segment_t* segment = pss_bytecode_segment_new(5, regs);
 		ASSERT_PTR(segment, CLEANUP_NOP);
@@ -66,6 +66,22 @@ int code_generation_test()
 		ASSERT(29 == pss_bytecode_segment_append_code(segment, OPCODE(STR_LOAD), STRING("teststring4"), REG(12), END), CLEANUP_NOP);
 		ASSERT(30 == pss_bytecode_segment_append_code(segment, OPCODE(DINFO_LINE), NUMERIC(10), END), CLEANUP_NOP);
 		ASSERT(31 == pss_bytecode_segment_append_code(segment, OPCODE(DINFO_FUNC), STRING("function@test.pss"), END), CLEANUP_NOP);
+		ASSERT(32 == pss_bytecode_segment_append_code(segment, OPCODE(INT_LOAD), NUMERIC(0x123), REG(10), END), CLEANUP_NOP);
+		ASSERT(33 == pss_bytecode_segment_append_code(segment, OPCODE(STR_LOAD), STRING("hello"), REG(11), END), CLEANUP_NOP);
+		ASSERT(34 == pss_bytecode_segment_append_code(segment, OPCODE(MOVE), REG(11), REG(12), END), CLEANUP_NOP);
+		ASSERT(35 == pss_bytecode_segment_append_code(segment, OPCODE(ADD), REG(10), REG(12), REG(13), END), CLEANUP_NOP);
+		ASSERT(36 == pss_bytecode_segment_append_code(segment, OPCODE(SUB), REG(10), REG(12), REG(13), END), CLEANUP_NOP);
+		ASSERT(37 == pss_bytecode_segment_append_code(segment, OPCODE(DIV), REG(10), REG(12), REG(13), END), CLEANUP_NOP);
+		ASSERT(38 == pss_bytecode_segment_append_code(segment, OPCODE(MUL), REG(10), REG(12), REG(13), END), CLEANUP_NOP);
+		ASSERT(39 == pss_bytecode_segment_append_code(segment, OPCODE(AND), REG(10), REG(12), REG(13), END), CLEANUP_NOP);
+		ASSERT(40 == pss_bytecode_segment_append_code(segment, OPCODE(OR), REG(10), REG(12), REG(13), END), CLEANUP_NOP);
+		ASSERT(41 == pss_bytecode_segment_append_code(segment, OPCODE(XOR), REG(10), REG(12), REG(13), END), CLEANUP_NOP);
+		ASSERT(42 == pss_bytecode_segment_append_code(segment, OPCODE(DICT_NEW), REG(10), END), CLEANUP_NOP);
+		ASSERT(43 == pss_bytecode_segment_append_code(segment, OPCODE(UNDEF_LOAD), REG(10), END), CLEANUP_NOP);
+		ASSERT(44 == pss_bytecode_segment_append_code(segment, OPCODE(LENGTH), REG(10), REG(11), END), CLEANUP_NOP);
+		ASSERT(45 == pss_bytecode_segment_append_code(segment, OPCODE(GET_VAL), REG(10), REG(11), REG(12), END), CLEANUP_NOP);
+		ASSERT(46 == pss_bytecode_segment_append_code(segment, OPCODE(SET_VAL), REG(10), REG(11), REG(12), END), CLEANUP_NOP);
+		ASSERT(47 == pss_bytecode_segment_append_code(segment, OPCODE(GET_KEY), REG(10), REG(11), REG(12), END), CLEANUP_NOP);
 
 		uint32_t j;
 		for(j =0; j < sizeof(expected_inst) / sizeof(expected_inst[0]); j ++)
@@ -91,7 +107,7 @@ int module_load_test()
 	ASSERT(3 == pss_bytecode_module_get_entry_point(module), CLEANUP_NOP);
 	
 	pss_bytecode_segid_t i = 0;
-	for(i = 0; i < 10; i ++)
+	for(i = 0; i < 128; i ++)
 	{
 		const pss_bytecode_segment_t* segment = pss_bytecode_module_get_seg(module, i);
 		ASSERT_PTR(segment, CLEANUP_NOP);
@@ -115,7 +131,7 @@ int module_load_test()
 		ASSERT(NULL == pss_bytecode_segment_inst_str(segment, (pss_bytecode_addr_t)j, buf, sizeof(buf)), CLEANUP_NOP);
 	}
 
-	ASSERT(NULL == pss_bytecode_module_get_seg(module, 10), CLEANUP_NOP);
+	ASSERT(NULL == pss_bytecode_module_get_seg(module, 128), CLEANUP_NOP);
 
 	ASSERT_OK(pss_bytecode_module_logdump(module), CLEANUP_NOP);
 	ASSERT_OK(pss_bytecode_module_free(module), CLEANUP_NOP);

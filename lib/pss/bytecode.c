@@ -655,7 +655,7 @@ pss_bytecode_segid_t pss_bytecode_module_append(pss_bytecode_module_t* module, p
 
 	if(module->header.nseg >= module->capacity)
 	{
-		pss_bytecode_segment_t** new_segs = (pss_bytecode_segment_t**)realloc(module->segs, module->capacity * sizeof(pss_bytecode_segment_t*));
+		pss_bytecode_segment_t** new_segs = (pss_bytecode_segment_t**)realloc(module->segs, 2 * module->capacity * sizeof(pss_bytecode_segment_t*));
 
 		if(NULL == new_segs)
 			ERROR_RETURN_LOG_ERRNO(pss_bytecode_segid_t, "Cannot resize the segment");
@@ -803,6 +803,8 @@ pss_bytecode_addr_t  pss_bytecode_segment_append_code(pss_bytecode_segment_t* se
 	if(NULL == new_table) 
 		ERROR_RETURN_LOG(pss_bytecode_addr_t, "Cannot enlarge the code table");
 
+	segment->code_table = new_table;
+
 	pss_bytecode_addr_t ret = (pss_bytecode_addr_t)segment->code_table->header.size;
 
 	segment->code_table->inst[ret].opcode = opcode;
@@ -861,6 +863,8 @@ pss_bytecode_addr_t  pss_bytecode_segment_append_code(pss_bytecode_segment_t* se
 				_table_t* new_table = _table_ensure_space(segment->string_table);
 				if(NULL == new_table)
 					ERROR_RETURN_LOG(pss_bytecode_addr_t, "Cannot enlarge the string table");
+
+				segment->string_table = new_table;
 
 				pss_bytecode_numeric_t strid = (pss_bytecode_numeric_t)segment->string_table->header.size;
 				size_t len = strlen(str) + 1;
