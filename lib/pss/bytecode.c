@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include <zlib.h>
 
 #include <error.h>
 
@@ -79,9 +80,11 @@ static _bytecode_desc_t _bytecode[] = {
 	_BYTECODE(OR           , OR       , GENERIC,     0,     0,    3),   /* or R0, R1, R2 = R2 = R0 or R1 */
 	_BYTECODE(XOR          , XOR      , GENERIC,     0,     0,    3),   /* xor R0, R1, R2 = R2 = R0 xor R1 */
 	_BYTECODE(MOVE         , MOVE     , GENERIC,     0,     0,    2),   /* move R0, R1 = R1 = R0 */
-	_BYTECODE(GLOBAL_GET   , GLOBALGET, GENERIC,     0,     0,    2),   /* global R0, R1 = R1 = global(R1) */
-	_BYTECODE(GLOBAL_SET   , GLOBALSET, GENERIC,     0,     0,    2),
-	_BYTECODE(UNDEF_LOAD   , LOAD     , UNDEF  ,     0,     0,    1)    /* undef-load R0 = R0 = undefined */ 
+	_BYTECODE(GLOBAL_GET   , GLOBALGET, GENERIC,     0,     0,    2),   /* global R0, R1 = R1 = global(R0) */
+	_BYTECODE(GLOBAL_SET   , GLOBALSET, GENERIC,     0,     0,    2),   /* global R0, R1 = global(R1) = R0 */
+	_BYTECODE(UNDEF_LOAD   , LOAD     , UNDEF  ,     0,     0,    1),   /* undef-load R0 = R0 = undefined */ 
+	_BYTECODE(DINFO_LINE   , DEBUGINFO, INT    ,     1,     0,    0),   /* dbginf-line(10) */ 
+	_BYTECODE(DINFO_FUNC   , DEBUGINFO, STR    ,     1,     1,    0)    /* dbginf-func(test) */ 
 };
 /**
  * We should make sure we have everything we need in the list
@@ -120,8 +123,15 @@ typedef struct {
 		_inst_t               inst[0];       /*!< The instruction array */
 	};
 } _table_t;
+/* Although if we do assertion on string only it will check everything blow
+ * But this is based on all the data section are put in a union. And if we
+ * do this, we explicitly describes the constain */
 STATIC_ASSERTION_LAST(_table_t, string);
 STATIC_ASSERTION_SIZE(_table_t, string, 0);
+STATIC_ASSERTION_LAST(_table_t, regid);
+STATIC_ASSERTION_SIZE(_table_t, regid, 0);
+STATIC_ASSERTION_LAST(_table_t, inst);
+STATIC_ASSERTION_SIZE(_table_t, inst, 0);
 
 /**
  * @brief The actual structure for the segment
@@ -153,9 +163,9 @@ struct _pss_bytecode_module_t {
 
 /**
  * @brief The magic number used to identify the PSS bytecode file header
- * @note  The header indientifer is "\xff\xff\xffpssvm"
+ * @note  The header indientifer is "\x00\xffpssmod" 
  **/
-const uint64_t _file_magic = 0x76737065ffffffull;
+const uint64_t _file_magic = 0x646f6d737370ff00ull;
 
 /**
  * @brief Get the opcode information from the opcode
@@ -201,7 +211,7 @@ static inline int _dump_inst(const _inst_t* inst, FILE* out)
 	if(info->has_const && 1 != fwrite(&inst->num, sizeof(inst->num), 1, out))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the const number to the output file");
 
-	if(1 != fwrite(inst->reg, sizeof(pss_bytecode_regid_t) * info->num_regs, 1, out))
+	if(info->num_regs > 0 && 1 != fwrite(inst->reg, sizeof(pss_bytecode_regid_t) * info->num_regs, 1, out))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the register list to the file");
 
 	return 0;
@@ -224,7 +234,7 @@ static inline int _load_inst(_inst_t* buf, FILE* in)
 	if(info->has_const && 1 != fread(&buf->num, sizeof(buf->num), 1, in))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot read the number constant from the instruction");
 
-	if(1 != fread(buf->reg, sizeof(pss_bytecode_regid_t) * info->num_regs, 1, in))
+	if(info->num_regs > 0 && 1 != fread(buf->reg, sizeof(pss_bytecode_regid_t) * info->num_regs, 1, in))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot read the register operand list");
 
 	buf->label = ERROR_CODE(pss_bytecode_label_t);
@@ -245,7 +255,7 @@ static inline int _dump_string(const char* str, FILE* out)
 	if(1 != fwrite(&size, sizeof(size), 1, out))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot dump size of string to the output file");
 
-	if(1 != fwrite(str, size, 1, out))
+	if(size > 0 && 1 != fwrite(str, size, 1, out))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the string content to output file");
 
 	return 0;
@@ -304,6 +314,10 @@ static inline size_t _table_elem_size(_table_type_t type)
 static inline _table_t* _table_new(uint32_t cap, _table_type_t type)
 {
 	size_t elem_size = _table_elem_size(type);
+
+	if(ERROR_CODE(size_t) == elem_size)
+		ERROR_PTR_RETURN_LOG("Invalid type code");
+
 	_table_t* ret = (_table_t*)malloc(sizeof(_table_t) + elem_size * cap);
 
 	if(NULL == ret) 
@@ -431,6 +445,7 @@ STR_ERR:
 			if(ERROR_CODE(int) == _load_inst(ret->inst + i , in))
 				ERROR_LOG_GOTO(ERR, "Cannot read instruction from the input file");
 	}
+	else ERROR_LOG_GOTO(ERR, "Invalid table type");
 
 RET:
 	ret->header.size = header.size;
@@ -623,20 +638,8 @@ int pss_bytecode_module_free(pss_bytecode_module_t* module)
 	for(i =0 ; i < module->header.nseg; i ++)
 	{
 		pss_bytecode_segment_t* seg = module->segs[i];
-
-		if(NULL != seg)
-		{
-			if(NULL != seg->string_table && ERROR_CODE(int) == _table_free(seg->string_table))
-				rc = ERROR_CODE(int);
-
-			if(NULL != seg->argument_table && ERROR_CODE(int) == _table_free(seg->argument_table))
-				rc = ERROR_CODE(int);
-
-			if(NULL != seg->code_table && ERROR_CODE(int) == _table_free(seg->code_table))
-				rc = ERROR_CODE(int);
-		}
-
-		free(seg);
+		if(ERROR_CODE(int) == pss_bytecode_segment_free(seg))
+			rc = ERROR_CODE(int);
 	}
 
 	free(module->segs);
@@ -678,7 +681,7 @@ const pss_bytecode_segment_t* pss_bytecode_module_get_seg(const pss_bytecode_mod
 	return module->segs[id];
 }
 
-pss_bytecode_segid_t pss_bytecode_table_get_entry_point(const pss_bytecode_module_t* module)
+pss_bytecode_segid_t pss_bytecode_module_get_entry_point(const pss_bytecode_module_t* module)
 {
 	if(NULL == module)
 		ERROR_RETURN_LOG(pss_bytecode_segid_t, "Invalid arguments");
@@ -702,6 +705,7 @@ pss_bytecode_segment_t* pss_bytecode_segment_new(pss_bytecode_regid_t argc, cons
 		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	pss_bytecode_segment_t* ret = (pss_bytecode_segment_t*)calloc(1, sizeof(pss_bytecode_segment_t));
+
 	if(NULL == ret) 
 		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new segment");
 
@@ -715,10 +719,7 @@ pss_bytecode_segment_t* pss_bytecode_segment_new(pss_bytecode_regid_t argc, cons
 		ERROR_LOG_GOTO(ERR, "Cannot allocate the code table");
 
 	/* Fill the registers */
-	uint32_t i;
-	for(i = 0; i < argc; i ++)
-		ret->argument_table->regid[i] = argv[i];
-
+	memcpy(ret->argument_table->regid, argv, sizeof(pss_bytecode_regid_t) * argc);
 	ret->argument_table->header.size = argc;
 
 	return ret;
@@ -729,7 +730,6 @@ ERR:
 		if(NULL != ret->argument_table) _table_free(ret->argument_table);
 		if(NULL != ret->string_table)   _table_free(ret->string_table);
 		if(NULL != ret->code_table)     _table_free(ret->code_table);
-
 		free(ret);
 	}
 
@@ -751,6 +751,8 @@ int pss_bytecode_segment_free(pss_bytecode_segment_t* segment)
 
 	if(NULL != segment->code_table && ERROR_CODE(int) == _table_free(segment->code_table))
 		rc = ERROR_CODE(int);
+
+	free(segment);
 
 	return rc;
 }

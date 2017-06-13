@@ -17,19 +17,18 @@
 
 #define END PSS_BYTECODE_ARG_END
 
-char expected_inst[30][1024];
+char expected_inst[32][1024];
 
 int code_generation_test()
 {
 	pss_bytecode_module_t* module = pss_bytecode_module_new();
 	ASSERT_PTR(module, CLEANUP_NOP);
 
-	pss_bytecode_regid_t regs[] = {0,1,2,3,4};
+	pss_bytecode_regid_t regs[] = {2,1,4,3,0};
 
 	uint32_t i = 0;
 	for(i = 0; i < 10; i ++)
 	{
-
 		pss_bytecode_segment_t* segment = pss_bytecode_segment_new(5, regs);
 		ASSERT_PTR(segment, CLEANUP_NOP);
 
@@ -65,6 +64,8 @@ int code_generation_test()
 		ASSERT(27 == pss_bytecode_segment_append_code(segment, OPCODE(STR_LOAD), STRING("teststring2"), REG(12), END), CLEANUP_NOP);
 		ASSERT(28 == pss_bytecode_segment_append_code(segment, OPCODE(STR_LOAD), STRING("teststring3"), REG(12), END), CLEANUP_NOP);
 		ASSERT(29 == pss_bytecode_segment_append_code(segment, OPCODE(STR_LOAD), STRING("teststring4"), REG(12), END), CLEANUP_NOP);
+		ASSERT(30 == pss_bytecode_segment_append_code(segment, OPCODE(DINFO_LINE), NUMERIC(10), END), CLEANUP_NOP);
+		ASSERT(31 == pss_bytecode_segment_append_code(segment, OPCODE(DINFO_FUNC), STRING("function@test.pss"), END), CLEANUP_NOP);
 
 		uint32_t j;
 		for(j =0; j < sizeof(expected_inst) / sizeof(expected_inst[0]); j ++)
@@ -72,6 +73,8 @@ int code_generation_test()
 
 		ASSERT_RETOK(pss_bytecode_segid_t, pss_bytecode_module_append(module, segment), CLEANUP_NOP);
 	}
+
+	ASSERT_OK(pss_bytecode_module_set_entry_point(module, 3), CLEANUP_NOP);
 
 	ASSERT_OK(pss_bytecode_module_dump(module, TESTDIR"/test_code.psm"), CLEANUP_NOP);
 
@@ -84,12 +87,22 @@ int module_load_test()
 {
 	pss_bytecode_module_t* module = NULL;
 	ASSERT_PTR(module = pss_bytecode_module_load(TESTDIR"/test_code.psm"), CLEANUP_NOP);
+
+	ASSERT(3 == pss_bytecode_module_get_entry_point(module), CLEANUP_NOP);
 	
 	pss_bytecode_segid_t i = 0;
 	for(i = 0; i < 10; i ++)
 	{
 		const pss_bytecode_segment_t* segment = pss_bytecode_module_get_seg(module, i);
 		ASSERT_PTR(segment, CLEANUP_NOP);
+
+		pss_bytecode_regid_t const* args; 
+		ASSERT(5 == pss_bytecode_segment_get_args(segment, &args), CLEANUP_NOP);
+		ASSERT(2 == args[0], CLEANUP_NOP);
+		ASSERT(1 == args[1], CLEANUP_NOP);
+		ASSERT(4 == args[2], CLEANUP_NOP);
+		ASSERT(3 == args[3], CLEANUP_NOP);
+		ASSERT(0 == args[4], CLEANUP_NOP);
 
 		char buf[1024];
 		uint32_t j;

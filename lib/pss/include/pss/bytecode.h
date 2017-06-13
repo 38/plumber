@@ -118,6 +118,7 @@ typedef enum {
 	PSS_BYTECODE_OP_MOVE,   /*!< Data transfer */
 	PSS_BYTECODE_OP_GLOBALGET,  /*!< Get the global variable */
 	PSS_BYTECODE_OP_GLOBALSET,  /*!< Set the gloabl variable */
+	PSS_BYTECODE_OP_DEBUGINFO,  /*!< The debug information psuedo-instructions */
 	/* DO NOT INSERT ITEMS BELOW */
 	PSS_BYTECODE_OP_COUNT
 } pss_bytecode_op_t;
@@ -195,6 +196,8 @@ typedef enum {
 	PSS_BYTECODE_OPCODE_MOVE,
 	PSS_BYTECODE_OPCODE_GLOBAL_GET,
 	PSS_BYTECODE_OPCODE_GLOBAL_SET,
+	PSS_BYTECODE_OPCODE_DINFO_LINE,
+	PSS_BYTECODE_OPCODE_DINFO_FUNC,
 	/* DO NOT INSERT ITEMS BELOW */
 	PSS_BYTECODE_OPCODE_COUNT
 } pss_bytecode_opcode_t;
@@ -287,7 +290,7 @@ const pss_bytecode_segment_t* pss_bytecode_module_get_seg(const pss_bytecode_mod
  * @param module The bytecode module
  * @return The segment ID for the entry point or error code
  **/
-pss_bytecode_segid_t pss_bytecode_table_get_entry_point(const pss_bytecode_module_t* module);
+pss_bytecode_segid_t pss_bytecode_module_get_entry_point(const pss_bytecode_module_t* module);
 
 /**
  * @brief Set the entry point segment id of the given bytecode table
