@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017, Feng Liu
  **/
 
 /**
@@ -111,7 +112,7 @@ STATIC_ASSERTION_TYPE_COMPATIBLE(pss_value_t, num, pss_value_const_t, num);
  *       once it's not used anymore
  * @return The newly created value
  **/
-pss_value_t pss_value_new(pss_value_ref_type_t type, void* data);
+pss_value_t pss_ref_new(pss_value_ref_type_t type, void* data);
 
 /**
  * @brief Increase the reference counter of the value
@@ -126,13 +127,6 @@ int pss_value_incref(pss_value_t value);
  * @return status code
  **/
 int pss_value_decref(pss_value_t value);
-
-/**
- * @brief Make a copy of the value
- * @param value The value to operate
- * @reteurn The newly created value
- **/
-pss_value_t pss_value_copy(pss_value_const_t value);
 
 /**
  * @brief Convert the value to string type and make a new value for it
