@@ -44,7 +44,7 @@ struct _pss_value_ref_t {
 		return return_val; \
 	}
 
-pss_value_t pss_ref_new(pss_value_ref_type_t type, void* data)
+pss_value_t pss_value_ref_new(pss_value_ref_type_t type, void* data)
 {
 	_VALIDATE_TYPE(type, _EVALUE, "Invalid argument: type")
 	_CHECK_OPS(type, _EVALUE, mkval);
