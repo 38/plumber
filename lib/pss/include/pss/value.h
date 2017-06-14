@@ -154,7 +154,7 @@ pss_value_t pss_value_to_str(pss_value_const_t value);
  * @param ops  The operations
  * @return status code
  **/
-int pss_value_set_type_ops(pss_value_ref_type_t type, pss_value_ref_ops_t ops);
+int pss_value_ref_set_type_ops(pss_value_ref_type_t type, pss_value_ref_ops_t ops);
 
 /**
  * @brief Get the data pointer for this value

@@ -140,7 +140,7 @@ ERR:
 	return _EVALUE;
 }
 
-int pss_value_set_type_ops(pss_value_ref_type_t type, pss_value_ref_ops_t ops)
+int pss_value_ref_set_type_ops(pss_value_ref_type_t type, pss_value_ref_ops_t ops)
 {
 	_CHECK_TYPE(type, ERR);
 	if(NULL == ops.mkval || NULL == ops.free || NULL == ops.tostr)

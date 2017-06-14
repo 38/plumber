@@ -120,14 +120,14 @@ int setup()
 		.free = test_free,
 		.tostr = test_tostr
 	};
-	ASSERT_OK(pss_value_set_type_ops(PSS_VALUE_REF_TYPE_TEST, test_ops), CLEANUP_NOP);
+	ASSERT_OK(pss_value_ref_set_type_ops(PSS_VALUE_REF_TYPE_TEST, test_ops), CLEANUP_NOP);
 
 	pss_value_ref_ops_t str_ops = {
 		.mkval = str_mkval,
 		.free = str_free,
 		.tostr = str_tostr
 	};
-	ASSERT_OK(pss_value_set_type_ops(PSS_VALUE_REF_TYPE_STRING, str_ops), CLEANUP_NOP);
+	ASSERT_OK(pss_value_ref_set_type_ops(PSS_VALUE_REF_TYPE_STRING, str_ops), CLEANUP_NOP);
 	return 0;
 }
 

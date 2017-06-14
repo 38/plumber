@@ -19,6 +19,8 @@
 #include <pss/bytecode.h>
 #include <pss/value.h>
 #include <pss/frame.h>
+#include <pss/closure.h>
+#include <pss/vm.h>
 
 /**
  * @brief Initialize the PSS interpreter libray
