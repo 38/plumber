@@ -85,7 +85,7 @@ int testmain()
 
 	if(_load_default_module(8888) < 0)
 	{
-		goto ERR;
+		goto ERR;:
 	}
 	/* by default we should disable the mempool otherwise the memory leak detection won't work */
 	if(mempool_objpool_disabled(1) < 0 || setup() < 0)

@@ -7,6 +7,7 @@ command! Clean make -C @CMAKE_CURRENT_BINARY_DIR@ clean
 command! -nargs=1 BuildCommand !cd @CMAKE_CURRENT_BINARY_DIR@ && <args> 
 command! RunCurrentTest exec "!cd @CMAKE_CURRENT_BINARY_DIR@ && " . GetCurrentTestCase(expand("%:r"))
 command! RunCurrentTestValgrind exec "!cd @CMAKE_CURRENT_BINARY_DIR@ && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ". GetCurrentTestCase(expand("%:r")) 
+command! DebugCurrentTest echo DebugCurrentTestCase(expand("%:r"))
 
 map BU :Build <CR>
 map UT :UpdateTags <CR>
@@ -24,4 +25,11 @@ function! GetCurrentTestCase(source)
 			return ""
 		endif
 	endif
+endfunction
+
+function! DebugCurrentTestCase(source)
+	let binary = GetCurrentTestCase(a:source)
+	execute("ConqueGdb")
+	execute("ConqueGdbCommand cd @CMAKE_CURRENT_BINARY_DIR@")
+	execute("ConqueGdbCommand file " . l:binary)
 endfunction

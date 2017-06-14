@@ -24,12 +24,6 @@ typedef struct {
 	 **/
 	void* (*mkval)(void* data);
 	/**
-	 * @brief Make a copy of the value
-	 * @param value The value to copy
-	 * @return The newly copied value
-	 **/
-	void* (*copy)(const void* value);  	
-	/**
 	 * @brief Dispose a unused value
 	 * @param value The value to dispose
 	 * @return status code
@@ -46,13 +40,14 @@ typedef struct {
 } pss_value_ref_ops_t;
 
 /**
- * @brief The enum indicates what type of value it is
+ * @brief The enum indicates what type of value reference it is
  **/
 typedef enum {
-	PSS_VALUE_TYPE_DICT,    /*!< A dictionary */
-	PSS_VALUE_TYPE_STRING,  /*!< A string */
-	PSS_VALUE_TYPE_CLOSURE, /*!< A closure */
-	PSS_VALUE_TYPE_TEST     /*!< The type reserved for test cases */
+	PSS_VALUE_REF_TYPE_DICT,    /*!< A dictionary */
+	PSS_VALUE_REF_TYPE_STRING,  /*!< A string */
+	PSS_VALUE_REF_TYPE_CLOSURE, /*!< A closure */
+	PSS_VALUE_REF_TYPE_TEST,    /*!< The type reserved for test cases */
+	PSS_VALUE_REF_TYPE_COUNT    /*!< The number of value reference count */
 } pss_value_ref_type_t;
 
 /**
@@ -61,12 +56,26 @@ typedef enum {
 typedef struct _pss_value_ref_t pss_value_ref_t;
 
 /**
+ * @brief The enum indicates what value it is
+ **/
+typedef enum {
+	PSS_VALUE_KIND_UNDEF,   /*!< This is a undefined value */
+	PSS_VALUE_KIND_NUM,     /*!< This is a numeric type */
+	PSS_VALUE_KIND_REF,     /*!< This is an object reference */
+	PSS_VALUE_KIND_ERROR = -1 /*!< Indicates it's an error */
+} pss_value_kind_t;
+/**
+ * @brief By default the value should be undefined 
+ **/
+STATIC_ASSERTION_EQ(PSS_VALUE_KIND_UNDEF, 0);
+
+/**
  * @brief A runtime value
  * @note  This is the mutable version of the runtime value. It means we are able to
  *        change the reference counter
  **/
 typedef struct {
-	uint8_t                        is_ref;     /*!< Indicates if this value is a reference */
+	pss_value_kind_t               kind;       /*!< What kind of value it is */
 	union {
 		pss_value_ref_t*           ref;        /*!< A reference value */
 		pss_bytecode_numeric_t     num;        /*!< A reference value */
@@ -82,13 +91,15 @@ typedef struct {
  *        to make a duplication of the value
  **/
 typedef struct {
-	uint8_t                      is_ref;     /*!< Indicates this value is a reference */
+	pss_value_kind_t             kind;       /*!< What kind of value it is */
 	union {
 		const pss_value_ref_t*   ref;        /*!< A refernece value */
 		pss_bytecode_numeric_t   num;        /*!< A numeric value */
 	};
 } pss_value_const_t;
-STATIC_ASSERTION_TYPE_COMPATIBLE(pss_value_t, is_ref, pss_value_const_t, is_ref);
+STATIC_ASSERTION_TYPE_COMPATIBLE(pss_value_t, kind, pss_value_const_t, kind);
+STATIC_ASSERTION_TYPE_COMPATIBLE(pss_value_t, ref, pss_value_const_t, ref);
+STATIC_ASSERTION_TYPE_COMPATIBLE(pss_value_t, num, pss_value_const_t, num);
 
 /**
  * @brief Make a new runtime value 
@@ -145,4 +156,5 @@ int pss_value_set_type_ops(pss_value_ref_type_t type, pss_value_ref_ops_t ops);
  * @return The data pointer
  **/
 void* pss_value_get_data(pss_value_const_t value);
+
 #endif 
