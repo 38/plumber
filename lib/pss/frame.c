@@ -86,9 +86,9 @@ static inline const _node_t* _cow_get(_node_t* root, pss_bytecode_regid_t left, 
  **/
 static inline _node_t* _cow_write(_node_t* root, pss_bytecode_regid_t left, pss_bytecode_regid_t right, pss_bytecode_regid_t target, pss_value_t value)
 {
-	int first = 1;
-
 	_node_t* ret = root = (root == NULL)?_node_new(0):root;
+
+	_node_t** parent = &ret;
 
 	if(NULL == ret) ERROR_PTR_RETURN_LOG("Cannot allocate memory for the new node");
 
@@ -134,15 +134,13 @@ static inline _node_t* _cow_write(_node_t* root, pss_bytecode_regid_t left, pss_
 			root = node;
 		}
 
-		if(first) ret = root;
+		*parent = root;
 
 		if (target < mid) 
-			right = mid, root = root->child->left;
+			right = mid, parent = &root->child->left, root = root->child->left;
 		else if (mid < target)
-			left = (pss_bytecode_regid_t)(mid + 1u), root = root->child->right;
+			left = (pss_bytecode_regid_t)(mid + 1u), parent = &root->child->right, root = root->child->right;
 		else  break;
-
-		first = 0;
 	}
 
 	if(ERROR_CODE(int) == pss_value_decref(root->value))
