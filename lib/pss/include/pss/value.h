@@ -44,11 +44,12 @@ typedef struct {
  * @brief The enum indicates what type of value reference it is
  **/
 typedef enum {
-	PSS_VALUE_REF_TYPE_DICT,    /*!< A dictionary */
-	PSS_VALUE_REF_TYPE_STRING,  /*!< A string */
-	PSS_VALUE_REF_TYPE_CLOSURE, /*!< A closure */
-	PSS_VALUE_REF_TYPE_TEST,    /*!< The type reserved for test cases */
-	PSS_VALUE_REF_TYPE_COUNT    /*!< The number of value reference count */
+	PSS_VALUE_REF_TYPE_ERROR = -1,/*!< Invalid type code */ 
+	PSS_VALUE_REF_TYPE_DICT,      /*!< A dictionary */
+	PSS_VALUE_REF_TYPE_STRING,    /*!< A string */
+	PSS_VALUE_REF_TYPE_CLOSURE,   /*!< A closure */
+	PSS_VALUE_REF_TYPE_TEST,      /*!< The type reserved for test cases */
+	PSS_VALUE_REF_TYPE_COUNT      /*!< The number of value reference count */
 } pss_value_ref_type_t;
 
 /**
@@ -99,6 +100,8 @@ typedef struct {
 		pss_bytecode_numeric_t     num;        /*!< A reference value */
 	};
 } pss_value_t;
+STATIC_ASSERTION_FIRST(pss_value_t, constval);
+STATIC_ASSERTION_SIZE(pss_value_t, constval, 0);
 STATIC_ASSERTION_TYPE_COMPATIBLE(pss_value_t, kind, pss_value_const_t, kind);
 STATIC_ASSERTION_TYPE_COMPATIBLE(pss_value_t, ref, pss_value_const_t, ref);
 STATIC_ASSERTION_TYPE_COMPATIBLE(pss_value_t, num, pss_value_const_t, num);
@@ -114,6 +117,14 @@ STATIC_ASSERTION_TYPE_COMPATIBLE(pss_value_t, num, pss_value_const_t, num);
  * @return The newly created value
  **/
 pss_value_t pss_value_ref_new(pss_value_ref_type_t type, void* data);
+
+/**
+ * @brief Get the type code of the value reference
+ * @note If the value is not a refernce, return PSS_VALUE_REF_TYPE_ERROR
+ * @param value The value to check
+ * @return The value code
+ **/
+pss_value_ref_type_t pss_value_ref_type(pss_value_const_t value);
 
 /**
  * @brief Increase the reference counter of the value
@@ -151,5 +162,6 @@ int pss_value_set_type_ops(pss_value_ref_type_t type, pss_value_ref_ops_t ops);
  * @return The data pointer
  **/
 void* pss_value_get_data(pss_value_const_t value);
+
 
 #endif 

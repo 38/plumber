@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include <error.h>
 
@@ -14,58 +15,78 @@
 #include <pss/bytecode.h>
 #include <pss/value.h>
 
+/**
+ * @brief The operation functions for all the type accepted by the VM
+ **/
 static pss_value_ref_ops_t _type_ops[PSS_VALUE_REF_TYPE_COUNT];
 
+/**
+ * @brief The error value 
+ **/
 static const pss_value_t _EVALUE = { .kind = PSS_VALUE_KIND_ERROR };
 
+/**
+ * @brief The actual data structure for a PSS value reference
+ **/
 struct _pss_value_ref_t {
-	pss_value_ref_type_t type;
-	void* p_val;
-	uint32_t ref_count;
+	uint32_t             refcnt;/*!< The reference counter */
+	pss_value_ref_type_t type;  /*!< The type code */
+	void*                val;   /*!< The pointer to the object this reference refers */
 };
 
-#define _ERROR_RETURN(return_val, msg, arg...) \
-	do { \
-		LOG_ERROR(msg, ##arg); \
-		return return_val; \
+/**
+ * @brief Verify the callback function of this type is defined
+ **/
+#define _CHECK_TYPE(type, label) \
+	do {\
+		if(type < 0 || type >= PSS_VALUE_REF_TYPE_COUNT)\
+			ERROR_LOG_GOTO(label, "Invalid type code");\
 	} while(0)
 
-#define _VALIDATE_TYPE(type, return_val, msg, arg...) \
-	if(type < 0 || type >= PSS_VALUE_REF_TYPE_COUNT) \
-	{ \
-		_ERROR_RETURN(return_val, msg, ##arg); \
-	}
-
-#define _CHECK_OPS(type, return_val, func) \
+#define _CHECK_OPS(type, func, label) \
+	_CHECK_TYPE(type, label); \
 	pss_value_ref_ops_t *ops = &_type_ops[type]; \
-	if(NULL == ops->func) \
-	{ \
-		LOG_ERROR("callback function of type "#type" is undefined"); \
-		return return_val; \
-	}
+	if(NULL == ops->func) ERROR_LOG_GOTO(label, "Undefined Operations");
 
 pss_value_t pss_value_ref_new(pss_value_ref_type_t type, void* data)
 {
-	_VALIDATE_TYPE(type, _EVALUE, "Invalid argument: type")
-	_CHECK_OPS(type, _EVALUE, mkval);
-	void* p_val = ops->mkval(data);
-	if(NULL == p_val)
-		_ERROR_RETURN(_EVALUE, "mkval error");
+	void* val = NULL;
 
 	pss_value_t value = {
-		.kind = PSS_VALUE_KIND_REF,
-		.ref = (pss_value_ref_t*)malloc(sizeof(pss_value_ref_t))
+		.kind = PSS_VALUE_KIND_REF
 	};
+	
+	_CHECK_OPS(type, mkval, ERR);
+
+	if(NULL == (value.ref = (pss_value_ref_t*)malloc(sizeof(value.ref[0]))))
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the value reference"); 
+
+	if(NULL == (val = ops->mkval(data)))
+		ERROR_LOG_GOTO(ERR, "Cannot make value from the input pointer");
+
 	value.ref->type = type;
-	value.ref->p_val = p_val;
-	value.ref->ref_count = 1;
+	value.ref->val = val;
+	value.ref->refcnt = 0;
 	return value;
+
+ERR:
+	if(NULL != val) ops->free(val);
+	if(NULL != value.ref) free(value.ref); 
+	return _EVALUE;
+}
+
+pss_value_ref_type_t pss_value_ref_type(pss_value_const_t value)
+{
+	if(value.kind != PSS_VALUE_KIND_REF)
+		ERROR_RETURN_LOG(pss_value_ref_type_t, "Invalid arguments");
+
+	return value.ref->type;
 }
 
 int pss_value_incref(pss_value_t value)
 {
 	if(PSS_VALUE_KIND_REF == value.kind)
-		value.ref->ref_count += 1;
+		value.ref->refcnt ++;
 	return 0;
 }
 
@@ -74,56 +95,65 @@ int pss_value_decref(pss_value_t value)
 {
 	if(PSS_VALUE_KIND_REF != value.kind)
 		return 0;
-	value.ref->ref_count -= 1;
-	if(0 == value.ref->ref_count)
+
+	if(value.ref->refcnt > 0) value.ref->refcnt --;
+
+	if(0 == value.ref->refcnt)
 	{
-		_CHECK_OPS(value.ref->type, -1, free);
-		ops->free(value.ref->p_val);
+		_CHECK_OPS(value.ref->type, free, ERR);
+		ops->free(value.ref->val);
 		free(value.ref);
 	}
 	return 0;
+ERR:
+	return ERROR_CODE(int);
 }
 
 
 pss_value_t pss_value_to_str(pss_value_const_t value)
 {
-	static const size_t bufsize = 4096;
-	char* buf = (char *)malloc(bufsize);
-	_CHECK_OPS(value.ref->type, _EVALUE, tostr);
-	const char* str = ops->tostr(value.ref->p_val, buf, bufsize);
-	if(NULL == str)
+	char* buf = NULL;
+	const char* str = NULL;
+	static char outbuf[4096];
+
+	if(value.kind == PSS_VALUE_KIND_REF)
 	{
-		free(buf);
-		_ERROR_RETURN(_EVALUE, "Can not convert pss_value to str");
+		_CHECK_OPS(value.ref->type, tostr, ERR);
+		if(NULL == (str = ops->tostr(value.ref->val, outbuf, sizeof(outbuf))))
+			ERROR_LOG_GOTO(ERR, "Cannot dump the object to string");
 	}
-	if(str != buf)
+	else if(value.kind == PSS_VALUE_KIND_NUM)
 	{
-		size_t len = strlen(str) + 1;
-		if(len > bufsize)
-		{
-			len = bufsize - 1;
-			buf[len] = '\0';
-		}
-		memcpy(buf, str, len);
+		snprintf(outbuf, sizeof(outbuf), "%"PRId64, value.num);
+		str = outbuf;
 	}
-	return pss_ref_new(PSS_VALUE_REF_TYPE_STRING, buf);
+	else
+		str = "undefined";
+
+	size_t len = strlen(str) + 1;
+	buf = (char*)malloc(len);
+	memcpy(buf, str, len);
+
+	return pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, buf);
+ERR:
+	if(NULL == buf) free(buf);
+	return _EVALUE;
 }
 
 int pss_value_set_type_ops(pss_value_ref_type_t type, pss_value_ref_ops_t ops)
 {
-	_VALIDATE_TYPE(type, -1, "Invalid argument: type")
+	_CHECK_TYPE(type, ERR);
 	if(NULL == ops.mkval || NULL == ops.free || NULL == ops.tostr)
-	{
-		_ERROR_RETURN(-1, "Invalid argument: ops");
-	}
+		ERROR_LOG_GOTO(ERR, "Object operations is not fully defined");
 	_type_ops[type] = ops;
 	return 0;
+ERR:
+	return ERROR_CODE(int);
 }
 
 
 void* pss_value_get_data(pss_value_const_t value)
 {
-	if(PSS_VALUE_KIND_REF != value.kind)
-		return NULL;
-	return value.ref->p_val;
+	if(PSS_VALUE_KIND_REF != value.kind) return NULL;
+	return value.ref->val;
 }
