@@ -70,19 +70,6 @@ typedef enum {
 STATIC_ASSERTION_EQ(PSS_VALUE_KIND_UNDEF, 0);
 
 /**
- * @brief A runtime value
- * @note  This is the mutable version of the runtime value. It means we are able to
- *        change the reference counter
- **/
-typedef struct {
-	pss_value_kind_t               kind;       /*!< What kind of value it is */
-	union {
-		pss_value_ref_t*           ref;        /*!< A reference value */
-		pss_bytecode_numeric_t     num;        /*!< A reference value */
-	};
-} pss_value_t;
-
-/**
  * @brief A const runtime value
  * @note  This is the immutable version of runtime value. It means we don't have permission
  *        to change the reference counter. However, we are still have permission to change
@@ -97,6 +84,20 @@ typedef struct {
 		pss_bytecode_numeric_t   num;        /*!< A numeric value */
 	};
 } pss_value_const_t;
+
+/**
+ * @brief A runtime value
+ * @note  This is the mutable version of the runtime value. It means we are able to
+ *        change the reference counter
+ **/
+typedef struct {
+	pss_value_const_t              constval[0];/*!< The const version of this value */
+	pss_value_kind_t               kind;       /*!< What kind of value it is */
+	union {
+		pss_value_ref_t*           ref;        /*!< A reference value */
+		pss_bytecode_numeric_t     num;        /*!< A reference value */
+	};
+} pss_value_t;
 STATIC_ASSERTION_TYPE_COMPATIBLE(pss_value_t, kind, pss_value_const_t, kind);
 STATIC_ASSERTION_TYPE_COMPATIBLE(pss_value_t, ref, pss_value_const_t, ref);
 STATIC_ASSERTION_TYPE_COMPATIBLE(pss_value_t, num, pss_value_const_t, num);

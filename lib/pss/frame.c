@@ -230,7 +230,7 @@ pss_value_const_t pss_frame_reg_get(const pss_frame_t* frame, pss_bytecode_regid
 	const _node_t* node;
 
 	if(NULL != (node = _cow_get(frame->root, (pss_bytecode_regid_t)0, (pss_bytecode_regid_t)-1, regid)))
-		ret = *(pss_value_const_t*)&node->value;
+		ret = *node->value.constval;
 
 	return ret;
 }
