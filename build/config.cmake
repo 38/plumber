@@ -85,6 +85,10 @@ constant(LIB_PROTO_DEFAULT_DB_ROOT "/var/lib/plumber/protodb")
 constant(LIB_PROTO_FILE_SUFFIX   "proto")
 constant(LIB_PROTO_REVDEP_SUFFIX "rdeps")
 constant(LIB_PROTO_CACHE_REVDEP_INIT_SIZE 8)
+
+## LibPSS Configurations 
+constant(LIB_PSS_BYTECODE_TABLE_INIT_SIZE 32)
+constant(LIB_PSS_DICT_HASH_SIZE 97)
 ####################################################################################
 
 string(TOUPPER ${SYSNAME} SYSMACRO)

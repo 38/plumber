@@ -107,6 +107,28 @@ STATIC_ASSERTION_TYPE_COMPATIBLE(pss_value_t, ref, pss_value_const_t, ref);
 STATIC_ASSERTION_TYPE_COMPATIBLE(pss_value_t, num, pss_value_const_t, num);
 
 /**
+ * @brief Create a new error value
+ * @return The value indicates error
+ **/
+static inline pss_value_t pss_value_err()
+{
+	pss_value_t ret = {
+		.kind = PSS_VALUE_KIND_ERROR
+	};
+
+	return ret;
+}
+
+/**
+ * @brief Create a new const error value
+ * @return The value indicates error
+ **/
+static inline pss_value_const_t pss_value_const_err()
+{
+	return pss_value_err().constval[0];
+}
+
+/**
  * @brief Make a new runtime value 
  * @param type The type of the value
  * @param data The data of the value

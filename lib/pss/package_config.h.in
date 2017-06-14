@@ -1,0 +1,28 @@
+/**
+ * Copyright (C) 2017, Hao Hou
+ **/
+#ifndef __PROTO_PACKAGE_CONF_H__
+#define __PROTO_PACKAGE_CONF_H__ 
+
+/** @brief indicates the system type */
+#ifndef __@SYSMACRO@__
+#   define __@SYSMACRO@__
+#endif
+
+#ifdef __LINUX__
+#include <linux/limits.h>
+#else
+#	error("Type of operating system is not supported");
+#endif
+
+/**
+ * @brief The initial size of the tables used by the bytecode data structure
+ **/
+#	define PSS_BYTECODE_TABLE_INIT_SIZE @LIB_PSS_BYTECODE_TABLE_INIT_SIZE@
+
+/** 
+ * @brief The number of slots in the global list of the virtual machine runtime
+ **/
+#	define PSS_DICT_HASH_SIZE @LIB_PSS_DICT_HASH_SIZE@
+
+#endif /* __PROTO_PACKAGE_CONF_H__ */
