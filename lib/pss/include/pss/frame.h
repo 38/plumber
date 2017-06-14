@@ -53,4 +53,27 @@ int pss_frame_reg_set(pss_frame_t* frame, pss_bytecode_regid_t regid, pss_value_
  **/
 int pss_frame_reg_move(pss_frame_t* frame, pss_bytecode_regid_t from, pss_bytecode_regid_t to);
 
+/**
+ * @brief This function convert the serial numer to register ID
+ * @details The way we store registers in a frame is a copy-on-write tree. On the tree, different
+ *          register have different length of path. 
+ *          The serial number is the numer assigned to register from the root level to the leaf leave,
+ *          from left side to the right side.
+ *          This is the function maps the serial number to register ID.
+ *          This is useful when we manage the registers for code generation, because we always want to
+ *          use the regsiter that is near from the root
+ * @param serial The serial id
+ * @return The register id
+ **/
+static inline pss_bytecode_regid_t pss_frame_serial_to_regid(pss_bytecode_regid_t serial)
+{
+	uint32_t log2 = 0, val = 1 + (uint32_t)serial;
+	for(;val > 1; val >>= 1, log2 ++);
+
+	pss_bytecode_regid_t suffix = (pss_bytecode_regid_t)(0x7fff >> log2);
+	pss_bytecode_regid_t prefix = (pss_bytecode_regid_t)(serial << (16 - log2));
+
+	return prefix | suffix;
+}
+
 #endif
