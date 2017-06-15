@@ -15,7 +15,7 @@ int frame_test()
 		.kind = PSS_VALUE_KIND_NUM,
 		.num = 456
 	};
-	pss_value_const_t result;
+	pss_value_t result;
 
 	ASSERT_OK(pss_frame_reg_set(frame, 123, value), goto ERR);
 
@@ -38,7 +38,7 @@ int frame_test()
 	
 	for(i = 0; i < 0xffff - 4; i += 4u)
 	{
-		pss_value_const_t value = pss_frame_reg_get(frame, (pss_bytecode_regid_t)i);
+		pss_value_t value = pss_frame_reg_get(frame, (pss_bytecode_regid_t)i);
 		ASSERT(value.kind == PSS_VALUE_KIND_NUM, goto ERR);
 		ASSERT(value.num == (int64_t)i * (int64_t)i, goto ERR);
 
@@ -83,7 +83,7 @@ int frame_copy_test()
 	
 	for(i = 0; i < 1024; i ++)
 	{
-		pss_value_const_t value = pss_frame_reg_get(frame, (pss_bytecode_regid_t)i);
+		pss_value_t value = pss_frame_reg_get(frame, (pss_bytecode_regid_t)i);
 		if(i % 4 == 0)
 		{
 			ASSERT(value.kind == PSS_VALUE_KIND_NUM, goto ERR2);
@@ -101,7 +101,7 @@ int frame_copy_test()
 	
 	for(i = 1024; i < 0xffff; i ++)
 	{
-		pss_value_const_t value = pss_frame_reg_get(frame, (pss_bytecode_regid_t)i);
+		pss_value_t value = pss_frame_reg_get(frame, (pss_bytecode_regid_t)i);
 		if(i % 4 == 0)
 		{
 			ASSERT(value.kind == PSS_VALUE_KIND_NUM, goto ERR2);

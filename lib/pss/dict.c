@@ -271,20 +271,20 @@ int pss_dict_free(pss_dict_t* dict)
 	return rc;
 }
 
-pss_value_const_t pss_dict_get(const pss_dict_t* dict, const char* key)
+pss_value_t pss_dict_get(const pss_dict_t* dict, const char* key)
 {
 	if(NULL == dict || NULL == key)
 	{
 		LOG_ERROR("Invalid arguments");
-		return pss_value_const_err();
+		return pss_value_err();
 	}
 
 	_node_t* node = _hash_find((pss_dict_t*)dict, key, 0);
 
-	pss_value_const_t value = {};
+	pss_value_t value = {};
 
 	if(NULL != node)
-		value = node->value.constval[0];
+		value = node->value;
 
 	return value;
 }

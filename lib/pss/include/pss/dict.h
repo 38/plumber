@@ -46,7 +46,7 @@ int pss_dict_free(pss_dict_t* dict);
  * @return The const value reference to the value we want to find, PSS_VALUE_KIND_ERROR when 
  *         error cases, and PSS_VALUE_KIND_UNDEF for the undefined key
  **/
-pss_value_const_t pss_dict_get(const pss_dict_t* dict, const char* key);
+pss_value_t pss_dict_get(const pss_dict_t* dict, const char* key);
 
 /**
  * @brief Set variable in the global storage

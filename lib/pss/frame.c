@@ -217,9 +217,9 @@ int pss_frame_free(pss_frame_t* frame)
 	return rc;
 }
 
-pss_value_const_t pss_frame_reg_get(const pss_frame_t* frame, pss_bytecode_regid_t regid)
+pss_value_t pss_frame_reg_get(const pss_frame_t* frame, pss_bytecode_regid_t regid)
 {
-	pss_value_const_t ret = {};
+	pss_value_t ret = {};
 	
 	if(NULL == frame || ERROR_CODE(pss_bytecode_regid_t) == regid)
 	{
@@ -230,7 +230,7 @@ pss_value_const_t pss_frame_reg_get(const pss_frame_t* frame, pss_bytecode_regid
 	const _node_t* node;
 
 	if(NULL != (node = _cow_get(frame->root, (pss_bytecode_regid_t)0, (pss_bytecode_regid_t)-1, regid)))
-		ret = *node->value.constval;
+		ret = node->value;
 
 	return ret;
 }
@@ -252,8 +252,9 @@ int pss_frame_reg_set(pss_frame_t* frame, pss_bytecode_regid_t regid, pss_value_
 
 int pss_frame_reg_move(pss_frame_t* frame, pss_bytecode_regid_t from, pss_bytecode_regid_t to)
 {
-	pss_value_const_t value = pss_frame_reg_get(frame, from);
-	if(ERROR_CODE(int) == pss_frame_reg_set(frame, to, *(pss_value_t*)&value))
+	pss_value_t value  = pss_frame_reg_get(frame, from);
+	
+	if(ERROR_CODE(int) == pss_frame_reg_set(frame, to, value))
 		ERROR_RETURN_LOG(int, "Cannot move the register values");
 
 	return 0;

@@ -88,7 +88,7 @@ static inline _stack_t* _stack_new(pss_vm_t* host, const pss_frame_t* env, const
 	{
 		char buf[16];
 		snprintf(buf, sizeof(buf), "%d", i);
-		pss_value_const_t value = pss_dict_get(args, buf);
+		pss_value_t value = pss_dict_get(args, buf);
 
 		if(PSS_VALUE_KIND_ERROR == value.kind)
 			ERROR_LOG_GOTO(ERR, "Cannot get the value of argument %d", i);

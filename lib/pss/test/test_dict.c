@@ -9,7 +9,7 @@ int dict_test()
 	pss_dict_t* dict;
 	ASSERT_PTR(dict = pss_dict_new(), CLEANUP_NOP);
 
-	pss_value_const_t value = pss_dict_get(dict, "a.b.c");
+	pss_value_t value = pss_dict_get(dict, "a.b.c");
 	ASSERT(PSS_VALUE_KIND_UNDEF == value.kind, goto ERR);
 
 	pss_value_t valbuf = {
@@ -39,7 +39,7 @@ int dict_test()
 	{
 		char buf[32];
 		snprintf(buf, sizeof(buf), "var_%x", i);
-		pss_value_const_t val = pss_dict_get(dict, buf);
+		pss_value_t val = pss_dict_get(dict, buf);
 
 		ASSERT(val.kind == PSS_VALUE_KIND_NUM, goto ERR);
 		ASSERT(val.num == i, goto ERR);

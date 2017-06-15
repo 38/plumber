@@ -75,7 +75,7 @@ ERR:
 	return _EVALUE;
 }
 
-pss_value_ref_type_t pss_value_ref_type(pss_value_const_t value)
+pss_value_ref_type_t pss_value_ref_type(pss_value_t value)
 {
 	if(value.kind != PSS_VALUE_KIND_REF)
 		ERROR_RETURN_LOG(pss_value_ref_type_t, "Invalid arguments");
@@ -110,7 +110,7 @@ ERR:
 }
 
 
-pss_value_t pss_value_to_str(pss_value_const_t value)
+pss_value_t pss_value_to_str(pss_value_t value)
 {
 	char* buf = NULL;
 	const char* str = NULL;
@@ -152,7 +152,7 @@ ERR:
 }
 
 
-void* pss_value_get_data(pss_value_const_t value)
+void* pss_value_get_data(pss_value_t value)
 {
 	if(PSS_VALUE_KIND_REF != value.kind) return NULL;
 	return value.ref->val;

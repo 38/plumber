@@ -51,26 +51,26 @@ int test_ref_value()
 	pss_value_t value = pss_value_ref_new(PSS_VALUE_REF_TYPE_TEST, data);
 
 	ASSERT(value.kind == PSS_VALUE_KIND_REF, CLEANUP_NOP);
-	ASSERT(pss_value_get_data(*value.constval) == data, CLEANUP_NOP);
+	ASSERT(pss_value_get_data(value) == data, CLEANUP_NOP);
 	ASSERT(*data == 1, CLEANUP_NOP);
 
-	ASSERT(PSS_VALUE_REF_TYPE_TEST == pss_value_ref_type(*value.constval), CLEANUP_NOP);
+	ASSERT(PSS_VALUE_REF_TYPE_TEST == pss_value_ref_type(value), CLEANUP_NOP);
 
 	ASSERT_OK(pss_value_incref(value), CLEANUP_NOP);
 	ASSERT_OK(pss_value_incref(value), CLEANUP_NOP);
 	ASSERT_OK(pss_value_incref(value), CLEANUP_NOP);
 
-	pss_value_t strval = pss_value_to_str(*value.constval);
+	pss_value_t strval = pss_value_to_str(value);
 	ASSERT(strval.kind == PSS_VALUE_KIND_REF, CLEANUP_NOP);
-	ASSERT(PSS_VALUE_REF_TYPE_STRING == pss_value_ref_type(*strval.constval), CLEANUP_NOP);
-	ASSERT_STREQ((const char*)pss_value_get_data(*strval.constval), "<test-type>", CLEANUP_NOP);
+	ASSERT(PSS_VALUE_REF_TYPE_STRING == pss_value_ref_type(strval), CLEANUP_NOP);
+	ASSERT_STREQ((const char*)pss_value_get_data(strval), "<test-type>", CLEANUP_NOP);
 	ASSERT_OK(pss_value_decref(strval), CLEANUP_NOP);
 	
 	ASSERT_OK(pss_value_decref(value), CLEANUP_NOP);
-	ASSERT(pss_value_get_data(*value.constval) == data, CLEANUP_NOP);
+	ASSERT(pss_value_get_data(value) == data, CLEANUP_NOP);
 	ASSERT(*data == 1, CLEANUP_NOP);
 	ASSERT_OK(pss_value_decref(value), CLEANUP_NOP);
-	ASSERT(pss_value_get_data(*value.constval) == data, CLEANUP_NOP);
+	ASSERT(pss_value_get_data(value) == data, CLEANUP_NOP);
 	ASSERT(*data == 1, CLEANUP_NOP);
 	ASSERT_OK(pss_value_decref(value), CLEANUP_NOP);
 	ASSERT(*data == 0, CLEANUP_NOP);
@@ -92,22 +92,23 @@ int test_primitive_value()
 	ASSERT_OK(pss_value_incref(value), CLEANUP_NOP);
 	ASSERT_OK(pss_value_decref(value), CLEANUP_NOP);
 	
-	pss_value_t strval = pss_value_to_str(*value.constval);
+	pss_value_t strval = pss_value_to_str(value);
 	ASSERT(strval.kind == PSS_VALUE_KIND_REF, CLEANUP_NOP);
-	ASSERT(PSS_VALUE_REF_TYPE_STRING == pss_value_ref_type(*strval.constval), CLEANUP_NOP);
-	ASSERT_STREQ((const char*)pss_value_get_data(*strval.constval), "123", CLEANUP_NOP);
+	ASSERT(PSS_VALUE_REF_TYPE_STRING == pss_value_ref_type(strval), CLEANUP_NOP);
+	ASSERT_STREQ((const char*)pss_value_get_data(strval), "123", CLEANUP_NOP);
 	ASSERT_OK(pss_value_decref(strval), CLEANUP_NOP);
 
-	ASSERT(NULL == pss_value_get_data(*value.constval), CLEANUP_NOP);
+	ASSERT(NULL == pss_value_get_data(value), CLEANUP_NOP);
 
 	value.kind = PSS_VALUE_KIND_UNDEF;
-	strval = pss_value_to_str(*value.constval);
+	strval = pss_value_to_str(value);
+	strval = strval;
 	ASSERT(strval.kind == PSS_VALUE_KIND_REF, CLEANUP_NOP);
-	ASSERT(PSS_VALUE_REF_TYPE_STRING == pss_value_ref_type(*strval.constval), CLEANUP_NOP);
-	ASSERT_STREQ((const char*)pss_value_get_data(*strval.constval), "undefined", CLEANUP_NOP);
+	ASSERT(PSS_VALUE_REF_TYPE_STRING == pss_value_ref_type(strval), CLEANUP_NOP);
+	ASSERT_STREQ((const char*)pss_value_get_data(strval), "undefined", CLEANUP_NOP);
 	ASSERT_OK(pss_value_decref(strval), CLEANUP_NOP);
 	
-	ASSERT(NULL == pss_value_get_data(*value.constval), CLEANUP_NOP);
+	ASSERT(NULL == pss_value_get_data(value), CLEANUP_NOP);
 
 	return 0;
 }

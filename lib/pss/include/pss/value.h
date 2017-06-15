@@ -72,39 +72,17 @@ typedef enum {
 STATIC_ASSERTION_EQ(PSS_VALUE_KIND_UNDEF, 0);
 
 /**
- * @brief A const runtime value
- * @note  This is the immutable version of runtime value. It means we don't have permission
- *        to change the reference counter. However, we are still have permission to change
- *        the value of it. <br/>
- *        In order to make a non-const version of the value, you should call copy function
- *        to make a duplication of the value
- **/
-typedef struct {
-	pss_value_kind_t             kind;       /*!< What kind of value it is */
-	union {
-		const pss_value_ref_t*   ref;        /*!< A refernece value */
-		pss_bytecode_numeric_t   num;        /*!< A numeric value */
-	};
-} pss_value_const_t;
-
-/**
  * @brief A runtime value
  * @note  This is the mutable version of the runtime value. It means we are able to
  *        change the reference counter
  **/
 typedef struct {
-	pss_value_const_t              constval[0];/*!< The const version of this value */
 	pss_value_kind_t               kind;       /*!< What kind of value it is */
 	union {
 		pss_value_ref_t*           ref;        /*!< A reference value */
 		pss_bytecode_numeric_t     num;        /*!< A reference value */
 	};
 } pss_value_t;
-STATIC_ASSERTION_FIRST(pss_value_t, constval);
-STATIC_ASSERTION_SIZE(pss_value_t, constval, 0);
-STATIC_ASSERTION_TYPE_COMPATIBLE(pss_value_t, kind, pss_value_const_t, kind);
-STATIC_ASSERTION_TYPE_COMPATIBLE(pss_value_t, ref, pss_value_const_t, ref);
-STATIC_ASSERTION_TYPE_COMPATIBLE(pss_value_t, num, pss_value_const_t, num);
 
 /**
  * @brief Create a new error value
@@ -117,15 +95,6 @@ static inline pss_value_t pss_value_err()
 	};
 
 	return ret;
-}
-
-/**
- * @brief Create a new const error value
- * @return The value indicates error
- **/
-static inline pss_value_const_t pss_value_const_err()
-{
-	return pss_value_err().constval[0];
 }
 
 /**
@@ -146,7 +115,7 @@ pss_value_t pss_value_ref_new(pss_value_ref_type_t type, void* data);
  * @param value The value to check
  * @return The value code
  **/
-pss_value_ref_type_t pss_value_ref_type(pss_value_const_t value);
+pss_value_ref_type_t pss_value_ref_type(pss_value_t value);
 
 /**
  * @brief Increase the reference counter of the value
@@ -168,7 +137,7 @@ int pss_value_decref(pss_value_t value);
  * @note  If the 
  * @return The newly create value
  **/
-pss_value_t pss_value_to_str(pss_value_const_t value);
+pss_value_t pss_value_to_str(pss_value_t value);
 
 /**
  * @brief Set the type specified operations for the given type
@@ -183,7 +152,7 @@ int pss_value_ref_set_type_ops(pss_value_ref_type_t type, pss_value_ref_ops_t op
  * @param value The value 
  * @return The data pointer
  **/
-void* pss_value_get_data(pss_value_const_t value);
+void* pss_value_get_data(pss_value_t value);
 
 
 #endif 

@@ -33,7 +33,7 @@ int pss_frame_free(pss_frame_t* frame);
  * @param regid The register ID
  * @return The value 
  **/
-pss_value_const_t pss_frame_reg_get(const pss_frame_t* frame, pss_bytecode_regid_t regid);
+pss_value_t pss_frame_reg_get(const pss_frame_t* frame, pss_bytecode_regid_t regid);
 
 /**
  * @brief Set the value of the register
