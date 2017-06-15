@@ -74,7 +74,7 @@ static inline _stack_t* _stack_new(pss_vm_t* host, const pss_frame_t* env, const
 	if(ERROR_CODE(int) == argc)
 		ERROR_LOG_GOTO(ERR, "Cannot get the number of arguments of the code segment");
 
-	int dict_size = (int)pss_dict_size(args);
+	int dict_size = args == NULL ? 0 : (int)pss_dict_size(args);
 	if(ERROR_CODE(int) == dict_size)
 		ERROR_LOG_GOTO(ERR, "Cannot get the size of the argument list");
 
@@ -109,14 +109,122 @@ ERR:
 
 }
 
-#if 0
-pss_global_t* pss_global_new()
+static inline int _stack_free(_stack_t* stack)
 {
-	pss_global_t* ret = (pss_global_t*)malloc(sizeof(*ret));
-	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the PSS Global");
+	int rc = 0;
+	if(NULL != stack->exmsg) 
+		free(stack->exmsg);
+	
+	if(NULL != stack->frame && ERROR_CODE(int) == pss_frame_free(stack->frame))
+	{
+		LOG_ERROR("Cannot dispose the register frame");
+		rc = ERROR_CODE(int);
+	}
 
-	return ret;
+	free(stack);
+	return rc;
 }
 
+static inline int _exec(pss_vm_t* vm)
+{
+#if 0
+	while(vm->stack != NULL && !vm->exception)
+	{
+		_stack_t* top= vm->stack;
+		pss_bytecode_instruction_t inst;
+		if(ERROR_CODE(int) == pss_bytecode_segment_get_inst(top->code, top->ip, &inst))
+		{
+			LOG_ERROR("Cannot fetch instruction at address 0x%x", top->ip);
+			vm->exception = 1u; 
+			break;
+		}
 
+		int rc = 0;
+		switch(inst->info->operation)
+		{
+			case PSS_BYTECODE_OP_NEW:
+				rc = _exec_new(vm, &inst);
+				break;
+			default:
+				rc = ERROR_CODE(int);
+				LOG_ERROR("Invalid opration code %u", inst->info->operation);
+		}
+	}
+
+	if(vm->exception)
+		ERROR_RETURN_LOG(int, "VM has been set to exception state");
 #endif
+	(void)vm;
+	return 0;
+}
+
+pss_vm_t* pss_vm_new()
+{
+	pss_vm_t* ret = (pss_vm_t*)calloc(1, sizeof(*ret));
+
+	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the VM");
+
+	if(NULL == (ret->global = pss_dict_new()))
+		ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the global storage");
+
+	return ret;
+ERR:
+	if(NULL != ret)
+	{
+		if(NULL != ret->global) pss_dict_free(ret->global);
+		free(ret);
+	}
+
+	return NULL;
+}
+
+int pss_vm_free(pss_vm_t* vm)
+{
+	int rc = 0;
+	if(NULL == vm) ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	_stack_t* ptr;
+	for(ptr = vm->stack; NULL != ptr;)
+	{
+		_stack_t* this = ptr;
+		ptr = ptr->next;
+
+		if(ERROR_CODE(int) == _stack_free(this))
+		{
+			LOG_ERROR("Cannot dispose stack frame");
+			rc = ERROR_CODE(int);
+		}
+	}
+
+	if(ERROR_CODE(int) == pss_dict_free(vm->global))
+	{
+		LOG_ERROR("Cannot dispose the global storage");
+		rc = ERROR_CODE(int);
+	}
+
+	free(vm);
+
+	return rc;
+}
+
+int pss_vm_run_module(pss_vm_t* vm, const pss_bytecode_module_t* module)
+{
+	if(NULL == vm || NULL == module)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(vm->exception)
+		ERROR_RETURN_LOG(int, "VM is in exception state");
+
+	pss_bytecode_segid_t segid = pss_bytecode_module_get_entry_point(module);
+	if(ERROR_CODE(pss_bytecode_segid_t) == segid)
+		ERROR_RETURN_LOG(int, "Cannot get the entry point segment ID");
+
+	const pss_bytecode_segment_t* seg = pss_bytecode_module_get_seg(module, segid);
+	if(NULL == seg)
+		ERROR_RETURN_LOG(int, "Cannot get the segment from the segment ID %u", segid);
+
+	if(NULL == (vm->stack = _stack_new(vm, NULL, seg, NULL)))
+		ERROR_RETURN_LOG(int, "Cannot create stack for the entry point frame");
+
+	return _exec(vm);
+}
