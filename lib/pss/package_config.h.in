@@ -20,9 +20,20 @@
  **/
 #	define PSS_BYTECODE_TABLE_INIT_SIZE @LIB_PSS_BYTECODE_TABLE_INIT_SIZE@
 
-/** 
- * @brief The number of slots in the global list of the virtual machine runtime
+/**
+ * @brief The initial number of slots of the dictionary
  **/
-#	define PSS_DICT_HASH_SIZE @LIB_PSS_DICT_HASH_SIZE@
+#	define PSS_DICT_INIT_SIZE @LIB_PSS_DICT_INIT_HASH_SIZE@
 
+/**
+ * @brief The maximum number of slots of the dictionary
+ **/
+#	define PSS_DICT_SIZE_LEVEL @LIB_PSS_DICT_SIZE_LEVEL@
+
+/**
+ * @brief The threshold of the maximum chain length of the dictionary
+ * @note When the dictionary is not in the final level, it will be promoted when
+ *       the maximum chain length is larger than this value
+ **/
+#	define PSS_DICT_MAX_CHAIN_THRESHOLD @LIB_PSS_DICT_MAX_CHAIN_THRESHOLD@
 #endif /* __PROTO_PACKAGE_CONF_H__ */

@@ -43,7 +43,11 @@ struct _pss_vm_t {
 	pss_dict_t*    global;      /*!< The global variable table */
 };
 
-#if 0
+static inline pss_value_t _strip_const(void* ptr)
+{
+	return *(pss_value_t*)ptr;
+}
+
 /**
  * @brief Create a new stack frame
  * @param host The host VM
@@ -60,11 +64,52 @@ static inline _stack_t* _stack_new(pss_vm_t* host, const pss_frame_t* env, const
 	ret->host = host;
 	ret->code = seg;
 	ret->ip = 0;
+	ret->line = 0;
+	ret->exmsg = NULL;
+	ret->func = NULL;
+	ret->next = NULL;
 
+	pss_bytecode_regid_t const* arg_regs;
+	int argc = pss_bytecode_segment_get_args(seg, &arg_regs);
+	if(ERROR_CODE(int) == argc)
+		ERROR_LOG_GOTO(ERR, "Cannot get the number of arguments of the code segment");
 
+	int dict_size = (int)pss_dict_size(args);
+	if(ERROR_CODE(int) == dict_size)
+		ERROR_LOG_GOTO(ERR, "Cannot get the size of the argument list");
+
+	if(NULL == (ret->frame = pss_frame_new(env)))
+		ERROR_LOG_GOTO(ERR, "Cannot duplicate the environment frame");
+
+	if(argc > dict_size) argc = dict_size;
+
+	int i;
+	for(i = 0; i < argc; i ++)
+	{
+		char buf[16];
+		snprintf(buf, sizeof(buf), "%d", i);
+		pss_value_const_t value = pss_dict_get(args, buf);
+
+		if(PSS_VALUE_KIND_ERROR == value.kind)
+			ERROR_LOG_GOTO(ERR, "Cannot get the value of argument %d", i);
+
+		if(ERROR_CODE(int) == pss_frame_reg_set(ret->frame, arg_regs[i], _strip_const(&value)))
+			ERROR_LOG_GOTO(ERR, "Cannot set the value of register %u", arg_regs[i]);
+	}
+
+	return ret;
+ERR:
+	if(NULL != ret)
+	{
+		if(NULL != ret->frame) pss_frame_free(ret->frame);
+		free(ret);
+	}
+
+	return NULL;
 
 }
 
+#if 0
 pss_global_t* pss_global_new()
 {
 	pss_global_t* ret = (pss_global_t*)malloc(sizeof(*ret));

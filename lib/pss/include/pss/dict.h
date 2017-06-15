@@ -55,7 +55,21 @@ pss_value_const_t pss_dict_get(const pss_dict_t* dict, const char* key);
  * @param value The value we want to write
  * @return status code
  **/
-int pss_dict_set(pss_dict_t* global, const char* key, pss_value_t value);
+int pss_dict_set(pss_dict_t* dict, const char* key, pss_value_t value);
+
+/**
+ * @brief Get the size of the dictionary
+ * @param dict The target dictionary
+ * @return The size
+ **/
+uint32_t pss_dict_size(const pss_dict_t* dict);
+
+/**
+ * @brief Get the n-th key in the dicionary
+ * @param dict The target dictionary
+ * @return The key value
+ **/
+const char* pss_dict_get_key(const pss_dict_t* dict, uint32_t i);
 
 /* TODO: iterator interfaces */
 #endif

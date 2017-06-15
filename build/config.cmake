@@ -88,7 +88,9 @@ constant(LIB_PROTO_CACHE_REVDEP_INIT_SIZE 8)
 
 ## LibPSS Configurations 
 constant(LIB_PSS_BYTECODE_TABLE_INIT_SIZE 32)
-constant(LIB_PSS_DICT_HASH_SIZE 97)
+constant(LIB_PSS_DICT_INIT_HASH_SIZE 7)
+constant(LIB_PSS_DICT_SIZE_LEVEL 16)
+constant(LIB_PSS_DICT_MAX_CHAIN_THRESHOLD 8)
 ####################################################################################
 
 string(TOUPPER ${SYSNAME} SYSMACRO)

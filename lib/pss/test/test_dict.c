@@ -10,21 +10,21 @@ int dict_test()
 	ASSERT_PTR(dict = pss_dict_new(), CLEANUP_NOP);
 
 	pss_value_const_t value = pss_dict_get(dict, "a.b.c");
-	ASSERT(PSS_VALUE_KIND_UNDEF == value.kind, CLEANUP_NOP);
+	ASSERT(PSS_VALUE_KIND_UNDEF == value.kind, goto ERR);
 
 	pss_value_t valbuf = {
 		.kind = PSS_VALUE_KIND_NUM,
 		.num  = 123
 	};
 
-	ASSERT_OK(pss_dict_set(dict, "a.b.c", valbuf), CLEANUP_NOP);
+	ASSERT_OK(pss_dict_set(dict, "a.b.c", valbuf), goto ERR);
 	
 	value = pss_dict_get(dict, "a.b.c");
-	ASSERT(PSS_VALUE_KIND_NUM == value.kind, CLEANUP_NOP);
-	ASSERT(123 == value.num, CLEANUP_NOP);
+	ASSERT(PSS_VALUE_KIND_NUM == value.kind, goto ERR);
+	ASSERT(123 == value.num, goto ERR);
 
 	uint32_t i;
-	for(i = 0; i < 1000; i ++)
+	for(i = 0; i < 500000; i ++)
 	{
 		char buf[32];
 		snprintf(buf, sizeof(buf), "var_%x", i);
@@ -32,27 +32,41 @@ int dict_test()
 			.kind = PSS_VALUE_KIND_NUM,
 			.num = i
 		};
-		ASSERT_OK(pss_dict_set(dict, buf, valbuf), CLEANUP_NOP);
+		ASSERT_OK(pss_dict_set(dict, buf, valbuf), goto ERR);
 	}
 
-	for(i = 0; i < 1000; i ++)
+	for(i = 0; i < 500000; i ++)
 	{
 		char buf[32];
 		snprintf(buf, sizeof(buf), "var_%x", i);
 		pss_value_const_t val = pss_dict_get(dict, buf);
 
-		ASSERT(val.kind == PSS_VALUE_KIND_NUM, CLEANUP_NOP);
-		ASSERT(val.num == i, CLEANUP_NOP);
+		ASSERT(val.kind == PSS_VALUE_KIND_NUM, goto ERR);
+		ASSERT(val.num == i, goto ERR);
+	}
+
+	ASSERT_STREQ(pss_dict_get_key(dict, 0), "a.b.c", goto ERR);
+
+	for(i = 0; i < 500000; i ++)
+	{
+		char buf[32];
+		snprintf(buf, sizeof(buf), "var_%x", i);
+
+		ASSERT_STREQ(pss_dict_get_key(dict, i + 1), buf, goto ERR);
 	}
 
 	ASSERT_OK(pss_dict_free(dict), CLEANUP_NOP);
 
 	return 0;
+ERR:
+	pss_dict_free(dict);
+	return ERROR_CODE(int);
 }
 
 int setup()
 {
 	ASSERT_OK(pss_log_set_write_callback(log_write_va), CLEANUP_NOP);
+	ASSERT_OK(pss_init(), CLEANUP_NOP);
 
 	return 0;
 }
