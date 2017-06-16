@@ -386,8 +386,20 @@ static const char* _tostr(const void* dict_mem, char* buf, size_t bufsize)
 
 		_DUMP(": ");
 
-		size_t written = pss_value_strify_to_buf(value, buf, bufsize);
-		if(ERROR_CODE(size_t) == written) ERROR_PTR_RETURN_LOG("Cannot dump the value to the string");
+		size_t written;
+
+		if(value.kind == PSS_VALUE_KIND_REF && PSS_VALUE_REF_TYPE_STRING == pss_value_ref_type(value))
+		{
+			char* result = pss_string_literal(key, buf, bufsize);
+			if(NULL == result) ERROR_PTR_RETURN_LOG("Cannot convert the value to string literal");
+			written = strlen(result);
+		}
+		else
+		{
+			size_t written = pss_value_strify_to_buf(value, buf, bufsize);
+			if(ERROR_CODE(size_t) == written) ERROR_PTR_RETURN_LOG("Cannot dump the value to the string");
+		}
+
 		buf += written;
 		bufsize -= written;
 

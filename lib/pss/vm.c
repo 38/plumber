@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2017, Hao Hou
  **/
 #include <stdint.h>
@@ -279,6 +279,7 @@ static inline int _exec_load(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 			if(NULL == runtime_str) ERROR_RETURN_LOG(int, "Cannot create a runtime string");
 			val = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, runtime_str);
 			if(val.kind == PSS_VALUE_KIND_ERROR) free(runtime_str);
+			break;
 		}
 		default:
 			vm->error = PSS_VM_ERROR_BYTECODE;
@@ -294,37 +295,174 @@ static inline int _exec_load(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 	return 0;
 }
 
-static inline int _exec_setval(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
+static inline int _exec_dict(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
 {
-	pss_dict_t* dict = (pss_dict_t*)_value_get_ref_data(vm, _read_reg(vm, inst, 1), PSS_VALUE_REF_TYPE_DICT, 1);
+	uint32_t dict_idx, key_idx, reg_idx;
+	switch(inst->opcode)
+	{
+		case PSS_BYTECODE_OPCODE_GET_VAL:
+		case PSS_BYTECODE_OPCODE_GET_KEY:
+			dict_idx = 0, key_idx = 1, reg_idx = 2;
+			break;
+		case PSS_BYTECODE_OPCODE_SET_VAL:
+			reg_idx = 0, dict_idx = 1, key_idx = 2;
+			break;
+		default:
+			vm->error = PSS_VM_ERROR_BYTECODE;
+			return 0;
+	}
+	pss_dict_t* dict = (pss_dict_t*)_value_get_ref_data(vm, _read_reg(vm, inst, dict_idx), PSS_VALUE_REF_TYPE_DICT, 1);
 	if(NULL == dict) return 0;
+	pss_value_t keyval = _read_reg(vm, inst, key_idx);
+
+	if(inst->opcode == PSS_BYTECODE_OPCODE_GET_KEY)
+	{
+		if(!_is_value_kind(vm, keyval, PSS_VALUE_KIND_NUM, 1))
+			return 0;
+
+		const char* res_str = pss_dict_get_key(dict, (uint32_t)keyval.num);
+		if(NULL == res_str)
+			ERROR_RETURN_LOG(int, "Cannot read the key");
+
+		char* runtime_str = pss_string_concat(res_str, "");
+		if(NULL == runtime_str)
+			ERROR_RETURN_LOG(int, "Cannot create the runtime string");
+
+		pss_value_t result = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, runtime_str);
+		if(result.kind == PSS_VALUE_KIND_ERROR)
+		{
+			free(runtime_str);
+			ERROR_RETURN_LOG(int, "Cannot careate new value for the result string");
+		}
+
+		if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[2], result))
+		{
+			pss_value_decref(result);
+			ERROR_RETURN_LOG(int, "Cannot put the result string to stack frame");
+		}
+
+		return 0;
+	}
 
 	char buf[4096];
-
-	const char* key = _get_string_repr(vm, _read_reg(vm, inst, 2), buf, sizeof(buf));
+	const char* key = _get_string_repr(vm, keyval, buf, sizeof(buf));
 	if(NULL == key) ERROR_RETURN_LOG(int, "Cannot convert the key to string");
 
-	pss_value_t value = _read_reg(vm, inst, 0);
-	if(value.kind == PSS_VALUE_KIND_ERROR) 
-		ERROR_RETURN_LOG(int, "Cannot read the source register");
+	if(inst->opcode == PSS_BYTECODE_OPCODE_SET_VAL)
+	{
+		pss_value_t value = _read_reg(vm, inst, reg_idx);
+		if(value.kind == PSS_VALUE_KIND_ERROR) 
+			ERROR_RETURN_LOG(int, "Cannot read the source register");
 
-	if(ERROR_CODE(int) == pss_dict_set(dict, key, value))
-		ERROR_RETURN_LOG(int, "Cannot insert the value to the dictionary");
+		if(ERROR_CODE(int) == pss_dict_set(dict, key, value))
+			ERROR_RETURN_LOG(int, "Cannot insert the value to the dictionary");
+	}
+	else
+	{
+		pss_value_t value = pss_dict_get(dict, key);
+		if(value.kind == PSS_VALUE_KIND_ERROR)
+			ERROR_RETURN_LOG(int, "Cannot read the dictionary");
+
+		if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[reg_idx], value))
+			ERROR_RETURN_LOG(int, "Cannot write the value to the reigster frame");
+	}
 
 	return 0;
 }
 
-static inline int _exec_add(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
+static inline int _exec_arithmetic_logic(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
 {
 	pss_value_t left = _read_reg(vm, inst, 0);
 	pss_value_t right = _read_reg(vm, inst, 1);
 	pss_value_t result = {};
 
+	if(_is_value_kind(vm, left, PSS_VALUE_KIND_NUM, 1) &&
+	   _is_value_kind(vm, right, PSS_VALUE_KIND_NUM, 1))
+	{
+		result.kind = PSS_VALUE_KIND_NUM;
+		switch(inst->opcode)
+		{
+			case PSS_BYTECODE_OPCODE_SUB:
+				result.num = left.num - right.num;
+				break;
+			case PSS_BYTECODE_OPCODE_MUL:
+				result.num = left.num * right.num;
+				break;
+			case PSS_BYTECODE_OPCODE_DIV:
+			case PSS_BYTECODE_OPCODE_MOD:
+				if(right.num == 0) 
+				{
+					vm->error = PSS_VM_ERROR_ARITHMETIC;
+					return 0;
+				}
+				if(inst->opcode == PSS_BYTECODE_OPCODE_MOD)
+					result.num = left.num % right.num;
+				else
+					result.num = left.num / right.num;
+				break;
+			case PSS_BYTECODE_OPCODE_AND:
+				result.num = left.num && right.num;
+				break;
+			case PSS_BYTECODE_OPCODE_OR:
+				result.num = left.num || right.num;
+				break;
+			case PSS_BYTECODE_OPCODE_XOR:
+				result.num = left.num ^ right.num;
+				break;
+			default:
+				vm->error = PSS_VM_ERROR_BYTECODE;
+				return 0;
+		}
+	}
+
+	if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[2], result))
+		ERROR_RETURN_LOG(int, "Cannot put the value to the register frame");
+
+	return 0;
+}
+
+static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
+{
+	pss_value_t left = _read_reg(vm, inst, 0);
+	pss_value_t right = _read_reg(vm, inst, 1);
+	pss_value_t result = {};
+
+	int lundef, rundef;
+
+	if((lundef = _is_value_kind(vm, left, PSS_VALUE_KIND_UNDEF, 0)) ||
+	   (rundef = _is_value_kind(vm, right, PSS_VALUE_KIND_UNDEF, 0)))
+	{
+		if(inst->opcode == PSS_BYTECODE_OPCODE_EQ)
+			result.num = (lundef && rundef);
+		else
+		{
+			vm->error = PSS_VM_ERROR_TYPE;
+			return 0;
+		}
+	}
+
 	if(_is_value_kind(vm, left, PSS_VALUE_KIND_NUM, 0) &&
 	   _is_value_kind(vm, right, PSS_VALUE_KIND_NUM, 0))
 	{
 		result.kind = PSS_VALUE_KIND_NUM;
-		result.num = left.num + right.num;
+		switch(inst->opcode)
+		{
+			case PSS_BYTECODE_OPCODE_ADD:
+				result.num = left.num + right.num;
+				break;
+			case PSS_BYTECODE_OPCODE_EQ:
+				result.num = (left.num == right.num);
+				break;
+			case PSS_BYTECODE_OPCODE_LT:
+				result.num = (left.num < right.num);
+				break;
+			case PSS_BYTECODE_OPCODE_LE:
+				result.num = (left.num <= right.num);
+				break;
+			default:
+				vm->error = PSS_VM_ERROR_BYTECODE;
+				return 0;
+		}
 	}
 	else
 	{
@@ -336,15 +474,41 @@ static inline int _exec_add(pss_vm_t* vm, const pss_bytecode_instruction_t* inst
 		const char* right_str = _get_string_repr(vm, right, rightbuf, sizeof(rightbuf));
 		if(NULL == right_str) ERROR_RETURN_LOG(int, "Cannot convert the right operand to string");
 
-		char* result_str = pss_string_concat(left_str, right_str);
-		if(NULL == result_str)
-			ERROR_RETURN_LOG(int, "Cannot concate two string");
-
-		result = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, result_str);
-		if(result.kind == PSS_VALUE_KIND_ERROR)
+		switch(inst->opcode)
 		{
-			free(result_str);
-			ERROR_RETURN_LOG(int, "Cannot create string value");
+			case PSS_BYTECODE_OPCODE_ADD:
+			{
+				char* result_str = pss_string_concat(left_str, right_str);
+				if(NULL == result_str)
+					ERROR_RETURN_LOG(int, "Cannot concate two string");
+
+				result = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, result_str);
+				if(result.kind == PSS_VALUE_KIND_ERROR)
+				{
+					free(result_str);
+					ERROR_RETURN_LOG(int, "Cannot create string value");
+				}
+				break;
+			}
+			case PSS_BYTECODE_OPCODE_LE:
+			case PSS_BYTECODE_OPCODE_LT:
+			case PSS_BYTECODE_OPCODE_EQ:
+			{
+				int cmpres = strcmp(left_str, right_str);
+
+				result.kind = PSS_VALUE_KIND_NUM;
+
+				if(inst->opcode == PSS_BYTECODE_OPCODE_LE) 
+					result.num = (cmpres <= 0);
+				else if(inst->opcode == PSS_BYTECODE_OPCODE_LT)
+					result.num = (cmpres < 0);
+				else 
+					result.num = (cmpres == 0);
+				break;
+			}
+			default:
+				vm->error = PSS_VM_ERROR_BYTECODE;
+				return 0;
 		}
 	}
 
@@ -353,6 +517,90 @@ static inline int _exec_add(pss_vm_t* vm, const pss_bytecode_instruction_t* inst
 		pss_value_decref(result);
 		ERROR_RETURN_LOG(int, "Cannot set the register value");
 	}
+
+	return 0;
+}
+
+static inline int _exec_jump(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
+{
+	pss_value_t cond = {
+		.kind = PSS_VALUE_KIND_NUM,
+		.num  = 0
+	};
+	pss_value_t target = _read_reg(vm, inst, inst->info->num_regs - 1u);
+	if(!_is_value_kind(vm, target, PSS_VALUE_KIND_NUM, 1))
+		return 0;
+
+	if(inst->opcode == PSS_BYTECODE_OPCODE_JZ)
+	{
+		cond = _read_reg(vm, inst, 0);
+		if(!_is_value_kind(vm, cond, PSS_VALUE_KIND_NUM, 1))
+			return 0;
+	}
+
+	if(cond.num == 0)
+		vm->stack->ip = (pss_bytecode_addr_t)(target.num - 1);
+
+	return 0;
+}
+
+static inline int _exec_global(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
+{
+	uint32_t key_idx, reg_idx;
+	if(inst->opcode == PSS_BYTECODE_OPCODE_GLOBAL_GET)
+		key_idx = 0, reg_idx = 1;
+	else if(inst->opcode == PSS_BYTECODE_OPCODE_GLOBAL_SET)
+		key_idx = 1, reg_idx = 0;
+	else 
+	{
+		vm->error = PSS_VM_ERROR_BYTECODE;
+		return 0;
+	}
+	const char* key = _value_get_ref_data(vm, _read_reg(vm, inst, key_idx), PSS_VALUE_REF_TYPE_STRING, 1);
+	if(NULL == key) return 0;
+
+	if(inst->opcode == PSS_BYTECODE_OPCODE_GLOBAL_GET)
+	{
+		pss_value_t value = pss_dict_get(vm->global, key);
+		if(PSS_VALUE_KIND_ERROR == value.kind)
+			ERROR_RETURN_LOG(int, "Cannot read the global dictionary");
+		if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[reg_idx], value))
+			ERROR_RETURN_LOG(int, "Cannot write the value to register");
+	}
+	else
+	{
+		pss_value_t value = pss_frame_reg_get(vm->stack->frame, inst->reg[reg_idx]);
+		if(PSS_VALUE_KIND_ERROR == value.kind)
+			ERROR_RETURN_LOG(int, "Cannot read the value of the register");
+
+		if(ERROR_CODE(int) == pss_dict_set(vm->global, key, value))
+			ERROR_RETURN_LOG(int, "Cannot write the value to the global dicitonary");
+	}
+
+	return 0;
+}
+
+static inline int _exec_len(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
+{
+	pss_value_t value = _read_reg(vm, inst, 0);
+	pss_value_t result = {
+		.kind = PSS_VALUE_KIND_NUM
+	};
+	const char* str = (const char*)_value_get_ref_data(vm, value, PSS_VALUE_REF_TYPE_STRING, 0);
+	pss_dict_t* dict;
+
+	if(NULL != str)
+		result.num = (pss_bytecode_numeric_t)strlen(str);
+	else if(NULL != (dict = (pss_dict_t*)_value_get_ref_data(vm, value, PSS_VALUE_REF_TYPE_DICT, 0)))
+		result.num = pss_dict_size(dict);
+	else
+	{
+		vm->error = PSS_VM_ERROR_TYPE;
+		return 0;
+	}
+
+	if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[1], result))
+		ERROR_RETURN_LOG(int, "Cannot write the result to register frame");
 
 	return 0;
 }
@@ -415,6 +663,13 @@ static inline pss_bytecode_regid_t _exec(pss_vm_t* vm)
 			vm->error = PSS_VM_ERROR_INTERNAL;
 			break;
 		}
+#ifdef LOG_DEBUG_ENABLED
+		static char instbuf[128];
+		if(NULL == (pss_bytecode_segment_inst_str(top->code, top->ip, instbuf, sizeof(instbuf))))
+			LOG_WARNING("Cannot print current instruction");
+		else
+			LOG_DEBUG("Current Instruction: <%p:0x%.8x> %s", top->code, top->ip, instbuf);
+#endif
 
 		int rc = 0;
 		switch(inst.info->operation)
@@ -426,10 +681,34 @@ static inline pss_bytecode_regid_t _exec(pss_vm_t* vm)
 				rc = _exec_load(vm, &inst);
 				break;
 			case PSS_BYTECODE_OP_SETVAL:
-				rc = _exec_setval(vm, &inst);
+			case PSS_BYTECODE_OP_GETVAL:
+				rc = _exec_dict(vm, &inst);
 				break;
+			case PSS_BYTECODE_OP_LEN:
+				rc = _exec_len(vm, &inst);
+				break;
+			case PSS_BYTECODE_OP_LT:
+			case PSS_BYTECODE_OP_LE:
+			case PSS_BYTECODE_OP_EQ:
 			case PSS_BYTECODE_OP_ADD:
-				rc = _exec_add(vm, &inst);
+				rc = _exec_generic(vm, &inst);
+				break;
+			case PSS_BYTECODE_OP_SUB:
+			case PSS_BYTECODE_OP_MUL:
+			case PSS_BYTECODE_OP_DIV:
+			case PSS_BYTECODE_OP_MOD:
+			case PSS_BYTECODE_OP_AND:
+			case PSS_BYTECODE_OP_OR:
+			case PSS_BYTECODE_OP_XOR:
+				rc = _exec_arithmetic_logic(vm, &inst);
+				break;
+			case PSS_BYTECODE_OP_JUMP:
+			case PSS_BYTECODE_OP_JZ:
+				rc = _exec_jump(vm, &inst);
+				break;
+			case PSS_BYTECODE_OP_GLOBALGET:
+			case PSS_BYTECODE_OP_GLOBALSET:
+				rc = _exec_global(vm, &inst);
 				break;
 			case PSS_BYTECODE_OP_CALL:
 				rc = _exec_call(vm, &inst);

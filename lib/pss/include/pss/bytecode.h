@@ -111,7 +111,9 @@ typedef enum {
 	PSS_BYTECODE_OP_SUB,    /*!< Substraction */
 	PSS_BYTECODE_OP_MUL,    /*!< Mulplication */
 	PSS_BYTECODE_OP_DIV,    /*!< Division */
+	PSS_BYTECODE_OP_MOD,    /*!< The modular expression */
 	PSS_BYTECODE_OP_LT,     /*!< Less than */
+	PSS_BYTECODE_OP_LE,     /*!< Less or equal */
 	PSS_BYTECODE_OP_EQ,     /*!< Equal to */
 	PSS_BYTECODE_OP_AND,    /*!< Boolean and */
 	PSS_BYTECODE_OP_OR,     /*!< Boolean or */
@@ -190,7 +192,9 @@ typedef enum {
 	PSS_BYTECODE_OPCODE_SUB,
 	PSS_BYTECODE_OPCODE_MUL,
 	PSS_BYTECODE_OPCODE_DIV,
+	PSS_BYTECODE_OPCODE_MOD,
 	PSS_BYTECODE_OPCODE_LT,
+	PSS_BYTECODE_OPCODE_LE,
 	PSS_BYTECODE_OPCODE_EQ,
 	PSS_BYTECODE_OPCODE_AND,
 	PSS_BYTECODE_OPCODE_OR,

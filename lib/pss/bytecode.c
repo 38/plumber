@@ -75,7 +75,9 @@ static _bytecode_desc_t _bytecode[] = {
 	_BYTECODE(SUB          , SUB      , GENERIC,     0,     0,    3),   /* sub R0, R1, R2 = R2 = R0 - R1 */
 	_BYTECODE(MUL          , MUL      , GENERIC,     0,     0,    3),   /* mul R0, R1, R2 = R2 = R0 * R1 */
 	_BYTECODE(DIV          , DIV      , GENERIC,     0,     0,    3),   /* div R0, R1, R2 = R2 = R0 / R1 */
+	_BYTECODE(MOD          , MOD      , GENERIC,     0,     0,    3),   /* div R0, R1, R2 = R2 = R0 / R1 */
 	_BYTECODE(LT           , LT       , GENERIC,     0,     0,    3),   /* less-than R0, R1, R2 = R2 = (R0 < R1) */
+	_BYTECODE(LE           , LE       , GENERIC,     0,     0,    3),   /* less-than R0, R1, R2 = R2 = (R0 < R1) */
 	_BYTECODE(EQ           , EQ       , GENERIC,     0,     0,    3),   /* less-than R0, R1, R2 = R2 = (R0 < R1) */
 	_BYTECODE(AND          , AND      , GENERIC,     0,     0,    3),   /* and R0, R1, R2 = R2 = R0 and R1 */
 	_BYTECODE(OR           , OR       , GENERIC,     0,     0,    3),   /* or R0, R1, R2 = R2 = R0 or R1 */
