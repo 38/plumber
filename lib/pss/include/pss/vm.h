@@ -14,6 +14,18 @@
 typedef struct _pss_vm_t pss_vm_t;
 
 /**
+ * @brief The error code of the VM
+ **/
+typedef enum {
+	PSS_VM_ERROR_NONE,       /*!< Everything is good */
+	PSS_VM_ERROR_INTERNAL,   /*!< The internal error */
+	PSS_VM_ERROR_BYTECODE,   /*!< An invalid bytecode */
+	PSS_VM_ERROR_TYPE,       /*!< The instruction gets an unsupported type */
+	PSS_VM_ERROR_ARITHMETIC, /*!< The arithmetic error */
+	PSS_VM_ERROR_STACK       /*!< The stack overflow exception */
+} pss_vm_error_t;
+
+/**
  * @brief The stack backtrace
  **/
 typedef struct _pss_vm_bracktrace_t {
@@ -27,7 +39,8 @@ typedef struct _pss_vm_bracktrace_t {
  **/
 typedef struct {
 	pss_vm_backtrace_t* backtrace;  /*!< The stack backtrack */
-	char*               message;    /*!< The message */
+	pss_vm_error_t      code;       /*!!< The error code */
+	const char*         message;    /*!< The message */
 } pss_vm_exception_t;
 
 /**
@@ -47,16 +60,17 @@ int pss_vm_free(pss_vm_t* vm);
  * @brief Run a bytecode module in the PSS virtual machine
  * @param vm The virtual machine used to run the code
  * @param module The module to run
+ * @param retbuf The return buffer
  * @return stauts code
  **/
-int pss_vm_run_module(pss_vm_t* vm, const pss_bytecode_module_t* module);
+int pss_vm_run_module(pss_vm_t* vm, const pss_bytecode_module_t* module, pss_value_t* retbuf);
 
 /**
  * @brief Get the last exception occured with the virtual machine
- * @param vm The virtual machine
+ * @param vm The virtual machine, after we did this, the VM well become a good state again
  * @return The exception description
  **/
-pss_vm_exception_t* pss_vm_last_exception(const pss_vm_t* vm); 
+pss_vm_exception_t* pss_vm_last_exception(pss_vm_t* vm);
 
 /**
  * @brief Dispose a exception description

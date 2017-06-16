@@ -109,26 +109,64 @@ ERR:
 	return ERROR_CODE(int);
 }
 
-
-pss_value_t pss_value_to_str(pss_value_t value)
+static inline const char* _value_to_str(pss_value_t value, char* buf, size_t sz)
 {
-	char* buf = NULL;
-	const char* str = NULL;
-	static char outbuf[4096];
+	static char default_buf[4096];
+	if(buf == NULL)
+	{
+		buf = default_buf;
+		sz = sizeof(default_buf);
+	}
 
+	const char* ret = NULL;
 	if(value.kind == PSS_VALUE_KIND_REF)
 	{
 		_CHECK_OPS(value.ref->type, tostr, ERR);
-		if(NULL == (str = ops->tostr(value.ref->val, outbuf, sizeof(outbuf))))
+		if(NULL == (ret = ops->tostr(value.ref->val, buf, sz)))
 			ERROR_LOG_GOTO(ERR, "Cannot dump the object to string");
 	}
 	else if(value.kind == PSS_VALUE_KIND_NUM)
 	{
-		snprintf(outbuf, sizeof(outbuf), "%"PRId64, value.num);
-		str = outbuf;
+		snprintf(buf, sz, "%"PRId64, value.num);
+		ret = buf;
 	}
-	else
-		str = "undefined";
+	else if(value.kind == PSS_VALUE_KIND_UNDEF)
+		ret = "undefined";
+
+	return ret;
+ERR:
+	return NULL;
+}
+
+size_t pss_value_strify_to_buf(pss_value_t value, char* buf, size_t sz)
+{
+	if(value.kind == PSS_VALUE_KIND_ERROR || NULL == buf || sz < 1)
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
+
+	const char* str = _value_to_str(value, buf, sz);
+	if(NULL == str) ERROR_RETURN_LOG(size_t, "Cannot stringify the value");
+
+	size_t ret = strlen(str);
+
+	if(buf == str) return ret;
+
+	if(sz < ret) ret = sz - 1;
+	
+	buf[ret] = 0;
+	memcpy(buf, str, ret);
+
+	return ret;
+}
+
+pss_value_t pss_value_to_str(pss_value_t value)
+{
+	if(PSS_VALUE_KIND_ERROR == value.kind)
+		ERROR_LOG_GOTO(ERR, "Invalid arguments");
+
+	char* buf = NULL;
+	const char* str = _value_to_str(value, NULL, 0);
+
+	if(NULL == str) ERROR_LOG_GOTO(ERR, "Cannot stringify the value");
 
 	size_t len = strlen(str) + 1;
 	buf = (char*)malloc(len);
@@ -157,3 +195,4 @@ void* pss_value_get_data(pss_value_t value)
 	if(PSS_VALUE_KIND_REF != value.kind) return NULL;
 	return value.ref->val;
 }
+

@@ -4,6 +4,36 @@
 #include <stdio.h>
 #include <testenv.h>
 #include <pss.h>
+int strify_test()
+{
+	pss_value_t dictval = pss_value_ref_new(PSS_VALUE_REF_TYPE_DICT, NULL);
+	ASSERT(dictval.kind == PSS_VALUE_KIND_REF, CLEANUP_NOP);
+	pss_dict_t* dict = (pss_dict_t*)pss_value_get_data(dictval);
+	pss_value_t valbuf = {
+		.kind = PSS_VALUE_KIND_NUM,
+		.num  = 123
+	};
+	ASSERT_OK(pss_dict_set(dict, "a\nb", valbuf), CLEANUP_NOP);
+	
+	pss_value_t dictval2 = pss_value_ref_new(PSS_VALUE_REF_TYPE_DICT, NULL);
+	ASSERT(dictval2.kind == PSS_VALUE_KIND_REF, CLEANUP_NOP);
+	pss_dict_t* dict2 = (pss_dict_t*)pss_value_get_data(dictval2);
+	pss_value_t valbuf2 = {
+		.kind = PSS_VALUE_KIND_NUM,
+		.num  = 456
+	};
+	ASSERT_OK(pss_dict_set(dict2, "x", valbuf2), CLEANUP_NOP);
+
+	ASSERT_OK(pss_dict_set(dict, "nested", dictval2), CLEANUP_NOP);
+
+	pss_value_t strval = pss_value_to_str(dictval);
+	ASSERT(strval.kind == PSS_VALUE_KIND_REF, CLEANUP_NOP);
+	ASSERT_STREQ(pss_value_get_data(strval), "{ \"a\\nb\": 123, \"nested\": { \"x\": 456 } }", CLEANUP_NOP);
+	ASSERT_OK(pss_value_decref(strval), CLEANUP_NOP);
+
+	ASSERT_OK(pss_value_decref(dictval), CLEANUP_NOP);
+	return 0;
+}
 int dict_test()
 {
 	pss_dict_t* dict;
@@ -74,5 +104,6 @@ int setup()
 DEFAULT_TEARDOWN;
 
 TEST_LIST_BEGIN
-	TEST_CASE(dict_test)
+	TEST_CASE(dict_test),
+	TEST_CASE(strify_test)
 TEST_LIST_END;

@@ -91,6 +91,7 @@ constant(LIB_PSS_BYTECODE_TABLE_INIT_SIZE 32)
 constant(LIB_PSS_DICT_INIT_HASH_SIZE 7)
 constant(LIB_PSS_DICT_SIZE_LEVEL 16)
 constant(LIB_PSS_DICT_MAX_CHAIN_THRESHOLD 8)
+constant(LIB_PSS_VM_STACK_LIMIT 2048)
 ####################################################################################
 
 string(TOUPPER ${SYSNAME} SYSMACRO)

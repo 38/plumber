@@ -27,7 +27,8 @@ int pss_closure_finalize();
  *        operation
  **/
 typedef struct {
-	const pss_bytecode_segment_t* code;   /*!< The code we want to use for the closure */
+	const pss_bytecode_segid_t    segid;  /*!< The code we want to use for the closure */
+	const pss_bytecode_module_t*  module; /*!< Which module we are talking about */
 	const pss_frame_t*            env;    /*!< The environment frame we want to use in the closure */
 } pss_closure_creation_param_t;
 
@@ -44,5 +45,12 @@ pss_frame_t* pss_closure_get_frame(const pss_closure_t* closure);
  * @return The code segment
  **/
 const pss_bytecode_segment_t* pss_closure_get_code(const pss_closure_t* closure);
+
+/**
+ * @brief Get the module which contains the code for this closure
+ * @param closure The colsure
+ * @return The module that contains the code for this closure
+ **/
+const pss_bytecode_module_t* pss_closure_get_module(const pss_closure_t* closure);
 
 #endif

@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 #include <errno.h>
 
 #include <error.h>
@@ -16,6 +17,7 @@
 #include <pss/log.h>
 #include <pss/bytecode.h>
 #include <pss/value.h>
+#include <pss/string.h>
 #include <pss/dict.h>
 
 /**
@@ -346,11 +348,55 @@ static int _free(void* dict_mem)
  **/
 static const char* _tostr(const void* dict_mem, char* buf, size_t bufsize)
 {
-	(void)dict_mem;
-	(void)buf;
-	(void)bufsize;
+	if(NULL == dict_mem || NULL == buf || bufsize < 1) 
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
-	return "<Fixme: Stringify a dictionary is not supported>";
+	const pss_dict_t* dict = (const pss_dict_t*)dict_mem;
+	uint32_t nkeys = pss_dict_size(dict);
+	if(ERROR_CODE(uint32_t) == nkeys) ERROR_PTR_RETURN_LOG("Cannot get the size of the dictionary");
+	const char* ret = buf;
+
+#define _DUMP(fmt, args...) do {\
+		int rc = snprintf(buf, bufsize, fmt, ##args); \
+		if(rc < 0) ERROR_PTR_RETURN_LOG("Cannot dump bytes to string buffer");\
+		if((size_t)rc > bufsize - 1) rc = (int)(bufsize - 1);\
+		bufsize -= (size_t)rc;\
+		buf += (size_t)rc; \
+	} while(0);
+
+	_DUMP("{ ");
+
+	uint32_t i;
+	for(i = 0; i < nkeys; i ++)
+	{
+		const char* key = pss_dict_get_key(dict, i);
+		if(NULL == key) ERROR_PTR_RETURN_LOG("Cannot get the key at index %u", i);
+		pss_value_t value = pss_dict_get(dict, key);
+		if(PSS_VALUE_KIND_ERROR == value.kind) ERROR_PTR_RETURN_LOG("Cannot get the value for key %s", key);
+
+		char* result = pss_string_literal(key, buf, bufsize);
+
+		if(NULL == result) ERROR_PTR_RETURN_LOG("Cannot convert the key to string literal");
+
+		if(result[0] == 0) break;   /* We just used up the buffer */
+
+		size_t len = strlen(result);
+		buf += len;
+		bufsize -= len;
+
+		_DUMP(": ");
+
+		size_t written = pss_value_strify_to_buf(value, buf, bufsize);
+		if(ERROR_CODE(size_t) == written) ERROR_PTR_RETURN_LOG("Cannot dump the value to the string");
+		buf += written;
+		bufsize -= written;
+
+		if(i != nkeys - 1) _DUMP(", ");
+	}
+	
+	_DUMP(" }");
+#undef _DUMP
+	return ret; 
 }
 
 int pss_dict_init()

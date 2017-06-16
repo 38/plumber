@@ -21,6 +21,7 @@
 struct _pss_closure_t {
 	pss_frame_t* env;    /*!< The environment frame */
 	const pss_bytecode_segment_t* code;  /*!< The code to execute */
+	const pss_bytecode_module_t*  module;/*!< The module contains the code */
 };
 /**
  * @brief Make a value from the give parameter
@@ -32,9 +33,6 @@ static void* _mkval(void* param)
 	if(NULL == param) ERROR_PTR_RETURN_LOG("Invalid arguments");
 	pss_closure_creation_param_t* cp = (pss_closure_creation_param_t*)param;
 
-	if(NULL == cp->code)
-		ERROR_PTR_RETURN_LOG("Invalid code segment");
-
 	pss_closure_t* ret = (pss_closure_t*)calloc(1, sizeof(ret[0]));
 
 	if(NULL == ret)
@@ -43,7 +41,10 @@ static void* _mkval(void* param)
 	if(NULL == (ret->env = pss_frame_new(cp->env)))
 		ERROR_LOG_GOTO(ERR, "Cannot copy the given environment frame");
 
-	ret->code = cp->code;
+	if(NULL == (ret->code = pss_bytecode_module_get_seg(cp->module, cp->segid)))
+		ERROR_LOG_GOTO(ERR, "Cannot get the target segment from the module");
+
+	ret->module = cp->module;
 
 	return ret;
 ERR:
@@ -117,4 +118,11 @@ const pss_bytecode_segment_t* pss_closure_get_code(const pss_closure_t* closure)
 	if(NULL == closure) ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	return closure->code;
+}
+
+const pss_bytecode_module_t* pss_closure_get_module(const pss_closure_t* closure)
+{
+	if(NULL == closure) ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+	return closure->module;
 }

@@ -36,4 +36,9 @@
  *       the maximum chain length is larger than this value
  **/
 #	define PSS_DICT_MAX_CHAIN_THRESHOLD @LIB_PSS_DICT_MAX_CHAIN_THRESHOLD@
+
+/**
+ * @brief The maximum level of stack of the Virtual Machine
+ **/
+#	define PSS_VM_STACK_LIMIT @LIB_PSS_VM_STACK_LIMIT@
 #endif /* __PROTO_PACKAGE_CONF_H__ */

@@ -21,6 +21,7 @@
 #include <pss/frame.h>
 #include <pss/closure.h>
 #include <pss/dict.h>
+#include <pss/string.h>
 #include <pss/vm.h>
 
 

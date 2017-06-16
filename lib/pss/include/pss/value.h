@@ -140,6 +140,18 @@ int pss_value_decref(pss_value_t value);
 pss_value_t pss_value_to_str(pss_value_t value);
 
 /**
+ * @brief Stringify the value to the given string buffer
+ * @note This function is mostly like the to_str function, but it writes
+ *       the result to the given string buffer <br/>
+ *       This function will put a trailing 0 if there's at least one bytes space in the buffer
+ * @param value The value to stringify
+ * @param buf The buffer we should use
+ * @param sz  The size of the buffer
+ * @return The number of bytes has written (excluded the trailing 0)
+ **/
+size_t pss_value_strify_to_buf(pss_value_t value, char* buf, size_t sz);
+
+/**
  * @brief Set the type specified operations for the given type
  * @param type The type code
  * @param ops  The operations

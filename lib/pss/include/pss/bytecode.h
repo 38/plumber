@@ -103,6 +103,7 @@ typedef enum {
 	PSS_BYTECODE_OP_SETVAL, /*!< Set a field of the object */
 	PSS_BYTECODE_OP_GETKEY, /*!< Get the n-th key in the object */
 	PSS_BYTECODE_OP_CALL,   /*!< Call an callable object */
+	PSS_BYTECODE_OP_RETURN,   /*!< Return from current stack frame */
 	PSS_BYTECODE_OP_BUILTIN,/*!< Call a built-in function */
 	PSS_BYTECODE_OP_JUMP,   /*!< Jump */
 	PSS_BYTECODE_OP_JZ,     /*!< Jump on zero */
@@ -181,6 +182,7 @@ typedef enum {
 	PSS_BYTECODE_OPCODE_SET_VAL,
 	PSS_BYTECODE_OPCODE_GET_KEY,
 	PSS_BYTECODE_OPCODE_CALL,
+	PSS_BYTECODE_OPCODE_RETURN,
 	PSS_BYTECODE_OPCODE_BUILTIN,
 	PSS_BYTECODE_OPCODE_JUMP,
 	PSS_BYTECODE_OPCODE_JZ,
