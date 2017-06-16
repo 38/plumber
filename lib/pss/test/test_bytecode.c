@@ -58,7 +58,7 @@ int code_generation_test()
 		ASSERT(21 == pss_bytecode_segment_append_code(segment, OPCODE(LT), REG(10), REG(11), REG(12), END), CLEANUP_NOP);
 		ASSERT(22 == pss_bytecode_segment_append_code(segment, OPCODE(EQ), REG(10), REG(11), REG(12), END), CLEANUP_NOP);
 		ASSERT(23 == pss_bytecode_segment_append_code(segment, OPCODE(CALL), REG(10), REG(11), REG(12), END), CLEANUP_NOP);
-		ASSERT(24 == pss_bytecode_segment_append_code(segment, OPCODE(BUILTIN), REG(10), REG(11), REG(12), END), CLEANUP_NOP);
+		ASSERT(24 == pss_bytecode_segment_append_code(segment, OPCODE(CALL), REG(10), REG(11), REG(12), END), CLEANUP_NOP);
 		ASSERT(25 == pss_bytecode_segment_append_code(segment, OPCODE(CLOSURE_NEW), REG(0), REG(12), END), CLEANUP_NOP);
 		ASSERT(26 == pss_bytecode_segment_append_code(segment, OPCODE(STR_LOAD), STRING("teststring1"), REG(12), END), CLEANUP_NOP);
 		ASSERT(27 == pss_bytecode_segment_append_code(segment, OPCODE(STR_LOAD), STRING("teststring2"), REG(12), END), CLEANUP_NOP);

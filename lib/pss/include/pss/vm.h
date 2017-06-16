@@ -44,24 +44,6 @@ typedef struct {
 } pss_vm_exception_t;
 
 /**
- * @brief The data structure used to represent an external data, this is used
- *        because we want the Plumber runtime also be able to handle some part of
- *        the global variables
- **/
-typedef struct {
-	enum {
-		PSS_VM_EXTERNAL_DATA_ERR,    /*!< The error */
-		PSS_VM_EXTERNAL_DATA_UNDEF,  /*!< The callback cannot handle this name */
-		PSS_VM_EXTERNAL_DATA_NUM,    /*!< A numeric value */
-		PSS_VM_EXTERNAL_DATA_STR     /*!< A string value */
-	}  type;                      /*!< The type of this internal data */
-	union {
-		pss_bytecode_numeric_t num;  /*!< The numeric value */
-		const char*            str;  /*!< The string value */
-	};
-} pss_vm_external_data_t;
-
-/**
  * @brief The callback functions for the external globals
  **/
 typedef struct {
@@ -70,23 +52,39 @@ typedef struct {
 	 * @param name The name of the variable
 	 * @return The get result
 	 **/
-	pss_vm_external_data_t (*get)(const char* name);
+	pss_value_t (*get)(const char* name);
 	/**
 	 * @biref The setter func
 	 * @param name The name of the variable
 	 * @param data The data we want to put
 	 * @return The number of field that has been wrrite, or error code
 	 **/
-	int (*set)(const char* name, pss_vm_external_data_t data);
+	int (*set)(const char* name, pss_value_t data);
 } pss_vm_external_global_ops_t;
 
-//TODO: implement the external global and builtin-table
 
 /**
  * @brief Create a new PSS virtual machine
  * @return The newly created PSS virtual machine
  **/
 pss_vm_t* pss_vm_new();
+
+/**
+ * @brief Set the callback function that handles the external globals
+ * @param vm The virtual machine
+ * @param ops The operation callback
+ * @return status code
+ **/
+int pss_vm_set_external_global_callback(pss_vm_t* vm, pss_vm_external_global_ops_t ops);
+
+/**
+ * @brief Add a builtin function
+ * @param vm The virtual machine we want to add the builtin function to
+ * @param func The function pointer
+ * @param name The name of the builtin function
+ * @return status code
+ **/
+int pss_vm_add_builtin_func(pss_vm_t* vm, const char* name, pss_value_builtin_t func);
 
 /**
  * @brief Dispose an used PSS virtual machine

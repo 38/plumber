@@ -68,7 +68,6 @@ static _bytecode_desc_t _bytecode[] = {
 	_BYTECODE(GET_KEY      , GETKEY   , GENERIC,     0,     0,    3),   /* key R0, R1, R2: R2 = R1-th key in R0 */
 	_BYTECODE(CALL         , CALL     , GENERIC,     0,     0,    3),   /* call R0, R1, R2: R2 = R0(*R1) */
 	_BYTECODE(RETURN       , RETURN   , GENERIC,     0,     0,    1),   /* return R0 */
-	_BYTECODE(BUILTIN      , BUILTIN  , GENERIC,     0,     0,    3),   /* builtin R0, R1, R2: R2 = Invoke builtin named R0 with param R1 */
 	_BYTECODE(JUMP         , JUMP     , GENERIC,     0,     0,    1),   /* jump R0 = jump to address R0 */
 	_BYTECODE(JZ           , JZ       , GENERIC,     0,     0,    2),   /* jz R0, R1 = jump to address R1 when R0 == 0 */
 	_BYTECODE(ADD          , ADD      , GENERIC,     0,     0,    3),   /* add R0, R1, R2 = R2 = R0 + R1 */

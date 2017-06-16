@@ -52,6 +52,7 @@ struct _pss_vm_t {
 	uint32_t       level;       /*!< The stack level */
 	_stack_t*      stack;       /*!< The stack we are using */
 	pss_dict_t*    global;      /*!< The global variable table */
+	pss_vm_external_global_ops_t external_global_hook;  /*!< The external global hook */
 };
 
 /**
@@ -561,19 +562,33 @@ static inline int _exec_global(pss_vm_t* vm, const pss_bytecode_instruction_t* i
 
 	if(inst->opcode == PSS_BYTECODE_OPCODE_GLOBAL_GET)
 	{
-		pss_value_t value = pss_dict_get(vm->global, key);
+		pss_value_t value = {};
+		/* Try the external global hook if defined */
+		if(vm->external_global_hook.get != NULL)
+			value = vm->external_global_hook.get(key);
+
+		/* If we can not find anything with the global hook */
+		if(value.kind == PSS_VALUE_KIND_UNDEF)
+			value = pss_dict_get(vm->global, key);
+		
 		if(PSS_VALUE_KIND_ERROR == value.kind)
 			ERROR_RETURN_LOG(int, "Cannot read the global dictionary");
+
 		if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[reg_idx], value))
 			ERROR_RETURN_LOG(int, "Cannot write the value to register");
 	}
 	else
 	{
 		pss_value_t value = pss_frame_reg_get(vm->stack->frame, inst->reg[reg_idx]);
+
 		if(PSS_VALUE_KIND_ERROR == value.kind)
 			ERROR_RETURN_LOG(int, "Cannot read the value of the register");
 
-		if(ERROR_CODE(int) == pss_dict_set(vm->global, key, value))
+		int rc = vm->external_global_hook.set != NULL ? vm->external_global_hook.set(key, value) : 0;
+
+		if(ERROR_CODE(int) == rc) ERROR_RETURN_LOG(int, "The external global setter returns an error code");
+
+		if(rc == 0 && ERROR_CODE(int) == pss_dict_set(vm->global, key, value))
 			ERROR_RETURN_LOG(int, "Cannot write the value to the global dicitonary");
 	}
 
@@ -605,10 +620,47 @@ static inline int _exec_len(pss_vm_t* vm, const pss_bytecode_instruction_t* inst
 	return 0;
 }
 
+static inline int _exec_builtin(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
+{
+	pss_value_t func = _read_reg(vm, inst, 0);
+	if(!_is_value_kind(vm, func, PSS_VALUE_KIND_BUILTIN, 1)) return 0;
+	pss_dict_t* dict = (pss_dict_t*)_value_get_ref_data(vm, _read_reg(vm, inst, 1), PSS_VALUE_REF_TYPE_DICT, 1);
+	if(NULL == dict) return 0;
+
+	uint32_t argc = pss_dict_size(dict);
+	if(ERROR_CODE(uint32_t) == argc) ERROR_RETURN_LOG(int, "Cannot get the size of the argument list");
+	pss_value_t argv[argc];
+	memset(argv, 0, sizeof(argv[0]) * argc);
+
+	uint32_t i;
+	for(i = 0; i < argc; i ++)
+	{
+		char buf[16];
+		snprintf(buf, sizeof(buf), "%d", i);
+		argv[i] = pss_dict_get(dict, buf);
+		if(argv[i].kind == PSS_VALUE_KIND_ERROR)
+			ERROR_RETURN_LOG(int, "Cannot get the value from the argument list");
+	}
+
+	pss_value_t result = func.builtin(argc, argv);
+	if(result.kind == PSS_VALUE_KIND_ERROR)
+		ERROR_RETURN_LOG(int, "The builtin function returns an error");
+	
+	if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[2], result))
+		ERROR_RETURN_LOG(int, "Cannot set the result value to the register frame");
+
+	return 0;
+}
+
 static inline pss_bytecode_regid_t _exec(pss_vm_t* vm);
 static inline int _exec_call(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
 {
-	const pss_closure_t* closure = (const pss_closure_t*)_value_get_ref_data(vm, _read_reg(vm, inst, 0), PSS_VALUE_REF_TYPE_CLOSURE, 1);
+	pss_value_t func = _read_reg(vm, inst, 0);
+
+	if(_is_value_kind(vm, func, PSS_VALUE_KIND_BUILTIN, 0))
+		return _exec_builtin(vm, inst);
+
+	const pss_closure_t* closure = (const pss_closure_t*)_value_get_ref_data(vm, func, PSS_VALUE_REF_TYPE_CLOSURE, 1);
 	if(NULL == closure) return 0;
 
 	const pss_dict_t* args = (const pss_dict_t*)_value_get_ref_data(vm, _read_reg(vm, inst, 1), PSS_VALUE_REF_TYPE_DICT, 1);
@@ -642,6 +694,16 @@ static inline int _exec_call(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 		ERROR_RETURN_LOG(int, "Cannot dispose the stack");
 
 	vm->stack = this_stack;
+
+	return 0;
+}
+
+static inline int _exec_move(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
+{
+	pss_value_t value = _read_reg(vm, inst, 0);
+
+	if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[1], value))
+		ERROR_RETURN_LOG(int, "Cannot change the value of target register");
 
 	return 0;
 }
@@ -680,12 +742,20 @@ static inline pss_bytecode_regid_t _exec(pss_vm_t* vm)
 			case PSS_BYTECODE_OP_LOAD:
 				rc = _exec_load(vm, &inst);
 				break;
-			case PSS_BYTECODE_OP_SETVAL:
-			case PSS_BYTECODE_OP_GETVAL:
-				rc = _exec_dict(vm, &inst);
-				break;
 			case PSS_BYTECODE_OP_LEN:
 				rc = _exec_len(vm, &inst);
+				break;
+			case PSS_BYTECODE_OP_SETVAL:
+			case PSS_BYTECODE_OP_GETVAL:
+			case PSS_BYTECODE_OP_GETKEY:
+				rc = _exec_dict(vm, &inst);
+				break;
+			case PSS_BYTECODE_OP_CALL:
+				rc = _exec_call(vm, &inst);
+				break;
+			case PSS_BYTECODE_OP_JUMP:
+			case PSS_BYTECODE_OP_JZ:
+				rc = _exec_jump(vm, &inst);
 				break;
 			case PSS_BYTECODE_OP_LT:
 			case PSS_BYTECODE_OP_LE:
@@ -702,19 +772,22 @@ static inline pss_bytecode_regid_t _exec(pss_vm_t* vm)
 			case PSS_BYTECODE_OP_XOR:
 				rc = _exec_arithmetic_logic(vm, &inst);
 				break;
-			case PSS_BYTECODE_OP_JUMP:
-			case PSS_BYTECODE_OP_JZ:
-				rc = _exec_jump(vm, &inst);
+			case PSS_BYTECODE_OP_MOVE:
+				rc = _exec_move(vm, &inst);
 				break;
 			case PSS_BYTECODE_OP_GLOBALGET:
 			case PSS_BYTECODE_OP_GLOBALSET:
 				rc = _exec_global(vm, &inst);
 				break;
-			case PSS_BYTECODE_OP_CALL:
-				rc = _exec_call(vm, &inst);
-				break;
 			case PSS_BYTECODE_OP_RETURN:
 				retreg = inst.reg[0];
+				break;
+			case PSS_BYTECODE_OP_DEBUGINFO:
+				if(inst.info->rtype == PSS_BYTECODE_RTYPE_INT)
+					top->line = (uint32_t)inst.num;
+				else if(inst.info->rtype == PSS_BYTECODE_RTYPE_STR)
+					top->func = inst.str;
+				else vm->error = PSS_VM_ERROR_BYTECODE;
 				break;
 			default:
 				rc = ERROR_CODE(int);
@@ -893,6 +966,31 @@ int pss_vm_exception_free(pss_vm_exception_t* exception)
 	}
 
 	free(exception);
+
+	return 0;
+}
+
+int pss_vm_set_external_global_callback(pss_vm_t* vm, pss_vm_external_global_ops_t ops)
+{
+	if(NULL == vm) ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	vm->external_global_hook = ops;
+
+	return 0;
+}
+
+int pss_vm_add_builtin_func(pss_vm_t* vm, const char* name, pss_value_builtin_t func)
+{
+	if(NULL == vm || NULL == name || NULL == func)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	pss_value_t value = {
+		.kind = PSS_VALUE_KIND_BUILTIN,
+		.builtin = func
+	};
+
+	if(ERROR_CODE(int) == pss_dict_set(vm->global, name, value))
+		ERROR_RETURN_LOG(int, "Cannot insert the builtin function to the global value");
 
 	return 0;
 }

@@ -19,6 +19,90 @@
 #define CODE(seg, opcode, args...) ASSERT_RETOK(pss_bytecode_addr_t, _last_addr = pss_bytecode_segment_append_code(seg, OPCODE(opcode), ##args, END), CLEANUP_NOP)
 pss_bytecode_addr_t _last_addr;
 
+char buf[1024];
+pss_value_t _builtin_print(uint32_t argc, pss_value_t* argv)
+{
+	(void)argc;
+	pss_value_strify_to_buf(argv[0], buf, sizeof(buf));
+	LOG_DEBUG("__builtin_print: %s", buf);
+	pss_value_t ret = {};
+	return ret;
+}
+pss_value_t _getter(const char* name)
+{
+	if(strcmp(name, "external_global") == 0)
+	{
+		pss_value_t value = {
+			.kind = PSS_VALUE_KIND_NUM,
+			.num  = 123456
+		};
+		return value;
+	}
+
+	pss_value_t undef = {};
+	return undef;
+}
+int _setter(const char* name, pss_value_t value)
+{
+	if(strcmp(name, "external_global") == 0)
+	{
+		_builtin_print(1, &value);
+		return 1;
+	}
+	return 0;
+}
+
+int test_extension()
+{
+	pss_bytecode_module_t* module = pss_bytecode_module_new();
+	ASSERT_PTR(module, CLEANUP_NOP);
+
+	pss_bytecode_regid_t arg_entry[1] = {};
+	pss_bytecode_segment_t* entry = pss_bytecode_segment_new(0, arg_entry);
+	pss_bytecode_segid_t mid = pss_bytecode_module_append(module, entry);
+	ASSERT_OK(pss_bytecode_module_set_entry_point(module, mid), CLEANUP_NOP);
+
+	CODE(entry, STR_LOAD,    STRING("external_global"),    REG(0));
+	CODE(entry, STR_LOAD,    STRING("__builtin_print"),    REG(1));
+	CODE(entry, GLOBAL_GET,  REG(1),                       REG(1));
+	CODE(entry, DICT_NEW,    REG(2));
+	CODE(entry, INT_LOAD,    NUMERIC(0),                   REG(3));
+	CODE(entry, SET_VAL,     REG(1),                       REG(2),    REG(3));
+	CODE(entry, CALL,        REG(1),                       REG(2),    REG(3));
+	CODE(entry, GLOBAL_GET,  REG(0),                       REG(4));
+	CODE(entry, INT_LOAD,    NUMERIC(123456),              REG(5));
+	CODE(entry, EQ,          REG(5),                       REG(4),    REG(5));
+	CODE(entry, GLOBAL_SET,  REG(4),                       REG(0));
+	CODE(entry, RETURN,      REG(5));
+
+	pss_bytecode_module_logdump(module);
+
+	pss_vm_t* vm = pss_vm_new();
+	ASSERT_PTR(vm, CLEANUP_NOP);
+	ASSERT_OK(pss_vm_add_builtin_func(vm, "__builtin_print", _builtin_print), CLEANUP_NOP);
+	pss_vm_external_global_ops_t ops = {
+		.get = _getter,
+		.set = _setter
+	};
+	ASSERT_OK(pss_vm_set_external_global_callback(vm, ops), CLEANUP_NOP);
+
+	pss_value_t retval;
+
+	ASSERT_OK(pss_vm_run_module(vm, module, &retval), CLEANUP_NOP);
+
+	ASSERT(strcmp("123456", buf) == 0, CLEANUP_NOP);
+
+	ASSERT(retval.kind == PSS_VALUE_KIND_NUM, CLEANUP_NOP);
+	ASSERT(retval.num  == 1, CLEANUP_NOP);
+
+
+	ASSERT_OK(pss_vm_free(vm), CLEANUP_NOP);
+	ASSERT_OK(pss_bytecode_module_free(module), CLEANUP_NOP);
+
+	return 0;
+
+}
+
 int test_gcd()
 {
 	pss_bytecode_module_t* module = pss_bytecode_module_new();
@@ -323,5 +407,6 @@ TEST_LIST_BEGIN
 	TEST_CASE(test_ucombinator),
 	TEST_CASE(test_func_as_param),
 	TEST_CASE(test_generic_add),
-	TEST_CASE(test_gcd)
+	TEST_CASE(test_gcd),
+	TEST_CASE(test_extension)
 TEST_LIST_END;

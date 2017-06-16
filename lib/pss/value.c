@@ -130,6 +130,11 @@ static inline const char* _value_to_str(pss_value_t value, char* buf, size_t sz)
 		snprintf(buf, sz, "%"PRId64, value.num);
 		ret = buf;
 	}
+	else if(value.kind == PSS_VALUE_KIND_BUILTIN)
+	{
+		snprintf(buf, sz, "<built-in@%p>", value.builtin);
+		ret = buf;
+	}
 	else if(value.kind == PSS_VALUE_KIND_UNDEF)
 		ret = "undefined";
 

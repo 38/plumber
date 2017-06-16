@@ -63,6 +63,7 @@ typedef struct _pss_value_ref_t pss_value_ref_t;
 typedef enum {
 	PSS_VALUE_KIND_UNDEF,   /*!< This is a undefined value */
 	PSS_VALUE_KIND_NUM,     /*!< This is a numeric type */
+	PSS_VALUE_KIND_BUILTIN, /*!< A builtin function */
 	PSS_VALUE_KIND_REF,     /*!< This is an object reference */
 	PSS_VALUE_KIND_ERROR = -1 /*!< Indicates it's an error */
 } pss_value_kind_t;
@@ -72,17 +73,31 @@ typedef enum {
 STATIC_ASSERTION_EQ(PSS_VALUE_KIND_UNDEF, 0);
 
 /**
+ * @brief The previous definition of the virtual machine runtime value
+ **/
+typedef struct _pss_value_t pss_value_t;
+
+/**
+ * @brief The type for the builtin function
+ * @param argc The number of arguments
+ * @param argv The actual argument list
+ * @return The return value
+ **/
+typedef pss_value_t (*pss_value_builtin_t)(uint32_t argc, pss_value_t* argv);
+
+/**
  * @brief A runtime value
  * @note  This is the mutable version of the runtime value. It means we are able to
  *        change the reference counter
  **/
-typedef struct {
+struct _pss_value_t {
 	pss_value_kind_t               kind;       /*!< What kind of value it is */
 	union {
 		pss_value_ref_t*           ref;        /*!< A reference value */
-		pss_bytecode_numeric_t     num;        /*!< A reference value */
+		pss_bytecode_numeric_t     num;        /*!< A numeric value */
+		pss_value_builtin_t        builtin;    /*!< A builtin function */
 	};
-} pss_value_t;
+};
 
 /**
  * @brief Create a new error value

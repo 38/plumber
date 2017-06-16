@@ -396,7 +396,7 @@ static const char* _tostr(const void* dict_mem, char* buf, size_t bufsize)
 		}
 		else
 		{
-			size_t written = pss_value_strify_to_buf(value, buf, bufsize);
+			written = pss_value_strify_to_buf(value, buf, bufsize);
 			if(ERROR_CODE(size_t) == written) ERROR_PTR_RETURN_LOG("Cannot dump the value to the string");
 		}
 
