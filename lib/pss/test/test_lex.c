@@ -11,6 +11,7 @@ int create_lexer()
 	FILE* fp = fopen(TESTDIR"/test_pss.in", "r");
 	ASSERT_PTR(fp, CLEANUP_NOP);
 	size_t rc = fread(buf, 1, sizeof(buf), fp);
+	fclose(fp);
 
 	ASSERT_PTR(lexer = pss_lex_new(TESTDIR"/test_pss.in", buf, (uint32_t)rc), CLEANUP_NOP);
 
@@ -93,16 +94,6 @@ int verify_token()
 	ASSERT(token.line == 10, CLEANUP_NOP);
 	ASSERT(token.offset == 1, CLEANUP_NOP);
 	ASSERT_STREQ(token.file, TESTDIR"/test_pss.in", CLEANUP_NOP);
-
-	ASSERT_OK(pss_lex_next_token(lexer, &token), CLEANUP_NOP);
-	ASSERT(token.type == PSS_LEX_TOKEN_INTEGER, CLEANUP_NOP);
-	ASSERT(token.value.i == 12345, CLEANUP_NOP);
-	ASSERT(token.line == 1, CLEANUP_NOP);
-	ASSERT(token.offset == 0, CLEANUP_NOP);
-	ASSERT_STREQ(token.file, TESTDIR"/test_pss_inc.in", CLEANUP_NOP);
-	ASSERT_OK(pss_lex_next_token(lexer, &token), CLEANUP_NOP);
-	ASSERT(token.type == PSS_LEX_TOKEN_EOF, CLEANUP_NOP);
-	ASSERT_STREQ(token.file, TESTDIR"/test_pss_inc.in", CLEANUP_NOP);
 
 	ASSERT_OK(pss_lex_next_token(lexer, &token), CLEANUP_NOP);
 	ASSERT(token.type == PSS_LEX_TOKEN_EQUAL, CLEANUP_NOP);
