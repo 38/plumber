@@ -24,6 +24,8 @@
 #include <pss/string.h>
 #include <pss/vm.h>
 
+#include <pss/lex.h>
+
 
 /**
  * @brief Initialize the PSS interpreter libray

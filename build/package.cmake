@@ -57,6 +57,18 @@ macro(build_tool_dir dir)
 
 
 					if("${TYPE}" STREQUAL "static-library" OR "${TYPE}" STREQUAL "shared-library")
+						add_custom_target(copy_package_${target}_test_data ALL)
+						file(GLOB_RECURSE DataFile RELATIVE "${SOURCE_PATH}/test" "${SOURCE_PATH}/test/*.in")
+						foreach(input ${DataFile})
+							get_filename_component(data_dir ${input} DIRECTORY)
+							get_filename_component(data_name ${input} NAME_WE)
+							file(MAKE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TEST_DIR}/package/${target})
+							add_custom_command(TARGET copy_package_${target}_test_data PRE_BUILD
+											   COMMAND ${CMAKE_COMMAND} -E 
+											   copy ${SOURCE_PATH}/test/${input}
+													${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TEST_DIR}/package/${target})
+						endforeach(input ${DataFile})
+
 						file(GLOB_RECURSE unit_tests RELATIVE "${SOURCE_PATH}/test" "${SOURCE_PATH}/test/*.c")
 						foreach(test ${unit_tests})
 							get_filename_component(test_name ${test} NAME_WE)

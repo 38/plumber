@@ -104,7 +104,7 @@ typedef struct _pss_lex_t pss_lex_t;
  * @param size The size
  * @return the newly created lexer
  **/
-pss_lex_t* pss_lex_from_buffer(const char* filename, const char* buffer, uint32_t size);
+pss_lex_t* pss_lex_new(const char* filename, const char* buffer, uint32_t size);
 
 /**
  * @brief dispose a used lexer
