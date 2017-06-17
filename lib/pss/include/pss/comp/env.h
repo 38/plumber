@@ -31,13 +31,22 @@ int pss_comp_env_free(pss_comp_env_t* env);
 /**
  * @biref Open a new scope inside current scope
  * @note  This will allow the compile allocate variable valid thru we close the scope
+ * @param env The abstract runtime envronment
+ * @param new_closure indicates if this scope is actually an new closure <br/>
+ *                    If this is true, which means if there's a local variable which 
+ *                    has the same named variable in the parent scope, we should be able
+ *                    to use the same register. Because a closure scope means we have already
+ *                    forked the register frame, and we do not need to worry about overriding
+ *                    the variable will cause data lose because it's actually under different
+ *                    data frame
  * @return status code
  **/
-int pss_comp_env_open_scope(pss_comp_env_t* env);
+int pss_comp_env_open_scope(pss_comp_env_t* env, int new_closure);
 
 /**
  * @brief Close current scope
  * @note  This will deallocate all the registers hold for the local variable inside this scope
+ * @param env The abstract runtime environment
  * @return status code
  **/
 int pss_comp_env_close_scope(pss_comp_env_t* env);
