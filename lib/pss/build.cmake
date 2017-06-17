@@ -1,4 +1,5 @@
 set(TYPE static-library)
+set(LOCAL_SOURCE comp)
 set(PACKAGE_CONF_INSTALL_PATH "include/pss")
 set(INSTALL "yes")
 install_includes("${SOURCE_PATH}/include" "include/pss" "*.h")

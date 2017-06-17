@@ -156,14 +156,16 @@ STATIC_ASSERTION_LT(PSS_BYTECODE_RTYPE_COUNT, 256);
  *     |  SET_VAL      | **SET_VAL** *R_in*, *R_obj*, *R_key*  | *R_obj*[*R_key*] = *R_out*, only valid when *R_obj* is a string or dict and *R_key* will be converted to string anyway |
  *     |  GET_KEY      | **GET_KEY** *R_obj*, *R_idx*, *R_out* | *R_out*    = the *R_idx*-th key in the *R_obj*, only valid when *R_obj* is a dict |
  *     |  CALL         | **CALL** *R_func*, *R_arg*, *R_out*   | *R_out*    = *R_func*(*R_arg*) |
- *     |  BUILTIN      | **BUILTIN** *R_name*, *R_arg*, *R_out*| *R_out*    = &lt;builtin function named *R_name*&gt;(*R_arg*) |
+ *     |  RETURN       | **RETURN** *R*                        | Return current frame with value in Register R|
  *     |  JUMP         | **JUMP** *R_address*                  | Jump to *R_address* |
  *     |  JZ           | **JZ** *R_cond*, *R_address*          | if(*R_cond* == 0) jump *R_address*; |
  *     |  ADD          | **ADD** *R_1*, *R_2*, *R_out*         | *R_out*    = *R_1* + *R_2* (Numeric plus or string concatenate or list concatenate) |
  *     |  SUB          | **SUB** *R_1*, *R_2*, *R_out*         | *R_out*    = *R_1* - *R_2* (Only valid when *R_1* and *R_2* are int) |
  *     |  MUL          | **MUL** *R_1*, *R_2*, *R_out*         | *R_out*    = *R_1* * *R_2* (Only valid when *R_1* and *R_2* are int) |
  *     |  DIV          | **DIV** *R_1*, *R_2*, *R_out*         | *R_out*    = *R_1* / *R_2* (Only valid when *R_1* and *R_2* are int) |
+ *     |  MOD          | **MOD** *R_1*, *R_2*, *R_out*         | *R_out*    = *R_1* % *R_2* (Only valid when *R_1* and *R_2* are int) |
  *     |  LT           | **LT** *R_1*, *R_2*, *R_out*          | *R_out*    = *R_1* &lt; *R_2* (Numeric comparasion, List comparasion or string ) |
+ *     |  LE           | **LE** *R_1*, *R_2*, *R_out*          | *R_out*    = *R_1* &lt;= *R_2* |
  *     |  EQ           | **EQ** *R_1*, *R_2*, *R_out*          | *R_out*    = *R_1* == *R_2* |
  *     |  AND          | **AND** *R_1*, *R_2*, *R_out*         | *R_out*    = *R_1* && *R_2* |
  *     |  OR           | **OR** *R_1*,  *R_2*, *R_out*         | *R_out*    = *R_1* or *R_2* |

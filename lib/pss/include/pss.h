@@ -24,7 +24,8 @@
 #include <pss/string.h>
 #include <pss/vm.h>
 
-#include <pss/lex.h>
+#include <pss/comp/lex.h>
+#include <pss/comp/env.h>
 
 
 /**

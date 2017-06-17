@@ -12,12 +12,12 @@
 #include <error.h>
 
 #include <pss/log.h>
-#include <pss/lex.h>
+#include <pss/comp/lex.h>
 
 /**
  * @brief the actual data structure for a lexer
  **/
-struct _pss_lex_t {
+struct _pss_comp_lex_t {
 	uint32_t error:1;   /*!< if there's an error */
 	uint32_t line;      /*!< current line number */
 	uint32_t offset;    /*!< current line offset */
@@ -32,10 +32,10 @@ struct _pss_lex_t {
  * @brief create a new lexer object
  * @return the newly create lexer, NULL on error
  **/
-static inline pss_lex_t* _lexer_new()
+static inline pss_comp_lex_t* _lexer_new()
 {
-	pss_lex_t* ret = NULL;
-	ret = (pss_lex_t*)malloc(sizeof(pss_lex_t));
+	pss_comp_lex_t* ret = NULL;
+	ret = (pss_comp_lex_t*)malloc(sizeof(pss_comp_lex_t));
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory");
 
 	ret->error = 0;
@@ -53,7 +53,7 @@ static inline pss_lex_t* _lexer_new()
  * @param lexer the lexer to dispose
  * @return the status code
  **/
-static inline int _lexer_free(pss_lex_t* lexer)
+static inline int _lexer_free(pss_comp_lex_t* lexer)
 {
 	if(NULL == lexer) ERROR_RETURN_LOG(int, "Invalid arguments");
 	free(lexer);
@@ -61,11 +61,11 @@ static inline int _lexer_free(pss_lex_t* lexer)
 }
 
 
-pss_lex_t* pss_lex_new(const char* filename, const char* buffer, uint32_t size)
+pss_comp_lex_t* pss_comp_lex_new(const char* filename, const char* buffer, uint32_t size)
 {
 	if(NULL == buffer) ERROR_PTR_RETURN_LOG("Invalid arguments");
 
-	pss_lex_t* ret = _lexer_new();
+	pss_comp_lex_t* ret = _lexer_new();
 	if(NULL == ret) ERROR_PTR_RETURN_LOG("Cannot create new lexer object");
 
 	ret->buffer = buffer;
@@ -75,20 +75,20 @@ pss_lex_t* pss_lex_new(const char* filename, const char* buffer, uint32_t size)
 	return ret;
 }
 
-int pss_lex_free(pss_lex_t* lexer)
+int pss_comp_lex_free(pss_comp_lex_t* lexer)
 {
 	if(NULL == lexer) ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	return _lexer_free(lexer);
 }
 
-static inline int _peek(pss_lex_t* lexer, uint32_t n)
+static inline int _peek(pss_comp_lex_t* lexer, uint32_t n)
 {
 	if(lexer->buffer_next + n >= lexer->buffer_limit)
 	    return ERROR_CODE(int);
 	return lexer->buffer[lexer->buffer_next + n];
 }
-static inline void _consume(pss_lex_t* lexer, uint32_t n)
+static inline void _consume(pss_comp_lex_t* lexer, uint32_t n)
 {
 	for(;n > 0; n --)
 	{
@@ -102,7 +102,7 @@ static inline void _consume(pss_lex_t* lexer, uint32_t n)
 		}
 	}
 }
-static inline void _ws(pss_lex_t* lexer)
+static inline void _ws(pss_comp_lex_t* lexer)
 {
 	int rc;
 	for(;;_consume(lexer, 1))
@@ -112,12 +112,12 @@ static inline void _ws(pss_lex_t* lexer)
 		return;
 	}
 }
-static inline void _line(pss_lex_t* lexer)
+static inline void _line(pss_comp_lex_t* lexer)
 {
 	uint32_t current_line = lexer->line;
 	for(;current_line == lexer->line && _peek(lexer, 0) != ERROR_CODE(int); _consume(lexer, 1));
 }
-static inline int _comments_or_ws(pss_lex_t* lexer)
+static inline int _comments_or_ws(pss_comp_lex_t* lexer)
 {
 	for(;;)
 	{
@@ -180,7 +180,7 @@ static inline int _oct_digit_to_val(int ch)
 	return ERROR_CODE(int);
 }
 
-static inline int _match(pss_lex_t* lexer, const char* str)
+static inline int _match(pss_comp_lex_t* lexer, const char* str)
 {
 	uint32_t i = 0;
 	for(;*str;str++, i ++)
@@ -191,22 +191,22 @@ static inline int _match(pss_lex_t* lexer, const char* str)
 	return 1;
 }
 
-static inline pss_lex_keyword_t _id_or_keyword(pss_lex_t* lexer, char* buffer, size_t size)
+static inline pss_comp_lex_keyword_t _id_or_keyword(pss_comp_lex_t* lexer, char* buffer, size_t size)
 {
-	if(_match(lexer, "start")) return PSS_LEX_KEYWORD_START;
-	if(_match(lexer, "visualize")) return PSS_LEX_KEYWORD_VISUALIZE;
-	if(_match(lexer, "echo")) return PSS_LEX_KEYWORD_ECHO;
-	if(_match(lexer, "include")) return PSS_LEX_KEYWORD_INCLUDE;
-	if(_match(lexer, "if")) return PSS_LEX_KEYWORD_IF;
-	if(_match(lexer, "else")) return PSS_LEX_KEYWORD_ELSE;
-	if(_match(lexer, "insmod")) return PSS_LEX_KEYWORD_INSMOD;
-	if(_match(lexer, "var")) return PSS_LEX_KEYWORD_VAR;
-	if(_match(lexer, "while")) return PSS_LEX_KEYWORD_WHILE;
-	if(_match(lexer, "for")) return PSS_LEX_KEYWORD_FOR;
-	if(_match(lexer, "break")) return PSS_LEX_KEYWORD_BREAK;
-	if(_match(lexer, "continue")) return PSS_LEX_KEYWORD_CONTINUE;
-	if(_match(lexer, "undefined")) return PSS_LEX_KEYWORD_UNDEFINED;
-	if(_match(lexer, "function")) return PSS_LEX_KEYWORD_FUNCTION; 
+	if(_match(lexer, "start")) return PSS_COMP_LEX_KEYWORD_START;
+	if(_match(lexer, "visualize")) return PSS_COMP_LEX_KEYWORD_VISUALIZE;
+	if(_match(lexer, "echo")) return PSS_COMP_LEX_KEYWORD_ECHO;
+	if(_match(lexer, "include")) return PSS_COMP_LEX_KEYWORD_INCLUDE;
+	if(_match(lexer, "if")) return PSS_COMP_LEX_KEYWORD_IF;
+	if(_match(lexer, "else")) return PSS_COMP_LEX_KEYWORD_ELSE;
+	if(_match(lexer, "insmod")) return PSS_COMP_LEX_KEYWORD_INSMOD;
+	if(_match(lexer, "var")) return PSS_COMP_LEX_KEYWORD_VAR;
+	if(_match(lexer, "while")) return PSS_COMP_LEX_KEYWORD_WHILE;
+	if(_match(lexer, "for")) return PSS_COMP_LEX_KEYWORD_FOR;
+	if(_match(lexer, "break")) return PSS_COMP_LEX_KEYWORD_BREAK;
+	if(_match(lexer, "continue")) return PSS_COMP_LEX_KEYWORD_CONTINUE;
+	if(_match(lexer, "undefined")) return PSS_COMP_LEX_KEYWORD_UNDEFINED;
+	if(_match(lexer, "function")) return PSS_COMP_LEX_KEYWORD_FUNCTION; 
 
 	int warnned = 0, len = 0;
 
@@ -224,10 +224,10 @@ static inline pss_lex_keyword_t _id_or_keyword(pss_lex_t* lexer, char* buffer, s
 		lexer->error = 1;
 		lexer->errstr = "Invalid identifier";
 	}
-	return PSS_LEX_KEYWORD_ERROR;
+	return PSS_COMP_LEX_KEYWORD_ERROR;
 }
 
-static inline int _num(pss_lex_t* lex, int32_t* result)
+static inline int _num(pss_comp_lex_t* lex, int32_t* result)
 {
 	int32_t current;
 	if(_peek(lex, 0) == '0')
@@ -267,7 +267,7 @@ static inline int _num(pss_lex_t* lex, int32_t* result)
 	return 0;
 }
 
-static inline int _str(pss_lex_t* lex, char* buf, size_t sz)
+static inline int _str(pss_comp_lex_t* lex, char* buf, size_t sz)
 {
 	if(_peek(lex, 0) != '"') return ERROR_CODE(int);
 	_consume(lex, 1);
@@ -393,7 +393,7 @@ PARSE:
 
 	return 0;
 }
-static inline int _graphviz_prop(pss_lex_t* lexer, char* buf, size_t sz)
+static inline int _graphviz_prop(pss_comp_lex_t* lexer, char* buf, size_t sz)
 {
 	if(_peek(lexer, 0) != '@' || _peek(lexer, 1) != '[') return ERROR_CODE(int);
 	_consume(lexer, 2);
@@ -434,7 +434,7 @@ static inline int _graphviz_prop(pss_lex_t* lexer, char* buf, size_t sz)
 	if(level > 0) return ERROR_CODE(int);
 	return 0;
 }
-int pss_lex_next_token(pss_lex_t* lexer, pss_lex_token_t* buffer)
+int pss_comp_lex_next_token(pss_comp_lex_t* lexer, pss_comp_lex_token_t* buffer)
 {
 	if(NULL == lexer || NULL == buffer) ERROR_RETURN_LOG(int, "Invalid arguments");
 
@@ -459,15 +459,15 @@ int pss_lex_next_token(pss_lex_t* lexer, pss_lex_token_t* buffer)
 			_consume(lexer, 1);\
 			break;\
 		}
-		_LEX_SINGLE_CHAR_TOKEN(-1, PSS_LEX_TOKEN_EOF);
-		_LEX_SINGLE_CHAR_TOKEN('(', PSS_LEX_TOKEN_LPARENTHESIS);
-		_LEX_SINGLE_CHAR_TOKEN(')', PSS_LEX_TOKEN_RPARENTHESIS);
-		_LEX_SINGLE_CHAR_TOKEN('{', PSS_LEX_TOKEN_LBRACE);
-		_LEX_SINGLE_CHAR_TOKEN('}', PSS_LEX_TOKEN_RBRACE);
-		_LEX_SINGLE_CHAR_TOKEN(';', PSS_LEX_TOKEN_SEMICOLON);
-		_LEX_SINGLE_CHAR_TOKEN('.', PSS_LEX_TOKEN_DOT);
-		_LEX_SINGLE_CHAR_TOKEN(',', PSS_LEX_TOKEN_COMMA);
-		_LEX_CASE('&', PSS_LEX_TOKEN_AND)
+		_LEX_SINGLE_CHAR_TOKEN(-1, PSS_COMP_LEX_TOKEN_EOF);
+		_LEX_SINGLE_CHAR_TOKEN('(', PSS_COMP_LEX_TOKEN_LPARENTHESIS);
+		_LEX_SINGLE_CHAR_TOKEN(')', PSS_COMP_LEX_TOKEN_RPARENTHESIS);
+		_LEX_SINGLE_CHAR_TOKEN('{', PSS_COMP_LEX_TOKEN_LBRACE);
+		_LEX_SINGLE_CHAR_TOKEN('}', PSS_COMP_LEX_TOKEN_RBRACE);
+		_LEX_SINGLE_CHAR_TOKEN(';', PSS_COMP_LEX_TOKEN_SEMICOLON);
+		_LEX_SINGLE_CHAR_TOKEN('.', PSS_COMP_LEX_TOKEN_DOT);
+		_LEX_SINGLE_CHAR_TOKEN(',', PSS_COMP_LEX_TOKEN_COMMA);
+		_LEX_CASE('&', PSS_COMP_LEX_TOKEN_AND)
 		{
 			if(_peek(lexer, 1) == '&')
 			{
@@ -480,7 +480,7 @@ int pss_lex_next_token(pss_lex_t* lexer, pss_lex_token_t* buffer)
 			}
 			break;
 		}
-		_LEX_CASE('|', PSS_LEX_TOKEN_OR)
+		_LEX_CASE('|', PSS_COMP_LEX_TOKEN_OR)
 		{
 			if(_peek(lexer, 1) == '|')
 			{
@@ -493,7 +493,7 @@ int pss_lex_next_token(pss_lex_t* lexer, pss_lex_token_t* buffer)
 			}
 			break;
 		}
-		_LEX_CASE('!', PSS_LEX_TOKEN_NE)
+		_LEX_CASE('!', PSS_COMP_LEX_TOKEN_NE)
 		{
 			if(_peek(lexer, 1) == '=')
 			{
@@ -501,16 +501,16 @@ int pss_lex_next_token(pss_lex_t* lexer, pss_lex_token_t* buffer)
 			}
 			else
 			{
-				buffer->type = PSS_LEX_TOKEN_NOT;
+				buffer->type = PSS_COMP_LEX_TOKEN_NOT;
 				_consume(lexer, 1);
 			}
 			break;
 		}
-		_LEX_CASE('=', PSS_LEX_TOKEN_EQUAL)
+		_LEX_CASE('=', PSS_COMP_LEX_TOKEN_EQUAL)
 		{
 			if(_peek(lexer, 1) == '=')
 			{
-				buffer->type = PSS_LEX_TOKEN_EQUALEQUAL;
+				buffer->type = PSS_COMP_LEX_TOKEN_EQUALEQUAL;
 				_consume(lexer, 2);
 			}
 			else
@@ -519,16 +519,16 @@ int pss_lex_next_token(pss_lex_t* lexer, pss_lex_token_t* buffer)
 			}
 			break;
 		}
-		_LEX_CASE('>', PSS_LEX_TOKEN_GT)
+		_LEX_CASE('>', PSS_COMP_LEX_TOKEN_GT)
 		{
 			if(_peek(lexer, 1) == '=')
 			{
-				buffer->type = PSS_LEX_TOKEN_GE;
+				buffer->type = PSS_COMP_LEX_TOKEN_GE;
 				_consume(lexer, 2);
 			}
 			else if(_peek(lexer, 1) == '>' && _peek(lexer,2) == '>')
 			{
-				buffer->type = PSS_LEX_TOKEN_TRIPLE_GT;
+				buffer->type = PSS_COMP_LEX_TOKEN_TRIPLE_GT;
 				_consume(lexer, 3);
 			}
 			else
@@ -537,11 +537,11 @@ int pss_lex_next_token(pss_lex_t* lexer, pss_lex_token_t* buffer)
 			}
 			break;
 		}
-		_LEX_CASE('<', PSS_LEX_TOKEN_LT)
+		_LEX_CASE('<', PSS_COMP_LEX_TOKEN_LT)
 		{
 			if(_peek(lexer, 1) == '=')
 			{
-				buffer->type = PSS_LEX_TOKEN_LE;
+				buffer->type = PSS_COMP_LEX_TOKEN_LE;
 				_consume(lexer, 2);
 			}
 			else
@@ -550,7 +550,7 @@ int pss_lex_next_token(pss_lex_t* lexer, pss_lex_token_t* buffer)
 			}
 			break;
 		}
-		_LEX_CASE('@', PSS_LEX_TOKEN_GRAPHVIZ_PROP)
+		_LEX_CASE('@', PSS_COMP_LEX_TOKEN_GRAPHVIZ_PROP)
 		{
 			if(_peek(lexer, 1) == '[')
 			{
@@ -567,7 +567,7 @@ int pss_lex_next_token(pss_lex_t* lexer, pss_lex_token_t* buffer)
 			}
 			break;
 		}
-		_LEX_CASE(':', PSS_LEX_TOKEN_COLON_EQUAL)
+		_LEX_CASE(':', PSS_COMP_LEX_TOKEN_COLON_EQUAL)
 		{
 			if(_peek(lexer, 1) == '=')
 			{
@@ -580,82 +580,82 @@ int pss_lex_next_token(pss_lex_t* lexer, pss_lex_token_t* buffer)
 			}
 			break;
 		}
-		_LEX_CASE('+', PSS_LEX_TOKEN_ADD)
+		_LEX_CASE('+', PSS_COMP_LEX_TOKEN_ADD)
 		{
 			int next = _peek(lexer, 1);
 			if(next == '+')
 			{
-				buffer->type = PSS_LEX_TOKEN_INCREASE;
+				buffer->type = PSS_COMP_LEX_TOKEN_INCREASE;
 				_consume(lexer, 2);
 			}
 			else if(next == '=')
 			{
-				buffer->type = PSS_LEX_TOKEN_ADD_EQUAL;
+				buffer->type = PSS_COMP_LEX_TOKEN_ADD_EQUAL;
 				_consume(lexer, 2);
 			}
 			else
 			    _consume(lexer, 1);
 			break;
 		}
-		_LEX_CASE('-', PSS_LEX_TOKEN_MINUS)
+		_LEX_CASE('-', PSS_COMP_LEX_TOKEN_MINUS)
 		{
 			int next = _peek(lexer, 1);
 			if(next == '>')
 			{
-				buffer->type = PSS_LEX_TOKEN_ARROW;
+				buffer->type = PSS_COMP_LEX_TOKEN_ARROW;
 				_consume(lexer, 2);
 			}
 			else if(next == '-')
 			{
-				buffer->type = PSS_LEX_TOKEN_DECREASE;
+				buffer->type = PSS_COMP_LEX_TOKEN_DECREASE;
 				_consume(lexer, 2);
 			}
 			else if(next == '=')
 			{
-				buffer->type = PSS_LEX_TOKEN_MINUS_EQUAL;
+				buffer->type = PSS_COMP_LEX_TOKEN_MINUS_EQUAL;
 				_consume(lexer, 2);
 			}
 			else
 			    _consume(lexer, 1);
 			break;
 		}
-		_LEX_CASE('*', PSS_LEX_TOKEN_TIMES)
+		_LEX_CASE('*', PSS_COMP_LEX_TOKEN_TIMES)
 		{
 			int next = _peek(lexer, 1);
 			if(next == '=')
 			{
-				buffer->type = PSS_LEX_TOKEN_TIMES_EQUAL;
+				buffer->type = PSS_COMP_LEX_TOKEN_TIMES_EQUAL;
 				_consume(lexer, 2);
 			}
 			else
 			    _consume(lexer, 1);
 			break;
 		}
-		_LEX_CASE('/', PSS_LEX_TOKEN_DIVIDE)
+		_LEX_CASE('/', PSS_COMP_LEX_TOKEN_DIVIDE)
 		{
 			int next = _peek(lexer, 1);
 			if(next == '=')
 			{
-				buffer->type = PSS_LEX_TOKEN_DIVIDE_EQUAL;
+				buffer->type = PSS_COMP_LEX_TOKEN_DIVIDE_EQUAL;
 				_consume(lexer, 2);
 			}
 			else
 			    _consume(lexer, 1);
 			break;
 		}
-		_LEX_CASE('%', PSS_LEX_TOKEN_MODULAR)
+		_LEX_CASE('%', PSS_COMP_LEX_TOKEN_MODULAR)
 		{
 			int next = _peek(lexer, 1);
 			if(next == '=')
 			{
-				buffer->type = PSS_LEX_TOKEN_MODULAR_EQUAL;
+				buffer->type = PSS_COMP_LEX_TOKEN_MODULAR_EQUAL;
 				_consume(lexer, 2);
 			}
 			else
 			    _consume(lexer, 1);
 			break;
 		}
-		_LEX_CASE('"', PSS_LEX_TOKEN_STRING)
+		_LEX_CASE('"', PSS_COMP_LEX_TOKEN_STRING)
 		{
 			if(_str(lexer, buffer->value.s, sizeof(buffer->value.s)) == ERROR_CODE(int))
 			{
@@ -672,19 +672,19 @@ int pss_lex_next_token(pss_lex_t* lexer, pss_lex_token_t* buffer)
 				    lexer->error = 1;
 				    lexer->errstr = "Invalid number";
 			    }
-			    buffer->type = PSS_LEX_TOKEN_INTEGER;
+			    buffer->type = PSS_COMP_LEX_TOKEN_INTEGER;
 			    break;
 		    }
 		    else
 		    {
-			    pss_lex_keyword_t token = _id_or_keyword(lexer, buffer->value.s, sizeof(buffer->value.s));
-			    if(token == PSS_LEX_KEYWORD_ERROR)
+			    pss_comp_lex_keyword_t token = _id_or_keyword(lexer, buffer->value.s, sizeof(buffer->value.s));
+			    if(token == PSS_COMP_LEX_KEYWORD_ERROR)
 			    {
-				    buffer->type = PSS_LEX_TOKEN_IDENTIFIER;
+				    buffer->type = PSS_COMP_LEX_TOKEN_IDENTIFIER;
 			    }
 			    else
 			    {
-				    buffer->type = PSS_LEX_TOKEN_KEYWORD;
+				    buffer->type = PSS_COMP_LEX_TOKEN_KEYWORD;
 				    buffer->value.k = token;
 			    }
 		    }
@@ -693,7 +693,7 @@ int pss_lex_next_token(pss_lex_t* lexer, pss_lex_token_t* buffer)
 	if(1 == lexer->error)
 	{
 		LOG_DEBUG("Detected an lexical error in file %s, line %u, offset %u", lexer->filename, lexer->line + 1, lexer->offset + 1);
-		buffer->type = PSS_LEX_TOKEN_ERROR;
+		buffer->type = PSS_COMP_LEX_TOKEN_ERROR;
 		buffer->value.e = lexer->errstr;
 		lexer->error = 0;
 	}

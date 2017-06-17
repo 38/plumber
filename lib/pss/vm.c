@@ -217,10 +217,12 @@ static inline const char* _get_string_repr(pss_vm_t* vm, pss_value_t value, char
 }
 
 /**
- * @brief Execute the insttructions that creates an object
+ * @brief Handles new-dict, new-closure
  * @param vm The virtual machine
  * @param inst The instruction
- * @return status code
+ * @return status code, which indicates if we have an internal error. 
+ *         If the error is about the code not the virtual machine, it should
+ *         return 0, and set the virtual machine's error code
  **/
 static inline int _exec_new(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
 {
@@ -263,6 +265,9 @@ static inline int _exec_new(pss_vm_t* vm, const pss_bytecode_instruction_t* inst
 	return 0;
 }
 
+/**
+ * Handles load-int, load-str
+ **/
 static inline int _exec_load(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
 {
 	pss_bytecode_regid_t target = inst->reg[inst->info->num_regs - 1];
@@ -296,6 +301,9 @@ static inline int _exec_load(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 	return 0;
 }
 
+/**
+ * Handles get-val, set-val, get-key
+ **/
 static inline int _exec_dict(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
 {
 	uint32_t dict_idx, key_idx, reg_idx;
@@ -371,6 +379,9 @@ static inline int _exec_dict(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 	return 0;
 }
 
+/**
+ * Handles sub, mul, div, mod, and, or, xor
+ **/
 static inline int _exec_arithmetic_logic(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
 {
 	pss_value_t left = _read_reg(vm, inst, 0);
@@ -421,7 +432,10 @@ static inline int _exec_arithmetic_logic(pss_vm_t* vm, const pss_bytecode_instru
 
 	return 0;
 }
-
+/**
+ * @brief Handles generic operators: add, eq, le, lt
+ * @note For the undefined type, the only thing we allows is equal check, because otherwise it doesn't make sense
+ **/
 static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
 {
 	pss_value_t left = _read_reg(vm, inst, 0);
@@ -522,6 +536,9 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 	return 0;
 }
 
+/**
+ * Handles the jump instruction: jz, jump
+ **/
 static inline int _exec_jump(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
 {
 	pss_value_t cond = {
@@ -545,6 +562,10 @@ static inline int _exec_jump(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 	return 0;
 }
 
+/**
+ * @brief Handles the global access instructions: global-get, global-set
+ * @note  In this function, we actuall check the external globals before we move on to the next
+ **/
 static inline int _exec_global(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
 {
 	uint32_t key_idx, reg_idx;
@@ -595,6 +616,9 @@ static inline int _exec_global(pss_vm_t* vm, const pss_bytecode_instruction_t* i
 	return 0;
 }
 
+/**
+ * Handles len
+ **/
 static inline int _exec_len(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
 {
 	pss_value_t value = _read_reg(vm, inst, 0);
@@ -620,6 +644,9 @@ static inline int _exec_len(pss_vm_t* vm, const pss_bytecode_instruction_t* inst
 	return 0;
 }
 
+/**
+ * Handles a call instruction on a builtin
+ **/
 static inline int _exec_builtin(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
 {
 	pss_value_t func = _read_reg(vm, inst, 0);
@@ -653,6 +680,10 @@ static inline int _exec_builtin(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 }
 
 static inline pss_bytecode_regid_t _exec(pss_vm_t* vm);
+
+/**
+ * Handle the call instruction
+ **/
 static inline int _exec_call(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
 {
 	pss_value_t func = _read_reg(vm, inst, 0);
@@ -698,6 +729,9 @@ static inline int _exec_call(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 	return 0;
 }
 
+/**
+ * Handle move instruction
+ **/
 static inline int _exec_move(pss_vm_t* vm, const pss_bytecode_instruction_t* inst)
 {
 	pss_value_t value = _read_reg(vm, inst, 0);
@@ -708,6 +742,12 @@ static inline int _exec_move(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 	return 0;
 }
 
+/**
+ * @brief Run the code that has been loaded in the VM until current function exited
+ * @param vm The virtual machine
+ * @note  This function assumes the stack has been set up already
+ * @return The register ID that contains the result
+ **/
 static inline pss_bytecode_regid_t _exec(pss_vm_t* vm)
 {
 	pss_bytecode_regid_t retreg = ERROR_CODE(pss_bytecode_regid_t);
