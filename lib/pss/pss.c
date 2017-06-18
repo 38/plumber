@@ -8,11 +8,11 @@
 int pss_init()
 {
 	if(ERROR_CODE(int) == pss_closure_init())
-		ERROR_LOG_GOTO(ERR, "Cannot initialize the closure type callbacks");
+	    ERROR_LOG_GOTO(ERR, "Cannot initialize the closure type callbacks");
 	if(ERROR_CODE(int) == pss_dict_init())
-		ERROR_LOG_GOTO(ERR, "Cannot initialize the dictionary type callbacks");
+	    ERROR_LOG_GOTO(ERR, "Cannot initialize the dictionary type callbacks");
 	if(ERROR_CODE(int) == pss_string_init())
-		ERROR_LOG_GOTO(ERR, "Cannot initialize the string type callbacks");
+	    ERROR_LOG_GOTO(ERR, "Cannot initialize the string type callbacks");
 	return 0;
 ERR:
 	return ERROR_CODE(int);

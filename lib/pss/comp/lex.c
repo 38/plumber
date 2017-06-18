@@ -206,7 +206,7 @@ static inline pss_comp_lex_keyword_t _id_or_keyword(pss_comp_lex_t* lexer, char*
 	if(_match(lexer, "break")) return PSS_COMP_LEX_KEYWORD_BREAK;
 	if(_match(lexer, "continue")) return PSS_COMP_LEX_KEYWORD_CONTINUE;
 	if(_match(lexer, "undefined")) return PSS_COMP_LEX_KEYWORD_UNDEFINED;
-	if(_match(lexer, "function")) return PSS_COMP_LEX_KEYWORD_FUNCTION; 
+	if(_match(lexer, "function")) return PSS_COMP_LEX_KEYWORD_FUNCTION;
 
 	int warnned = 0, len = 0;
 

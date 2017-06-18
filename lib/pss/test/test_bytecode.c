@@ -85,7 +85,7 @@ int code_generation_test()
 
 		uint32_t j;
 		for(j =0; j < sizeof(expected_inst) / sizeof(expected_inst[0]); j ++)
-			ASSERT_PTR(pss_bytecode_segment_inst_str(segment, (pss_bytecode_addr_t)j, expected_inst[j], sizeof(expected_inst[j])), CLEANUP_NOP);
+		    ASSERT_PTR(pss_bytecode_segment_inst_str(segment, (pss_bytecode_addr_t)j, expected_inst[j], sizeof(expected_inst[j])), CLEANUP_NOP);
 
 		ASSERT_RETOK(pss_bytecode_segid_t, pss_bytecode_module_append(module, segment), CLEANUP_NOP);
 	}
@@ -105,14 +105,14 @@ int module_load_test()
 	ASSERT_PTR(module = pss_bytecode_module_load(TESTDIR"/test_code.psm"), CLEANUP_NOP);
 
 	ASSERT(3 == pss_bytecode_module_get_entry_point(module), CLEANUP_NOP);
-	
+
 	pss_bytecode_segid_t i = 0;
 	for(i = 0; i < 128; i ++)
 	{
 		const pss_bytecode_segment_t* segment = pss_bytecode_module_get_seg(module, i);
 		ASSERT_PTR(segment, CLEANUP_NOP);
 
-		pss_bytecode_regid_t const* args; 
+		pss_bytecode_regid_t const* args;
 		ASSERT(5 == pss_bytecode_segment_get_args(segment, &args), CLEANUP_NOP);
 		ASSERT(2 == args[0], CLEANUP_NOP);
 		ASSERT(1 == args[1], CLEANUP_NOP);
@@ -149,6 +149,6 @@ int setup()
 DEFAULT_TEARDOWN;
 
 TEST_LIST_BEGIN
-	TEST_CASE(code_generation_test),
-	TEST_CASE(module_load_test)
+    TEST_CASE(code_generation_test),
+    TEST_CASE(module_load_test)
 TEST_LIST_END;

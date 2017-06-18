@@ -2,7 +2,7 @@
  * Copyright (C) 2017, Hao Hou
  **/
 #ifndef __PSS_CLOSURE_H__
-#define __PSS_CLOSURE_H__ 
+#define __PSS_CLOSURE_H__
 
 /**
  * @brief The data type for a closure

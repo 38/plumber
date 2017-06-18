@@ -15,7 +15,7 @@ typedef struct _pss_frame_t pss_frame_t;
 
 /**
  * @brief Create an frame
- * @param from If this param is not NULL, clone a frame 
+ * @param from If this param is not NULL, clone a frame
  * @return The newly created frame
  **/
 pss_frame_t* pss_frame_new(const pss_frame_t* from);
@@ -31,7 +31,7 @@ int pss_frame_free(pss_frame_t* frame);
  * @brief Peek the register value of the given register
  * @param frame The frame we are working on
  * @param regid The register ID
- * @return The value 
+ * @return The value
  **/
 pss_value_t pss_frame_reg_get(const pss_frame_t* frame, pss_bytecode_regid_t regid);
 
@@ -56,7 +56,7 @@ int pss_frame_reg_move(pss_frame_t* frame, pss_bytecode_regid_t from, pss_byteco
 /**
  * @brief This function convert the serial numer to register ID
  * @details The way we store registers in a frame is a copy-on-write tree. On the tree, different
- *          register have different length of path. 
+ *          register have different length of path.
  *          The serial number is the numer assigned to register from the root level to the leaf leave,
  *          from left side to the right side.
  *          This is the function maps the serial number to register ID.

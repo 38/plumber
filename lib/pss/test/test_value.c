@@ -7,16 +7,16 @@
 #include <pss/value.h>
 #include <pss/frame.h>
 
-void* test_mkval(void* data) 
+void* test_mkval(void* data)
 {
 	*(int*)data = 1;
-	return data; 
+	return data;
 }
 
-int test_free(void* value) 
+int test_free(void* value)
 {
 	*(int*)value = 0;
-	return 0; 
+	return 0;
 }
 
 const char* test_tostr(const void* value, char* buf, size_t bufsize)
@@ -65,7 +65,7 @@ int test_ref_value()
 	ASSERT(PSS_VALUE_REF_TYPE_STRING == pss_value_ref_type(strval), CLEANUP_NOP);
 	ASSERT_STREQ((const char*)pss_value_get_data(strval), "<test-type>", CLEANUP_NOP);
 	ASSERT_OK(pss_value_decref(strval), CLEANUP_NOP);
-	
+
 	ASSERT_OK(pss_value_decref(value), CLEANUP_NOP);
 	ASSERT(pss_value_get_data(value) == data, CLEANUP_NOP);
 	ASSERT(*data == 1, CLEANUP_NOP);
@@ -91,7 +91,7 @@ int test_primitive_value()
 	ASSERT_OK(pss_value_incref(value), CLEANUP_NOP);
 	ASSERT_OK(pss_value_incref(value), CLEANUP_NOP);
 	ASSERT_OK(pss_value_decref(value), CLEANUP_NOP);
-	
+
 	pss_value_t strval = pss_value_to_str(value);
 	ASSERT(strval.kind == PSS_VALUE_KIND_REF, CLEANUP_NOP);
 	ASSERT(PSS_VALUE_REF_TYPE_STRING == pss_value_ref_type(strval), CLEANUP_NOP);
@@ -107,7 +107,7 @@ int test_primitive_value()
 	ASSERT(PSS_VALUE_REF_TYPE_STRING == pss_value_ref_type(strval), CLEANUP_NOP);
 	ASSERT_STREQ((const char*)pss_value_get_data(strval), "undefined", CLEANUP_NOP);
 	ASSERT_OK(pss_value_decref(strval), CLEANUP_NOP);
-	
+
 	ASSERT(NULL == pss_value_get_data(value), CLEANUP_NOP);
 
 	return 0;
@@ -135,6 +135,6 @@ int setup()
 DEFAULT_TEARDOWN;
 
 TEST_LIST_BEGIN
-	TEST_CASE(test_ref_value),
-	TEST_CASE(test_primitive_value)
+    TEST_CASE(test_ref_value),
+    TEST_CASE(test_primitive_value)
 TEST_LIST_END;

@@ -31,11 +31,11 @@ int frame_test()
 	{
 		pss_value_t value = {
 			.kind = PSS_VALUE_KIND_NUM,
-			.num  = (int64_t)i * (int64_t)i 
+			.num  = (int64_t)i * (int64_t)i
 		};
 		ASSERT_OK(pss_frame_reg_set(frame, (pss_bytecode_regid_t)i, value), goto ERR);
 	}
-	
+
 	for(i = 0; i < 0xffff - 4; i += 4u)
 	{
 		pss_value_t value = pss_frame_reg_get(frame, (pss_bytecode_regid_t)i);
@@ -45,7 +45,7 @@ int frame_test()
 		value = pss_frame_reg_get(frame, (pss_bytecode_regid_t)(i + 1));
 		ASSERT(value.kind == PSS_VALUE_KIND_UNDEF, goto ERR);
 	}
-	
+
 	ASSERT_OK(pss_frame_free(frame), CLEANUP_NOP);
 	return 0;
 
@@ -59,13 +59,13 @@ int frame_copy_test()
 {
 	pss_frame_t* frame = pss_frame_new(NULL);
 	ASSERT_PTR(frame, goto ERR);
-	
+
 	uint32_t i;
 	for(i = 0; i < 0xffff; i += 4u)
 	{
 		pss_value_t value = {
 			.kind = PSS_VALUE_KIND_NUM,
-			.num  = (int64_t)i * (int64_t)i 
+			.num  = (int64_t)i * (int64_t)i
 		};
 		ASSERT_OK(pss_frame_reg_set(frame, (pss_bytecode_regid_t)i, value), goto ERR);
 	}
@@ -80,7 +80,7 @@ int frame_copy_test()
 		};
 		ASSERT_OK(pss_frame_reg_set(copied, (pss_bytecode_regid_t)i, value), goto ERR2);
 	}
-	
+
 	for(i = 0; i < 1024; i ++)
 	{
 		pss_value_t value = pss_frame_reg_get(frame, (pss_bytecode_regid_t)i);
@@ -98,7 +98,7 @@ int frame_copy_test()
 		ASSERT(value.kind == PSS_VALUE_KIND_NUM, goto ERR2);
 		ASSERT(value.num  == 0x12345, goto ERR2);
 	}
-	
+
 	for(i = 1024; i < 0xffff; i ++)
 	{
 		pss_value_t value = pss_frame_reg_get(frame, (pss_bytecode_regid_t)i);
@@ -142,6 +142,6 @@ int setup()
 DEFAULT_TEARDOWN;
 
 TEST_LIST_BEGIN
-	TEST_CASE(frame_test),
-	TEST_CASE(frame_copy_test)
+    TEST_CASE(frame_test),
+    TEST_CASE(frame_copy_test)
 TEST_LIST_END;

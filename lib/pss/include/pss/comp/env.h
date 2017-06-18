@@ -5,18 +5,18 @@
  * @brief The runtime environment managenment utilies for the code generation
  * @file pss/comp/env.h
  **/
-#ifndef __PSS_COMP_REG_H__
-#define __PSS_COMP_REG_H__
+#ifndef __PSS_COMP_ENV_H__
+#define __PSS_COMP_ENV_H__
 
 /**
  * @brief A runtime environment abstraction at compile time
- * @note This is actually the data structure we used to keep tracking the 
+ * @note This is actually the data structure we used to keep tracking the
  *       the register allocation and manages the scope, etc.
  **/
 typedef struct _pss_comp_env_t pss_comp_env_t;
 
 /**
- * @brief Create a new runtime environment abstraction 
+ * @brief Create a new runtime environment abstraction
  * @return The newly created env
  **/
 pss_comp_env_t* pss_comp_env_new();
@@ -33,7 +33,7 @@ int pss_comp_env_free(pss_comp_env_t* env);
  * @note  This will allow the compile allocate variable valid thru we close the scope
  * @param env The abstract runtime envronment
  * @param new_closure indicates if this scope is actually an new closure <br/>
- *                    If this is true, which means if there's a local variable which 
+ *                    If this is true, which means if there's a local variable which
  *                    has the same named variable in the parent scope, we should be able
  *                    to use the same register. Because a closure scope means we have already
  *                    forked the register frame, and we do not need to worry about overriding
@@ -53,12 +53,12 @@ int pss_comp_env_close_scope(pss_comp_env_t* env);
 
 /**
  * @brief Get the register that associated with the given variable
- * @param env The abstract runtime environment 
+ * @param env The abstract runtime environment
  * @param var The variable name
  * @param create Indicates if we should create a local variable when current scope doesn't have one  <br/>
  *               If this param is 0, it means we should look up the parent scope until we reach the global scope
  * @param regbuf The register buffer
- * @return The number of local register we found, 1 if we found a local varaiable, 0 is the sign for access the variable 
+ * @return The number of local register we found, 1 if we found a local varaiable, 0 is the sign for access the variable
  *         in globals, error code when there's anything wrong
  **/
 int pss_comp_env_get_var(pss_comp_env_t* env, const char* var, int create, pss_bytecode_regid_t* regbuf);

@@ -115,7 +115,7 @@ int test_gcd()
 	ASSERT_PTR(entry, CLEANUP_NOP);
 	pss_bytecode_segment_t* foo = pss_bytecode_segment_new(2, arg_foo);
 	ASSERT_PTR(foo, CLEANUP_NOP);
-	
+
 	pss_bytecode_segid_t mid = pss_bytecode_module_append(module, entry);
 	pss_bytecode_segid_t fid = pss_bytecode_module_append(module, foo);
 
@@ -151,7 +151,7 @@ int test_gcd()
 	CODE(foo,   RETURN,       REG(5));
 	CODE(foo,   RETURN,       REG(3));
 	ASSERT_OK(pss_bytecode_segment_patch_label(foo, lret, _last_addr), CLEANUP_NOP);
-	
+
 	pss_bytecode_module_logdump(module);
 
 	pss_vm_t* vm = pss_vm_new();
@@ -200,7 +200,7 @@ int test_generic_add()
 
 	ASSERT_OK(pss_vm_run_module(vm, module, &retval), CLEANUP_NOP);
 	ASSERT(pss_value_ref_type(retval) == PSS_VALUE_REF_TYPE_STRING, CLEANUP_NOP);
-	ASSERT_STREQ((const char*)pss_value_get_data(retval), "Hello3{ \"Hello\": \"Hello\" }", CLEANUP_NOP); 
+	ASSERT_STREQ((const char*)pss_value_get_data(retval), "Hello3{ \"Hello\": \"Hello\" }", CLEANUP_NOP);
 
 	ASSERT_OK(pss_vm_free(vm), CLEANUP_NOP);
 	ASSERT_OK(pss_bytecode_module_free(module), CLEANUP_NOP);
@@ -225,7 +225,7 @@ int test_func_as_param()
 	ASSERT_PTR(foo, CLEANUP_NOP);
 	pss_bytecode_segment_t* goo = pss_bytecode_segment_new(1, arg_goo);
 	ASSERT_PTR(goo, CLEANUP_NOP);
-	
+
 	pss_bytecode_segid_t mid = pss_bytecode_module_append(module, entry);
 	pss_bytecode_segid_t fid = pss_bytecode_module_append(module, foo);
 	pss_bytecode_segid_t gid = pss_bytecode_module_append(module, goo);
@@ -304,7 +304,7 @@ int test_ucombinator()
 	CODE(ucom, SET_VAL,       REG(0),     REG(1),     REG(2));
 	CODE(ucom, CALL,          REG(0),     REG(1),     REG(2));
 	CODE(ucom, RETURN,        REG(2));
-	
+
 	pss_bytecode_module_logdump(module);
 
 	pss_vm_t* vm = pss_vm_new();
@@ -315,7 +315,7 @@ int test_ucombinator()
 	ASSERT_PTR(exception, CLEANUP_NOP);
 	ASSERT(exception->code == PSS_VM_ERROR_STACK, CLEANUP_NOP);
 	ASSERT_OK(pss_vm_exception_free(exception), CLEANUP_NOP);
-	
+
 	ASSERT_OK(pss_vm_free(vm), CLEANUP_NOP);
 	ASSERT_OK(pss_bytecode_module_free(module), CLEANUP_NOP);
 	return 0;
@@ -366,7 +366,7 @@ int test_currying()
 	CODE(foo, INT_LOAD,      NUMERIC(gid),   REG(8));
 	CODE(foo, CLOSURE_NEW,   REG(8),         REG(1));
 	CODE(foo, RETURN,        REG(1));
-	
+
 	CODE(goo, INT_LOAD,      NUMERIC(kid),   REG(8));
 	CODE(goo, CLOSURE_NEW,   REG(8),         REG(1));
 	CODE(goo, RETURN,        REG(1));
@@ -403,10 +403,10 @@ int setup()
 DEFAULT_TEARDOWN;
 
 TEST_LIST_BEGIN
-	TEST_CASE(test_currying),
-	TEST_CASE(test_ucombinator),
-	TEST_CASE(test_func_as_param),
-	TEST_CASE(test_generic_add),
-	TEST_CASE(test_gcd),
-	TEST_CASE(test_extension)
+    TEST_CASE(test_currying),
+    TEST_CASE(test_ucombinator),
+    TEST_CASE(test_func_as_param),
+    TEST_CASE(test_generic_add),
+    TEST_CASE(test_gcd),
+    TEST_CASE(test_extension)
 TEST_LIST_END;

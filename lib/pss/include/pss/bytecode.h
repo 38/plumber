@@ -12,7 +12,7 @@
 #define __PSS_BYTECODE_H__
 
 /**
- * @brief Represent a register ID, it should be 0 to 65536 
+ * @brief Represent a register ID, it should be 0 to 65536
  **/
 typedef uint16_t pss_bytecode_regid_t;
 
@@ -58,10 +58,10 @@ typedef enum {
  * @note If the type checking fails generate a compile error
  **/
 #define _PSS_BYTECODE_ARGTYPE_CHECK(type, value) \
-	({ \
-		type ret = (value);\
-	 	ret;\
-	})
+    ({ \
+	    type ret = (value);\
+	     ret;\
+    })
 
 /**
  * @brief Make an string argument
@@ -70,7 +70,7 @@ typedef enum {
 #define PSS_BYTECODE_ARG_STRING(value) PSS_BYTECODE_ARGTYPE_STRING, _PSS_BYTECODE_ARGTYPE_CHECK(const char*, value)
 
 /**
- * @Brief Make a nuermic argument 
+ * @Brief Make a nuermic argument
  * @param value the numeric expression
  **/
 #define PSS_BYTECODE_ARG_NUMERIC(value) PSS_BYTECODE_ARGTYPE_NUMERIC, _PSS_BYTECODE_ARGTYPE_CHECK(pss_bytecode_numeric_t, value)
@@ -93,7 +93,7 @@ typedef enum {
 #define PSS_BYTECODE_ARG_END NULL
 
 /**
- * @brief The code used to identify what kinds of operation it is 
+ * @brief The code used to identify what kinds of operation it is
  **/
 typedef enum {
 	PSS_BYTECODE_OP_NEW,    /*!< Create a new value */
@@ -143,12 +143,12 @@ typedef enum {
 STATIC_ASSERTION_LT(PSS_BYTECODE_RTYPE_COUNT, 256);
 
 /**
- * @brief The actual operation code used in the instruction 
- * @details 
+ * @brief The actual operation code used in the instruction
+ * @details
  *     |  Instruction  |             Example                   |                Behavior               |
  *     |:------------  |:-----------------------------------   |---------------------------------------|
  *     |  DICT_NEW     | **DICT_NEW** *R_out*                  | *R_taget* = new Dictionary() |
- *     |  CLOSURE_NEW  | **CLOSURE_NEW** *R_func*, *R_out*     | Make a closure combines current stack frame with the code carried by *R_func* and store it in out   | 
+ *     |  CLOSURE_NEW  | **CLOSURE_NEW** *R_func*, *R_out*     | Make a closure combines current stack frame with the code carried by *R_func* and store it in out   |
  *     |  INT_LOAD     | **INT_LOAD(n)** *R_out*               | *R_out*    = n |
  *     |  STR_LOAD     | **STR_LOAD(n)** *R_out*               | *R_out*    = string_table(n) |
  *     |  LENGTH       | **LENGTH** *R_in*, *R_out*            | *R_out*    = *R_in*.length, only valid when *R_in* is string, dict and code |
@@ -216,7 +216,7 @@ typedef struct {
 	pss_bytecode_op_t      operation:8;                          /*!< The operation code */
 	pss_bytecode_rtype_t   rtype:8;                              /*!< The return type code */
 	uint8_t                has_const:1;                          /*!< If the instruction contains a const */
-	uint8_t                string_ref:1;                         /*!< If the const in the instruction is a reference to string */ 
+	uint8_t                string_ref:1;                         /*!< If the const in the instruction is a reference to string */
 	uint8_t                num_regs:2;                           /*!< How many registers */
 } pss_bytecode_info_t;
 
@@ -235,8 +235,8 @@ typedef struct {
 } pss_bytecode_instruction_t;
 
 /**
- * @brief Represent a bytecode segment, every function is a bytecode segment 
- * @note Segment contains a bytecode series, an param + closure local regiester map + string table 
+ * @brief Represent a bytecode segment, every function is a bytecode segment
+ * @note Segment contains a bytecode series, an param + closure local regiester map + string table
  **/
 typedef struct _pss_bytecode_segment_t pss_bytecode_segment_t;
 
@@ -253,7 +253,7 @@ typedef struct _pss_bytecode_module_t pss_bytecode_module_t;
 pss_bytecode_module_t* pss_bytecode_module_new();
 
 /**
- * @brief Load a bytecode table from disk 
+ * @brief Load a bytecode table from disk
  * @param path The filename to load
  * @return the bytecode module, NULL on error cases
  **/
@@ -278,7 +278,7 @@ int pss_bytecode_module_free(pss_bytecode_module_t* module);
  * @brief Append a segment to the bytecode table
  * @param module the target module
  * @param segment the segment to add
- * @note This function will take the onwership of the segment 
+ * @note This function will take the onwership of the segment
  * @return The segment id, or error code
  **/
 pss_bytecode_segid_t pss_bytecode_module_append(pss_bytecode_module_t* module, pss_bytecode_segment_t* segment);
@@ -362,21 +362,21 @@ int pss_bytecode_segment_patch_label(pss_bytecode_segment_t* segment, pss_byteco
  *         PSS_BYTECODE_ARG_END
  * @return The address of the newly appended instruction
  **/
-pss_bytecode_addr_t  pss_bytecode_segment_append_code(pss_bytecode_segment_t* segment, pss_bytecode_opcode_t opcode, ...) __attribute__((sentinel)); 
+pss_bytecode_addr_t  pss_bytecode_segment_append_code(pss_bytecode_segment_t* segment, pss_bytecode_opcode_t opcode, ...) __attribute__((sentinel));
 /**
- * @brief Make sure if we put an NULL pointer to the end of the argument list, the function can interpret the 
+ * @brief Make sure if we put an NULL pointer to the end of the argument list, the function can interpret the
  *        NULL pointer as the PSS_BYTECODE_ARG_END
  **/
 STATIC_ASSERTION_EQ_ID(__pss_bytecode_segment_check_sentinel_size__,
-		               sizeof(void*) < sizeof(pss_bytecode_argtype_t) ? sizeof(pss_bytecode_argtype_t) : sizeof(void*),
-					   sizeof(void*));
+                       sizeof(void*) < sizeof(pss_bytecode_argtype_t) ? sizeof(pss_bytecode_argtype_t) : sizeof(void*),
+                       sizeof(void*));
 STATIC_ASSERTION_EQ_ID(__pss_bytecode_segment_check_sentinel_value__, 0, PSS_BYTECODE_ARGTYPE_END);
 
 
 /**
  * @brief Get the instruction information header at given address in the bytecode segment
  * @param segment the segment we want to access
- * @param addr The address 
+ * @param addr The address
  * @param buf The buffer used to return the instruction info
  * @return status code
  **/

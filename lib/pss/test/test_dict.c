@@ -14,7 +14,7 @@ int strify_test()
 		.num  = 123
 	};
 	ASSERT_OK(pss_dict_set(dict, "a\nb", valbuf), CLEANUP_NOP);
-	
+
 	pss_value_t dictval2 = pss_value_ref_new(PSS_VALUE_REF_TYPE_DICT, NULL);
 	ASSERT(dictval2.kind == PSS_VALUE_KIND_REF, CLEANUP_NOP);
 	pss_dict_t* dict2 = (pss_dict_t*)pss_value_get_data(dictval2);
@@ -48,7 +48,7 @@ int dict_test()
 	};
 
 	ASSERT_OK(pss_dict_set(dict, "a.b.c", valbuf), goto ERR);
-	
+
 	value = pss_dict_get(dict, "a.b.c");
 	ASSERT(PSS_VALUE_KIND_NUM == value.kind, goto ERR);
 	ASSERT(123 == value.num, goto ERR);
@@ -104,6 +104,6 @@ int setup()
 DEFAULT_TEARDOWN;
 
 TEST_LIST_BEGIN
-	TEST_CASE(dict_test),
-	TEST_CASE(strify_test)
+    TEST_CASE(dict_test),
+    TEST_CASE(strify_test)
 TEST_LIST_END;

@@ -33,7 +33,7 @@ typedef struct {
 	/**
 	 * @brief Convert the value to it's string representation
 	 * @param value The value to convert
-	 * @param buf The buffer for the string 
+	 * @param buf The buffer for the string
 	 * @param bufsize The size of the buffer
 	 * @return The result string
 	 **/
@@ -44,7 +44,7 @@ typedef struct {
  * @brief The enum indicates what type of value reference it is
  **/
 typedef enum {
-	PSS_VALUE_REF_TYPE_ERROR = -1,/*!< Invalid type code */ 
+	PSS_VALUE_REF_TYPE_ERROR = -1,/*!< Invalid type code */
 	PSS_VALUE_REF_TYPE_DICT,      /*!< A dictionary */
 	PSS_VALUE_REF_TYPE_STRING,    /*!< A string */
 	PSS_VALUE_REF_TYPE_CLOSURE,   /*!< A closure */
@@ -68,7 +68,7 @@ typedef enum {
 	PSS_VALUE_KIND_ERROR = -1 /*!< Indicates it's an error */
 } pss_value_kind_t;
 /**
- * @brief By default the value should be undefined 
+ * @brief By default the value should be undefined
  **/
 STATIC_ASSERTION_EQ(PSS_VALUE_KIND_UNDEF, 0);
 
@@ -113,7 +113,7 @@ static inline pss_value_t pss_value_err()
 }
 
 /**
- * @brief Make a new runtime value 
+ * @brief Make a new runtime value
  * @param type The type of the value
  * @param data The data of the value
  * @note Once we create a value and do not assigned this is marked as inactive and 0 refcnt, and
@@ -134,8 +134,8 @@ pss_value_ref_type_t pss_value_ref_type(pss_value_t value);
 
 /**
  * @brief Increase the reference counter of the value
- * @param value The value 
- * @return status code 
+ * @param value The value
+ * @return status code
  **/
 int pss_value_incref(pss_value_t value);
 
@@ -149,7 +149,7 @@ int pss_value_decref(pss_value_t value);
 /**
  * @brief Convert the value to string type and make a new value for it
  * @param value The value to convert
- * @note  If the 
+ * @note  If the
  * @return The newly create value
  **/
 pss_value_t pss_value_to_str(pss_value_t value);
@@ -176,10 +176,10 @@ int pss_value_ref_set_type_ops(pss_value_ref_type_t type, pss_value_ref_ops_t op
 
 /**
  * @brief Get the data pointer for this value
- * @param value The value 
+ * @param value The value
  * @return The data pointer
  **/
 void* pss_value_get_data(pss_value_t value);
 
 
-#endif 
+#endif

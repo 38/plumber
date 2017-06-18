@@ -4,7 +4,7 @@
  **/
 
 /**
- * @brief The log utilities for the PSSVM 
+ * @brief The log utilities for the PSSVM
  * @file  pss/log.h
  **/
 #ifndef __PSS_LOG_H__
@@ -33,8 +33,8 @@ int pss_log_set_write_callback(pss_log_write_func_t func);
  * @param fmt The format string
  * @return nothing
  **/
-void pss_log_write(int level, const char* file, const char* function, int line, const char* fmt, ...) 
-	__attribute__((format (printf, 5, 6)));
+void pss_log_write(int level, const char* file, const char* function, int line, const char* fmt, ...)
+    __attribute__((format (printf, 5, 6)));
 
 #ifndef __LOG_WRITE__
 #define __LOG_WRITE__ pss_log_write

@@ -15,7 +15,7 @@
 int pss_string_init();
 
 /**
- * @biref Cleanup 
+ * @biref Cleanup
  * @return status code
  **/
 int pss_string_finalize();
@@ -32,7 +32,7 @@ char* pss_string_concat(const char* left, const char* right);
  * @brief Get the literal representation of the string
  * @note This function will replace all the special chars with espace sequence and
  *       wrap the string with quote
- * @param str The string 
+ * @param str The string
  * @param buf The optional buffer, if NULL is given, the function will allocate a new buffer
  * @param sz  The size of the optional buffer, if NULL is given it will be ignored
  * @return The newly created string
