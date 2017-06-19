@@ -71,9 +71,22 @@ static inline pss_bytecode_regid_t pss_frame_serial_to_regid(pss_bytecode_regid_
 	for(;val > 1; val >>= 1, log2 ++);
 
 	pss_bytecode_regid_t suffix = (pss_bytecode_regid_t)(0x7fff >> log2);
-	pss_bytecode_regid_t prefix = (pss_bytecode_regid_t)(serial << (16 - log2));
+	pss_bytecode_regid_t prefix = (pss_bytecode_regid_t)((1 + serial) << (16 - log2));
 
 	return prefix | suffix;
+}
+
+/**
+ * @brief The invert conversion from the register id to the serial number
+ * @param regid The reigster Id
+ * @return the serial number
+ **/
+static inline pss_bytecode_regid_t pss_frame_regid_to_serial(pss_bytecode_regid_t regid)
+{
+	uint32_t r = regid;
+	uint32_t suffix = r / ((r ^ (r + 1)) + 1);
+	uint32_t prefix = 0xffff / (1 + (r ^ (r + 1)));
+	return (pss_bytecode_regid_t)(prefix + suffix);
 }
 
 #endif

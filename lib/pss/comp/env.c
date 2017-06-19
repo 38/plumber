@@ -165,10 +165,10 @@ int pss_comp_env_open_scope(pss_comp_env_t* env)
 {
 	if(NULL == env) ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	if(env->scope_level >= PSS_COMP_ENV_SCOPE_MAX)
+	if(env->scope_level > PSS_COMP_ENV_SCOPE_MAX)
 		ERROR_RETURN_LOG(int, "Too many nested scopes");
 
-	env->scope_regs[++env->scope_level] = NULL;
+	env->scope_regs[env->scope_level ++] = NULL;
 
 	return 0;
 }
@@ -177,8 +177,11 @@ int pss_comp_env_close_scope(pss_comp_env_t* env)
 {
 	if(NULL == env) ERROR_RETURN_LOG(int, "Invalid arguments");
 
+	if(env->scope_level == 0)
+		ERROR_RETURN_LOG(int, "The environment is not in scope");
+
 	_reg_t* reg;
-	for(reg = env->scope_regs[env->scope_level]; NULL != reg;)
+	for(reg = env->scope_regs[env->scope_level - 1]; NULL != reg;)
 	{
 		_reg_t* this = reg;
 		reg = reg->scope_next;
@@ -189,6 +192,8 @@ int pss_comp_env_close_scope(pss_comp_env_t* env)
 
 		free(this);
 	}
+
+	env->scope_level --;
 
 	return 0;
 }
@@ -225,6 +230,9 @@ int pss_comp_env_get_var(pss_comp_env_t* env, const char* varname, int create, p
 {
 	if(NULL == env || NULL == varname || NULL == regbuf)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(env->scope_level == 0)
+		ERROR_RETURN_LOG(int, "We are currently not in a scope");
 	
 	uint64_t hash[2];
 	uint32_t slot = _hash(varname, hash);
@@ -242,7 +250,7 @@ int pss_comp_env_get_var(pss_comp_env_t* env, const char* varname, int create, p
 
 	while(NULL == var)
 	{
-		_var_t* var = (_var_t*)malloc(sizeof(*var));
+		var = (_var_t*)malloc(sizeof(*var));
 		if(NULL == var)
 			ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate new var node");
 
@@ -276,8 +284,8 @@ VAR_CREATE_ERR:
 	reg->next = var->reglist;
 	var->reglist = reg;
 
-	reg->scope_next = env->scope_regs[env->scope_level];
-	env->scope_regs[env->scope_level] = reg;
+	reg->scope_next = env->scope_regs[env->scope_level - 1];
+	env->scope_regs[env->scope_level - 1] = reg;
 	reg->scope = env->scope_level;
 
 	*regbuf = pss_frame_serial_to_regid(reg->regsn);
@@ -306,5 +314,5 @@ int pss_comp_env_rmtmp(pss_comp_env_t* env, pss_bytecode_regid_t tmp)
 	if(NULL == env || ERROR_CODE(pss_bytecode_regid_t) == tmp)
 		ERROR_RETURN_LOG(pss_bytecode_regid_t, "Invalid arguments");
 
-	return _rheap_put(env, tmp);
+	return _rheap_put(env, pss_frame_regid_to_serial(tmp));
 }
