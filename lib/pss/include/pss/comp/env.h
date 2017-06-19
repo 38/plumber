@@ -32,16 +32,9 @@ int pss_comp_env_free(pss_comp_env_t* env);
  * @biref Open a new scope inside current scope
  * @note  This will allow the compile allocate variable valid thru we close the scope
  * @param env The abstract runtime envronment
- * @param new_closure indicates if this scope is actually a new closure <br/>
- *                    If this is true, which means if there's a local variable which
- *                    has the same named variable in the parent scope, we should be able
- *                    to use the same register. Because a closure scope means we have already
- *                    forked the register frame, and we do not need to worry about overriding
- *                    the variable will cause data lose because it's actually under different
- *                    data frame
  * @return status code
  **/
-int pss_comp_env_open_scope(pss_comp_env_t* env, int new_closure);
+int pss_comp_env_open_scope(pss_comp_env_t* env);
 
 /**
  * @brief Close current scope
@@ -54,14 +47,14 @@ int pss_comp_env_close_scope(pss_comp_env_t* env);
 /**
  * @brief Get the register that associated with the given variable
  * @param env The abstract runtime environment
- * @param var The variable name
+ * @param varname The variable name
  * @param create Indicates if we should create a local variable when current scope doesn't have one  <br/>
  *               If this param is 0, it means we should look up the parent scope until we reach the global scope
  * @param regbuf The register buffer
  * @return The number of local register we found, 1 if we found a local varaiable, 0 is the sign for access the variable
  *         in globals, error code when there's anything wrong
  **/
-int pss_comp_env_get_var(pss_comp_env_t* env, const char* var, int create, pss_bytecode_regid_t* regbuf);
+int pss_comp_env_get_var(pss_comp_env_t* env, const char* varname, int create, pss_bytecode_regid_t* regbuf);
 
 /**
  * @brief Allocate an anonymous temporary register

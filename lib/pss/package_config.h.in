@@ -41,4 +41,14 @@
  * @brief The maximum level of stack of the Virtual Machine
  **/
 #	define PSS_VM_STACK_LIMIT @LIB_PSS_VM_STACK_LIMIT@
+
+/**
+ * @brief The hash table size of the compile time environment abstraction 
+ **/
+#	define PSS_COMP_ENV_HASH_SIZE @LIB_PSS_COMP_ENV_HASH_SIZE@
+
+/**
+ * @brief The max level of nested scope the compile allows
+ **/
+#	define PSS_COMP_ENV_SCOPE_MAX @LIB_PSS_COMP_ENV_SCOPE_MAX@
 #endif /* __PROTO_PACKAGE_CONF_H__ */
