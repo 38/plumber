@@ -9,26 +9,24 @@
 #ifndef __PSS_COMP_COMP_H__
 #define __PSS_COMP_COMP_H__
 
-/**
- * @brief The predefined error types
- **/
-typedef enum {
-	PSS_COMP_ERROR_TYPE_INTERNAL    /*!< Indicates this error is not related to user program */
-} pss_comp_error_type_t;
+#define PSS_COMP_RAISE_INTERNAL(type, comp, msg, args...) do {\
+	pss_comp_raise(comp, "Internal Error: "msg, ##args);\
+	LOG_ERROR(msg, ##args);\
+	return ERROR_CODE(type);\
+}while(0)
 
-/**
- * @brief The pattern string used for th error message for the given type
- **/
-static const char* pss_comp_error_pattern[] = {
-	[PSS_COMP_ERROR_TYPE_INTERNAL] "Internal error: %s"
-};
+#define PSS_COMP_RAISE_INTERNAL_PTR(comp, msg, args...) do {\
+	pss_comp_raise(comp, "Internal Error: "msg, ##args);\
+	LOG_ERROR(msg, ##args);\
+	return NULL;\
+}while(0)
 
-#define PSS_COMP_RAISE(label, comp, type , args...) do {\
-	pss_comp_raise(comp, pss_comp_error_pattern[PSS_COMP_ERROR_TYPE_##type], ##args);\
+#define PSS_COMP_RAISE_INTERAL_GOTO(label, comp, msg, args...) do {\
+	pss_comp_raise(comp, "Internal Error: "msg, ##args);\
+	LOG_ERROR(msg, ##args);\
 	goto label;\
-} while(0);
+}while(0)
 
-	
 /**
  * @brief Represent an options for a parser
  **/
@@ -92,7 +90,23 @@ int pss_comp_comsume(pss_comp_t* comp, uint32_t n);
  * @param comp The compiler
  * @return The module
  **/
-pss_bytecode_module_t* pss_comp_output(pss_comp_t* comp);
+pss_bytecode_segment_t* pss_comp_get_code_segment(pss_comp_t* comp);
+
+/**
+ * @brief Open a new closure with N arguments
+ * @param comp The compiler instance
+ * @param nargs The arguments
+ * @param argnames The name list for the arguments
+ * @return status code
+ **/
+int pss_comp_open_closure(pss_comp_t* comp, uint32_t nargs, char const** argnames);
+
+/**
+ * @brief Close the current closure and return the segment ID in the bytecode module
+ * @param comp The compiler instance
+ * @return The bytecode segment id
+ **/
+pss_bytecode_segid_t pss_comp_close_closure(pss_comp_t* comp);
 
 /**
  * @brief raise an compiler error with the given message, the line number

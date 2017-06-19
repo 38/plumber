@@ -10,12 +10,16 @@
 
 #include <error.h>
 
+#include <package_config.h>
+
 #include <pss/log.h>
 #include <pss/bytecode.h>
 #include <pss/value.h>
 #include <pss/comp/lex.h>
 #include <pss/comp/comp.h>
 #include <pss/comp/env.h>
+
+#include <pss/comp/block.h>
 
 #define _LOOKAHEAD 3
 
@@ -26,6 +30,8 @@ struct _pss_comp_t {
 	pss_comp_error_t**       error_buf;        /*!< The last compiler error */
 	pss_comp_lex_token_t     ahead[_LOOKAHEAD];/*!< The lookahead ring buffer */
 	uint32_t                 ahead_begin;      /*!< The ring buffer begin */
+	pss_bytecode_segment_t*  seg_stack[PSS_COMP_ENV_SCOPE_MAX];  /*!< The current code segment the compiler is writting */
+	uint32_t                 seg_stack_top;    /*!< The stack top for the current segment ID */
 };
 
 int pss_comp_compile(pss_comp_option_t* option, pss_comp_error_t** error)
@@ -63,6 +69,8 @@ int pss_comp_raise(pss_comp_t* comp, const char* msg, ...)
 	vsnprintf(err->message, (unsigned)bytes_required + 1, msg, ap);
 	err->next = *comp->error_buf;
 	*comp->error_buf = err;
+	err->filename = pss_comp_peek(comp,0)->file;
+	err->line = pss_comp_peek(comp,0)->line;
 	va_end(ap);
 	return 0;
 ERR:
@@ -95,13 +103,11 @@ const pss_comp_lex_token_t* pss_comp_peek(pss_comp_t* comp, uint32_t n)
 		uint32_t off = (i + comp->ahead_begin) % _LOOKAHEAD;
 		if(comp->ahead[off].type == PSS_COMP_LEX_TOKEN_NAT)
 		{
-			if(pss_comp_lex_next_token(comp->lexer, comp->ahead + off) == ERROR_CODE(int))\
-				PSS_COMP_RAISE(ERR, comp, INTERNAL, "Cannot peek token");
+			if(pss_comp_lex_next_token(comp->lexer, comp->ahead + off) == ERROR_CODE(int))
+				PSS_COMP_RAISE_INTERNAL_PTR(comp, "Cannot peek lexer token");
 		}
 	}
 	return comp->ahead + (n + comp->ahead_begin) % _LOOKAHEAD;
-ERR:
-	return NULL;
 }
 
 int pss_comp_comsume(pss_comp_t* comp, uint32_t n)
@@ -118,13 +124,54 @@ int pss_comp_comsume(pss_comp_t* comp, uint32_t n)
 	return 0;
 }
 
-pss_bytecode_module_t* pss_comp_output(pss_comp_t* comp)
+pss_bytecode_segment_t* pss_comp_get_code_segment(pss_comp_t* comp)
 {
 	if(NULL == comp) ERROR_PTR_RETURN_LOG("Invalid arguments");
 
-	return comp->module;
+	if(comp->seg_stack_top == 0) 
+		PSS_COMP_RAISE_INTERNAL_PTR(comp, "Compiler is curarently out of closure");
+
+	return comp->seg_stack[comp->seg_stack_top - 1];
 }
 
+int pss_comp_open_closure(pss_comp_t* comp, uint32_t nargs, char const** argnames)
+{
+	if(NULL == comp || ERROR_CODE(uint32_t) == nargs || NULL == argnames)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
+	if(ERROR_CODE(int) == pss_comp_env_open_scope(comp->env))
+		PSS_COMP_RAISE_INTERNAL(int, comp, "Cannot open new scope for closure");
 
+	pss_bytecode_regid_t argid[nargs];
+	pss_bytecode_segment_t* segment = NULL;
+	uint32_t i;
+	for(i = 0; i < nargs; i ++)
+		if(1 != pss_comp_env_get_var(comp->env, argnames[i], 1, argid + i))
+			PSS_COMP_RAISE_INTERAL_GOTO(ERR, comp, "Cannot allocate register for the argument");
+			
+	if(NULL == (segment = pss_bytecode_segment_new((pss_bytecode_regid_t)nargs, argid)))
+		PSS_COMP_RAISE_INTERAL_GOTO(ERR, comp, "Cannot create new code segment for the segment");
+
+	comp->seg_stack[comp->seg_stack_top ++] = segment;
+
+	return 0;
+ERR:
+	pss_comp_env_close_scope(comp->env);
+	if(segment != NULL)
+		pss_bytecode_segment_free(segment);
+	return ERROR_CODE(int);
+}
+
+pss_bytecode_segid_t pss_comp_close_closure(pss_comp_t* comp)
+{
+	if(NULL == comp) ERROR_RETURN_LOG(pss_bytecode_segid_t, "Invalid arguments");
+	if(comp->seg_stack_top == 0)
+		PSS_COMP_RAISE_INTERNAL(pss_bytecode_segid_t, comp, "Compiler is current out of closure");
+
+	pss_bytecode_segid_t ret = pss_bytecode_module_append(comp->module, comp->seg_stack[--comp->seg_stack_top]);
+	if(ERROR_CODE(pss_bytecode_segid_t) == ret)
+		PSS_COMP_RAISE_INTERNAL(pss_bytecode_segid_t, comp, "Cannot put the segment to the bytecode module");
+
+	return ret;
+}
 
