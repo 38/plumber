@@ -300,3 +300,105 @@ pss_comp_env_t* pss_comp_get_env(pss_comp_t* comp)
 
 	return comp->env;
 }
+
+int pss_comp_open_scope(pss_comp_t* comp)
+{
+	if(NULL == comp) PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Invalid arguments");
+
+	if(ERROR_CODE(int) == pss_comp_env_open_scope(comp->env))
+		PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Cannot open a new scope");
+
+	return 0;
+}
+
+int pss_comp_close_scope(pss_comp_t* comp)
+{
+	if(NULL == comp) PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Invalid arguments");
+
+	if(ERROR_CODE(int) == pss_comp_env_close_scope(comp->env))
+		PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Canno close current scope");
+
+	return 0;
+}
+
+int pss_comp_get_local_var(pss_comp_t* comp, const char* var, pss_bytecode_regid_t* resbuf)
+{
+	if(NULL == comp || NULL == var)
+		PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Invalid arguments");
+
+	int rc = pss_comp_env_get_var(comp->env, var, 0, resbuf);
+	if(ERROR_CODE(int) == rc)
+		PSS_COMP_RAISE_RETURN(int, comp, "Cannot get the local variable from the environment");
+
+	return 0;
+}
+
+pss_bytecode_regid_t pss_comp_decl_local_var(pss_comp_t* comp, const char* var)
+{
+	if(NULL == comp || NULL == var)
+		PSS_COMP_RAISE_RETURN(pss_bytecode_regid_t, comp, "Internal Error: Invalid arguments");
+
+	pss_bytecode_regid_t regid;
+
+	int rc = pss_comp_env_get_var(comp->env, var, 1, &regid);
+	if(ERROR_CODE(int) == rc)
+		PSS_COMP_RAISE_RETURN(pss_bytecode_regid_t, comp, "Cannot create new variable in current scope");
+
+	return regid;
+}
+
+pss_bytecode_regid_t pss_comp_mktmp(pss_comp_t* comp)
+{
+	if(NULL == comp) PSS_COMP_RAISE_RETURN(pss_bytecode_regid_t, comp, "Internal Error: Invalid arguments");
+
+	pss_bytecode_regid_t ret = pss_comp_env_mktmp(comp->env);
+	if(ERROR_CODE(pss_bytecode_regid_t) == ret) 
+		PSS_COMP_RAISE_RETURN(pss_bytecode_regid_t, comp, "Internal Error: Cannot allocate temp register");
+
+	return ret;
+}
+
+int pss_comp_rmtmp(pss_comp_t* comp, pss_bytecode_regid_t regid)
+{
+	if(NULL == comp || ERROR_CODE(pss_bytecode_regid_t) == regid) 
+		PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Invalid arguments");
+
+	if(ERROR_CODE(int) == pss_comp_env_rmtmp(comp->env, regid))
+		PSS_COMP_RAISE_RETURN(pss_bytecode_regid_t, comp, "Internal Error: Cannot remove the temp register");
+
+	return 0;
+}
+
+int pss_comp_expect_token(pss_comp_t* comp, pss_comp_lex_token_type_t token)
+{
+	if(NULL == comp) PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Invalid arguments");
+
+	const pss_comp_lex_token_t* next = pss_comp_peek(comp, 0);
+	if(NULL == next) ERROR_RETURN_LOG(int, "Cannot peek the next token");
+
+	if(next->type != token)
+		PSS_COMP_RAISE_RETURN(int, comp, "Syntax Error: Unexpected token");
+	
+	if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
+		ERROR_RETURN_LOG(int, "Cannot consume the last token");
+
+	return 0;
+}
+
+int pss_comp_expect_keyword(pss_comp_t* comp, pss_comp_lex_keyword_t keyword)
+{
+	if(NULL == comp) PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Invalid arguments");
+
+	const pss_comp_lex_token_t* next = pss_comp_peek(comp, 1);
+
+	if(NULL == next) ERROR_RETURN_LOG(int, "Cannot peek the next token");
+
+	if(next->type != PSS_COMP_LEX_TOKEN_KEYWORD)
+		PSS_COMP_RAISE_RETURN(int, comp, "Syntax Error: Keyword expected");
+
+
+	if(next->value.k != keyword)
+		PSS_COMP_RAISE_RETURN(int, comp, "Syntax Error: Unexpected keyword");
+
+	return 0;
+}

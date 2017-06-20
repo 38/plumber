@@ -109,6 +109,52 @@ int pss_comp_open_closure(pss_comp_t* comp, uint32_t nargs, char const** argname
  **/
 pss_bytecode_segid_t pss_comp_close_closure(pss_comp_t* comp);
 
+/**
+ * @brief Open and enter a new scope
+ * @param comp The compilter
+ * @return status code
+ **/
+int pss_comp_open_scope(pss_comp_t* comp);
+
+/**
+ * @brief Close and leave current scope, this makes all the local variable registers released
+ * @param comp The compiler
+ * @return status code
+ **/
+int pss_comp_close_scope(pss_comp_t* comp);
+
+/**
+ * @brief Get the local variable
+ * @details This function also used to check if we should access the global storage as well, 
+ * @param comp The compiler instance
+ * @param var  The variable name
+ * @param resbuf the buffer used to return the register id assigned to this local variable
+ * @return The number of variables has been found, 1 if we found a local variable, 0 if we should access the global
+ *         error code when the function can not finish successfully
+ **/
+int pss_comp_get_local_var(pss_comp_t* comp, const char* var, pss_bytecode_regid_t* resbuf);
+
+/**
+ * @brief Declare a local variable in current scope
+ * @param comp The compilter instance
+ * @param var The variable name
+ * @return The register assigned to this variable
+ **/
+pss_bytecode_regid_t pss_comp_decl_local_var(pss_comp_t* comp, const char* var);
+
+/**
+ * @brief Make a temporory register 
+ * @parap comp The compiler instance
+ * @return The register id
+ **/
+pss_bytecode_regid_t pss_comp_mktmp(pss_comp_t* comp);
+
+/**
+ * @biref Rerlease a temp register
+ * @param regid The register to release
+ * @return status code
+ **/
+int pss_comp_rmtmp(pss_comp_t* comp, pss_bytecode_regid_t regid);
 
 /**
  * @brief Open a new control block, a control block is the block which contains a begin and end label, so that
@@ -138,6 +184,22 @@ pss_bytecode_addr_t pss_comp_last_control_block_begin(pss_comp_t* comp);
  * @return status code
  **/
 pss_bytecode_label_t pss_comp_last_control_block_end(pss_comp_t* comp);
+
+/**
+ * @brief Expect the next token is the given type, otherwise raise a compile error
+ * @param comp The compiler
+ * @param token The token
+ * @return status code
+ **/
+int pss_comp_expect_token(pss_comp_t* comp, pss_comp_lex_token_type_t token);
+
+/**
+ * @biref Expect the next token is the give keyword otherwise raise a compile error
+ * @param comp The compiler
+ * @param keyword The keyword expected
+ * @return status code
+ **/
+int pss_comp_expect_keyword(pss_comp_t* comp, pss_comp_lex_keyword_t keyword);
 
 
 /**
