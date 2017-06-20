@@ -26,4 +26,12 @@ typedef struct {
  **/
 int pss_comp_stmt_assignment(pss_comp_t* comp, int var, pss_comp_stmt_result_t* result);
 
+/**
+ * @brief The rvalue expression
+ * @param comp The compilter
+ * @param result The statement result
+ * @return status code
+ **/
+int pss_comp_stmt_rvalue(pss_comp_t* comp, pss_comp_stmt_result_t* result); 
+
 #endif

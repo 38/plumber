@@ -28,20 +28,23 @@ int verify_token()
 	ASSERT_STREQ(token.file, TESTDIR"/test_pss.in", CLEANUP_NOP);
 
 	ASSERT_OK(pss_comp_lex_next_token(lexer, &token), CLEANUP_NOP);
-	ASSERT(token.type == PSS_COMP_LEX_TOKEN_KEYWORD && token.value.k == PSS_COMP_LEX_KEYWORD_ECHO, CLEANUP_NOP);
+	ASSERT(token.type == PSS_COMP_LEX_TOKEN_IDENTIFIER, CLEANUP_NOP);
+	ASSERT_STREQ(token.value.s, "echo", CLEANUP_NOP);
 	ASSERT(token.line == 6, CLEANUP_NOP);
 	ASSERT(token.offset == 21, CLEANUP_NOP);
 	ASSERT_STREQ(token.file, TESTDIR"/test_pss.in", CLEANUP_NOP);
 
 
 	ASSERT_OK(pss_comp_lex_next_token(lexer, &token), CLEANUP_NOP);
-	ASSERT(token.type == PSS_COMP_LEX_TOKEN_KEYWORD && token.value.k == PSS_COMP_LEX_KEYWORD_VISUALIZE, CLEANUP_NOP);
+	ASSERT(token.type == PSS_COMP_LEX_TOKEN_IDENTIFIER, CLEANUP_NOP);
+	ASSERT_STREQ(token.value.s, "visualize", CLEANUP_NOP);
 	ASSERT(token.line == 6, CLEANUP_NOP);
 	ASSERT(token.offset == 26, CLEANUP_NOP);
 	ASSERT_STREQ(token.file, TESTDIR"/test_pss.in", CLEANUP_NOP);
 
 	ASSERT_OK(pss_comp_lex_next_token(lexer, &token), CLEANUP_NOP);
-	ASSERT(token.type == PSS_COMP_LEX_TOKEN_KEYWORD && token.value.k == PSS_COMP_LEX_KEYWORD_START, CLEANUP_NOP);
+	ASSERT(token.type == PSS_COMP_LEX_TOKEN_IDENTIFIER, CLEANUP_NOP);
+	ASSERT_STREQ(token.value.s, "start", CLEANUP_NOP);
 	ASSERT(token.line == 6, CLEANUP_NOP);
 	ASSERT(token.offset == 36, CLEANUP_NOP);
 	ASSERT_STREQ(token.file, TESTDIR"/test_pss.in", CLEANUP_NOP);
