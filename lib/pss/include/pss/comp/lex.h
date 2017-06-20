@@ -37,7 +37,6 @@ typedef enum {
 	PSS_COMP_LEX_TOKEN_OR,          /*!< || */
 	PSS_COMP_LEX_TOKEN_ARROW,       /*!< -&gt; */
 	PSS_COMP_LEX_TOKEN_SEMICOLON,   /*!< ; */
-	PSS_COMP_LEX_TOKEN_DOT,         /*!< dot */
 	PSS_COMP_LEX_TOKEN_ADD,         /*!< + */
 	PSS_COMP_LEX_TOKEN_ADD_EQUAL,   /*!< += */
 	PSS_COMP_LEX_TOKEN_INCREASE,    /*!< ++ */

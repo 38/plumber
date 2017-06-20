@@ -16,13 +16,25 @@
 #include <pss/bytecode.h>
 #include <pss/value.h>
 #include <pss/comp/lex.h>
-#include <pss/comp/comp.h>
 #include <pss/comp/env.h>
+#include <pss/comp/comp.h>
 
 #include <pss/comp/block.h>
 
 #define _LOOKAHEAD 3
 
+/**
+ * @brief Represent a control block info
+ **/
+typedef struct {
+	pss_bytecode_segment_t*  seg;      /*!< The code segment which contains this control block */
+	pss_bytecode_addr_t      begin;    /*!< The begin address inside the code block */
+	pss_bytecode_label_t     end;      /*!< The end label of the code block */
+} _control_block_t;
+
+/**
+ * @brief The actual data structure for a compiler instance
+ **/
 struct _pss_comp_t {
 	pss_comp_lex_t*          lexer;            /*!< The lexer we are using */
 	pss_bytecode_module_t*   module;           /*!< The output bytecode module */
@@ -32,10 +44,13 @@ struct _pss_comp_t {
 	uint32_t                 ahead_begin;      /*!< The ring buffer begin */
 	pss_bytecode_segment_t*  seg_stack[PSS_COMP_ENV_SCOPE_MAX];  /*!< The current code segment the compiler is writting */
 	uint32_t                 seg_stack_top;    /*!< The stack top for the current segment ID */
+	_control_block_t         ctl_stack[PSS_COMP_ENV_SCOPE_MAX];    /*!< The control block stack */
+	uint32_t                 ctl_stack_top;/*!< The top pointer of the control block stack */
 };
 
 int pss_comp_compile(pss_comp_option_t* option, pss_comp_error_t** error)
 {
+	int rc = ERROR_CODE(int);
 	if(NULL == option || NULL == option->lexer || NULL == option->module)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
@@ -46,15 +61,28 @@ int pss_comp_compile(pss_comp_option_t* option, pss_comp_error_t** error)
 		.ahead_begin = 0
 	};
 
+	pss_bytecode_segid_t entry_point;
+
 	if(NULL == (compiler.env = pss_comp_env_new()))
-	{
-		pss_comp_raise(&compiler, "Internal error");
-		ERROR_RETURN_LOG(int, "Cannot create new environment");
-	}
+		PSS_COMP_RAISE_GOTO(ERR, &compiler, "Internal Error: Cannot creat environment");
 
-	/* TODO Compilation */
+	if(ERROR_CODE(int) == pss_comp_open_closure(&compiler, 0, NULL))
+		PSS_COMP_RAISE_GOTO(ERR, &compiler, "Internal Error: Cannot open closure for the module init");
 
-	return 0;
+	if(ERROR_CODE(int) == pss_comp_block_parse(&compiler, PSS_COMP_LEX_TOKEN_NAT, PSS_COMP_LEX_TOKEN_EOF, NULL))
+		ERROR_LOG_GOTO(ERR, "Cannot parse the top-level code block");
+
+
+	if(ERROR_CODE(pss_bytecode_regid_t) == (entry_point = pss_comp_close_closure(&compiler)))
+		PSS_COMP_RAISE_GOTO(ERR, &compiler, "Internal Error: Cannot close closure for the module init");
+
+	if(ERROR_CODE(int) == pss_bytecode_module_set_entry_point(compiler.module, entry_point))
+		PSS_COMP_RAISE_GOTO(ERR, &compiler, "Internal Error: Cannot set up the module entry point");
+
+	rc = 0;
+ERR:
+	if(NULL != compiler.env) pss_comp_env_free(compiler.env);
+	return rc;
 }
 
 int pss_comp_raise(pss_comp_t* comp, const char* msg, ...)
@@ -95,7 +123,7 @@ int pss_comp_free_error(pss_comp_error_t* error)
 const pss_comp_lex_token_t* pss_comp_peek(pss_comp_t* comp, uint32_t n)
 {
 	if(NULL == comp || n >= _LOOKAHEAD)
-		ERROR_PTR_RETURN_LOG("Invalid arguments");
+		PSS_COMP_RAISE_RETURN_PTR(comp, "Internal Error: Invalid arguments");
 
 	uint32_t i;
 	for(i = 0; i <= n; i ++)
@@ -104,7 +132,7 @@ const pss_comp_lex_token_t* pss_comp_peek(pss_comp_t* comp, uint32_t n)
 		if(comp->ahead[off].type == PSS_COMP_LEX_TOKEN_NAT)
 		{
 			if(pss_comp_lex_next_token(comp->lexer, comp->ahead + off) == ERROR_CODE(int))
-				PSS_COMP_RAISE_INTERNAL_PTR(comp, "Cannot peek lexer token");
+				PSS_COMP_RAISE_RETURN_PTR(comp, "Internal Error: Cannot peek lexer token");
 		}
 	}
 	return comp->ahead + (n + comp->ahead_begin) % _LOOKAHEAD;
@@ -126,31 +154,31 @@ int pss_comp_comsume(pss_comp_t* comp, uint32_t n)
 
 pss_bytecode_segment_t* pss_comp_get_code_segment(pss_comp_t* comp)
 {
-	if(NULL == comp) ERROR_PTR_RETURN_LOG("Invalid arguments");
+	if(NULL == comp) PSS_COMP_RAISE_RETURN_PTR(comp, "Internal Error: Invalid arguments");
 
 	if(comp->seg_stack_top == 0) 
-		PSS_COMP_RAISE_INTERNAL_PTR(comp, "Compiler is curarently out of closure");
+		PSS_COMP_RAISE_RETURN_PTR(comp, "Internal Error: Compiler is curarently out of closure");
 
 	return comp->seg_stack[comp->seg_stack_top - 1];
 }
 
 int pss_comp_open_closure(pss_comp_t* comp, uint32_t nargs, char const** argnames)
 {
-	if(NULL == comp || ERROR_CODE(uint32_t) == nargs || NULL == argnames)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	if(NULL == comp || ERROR_CODE(uint32_t) == nargs || (NULL == argnames && nargs > 0))
+		PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Invalid arguments");
 
 	if(ERROR_CODE(int) == pss_comp_env_open_scope(comp->env))
-		PSS_COMP_RAISE_INTERNAL(int, comp, "Cannot open new scope for closure");
+		PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Cannot open new scope for closure");
 
 	pss_bytecode_regid_t argid[nargs];
 	pss_bytecode_segment_t* segment = NULL;
 	uint32_t i;
 	for(i = 0; i < nargs; i ++)
 		if(1 != pss_comp_env_get_var(comp->env, argnames[i], 1, argid + i))
-			PSS_COMP_RAISE_INTERAL_GOTO(ERR, comp, "Cannot allocate register for the argument");
+			PSS_COMP_RAISE_GOTO(ERR, comp, "Internal Error: Cannot allocate register for the argument");
 			
 	if(NULL == (segment = pss_bytecode_segment_new((pss_bytecode_regid_t)nargs, argid)))
-		PSS_COMP_RAISE_INTERAL_GOTO(ERR, comp, "Cannot create new code segment for the segment");
+		PSS_COMP_RAISE_GOTO(ERR, comp, "Internal Error: Cannot create new code segment for the segment");
 
 	comp->seg_stack[comp->seg_stack_top ++] = segment;
 
@@ -164,14 +192,111 @@ ERR:
 
 pss_bytecode_segid_t pss_comp_close_closure(pss_comp_t* comp)
 {
-	if(NULL == comp) ERROR_RETURN_LOG(pss_bytecode_segid_t, "Invalid arguments");
+	if(NULL == comp) PSS_COMP_RAISE_RETURN(pss_bytecode_segid_t, comp, "Internal Error: Invalid arguments");
 	if(comp->seg_stack_top == 0)
-		PSS_COMP_RAISE_INTERNAL(pss_bytecode_segid_t, comp, "Compiler is current out of closure");
+		PSS_COMP_RAISE_RETURN(pss_bytecode_segid_t, comp, "Internal Error: Compiler is current out of closure");
+
+	if(ERROR_CODE(int) == pss_comp_env_close_scope(comp->env))
+		PSS_COMP_RAISE_RETURN(pss_bytecode_segid_t, comp, "Internal Error: Cannot close current scope");
+
+	pss_bytecode_segment_t* seg = comp->seg_stack[comp->seg_stack_top - 1];
+
+	/* Finally, we need to append the return guard to the segment, so that the VM won't get to somewhere undefined */
+	pss_bytecode_addr_t guard_addr;
+	if(ERROR_CODE(pss_bytecode_addr_t) == (guard_addr = pss_bytecode_segment_append_code(seg, PSS_BYTECODE_OPCODE_UNDEF_LOAD, PSS_BYTECODE_ARG_REGISTER(0), PSS_BYTECODE_ARG_END)))
+		PSS_COMP_RAISE_RETURN(pss_bytecode_segid_t, comp, "Internal Error: Cannot append the return guard to the code segment");
+	if(ERROR_CODE(pss_bytecode_addr_t) == pss_bytecode_segment_append_code(seg, PSS_BYTECODE_OPCODE_RETURN, PSS_BYTECODE_ARG_REGISTER(0), PSS_BYTECODE_ARG_END))
+		PSS_COMP_RAISE_RETURN(pss_bytecode_segid_t, comp, "Internal Error: Cannot append the return guard to the code segment");
+
+	for(;comp->ctl_stack_top > 0 && 
+		 comp->ctl_stack[comp->ctl_stack_top - 1].seg == seg;
+		 comp->ctl_stack_top --)
+		if(ERROR_CODE(int) == pss_bytecode_segment_patch_label(seg, comp->ctl_stack[comp->ctl_stack_top - 1].end, guard_addr))
+			PSS_COMP_RAISE_RETURN(pss_bytecode_segid_t, comp, "Internal Error: Cannot patch the unclosed control block");
 
 	pss_bytecode_segid_t ret = pss_bytecode_module_append(comp->module, comp->seg_stack[--comp->seg_stack_top]);
 	if(ERROR_CODE(pss_bytecode_segid_t) == ret)
-		PSS_COMP_RAISE_INTERNAL(pss_bytecode_segid_t, comp, "Cannot put the segment to the bytecode module");
+		PSS_COMP_RAISE_RETURN(pss_bytecode_segid_t, comp, "Internal Error: Cannot put the segment to the bytecode module");
 
 	return ret;
 }
 
+int pss_comp_open_control_block(pss_comp_t* comp)
+{
+	if(NULL == comp) PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Invalid arguments");
+	pss_bytecode_segment_t* seg = pss_comp_get_code_segment(comp);
+
+	if(NULL == seg) ERROR_RETURN_LOG(int, "Cannot get the code segment for current compiler context");
+
+	pss_bytecode_addr_t begin = pss_bytecode_segment_length(seg);
+
+	if(ERROR_CODE(pss_bytecode_addr_t) == begin)
+		PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Cannot get the length of the code segment");
+
+	pss_bytecode_label_t end = pss_bytecode_segment_label_alloc(seg);
+	if(ERROR_CODE(pss_bytecode_label_t) == end)
+		PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Cannot allocate the end label for the control block");
+
+	comp->ctl_stack[comp->ctl_stack_top].begin = begin;
+	comp->ctl_stack[comp->ctl_stack_top].end   = end;
+	comp->ctl_stack[comp->ctl_stack_top].seg   = seg;
+	comp->ctl_stack_top ++;
+
+	return 0;
+}
+
+int pss_comp_close_control_block(pss_comp_t* comp)
+{
+	if(NULL == comp) PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Invalid arguments");
+	pss_bytecode_segment_t* seg = pss_comp_get_code_segment(comp);
+
+	if(NULL == seg) ERROR_RETURN_LOG(int, "Cannot get the code segment for current compiler context");
+	if(0 == comp->ctl_stack_top || comp->ctl_stack[comp->ctl_stack_top - 1].seg != seg)
+		PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Compiler is currently outof control block");
+
+	pss_bytecode_addr_t current = pss_bytecode_segment_length(seg);
+	if(ERROR_CODE(pss_bytecode_addr_t) == current)
+		PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Cannot get current instruction address");
+
+	if(ERROR_CODE(int) == pss_bytecode_segment_patch_label(seg, comp->ctl_stack[comp->ctl_stack_top - 1].end, current))
+		PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Cannot patch the labeled instructions");
+
+	comp->ctl_stack_top --;
+
+	return 0;
+}
+
+pss_bytecode_addr_t pss_comp_last_control_block_begin(pss_comp_t* comp)
+{
+	if(NULL == comp) PSS_COMP_RAISE_RETURN(pss_bytecode_addr_t, comp, "Internal Error: Invalid arguments");
+
+	pss_bytecode_segment_t* seg = pss_comp_get_code_segment(comp);
+	if(NULL == seg) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Cannot get the code segment for current compiler context");
+
+	if(0 == comp->ctl_stack_top || seg != comp->ctl_stack[comp->ctl_stack_top - 1].seg)
+		PSS_COMP_RAISE_RETURN(pss_bytecode_addr_t, comp, "Internal Error: The compiler is currently out of control block");
+
+	return comp->ctl_stack[comp->ctl_stack_top - 1].begin;
+}
+
+pss_bytecode_label_t pss_comp_last_control_block_end(pss_comp_t* comp)
+{
+	if(NULL == comp) PSS_COMP_RAISE_RETURN(pss_bytecode_label_t, comp, "Internal Error: Invalid arguments");
+
+	pss_bytecode_segment_t* seg = pss_comp_get_code_segment(comp);
+
+	if(NULL == seg) ERROR_RETURN_LOG(pss_bytecode_label_t, "Cannot get the code segment for current compiler context");
+	if(0 == comp->ctl_stack_top || seg != comp->ctl_stack[comp->ctl_stack_top - 1].seg)
+		PSS_COMP_RAISE_RETURN(pss_bytecode_label_t, comp, "Internal Error: The compiler is currently out of control block");
+
+	return comp->ctl_stack[comp->ctl_stack_top - 1].end;
+}
+
+pss_comp_env_t* pss_comp_get_env(pss_comp_t* comp)
+{
+	if(NULL == comp) PSS_COMP_RAISE_RETURN_PTR(comp, "Internal Error: Invalid arguments");
+
+	if(NULL == comp->env) PSS_COMP_RAISE_RETURN_PTR(comp, "Internal Error: Invalid enviroment");
+
+	return comp->env;
+}

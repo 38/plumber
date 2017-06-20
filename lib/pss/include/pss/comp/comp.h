@@ -9,23 +9,17 @@
 #ifndef __PSS_COMP_COMP_H__
 #define __PSS_COMP_COMP_H__
 
-#define PSS_COMP_RAISE_INTERNAL(type, comp, msg, args...) do {\
-	pss_comp_raise(comp, "Internal Error: "msg, ##args);\
+#define PSS_COMP_RAISE_ACTION(action, comp, msg, args...) do {\
+	pss_comp_raise(comp, msg, ##args);\
 	LOG_ERROR(msg, ##args);\
-	return ERROR_CODE(type);\
-}while(0)
+	action;\
+} while(0)
 
-#define PSS_COMP_RAISE_INTERNAL_PTR(comp, msg, args...) do {\
-	pss_comp_raise(comp, "Internal Error: "msg, ##args);\
-	LOG_ERROR(msg, ##args);\
-	return NULL;\
-}while(0)
+#define PSS_COMP_RAISE_RETURN(type, comp, msg, args...) PSS_COMP_RAISE_ACTION(return ERROR_CODE(type), comp, msg, ##args)
 
-#define PSS_COMP_RAISE_INTERAL_GOTO(label, comp, msg, args...) do {\
-	pss_comp_raise(comp, "Internal Error: "msg, ##args);\
-	LOG_ERROR(msg, ##args);\
-	goto label;\
-}while(0)
+#define PSS_COMP_RAISE_RETURN_PTR(comp, msg, args...) PSS_COMP_RAISE_ACTION(return NULL, comp, msg, ##args)
+
+#define PSS_COMP_RAISE_GOTO(label, comp, msg, args...) PSS_COMP_RAISE_ACTION(goto label, comp, msg, ##args)
 
 /**
  * @brief Represent an options for a parser
@@ -93,6 +87,13 @@ int pss_comp_comsume(pss_comp_t* comp, uint32_t n);
 pss_bytecode_segment_t* pss_comp_get_code_segment(pss_comp_t* comp);
 
 /**
+ * @brief Get the current compiler abstracted environment
+ * @param comp The compiler instance
+ * @return The result environment
+ **/
+pss_comp_env_t* pss_comp_get_env(pss_comp_t* comp);
+
+/**
  * @brief Open a new closure with N arguments
  * @param comp The compiler instance
  * @param nargs The arguments
@@ -107,6 +108,37 @@ int pss_comp_open_closure(pss_comp_t* comp, uint32_t nargs, char const** argname
  * @return The bytecode segment id
  **/
 pss_bytecode_segid_t pss_comp_close_closure(pss_comp_t* comp);
+
+
+/**
+ * @brief Open a new control block, a control block is the block which contains a begin and end label, so that
+ *        we can performe jump instruction to the code block
+ * @param comp The compiler instance
+ * @return status code
+ **/
+int pss_comp_open_control_block(pss_comp_t* comp);
+
+/**
+ * @brief Close the last control block
+ * @param comp The compiler instance
+ * @return status code
+ **/
+int pss_comp_close_control_block(pss_comp_t* comp);
+
+/**
+ * @biref The get begin address of the last control block, this is useful when we have a continue instruction
+ * @param comp The compiler instance
+ * @return status code
+ **/
+pss_bytecode_addr_t pss_comp_last_control_block_begin(pss_comp_t* comp);
+
+/**
+ * @brief Get the end label of the last control block
+ * @param comp The compiler instance
+ * @return status code
+ **/
+pss_bytecode_label_t pss_comp_last_control_block_end(pss_comp_t* comp);
+
 
 /**
  * @brief raise an compiler error with the given message, the line number

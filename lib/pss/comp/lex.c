@@ -157,6 +157,7 @@ static inline int _in_id_charset(int ch)
 	if(ch >= '0' && ch <= '9') return 1;
 	if(ch == '_') return 1;
 	if(ch == '$') return 1;
+	if(ch == '.') return 1;
 	return 0;
 }
 
@@ -465,7 +466,6 @@ int pss_comp_lex_next_token(pss_comp_lex_t* lexer, pss_comp_lex_token_t* buffer)
 		_LEX_SINGLE_CHAR_TOKEN('{', PSS_COMP_LEX_TOKEN_LBRACE);
 		_LEX_SINGLE_CHAR_TOKEN('}', PSS_COMP_LEX_TOKEN_RBRACE);
 		_LEX_SINGLE_CHAR_TOKEN(';', PSS_COMP_LEX_TOKEN_SEMICOLON);
-		_LEX_SINGLE_CHAR_TOKEN('.', PSS_COMP_LEX_TOKEN_DOT);
 		_LEX_SINGLE_CHAR_TOKEN(',', PSS_COMP_LEX_TOKEN_COMMA);
 		_LEX_CASE('&', PSS_COMP_LEX_TOKEN_AND)
 		{

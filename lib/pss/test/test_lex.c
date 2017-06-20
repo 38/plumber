@@ -152,12 +152,6 @@ int verify_token()
 	ASSERT_STREQ(token.file, TESTDIR"/test_pss.in", CLEANUP_NOP);
 
 	ASSERT_OK(pss_comp_lex_next_token(lexer, &token), CLEANUP_NOP);
-	ASSERT(token.type == PSS_COMP_LEX_TOKEN_DOT, CLEANUP_NOP);
-	ASSERT(token.line == 21, CLEANUP_NOP);
-	ASSERT(token.offset == 0, CLEANUP_NOP);
-	ASSERT_STREQ(token.file, TESTDIR"/test_pss.in", CLEANUP_NOP);
-
-	ASSERT_OK(pss_comp_lex_next_token(lexer, &token), CLEANUP_NOP);
 	ASSERT(token.type == PSS_COMP_LEX_TOKEN_COLON_EQUAL, CLEANUP_NOP);
 	ASSERT(token.line == 22, CLEANUP_NOP);
 	ASSERT(token.offset == 0, CLEANUP_NOP);

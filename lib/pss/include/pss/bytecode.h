@@ -372,6 +372,13 @@ STATIC_ASSERTION_EQ_ID(__pss_bytecode_segment_check_sentinel_size__,
                        sizeof(void*));
 STATIC_ASSERTION_EQ_ID(__pss_bytecode_segment_check_sentinel_value__, 0, PSS_BYTECODE_ARGTYPE_END);
 
+/**
+ * @brief Get the length of the segment
+ * @param segment The segment to get
+ * @return The length of the code segment in number of instructions
+ **/
+pss_bytecode_addr_t  pss_bytecode_segment_length(const pss_bytecode_segment_t* segment);
+
 
 /**
  * @brief Get the instruction information header at given address in the bytecode segment
