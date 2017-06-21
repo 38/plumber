@@ -86,7 +86,9 @@ static inline int _peek(pss_comp_lex_t* lexer, uint32_t n)
 {
 	if(lexer->buffer_next + n >= lexer->buffer_limit)
 	    return ERROR_CODE(int);
-	return lexer->buffer[lexer->buffer_next + n];
+	int ret = lexer->buffer[lexer->buffer_next + n];
+	if(0 == ret) return -1;
+	return ret;
 }
 static inline void _consume(pss_comp_lex_t* lexer, uint32_t n)
 {
@@ -204,6 +206,7 @@ static inline pss_comp_lex_keyword_t _id_or_keyword(pss_comp_lex_t* lexer, char*
 	if(_match(lexer, "continue")) return PSS_COMP_LEX_KEYWORD_CONTINUE;
 	if(_match(lexer, "undefined")) return PSS_COMP_LEX_KEYWORD_UNDEFINED;
 	if(_match(lexer, "function")) return PSS_COMP_LEX_KEYWORD_FUNCTION;
+	if(_match(lexer, "return")) return PSS_COMP_LEX_KEYWORD_RETURN;
 
 	int warnned = 0, len = 0;
 
@@ -463,6 +466,8 @@ int pss_comp_lex_next_token(pss_comp_lex_t* lexer, pss_comp_lex_token_t* buffer)
 		_LEX_SINGLE_CHAR_TOKEN('}', PSS_COMP_LEX_TOKEN_RBRACE);
 		_LEX_SINGLE_CHAR_TOKEN(';', PSS_COMP_LEX_TOKEN_SEMICOLON);
 		_LEX_SINGLE_CHAR_TOKEN(',', PSS_COMP_LEX_TOKEN_COMMA);
+		_LEX_SINGLE_CHAR_TOKEN('[', PSS_COMP_LEX_TOKEN_LBRACKET);
+		_LEX_SINGLE_CHAR_TOKEN(']', PSS_COMP_LEX_TOKEN_RBRACKET);
 		_LEX_CASE('&', PSS_COMP_LEX_TOKEN_AND)
 		{
 			if(_peek(lexer, 1) == '&')

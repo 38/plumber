@@ -23,6 +23,8 @@ typedef enum {
 	PSS_COMP_LEX_TOKEN_LPARENTHESIS,/*!< ( */
 	PSS_COMP_LEX_TOKEN_RPARENTHESIS,/*!< ) */
 	PSS_COMP_LEX_TOKEN_GRAPHVIZ_PROP, /*!< a graphviz property [....] */
+	PSS_COMP_LEX_TOKEN_LBRACKET,    /*!< [ */
+	PSS_COMP_LEX_TOKEN_RBRACKET,    /*!< ] */
 	PSS_COMP_LEX_TOKEN_LBRACE,      /*!< { */
 	PSS_COMP_LEX_TOKEN_RBRACE,      /*!< } */
 	PSS_COMP_LEX_TOKEN_LT,          /*!< &lt; */
@@ -68,6 +70,7 @@ typedef enum {
 	PSS_COMP_LEX_KEYWORD_FOR,
 	PSS_COMP_LEX_KEYWORD_BREAK,
 	PSS_COMP_LEX_KEYWORD_CONTINUE,
+	PSS_COMP_LEX_KEYWORD_RETURN,
 	PSS_COMP_LEX_KEYWORD_UNDEFINED
 } pss_comp_lex_keyword_t;
 

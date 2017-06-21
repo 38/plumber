@@ -11,7 +11,7 @@
 
 #define PSS_COMP_RAISE_ACTION(action, comp, msg, args...) do {\
 	pss_comp_raise(comp, msg, ##args);\
-	LOG_ERROR(msg, ##args);\
+	LOG_ERROR(msg"@(%u:%u,%s)", ##args, pss_comp_peek(comp, 0)->line, pss_comp_peek(comp, 0)->offset, pss_comp_peek(comp, 0)->file);\
 	action;\
 } while(0)
 

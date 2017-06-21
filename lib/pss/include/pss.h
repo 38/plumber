@@ -26,6 +26,7 @@
 
 #include <pss/comp/lex.h>
 #include <pss/comp/env.h>
+#include <pss/comp/comp.h>
 
 
 /**

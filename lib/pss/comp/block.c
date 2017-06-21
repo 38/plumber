@@ -40,19 +40,35 @@ int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token
 	{
 		const pss_comp_lex_token_t* token[2] = { pss_comp_peek(comp, 0), pss_comp_peek(comp, 1) };
 
-		if(token[0]->type == last_token) break;
 		if(NULL == token[0] || NULL == token[1])
 			PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Cannot peek token");
 
+		if(token[0]->type == last_token)
+		{
+			if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
+				ERROR_RETURN_LOG(int, "Cannot consume token");
+			break;
+		}
+
 		int rc = 0;
-		//pss_comp_stmt_result_t stmt_result;
+		pss_comp_stmt_result_t stmt_result;
 
 		switch(token[0]->type)
 		{
 			case PSS_COMP_LEX_TOKEN_SEMICOLON:
+				if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
+					ERROR_RETURN_LOG(int, "Cannot consume token");
 				continue;
+			case PSS_COMP_LEX_TOKEN_KEYWORD:
+				if(token[0]->value.k == PSS_COMP_LEX_KEYWORD_RETURN)
+				{
+					if(ERROR_CODE(int) == pss_comp_stmt_return(comp, &stmt_result))
+						ERROR_RETURN_LOG(int, "Invalid return statement");
+					break;
+				}
 			default:
-				PSS_COMP_RAISE_RETURN(int, comp, "Syntax Error: Unexpected token");
+				if(ERROR_CODE(int) == pss_comp_stmt_expr(comp, &stmt_result))
+					ERROR_RETURN_LOG(int, "Invalid expression statement");
 		}
 
 		if(ERROR_CODE(int) == rc) 

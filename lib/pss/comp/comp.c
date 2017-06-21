@@ -63,6 +63,10 @@ int pss_comp_compile(pss_comp_option_t* option, pss_comp_error_t** error)
 
 	pss_bytecode_segid_t entry_point;
 
+	uint32_t i;
+	for(i = 0; i < _LOOKAHEAD; i ++)
+	compiler.ahead[i].type = PSS_COMP_LEX_TOKEN_NAT;
+
 	if(NULL == (compiler.env = pss_comp_env_new()))
 		PSS_COMP_RAISE_GOTO(ERR, &compiler, "Internal Error: Cannot creat environment");
 
@@ -330,7 +334,7 @@ int pss_comp_get_local_var(pss_comp_t* comp, const char* var, pss_bytecode_regid
 	if(ERROR_CODE(int) == rc)
 		PSS_COMP_RAISE_RETURN(int, comp, "Cannot get the local variable from the environment");
 
-	return 0;
+	return rc;
 }
 
 pss_bytecode_regid_t pss_comp_decl_local_var(pss_comp_t* comp, const char* var)
@@ -389,7 +393,7 @@ int pss_comp_expect_keyword(pss_comp_t* comp, pss_comp_lex_keyword_t keyword)
 {
 	if(NULL == comp) PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Invalid arguments");
 
-	const pss_comp_lex_token_t* next = pss_comp_peek(comp, 1);
+	const pss_comp_lex_token_t* next = pss_comp_peek(comp, 0);
 
 	if(NULL == next) ERROR_RETURN_LOG(int, "Cannot peek the next token");
 
@@ -400,5 +404,5 @@ int pss_comp_expect_keyword(pss_comp_t* comp, pss_comp_lex_keyword_t keyword)
 	if(next->value.k != keyword)
 		PSS_COMP_RAISE_RETURN(int, comp, "Syntax Error: Unexpected keyword");
 
-	return 0;
+	return pss_comp_comsume(comp, 1);
 }
