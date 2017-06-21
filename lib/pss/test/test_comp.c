@@ -51,6 +51,73 @@ int test_primitive()
 	return 0;
 }
 
+int test_gcd()
+{
+	char code [] = "gcd = function(a, b) {"
+		           "    if(a == 0) return b;"
+				   "    else return gcd(b%a, a)"
+				   "};"
+				   "return gcd(105, 45);";
+	
+	pss_comp_lex_t* lex = pss_comp_lex_new("<code>", code, sizeof(code));
+	ASSERT_PTR(lex, CLEANUP_NOP);
+
+	pss_comp_option_t opt = {
+		.module = pss_bytecode_module_new(),
+		.lexer = lex
+	};
+	pss_comp_error_t* error;
+
+	ASSERT_OK(pss_comp_compile(&opt, &error), CLEANUP_NOP);
+
+	ASSERT_OK(pss_bytecode_module_logdump(opt.module), CLEANUP_NOP);
+
+	ASSERT_OK(pss_comp_lex_free(lex), CLEANUP_NOP);
+
+	pss_value_t ret = run_module(opt.module);
+	ASSERT(ret.kind == PSS_VALUE_KIND_NUM, CLEANUP_NOP);
+	ASSERT(ret.num  == 15, CLEANUP_NOP);
+	ASSERT_OK(pss_value_decref(ret), CLEANUP_NOP);
+	ASSERT_OK(pss_bytecode_module_free(opt.module), CLEANUP_NOP);
+
+	return 0;
+}
+
+int high_order()
+{
+	char code [] = "timesN = function(a) {"
+		           "    return function(b) {"
+				   "    	return a * b;"
+				   "	};"
+				   "};"
+				   "$global[\"times\" + 1] = timesN(1);"
+				   "times2 = timesN(2);"
+				   "return times1(10) + times2(11)";
+	
+	pss_comp_lex_t* lex = pss_comp_lex_new("<code>", code, sizeof(code));
+	ASSERT_PTR(lex, CLEANUP_NOP);
+
+	pss_comp_option_t opt = {
+		.module = pss_bytecode_module_new(),
+		.lexer = lex
+	};
+	pss_comp_error_t* error;
+
+	ASSERT_OK(pss_comp_compile(&opt, &error), CLEANUP_NOP);
+
+	ASSERT_OK(pss_bytecode_module_logdump(opt.module), CLEANUP_NOP);
+
+	ASSERT_OK(pss_comp_lex_free(lex), CLEANUP_NOP);
+
+	pss_value_t ret = run_module(opt.module);
+	ASSERT(ret.kind == PSS_VALUE_KIND_NUM, CLEANUP_NOP);
+	ASSERT(ret.num  == 32, CLEANUP_NOP);
+	ASSERT_OK(pss_value_decref(ret), CLEANUP_NOP);
+	ASSERT_OK(pss_bytecode_module_free(opt.module), CLEANUP_NOP);
+
+	return 0;
+}
+
 int setup()
 {
 	ASSERT_OK(pss_log_set_write_callback(log_write_va), CLEANUP_NOP);
@@ -62,5 +129,7 @@ int setup()
 DEFAULT_TEARDOWN;
 
 TEST_LIST_BEGIN
-	TEST_CASE(test_primitive)
+	TEST_CASE(test_primitive),
+	TEST_CASE(test_gcd),
+	TEST_CASE(high_order)
 TEST_LIST_END;

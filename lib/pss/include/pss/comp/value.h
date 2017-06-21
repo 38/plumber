@@ -20,7 +20,8 @@ typedef struct {
 typedef enum {
 	PSS_COMP_VALUE_KIND_REG,     /*!< The value lives in the register */
 	PSS_COMP_VALUE_KIND_DICT,    /*!< The value lives in the dictionary */
-	PSS_COMP_VALUE_KIND_GLOBAL   /*!< The value lives in the global storage */
+	PSS_COMP_VALUE_KIND_GLOBAL,  /*!< The value lives in the global storage */
+	PSS_COMP_VALUE_KIND_GLOBAL_DICT  /*!< Use the global as dictionary $global["var"] */
 } pss_comp_value_kind_t;
 
 /**

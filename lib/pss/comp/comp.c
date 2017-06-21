@@ -278,9 +278,11 @@ int pss_comp_close_control_block(pss_comp_t* comp)
 	return 0;
 }
 
-pss_bytecode_addr_t pss_comp_last_control_block_begin(pss_comp_t* comp)
+pss_bytecode_addr_t pss_comp_last_control_block_begin(pss_comp_t* comp, uint32_t n)
 {
 	if(NULL == comp) PSS_COMP_RAISE_RETURN(pss_bytecode_addr_t, comp, "Internal Error: Invalid arguments");
+
+	if(comp->ctl_stack_top <= n) PSS_COMP_RAISE_RETURN(pss_bytecode_addr_t, comp, "Internal error: Invalid control block");
 
 	pss_bytecode_segment_t* seg = pss_comp_get_code_segment(comp);
 	if(NULL == seg) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Cannot get the code segment for current compiler context");
@@ -288,12 +290,14 @@ pss_bytecode_addr_t pss_comp_last_control_block_begin(pss_comp_t* comp)
 	if(0 == comp->ctl_stack_top || seg != comp->ctl_stack[comp->ctl_stack_top - 1].seg)
 		PSS_COMP_RAISE_RETURN(pss_bytecode_addr_t, comp, "Internal Error: The compiler is currently out of control block");
 
-	return comp->ctl_stack[comp->ctl_stack_top - 1].begin;
+	return comp->ctl_stack[comp->ctl_stack_top - 1 - n].begin;
 }
 
-pss_bytecode_label_t pss_comp_last_control_block_end(pss_comp_t* comp)
+pss_bytecode_label_t pss_comp_last_control_block_end(pss_comp_t* comp, uint32_t n)
 {
 	if(NULL == comp) PSS_COMP_RAISE_RETURN(pss_bytecode_label_t, comp, "Internal Error: Invalid arguments");
+	
+	if(comp->ctl_stack_top <= n) PSS_COMP_RAISE_RETURN(pss_bytecode_label_t, comp, "Internal error: Invalid control block");
 
 	pss_bytecode_segment_t* seg = pss_comp_get_code_segment(comp);
 
@@ -301,7 +305,7 @@ pss_bytecode_label_t pss_comp_last_control_block_end(pss_comp_t* comp)
 	if(0 == comp->ctl_stack_top || seg != comp->ctl_stack[comp->ctl_stack_top - 1].seg)
 		PSS_COMP_RAISE_RETURN(pss_bytecode_label_t, comp, "Internal Error: The compiler is currently out of control block");
 
-	return comp->ctl_stack[comp->ctl_stack_top - 1].end;
+	return comp->ctl_stack[comp->ctl_stack_top - 1 - n].end;
 }
 
 pss_comp_env_t* pss_comp_get_env(pss_comp_t* comp)

@@ -776,7 +776,7 @@ pss_bytecode_label_t pss_bytecode_segment_label_alloc(pss_bytecode_segment_t* se
 {
 	if(NULL == segment) ERROR_RETURN_LOG(pss_bytecode_label_t, "Invalid arguments");
 
-	return segment->next_label;
+	return segment->next_label ++;
 }
 
 int pss_bytecode_segment_patch_label(pss_bytecode_segment_t* segment, pss_bytecode_label_t label, pss_bytecode_addr_t addr)

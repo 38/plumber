@@ -176,14 +176,14 @@ int pss_comp_close_control_block(pss_comp_t* comp);
  * @param comp The compiler instance
  * @return status code
  **/
-pss_bytecode_addr_t pss_comp_last_control_block_begin(pss_comp_t* comp);
+pss_bytecode_addr_t pss_comp_last_control_block_begin(pss_comp_t* comp, uint32_t n);
 
 /**
  * @brief Get the end label of the last control block
  * @param comp The compiler instance
  * @return status code
  **/
-pss_bytecode_label_t pss_comp_last_control_block_end(pss_comp_t* comp);
+pss_bytecode_label_t pss_comp_last_control_block_end(pss_comp_t* comp, uint32_t n);
 
 /**
  * @brief Expect the next token is the given type, otherwise raise a compile error

@@ -38,41 +38,22 @@ int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token
 
 	for(;;)
 	{
-		const pss_comp_lex_token_t* token[2] = { pss_comp_peek(comp, 0), pss_comp_peek(comp, 1) };
+		const pss_comp_lex_token_t* ahead = pss_comp_peek(comp, 0);
+		if(NULL == ahead)
+			ERROR_RETURN_LOG(int, "Cannot peek ahead token");
 
-		if(NULL == token[0] || NULL == token[1])
-			PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Cannot peek token");
-
-		if(token[0]->type == last_token)
+		if(ahead->type == last_token) 
 		{
 			if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
 				ERROR_RETURN_LOG(int, "Cannot consume token");
 			break;
 		}
+		
+		pss_comp_stmt_result_t res;
 
-		int rc = 0;
-		pss_comp_stmt_result_t stmt_result;
+		if(ERROR_CODE(int) == pss_comp_stmt_parse(comp, &res))
+			ERROR_RETURN_LOG(int, "Cannot parse the next statement");
 
-		switch(token[0]->type)
-		{
-			case PSS_COMP_LEX_TOKEN_SEMICOLON:
-				if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
-					ERROR_RETURN_LOG(int, "Cannot consume token");
-				continue;
-			case PSS_COMP_LEX_TOKEN_KEYWORD:
-				if(token[0]->value.k == PSS_COMP_LEX_KEYWORD_RETURN)
-				{
-					if(ERROR_CODE(int) == pss_comp_stmt_return(comp, &stmt_result))
-						ERROR_RETURN_LOG(int, "Invalid return statement");
-					break;
-				}
-			default:
-				if(ERROR_CODE(int) == pss_comp_stmt_expr(comp, &stmt_result))
-					ERROR_RETURN_LOG(int, "Invalid expression statement");
-		}
-
-		if(ERROR_CODE(int) == rc) 
-			ERROR_RETURN_LOG(int, "Cannot parse the code block");
 	}
 	return 0;
 }

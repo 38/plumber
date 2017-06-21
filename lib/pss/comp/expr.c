@@ -125,6 +125,8 @@ int pss_comp_expr_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 									PSS_BYTECODE_ARG_END))
 							PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
 						break;
+					case PSS_COMP_VALUE_KIND_GLOBAL_DICT:
+						PSS_COMP_RAISE_RETURN(int, comp, "Syntax error: Malformed global accessor");
 				}
 				
 				if(ERROR_CODE(int) == pss_comp_value_release(comp, vs + sp - 1))
@@ -140,14 +142,23 @@ int pss_comp_expr_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 					ERROR_RETURN_LOG(int, "Cannot simplify the right operand");
 				if(ERROR_CODE(int) == pss_comp_value_simplify(comp, vs + sp - 1))
 					ERROR_RETURN_LOG(int, "Cannot simplify the left operand");
+				pss_comp_value_t result = { .kind = PSS_COMP_VALUE_KIND_REG };
+				if(ERROR_CODE(pss_bytecode_regid_t) == (result.regs[0].id = pss_comp_mktmp(comp)))
+					ERROR_RETURN_LOG(int, "Cannot create new result register");
+				else
+					result.regs[0].tmp = 1;
+
 				if(ERROR_CODE(pss_bytecode_addr_t) == pss_bytecode_segment_append_code(seg, opcode, 
 							PSS_BYTECODE_ARG_REGISTER(vs[sp - 1].regs[0].id),
 							PSS_BYTECODE_ARG_REGISTER(vs[sp].regs[0].id),
-							PSS_BYTECODE_ARG_REGISTER(vs[sp - 1].regs[0].id),
+							PSS_BYTECODE_ARG_REGISTER(result.regs[0].id),
 							PSS_BYTECODE_ARG_END))
 					PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append bytecode");
 				if(ERROR_CODE(int) == pss_comp_value_release(comp, vs + sp))
 					ERROR_RETURN_LOG(int, "Cannot release the used value");
+				if(ERROR_CODE(int) == pss_comp_value_release(comp, vs + sp - 1))
+					ERROR_RETURN_LOG(int, "Cannot release the used value");
+				vs[sp-1] = result;
 			}
 		}
 
