@@ -30,6 +30,7 @@ typedef struct {
 	pss_bytecode_segment_t*  seg;      /*!< The code segment which contains this control block */
 	pss_bytecode_addr_t      begin;    /*!< The begin address inside the code block */
 	pss_bytecode_label_t     end;      /*!< The end label of the code block */
+	uint32_t                 loop:1;   /*!< If this block is a loop */
 } _control_block_t;
 
 /**
@@ -208,17 +209,19 @@ pss_bytecode_segid_t pss_comp_close_closure(pss_comp_t* comp)
 	/* Finally, we need to append the return sentinel to the segment, so that the VM won't get to somewhere undefined */
 	pss_bytecode_addr_t guard_addr;
 	guard_addr = pss_bytecode_segment_length(seg);
-	while(ERROR_CODE(pss_bytecode_addr_t) == guard_addr || guard_addr == 0)
-	{
+	if(ERROR_CODE(pss_bytecode_addr_t) == guard_addr) 
+		PSS_COMP_RAISE_RETURN(pss_bytecode_segid_t, comp, "Internal error: Cannot intert guard instruction");
+
+	do{
 		pss_bytecode_instruction_t inst;
-		if(ERROR_CODE(int) != pss_bytecode_segment_get_inst(seg, guard_addr - 1, &inst) && 
+		if(guard_addr > 0 && ERROR_CODE(int) != pss_bytecode_segment_get_inst(seg, guard_addr - 1, &inst) && 
 		   inst.info->operation == PSS_BYTECODE_OP_RETURN) break;
 
 		if(ERROR_CODE(pss_bytecode_addr_t) == (guard_addr = pss_bytecode_segment_append_code(seg, PSS_BYTECODE_OPCODE_UNDEF_LOAD, PSS_BYTECODE_ARG_REGISTER(0), PSS_BYTECODE_ARG_END)))
 			PSS_COMP_RAISE_RETURN(pss_bytecode_segid_t, comp, "Internal Error: Cannot append the sentinel instruction to the code segment");
 		if(ERROR_CODE(pss_bytecode_addr_t) == pss_bytecode_segment_append_code(seg, PSS_BYTECODE_OPCODE_RETURN, PSS_BYTECODE_ARG_REGISTER(0), PSS_BYTECODE_ARG_END))
 			PSS_COMP_RAISE_RETURN(pss_bytecode_segid_t, comp, "Internal Error: Cannot append the sentinel instruction to the code segment");
-	}
+	} while(0);
 
 	for(;comp->ctl_stack_top > 0 && 
 		 comp->ctl_stack[comp->ctl_stack_top - 1].seg == seg;
@@ -233,7 +236,7 @@ pss_bytecode_segid_t pss_comp_close_closure(pss_comp_t* comp)
 	return ret;
 }
 
-int pss_comp_open_control_block(pss_comp_t* comp)
+int pss_comp_open_control_block(pss_comp_t* comp, int loop)
 {
 	if(NULL == comp) PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Invalid arguments");
 	pss_bytecode_segment_t* seg = pss_comp_get_code_segment(comp);
@@ -252,6 +255,7 @@ int pss_comp_open_control_block(pss_comp_t* comp)
 	comp->ctl_stack[comp->ctl_stack_top].begin = begin;
 	comp->ctl_stack[comp->ctl_stack_top].end   = end;
 	comp->ctl_stack[comp->ctl_stack_top].seg   = seg;
+	comp->ctl_stack[comp->ctl_stack_top].loop  = loop ? 1u : 0u;  
 	comp->ctl_stack_top ++;
 
 	return 0;
@@ -273,9 +277,40 @@ int pss_comp_close_control_block(pss_comp_t* comp)
 	if(ERROR_CODE(int) == pss_bytecode_segment_patch_label(seg, comp->ctl_stack[comp->ctl_stack_top - 1].end, current))
 		PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Cannot patch the labeled instructions");
 
+
 	comp->ctl_stack_top --;
 
 	return 0;
+}
+
+pss_bytecode_addr_t pss_comp_last_loop_begin(pss_comp_t* comp)
+{
+	if(NULL == comp) PSS_COMP_RAISE_RETURN(pss_bytecode_addr_t, comp, "Internal Error: Invalid arguments");
+
+	pss_bytecode_segment_t* seg = pss_comp_get_code_segment(comp);
+	if(NULL == seg) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Cannot get the code segment for current compiler context");
+
+	uint32_t level = comp->ctl_stack_top;
+	for(;level > 0 && seg == comp->ctl_stack[level - 1].seg; level --)
+		if(comp->ctl_stack[level - 1].loop) 
+			return comp->ctl_stack[level - 1].begin;
+
+	PSS_COMP_RAISE_RETURN(pss_bytecode_addr_t, comp, "Internal error: Getting a loop address from the outside of the loop");
+}
+
+pss_bytecode_label_t pss_comp_last_loop_end(pss_comp_t* comp)
+{
+	if(NULL == comp) PSS_COMP_RAISE_RETURN(pss_bytecode_label_t, comp, "Internal Error: Invalid arguments");
+
+	pss_bytecode_segment_t* seg = pss_comp_get_code_segment(comp);
+	if(NULL == seg) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Cannot get the code segment for current compiler context");
+
+	uint32_t level = comp->ctl_stack_top;
+	for(;level > 0 && seg == comp->ctl_stack[level - 1].seg; level --)
+		if(comp->ctl_stack[level - 1].loop) 
+			return comp->ctl_stack[level - 1].end;
+
+	PSS_COMP_RAISE_RETURN(pss_bytecode_label_t, comp, "Internal error: Getting a loop address from the outside of the loop");
 }
 
 pss_bytecode_addr_t pss_comp_last_control_block_begin(pss_comp_t* comp, uint32_t n)

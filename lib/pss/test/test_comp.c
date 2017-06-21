@@ -53,11 +53,11 @@ int test_primitive()
 
 int test_gcd()
 {
-	char code [] = "gcd = function(a, b) {"
-		           "    if(a == 0) return b;"
-				   "    else return gcd(b%a, a)"
-				   "};"
-				   "return gcd(105, 45);";
+	char code [] = "gcd = function(a, b) {\n"
+		           "    if(a == 0) {return b;}\n"
+				   "    else {return gcd(b%a, a)}\n"
+				   "};\n"
+				   "return gcd(105, 45);\n";
 	
 	pss_comp_lex_t* lex = pss_comp_lex_new("<code>", code, sizeof(code));
 	ASSERT_PTR(lex, CLEANUP_NOP);
@@ -85,14 +85,20 @@ int test_gcd()
 
 int high_order()
 {
-	char code [] = "timesN = function(a) {"
-		           "    return function(b) {"
-				   "    	return a * b;"
-				   "	};"
-				   "};"
-				   "$global[\"times\" + 1] = timesN(1);"
-				   "times2 = timesN(2);"
-				   "return times1(10) + times2(11)";
+	char code [] = "timesN = function(a) {\n"
+		           "    return function(b) {\n"
+				   "    	return a * b;\n"
+				   "	};\n"
+				   "};\n"
+				   "gen = function(x) {\n"
+				   "	$global[\"times\" + x] = timesN(x);\n"
+				   "};\n"
+				   "gen(1);\n"
+				   "gen(2);\n"
+				   "a = times1(10) + times2(11)\n"
+				   "b = 10;\n"
+				   "while(b = b - 1) a = a + b;\n"
+				   "return a;";
 	
 	pss_comp_lex_t* lex = pss_comp_lex_new("<code>", code, sizeof(code));
 	ASSERT_PTR(lex, CLEANUP_NOP);
@@ -111,7 +117,7 @@ int high_order()
 
 	pss_value_t ret = run_module(opt.module);
 	ASSERT(ret.kind == PSS_VALUE_KIND_NUM, CLEANUP_NOP);
-	ASSERT(ret.num  == 32, CLEANUP_NOP);
+	ASSERT(ret.num  == 77, CLEANUP_NOP);
 	ASSERT_OK(pss_value_decref(ret), CLEANUP_NOP);
 	ASSERT_OK(pss_bytecode_module_free(opt.module), CLEANUP_NOP);
 

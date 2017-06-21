@@ -162,7 +162,7 @@ int pss_comp_rmtmp(pss_comp_t* comp, pss_bytecode_regid_t regid);
  * @param comp The compiler instance
  * @return status code
  **/
-int pss_comp_open_control_block(pss_comp_t* comp);
+int pss_comp_open_control_block(pss_comp_t* comp, int loop);
 
 /**
  * @brief Close the last control block
@@ -184,6 +184,21 @@ pss_bytecode_addr_t pss_comp_last_control_block_begin(pss_comp_t* comp, uint32_t
  * @return status code
  **/
 pss_bytecode_label_t pss_comp_last_control_block_end(pss_comp_t* comp, uint32_t n);
+
+/**
+ * @brief Get the address where the nearest loop begins (this means we are currently in the loop block)
+ * @param comp The compiler
+ * @return The result
+ **/
+pss_bytecode_addr_t pss_comp_last_loop_begin(pss_comp_t* comp);
+
+/**
+ * @brief Get the label where the nearest loop ends 
+ * @param comp The compiler
+ * @return The label for the end of the loop
+ **/
+pss_bytecode_label_t pss_comp_last_loop_end(pss_comp_t* comp);
+
 
 /**
  * @brief Expect the next token is the given type, otherwise raise a compile error
