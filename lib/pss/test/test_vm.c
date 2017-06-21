@@ -65,10 +65,8 @@ int test_extension()
 	CODE(entry, STR_LOAD,    STRING("external_global"),    REG(0));
 	CODE(entry, STR_LOAD,    STRING("__builtin_print"),    REG(1));
 	CODE(entry, GLOBAL_GET,  REG(1),                       REG(1));
-	CODE(entry, DICT_NEW,    REG(2));
-	CODE(entry, INT_LOAD,    NUMERIC(0),                   REG(3));
-	CODE(entry, SET_VAL,     REG(1),                       REG(2),    REG(3));
-	CODE(entry, CALL,        REG(1),                       REG(2),    REG(3));
+	CODE(entry, ARG,         REG(1)); 
+	CODE(entry, CALL,        REG(1),                       REG(3));
 	CODE(entry, GLOBAL_GET,  REG(0),                       REG(4));
 	CODE(entry, INT_LOAD,    NUMERIC(123456),              REG(5));
 	CODE(entry, EQ,          REG(5),                       REG(4),    REG(5));
@@ -125,14 +123,11 @@ int test_gcd()
 	CODE(entry, CLOSURE_NEW,  REG(1),          REG(0));
 	CODE(entry, STR_LOAD,     STRING("gcd"),   REG(1));
 	CODE(entry, GLOBAL_SET,   REG(0),          REG(1));
-	CODE(entry, DICT_NEW,     REG(1));
-	CODE(entry, INT_LOAD,     NUMERIC(0),      REG(2));
 	CODE(entry, INT_LOAD,     NUMERIC(120),    REG(3));
-	CODE(entry, SET_VAL,      REG(3),          REG(1),      REG(2));
-	CODE(entry, INT_LOAD,     NUMERIC(1),      REG(2));
-	CODE(entry, INT_LOAD,     NUMERIC(105),     REG(3));
-	CODE(entry, SET_VAL,      REG(3),          REG(1),      REG(2));
-	CODE(entry, CALL,         REG(0),          REG(1),      REG(2));
+	CODE(entry, INT_LOAD,     NUMERIC(105),    REG(4));
+	CODE(entry, ARG,          REG(3));
+	CODE(entry, ARG,          REG(4));
+	CODE(entry, CALL,         REG(0),          REG(2));
 	CODE(entry, RETURN,       REG(2));
 
 	pss_bytecode_label_t lret = pss_bytecode_segment_label_alloc(foo);
@@ -140,14 +135,11 @@ int test_gcd()
 	CODE(foo,   INT_LOAD,     REG(0),          LABEL(lret));
 	CODE(foo,   JZ,           REG(2),          REG(0));
 	CODE(foo,   MOD,          REG(3),          REG(2),      REG(0));   // R0 = R3 % R2
-	CODE(foo,   DICT_NEW,     REG(1));
-	CODE(foo,   INT_LOAD,     NUMERIC(0),      REG(4));
-	CODE(foo,   SET_VAL,      REG(0),          REG(1),      REG(4));   // args[0] = R0
-	CODE(foo,   INT_LOAD,     NUMERIC(1),      REG(4));
-	CODE(foo,   SET_VAL,      REG(2),          REG(1),      REG(4));   // args[1] = R2
+	CODE(foo,   ARG,          REG(0));
+	CODE(foo,   ARG,          REG(2));
 	CODE(foo,   STR_LOAD,     STRING("gcd"),   REG(5));
 	CODE(foo,   GLOBAL_GET,   REG(5),          REG(5));
-	CODE(foo,   CALL,         REG(5),          REG(1),      REG(5));
+	CODE(foo,   CALL,         REG(5),          REG(5));
 	CODE(foo,   RETURN,       REG(5));
 	CODE(foo,   RETURN,       REG(3));
 	ASSERT_OK(pss_bytecode_segment_patch_label(foo, lret, _last_addr), CLEANUP_NOP);
@@ -236,19 +228,14 @@ int test_func_as_param()
 	CODE(entry, CLOSURE_NEW, REG(2),       REG(1));
 	CODE(entry, INT_LOAD,    NUMERIC(fid), REG(2));
 	CODE(entry, CLOSURE_NEW, REG(2),       REG(0));
-	CODE(entry, DICT_NEW,    REG(2));
-	CODE(entry, INT_LOAD,    NUMERIC(0),   REG(3));
-	CODE(entry, SET_VAL,     REG(1),       REG(2),    REG(3));
-	CODE(entry, INT_LOAD,    NUMERIC(1),   REG(3));
 	CODE(entry, INT_LOAD,    NUMERIC(2),   REG(4));
-	CODE(entry, SET_VAL,     REG(4),       REG(2),    REG(3));
-	CODE(entry, CALL,        REG(0),       REG(2),    REG(3));
+	CODE(entry, ARG,         REG(1));
+	CODE(entry, ARG,         REG(4));
+	CODE(entry, CALL,        REG(0),       REG(3));
 	CODE(entry, RETURN,      REG(3));
 
-	CODE(foo,   DICT_NEW,    REG(0));
-	CODE(foo,   INT_LOAD,    NUMERIC(0),   REG(1));
-	CODE(foo,   SET_VAL,     REG(3),       REG(0),    REG(1));
-	CODE(foo,   CALL,        REG(2),       REG(0),    REG(1));
+	CODE(foo,   ARG,         REG(3));
+	CODE(foo,   CALL,        REG(2),       REG(1));
 	CODE(foo,   INT_LOAD,    NUMERIC(100), REG(0));
 	CODE(foo,   ADD,         REG(0),       REG(1),    REG(2));
 	CODE(foo,   RETURN,      REG(2));
@@ -293,16 +280,12 @@ int test_ucombinator()
 
 	CODE(entry, INT_LOAD,     NUMERIC(uid), REG(0));
 	CODE(entry, CLOSURE_NEW,  REG(0),       REG(1));
-	CODE(entry, DICT_NEW,     REG(0));
-	CODE(entry, INT_LOAD,     NUMERIC(0),   REG(2));
-	CODE(entry, SET_VAL,      REG(1),       REG(0),    REG(2));
-	CODE(entry, CALL,         REG(1),       REG(0),    REG(2));
+	CODE(entry, ARG,          REG(1));
+	CODE(entry, CALL,         REG(1),       REG(2));
 	CODE(entry, RETURN,       REG(4));
 
-	CODE(ucom, DICT_NEW,      REG(1));
-	CODE(ucom, INT_LOAD,      NUMERIC(0), REG(2));
-	CODE(ucom, SET_VAL,       REG(0),     REG(1),     REG(2));
-	CODE(ucom, CALL,          REG(0),     REG(1),     REG(2));
+	CODE(ucom, ARG,           REG(0));
+	CODE(ucom, CALL,          REG(0),       REG(2));
 	CODE(ucom, RETURN,        REG(2));
 
 	pss_bytecode_module_logdump(module);
@@ -349,18 +332,15 @@ int test_currying()
 
 	CODE(entry, INT_LOAD,    NUMERIC(fid),   REG(1));
 	CODE(entry, CLOSURE_NEW, REG(1),         REG(0));
-	CODE(entry, DICT_NEW,    REG(1));
 	CODE(entry, INT_LOAD,    NUMERIC(2),     REG(2));
-	CODE(entry, INT_LOAD,    NUMERIC(0),     REG(3));
-	CODE(entry, SET_VAL,     REG(2),         REG(1),    REG(3));
-	CODE(entry, CALL,        REG(0),         REG(1),    REG(2));
+	CODE(entry, ARG,         REG(2));
+	CODE(entry, CALL,        REG(0),         REG(2));
 	CODE(entry, INT_LOAD,    NUMERIC(3),     REG(3));
-	CODE(entry, INT_LOAD,    NUMERIC(0),     REG(4));
-	CODE(entry, SET_VAL,     REG(3),         REG(1),    REG(4));
-	CODE(entry, CALL,        REG(2),         REG(1),    REG(9));
+	CODE(entry, ARG,         REG(3));
+	CODE(entry, CALL,        REG(2),         REG(9));
 	CODE(entry, INT_LOAD,    NUMERIC(4),     REG(3));
-	CODE(entry, SET_VAL,     REG(3),         REG(1),    REG(4));
-	CODE(entry, CALL,        REG(9),         REG(1),    REG(10));
+	CODE(entry, ARG,         REG(3));
+	CODE(entry, CALL,        REG(9),         REG(10));
 	CODE(entry, RETURN,      REG(10));
 
 	CODE(foo, INT_LOAD,      NUMERIC(gid),   REG(8));
@@ -392,6 +372,40 @@ int test_currying()
 
 	return 0;
 }
+
+int test_first_class_func()
+{
+	pss_bytecode_module_t* module = pss_bytecode_module_new();
+	ASSERT_PTR(module, CLEANUP_NOP);
+
+	pss_bytecode_regid_t arg_entry[1] = {};
+	
+	pss_bytecode_segment_t* entry = pss_bytecode_segment_new(0, arg_entry);
+	ASSERT_PTR(entry, CLEANUP_NOP);
+	
+	pss_bytecode_segid_t mid = pss_bytecode_module_append(module, entry);
+
+	ASSERT_OK(pss_bytecode_module_set_entry_point(module, mid), CLEANUP_NOP);
+
+	CODE(entry, INT_LOAD,    NUMERIC(mid),   REG(2));
+	CODE(entry, CLOSURE_NEW, REG(2),     REG(2));
+	CODE(entry, DICT_NEW,    REG(1));
+	CODE(entry, SET_VAL,     REG(2),     REG(1),     REG(3));
+	CODE(entry, RETURN,      REG(0));
+
+
+	pss_bytecode_module_logdump(module);
+
+	pss_vm_t* vm = pss_vm_new();
+
+	ASSERT_PTR(vm, CLEANUP_NOP);
+	ASSERT_OK(pss_vm_run_module(vm, module, NULL), CLEANUP_NOP);
+	ASSERT_OK(pss_vm_free(vm), CLEANUP_NOP);
+	ASSERT_OK(pss_bytecode_module_free(module), CLEANUP_NOP);
+
+	return 0;
+}
+
 int setup()
 {
 	ASSERT_OK(pss_log_set_write_callback(log_write_va), CLEANUP_NOP);
@@ -408,5 +422,6 @@ TEST_LIST_BEGIN
     TEST_CASE(test_func_as_param),
     TEST_CASE(test_generic_add),
     TEST_CASE(test_gcd),
-    TEST_CASE(test_extension)
+    TEST_CASE(test_extension),
+	TEST_CASE(test_first_class_func)
 TEST_LIST_END;

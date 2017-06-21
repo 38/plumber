@@ -4,9 +4,29 @@
 #include <testenv.h>
 #include <pss.h>
 
+pss_value_t run_module(pss_bytecode_module_t* module)
+{
+	pss_value_t result = {.kind = PSS_VALUE_KIND_ERROR};
+	pss_vm_t* vm = pss_vm_new();
+	if(NULL == vm) return result;
+	if(ERROR_CODE(int) == pss_vm_run_module(vm, module, &result)) return result;
+
+	if(ERROR_CODE(int) == pss_vm_free(vm)) return result;
+
+	return result;
+}
+
 int test_primitive()
 {
-	char code [] = "function(x,y){ return function(z) { return x; } }(2,3)(4)[5][6];";
+	char code [] = "return (function(x){" 
+		           "	return function(y) { "
+				   "		return function(z, g) {"
+				   "			return g(x + y + z);"
+				   "		}"
+				   "	}" 
+				   "}(11)(22)(33, function(x){"
+				   "	return x * x;"
+				   "}));";
 	pss_comp_lex_t* lex = pss_comp_lex_new("<code>", code, sizeof(code));
 	ASSERT_PTR(lex, CLEANUP_NOP);
 
@@ -21,6 +41,11 @@ int test_primitive()
 	ASSERT_OK(pss_bytecode_module_logdump(opt.module), CLEANUP_NOP);
 
 	ASSERT_OK(pss_comp_lex_free(lex), CLEANUP_NOP);
+
+	pss_value_t ret = run_module(opt.module);
+	ASSERT(ret.kind == PSS_VALUE_KIND_NUM, CLEANUP_NOP);
+	ASSERT(ret.num  == 66 * 66, CLEANUP_NOP);
+	ASSERT_OK(pss_value_decref(ret), CLEANUP_NOP);
 	ASSERT_OK(pss_bytecode_module_free(opt.module), CLEANUP_NOP);
 
 	return 0;
@@ -29,6 +54,7 @@ int test_primitive()
 int setup()
 {
 	ASSERT_OK(pss_log_set_write_callback(log_write_va), CLEANUP_NOP);
+	ASSERT_OK(pss_init(), CLEANUP_NOP);
 
 	return 0;
 }

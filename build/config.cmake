@@ -94,6 +94,7 @@ constant(LIB_PSS_DICT_MAX_CHAIN_THRESHOLD 8)
 constant(LIB_PSS_VM_STACK_LIMIT 2048)
 constant(LIB_PSS_COMP_ENV_HASH_SIZE 209)
 constant(LIB_PSS_COMP_ENV_SCOPE_MAX 1024)
+constant(LIB_PSS_VM_ARG_MAX 256)
 ####################################################################################
 
 string(TOUPPER ${SYSNAME} SYSMACRO)

@@ -102,8 +102,9 @@ typedef enum {
 	PSS_BYTECODE_OP_GETVAL, /*!< Get a field of the object */
 	PSS_BYTECODE_OP_SETVAL, /*!< Set a field of the object */
 	PSS_BYTECODE_OP_GETKEY, /*!< Get the n-th key in the object */
+	PSS_BYTECODE_OP_ARG,    /*!< Append a register to the argument list */
 	PSS_BYTECODE_OP_CALL,   /*!< Call an callable object */
-	PSS_BYTECODE_OP_RETURN,   /*!< Return from current stack frame */
+	PSS_BYTECODE_OP_RETURN, /*!< Return from current stack frame */
 	PSS_BYTECODE_OP_JUMP,   /*!< Jump */
 	PSS_BYTECODE_OP_JZ,     /*!< Jump on zero */
 	PSS_BYTECODE_OP_ADD,    /*!< Addition */
@@ -113,7 +114,10 @@ typedef enum {
 	PSS_BYTECODE_OP_MOD,    /*!< The modular expression */
 	PSS_BYTECODE_OP_LT,     /*!< Less than */
 	PSS_BYTECODE_OP_LE,     /*!< Less or equal */
+	PSS_BYTECODE_OP_GT,     /*!< Greater */
+	PSS_BYTECODE_OP_GE,     /*!< Greater or equal */
 	PSS_BYTECODE_OP_EQ,     /*!< Equal to */
+	PSS_BYTECODE_OP_NE,     /*!< Not equal to */
 	PSS_BYTECODE_OP_AND,    /*!< Boolean and */
 	PSS_BYTECODE_OP_OR,     /*!< Boolean or */
 	PSS_BYTECODE_OP_XOR,    /*!< Boolean xor */
@@ -155,6 +159,7 @@ STATIC_ASSERTION_LT(PSS_BYTECODE_RTYPE_COUNT, 256);
  *     |  GET_VAL      | **GET_VAL** *R_obj*, *R_key*, *R_out* | *R_out*   = *R_obj*[*R_key*], only valid when *R_obj* is a string or dict and *R_key* will be converted to string anyway |
  *     |  SET_VAL      | **SET_VAL** *R_in*, *R_obj*, *R_key*  | *R_obj*[*R_key*] = *R_out*, only valid when *R_obj* is a string or dict and *R_key* will be converted to string anyway |
  *     |  GET_KEY      | **GET_KEY** *R_obj*, *R_idx*, *R_out* | *R_out*    = the *R_idx*-th key in the *R_obj*, only valid when *R_obj* is a dict |
+ *     |  ARG          | **ARG(rid)**                          | Append register R_rid to the argument list |
  *     |  CALL         | **CALL** *R_func*, *R_arg*, *R_out*   | *R_out*    = *R_func*(*R_arg*) |
  *     |  RETURN       | **RETURN** *R*                        | Return current frame with value in Register R|
  *     |  JUMP         | **JUMP** *R_address*                  | Jump to *R_address* |
@@ -166,7 +171,10 @@ STATIC_ASSERTION_LT(PSS_BYTECODE_RTYPE_COUNT, 256);
  *     |  MOD          | **MOD** *R_1*, *R_2*, *R_out*         | *R_out*    = *R_1* % *R_2* (Only valid when *R_1* and *R_2* are int) |
  *     |  LT           | **LT** *R_1*, *R_2*, *R_out*          | *R_out*    = *R_1* &lt; *R_2* (Numeric comparasion, List comparasion or string ) |
  *     |  LE           | **LE** *R_1*, *R_2*, *R_out*          | *R_out*    = *R_1* &lt;= *R_2* |
+ *     |  GT           | **LT** *R_1*, *R_2*, *R_out*          | *R_out*    = *R_1* &gt; *R_2* (Numeric comparasion, List comparasion or string ) |
+ *     |  GE           | **LE** *R_1*, *R_2*, *R_out*          | *R_out*    = *R_1* &gt;= *R_2* |
  *     |  EQ           | **EQ** *R_1*, *R_2*, *R_out*          | *R_out*    = *R_1* == *R_2* |
+ *     |  NQ           | **EQ** *R_1*, *R_2*, *R_out*          | *R_out*    = *R_1* != *R_2* |
  *     |  AND          | **AND** *R_1*, *R_2*, *R_out*         | *R_out*    = *R_1* && *R_2* |
  *     |  OR           | **OR** *R_1*,  *R_2*, *R_out*         | *R_out*    = *R_1* or *R_2* |
  *     |  XOR          | **XOR** *R_1*, *R_2*, *R_out*         | *R_out*    = *R_1* ^ *R_2* |
@@ -184,6 +192,7 @@ typedef enum {
 	PSS_BYTECODE_OPCODE_GET_VAL,
 	PSS_BYTECODE_OPCODE_SET_VAL,
 	PSS_BYTECODE_OPCODE_GET_KEY,
+	PSS_BYTECODE_OPCODE_ARG,
 	PSS_BYTECODE_OPCODE_CALL,
 	PSS_BYTECODE_OPCODE_RETURN,
 	PSS_BYTECODE_OPCODE_JUMP,
@@ -195,7 +204,10 @@ typedef enum {
 	PSS_BYTECODE_OPCODE_MOD,
 	PSS_BYTECODE_OPCODE_LT,
 	PSS_BYTECODE_OPCODE_LE,
+	PSS_BYTECODE_OPCODE_GT,
+	PSS_BYTECODE_OPCODE_GE,
 	PSS_BYTECODE_OPCODE_EQ,
+	PSS_BYTECODE_OPCODE_NE,
 	PSS_BYTECODE_OPCODE_AND,
 	PSS_BYTECODE_OPCODE_OR,
 	PSS_BYTECODE_OPCODE_XOR,
@@ -230,7 +242,7 @@ typedef struct {
 		pss_bytecode_numeric_t     num;  /*!< The numeric const */
 		pss_bytecode_addr_t        addr; /*!< The address const */
 	};
-	const char*                    str;  /*!< The string const */
+	const char*                    str;       /*!< The string const */
 	pss_bytecode_regid_t           reg[4];  /*!< The register ID */
 } pss_bytecode_instruction_t;
 

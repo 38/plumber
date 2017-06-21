@@ -66,7 +66,8 @@ static _bytecode_desc_t _bytecode[] = {
 	_BYTECODE(GET_VAL      , GETVAL   , GENERIC,     0,     0,    3),   /* get R0, R1, R2: R2 = R0[R1] */
 	_BYTECODE(SET_VAL      , SETVAL   , GENERIC,     0,     0,    3),   /* set R0, R1, R2: R1[R2] = R0 */
 	_BYTECODE(GET_KEY      , GETKEY   , GENERIC,     0,     0,    3),   /* key R0, R1, R2: R2 = R1-th key in R0 */
-	_BYTECODE(CALL         , CALL     , GENERIC,     0,     0,    3),   /* call R0, R1, R2: R2 = R0(*R1) */
+	_BYTECODE(ARG          , ARG      , GENERIC,     0,     0,    1),   /* arg Rx */
+	_BYTECODE(CALL         , CALL     , GENERIC,     0,     0,    2),   /* call R0, R1: R1 = R0(*R1) */
 	_BYTECODE(RETURN       , RETURN   , GENERIC,     0,     0,    1),   /* return R0 */
 	_BYTECODE(JUMP         , JUMP     , GENERIC,     0,     0,    1),   /* jump R0 = jump to address R0 */
 	_BYTECODE(JZ           , JZ       , GENERIC,     0,     0,    2),   /* jz R0, R1 = jump to address R1 when R0 == 0 */
@@ -76,8 +77,11 @@ static _bytecode_desc_t _bytecode[] = {
 	_BYTECODE(DIV          , DIV      , GENERIC,     0,     0,    3),   /* div R0, R1, R2 = R2 = R0 / R1 */
 	_BYTECODE(MOD          , MOD      , GENERIC,     0,     0,    3),   /* div R0, R1, R2 = R2 = R0 / R1 */
 	_BYTECODE(LT           , LT       , GENERIC,     0,     0,    3),   /* less-than R0, R1, R2 = R2 = (R0 < R1) */
-	_BYTECODE(LE           , LE       , GENERIC,     0,     0,    3),   /* less-than R0, R1, R2 = R2 = (R0 < R1) */
-	_BYTECODE(EQ           , EQ       , GENERIC,     0,     0,    3),   /* less-than R0, R1, R2 = R2 = (R0 < R1) */
+	_BYTECODE(LE           , LE       , GENERIC,     0,     0,    3),   /* less-equal R0, R1, R2 = R2 = (R0 <= R1) */
+	_BYTECODE(GT           , GT       , GENERIC,     0,     0,    3),   /* greater-than R0, R1, R2 = R2 = (R0 > R1) */
+	_BYTECODE(GE           , GE       , GENERIC,     0,     0,    3),   /* greater-equal R0, R1, R2 = R2 = (R0 >= R1) */
+	_BYTECODE(EQ           , EQ       , GENERIC,     0,     0,    3),   /* equal R0, R1, R2 = R2 = (R0 == R1) */
+	_BYTECODE(NE           , NE       , GENERIC,     0,     0,    3),   /* not-equal R0, R1, R2 = R2 = (R0 != R1) */
 	_BYTECODE(AND          , AND      , GENERIC,     0,     0,    3),   /* and R0, R1, R2 = R2 = R0 and R1 */
 	_BYTECODE(OR           , OR       , GENERIC,     0,     0,    3),   /* or R0, R1, R2 = R2 = R0 or R1 */
 	_BYTECODE(XOR          , XOR      , GENERIC,     0,     0,    3),   /* xor R0, R1, R2 = R2 = R0 xor R1 */

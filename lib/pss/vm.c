@@ -34,6 +34,8 @@ static const char* _errstr[] = {
  * @brief Represents one frame on the stack
  **/
 typedef struct _stack_t {
+	pss_bytecode_regid_t          arg[PSS_VM_ARG_MAX];   /*!< The argument register list */
+	uint32_t                      argc;   /*!< The argument counter */
 	pss_vm_t*                     host;   /*! The host VM */
 	const pss_bytecode_module_t*  module; /*!< Current module */
 	const pss_bytecode_segment_t* code;   /*!< The code segment that is currently running */
@@ -59,10 +61,10 @@ struct _pss_vm_t {
  * @brief Create a new stack frame
  * @param host The host VM
  * @param closure The colsure to run
- * @param args The argument dictionary
+ * @param parent The parent stack
  * @return The newly created stack
  **/
-static inline _stack_t* _stack_new(pss_vm_t* host, const pss_closure_t* closure, const pss_dict_t* args)
+static inline _stack_t* _stack_new(pss_vm_t* host, const pss_closure_t* closure, _stack_t* parent)
 {
 	_stack_t* ret = (_stack_t*)calloc(1, sizeof(*ret));
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the stack frame");
@@ -76,27 +78,26 @@ static inline _stack_t* _stack_new(pss_vm_t* host, const pss_closure_t* closure,
 	ret->line = 0;
 	ret->func = NULL;
 	ret->next = NULL;
+	ret->argc = 0;
 
 	pss_bytecode_regid_t const* arg_regs;
 	int argc = pss_bytecode_segment_get_args(ret->code, &arg_regs);
 	if(ERROR_CODE(int) == argc)
 	    ERROR_LOG_GOTO(ERR, "Cannot get the number of arguments of the code segment");
 
-	int dict_size = args == NULL ? 0 : (int)pss_dict_size(args);
-	if(ERROR_CODE(int) == dict_size)
-	    ERROR_LOG_GOTO(ERR, "Cannot get the size of the argument list");
+	int actual_size = parent == NULL ? 0 : (int)parent->argc;
 
+	if(NULL != parent) parent->argc = 0;
+	
 	if(NULL == (ret->frame = pss_closure_get_frame(closure)))
 	    ERROR_LOG_GOTO(ERR, "Cannot duplicate the environment frame");
 
-	if(argc > dict_size) argc = dict_size;
+	if(argc > actual_size) argc = actual_size;
 
 	int i;
 	for(i = 0; i < argc; i ++)
 	{
-		char buf[16];
-		snprintf(buf, sizeof(buf), "%d", i);
-		pss_value_t value = pss_dict_get(args, buf);
+		pss_value_t value = pss_frame_reg_get(parent->frame, parent->arg[i]);
 
 		if(PSS_VALUE_KIND_ERROR == value.kind)
 		    ERROR_LOG_GOTO(ERR, "Cannot get the value of argument %d", i);
@@ -287,6 +288,8 @@ static inline int _exec_load(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 			if(val.kind == PSS_VALUE_KIND_ERROR) free(runtime_str);
 			break;
 		}
+		case PSS_BYTECODE_RTYPE_UNDEF:
+			break;
 		default:
 		    vm->error = PSS_VM_ERROR_BYTECODE;
 		    return 0;
@@ -449,6 +452,8 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 	{
 		if(inst->opcode == PSS_BYTECODE_OPCODE_EQ)
 		    result.num = (lundef && rundef);
+		else if(inst->opcode == PSS_BYTECODE_OPCODE_NE)
+			result.num = !(lundef && rundef);
 		else
 		{
 			vm->error = PSS_VM_ERROR_TYPE;
@@ -468,12 +473,21 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 			case PSS_BYTECODE_OPCODE_EQ:
 			    result.num = (left.num == right.num);
 			    break;
+			case PSS_BYTECODE_OPCODE_NE:
+				result.num = (left.num != right.num);
+				break;
 			case PSS_BYTECODE_OPCODE_LT:
 			    result.num = (left.num < right.num);
 			    break;
 			case PSS_BYTECODE_OPCODE_LE:
 			    result.num = (left.num <= right.num);
 			    break;
+			case PSS_BYTECODE_OPCODE_GE:
+				result.num = (left.num >= right.num);
+				break;
+			case PSS_BYTECODE_OPCODE_GT:
+				result.num = (left.num > right.num);
+				break;
 			default:
 			    vm->error = PSS_VM_ERROR_BYTECODE;
 			    return 0;
@@ -651,20 +665,17 @@ static inline int _exec_builtin(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 {
 	pss_value_t func = _read_reg(vm, inst, 0);
 	if(!_is_value_kind(vm, func, PSS_VALUE_KIND_BUILTIN, 1)) return 0;
-	pss_dict_t* dict = (pss_dict_t*)_value_get_ref_data(vm, _read_reg(vm, inst, 1), PSS_VALUE_REF_TYPE_DICT, 1);
-	if(NULL == dict) return 0;
 
-	uint32_t argc = pss_dict_size(dict);
-	if(ERROR_CODE(uint32_t) == argc) ERROR_RETURN_LOG(int, "Cannot get the size of the argument list");
+	uint32_t argc = vm->stack->argc;
+	vm->stack->argc = 0;
+
 	pss_value_t argv[argc];
 	memset(argv, 0, sizeof(argv[0]) * argc);
 
 	uint32_t i;
-	for(i = 0; i < argc; i ++)
+	for(i = 0; i < vm->stack->argc; i ++)
 	{
-		char buf[16];
-		snprintf(buf, sizeof(buf), "%d", i);
-		argv[i] = pss_dict_get(dict, buf);
+		argv[i] = pss_frame_reg_get(vm->stack->frame, vm->stack->arg[i]);
 		if(argv[i].kind == PSS_VALUE_KIND_ERROR)
 		    ERROR_RETURN_LOG(int, "Cannot get the value from the argument list");
 	}
@@ -673,7 +684,7 @@ static inline int _exec_builtin(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 	if(result.kind == PSS_VALUE_KIND_ERROR)
 	    ERROR_RETURN_LOG(int, "The builtin function returns an error");
 
-	if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[2], result))
+	if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[1], result))
 	    ERROR_RETURN_LOG(int, "Cannot set the result value to the register frame");
 
 	return 0;
@@ -694,12 +705,9 @@ static inline int _exec_call(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 	const pss_closure_t* closure = (const pss_closure_t*)_value_get_ref_data(vm, func, PSS_VALUE_REF_TYPE_CLOSURE, 1);
 	if(NULL == closure) return 0;
 
-	const pss_dict_t* args = (const pss_dict_t*)_value_get_ref_data(vm, _read_reg(vm, inst, 1), PSS_VALUE_REF_TYPE_DICT, 1);
-	if(NULL == args) return 0;
-
 	_stack_t* this_stack = vm->stack;
 
-	_stack_t* new_stack = _stack_new(vm, closure, args);
+	_stack_t* new_stack = _stack_new(vm, closure, vm->stack);
 	if(NULL == new_stack) ERROR_RETURN_LOG(int, "Cannot create new stack frame");
 
 	new_stack->next = this_stack;
@@ -714,7 +722,7 @@ static inline int _exec_call(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 	if(retval.kind == PSS_VALUE_KIND_ERROR)
 	    ERROR_RETURN_LOG(int, "Cannot fetch the return value of the last function call");
 
-	if(ERROR_CODE(int) == pss_frame_reg_set(this_stack->frame, inst->reg[2], retval))
+	if(ERROR_CODE(int) == pss_frame_reg_set(this_stack->frame, inst->reg[1], retval))
 	{
 		LOG_ERROR("Cannot set the result register");
 		/* In this case, we should preserve the stack */
@@ -800,6 +808,9 @@ static inline pss_bytecode_regid_t _exec(pss_vm_t* vm)
 			case PSS_BYTECODE_OP_LT:
 			case PSS_BYTECODE_OP_LE:
 			case PSS_BYTECODE_OP_EQ:
+			case PSS_BYTECODE_OP_NE:
+			case PSS_BYTECODE_OP_GE:
+			case PSS_BYTECODE_OP_GT:
 			case PSS_BYTECODE_OP_ADD:
 			    rc = _exec_generic(vm, &inst);
 			    break;
@@ -822,6 +833,9 @@ static inline pss_bytecode_regid_t _exec(pss_vm_t* vm)
 			case PSS_BYTECODE_OP_RETURN:
 			    retreg = inst.reg[0];
 			    break;
+			case PSS_BYTECODE_OP_ARG:
+				top->arg[top->argc ++] = inst.reg[0];
+				break;
 			case PSS_BYTECODE_OP_DEBUGINFO:
 			    if(inst.info->rtype == PSS_BYTECODE_RTYPE_INT)
 			        top->line = (uint32_t)inst.num;

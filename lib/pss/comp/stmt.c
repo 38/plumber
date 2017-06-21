@@ -16,6 +16,7 @@
 #include <pss/comp/comp.h>
 #include <pss/comp/block.h>
 #include <pss/comp/value.h>
+#include <pss/comp/expr.h>
 #include <pss/comp/stmt.h>
 
 int pss_comp_stmt_expr(pss_comp_t* comp, pss_comp_stmt_result_t* result)
@@ -31,7 +32,7 @@ int pss_comp_stmt_expr(pss_comp_t* comp, pss_comp_stmt_result_t* result)
 
 	pss_comp_value_t val = {};
 
-	if(ERROR_CODE(int) == pss_comp_value_parse(comp, &val))
+	if(ERROR_CODE(int) == pss_comp_expr_parse(comp, &val))
 		ERROR_RETURN_LOG(int, "Cannot parse the value");
 
 	if(ERROR_CODE(int) == pss_comp_value_release(comp, &val))
@@ -58,7 +59,7 @@ int pss_comp_stmt_return(pss_comp_t* comp, pss_comp_stmt_result_t* result)
 
 	pss_comp_value_t val = {};
 
-	if(ERROR_CODE(int) == pss_comp_value_parse(comp, &val))
+	if(ERROR_CODE(int) == pss_comp_expr_parse(comp, &val))
 		ERROR_RETURN_LOG(int, "Cannot parse the value");
 
 	if(ERROR_CODE(int) == pss_comp_value_simplify(comp, &val))

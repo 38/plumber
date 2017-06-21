@@ -205,12 +205,20 @@ pss_bytecode_segid_t pss_comp_close_closure(pss_comp_t* comp)
 
 	pss_bytecode_segment_t* seg = comp->seg_stack[comp->seg_stack_top - 1];
 
-	/* Finally, we need to append the return guard to the segment, so that the VM won't get to somewhere undefined */
+	/* Finally, we need to append the return sentinel to the segment, so that the VM won't get to somewhere undefined */
 	pss_bytecode_addr_t guard_addr;
-	if(ERROR_CODE(pss_bytecode_addr_t) == (guard_addr = pss_bytecode_segment_append_code(seg, PSS_BYTECODE_OPCODE_UNDEF_LOAD, PSS_BYTECODE_ARG_REGISTER(0), PSS_BYTECODE_ARG_END)))
-		PSS_COMP_RAISE_RETURN(pss_bytecode_segid_t, comp, "Internal Error: Cannot append the return guard to the code segment");
-	if(ERROR_CODE(pss_bytecode_addr_t) == pss_bytecode_segment_append_code(seg, PSS_BYTECODE_OPCODE_RETURN, PSS_BYTECODE_ARG_REGISTER(0), PSS_BYTECODE_ARG_END))
-		PSS_COMP_RAISE_RETURN(pss_bytecode_segid_t, comp, "Internal Error: Cannot append the return guard to the code segment");
+	guard_addr = pss_bytecode_segment_length(seg);
+	while(ERROR_CODE(pss_bytecode_addr_t) == guard_addr || guard_addr == 0)
+	{
+		pss_bytecode_instruction_t inst;
+		if(ERROR_CODE(int) != pss_bytecode_segment_get_inst(seg, guard_addr - 1, &inst) && 
+		   inst.info->operation == PSS_BYTECODE_OP_RETURN) break;
+
+		if(ERROR_CODE(pss_bytecode_addr_t) == (guard_addr = pss_bytecode_segment_append_code(seg, PSS_BYTECODE_OPCODE_UNDEF_LOAD, PSS_BYTECODE_ARG_REGISTER(0), PSS_BYTECODE_ARG_END)))
+			PSS_COMP_RAISE_RETURN(pss_bytecode_segid_t, comp, "Internal Error: Cannot append the sentinel instruction to the code segment");
+		if(ERROR_CODE(pss_bytecode_addr_t) == pss_bytecode_segment_append_code(seg, PSS_BYTECODE_OPCODE_RETURN, PSS_BYTECODE_ARG_REGISTER(0), PSS_BYTECODE_ARG_END))
+			PSS_COMP_RAISE_RETURN(pss_bytecode_segid_t, comp, "Internal Error: Cannot append the sentinel instruction to the code segment");
+	}
 
 	for(;comp->ctl_stack_top > 0 && 
 		 comp->ctl_stack[comp->ctl_stack_top - 1].seg == seg;

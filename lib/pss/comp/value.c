@@ -18,6 +18,7 @@
 #include <pss/comp/comp.h>
 #include <pss/comp/block.h>
 #include <pss/comp/value.h>
+#include <pss/comp/expr.h>
 
 #define _S(what) PSS_BYTECODE_ARG_STRING(what)
 
@@ -192,7 +193,11 @@ static inline int _parse_variable_term(pss_comp_t* comp, pss_bytecode_segment_t*
 		if(!_INST(seg, STR_LOAD, _S(ahead->value.s), _R(buf->regs[0].id)))
 			PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
 	}
-	else buf->kind = PSS_COMP_VALUE_KIND_REG;
+	else 
+	{
+		buf->kind = PSS_COMP_VALUE_KIND_REG;
+		buf->regs[0].tmp = 0;
+	}
 
 	if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
 		ERROR_RETURN_LOG(int, "Cannot consume the last token");
@@ -264,7 +269,7 @@ static inline int _parse_subscript(pss_comp_t* comp, pss_bytecode_segment_t* seg
 		ERROR_RETURN_LOG(int, "Cannot simplify the primtive value");
 
 	pss_comp_value_t val = {};
-	if(ERROR_CODE(int) == pss_comp_value_parse(comp, &val))
+	if(ERROR_CODE(int) == pss_comp_expr_parse(comp, &val))
 		ERROR_RETURN_LOG(int, "Cannot parse the subscript");
 
 	if(ERROR_CODE(int) == pss_comp_value_simplify(comp, &val))
@@ -286,13 +291,6 @@ static inline int _parse_application(pss_comp_t* comp, pss_bytecode_segment_t* s
 	if(ERROR_CODE(int) == pss_comp_value_simplify(comp, buf))
 		ERROR_RETURN_LOG(int, "Cannot simplify the primtive value");
 
-	pss_comp_value_t dict = {};
-	if(ERROR_CODE(int) == _make_rvalue(comp, &dict)) 
-		return ERROR_CODE(int);
-
-	if(!_INST(seg, DICT_NEW, _R(dict.regs[0].id)))
-		PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
-	
 	const pss_comp_lex_token_t* ahead = NULL;
 	
 	if(NULL == (ahead = pss_comp_peek(comp, 0)))
@@ -300,34 +298,21 @@ static inline int _parse_application(pss_comp_t* comp, pss_bytecode_segment_t* s
 
 	uint32_t i = 0;
 
-	for(;;i++)
+	pss_comp_value_t args[PSS_VM_ARG_MAX] = {};
+
+	for(;i < PSS_VM_ARG_MAX;i++)
 	{
 		if(ahead->type == PSS_COMP_LEX_TOKEN_RPARENTHESIS) break;
 
-		pss_comp_value_t arg = {};
-
-		if(ERROR_CODE(int) == pss_comp_value_parse(comp, &arg))
+		if(ERROR_CODE(int) == pss_comp_expr_parse(comp, args + i))
 			ERROR_RETURN_LOG(int, "Cannot parse argument");
 
-		if(ERROR_CODE(int) == pss_comp_value_simplify(comp, &arg))
+		if(ERROR_CODE(int) == pss_comp_value_simplify(comp, args + i))
 			ERROR_RETURN_LOG(int, "Cannot simplify the argument");
-		
-		pss_comp_value_t idx = {};
-		if(ERROR_CODE(int) == _make_rvalue(comp, &idx))
-			ERROR_RETURN_LOG(int, "Cannot make the tmp variable");
 
-		if(!_INST(seg, INT_LOAD, _N(i), _R(idx.regs[0].id)))
+		if(!_INST(seg, ARG, _R(args[i].regs[0].id)))
 			PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
 
-		if(!_INST(seg, SET_VAL, _R(arg.regs[0].id), _R(dict.regs[0].id), _R(idx.regs[0].id)))
-			PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
-
-		if(ERROR_CODE(int) == pss_comp_value_release(comp, &idx))
-			ERROR_RETURN_LOG(int, "Cannot release the index register");
-
-		if(ERROR_CODE(int) == pss_comp_value_release(comp, &arg))
-			ERROR_RETURN_LOG(int, "Cannot release the argument");
-		
 		if(NULL == (ahead = pss_comp_peek(comp, 0)))
 			ERROR_RETURN_LOG(int, "Cannot peek the token");
 
@@ -342,14 +327,18 @@ static inline int _parse_application(pss_comp_t* comp, pss_bytecode_segment_t* s
 		else PSS_COMP_RAISE_RETURN(int, comp, "Syntax error: Invalid argument list");
 	}
 
+	if(i >= PSS_VM_ARG_MAX)
+		PSS_COMP_RAISE_RETURN(int, comp, "Syntax error: too many arguments");
+
 	if(ERROR_CODE(int) == pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_RPARENTHESIS))
 		return ERROR_CODE(int);
 
-	if(!_INST(seg, CALL, _R(buf->regs[0].id), _R(dict.regs[0].id), _R(buf->regs[0].id)))
+	if(!_INST(seg, CALL, _R(buf->regs[0].id), _R(buf->regs[0].id)))
 		PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
 
-	if(ERROR_CODE(int) == pss_comp_value_release(comp, &dict))
-		ERROR_RETURN_LOG(int, "Cannot relase the dictionary register");
+	for(; i > 0; i--)
+		if(ERROR_CODE(int) == pss_comp_value_release(comp, args + i))
+			ERROR_RETURN_LOG(int, "Cannot release the argument");
 
 	return 0;
 }
@@ -391,7 +380,7 @@ static inline int _parse_primitive(pss_comp_t* comp, pss_comp_value_t* buf)
 	{
 		case PSS_COMP_LEX_TOKEN_LPARENTHESIS:
 			if(ERROR_CODE(int) == pss_comp_comsume(comp, 1)) ERROR_RETURN_LOG(int, "Cannot consume the first token");
-			if(ERROR_CODE(int) == pss_comp_value_parse(comp, buf)) ERROR_RETURN_LOG(int, "Cannot parse the rvalue primitive");
+			if(ERROR_CODE(int) == pss_comp_expr_parse(comp, buf)) ERROR_RETURN_LOG(int, "Cannot parse the rvalue primitive");
 			rc = pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_RPARENTHESIS);
 			break;
 

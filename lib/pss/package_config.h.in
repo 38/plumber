@@ -51,4 +51,9 @@
  * @brief The max level of nested scope the compile allows
  **/
 #	define PSS_COMP_ENV_SCOPE_MAX @LIB_PSS_COMP_ENV_SCOPE_MAX@
+
+/**
+ * @brief The maximum number of argument
+ **/
+#	define PSS_VM_ARG_MAX @LIB_PSS_VM_ARG_MAX@
 #endif /* __PROTO_PACKAGE_CONF_H__ */

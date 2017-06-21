@@ -100,7 +100,7 @@ static inline _node_t* _cow_write(_node_t* root, pss_bytecode_regid_t left, pss_
 		pss_bytecode_regid_t mid = (pss_bytecode_regid_t)(((uint32_t)left + (uint32_t)right) / 2);
 
 		/* If the target is not current root, we need to make sure its children are properly initialized */
-		if(target != mid && root->child->left == NULL)
+		if((mid & 1) && root->child->left == NULL)
 		{
 			if(root->child->right != NULL) ERROR_PTR_RETURN_LOG("Code bug: unevenly initialized left child and right child");
 
