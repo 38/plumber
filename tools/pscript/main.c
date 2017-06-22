@@ -14,12 +14,16 @@
 #include <unistd.h>
 #include <utils/thread.h>
 
+#include <pss.h>
+
+#include <module.h>
+#include <builtin.h>
+
 #ifdef GPROFTOOLS
 #include <gperftools/profiler.h>
 #endif
 
-char const* * include_dirs = NULL;
-char const* * predefined_vars = NULL;
+char const* * module_paths = NULL;
 char const* * servlet_dirs = NULL;
 char const*   rc_file = PSCRIPT_DEFAULT_RC_FILE;
 uint32_t      max_regs = 65536;
@@ -29,13 +33,10 @@ void display_help()
 {
 	_MESSAGE("PScript: The Plumber Service Script Interpreter");
 	_MESSAGE("Usage: pscript [options] service_script_file");
-	_MESSAGE("Note: you can also use \"-\" to make the interpreter read from console");
-	_MESSAGE("  -D  --define        Define a variable");
 	_MESSAGE("  -h  --help          Show this help information");
-	_MESSAGE("  -I  --include-dir   Set the script search directory");
+	_MESSAGE("  -M  --module-path   Set the module search path");
 	_MESSAGE("  -S  --servlet-dir   Set the servlet search directory");
 	_MESSAGE("  -N  --no-rc-file    Do not run any RC file");
-	_MESSAGE("  -R  --max-regs      Set the limit of registers used by the VM");
 	_MESSAGE("  -r  --rc-file       Run the RC file before the script gets executed");
 	_MESSAGE("  -v  --version       Show version information");
 }
@@ -49,9 +50,8 @@ void display_version()
 
 __attribute__((noreturn)) void properly_exit(int code)
 {
-	if(NULL != include_dirs) free(include_dirs);
+	if(NULL != module_paths) free(module_paths);
 	if(NULL != servlet_dirs) free(servlet_dirs);
-	if(NULL != predefined_vars) free(predefined_vars);
 
 	exit(code);
 }
@@ -61,24 +61,23 @@ int parse_args(int argc, char** argv)
 	static struct option _options[] = {
 		{"help",        no_argument,        0,  'h'},
 		{"version",     no_argument,        0,  'v'},
-		{"include-dir", required_argument,  0,  'I'},
-		{"define"     , required_argument,  0,  'D'},
+		{"module-path", required_argument,  0,  'M'},
 		{"servlet-dir", required_argument,  0,  'S'},
 		{"rc-file",     required_argument,  0,  'r'},
 		{"no-rc-file",  no_argument,        0,  'N'},
-		{"max-regs",    required_argument,  0,  'R'},
 		{NULL,          0,                  0,   0}
 	};
 
-	uint32_t include_count = 0;
-	uint32_t define_count = 0;
+	uint32_t module_count = 2;
 	uint32_t servlet_count = 0;
-	include_dirs = (const char**)calloc(1, sizeof(const char*) * (size_t)argc);
-	predefined_vars = (const char**)calloc(1, sizeof(const char*) * (size_t)argc);
+	module_paths = (const char**)calloc(1, sizeof(const char*) * ((size_t)argc + 2));
 	servlet_dirs = (const char**)calloc(1, sizeof(const char*) * (size_t)argc);
 
+	module_paths[0] = ".";
+	module_paths[1] = "/";
+
 	int opt_idx, c;
-	for(;(c = getopt_long(argc, argv, "hvNI:D:S:r:R:", _options, &opt_idx)) >= 0;)
+	for(;(c = getopt_long(argc, argv, "hvNM:S:r:", _options, &opt_idx)) >= 0;)
 	{
 		switch(c)
 		{
@@ -90,11 +89,8 @@ int parse_args(int argc, char** argv)
 			    display_help();
 			    properly_exit(0);
 			    break;
-			case 'I':
-			    include_dirs[include_count++] = optarg;
-			    break;
-			case 'D':
-			    predefined_vars[define_count++] = optarg;
+			case 'M':
+			    module_paths[module_count++] = optarg;
 			    break;
 			case 'S':
 			    servlet_dirs[servlet_count++] = optarg;
@@ -104,9 +100,6 @@ int parse_args(int argc, char** argv)
 			    break;
 			case 'r':
 			    rc_file = optarg;
-			    break;
-			case 'R':
-			    max_regs = (uint32_t)atoi(optarg);
 			    break;
 			default:
 			    display_help();
@@ -159,19 +152,16 @@ int _program(int argc, char** argv)
 		LOG_FATAL("Cannot initialize libplumber");
 		properly_exit(1);
 	}
+	
+	if(pss_init() == ERROR_CODE(int) || pss_log_set_write_callback(log_write_va) == ERROR_CODE(int))
+	{
+		LOG_FATAL("Cannot initialize libpss");
+		properly_exit(1);
+	}
+
 
 	if(runtime_servlet_append_search_path(".") == ERROR_CODE(int))
 	    LOG_WARNING("Cannot add default sevlet search path");
-
-	if(lang_lex_add_script_search_path(".") == ERROR_CODE(int))
-	    LOG_WARNING("Cannot add default include search path");
-
-	if(lang_lex_add_script_search_path("/") == ERROR_CODE(int))
-	    LOG_WARNING("Cannot add default include search path");
-
-	for(i = 0; include_dirs != NULL && include_dirs[i] != NULL; i ++)
-	    if(lang_lex_add_script_search_path(include_dirs[i]) == ERROR_CODE(int))
-	        LOG_WARNING("Cannot append include search path to the search path list");
 
 	for(i = 0; servlet_dirs != NULL && servlet_dirs[i] != NULL; i ++)
 	    if(runtime_servlet_append_search_path(servlet_dirs[i]) == ERROR_CODE(int))
@@ -180,76 +170,47 @@ int _program(int argc, char** argv)
 	if(runtime_servlet_append_search_path(RUNTIME_SERVLET_DEFAULT_SEARCH_PATH) == ERROR_CODE(int))
 	    LOG_WARNING("Cannot append servlet search path to servlet search list");
 
-	char* builtin_buffer = (char*)malloc(4096);
-	string_buffer_t sbuf;
-	string_buffer_open(builtin_buffer, 4096, &sbuf);
-	if(rc_file != NULL && access(rc_file, R_OK) == F_OK)
-	    string_buffer_appendf(&sbuf, "include \"%s\";\n", rc_file);
-	for(i = 0; predefined_vars != NULL && predefined_vars[i] != NULL; i ++)
-	    string_buffer_appendf(&sbuf, "%s;\n", predefined_vars[i]);
-	if(strcmp(argv[begin], "-"))
-	    string_buffer_appendf(&sbuf, "include \"%s\";\n", argv[begin]);
-	else
-	    string_buffer_appendf(&sbuf, "include \"/dev/stdin\";\n");
-	string_buffer_close(&sbuf);
-	lang_lex_t* lexer = lang_lex_from_buffer(builtin_buffer, (uint32_t)strlen(builtin_buffer));
-	if(NULL == lexer)
-	{
-		LOG_FATAL("Cannot open the input file");
-		properly_exit(1);
-	}
+	if(ERROR_CODE(int) == module_set_search_path(module_paths))
+		LOG_WARNING("Cannot set the module search path");
+	
+	pss_bytecode_module_t* module = module_from_file(argv[begin], 1);
 
-	lang_bytecode_table_t* bc = lang_bytecode_table_new();
-	if(NULL == bc)
-	{
-		LOG_FATAL("Cannot create bytecode table");
-		lang_lex_free(lexer);
-		properly_exit(1);
-	}
+	pss_bytecode_module_logdump(module);
 
-	lang_compiler_options_t options = {
-		.reg_limit = max_regs
-	};
-	lang_compiler_t* compiler = lang_compiler_new(lexer, bc, options);
-	if(NULL == compiler)
+	if(NULL == module) 
 	{
-		LOG_FATAL("Cannot create compiler");
-		lang_lex_free(lexer);
-		lang_bytecode_table_free(bc);
-		properly_exit(1);
-	}
-
-	if(lang_compiler_compile(compiler) == ERROR_CODE(int))
-	{
-		lang_compiler_error_t *ptr;
-		for(ptr = lang_compiler_get_error(compiler); NULL != ptr; ptr = ptr->next)
-		    fprintf(stderr, "Compiler error at `%s' line %u offset %u: %s\n", ptr->file, ptr->line + 1, ptr->off + 1, ptr->message);
-		LOG_FATAL("Cannot compile the script");
-		lang_lex_free(lexer);
-		lang_bytecode_table_free(bc);
-		lang_compiler_free(compiler);
-		properly_exit(1);
-	}
-
-	lang_vm_t* vm = lang_vm_new(bc);
-	if(NULL == vm)
-	{
-		LOG_FATAL("Cannot create VM");
-		lang_lex_free(lexer);
-		lang_bytecode_table_free(bc);
-		lang_compiler_free(compiler);
+		LOG_FATAL("Cannot load module %s", argv[begin]);
 		properly_exit(1);
 	}
 
 	signal(SIGINT, _stop);
 
-	int rc = lang_vm_exec(vm);
+	pss_vm_t* vm = pss_vm_new();
+	if(NULL == vm || ERROR_CODE(int) == builtin_init(vm)) 
+	{
+		pss_bytecode_module_free(module);
+		LOG_FATAL("Cannot create PSS Virtual Machine");
+		properly_exit(1);
+	}
+
+	int rc = pss_vm_run_module(vm, module, NULL);
 	LOG_INFO("VM terminated with exit code %d", rc);
 
-	lang_vm_free(vm);
-	lang_compiler_free(compiler);
-	lang_lex_free(lexer);
-	lang_bytecode_table_free(bc);
+	if(ERROR_CODE(int) == rc)
+	{
+		pss_vm_exception_t* exception = pss_vm_last_exception(vm);
+
+		LOG_ERROR("PSS VM Exception: %s", exception->message);
+
+		pss_vm_exception_free(exception);
+	}
+	
+	if(ERROR_CODE(int) == pss_bytecode_module_free(module))
+		LOG_WARNING("Cannot dipsose the module");
+
+
+	if(pss_finalize() == ERROR_CODE(int))
+		LOG_WARNING("Cannot finalize libpss");
 
 	if(plumber_finalize() == ERROR_CODE(int))
 	{

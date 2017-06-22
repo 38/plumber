@@ -120,7 +120,7 @@ static inline int _parse_function_literal(pss_comp_t* comp, pss_bytecode_segment
 		memcpy(argv[argc], ahead->value.s, len + 1);
 		argc ++;
 
-		if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
+		if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
 			ERROR_LOG_GOTO(FUNC_ERR, "Cannot consume the ahead token");
 
 		if(NULL == (ahead = pss_comp_peek(comp, 0)))
@@ -128,7 +128,7 @@ static inline int _parse_function_literal(pss_comp_t* comp, pss_bytecode_segment
 
 		if(ahead->type == PSS_COMP_LEX_TOKEN_COMMA)
 		{
-			if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
+			if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
 				ERROR_LOG_GOTO(FUNC_ERR, "Cannot consume the argument seperator");
 		}
 		else if(ahead->type != PSS_COMP_LEX_TOKEN_RPARENTHESIS)
@@ -138,7 +138,7 @@ static inline int _parse_function_literal(pss_comp_t* comp, pss_bytecode_segment
 	if(argc >= sizeof(argv) / sizeof(argv[0]))
 		PSS_COMP_RAISE_SYN_GOTO(FUNC_ERR, comp, "Too many arguments in the function argument list");
 
-	if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
+	if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
 		ERROR_LOG_GOTO(FUNC_ERR, "Cannot consume the end of argument list");
 
 	if(ERROR_CODE(int) == pss_comp_open_closure(comp, argc, (const char**)argv))
@@ -174,7 +174,7 @@ static inline int _parse_variable_term(pss_comp_t* comp, pss_bytecode_segment_t*
 
 	if(strcmp(ahead->value.s, "$global") == 0)
 	{
-		if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
+		if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
 			ERROR_RETURN_LOG(int, "Cannot consume token");
 		buf->kind = PSS_COMP_VALUE_KIND_GLOBAL_DICT;
 		return 0;
@@ -203,7 +203,7 @@ static inline int _parse_variable_term(pss_comp_t* comp, pss_bytecode_segment_t*
 		buf->regs[0].tmp = 0;
 	}
 
-	if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
+	if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
 		ERROR_RETURN_LOG(int, "Cannot consume the last token");
 
 	return 0;
@@ -223,7 +223,7 @@ static inline int _parse_literal(pss_comp_t* comp, pss_bytecode_segment_t* seg, 
 	if(ahead->type == PSS_COMP_LEX_TOKEN_KEYWORD && ahead->value.k == PSS_COMP_LEX_KEYWORD_UNDEFINED && !_INST(seg, UNDEF_LOAD, _R(buf->regs[0].id)))
 		PSS_COMP_RAISE_INT(comp, CODE);
 
-	if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
+	if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
 		ERROR_RETURN_LOG(int, "Cannot consume the string literal");
 
 	return 0;
@@ -238,7 +238,7 @@ static inline int _parse_unary(pss_comp_t* comp, pss_bytecode_segment_t* seg, ps
 
 	if(ahead->type == PSS_COMP_LEX_TOKEN_NOT) not = 1;
 
-	if(ERROR_CODE(int) == pss_comp_comsume(comp, 1)) ERROR_RETURN_LOG(int, "Cannot consume the first token");
+	if(ERROR_CODE(int) == pss_comp_consume(comp, 1)) ERROR_RETURN_LOG(int, "Cannot consume the first token");
 	if(ERROR_CODE(int) == pss_comp_value_parse(comp, buf)) ERROR_RETURN_LOG(int, "Cannot parse the inner register");
 	if(ERROR_CODE(int) == pss_comp_value_simplify(comp, buf))  ERROR_RETURN_LOG(int, "Cannot construct the R-Value");
 	
@@ -331,7 +331,7 @@ static inline int _parse_application(pss_comp_t* comp, pss_bytecode_segment_t* s
 		if(ahead->type == PSS_COMP_LEX_TOKEN_RPARENTHESIS) break;
 		else if(ahead->type == PSS_COMP_LEX_TOKEN_COMMA)
 		{
-			if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
+			if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
 				ERROR_RETURN_LOG(int, "Cannot consume the token");
 			if(NULL == (ahead = pss_comp_peek(comp, 0)))
 				ERROR_RETURN_LOG(int, "Cannot peek the next token");
@@ -408,7 +408,7 @@ int pss_comp_value_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 	switch(ahead->type)
 	{
 		case PSS_COMP_LEX_TOKEN_LPARENTHESIS:
-			if(ERROR_CODE(int) == pss_comp_comsume(comp, 1)) ERROR_RETURN_LOG(int, "Cannot consume the first token");
+			if(ERROR_CODE(int) == pss_comp_consume(comp, 1)) ERROR_RETURN_LOG(int, "Cannot consume the first token");
 			if(ERROR_CODE(int) == pss_comp_expr_parse(comp, buf)) ERROR_RETURN_LOG(int, "Cannot parse the rvalue primitive");
 			rc = pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_RPARENTHESIS);
 			break;

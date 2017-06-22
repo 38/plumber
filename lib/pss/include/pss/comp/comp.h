@@ -48,6 +48,7 @@ typedef struct {
 typedef struct _pss_comp_error_t {
 	const char* filename;             /*!< The file name */
 	uint32_t    line;                 /*!< The line number */
+	uint32_t    column;               /*!< The column number */
 	struct _pss_comp_error_t* next;   /*!< The next compile error */
 	uintptr_t   __padding__[0];
 	char        message[0];           /*!< The actual error message */
@@ -89,7 +90,7 @@ const pss_comp_lex_token_t* pss_comp_peek(pss_comp_t* comp, uint32_t n);
  * @param comp The compiler instance
  * @return status code
  **/
-int pss_comp_comsume(pss_comp_t* comp, uint32_t n);
+int pss_comp_consume(pss_comp_t* comp, uint32_t n);
 
 /**
  * @brief Get the bytecode module the compiler is writting to

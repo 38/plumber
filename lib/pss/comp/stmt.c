@@ -98,7 +98,7 @@ static inline int _if_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 
 	if(ahead->type == PSS_COMP_LEX_TOKEN_SEMICOLON)
 	{
-		if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
+		if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
 			ERROR_RETURN_LOG(int, "Cannot consume the token");
 		if(NULL == (ahead = pss_comp_peek(comp, 0)))
 			ERROR_RETURN_LOG(int, "Cannot peek ahead token");
@@ -265,6 +265,61 @@ static inline int _return_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 	return 0;
 }
 
+static inline int _var_decl_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
+{
+	if(ERROR_CODE(int) == pss_comp_expect_keyword(comp, PSS_COMP_LEX_KEYWORD_VAR))
+		ERROR_RETURN_LOG(int, "Keyword var expecteed");
+
+	for(;;)
+	{
+		const pss_comp_lex_token_t* ahead = pss_comp_peek(comp, 0);
+		if(NULL == ahead) ERROR_RETURN_LOG(int, "Cannot peek the token ahead");
+
+		if(ahead->type != PSS_COMP_LEX_TOKEN_IDENTIFIER)
+			PSS_COMP_RAISE_SYN(int, comp, "Identifer expected");
+
+		pss_bytecode_regid_t reg = pss_comp_decl_local_var(comp, ahead->value.s);
+		if(ERROR_CODE(pss_bytecode_regid_t) == reg) 
+			ERROR_RETURN_LOG(int, "Cannot put the local variable to the environment");
+
+		if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
+			ERROR_RETURN_LOG(int, "Cannot consume the next token");
+
+		if(NULL == (ahead = pss_comp_peek(comp, 0)))
+			ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
+
+		if(ahead->type == PSS_COMP_LEX_TOKEN_EQUAL)
+		{
+			if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
+				ERROR_RETURN_LOG(int, "Cannot consume the next token");
+
+			/* This means it have a initial value clause */
+			pss_comp_value_t val = {};
+			if(ERROR_CODE(int) == pss_comp_value_parse(comp, &val))
+				ERROR_RETURN_LOG(int, "Cannot parse the initializer");
+
+			if(ERROR_CODE(int) == pss_comp_value_simplify(comp, &val))
+				ERROR_RETURN_LOG(int, "Cannot simplify the value");
+
+			if(!_INST(seg, MOVE, _R(val.regs[0].id), _R(reg)))
+				PSS_COMP_RAISE_INT(comp, CODE);
+
+			if(ERROR_CODE(int) == pss_comp_value_release(comp, &val))
+				ERROR_RETURN_LOG(int, "Cannot release value");
+
+			if(NULL == (ahead = pss_comp_peek(comp, 0)))
+				ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
+		}
+
+		if(ahead->type != PSS_COMP_LEX_TOKEN_COMMA) break;
+
+		if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
+			ERROR_RETURN_LOG(int, "Cannot consume the comma token");
+	}
+
+	return 0;
+}
+
 int pss_comp_stmt_parse(pss_comp_t* comp)
 {
 	if(NULL == comp) PSS_COMP_RAISE_INT(comp, ARGS);
@@ -279,7 +334,7 @@ int pss_comp_stmt_parse(pss_comp_t* comp)
 	switch(ahead->type)
 	{
 		case PSS_COMP_LEX_TOKEN_SEMICOLON:
-			if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
+			if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
 				ERROR_RETURN_LOG(int, "Cannot consume the ahead token");
 			break;
 		case PSS_COMP_LEX_TOKEN_KEYWORD:
@@ -297,6 +352,9 @@ int pss_comp_stmt_parse(pss_comp_t* comp)
 				case PSS_COMP_LEX_KEYWORD_CONTINUE:
 				case PSS_COMP_LEX_KEYWORD_BREAK:
 					rc = _break_or_continue(comp, ahead->value.k, seg);
+					break;
+				case PSS_COMP_LEX_KEYWORD_VAR:
+					rc = _var_decl_stmt(comp, seg);
 					break;
 				default:
 					PSS_COMP_RAISE_SYN(int, comp, "Unexpected keyword");

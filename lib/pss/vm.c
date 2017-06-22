@@ -673,12 +673,13 @@ static inline int _exec_builtin(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 	memset(argv, 0, sizeof(argv[0]) * argc);
 
 	uint32_t i;
-	for(i = 0; i < vm->stack->argc; i ++)
+	for(i = 0; i < argc; i ++)
 	{
 		argv[i] = pss_frame_reg_get(vm->stack->frame, vm->stack->arg[i]);
 		if(argv[i].kind == PSS_VALUE_KIND_ERROR)
 		    ERROR_RETURN_LOG(int, "Cannot get the value from the argument list");
 	}
+	
 
 	pss_value_t result = func.builtin(argc, argv);
 	if(result.kind == PSS_VALUE_KIND_ERROR)

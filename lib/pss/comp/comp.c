@@ -101,8 +101,21 @@ int pss_comp_raise(pss_comp_t* comp, const char* msg, ...)
 	vsnprintf(err->message, (unsigned)bytes_required + 1, msg, ap);
 	err->next = *comp->error_buf;
 	*comp->error_buf = err;
-	err->filename = pss_comp_peek(comp,0)->file;
-	err->line = pss_comp_peek(comp,0)->line;
+	
+	const pss_comp_lex_token_t* recent = pss_comp_peek(comp, 0);
+	if(recent != NULL)
+	{
+		err->filename = recent->file;
+		err->line = recent->line;
+		err->column = recent->offset;
+	}
+	else
+	{
+		err->filename = "<unknown>";
+		err->line = 0;
+		err->column = 0;
+	}
+
 	va_end(ap);
 ERR:
 	return ERROR_CODE(int);
@@ -175,7 +188,7 @@ const pss_comp_lex_token_t* pss_comp_peek(pss_comp_t* comp, uint32_t n)
 	return comp->ahead + (n + comp->ahead_begin) % _LOOKAHEAD;
 }
 
-int pss_comp_comsume(pss_comp_t* comp, uint32_t n)
+int pss_comp_consume(pss_comp_t* comp, uint32_t n)
 {
 	if(n > _LOOKAHEAD) 
 		return pss_comp_raise(comp, "Internal error: Consuming %u tokens ahead is not allowed", n);
@@ -471,7 +484,7 @@ int pss_comp_expect_token(pss_comp_t* comp, pss_comp_lex_token_type_t token)
 	if(next->type != token)
 		PSS_COMP_RAISE_SYN(int, comp, "Unexpected token"); 
 	
-	if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
+	if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
 		ERROR_RETURN_LOG(int, "Cannot consume the last token");
 
 	return 0;
@@ -491,5 +504,5 @@ int pss_comp_expect_keyword(pss_comp_t* comp, pss_comp_lex_keyword_t keyword)
 	if(next->value.k != keyword)
 		PSS_COMP_RAISE_SYN(int, comp, "Unexpected keyword"); 
 
-	return pss_comp_comsume(comp, 1);
+	return pss_comp_consume(comp, 1);
 }

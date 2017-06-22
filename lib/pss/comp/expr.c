@@ -167,7 +167,7 @@ int pss_comp_expr_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 
 		if(_priority[ahead->type] == 0) break;
 		ts[sp ++] = ahead->type;
-		if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
+		if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
 			ERROR_RETURN_LOG(int, "Cannot consume ahead token");
 	}
 

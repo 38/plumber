@@ -281,7 +281,7 @@ static inline char* _load_string(FILE* in)
 	char* ret = (char*)malloc(size + 1);
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the string");
 
-	if(1 != fread(ret, size, 1, in))
+	if(size > 0 && 1 != fread(ret, size, 1, in))
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read string content from the input file");
 
 	ret[size] = 0;
@@ -429,7 +429,7 @@ static inline _table_t* _load_table(_table_type_t type, FILE* in)
 
 	if(type == _TABLE_TYPE_REG)
 	{
-		if(1 != fread(ret->regid, sizeof(ret->regid[0]) * header.size, 1, in))
+		if(header.size > 0 && 1 != fread(ret->regid, sizeof(ret->regid[0]) * header.size, 1, in))
 		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the register ids from the register ID table");
 	}
 	else if(type == _TABLE_TYPE_STR)

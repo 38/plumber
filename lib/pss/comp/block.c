@@ -32,7 +32,7 @@ int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token
 
 		if(ahead->type == last_token) 
 		{
-			if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
+			if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
 				ERROR_RETURN_LOG(int, "Cannot consume token");
 			break;
 		}
