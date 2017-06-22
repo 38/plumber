@@ -17,24 +17,12 @@
 #include <pss/comp/block.h>
 #include <pss/comp/stmt.h>
 
-int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token, pss_comp_lex_token_type_t last_token, pss_comp_block_t* result)
+int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token, pss_comp_lex_token_type_t last_token)
 {
-	if(NULL == comp)
-		PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Invalid arguments");
+	if(NULL == comp) PSS_COMP_RAISE_INT(comp, ARGS);
 
-	if(first_token != PSS_COMP_LEX_TOKEN_NAT)
-	{
-		const pss_comp_lex_token_t* actual_first = pss_comp_peek(comp, 0);
-		if(NULL == actual_first) return ERROR_CODE(int);
-
-		if(actual_first->type != first_token)
-			PSS_COMP_RAISE_RETURN(int, comp, "Syntax Error: Invalid block header");
-
-		if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
-			return ERROR_CODE(int);
-	}
-
-	if(NULL != result) result->begin = result->end = 0;
+	if(first_token != PSS_COMP_LEX_TOKEN_NAT && ERROR_CODE(int) == pss_comp_expect_token(comp, first_token))
+		ERROR_RETURN_LOG(int, "Unexpected beginging of the header");
 
 	for(;;)
 	{
@@ -49,11 +37,10 @@ int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token
 			break;
 		}
 		
-		pss_comp_stmt_result_t res;
-
-		if(ERROR_CODE(int) == pss_comp_stmt_parse(comp, &res))
+		if(ERROR_CODE(int) == pss_comp_stmt_parse(comp))
 			ERROR_RETURN_LOG(int, "Cannot parse the next statement");
 
 	}
+
 	return 0;
 }

@@ -30,16 +30,13 @@
 
 int pss_comp_value_simplify(pss_comp_t* comp, pss_comp_value_t* value)
 {
-	if(NULL == comp || NULL == value) PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Invalid arguments");
+	if(NULL == comp || NULL == value) PSS_COMP_RAISE_INT(comp, ARGS);
 
-	if(value->kind == PSS_COMP_VALUE_KIND_GLOBAL_DICT) 
-		PSS_COMP_RAISE_RETURN(int, comp, "Syntax error: malformed global accessor");
-
+	if(value->kind == PSS_COMP_VALUE_KIND_GLOBAL_DICT) PSS_COMP_RAISE_SYN(int, comp, "Malformed global accessor");
 	if(value->kind == PSS_COMP_VALUE_KIND_REG) return 0;
 
 	pss_bytecode_segment_t* segment = pss_comp_get_code_segment(comp);
-	if(NULL == segment)
-		ERROR_RETURN_LOG(int, "Cannot get current code segment");
+	if(NULL == segment) ERROR_RETURN_LOG(int, "Cannot get current code segment");
 
 	pss_bytecode_regid_t result = pss_comp_mktmp(comp);
 	if(ERROR_CODE(pss_bytecode_regid_t) == result)
@@ -51,14 +48,14 @@ int pss_comp_value_simplify(pss_comp_t* comp, pss_comp_value_t* value)
 	{
 		nregs = 2;
 		if(!_INST(segment, GET_VAL, _R(value->regs[0].id), _R(value->regs[1].id), _R(result)))
-			PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Cannot append instruction to code segment");
+			PSS_COMP_RAISE_INT(comp, CODE);
 
 	}
 	else if(value->kind == PSS_COMP_VALUE_KIND_GLOBAL)
 	{
 		nregs = 1;
 		if(!_INST(segment, GLOBAL_GET, _R(value->regs[0].id), _R(result)))
-			PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Cannot append instruction to code segment");
+			PSS_COMP_RAISE_INT(comp, CODE);
 	}
 
 	if(nregs > 0 && value->regs[0].tmp && ERROR_CODE(int) == pss_comp_rmtmp(comp, value->regs[0].id))
@@ -76,8 +73,7 @@ int pss_comp_value_simplify(pss_comp_t* comp, pss_comp_value_t* value)
 
 int pss_comp_value_release(pss_comp_t* comp, pss_comp_value_t* value)
 {
-	if(NULL == comp || NULL == value)
-		PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Invalid arguments");
+	if(NULL == comp || NULL == value) PSS_COMP_RAISE_INT(comp, ARGS);
 
 	int n = 1;
 	if(value->kind == PSS_COMP_VALUE_KIND_DICT) n = 2;
@@ -115,18 +111,17 @@ static inline int _parse_function_literal(pss_comp_t* comp, pss_bytecode_segment
 			ERROR_LOG_GOTO(FUNC_ERR, "Cannot peek the next token");
 		if(ahead->type == PSS_COMP_LEX_TOKEN_RPARENTHESIS) break;
 		else if(ahead->type != PSS_COMP_LEX_TOKEN_IDENTIFIER)
-			PSS_COMP_RAISE_GOTO(FUNC_ERR, comp, "Syntax error: Invalid argument list");
+			PSS_COMP_RAISE_SYN_GOTO(FUNC_ERR, comp, "Invalid argument list, identifier expected");
 
 		size_t len = strlen(ahead->value.s);
 		if(NULL == (argv[argc] = (char*)malloc(len + 1)))
-			PSS_COMP_RAISE_GOTO(FUNC_ERR, comp, "Internal Error: Cannot allocate memory for the argument list");
+			PSS_COMP_RAISE_INT_GOTO(FUNC_ERR, comp, MALLOC);
 
 		memcpy(argv[argc], ahead->value.s, len + 1);
-
 		argc ++;
 
 		if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
-			PSS_COMP_RAISE_GOTO(FUNC_ERR, comp, "Internal Error: Cannot consume the token");
+			ERROR_LOG_GOTO(FUNC_ERR, "Cannot consume the ahead token");
 
 		if(NULL == (ahead = pss_comp_peek(comp, 0)))
 			ERROR_LOG_GOTO(FUNC_ERR, "Cannot peek the next token");
@@ -137,11 +132,11 @@ static inline int _parse_function_literal(pss_comp_t* comp, pss_bytecode_segment
 				ERROR_LOG_GOTO(FUNC_ERR, "Cannot consume the argument seperator");
 		}
 		else if(ahead->type != PSS_COMP_LEX_TOKEN_RPARENTHESIS)
-			PSS_COMP_RAISE_GOTO(FUNC_ERR, comp, "Syntax error: Unexpected token in argument list");
+			PSS_COMP_RAISE_SYN_GOTO(FUNC_ERR, comp, "Unexpected token in the function argument list");
 	}
 
 	if(argc >= sizeof(argv) / sizeof(argv[0]))
-		PSS_COMP_RAISE_GOTO(FUNC_ERR, comp, "Syntax error: too many argument in function param list");
+		PSS_COMP_RAISE_SYN_GOTO(FUNC_ERR, comp, "Too many arguments in the function argument list");
 
 	if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
 		ERROR_LOG_GOTO(FUNC_ERR, "Cannot consume the end of argument list");
@@ -152,9 +147,7 @@ static inline int _parse_function_literal(pss_comp_t* comp, pss_bytecode_segment
 	for(; argc > 0; argc --)
 		free(argv[argc - 1]);
 
-	pss_comp_block_t body_result;
-
-	if(ERROR_CODE(int) == pss_comp_block_parse(comp, PSS_COMP_LEX_TOKEN_LBRACE, PSS_COMP_LEX_TOKEN_RBRACE, &body_result))
+	if(ERROR_CODE(int) == pss_comp_block_parse(comp, PSS_COMP_LEX_TOKEN_LBRACE, PSS_COMP_LEX_TOKEN_RBRACE))
 		ERROR_RETURN_LOG(int, "Cannot parse the function body");
 
 	pss_bytecode_segid_t funcid = pss_comp_close_closure(comp);
@@ -165,7 +158,7 @@ static inline int _parse_function_literal(pss_comp_t* comp, pss_bytecode_segment
 
 	if(!_INST(seg, INT_LOAD, _N(funcid), _R(buf->regs[0].id)) ||
 	   !_INST(seg, CLOSURE_NEW, _R(buf->regs[0].id), _R(buf->regs[0].id)))
-		   PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Cannot append instruction");
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	return 0;
 FUNC_ERR:
@@ -202,7 +195,7 @@ static inline int _parse_variable_term(pss_comp_t* comp, pss_bytecode_segment_t*
 			buf->regs[0].tmp = 1;
 
 		if(!_INST(seg, STR_LOAD, _S(ahead->value.s), _R(buf->regs[0].id)))
-			PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
+			PSS_COMP_RAISE_INT(comp, CODE);
 	}
 	else 
 	{
@@ -224,22 +217,17 @@ static inline int _parse_literal(pss_comp_t* comp, pss_bytecode_segment_t* seg, 
 	if(ERROR_CODE(int) == _make_rvalue(comp, buf)) return ERROR_CODE(int);
 
 	if(ahead->type == PSS_COMP_LEX_TOKEN_STRING && !_INST(seg, STR_LOAD, _S(ahead->value.s), _R(buf->regs[0].id)))
-		goto RAISE;
+		PSS_COMP_RAISE_INT(comp, CODE);
 	if(ahead->type == PSS_COMP_LEX_TOKEN_INTEGER && !_INST(seg, INT_LOAD, _N(ahead->value.i), _R(buf->regs[0].id)))
-		goto RAISE;
+		PSS_COMP_RAISE_INT(comp, CODE);
 	if(ahead->type == PSS_COMP_LEX_TOKEN_KEYWORD && ahead->value.k == PSS_COMP_LEX_KEYWORD_UNDEFINED && !_INST(seg, UNDEF_LOAD, _R(buf->regs[0].id)))
-		goto RAISE;
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	if(ERROR_CODE(int) == pss_comp_comsume(comp, 1))
 		ERROR_RETURN_LOG(int, "Cannot consume the string literal");
 
 	return 0;
-
-RAISE:
-	PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Cannot append instruction to the code segment");
 }
-
-static inline int _parse_primitive(pss_comp_t* comp, pss_comp_value_t* buf);
 
 static inline int _parse_unary(pss_comp_t* comp, pss_bytecode_segment_t* seg, pss_comp_value_t* buf)
 {
@@ -251,17 +239,18 @@ static inline int _parse_unary(pss_comp_t* comp, pss_bytecode_segment_t* seg, ps
 	if(ahead->type == PSS_COMP_LEX_TOKEN_NOT) not = 1;
 
 	if(ERROR_CODE(int) == pss_comp_comsume(comp, 1)) ERROR_RETURN_LOG(int, "Cannot consume the first token");
-	if(ERROR_CODE(int) == _parse_primitive(comp, buf)) ERROR_RETURN_LOG(int, "Cannot parse the inner register");
+	if(ERROR_CODE(int) == pss_comp_value_parse(comp, buf)) ERROR_RETURN_LOG(int, "Cannot parse the inner register");
 	if(ERROR_CODE(int) == pss_comp_value_simplify(comp, buf))  ERROR_RETURN_LOG(int, "Cannot construct the R-Value");
 	
 	pss_comp_value_t val = {};
 	if(ERROR_CODE(int) == _make_rvalue(comp, &val)) ERROR_RETURN_LOG(int, "Cannot make the temp value");
 
-	if(!_INST(seg, INT_LOAD, _N(0), _R(val.regs[0].id))) goto RAISE;
+	if(!_INST(seg, INT_LOAD, _N(0), _R(val.regs[0].id)))
+		PSS_COMP_RAISE_INT(comp, CODE);
 	if(not && !_INST(seg, EQ, _R(val.regs[0].id), _R(buf->regs[0].id), _R(val.regs[0].id)))
-		goto RAISE;
+		PSS_COMP_RAISE_INT(comp, CODE);
 	if(!not && !_INST(seg, SUB, _R(val.regs[0].id), _R(buf->regs[0].id), _R(val.regs[0].id)))
-		goto RAISE;
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	if(ERROR_CODE(int) == pss_comp_value_release(comp, buf))
 		ERROR_RETURN_LOG(int, "Cannot release the tmp value");
@@ -269,8 +258,6 @@ static inline int _parse_unary(pss_comp_t* comp, pss_bytecode_segment_t* seg, ps
 	*buf = val;
 
 	return 0;
-RAISE:
-	PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
 }
 
 static inline int _parse_subscript(pss_comp_t* comp, pss_bytecode_segment_t* seg, pss_comp_value_t* buf)
@@ -349,16 +336,15 @@ static inline int _parse_application(pss_comp_t* comp, pss_bytecode_segment_t* s
 			if(NULL == (ahead = pss_comp_peek(comp, 0)))
 				ERROR_RETURN_LOG(int, "Cannot peek the next token");
 		}
-		else PSS_COMP_RAISE_RETURN(int, comp, "Syntax error: Invalid argument list");
+		else PSS_COMP_RAISE_SYN(int, comp, "Invalid argument list");
 	}
 
 	uint32_t j;
 	for(j = 0; j <= i && j < PSS_VM_ARG_MAX; j ++)
 		if(!_INST(seg, ARG, _R(args[j].regs[0].id)))
-			PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
+			PSS_COMP_RAISE_INT(comp, CODE);
 
-	if(i >= PSS_VM_ARG_MAX)
-		PSS_COMP_RAISE_RETURN(int, comp, "Syntax error: too many arguments");
+	if(i >= PSS_VM_ARG_MAX) PSS_COMP_RAISE_SYN(int, comp, "Too many arguments in the function application");
 
 	if(ERROR_CODE(int) == pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_RPARENTHESIS))
 		return ERROR_CODE(int);
@@ -368,7 +354,7 @@ static inline int _parse_application(pss_comp_t* comp, pss_bytecode_segment_t* s
 		return ERROR_CODE(int);
 
 	if(!_INST(seg, CALL, _R(buf->regs[0].id), _R(tmp.regs[0].id)))
-		PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
+		PSS_COMP_RAISE_INT(comp, CODE);
 	
 	if(ERROR_CODE(int) == pss_comp_value_release(comp, buf))
 		ERROR_RETURN_LOG(int, "Cannot release the argument");
@@ -407,8 +393,11 @@ static inline int _parse_trailer(pss_comp_t* comp, pss_bytecode_segment_t* seg, 
 	return 0;
 }
 
-static inline int _parse_primitive(pss_comp_t* comp, pss_comp_value_t* buf)
+int pss_comp_value_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 {
+	if(NULL == comp || NULL == buf)
+		PSS_COMP_RAISE_INT(comp, CODE);
+
 	const pss_comp_lex_token_t* ahead = pss_comp_peek(comp, 0);
 	if(NULL == ahead) ERROR_RETURN_LOG(int, "Cannot peek token");
 
@@ -434,7 +423,8 @@ static inline int _parse_primitive(pss_comp_t* comp, pss_comp_value_t* buf)
 				rc = _parse_literal(comp, seg, buf);
 			else if(ahead->value.k == PSS_COMP_LEX_KEYWORD_FUNCTION)
 				rc = _parse_function_literal(comp, seg, buf);
-			else PSS_COMP_RAISE_RETURN(int, comp, "Syntax error: Unexpected keyword in value");
+			else PSS_COMP_RAISE_SYN(int, comp, "Unexpected keyword while parsing value"); 
+			
 			break;
 
 		case PSS_COMP_LEX_TOKEN_MINUS:
@@ -443,26 +433,17 @@ static inline int _parse_primitive(pss_comp_t* comp, pss_comp_value_t* buf)
 			break;
 
 		case PSS_COMP_LEX_TOKEN_LBRACE: 
-			PSS_COMP_RAISE_RETURN(int, comp, "Fixme: Dictionary haven't implemented");
-			break;
+			return pss_comp_raise(comp, "Fixme: Dictionary literal is not implemented");
 
 		case PSS_COMP_LEX_TOKEN_IDENTIFIER:
 			rc = _parse_variable_term(comp, seg, buf);
 			break;
 
 		default:
-			PSS_COMP_RAISE_RETURN(int, comp, "Syntax error: Invalid primitive value");
+			PSS_COMP_RAISE_SYN(int, comp, "Invalid value term");
 	}
 
 	if(ERROR_CODE(int) == rc) ERROR_RETURN_LOG(int, "Cannot parse simple primitive");
 
 	return _parse_trailer(comp, seg, buf);
-}
-
-int pss_comp_value_parse(pss_comp_t* comp, pss_comp_value_t* result)
-{
-	if(NULL == comp || NULL == result)
-		PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Invalid arguments");
-
-	return _parse_primitive(comp, result);
 }

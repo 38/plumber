@@ -20,6 +20,16 @@
 #include <pss/comp/value.h>
 #include <pss/comp/expr.h>
 
+#define _S(what) PSS_BYTECODE_ARG_STRING(what)
+
+#define _R(what) PSS_BYTECODE_ARG_REGISTER(what)
+
+#define _N(what) PSS_BYTECODE_ARG_NUMERIC(what)
+
+#define _L(what) PSS_BYTECODE_ARG_LABEL(what)
+
+#define _INST(segment, opcode, args...) (ERROR_CODE(pss_bytecode_addr_t) != pss_bytecode_segment_append_code(segment, PSS_BYTECODE_OPCODE_##opcode, ##args, PSS_BYTECODE_ARG_END))
+
 /**
  * @brief The accosiativity of the operator, 0 means left accosiative, 1 means right accosiative */
 static const int _associativity[PSS_COMP_LEX_TOKEN_NUM_OF_ENTRIES] = {
@@ -68,13 +78,12 @@ static const pss_bytecode_opcode_t _opcode[PSS_COMP_LEX_TOKEN_NUM_OF_ENTRIES] = 
 
 int pss_comp_expr_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 {
-	if(NULL == comp || NULL == buf) PSS_COMP_RAISE_RETURN(int, comp, "Internal Error: Invalid arguments");
+	if(NULL == comp || NULL == buf) PSS_COMP_RAISE_INT(comp, ARGS);
 
 	pss_bytecode_segment_t* seg;
 	const pss_comp_lex_token_t* ahead;
 
-	if(NULL == (seg = pss_comp_get_code_segment(comp)))
-		PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot get the code segment");
+	if(NULL == (seg = pss_comp_get_code_segment(comp))) PSS_COMP_RAISE_INT(comp, SEG);
 	
 	pss_comp_value_t          vs[128];
 	pss_comp_lex_token_type_t ts[128];
@@ -95,38 +104,25 @@ int pss_comp_expr_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 			if(ts[sp - 1] == PSS_COMP_LEX_TOKEN_EQUAL)
 			{
 				if(!pss_comp_value_is_lvalue(vs + sp - 1))
-					PSS_COMP_RAISE_RETURN(int, comp, "Syntax error: L-Value expected");
+					PSS_COMP_RAISE_SYN(int, comp, "Got R-Value on the left side of assignment operator");
 				if(ERROR_CODE(int) == pss_comp_value_simplify(comp, vs + sp))
 					ERROR_RETURN_LOG(int, "Cannot simplify the right operand");
 				switch(vs[sp - 1].kind)
 				{
 					case PSS_COMP_VALUE_KIND_REG:
-						if(ERROR_CODE(pss_bytecode_addr_t) == pss_bytecode_segment_append_code(seg, 
-									PSS_BYTECODE_OPCODE_MOVE, 
-									PSS_BYTECODE_ARG_REGISTER(vs[sp].regs[0].id),
-									PSS_BYTECODE_ARG_REGISTER(vs[sp -1].regs[0].id),
-									PSS_BYTECODE_ARG_END))
-							PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
+						if(!_INST(seg, MOVE, _R(vs[sp].regs[0].id), _R(vs[sp - 1].regs[0].id)))
+							PSS_COMP_RAISE_INT(comp, CODE);
 						break;
 					case PSS_COMP_VALUE_KIND_DICT:
-						if(ERROR_CODE(pss_bytecode_addr_t) == pss_bytecode_segment_append_code(seg,
-									PSS_BYTECODE_OPCODE_SET_VAL,
-									PSS_BYTECODE_ARG_REGISTER(vs[sp].regs[0].id),
-									PSS_BYTECODE_ARG_REGISTER(vs[sp - 1].regs[0].id),
-									PSS_BYTECODE_ARG_REGISTER(vs[sp - 1].regs[1].id),
-									PSS_BYTECODE_ARG_END))
-							PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
+						if(!_INST(seg, SET_VAL, _R(vs[sp].regs[0].id), _R(vs[sp - 1].regs[0].id), _R(vs[sp - 1].regs[1].id)))
+							PSS_COMP_RAISE_INT(comp, CODE);
 						break;
 					case PSS_COMP_VALUE_KIND_GLOBAL:
-						if(ERROR_CODE(pss_bytecode_addr_t) == pss_bytecode_segment_append_code(seg,
-									PSS_BYTECODE_OPCODE_GLOBAL_SET,
-									PSS_BYTECODE_ARG_REGISTER(vs[sp].regs[0].id),
-									PSS_BYTECODE_ARG_REGISTER(vs[sp - 1].regs[0].id),
-									PSS_BYTECODE_ARG_END))
-							PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
+						if(!_INST(seg, GLOBAL_SET, _R(vs[sp].regs[0].id), _R(vs[sp - 1].regs[0].id)))
+							PSS_COMP_RAISE_INT(comp, CODE);
 						break;
 					case PSS_COMP_VALUE_KIND_GLOBAL_DICT:
-						PSS_COMP_RAISE_RETURN(int, comp, "Syntax error: Malformed global accessor");
+						PSS_COMP_RAISE_SYN(int, comp, "Malformed global accessor");
 				}
 				
 				if(ERROR_CODE(int) == pss_comp_value_release(comp, vs + sp - 1))
@@ -135,29 +131,36 @@ int pss_comp_expr_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 			}
 			else 
 			{
-				if(_priority[ts[sp - 1]] == 0) 
-					PSS_COMP_RAISE_RETURN(int, comp, "Syntax error: operator expected");
+				if(_priority[ts[sp - 1]] == 0)
+					PSS_COMP_RAISE_SYN(int, comp, "Invalid operator");
+				
 				pss_bytecode_opcode_t opcode = _opcode[ts[sp - 1]];
+				
 				if(ERROR_CODE(int) == pss_comp_value_simplify(comp, vs + sp))
 					ERROR_RETURN_LOG(int, "Cannot simplify the right operand");
+				
 				if(ERROR_CODE(int) == pss_comp_value_simplify(comp, vs + sp - 1))
 					ERROR_RETURN_LOG(int, "Cannot simplify the left operand");
+				
 				pss_comp_value_t result = { .kind = PSS_COMP_VALUE_KIND_REG };
+			
 				if(ERROR_CODE(pss_bytecode_regid_t) == (result.regs[0].id = pss_comp_mktmp(comp)))
 					ERROR_RETURN_LOG(int, "Cannot create new result register");
-				else
-					result.regs[0].tmp = 1;
+				result.regs[0].tmp = 1;
 
 				if(ERROR_CODE(pss_bytecode_addr_t) == pss_bytecode_segment_append_code(seg, opcode, 
 							PSS_BYTECODE_ARG_REGISTER(vs[sp - 1].regs[0].id),
 							PSS_BYTECODE_ARG_REGISTER(vs[sp].regs[0].id),
 							PSS_BYTECODE_ARG_REGISTER(result.regs[0].id),
 							PSS_BYTECODE_ARG_END))
-					PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append bytecode");
+					PSS_COMP_RAISE_INT(comp, CODE);
+
 				if(ERROR_CODE(int) == pss_comp_value_release(comp, vs + sp))
 					ERROR_RETURN_LOG(int, "Cannot release the used value");
+
 				if(ERROR_CODE(int) == pss_comp_value_release(comp, vs + sp - 1))
 					ERROR_RETURN_LOG(int, "Cannot release the used value");
+
 				vs[sp-1] = result;
 			}
 		}

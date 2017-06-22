@@ -9,17 +9,29 @@
 #ifndef __PSS_COMP_COMP_H__
 #define __PSS_COMP_COMP_H__
 
-#define PSS_COMP_RAISE_ACTION(action, comp, msg, args...) do {\
-	pss_comp_raise(comp, msg, ##args);\
+#define PSS_COMP_RAISE_SYN_ACTION(action, comp, msg, args...) do {\
+	pss_comp_raise(comp, "Syntax error: "msg, ##args);\
 	LOG_ERROR(msg"@(%u:%u,%s)", ##args, pss_comp_peek(comp, 0)->line, pss_comp_peek(comp, 0)->offset, pss_comp_peek(comp, 0)->file);\
 	action;\
 } while(0)
 
-#define PSS_COMP_RAISE_RETURN(type, comp, msg, args...) PSS_COMP_RAISE_ACTION(return ERROR_CODE(type), comp, msg, ##args)
+#define PSS_COMP_RAISE_SYN(type, comp, msg, args...) PSS_COMP_RAISE_SYN_ACTION(return ERROR_CODE(type), comp, msg, ##args)
 
-#define PSS_COMP_RAISE_RETURN_PTR(comp, msg, args...) PSS_COMP_RAISE_ACTION(return NULL, comp, msg, ##args)
+#define PSS_COMP_RAISE_SYNT_PTR(comp, msg, args...) PSS_COMP_RAISE_SYN_ACTION(return NULL, comp, msg, ##args)
 
-#define PSS_COMP_RAISE_GOTO(label, comp, msg, args...) PSS_COMP_RAISE_ACTION(goto label, comp, msg, ##args)
+#define PSS_COMP_RAISE_SYN_GOTO(label, comp, msg, args...) PSS_COMP_RAISE_SYN_ACTION(goto label, comp, msg, ##args)
+
+#define PSS_COMP_RAISE_INT(comp, reason) do{ return pss_comp_raise_internal(comp, PSS_COMP_INTERNAL_##reason); } while(0)
+
+#define PSS_COMP_RAISE_INT_GOTO(label, comp, reason) do { pss_comp_raise_internal(comp, PSS_COMP_INTERNAL_##reason); goto label; } while(0)
+
+typedef enum {
+	PSS_COMP_INTERNAL_CODE,    /*!< We cannot append code to the instruction */
+	PSS_COMP_INTERNAL_SEG,     /*!< We cannot acquire the bytecode segment to output */
+	PSS_COMP_INTERNAL_MALLOC,  /*!< We cannot allocate memory normally */
+	PSS_COMP_INTERNAL_ARGS,    /*!< We have some invalid arguments */
+	PSS_COMP_INTERNAL_BUG      /*!< This is some compiler bug situation */
+} pss_comp_internal_t;
 
 /**
  * @brief Represent an options for a parser
@@ -226,5 +238,13 @@ int pss_comp_expect_keyword(pss_comp_t* comp, pss_comp_lex_keyword_t keyword);
  **/
 int pss_comp_raise(pss_comp_t* comp, const char* msg, ...)
 	__attribute__((format(printf,2,3)));
+
+/**
+ * @brief raise an internal error and return an error code
+ * @param comp The compiler
+ * @param reason The reason for why we are raising
+ * @return error code
+ **/
+int pss_comp_raise_internal(pss_comp_t* comp, pss_comp_internal_t reason);
 
 #endif

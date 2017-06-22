@@ -29,15 +29,8 @@
 
 #define _INST(segment, opcode, args...) (ERROR_CODE(pss_bytecode_addr_t) != pss_bytecode_segment_append_code(segment, PSS_BYTECODE_OPCODE_##opcode, ##args, PSS_BYTECODE_ARG_END))
 
-static inline int _expr_stmt(pss_comp_t* comp, pss_comp_stmt_result_t* result)
+static inline int _expr_stmt(pss_comp_t* comp)
 {
-	pss_bytecode_segment_t* seg;
-	if(NULL == (seg = pss_comp_get_code_segment(comp)))
-		ERROR_RETURN_LOG(int, "Cannot get current code segment");
-
-	if(NULL != result)
-		result->begin = result->end = pss_bytecode_segment_length(seg);
-
 	pss_comp_value_t val = {};
 
 	if(ERROR_CODE(int) == pss_comp_expr_parse(comp, &val))
@@ -46,20 +39,11 @@ static inline int _expr_stmt(pss_comp_t* comp, pss_comp_stmt_result_t* result)
 	if(ERROR_CODE(int) == pss_comp_value_release(comp, &val))
 		ERROR_RETURN_LOG(int, "Cannot release the value");
 
-	if(NULL != result) result->end = pss_bytecode_segment_length(seg);
-
 	return 0;
 }
 
-static inline int _if_stmt(pss_comp_t* comp, pss_comp_stmt_result_t* result)
+static inline int _if_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 {
-	pss_bytecode_segment_t* seg;
-	if(NULL == (seg = pss_comp_get_code_segment(comp)))
-		ERROR_RETURN_LOG(int, "Cannot get current code segment");
-
-	if(NULL != result)
-		result->begin = result->end = pss_bytecode_segment_length(seg);
-	
 	if(ERROR_CODE(int) == pss_comp_expect_keyword(comp, PSS_COMP_LEX_KEYWORD_IF))
 		ERROR_RETURN_LOG(int, "Invalid if statement");
 
@@ -94,10 +78,10 @@ static inline int _if_stmt(pss_comp_t* comp, pss_comp_stmt_result_t* result)
 		ERROR_RETURN_LOG(int, "Cannot create target register");
 
 	if(!_INST(seg, INT_LOAD, _L(lelse), _R(r_target)))
-		PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	if(!_INST(seg, JZ, _R(val.regs[0].id), _R(r_target)))
-		PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	if(ERROR_CODE(int) == pss_comp_value_release(comp, &val))
 		ERROR_RETURN_LOG(int, "Cannot release the used value");
@@ -106,8 +90,7 @@ static inline int _if_stmt(pss_comp_t* comp, pss_comp_stmt_result_t* result)
 	if(ERROR_CODE(int) == pss_comp_rmtmp(comp, r_target))
 		ERROR_RETURN_LOG(int, "Cannot release the target register");
 
-	pss_comp_stmt_result_t then_block;
-	if(ERROR_CODE(int) == pss_comp_stmt_parse(comp, &then_block))
+	if(ERROR_CODE(int) == pss_comp_stmt_parse(comp))
 		ERROR_RETURN_LOG(int, "Cannot parse the then block");
 	
 	const pss_comp_lex_token_t* ahead = pss_comp_peek(comp, 0);
@@ -132,10 +115,10 @@ static inline int _if_stmt(pss_comp_t* comp, pss_comp_stmt_result_t* result)
 			ERROR_RETURN_LOG(int, "Cannot create target register");
 
 		if(!_INST(seg, INT_LOAD, _L(lend), _R(r_target)))
-			PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
+			PSS_COMP_RAISE_INT(comp, CODE);
 
 		if(!_INST(seg, JUMP, _R(r_target)))
-			PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
+			PSS_COMP_RAISE_INT(comp, CODE);
 
 		if(ERROR_CODE(int) == pss_comp_rmtmp(comp, r_target))
 			ERROR_RETURN_LOG(int, "Cannot release the target register");
@@ -151,28 +134,18 @@ static inline int _if_stmt(pss_comp_t* comp, pss_comp_stmt_result_t* result)
 		if(ERROR_CODE(int) == pss_comp_expect_keyword(comp, PSS_COMP_LEX_KEYWORD_ELSE))
 			ERROR_RETURN_LOG(int, "Unexpected token");
 
-		pss_comp_stmt_result_t else_block;
-		if(ERROR_CODE(int) == pss_comp_stmt_parse(comp, &else_block))
+		if(ERROR_CODE(int) == pss_comp_stmt_parse(comp))
 			ERROR_RETURN_LOG(int, "Cannot parse the then block");
 	}
 
 	if(ERROR_CODE(int) == pss_comp_close_control_block(comp))
 		ERROR_RETURN_LOG(int, "Cannot close the last control block");
 	
-	if(NULL != result) result->end = pss_bytecode_segment_length(seg);
-
 	return 0;
 }
 
-static inline int _while_stmt(pss_comp_t* comp, pss_comp_stmt_result_t* result)
+static inline int _while_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 {
-	pss_bytecode_segment_t* seg;
-	if(NULL == (seg = pss_comp_get_code_segment(comp)))
-		ERROR_RETURN_LOG(int, "Cannot get current code segment");
-
-	if(NULL != result)
-		result->begin = result->end = pss_bytecode_segment_length(seg);
-
 	if(ERROR_CODE(int) == pss_comp_expect_keyword(comp, PSS_COMP_LEX_KEYWORD_WHILE))
 		ERROR_RETURN_LOG(int, "While token expected");
 
@@ -207,49 +180,37 @@ static inline int _while_stmt(pss_comp_t* comp, pss_comp_stmt_result_t* result)
 		ERROR_RETURN_LOG(int, "Cannot allocate temp register for the jump target");
 
 	if(!_INST(seg, INT_LOAD, _L(lend), _R(r_target)))
-		PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	if(!_INST(seg, JZ, _R(val.regs[0].id), _R(r_target)))
-		PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	if(ERROR_CODE(int) == pss_comp_value_release(comp, &val) ||
 	   ERROR_CODE(int) == pss_comp_rmtmp(comp, r_target))
 		ERROR_RETURN_LOG(int, "Cannot release the unused registers");
 
-	pss_comp_stmt_result_t body_result;
-
-	if(ERROR_CODE(int) == pss_comp_stmt_parse(comp, &body_result))
+	if(ERROR_CODE(int) == pss_comp_stmt_parse(comp))
 		ERROR_RETURN_LOG(int, "Cannot parse the loop body");
 
 	if(ERROR_CODE(pss_bytecode_regid_t) == (r_target = pss_comp_mktmp(comp)))
 		ERROR_RETURN_LOG(int, "Cannot allocate tmp register for the jump target");
 
 	if(!_INST(seg, INT_LOAD, _N(begin), _R(r_target)))
-		PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	if(!_INST(seg, JUMP, _R(r_target)))
-		PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	if(ERROR_CODE(int) == pss_comp_rmtmp(comp, r_target))
 		ERROR_RETURN_LOG(int, "Cannot reliease the unseud registers");
 
 	if(ERROR_CODE(int) == pss_comp_close_control_block(comp))
 		ERROR_RETURN_LOG(int, "Cannot close the control block");
-
-	if(NULL != result) result->end = pss_bytecode_segment_length(seg);
-
 	return 0;
 }
 
-static inline int _break_or_continue(pss_comp_t* comp, pss_comp_lex_keyword_t tok, pss_comp_stmt_result_t* result)
+static inline int _break_or_continue(pss_comp_t* comp, pss_comp_lex_keyword_t tok, pss_bytecode_segment_t* seg)
 {
-	pss_bytecode_segment_t* seg;
-	if(NULL == (seg = pss_comp_get_code_segment(comp)))
-		ERROR_RETURN_LOG(int, "Cannot get current code segment");
-
-	if(NULL != result)
-		result->begin = result->end = pss_bytecode_segment_length(seg);
-
 	pss_bytecode_regid_t r_target;
 	if(ERROR_CODE(pss_bytecode_regid_t) == (r_target = pss_comp_mktmp(comp)))
 		ERROR_RETURN_LOG(int, "Cannot allocate temp register for the jump target");
@@ -261,7 +222,7 @@ static inline int _break_or_continue(pss_comp_t* comp, pss_comp_lex_keyword_t to
 			ERROR_RETURN_LOG(int, "Not inside a loop");
 
 		if(!_INST(seg, INT_LOAD, _N(addr), _R(r_target)))
-			PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append instruction");
+			PSS_COMP_RAISE_INT(comp, CODE);
 	}
 	else
 	{
@@ -270,11 +231,11 @@ static inline int _break_or_continue(pss_comp_t* comp, pss_comp_lex_keyword_t to
 			ERROR_RETURN_LOG(int, "Not inside a loop");
 
 		if(!_INST(seg, INT_LOAD, _L(label), _R(r_target)))
-			PSS_COMP_RAISE_RETURN(int, comp, "Intenral error: Cannot append instruction");
+			PSS_COMP_RAISE_INT(comp, CODE);
 	}
 
 	if(!_INST(seg, JUMP, _R(r_target)))
-		PSS_COMP_RAISE_RETURN(int, comp, "Intenral error: Cannot append instruction");
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	if(ERROR_CODE(int) == pss_comp_rmtmp(comp, r_target))
 		ERROR_RETURN_LOG(int, "Cannot reliease the unseud registers");
@@ -282,15 +243,8 @@ static inline int _break_or_continue(pss_comp_t* comp, pss_comp_lex_keyword_t to
 	return 0;
 }
 
-static inline int _return_stmt(pss_comp_t* comp, pss_comp_stmt_result_t* result)
+static inline int _return_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 {
-	pss_bytecode_segment_t* seg;
-	if(NULL == (seg = pss_comp_get_code_segment(comp)))
-		ERROR_RETURN_LOG(int, "Cannot get current code segment");
-
-	if(NULL != result)
-		result->begin = result->end = pss_bytecode_segment_length(seg);
-
 	if(ERROR_CODE(int) == pss_comp_expect_keyword(comp, PSS_COMP_LEX_KEYWORD_RETURN))
 		ERROR_RETURN_LOG(int, "Cannot get the current key word");
 
@@ -303,23 +257,23 @@ static inline int _return_stmt(pss_comp_t* comp, pss_comp_stmt_result_t* result)
 		ERROR_RETURN_LOG(int, "Cannot simplify the value");
 
 	if(ERROR_CODE(pss_bytecode_addr_t) == pss_bytecode_segment_append_code(seg, PSS_BYTECODE_OPCODE_RETURN, PSS_BYTECODE_ARG_REGISTER(val.regs[0].id), PSS_BYTECODE_ARG_END))
-		PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Cannot append code");
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	if(ERROR_CODE(int) == pss_comp_value_release(comp, &val))
 		ERROR_RETURN_LOG(int, "Cannot release the value");
 	
-	if(NULL != result) result->end = pss_bytecode_segment_length(seg);
 	return 0;
 }
 
-
-int pss_comp_stmt_parse(pss_comp_t* comp, pss_comp_stmt_result_t* result)
+int pss_comp_stmt_parse(pss_comp_t* comp)
 {
-	if(NULL == comp) PSS_COMP_RAISE_RETURN(int, comp, "Internal error: Invalid arguments");
+	if(NULL == comp) PSS_COMP_RAISE_INT(comp, ARGS);
+
+	pss_bytecode_segment_t* seg = pss_comp_get_code_segment(comp);
+	if(NULL == seg) ERROR_RETURN_LOG(int, "Cannot get current bytecode segment");
 
 	const pss_comp_lex_token_t* ahead = pss_comp_peek(comp, 0);
-	if(NULL == ahead)
-		ERROR_RETURN_LOG(int, "Cannot peek the token ahead");
+	if(NULL == ahead) ERROR_RETURN_LOG(int, "Cannot peek the token ahead");
 
 	int rc = 0;
 	switch(ahead->type)
@@ -332,28 +286,28 @@ int pss_comp_stmt_parse(pss_comp_t* comp, pss_comp_stmt_result_t* result)
 			switch(ahead->value.k)
 			{
 				case PSS_COMP_LEX_KEYWORD_RETURN:
-					rc = _return_stmt(comp, result);
+					rc = _return_stmt(comp, seg);
 					break;
 				case PSS_COMP_LEX_KEYWORD_IF:
-					rc = _if_stmt(comp, result);
+					rc = _if_stmt(comp, seg);
 					break;
 				case PSS_COMP_LEX_KEYWORD_WHILE:
-					rc = _while_stmt(comp, result);
+					rc = _while_stmt(comp, seg);
 					break;
 				case PSS_COMP_LEX_KEYWORD_CONTINUE:
 				case PSS_COMP_LEX_KEYWORD_BREAK:
-					rc = _break_or_continue(comp, ahead->value.k, result);
+					rc = _break_or_continue(comp, ahead->value.k, seg);
 					break;
 				default:
-					PSS_COMP_RAISE_RETURN(int, comp, "Syntax error: Unexpected keyword");
+					PSS_COMP_RAISE_SYN(int, comp, "Unexpected keyword");
 			}
 			break;
 		case PSS_COMP_LEX_TOKEN_LBRACE:
-			if(ERROR_CODE(int) == pss_comp_block_parse(comp, PSS_COMP_LEX_TOKEN_LBRACE, PSS_COMP_LEX_TOKEN_RBRACE, NULL))
+			if(ERROR_CODE(int) == pss_comp_block_parse(comp, PSS_COMP_LEX_TOKEN_LBRACE, PSS_COMP_LEX_TOKEN_RBRACE))
 				ERROR_RETURN_LOG(int, "Invalid block statement");
 			break;
 		default:
-			if(ERROR_CODE(int) == _expr_stmt(comp, result))
+			if(ERROR_CODE(int) == _expr_stmt(comp))
 				ERROR_RETURN_LOG(int, "Invalid expression statement");
 	}
 
