@@ -196,7 +196,7 @@ static inline int _match(pss_comp_lex_t* lexer, const char* str)
 
 static inline pss_comp_lex_keyword_t _id_or_keyword(pss_comp_lex_t* lexer, char* buffer, size_t size)
 {
-	if(_match(lexer, "include")) return PSS_COMP_LEX_KEYWORD_INCLUDE;
+	if(_match(lexer, "in")) return PSS_COMP_LEX_KEYWORD_IN;
 	if(_match(lexer, "if")) return PSS_COMP_LEX_KEYWORD_IF;
 	if(_match(lexer, "else")) return PSS_COMP_LEX_KEYWORD_ELSE;
 	if(_match(lexer, "var")) return PSS_COMP_LEX_KEYWORD_VAR;

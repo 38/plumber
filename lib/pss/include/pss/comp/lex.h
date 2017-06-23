@@ -61,7 +61,7 @@ typedef enum {
  **/
 typedef enum {
 	PSS_COMP_LEX_KEYWORD_ERROR = -1,
-	PSS_COMP_LEX_KEYWORD_INCLUDE,
+	PSS_COMP_LEX_KEYWORD_IN,
 	PSS_COMP_LEX_KEYWORD_IF,          /* if */
 	PSS_COMP_LEX_KEYWORD_ELSE,        /* else  */
 	PSS_COMP_LEX_KEYWORD_FUNCTION,

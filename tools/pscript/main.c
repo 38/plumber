@@ -204,6 +204,9 @@ int _program(int argc, char** argv)
 
 		pss_vm_exception_free(exception);
 	}
+
+	if(ERROR_CODE(int) == pss_vm_free(vm))
+		LOG_WARNING("Cannot dipsoes the VM");
 	
 	if(ERROR_CODE(int) == pss_bytecode_module_free(module))
 		LOG_WARNING("Cannot dipsose the module");

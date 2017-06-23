@@ -47,51 +47,51 @@ CaseBegin
 			  <undefined>
 CaseEnd
 */
-echo "Basic"
-echo 2!=1
-echo 2==1
-echo 2>=1
-echo 2>1
-echo 2<1
-echo 2<=1
-echo !1
-echo "a" == "b"
-echo "a" >= "b"
-echo "a" > "b"
-echo "a" < "b"
-echo "a" <= "b"
-echo "a" != "b"
-echo !"a"
+print("Basic");
+print(2!=1);
+print(2==1);
+print(2>=1);
+print(2>1);
+print(2<1);
+print(2<=1);
+print(!1);
+print("a" == "b");
+print("a" >= "b");
+print("a" > "b");
+print("a" < "b");
+print("a" <= "b");
+print("a" != "b");
+print(!"a");
 
-echo "Undefined Cmp"
-echo a == undefined
-echo undefined == a
-echo undefined == undefined
+print("Undefined Cmp");
+print(a == undefined);
+print(undefined == a);
+print(undefined == undefined);
 a = 0
-echo a == undefined
-echo undefined == a
+print(a == undefined);
+print(undefined == a);
 
-echo "Logic"
-echo 0 && 0
-echo 1 && 0
-echo 0 && 1
-echo 1 && 1
-echo 0 || 0
-echo 1 || 0
-echo 0 || 1
-echo 1 || 1
-echo !0
-echo !1
+print("Logic");
+print(0 && 0);
+print(1 && 0);
+print(0 && 1);
+print(1 && 1);
+print(0 || 0);
+print(1 || 0);
+print(0 || 1);
+print(1 || 1);
+print(!0);
+print(!1);
 
-echo "Undefined Logic"
-echo undefined && 0
-echo 0 && undefined
-echo undefined && 1
-echo 1 && undefined
-echo undefined && undefined
-echo undefined || 0
-echo 0 || undefined
-echo 1 || undefined
-echo undefined || 1
-echo undefined || undefined
-echo undefined
+print("Undefined Logic");
+print(undefined && 0);
+print(0 && undefined);
+print(undefined && 1);
+print(1 && undefined);
+print(undefined && undefined);
+print(undefined || 0);
+print(0 || undefined);
+print(1 || undefined);
+print(undefined || 1);
+print(undefined || undefined);
+print(undefined);

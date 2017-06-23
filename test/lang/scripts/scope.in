@@ -13,9 +13,9 @@ a = 3;
 
 {
 	a = a + 1;
-	echo a
+	print(a);
 }
-echo a
+print(a);
 
 {
 	var a;
@@ -23,15 +23,15 @@ echo a
 	{
 		var a;
 		a = 100;
-		echo a;
+		print(a);
 	}
-	echo a
+	print(a);
 }
 
-echo a
+print(a);
 
 {
 	var a;
-	if(a == undefined) echo "yes"
-	else echo "no"
+	if(a == undefined) print("yes");
+	else print("no");
 }

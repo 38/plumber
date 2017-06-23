@@ -260,6 +260,106 @@ static inline int _parse_unary(pss_comp_t* comp, pss_bytecode_segment_t* seg, ps
 	return 0;
 }
 
+static inline int _parse_inc_dec(pss_comp_t* comp, pss_bytecode_segment_t* seg, const pss_comp_value_t* prefix, pss_comp_value_t* buf)
+{
+	const pss_comp_lex_token_t* ahead = pss_comp_peek(comp, 0);
+	if(NULL == ahead) ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
+	int inc = (ahead->type == PSS_COMP_LEX_TOKEN_INCREASE);
+
+	if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
+		ERROR_RETURN_LOG(int, "Cannot consume token");
+
+	pss_comp_value_t term = {};
+	if(prefix == NULL)
+	{
+		if(ERROR_CODE(int) == pss_comp_value_parse(comp, &term))
+			ERROR_RETURN_LOG(int, "Cannot parse the actual term");
+	}
+	else term = *prefix;
+
+	if(!pss_comp_value_is_lvalue(&term))
+		PSS_COMP_RAISE_SYN(int, comp, "L-Value expected");
+
+	pss_comp_value_t one = {};
+	if(ERROR_CODE(int) == _make_rvalue(comp, &one))
+		ERROR_RETURN_LOG(int, "Cannot allocate temp register");
+
+	if(!_INST(seg, INT_LOAD, _N(1), _R(one.regs[0].id)))
+		PSS_COMP_RAISE_INT(comp, CODE);
+
+	pss_comp_value_t tmp = {};
+	if(ERROR_CODE(int) == _make_rvalue(comp, &tmp))
+		ERROR_RETURN_LOG(int, "Cannot allocate temp register");
+
+
+	switch(term.kind)
+	{
+		case PSS_COMP_VALUE_KIND_REG:
+			if(!_INST(seg, MOVE, _R(term.regs[0].id), _R(tmp.regs[0].id)))
+				PSS_COMP_RAISE_INT(comp, CODE);
+			break;
+		case PSS_COMP_VALUE_KIND_GLOBAL:
+			if(!_INST(seg, GLOBAL_GET, _R(term.regs[0].id), _R(tmp.regs[0].id)))
+				PSS_COMP_RAISE_INT(comp, CODE);
+			break;
+		case PSS_COMP_VALUE_KIND_DICT:
+			if(!_INST(seg, GET_VAL, _R(term.regs[0].id), _R(term.regs[1].id), _R(tmp.regs[0].id)))
+				PSS_COMP_RAISE_INT(comp, CODE);
+			break;
+		default:
+			PSS_COMP_RAISE_INT(comp, BUG);
+	}
+	
+	pss_comp_value_t saved = {};
+	if(NULL != prefix)
+	{
+		if(ERROR_CODE(int) == _make_rvalue(comp, &saved))
+			ERROR_RETURN_LOG(int, "Cannot allocate tmp register");
+		if(!_INST(seg, MOVE, _R(tmp.regs[0].id), _R(saved.regs[0].id)))
+			PSS_COMP_RAISE_INT(comp, CODE);
+	}
+
+	if((inc && !_INST(seg, ADD, _R(one.regs[0].id), _R(tmp.regs[0].id), _R(tmp.regs[0].id))) ||
+	   (!inc && !_INST(seg, SUB, _R(tmp.regs[0].id), _R(one.regs[0].id), _R(tmp.regs[0].id))))
+		PSS_COMP_RAISE_INT(comp, CODE);
+
+	if(ERROR_CODE(int) == pss_comp_value_release(comp, &one))
+		ERROR_RETURN_LOG(int, "Cannot release the value");
+
+	switch(term.kind)
+	{
+		case PSS_COMP_VALUE_KIND_REG:
+			if(!_INST(seg, MOVE, _R(tmp.regs[0].id), _R(term.regs[0].id)))
+				PSS_COMP_RAISE_INT(comp, CODE);
+			break;
+		case PSS_COMP_VALUE_KIND_GLOBAL:
+			if(!_INST(seg, GLOBAL_SET, _R(tmp.regs[0].id), _R(term.regs[0].id)))
+				PSS_COMP_RAISE_INT(comp, CODE);
+			break;
+		case PSS_COMP_VALUE_KIND_DICT:
+			if(!_INST(seg, SET_VAL, _R(tmp.regs[0].id), _R(term.regs[0].id), _R(term.regs[1].id)))
+				PSS_COMP_RAISE_INT(comp, CODE);
+			break;
+		default:
+			PSS_COMP_RAISE_INT(comp, BUG);
+	}
+
+	if(ERROR_CODE(int) == pss_comp_value_release(comp, &term))
+		ERROR_RETURN_LOG(int, "Cannot release the value");
+
+
+	if(NULL == prefix)
+		*buf = tmp;
+	else
+	{
+		if(ERROR_CODE(int) == pss_comp_value_release(comp, &tmp))
+			ERROR_RETURN_LOG(int, "Cannot release the tmp value");
+		*buf = saved;
+	}
+
+	return 0;
+}
+
 static inline int _parse_subscript(pss_comp_t* comp, pss_bytecode_segment_t* seg, pss_comp_value_t* buf)
 {
 	(void)seg;
@@ -387,11 +487,19 @@ static inline int _parse_trailer(pss_comp_t* comp, pss_bytecode_segment_t* seg, 
 			if(ERROR_CODE(int) == _parse_application(comp, seg, buf))
 				return ERROR_CODE(int);
 		}
+		else if(ahead->type == PSS_COMP_LEX_TOKEN_INCREASE || ahead->type == PSS_COMP_LEX_TOKEN_DECREASE)
+		{
+			pss_comp_value_t val = *buf;
+			/* var ++ */
+			if(ERROR_CODE(int) == _parse_inc_dec(comp, seg, &val, buf))
+				return ERROR_CODE(int);
+		}
 		else break;
 	}
 
 	return 0;
 }
+
 
 int pss_comp_value_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 {
@@ -437,6 +545,12 @@ int pss_comp_value_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 
 		case PSS_COMP_LEX_TOKEN_IDENTIFIER:
 			rc = _parse_variable_term(comp, seg, buf);
+			break;
+		
+		case PSS_COMP_LEX_TOKEN_INCREASE:
+		case PSS_COMP_LEX_TOKEN_DECREASE:
+			/* ++var or --var */
+			rc = _parse_inc_dec(comp, seg, NULL, buf);
 			break;
 
 		default:

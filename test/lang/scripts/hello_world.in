@@ -4,4 +4,4 @@ CaseBegin
 	Expected: <hello world>
 CaseEnd
 */
-echo "hello world"
+print("hello world");

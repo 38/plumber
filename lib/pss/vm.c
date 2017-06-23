@@ -391,6 +391,14 @@ static inline int _exec_arithmetic_logic(pss_vm_t* vm, const pss_bytecode_instru
 	pss_value_t right = _read_reg(vm, inst, 1);
 	pss_value_t result = {};
 
+	if(inst->opcode == PSS_BYTECODE_OPCODE_AND ||
+	   inst->opcode == PSS_BYTECODE_OPCODE_OR  ||
+	   inst->opcode == PSS_BYTECODE_OPCODE_XOR)
+	{
+		if(left.kind == PSS_VALUE_KIND_UNDEF) left.kind = PSS_VALUE_KIND_NUM, left.num = 0;
+		if(right.kind == PSS_VALUE_KIND_UNDEF) right.kind = PSS_VALUE_KIND_NUM, right.num = 0;
+	}
+
 	if(_is_value_kind(vm, left, PSS_VALUE_KIND_NUM, 1) &&
 	   _is_value_kind(vm, right, PSS_VALUE_KIND_NUM, 1))
 	{
@@ -445,10 +453,10 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 	pss_value_t right = _read_reg(vm, inst, 1);
 	pss_value_t result = {};
 
-	int lundef, rundef;
+	int lundef = _is_value_kind(vm, left, PSS_VALUE_KIND_UNDEF, 0);
+	int rundef = _is_value_kind(vm, right, PSS_VALUE_KIND_UNDEF, 0);
 
-	if((lundef = _is_value_kind(vm, left, PSS_VALUE_KIND_UNDEF, 0)) ||
-	   (rundef = _is_value_kind(vm, right, PSS_VALUE_KIND_UNDEF, 0)))
+	if(lundef || rundef)
 	{
 		if(inst->opcode == PSS_BYTECODE_OPCODE_EQ)
 		    result.num = (lundef && rundef);
@@ -522,6 +530,9 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 			case PSS_BYTECODE_OPCODE_LE:
 			case PSS_BYTECODE_OPCODE_LT:
 			case PSS_BYTECODE_OPCODE_EQ:
+			case PSS_BYTECODE_OPCODE_GE:
+			case PSS_BYTECODE_OPCODE_GT:
+			case PSS_BYTECODE_OPCODE_NE:
 			{
 				int cmpres = strcmp(left_str, right_str);
 
@@ -531,8 +542,14 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 				    result.num = (cmpres <= 0);
 				else if(inst->opcode == PSS_BYTECODE_OPCODE_LT)
 				    result.num = (cmpres < 0);
-				else
+				else if(inst->opcode == PSS_BYTECODE_OPCODE_EQ)
 				    result.num = (cmpres == 0);
+				else if(inst->opcode == PSS_BYTECODE_OPCODE_GE)
+					result.num = (cmpres >= 0);
+				else if(inst->opcode == PSS_BYTECODE_OPCODE_GT)
+					result.num = (cmpres > 0);
+				else if(inst->opcode == PSS_BYTECODE_OPCODE_NE)
+					result.num = (cmpres != 0);
 				break;
 			}
 			default:
