@@ -698,9 +698,13 @@ static inline int _exec_builtin(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 	}
 	
 
-	pss_value_t result = func.builtin(argc, argv);
+	pss_value_t result = func.builtin(vm, argc, argv);
 	if(result.kind == PSS_VALUE_KIND_ERROR)
-	    ERROR_RETURN_LOG(int, "The builtin function returns an error");
+	{
+		vm->error = (pss_vm_error_t)result.num;
+	    LOG_ERROR("The builtin function returns an error");
+		return 0;
+	}
 
 	if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[1], result))
 	    ERROR_RETURN_LOG(int, "Cannot set the result value to the register frame");
@@ -948,8 +952,13 @@ int pss_vm_run_module(pss_vm_t* vm, const pss_bytecode_module_t* module, pss_val
 
 	if(NULL == closure) ERROR_RETURN_LOG(int, "Cannot create closure for the entry point");
 
-	if(NULL == (vm->stack = _stack_new(vm, closure, NULL)))
+	_stack_t* this_stack;
+
+	if(NULL == (this_stack = _stack_new(vm, closure, NULL)))
 	    ERROR_RETURN_LOG(int, "Cannot create stack for the entry point frame");
+
+	this_stack->next = vm->stack;
+	vm->stack = this_stack;
 
 	pss_bytecode_regid_t retreg = _exec(vm);
 
@@ -968,9 +977,12 @@ int pss_vm_run_module(pss_vm_t* vm, const pss_bytecode_module_t* module, pss_val
 		else if(ERROR_CODE(int) == pss_value_incref(*retbuf))
 		    ret = ERROR_CODE(int);
 	}
-	if(ERROR_CODE(int) == _stack_free(vm->stack))
+
+	vm->stack = vm->stack->next;
+	if(ERROR_CODE(int) == _stack_free(this_stack))
 	    ret = ERROR_CODE(int);
-	vm->stack = NULL;
+
+
 
 	return ret;
 }

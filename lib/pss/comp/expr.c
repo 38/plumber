@@ -33,13 +33,24 @@
 /**
  * @brief The accosiativity of the operator, 0 means left accosiative, 1 means right accosiative */
 static const int _associativity[PSS_COMP_LEX_TOKEN_NUM_OF_ENTRIES] = {
-	[PSS_COMP_LEX_TOKEN_EQUAL] = 1
+	[PSS_COMP_LEX_TOKEN_EQUAL]           = 1,
+	[PSS_COMP_LEX_TOKEN_ADD_EQUAL]       = 1,
+	[PSS_COMP_LEX_TOKEN_MINUS_EQUAL]     = 1,
+	[PSS_COMP_LEX_TOKEN_TIMES_EQUAL]     = 1,
+	[PSS_COMP_LEX_TOKEN_DIVIDE_EQUAL]    = 1,
+	[PSS_COMP_LEX_TOKEN_MODULAR_EQUAL]   = 1
 };
+
 /**
  * @brief The priority for each operator, 0 indicates this is not a valid operator
  **/
 static const int _priority[PSS_COMP_LEX_TOKEN_NUM_OF_ENTRIES] = {
 	[PSS_COMP_LEX_TOKEN_EQUAL]         = 1,
+	[PSS_COMP_LEX_TOKEN_ADD_EQUAL]     = 1,
+	[PSS_COMP_LEX_TOKEN_MINUS_EQUAL]   = 1,
+	[PSS_COMP_LEX_TOKEN_TIMES_EQUAL]   = 1,
+	[PSS_COMP_LEX_TOKEN_DIVIDE_EQUAL]  = 1,
+	[PSS_COMP_LEX_TOKEN_MODULAR_EQUAL] = 1,
 	[PSS_COMP_LEX_TOKEN_AND]           = 2,
 	[PSS_COMP_LEX_TOKEN_OR]            = 2,
 	[PSS_COMP_LEX_TOKEN_EQUALEQUAL]    = 3,
@@ -73,7 +84,12 @@ static const pss_bytecode_opcode_t _opcode[PSS_COMP_LEX_TOKEN_NUM_OF_ENTRIES] = 
 	_TOMAP(MINUS, SUB),
 	_TOMAP(TIMES, MUL),
 	_TOMAP(DIVIDE, DIV),
-	_TOMAP(MODULAR, MOD)
+	_TOMAP(MODULAR, MOD),
+	_TOMAP(ADD_EQUAL, ADD),
+	_TOMAP(MINUS_EQUAL, SUB),
+	_TOMAP(TIMES_EQUAL, MUL),
+	_TOMAP(DIVIDE_EQUAL, DIV),
+	_TOMAP(MODULAR_EQUAL, MOD)
 };
 
 int pss_comp_expr_parse(pss_comp_t* comp, pss_comp_value_t* buf)
@@ -101,6 +117,51 @@ int pss_comp_expr_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 
 		for(;sp > 0 && (_priority[ts[sp - 1]] > p || (_priority[ts[sp - 1]] == p && _associativity[ts[sp - 1]] == 0)); sp --)
 		{
+			if(ts[sp - 1] == PSS_COMP_LEX_TOKEN_ADD_EQUAL ||
+			   ts[sp - 1] == PSS_COMP_LEX_TOKEN_MINUS_EQUAL ||
+			   ts[sp - 1] == PSS_COMP_LEX_TOKEN_TIMES_EQUAL ||
+			   ts[sp - 1] == PSS_COMP_LEX_TOKEN_DIVIDE_EQUAL ||
+			   ts[sp - 1] == PSS_COMP_LEX_TOKEN_MODULAR_EQUAL)
+			{
+				pss_bytecode_regid_t lval = pss_comp_mktmp(comp);
+				if(ERROR_CODE(pss_bytecode_regid_t) == lval)
+					ERROR_RETURN_LOG(int, "Cannot make the temp register for the L-Value");
+				
+				switch(vs[sp - 1].kind)
+				{
+					case PSS_COMP_VALUE_KIND_REG:
+						if(!_INST(seg, MOVE, _R(vs[sp - 1].regs[0].id), _R(lval)))
+							PSS_COMP_RAISE_INT(comp, CODE);
+						break;
+					case PSS_COMP_VALUE_KIND_DICT:
+						if(!_INST(seg, GET_VAL, _R(vs[sp - 1].regs[0].id), _R(vs[sp - 1].regs[1].id), _R(lval)))
+							PSS_COMP_RAISE_INT(comp, CODE);
+						break;
+					case PSS_COMP_VALUE_KIND_GLOBAL:
+						if(!_INST(seg, GLOBAL_GET, _R(vs[sp - 1].regs[0].id), _R(lval)))
+							PSS_COMP_RAISE_INT(comp, CODE);
+						break;
+					case PSS_COMP_VALUE_KIND_GLOBAL_DICT:
+						PSS_COMP_RAISE_SYN(int, comp, "Malformed global accessor");
+				}
+
+				if(ERROR_CODE(int) == pss_comp_value_simplify(comp, vs + sp))
+					ERROR_RETURN_LOG(int, "Cannot simplify the right operand");
+
+				pss_bytecode_opcode_t opcode = _opcode[ts[sp - 1]];
+
+				if(ERROR_CODE(pss_bytecode_addr_t) == pss_bytecode_segment_append_code(seg, opcode, 
+							PSS_BYTECODE_ARG_REGISTER(lval),
+							PSS_BYTECODE_ARG_REGISTER(vs[sp].regs[0].id),
+							PSS_BYTECODE_ARG_REGISTER(vs[sp].regs[0].id),
+							PSS_BYTECODE_ARG_END))
+					PSS_COMP_RAISE_INT(comp, CODE);
+
+				if(ERROR_CODE(int) == pss_comp_rmtmp(comp, lval))
+					ERROR_RETURN_LOG(int, "Cannot release the tmp regsiter");
+
+				ts[sp - 1] = PSS_COMP_LEX_TOKEN_EQUAL;
+			}
 			if(ts[sp - 1] == PSS_COMP_LEX_TOKEN_EQUAL)
 			{
 				if(!pss_comp_value_is_lvalue(vs + sp - 1))

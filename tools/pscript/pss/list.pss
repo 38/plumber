@@ -1,0 +1,67 @@
+/**
+ * Copyright (C) 2017, Hao Hou
+ **/
+
+# The list operation functions
+
+List.range = function(from, to) 
+{
+	var ret = dict()
+	for(var i = 0;from < to; from ++)
+		ret[i ++] = from;
+	return ret
+}
+
+List.map = function(func, list) 
+{
+	var ret = dict();
+	var length = len(list);
+	for(var i = 0; i < length; i ++)
+		ret[i] = func(list[i]);
+	return ret;
+}
+
+List.reduce = function(func, list)
+{
+	var ret = undefined;
+	var length = len(list);
+
+	if(length > 0) 
+		ret = list[0];
+
+	for(var i = 1; i < length; i ++)
+		ret = func(ret, list[i]);
+
+	return ret;
+}
+
+List.print = function(list)
+{
+	var buf = "[";
+	var length = len(list);
+	var i = 0;
+	while(i < length)
+	{
+		if(i > 0) buf = buf + ", ";
+		buf = buf + list[i];
+		i++;
+	}
+	print(buf, "]")
+}
+
+List.sort = function(list) 
+{
+	var qsort_impl = function(list, comp, qsort)
+	{
+		if(len(list) < 2) return list;
+		var p = list[0];
+		var left = filter(function(x) { return comp(x,p) < 0; }, list);
+		var equal = filter(function(x) { return comp(x,p) == 0;}, list);
+		var right = filter(function(x) { return comp(x,p) > 0; }, list);
+		return concat(concat(qsort(left, comp, qsort), equal), qsort(right, comp, qsort));
+	}
+	return function(list, comp) {
+		return qsort_impl(list, comp, qsort_impl);
+	}
+}
+

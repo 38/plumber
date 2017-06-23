@@ -68,3 +68,5 @@ install-prototype.sh
 
 # The directory specified vimrc
 vimrc
+
+*.psm

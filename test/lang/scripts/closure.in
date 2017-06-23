@@ -1,0 +1,44 @@
+/*
+CaseBegin
+	Name: clsoure_test
+	Expected: <462>
+	          <0>
+			  <1>
+			  <2>
+CaseEnd
+*/
+var GetAdder = function(n) 
+{
+	return function(x)
+	{
+		return n + x;
+	}
+}
+
+var AddOne = GetAdder(1);
+var AddTwo = GetAdder(2);
+
+var Combiner = function(left, right, comb)
+{
+	return function(x)
+	{
+		return comb(left(x), right(x));
+	}
+}
+
+print(Combiner(AddOne, AddTwo, function(x, y) {
+	return x * y;
+})(20));
+
+var TokenAllocator = function() {
+	var next_token = dict();
+	next_token["value"] = 0;
+	return function()
+	{
+		return next_token["value"] ++;
+	}
+}();
+
+print(TokenAllocator());
+print(TokenAllocator());
+print(TokenAllocator());

@@ -15,12 +15,15 @@ for(var n = 2; n < 100; n += 1)
 		is_prime = n % i != 0;
 	if(is_prime)
 	{
-		if(first) 
-			primes = primes + n, first = 0;
+		if(first)
+		{
+			primes = primes + n;
+			first = 0;
+		}
 		else
 			primes = primes + "," + n;
 		count += 1;
 	} 
 }
-echo count + " prime numbers has been found"
-echo primes
+print(count + " prime numbers has been found");
+print(primes);

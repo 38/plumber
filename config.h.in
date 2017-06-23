@@ -115,6 +115,9 @@
 /** @brief the default RC file path for the PSS interpreter */
 #   define PSCRIPT_DEFAULT_RC_FILE @PSCRIPT_DEFAULT_RC_FILE@
 
+/** @brief The default pscript module search path */
+#	define PSCRIPT_GLOBAL_MODULE_PATH @PSCRIPT_GLOBAL_MODULE_PATH@
+
 /** @brief the initial size for the entry table */
 #	define SCHED_RSCOPE_ENTRY_TABLE_INIT_SIZE @SCHED_RSCOPE_ENTRY_TABLE_INIT_SIZE@
 

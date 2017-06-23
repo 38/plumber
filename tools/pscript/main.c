@@ -23,10 +23,16 @@
 #include <gperftools/profiler.h>
 #endif
 
+pss_vm_t*     current_vm = NULL;
 char const* * module_paths = NULL;
 char const* * servlet_dirs = NULL;
 char const*   rc_file = PSCRIPT_DEFAULT_RC_FILE;
 uint32_t      max_regs = 65536;
+uint32_t      compile_only = 0;
+uint32_t      disassemble = 0;
+uint32_t      do_not_compile = 0;
+const char*   compiled_output = NULL;
+
 
 #define _MESSAGE(fmt, args...) fprintf(stderr, fmt"\n", ##args)
 void display_help()
@@ -35,6 +41,9 @@ void display_help()
 	_MESSAGE("Usage: pscript [options] service_script_file");
 	_MESSAGE("  -h  --help          Show this help information");
 	_MESSAGE("  -M  --module-path   Set the module search path");
+	_MESSAGE("  -c  --compile       The compile only mode");
+	_MESSAGE("  -o  --output        The bytecode output directory");
+	_MESSAGE("  -d  --disassemble   Disassemble the given module");
 	_MESSAGE("  -S  --servlet-dir   Set the servlet search directory");
 	_MESSAGE("  -N  --no-rc-file    Do not run any RC file");
 	_MESSAGE("  -r  --rc-file       Run the RC file before the script gets executed");
@@ -60,24 +69,27 @@ int parse_args(int argc, char** argv)
 {
 	static struct option _options[] = {
 		{"help",        no_argument,        0,  'h'},
-		{"version",     no_argument,        0,  'v'},
 		{"module-path", required_argument,  0,  'M'},
+		{"compile",     no_argument,        0,  'c'},
+		{"output",      required_argument,  0,  'o'},
+		{"disassemble", no_argument,        0,  'd'},
 		{"servlet-dir", required_argument,  0,  'S'},
-		{"rc-file",     required_argument,  0,  'r'},
 		{"no-rc-file",  no_argument,        0,  'N'},
+		{"rc-file",     required_argument,  0,  'r'},
+		{"version",     no_argument,        0,  'v'},
 		{NULL,          0,                  0,   0}
 	};
 
 	uint32_t module_count = 2;
 	uint32_t servlet_count = 0;
-	module_paths = (const char**)calloc(1, sizeof(const char*) * ((size_t)argc + 2));
+	module_paths = (const char**)calloc(1, sizeof(const char*) * ((size_t)argc + 3));
 	servlet_dirs = (const char**)calloc(1, sizeof(const char*) * (size_t)argc);
 
 	module_paths[0] = ".";
 	module_paths[1] = "/";
 
 	int opt_idx, c;
-	for(;(c = getopt_long(argc, argv, "hvNM:S:r:", _options, &opt_idx)) >= 0;)
+	for(;(c = getopt_long(argc, argv, "hvNM:S:r:co:d", _options, &opt_idx)) >= 0;)
 	{
 		switch(c)
 		{
@@ -85,12 +97,24 @@ int parse_args(int argc, char** argv)
 			    display_version();
 			    properly_exit(0);
 			    break;
+			case 'M':
+			    module_paths[module_count++] = optarg;
+			    break;
+			case 'C':
+				do_not_compile = 1;
+				break;
+			case 'c':
+				compile_only = 1;
+				break;
+			case 'o':
+				compiled_output = optarg;
+				break;
+			case 'd':
+				disassemble = 1;
+				break;
 			case 'h':
 			    display_help();
 			    properly_exit(0);
-			    break;
-			case 'M':
-			    module_paths[module_count++] = optarg;
 			    break;
 			case 'S':
 			    servlet_dirs[servlet_count++] = optarg;
@@ -106,6 +130,7 @@ int parse_args(int argc, char** argv)
 			    properly_exit(1);
 		}
 	}
+	module_paths[module_count++] = PSCRIPT_GLOBAL_MODULE_PATH;
 
 	return optind;
 }
@@ -170,12 +195,10 @@ int _program(int argc, char** argv)
 	if(runtime_servlet_append_search_path(RUNTIME_SERVLET_DEFAULT_SEARCH_PATH) == ERROR_CODE(int))
 	    LOG_WARNING("Cannot append servlet search path to servlet search list");
 
-	if(ERROR_CODE(int) == module_set_search_path(module_paths))
-		LOG_WARNING("Cannot set the module search path");
-	
-	pss_bytecode_module_t* module = module_from_file(argv[begin], 1);
+	if(module_set_search_path(module_paths) == ERROR_CODE(int))
+		LOG_WARNING("Cannot set the PSS module search path");
 
-	pss_bytecode_module_logdump(module);
+	pss_bytecode_module_t* module = module_from_file(argv[begin], !compile_only, 1, compiled_output);
 
 	if(NULL == module) 
 	{
@@ -185,30 +208,39 @@ int _program(int argc, char** argv)
 
 	signal(SIGINT, _stop);
 
-	pss_vm_t* vm = pss_vm_new();
-	if(NULL == vm || ERROR_CODE(int) == builtin_init(vm)) 
+	int rc = 0;
+
+	if(!compile_only && !disassemble)
 	{
-		pss_bytecode_module_free(module);
-		LOG_FATAL("Cannot create PSS Virtual Machine");
-		properly_exit(1);
+		current_vm = pss_vm_new();
+		if(NULL == current_vm || ERROR_CODE(int) == builtin_init(current_vm)) 
+		{
+			pss_bytecode_module_free(module);
+			LOG_FATAL("Cannot create PSS Virtual Machine");
+			properly_exit(1);
+		}
+
+		rc = pss_vm_run_module(current_vm, module, NULL);
+		LOG_INFO("VM terminated with exit code %d", rc);
+
+		if(ERROR_CODE(int) == rc)
+		{
+			pss_vm_exception_t* exception = pss_vm_last_exception(current_vm);
+
+			LOG_ERROR("PSS VM Exception: %s", exception->message);
+
+			pss_vm_exception_free(exception);
+		}
+
+		if(ERROR_CODE(int) == pss_vm_free(current_vm))
+			LOG_WARNING("Cannot dipsoes the VM");
 	}
-
-	int rc = pss_vm_run_module(vm, module, NULL);
-	LOG_INFO("VM terminated with exit code %d", rc);
-
-	if(ERROR_CODE(int) == rc)
+	else if(disassemble)
 	{
-		pss_vm_exception_t* exception = pss_vm_last_exception(vm);
-
-		LOG_ERROR("PSS VM Exception: %s", exception->message);
-
-		pss_vm_exception_free(exception);
+		rc = pss_bytecode_module_logdump(module);
 	}
-
-	if(ERROR_CODE(int) == pss_vm_free(vm))
-		LOG_WARNING("Cannot dipsoes the VM");
 	
-	if(ERROR_CODE(int) == pss_bytecode_module_free(module))
+	if(ERROR_CODE(int) == module_unload_all())
 		LOG_WARNING("Cannot dipsose the module");
 
 

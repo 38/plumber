@@ -12,19 +12,29 @@
 #include <constants.h>
 #include <error.h>
 
+#include <utils/hash/murmurhash3.h>
+
 #include <pss.h>
 #include <module.h>
 
-static char const* const* _search_paths;
+typedef struct _loaded_module_t {
+	uint64_t hash[2];
+	pss_bytecode_module_t* module;
+	struct _loaded_module_t* next;
+} _loaded_module_t;
 
-int module_set_search_path(char const* const* path)
+static _loaded_module_t* _modules = NULL;
+
+static char const* const* _search_path = NULL;
+
+
+int module_set_search_path(char const* const* paths)
 {
-	if(NULL == path) ERROR_RETURN_LOG(int, "Invalid arguments");
-
-	_search_paths = path;
-
+	if(NULL == paths) ERROR_RETURN_LOG(int, "Invalid arguments");
+	_search_path = paths;
 	return 0;
 }
+
 
 time_t _get_file_ts(const char* path, off_t* size)
 {
@@ -36,13 +46,13 @@ time_t _get_file_ts(const char* path, off_t* size)
 	return st.st_ctime;
 }
 
-int _try_load_module(const char* source_path, const char* compiled_path, int dump_compiled, pss_bytecode_module_t** ret)
+int _try_load_module(const char* source_path, const char* compiled_path, int load_compiled, int dump_compiled, pss_bytecode_module_t** ret)
 {
-	off_t source_sz;
+	off_t source_sz = 0;
 	time_t source_ts   = source_path == NULL ? ERROR_CODE(time_t) : _get_file_ts(source_path, &source_sz);
 	time_t compiled_ts = compiled_path == NULL ? ERROR_CODE(time_t) : _get_file_ts(compiled_path, NULL);
 
-	if(ERROR_CODE(time_t) != compiled_ts && (source_ts == ERROR_CODE(time_t) || compiled_ts > source_ts))
+	if(load_compiled && ERROR_CODE(time_t) != compiled_ts && (source_ts == ERROR_CODE(time_t) || compiled_ts > source_ts))
 	{
 		LOG_DEBUG("Found compiled PSS module at %s", compiled_path);
 		if(NULL == (*ret = pss_bytecode_module_load(compiled_path)))
@@ -88,11 +98,8 @@ int _try_load_module(const char* source_path, const char* compiled_path, int dum
 			LOG_WARNING("Cannot dispose the lexer instance");
 		free(code);
 
-		if(dump_compiled)
-		{
-			if(ERROR_CODE(int) == pss_bytecode_module_dump(module, compiled_path))
-				LOG_WARNING("Cannot dump the compiled module to file");
-		}
+		if(compiled_path != NULL && dump_compiled && ERROR_CODE(int) == pss_bytecode_module_dump(module, compiled_path))
+			LOG_WARNING("Cannot dump the compiled module to file");
 
 		*ret = module;
 
@@ -116,13 +123,32 @@ ERR:
 	return 0;
 }
 
-pss_bytecode_module_t* module_from_file(const char* name, int dump_compiled)
+static inline void _compute_hash(const char* str, uint64_t* hash)
+{
+	size_t len = strlen(str);
+	murmurhash3_128(str, len, 0x1234567u, hash);
+}
+
+static inline int _is_previously_loaded(const char* source_path)
+{
+	uint64_t hash[2];
+
+	_compute_hash(source_path, hash);
+
+	const _loaded_module_t* ptr;
+	for(ptr = _modules; NULL != ptr && (ptr->hash[0] != hash[0] || ptr->hash[1] != hash[1]); ptr = ptr->next);
+
+	return (ptr != NULL);
+}
+
+pss_bytecode_module_t* module_from_file(const char* name, int load_compiled, int dump_compiled, const char* compiled_output)
 {
 	if(NULL == name) ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	uint32_t i;
 	pss_bytecode_module_t* ret;
-	for(i = 0; _search_paths != NULL && _search_paths[i] != NULL; i ++)
+	uint64_t hash[2] = {};
+	for(i = 0; _search_path != NULL && _search_path[i] != NULL; i ++)
 	{
 		char module_name[PATH_MAX];
 		char source_path[PATH_MAX];
@@ -132,22 +158,86 @@ pss_bytecode_module_t* module_from_file(const char* name, int dump_compiled)
 			len -= 4;
 		else
 		{
-			snprintf(source_path, sizeof(source_path), "%s/%s", _search_paths[i], name);
+			/* Try to load the fullpath and do not dump the psm if the filename is not end with pss */
+			snprintf(source_path, sizeof(source_path), "%s/%s", _search_path[i], name);
 
-			int rc = _try_load_module(source_path, NULL, 0, &ret);
+			_compute_hash(source_path, hash);
+			int rc = _try_load_module(source_path, NULL, 0, 0, &ret);
 			if(ERROR_CODE(int) == rc) ERROR_PTR_RETURN_LOG("Cannot load module");
 
-			if(rc == 1) return ret;
+			if(rc == 1) goto FOUND;
 		}
+
+		/* If not found, then we need try to find the compiled */
 		memcpy(module_name, name, len);
 		module_name[len] = 0;
-		snprintf(source_path, sizeof(source_path), "%s/%s.pss", _search_paths[i], module_name);
-		snprintf(compiled_path, sizeof(compiled_path), "%s/%s.psm", _search_paths[i], module_name);
-
-		int rc = _try_load_module(source_path, compiled_path, dump_compiled, &ret);
+		snprintf(source_path, sizeof(source_path), "%s/%s.pss", _search_path[i], module_name);
+		if(compiled_output == NULL)
+			snprintf(compiled_path, sizeof(compiled_path), "%s/%s.psm", _search_path[i], module_name);
+		else
+			snprintf(compiled_path, sizeof(compiled_path), "%s", compiled_output);
+			
+		_compute_hash(source_path, hash);
+		int rc = _try_load_module(source_path, compiled_path, load_compiled, dump_compiled, &ret);
 		if(ERROR_CODE(int) == rc) ERROR_PTR_RETURN_LOG("Cannot load module");
 
-		if(rc == 1) return ret;
+		if(rc == 1) goto FOUND;
 	}
 	ERROR_PTR_RETURN_LOG("Cannot found the script");
+FOUND:
+	{
+		_loaded_module_t* module = (_loaded_module_t*)malloc(sizeof(*module));
+		if(NULL == module) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new module node");
+		module->hash[0] = hash[0];
+		module->hash[1] = hash[1];
+		module->module = ret;
+		module->next = _modules;
+		_modules = module;
+		return ret;
+	}
+}
+
+int module_is_loaded(const char* name)
+{
+	if(NULL == name) ERROR_RETURN_LOG(int, "Invalid arguments");
+	uint32_t i;
+	for(i = 0; _search_path != NULL && _search_path[i] != NULL; i ++)
+	{
+		char module_name[PATH_MAX];
+		char source_path[PATH_MAX];
+		size_t len = strlen(name);
+		if(len > 4 && 0 == strcmp(name + len - 4, ".pss"))
+			len -= 4;
+		else
+		{
+			/* Try to load the fullpath and do not dump the psm if the filename is not end with pss */
+			snprintf(source_path, sizeof(source_path), "%s/%s", _search_path[i], name);
+			if(_is_previously_loaded(source_path)) return 1;
+		}
+		
+		memcpy(module_name, name, len);
+		module_name[len] = 0;
+		snprintf(source_path, sizeof(source_path), "%s/%s.pss", _search_path[i], module_name);
+		if(_is_previously_loaded(source_path)) return 1;
+	}
+
+	return 0;
+}
+
+int module_unload_all()
+{
+	int rc = 0;
+	_loaded_module_t* ptr;
+	for(ptr = _modules; ptr != NULL;)
+	{
+		_loaded_module_t* this = ptr;
+		ptr = ptr->next;
+
+		if(ERROR_CODE(int) == pss_bytecode_module_free(this->module))
+			rc = ERROR_CODE(int);
+
+		free(this);
+	}
+
+	return rc;
 }

@@ -57,6 +57,7 @@ int pss_comp_value_simplify(pss_comp_t* comp, pss_comp_value_t* value)
 		if(!_INST(segment, GLOBAL_GET, _R(value->regs[0].id), _R(result)))
 			PSS_COMP_RAISE_INT(comp, CODE);
 	}
+	else PSS_COMP_RAISE_INT(comp, BUG);
 
 	if(nregs > 0 && value->regs[0].tmp && ERROR_CODE(int) == pss_comp_rmtmp(comp, value->regs[0].id))
 		ERROR_RETURN_LOG(int, "Cannot release the tmp variable");

@@ -15,8 +15,11 @@
 #include <pss.h>
 #include <module.h>
 
-static pss_value_t _pscript_builtin_print(uint32_t argc, pss_value_t* argv)
+extern char const* const* module_paths;
+
+static pss_value_t _pscript_builtin_print(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
+	(void)vm;
 	pss_value_t ret = {};
 	uint32_t i;
 	for(i = 0; i < argc; i ++)
@@ -36,8 +39,9 @@ static pss_value_t _pscript_builtin_print(uint32_t argc, pss_value_t* argv)
 	return ret;
 }
 
-static pss_value_t _pscript_builtin_dict(uint32_t argc, pss_value_t* argv)
+static pss_value_t _pscript_builtin_dict(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
+	(void)vm;
 	(void)argc;
 	(void)argv;
 	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR};
@@ -47,9 +51,13 @@ static pss_value_t _pscript_builtin_dict(uint32_t argc, pss_value_t* argv)
 	return ret;
 }
 
-static pss_value_t _pscript_builtin_len(uint32_t argc, pss_value_t* argv)
+static pss_value_t _pscript_builtin_len(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
-	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR};
+	(void)vm;
+	pss_value_t ret = {
+		.kind = PSS_VALUE_KIND_ERROR,
+		.num  = PSS_VM_ERROR_TYPE
+	};
 	if(argc < 1) return ret;
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF) return ret;
@@ -80,6 +88,36 @@ static pss_value_t _pscript_builtin_len(uint32_t argc, pss_value_t* argv)
 	return ret;
 }
 
+static pss_value_t _pscript_builtin_import(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
+{
+	pss_value_t ret = {
+		.kind = PSS_VALUE_KIND_ERROR,
+		.num = PSS_VM_ERROR_TYPE
+	};
+
+	if(argc < 1) return ret;
+	
+	uint32_t i;
+	for(i = 0; i < argc; i ++)
+	{
+		if(argv[i].kind != PSS_VALUE_KIND_REF || pss_value_ref_type(argv[i]) != PSS_VALUE_REF_TYPE_STRING) return ret;
+
+		const char* name = (const char*)pss_value_get_data(argv[0]);
+
+		if(module_is_loaded(name)) continue;
+
+		pss_bytecode_module_t* module = module_from_file(name, 1, 1, NULL);
+		if(NULL == module) return ret;
+
+		if(ERROR_CODE(int) == pss_vm_run_module(vm, module, NULL))
+			return ret;
+	}
+
+	ret.kind = PSS_VALUE_KIND_UNDEF;
+
+	return ret;
+}
+
 int builtin_init(pss_vm_t* vm)
 {
 	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "print", _pscript_builtin_print))
@@ -90,6 +128,9 @@ int builtin_init(pss_vm_t* vm)
 
 	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "len", _pscript_builtin_len))
 		ERROR_RETURN_LOG(int, "Cannot register the builtin function len");
+
+	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "import", _pscript_builtin_import))
+		ERROR_RETURN_LOG(int, "Cannot register the builtin function import");
 
 	return 0;
 }

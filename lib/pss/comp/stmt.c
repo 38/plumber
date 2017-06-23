@@ -437,51 +437,6 @@ static inline int _foreach_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 	return 0;
 }
 
-static inline int _for_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
-{
-	if(ERROR_CODE(int) == pss_comp_expect_keyword(comp, PSS_COMP_LEX_KEYWORD_FOR))
-		ERROR_RETURN_LOG(int, "Keyword for expected");
-	
-	if(ERROR_CODE(int) == pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_LPARENTHESIS))
-		ERROR_RETURN_LOG(int, "Keyword for expected");
-
-	const pss_comp_lex_token_t* ahead[3] = {pss_comp_peek(comp, 0), pss_comp_peek(comp, 1), pss_comp_peek(comp, 2)};
-	if(NULL == ahead[0] || NULL == ahead[1] || NULL == ahead[2]) ERROR_RETURN_LOG(int, "Cannot peek ahead token");
-	
-	int var_begin = 0;
-	if(ahead[0]->type == PSS_COMP_LEX_TOKEN_KEYWORD && ahead[0]->value.k == PSS_COMP_LEX_KEYWORD_VAR)
-		var_begin = 1;
-	if(ahead[var_begin]->type == PSS_COMP_LEX_TOKEN_IDENTIFIER && 
-	   ahead[var_begin + 1]->type == PSS_COMP_LEX_TOKEN_KEYWORD &&
-	   ahead[var_begin + 1]->value.k == PSS_COMP_LEX_KEYWORD_IN)
-		return _foreach_stmt(comp, seg);
-#if 0	
-	if(ERROR_CODE(int) == pss_comp_open_scope(comp))
-		ERROR_RETURN_LOG(int, "Cannot open the loop scope");
-
-
-	if(ahead[0]->type == PSS_COMP_LEX_TOKEN_SEMICOLON)
-	{
-		if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
-			ERROR_RETURN_LOG(int, "Cannot consume the next token");
-	}
-	else if(ahead[0]->type == PSS_COMP_LEX_TOKEN_KEYWORD && ahead[0]->value.k == PSS_COMP_LEX_KEYWORD_VAR)
-	{
-		if(ERROR_CODE(int) == _var_decl_stmt(comp, seg))
-			ERROR_RETURN_LOG(int, "Cannot parse the initializer");
-	}
-	else if(ERROR_CODE(int) == _expr_stmt(comp, seg))
-		ERROR_RETURN_LOG(int, "Cannot parse the initializer");
-
-
-
-
-	if(ERROR_CODE(int) == pss_comp_close_scope(comp))
-		ERROR_RETURN_LOG(int, "Cannot close the loop scope");
-	return 0;
-#endif
-	return pss_comp_raise(comp, "Fixme: for loop is not supported");
-}
 
 static inline int _var_decl_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 {
@@ -535,6 +490,166 @@ static inline int _var_decl_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 			ERROR_RETURN_LOG(int, "Cannot consume the comma token");
 	}
 
+	return 0;
+}
+
+static inline int _for_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
+{
+	if(ERROR_CODE(int) == pss_comp_expect_keyword(comp, PSS_COMP_LEX_KEYWORD_FOR))
+		ERROR_RETURN_LOG(int, "Keyword for expected");
+	
+	if(ERROR_CODE(int) == pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_LPARENTHESIS))
+		ERROR_RETURN_LOG(int, "Keyword for expected");
+
+	const pss_comp_lex_token_t* ahead[3] = {pss_comp_peek(comp, 0), pss_comp_peek(comp, 1), pss_comp_peek(comp, 2)};
+	if(NULL == ahead[0] || NULL == ahead[1] || NULL == ahead[2]) ERROR_RETURN_LOG(int, "Cannot peek ahead token");
+	
+	int var_begin = 0;
+	if(ahead[0]->type == PSS_COMP_LEX_TOKEN_KEYWORD && ahead[0]->value.k == PSS_COMP_LEX_KEYWORD_VAR)
+		var_begin = 1;
+	if(ahead[var_begin]->type == PSS_COMP_LEX_TOKEN_IDENTIFIER && 
+	   ahead[var_begin + 1]->type == PSS_COMP_LEX_TOKEN_KEYWORD &&
+	   ahead[var_begin + 1]->value.k == PSS_COMP_LEX_KEYWORD_IN)
+		return _foreach_stmt(comp, seg);
+	
+	if(ERROR_CODE(int) == pss_comp_open_scope(comp))
+		ERROR_RETURN_LOG(int, "Cannot open the loop scope");
+
+	if(ahead[0]->type == PSS_COMP_LEX_TOKEN_SEMICOLON)
+	{
+		/* Do nothing */
+	}
+	else if(ahead[0]->type == PSS_COMP_LEX_TOKEN_KEYWORD && ahead[0]->value.k == PSS_COMP_LEX_KEYWORD_VAR)
+	{
+		if(ERROR_CODE(int) == _var_decl_stmt(comp, seg))
+			ERROR_RETURN_LOG(int, "Cannot parse the initializer");
+	}
+	else if(ERROR_CODE(int) == _expr_stmt(comp))
+		ERROR_RETURN_LOG(int, "Cannot parse the initializer");
+	
+	if(ERROR_CODE(int) == pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_SEMICOLON))
+		ERROR_RETURN_LOG(int, "Semicolon expected");
+
+	pss_bytecode_addr_t addr_cond = pss_bytecode_segment_length(seg);
+	if(ERROR_CODE(pss_bytecode_addr_t) == addr_cond)
+		return pss_comp_raise(comp, "Internal error: Cannot get the address of the for loop condition");
+
+	pss_bytecode_label_t l_body = pss_bytecode_segment_label_alloc(seg);
+	if(ERROR_CODE(pss_bytecode_label_t) == l_body)
+		return pss_comp_raise(comp, "Intenal error: Cannot get the label for the for loop body");
+
+	pss_bytecode_label_t l_end = pss_bytecode_segment_label_alloc(seg);
+	if(ERROR_CODE(pss_bytecode_label_t) == l_end)
+		return pss_comp_raise(comp, "Internal error: Cannot get the label for the end of the for loop");
+
+	pss_comp_value_t cond_val = {};
+	if(NULL == (ahead[0] = pss_comp_peek(comp, 0)))
+		ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
+	if(ahead[0]->type == PSS_COMP_LEX_TOKEN_SEMICOLON)
+	{
+		cond_val.kind = PSS_COMP_VALUE_KIND_REG;
+		if(ERROR_CODE(pss_bytecode_regid_t) == (cond_val.regs[0].id = pss_comp_mktmp(comp)))
+			ERROR_RETURN_LOG(int, "Cannot allocte temp register");
+		cond_val.regs[0].tmp = 1;
+		if(!_INST(seg, INT_LOAD, _N(1), _R(cond_val.regs[0].id)))
+			PSS_COMP_RAISE_INT(comp, CODE);
+	}
+	else
+	{
+		if(ERROR_CODE(int) == pss_comp_expr_parse(comp, &cond_val))
+			ERROR_RETURN_LOG(int, "Cannot parse the expression");
+	}
+
+	if(ERROR_CODE(int) == pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_SEMICOLON))
+		ERROR_RETURN_LOG(int, "Semicolon expected");
+
+	if(ERROR_CODE(int) == pss_comp_value_simplify(comp, &cond_val))
+		ERROR_RETURN_LOG(int, "Cannot simplify the condition expression");
+
+	pss_bytecode_regid_t r_target = pss_comp_mktmp(comp);
+	if(ERROR_CODE(pss_bytecode_regid_t) == r_target)
+		ERROR_RETURN_LOG(int, "Cannot allocate the target register");
+
+	if(!_INST(seg, INT_LOAD, _L(l_end), _R(r_target)))
+		PSS_COMP_RAISE_INT(comp, CODE);
+
+	if(!_INST(seg, JZ, _R(cond_val.regs[0].id), _R(r_target)))
+		PSS_COMP_RAISE_INT(comp, CODE);
+	
+	if(ERROR_CODE(int) == pss_comp_value_release(comp, &cond_val))
+		ERROR_RETURN_LOG(int, "Cannot release the condition variable");
+
+	if(!_INST(seg, INT_LOAD, _L(l_body), _R(r_target)))
+		PSS_COMP_RAISE_INT(comp, CODE);
+
+	if(!_INST(seg, JUMP, _R(r_target)))
+		PSS_COMP_RAISE_INT(comp, CODE);
+
+	if(ERROR_CODE(int) == pss_comp_rmtmp(comp, r_target))
+		ERROR_RETURN_LOG(int, "Cannot release the target register");
+
+	if(ERROR_CODE(int) == pss_comp_open_control_block(comp, 1))
+		ERROR_RETURN_LOG(int, "Cannot open the control block");
+
+	pss_bytecode_addr_t addr_inc = pss_bytecode_segment_length(seg);
+	if(ERROR_CODE(pss_bytecode_addr_t) == addr_inc)
+		return pss_comp_raise(comp, "Internal error: Cannot get the address of the increment of the for loop");
+
+	if(NULL == (ahead[0] = pss_comp_peek(comp, 0)))
+		ERROR_RETURN_LOG(int, "Cannot peek the token ahead");
+
+	if(ahead[0]->type != PSS_COMP_LEX_TOKEN_RPARENTHESIS && ERROR_CODE(int) == _expr_stmt(comp))
+		ERROR_RETURN_LOG(int, "Cannot parse the increment expression statment");
+
+	if(ERROR_CODE(int) == pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_RPARENTHESIS))
+		PSS_COMP_RAISE_SYN(int, comp, "Right parenthesis expected in a for loop");
+
+	if(ERROR_CODE(pss_bytecode_regid_t) == (r_target = pss_comp_mktmp(comp)))
+		ERROR_RETURN_LOG(int, "Cannot make a temp for the jump target");
+
+	if(!_INST(seg, INT_LOAD, _N(addr_cond), _R(r_target)))
+		PSS_COMP_RAISE_INT(comp, CODE);
+
+	if(!_INST(seg, JUMP, _R(r_target)))
+		PSS_COMP_RAISE_INT(comp, CODE);
+
+	if(ERROR_CODE(int) == pss_comp_rmtmp(comp, r_target))
+		ERROR_RETURN_LOG(int, "Cannot dispose the taget register");
+
+	pss_bytecode_addr_t addr_body = pss_bytecode_segment_length(seg);
+	if(ERROR_CODE(pss_bytecode_addr_t) == addr_body)
+		return pss_comp_raise(comp, "Internal error: Cannot get the address of the for loop body");
+
+	if(ERROR_CODE(int) == pss_bytecode_segment_patch_label(seg, l_body, addr_body))
+		return pss_comp_raise(comp, "Internal error: Cannot patch the label with address of the for loop body");
+
+	if(ERROR_CODE(int) == pss_comp_stmt_parse(comp))
+		ERROR_RETURN_LOG(int, "Cannot parse the for loop body");
+
+	if(ERROR_CODE(pss_bytecode_regid_t) == (r_target = pss_comp_mktmp(comp)))
+		ERROR_RETURN_LOG(int, "Cannot make a temp for the jump target");
+
+	if(!_INST(seg, INT_LOAD, _N(addr_inc), _R(r_target)))
+		PSS_COMP_RAISE_INT(comp, CODE);
+
+	if(!_INST(seg, JUMP, _R(r_target)))
+		PSS_COMP_RAISE_INT(comp, CODE);
+
+	if(ERROR_CODE(int) == pss_comp_rmtmp(comp, r_target))
+		ERROR_RETURN_LOG(int, "Cannot remove the target");
+
+	pss_bytecode_addr_t addr_end = pss_bytecode_segment_length(seg);
+	if(ERROR_CODE(pss_bytecode_addr_t) == addr_end)
+		return pss_comp_raise(comp, "Internal error: Cannot get the address of current location");
+
+	if(ERROR_CODE(int) == pss_bytecode_segment_patch_label(seg, l_end, addr_end))
+		return pss_comp_raise(comp, "Internal error: Cannot patch the address with the end address");
+
+	if(ERROR_CODE(int) == pss_comp_close_control_block(comp))
+		ERROR_RETURN_LOG(int, "Cannot close current control block");
+
+	if(ERROR_CODE(int) == pss_comp_close_scope(comp))
+		ERROR_RETURN_LOG(int, "Cannot close the loop scope");
 	return 0;
 }
 

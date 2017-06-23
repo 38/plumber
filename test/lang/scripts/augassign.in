@@ -11,18 +11,18 @@ CaseBegin
 CaseEnd
 */
 a = 0
-echo a
+print(a)
 a += 2
-echo a
+print(a)
 a -= 1
-echo a
+print(a)
 a *=10
-echo a
+print(a)
 a /= 2
-echo a
+print(a)
 a %= 2
-echo a
+print(a)
 a += a
 a += a
 a += a
-echo a
+print(a)

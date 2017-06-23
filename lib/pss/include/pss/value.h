@@ -77,13 +77,15 @@ STATIC_ASSERTION_EQ(PSS_VALUE_KIND_UNDEF, 0);
  **/
 typedef struct _pss_value_t pss_value_t;
 
+typedef struct _pss_vm_t pss_vm_t;
+
 /**
  * @brief The type for the builtin function
  * @param argc The number of arguments
  * @param argv The actual argument list
  * @return The return value
  **/
-typedef pss_value_t (*pss_value_builtin_t)(uint32_t argc, pss_value_t* argv);
+typedef pss_value_t (*pss_value_builtin_t)(pss_vm_t* vm, uint32_t argc, pss_value_t* argv);
 
 /**
  * @brief A runtime value

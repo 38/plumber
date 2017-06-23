@@ -20,8 +20,9 @@
 pss_bytecode_addr_t _last_addr;
 
 char buf[1024];
-pss_value_t _builtin_print(uint32_t argc, pss_value_t* argv)
+pss_value_t _builtin_print(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
+	(void)vm;
 	(void)argc;
 	pss_value_strify_to_buf(argv[0], buf, sizeof(buf));
 	LOG_DEBUG("__builtin_print: %s", buf);
@@ -46,7 +47,7 @@ int _setter(const char* name, pss_value_t value)
 {
 	if(strcmp(name, "external_global") == 0)
 	{
-		_builtin_print(1, &value);
+		_builtin_print(NULL, 1, &value);
 		return 1;
 	}
 	return 0;

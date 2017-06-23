@@ -1,5 +1,10 @@
 /*
 CaseBegin
+	Name: Currently Disabled
+	Expected:
+CaseEnd
+
+CaseBegin
 	Name: module_init_flags
 	Expected: <undefined>
 	          <undefined>
@@ -11,36 +16,40 @@ CaseBegin
 			  <pssm has been previously installed>
 CaseEnd
 */
+
+/*
 echo pipe.mem
 echo mem.pool
 
 if(pipe.mem == undefined) 
 {
-	insmod "mem_pipe";
-	echo "mem_pipe installed"
+	insmod("mem_pipe");
+	print("mem_pipe installed");
 }
 else echo "mem_pipe has been previously installed"
 
 if(plumber.std == undefined) 
 {
-	insmod "pssm";
-	echo "pssm installed"
+	insmod("pssm");
+	print("pssm installed");
 }
-else echo "pssm has been previously installed";
+else print("pssm has been previously installed");
 
-echo pipe.mem
-echo plumber.std
+print(pipe.mem)
+print(plumber.std)
 
 if(pipe.mem == undefined) 
 {
-	insmod "mem_pipe";
-	echo "mem_pipe installed"
+	insmod("mem_pipe");
+	print("mem_pipe installed");
 }
-else echo "mem_pipe has been previously installed"
+else print("mem_pipe has been previously installed");
 
 if(plumber.std == undefined) 
 {
-	insmod "pssm";
-	echo "pssm installed"
+	insmod("pssm");
+	print("pssm installed");
 }
-else echo "pssm has been previously installed";
+else print("pssm has been previously installed");
+
+*/
