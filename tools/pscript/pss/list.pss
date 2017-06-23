@@ -2,7 +2,9 @@
  * Copyright (C) 2017, Hao Hou
  **/
 
-# The list operation functions
+List.empty = function() {
+	return dict();
+}
 
 List.range = function(from, to) 
 {
@@ -35,6 +37,20 @@ List.reduce = function(func, list)
 	return ret;
 }
 
+List.filter = function(f, l) 
+{
+	var length = len(l);
+	var i = 0, j = 0;
+	var ret = dict();
+	while(i < length)
+	{
+		if(f(l[i]))
+			ret[j++] = l[i];
+		i++;
+	}
+	return ret;
+}
+
 List.print = function(list)
 {
 	var buf = "[";
@@ -49,19 +65,44 @@ List.print = function(list)
 	print(buf, "]")
 }
 
+List.concat = function(left, right)
+{
+	var ret = dict();
+	var ll = len(left);
+	var rl = len(right);
+	var i = 0;
+	while(i < ll) 
+	{
+		ret[i] = left[i];
+		++i;
+	}
+	while(i - ll < rl)
+	{
+		ret[i] = right[i - ll];
+		++i;
+	}
+	return ret;
+}
+
 List.sort = function(list) 
 {
 	var qsort_impl = function(list, comp, qsort)
 	{
 		if(len(list) < 2) return list;
 		var p = list[0];
-		var left = filter(function(x) { return comp(x,p) < 0; }, list);
-		var equal = filter(function(x) { return comp(x,p) == 0;}, list);
-		var right = filter(function(x) { return comp(x,p) > 0; }, list);
-		return concat(concat(qsort(left, comp, qsort), equal), qsort(right, comp, qsort));
+		var left = List.filter(function(x) { return comp(x,p) < 0; }, list);
+		var equal = List.filter(function(x) { return comp(x,p) == 0;}, list);
+		var right = List.filter(function(x) { return comp(x,p) > 0; }, list);
+		return List.concat(List.concat(qsort(left, comp, qsort), equal), qsort(right, comp, qsort));
 	}
-	return function(list, comp) {
+	return function(list, comp) 
+	{
+		if(comp == undefined) 
+			comp = function(x, y) 
+			{
+				return x - y;
+			}
 		return qsort_impl(list, comp, qsort_impl);
 	}
-}
+}();
 
