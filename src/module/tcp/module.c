@@ -1227,51 +1227,69 @@ static void _event_loop_killed(void* __restrict ctx)
 	module_tcp_pool_loop_killed(context->conn_pool);
 }
 
-static int _get_prop(void* __restrict ctx, const char** sym, itc_module_property_type_t type, void* __restrict data)
+static inline itc_module_property_value_t _make_num(int64_t n)
 {
-	_module_context_t* context = (_module_context_t*)ctx;
-	if(sym[0] == NULL || sym[1] != NULL) return 0;
-	if(type == ITC_MODULE_PROPERTY_TYPE_INT)
-	{
-		if(strcmp(sym[0], "port") == 0) *(int32_t*)data = (int32_t)context->pool_conf.port;
-		else if(strcmp(sym[0], "ttl") == 0) *(int32_t*)data = (int32_t)context->pool_conf.ttl;
-		else if(strcmp(sym[0], "size") == 0) *(int32_t*)data = (int32_t)context->pool_conf.size;
-		else return 0;
-	}
-	else if(type == ITC_MODULE_PROPERTY_TYPE_STRING)
-	{
-		if(strcmp(sym[0], "bindaddr") == 0) *(const char**)data = context->pool_conf.bind_addr;
-		else return 0;
-	}
-	else return 0;
-	return 1;
+	itc_module_property_value_t ret = {
+		.type = ITC_MODULE_PROPERTY_TYPE_INT,
+		.num  = n
+	};
+	return ret;
 }
 
-static int _set_prop(void* __restrict ctx, const char** sym, itc_module_property_type_t type, const void* data)
+static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* sym)
+{
+	itc_module_property_value_t ret = {
+		.type = ITC_MODULE_PROPERTY_TYPE_NONE
+	};
+	_module_context_t* context = (_module_context_t*)ctx;
+
+	if(strcmp(sym, "port") == 0) return _make_num(context->pool_conf.port);
+	else if(strcmp(sym, "ttl") == 0) return _make_num(context->pool_conf.ttl);
+	else if(strcmp(sym, "size") == 0) return _make_num(context->pool_conf.size);
+	else if(strcmp(sym, "bindaddr") == 0) //*(const char**)data = context->pool_conf.bind_addr;
+	{
+		size_t len;
+		if(NULL == (ret.str = (char*)malloc(len = 1 + strlen(context->pool_conf.bind_addr))))
+		{
+			ret.type = ITC_MODULE_PROPERTY_TYPE_ERROR;
+			return ret;
+		}
+
+		memcpy(ret.str, context->pool_conf.bind_addr, len);
+
+		ret.type = ITC_MODULE_PROPERTY_TYPE_STRING;
+
+		return ret;
+	}
+
+	return ret;
+}
+
+static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_value_t value)
 {
 	_module_context_t* context = (_module_context_t*)ctx;
 
+	/* TODO: this is weird, because it sounds like different module actually shares the same configuration */
 	static char bindaddr_buffer[128];
-	if(sym[0] == NULL || sym[1] != NULL) return 0;
-	if(type == ITC_MODULE_PROPERTY_TYPE_INT)
+	if(value.type == ITC_MODULE_PROPERTY_TYPE_INT)
 	{
-		if(strcmp(sym[0], "port") == 0) context->pool_conf.port = (uint16_t)(*(int32_t*)data);
-		else if(strcmp(sym[0], "ttl") == 0) context->pool_conf.ttl = (time_t)(*(int32_t*)data);
-		else if(strcmp(sym[0], "size") == 0) context->pool_conf.size = (uint32_t)(*(int32_t*)data);
-		else if(strcmp(sym[0], "event_size") == 0) context->pool_conf.event_size = (uint32_t)(*(int32_t*)data);
-		else if(strcmp(sym[0], "event_timeout") == 0) context->pool_conf.min_timeout = (time_t)(*(int32_t*)data);
-		else if(strcmp(sym[0], "backlog") == 0) context->pool_conf.tcp_backlog = (int)(*(int32_t*)data);
-		else if(strcmp(sym[0], "ipv6") == 0) context->pool_conf.ipv6 = (int)(*(int32_t*)data);
-		else if(strcmp(sym[0], "reuseaddr") == 0) context->pool_conf.reuseaddr = (int)(*(int32_t*)data);
+		if(strcmp(sym, "port") == 0) context->pool_conf.port = (uint16_t)value.num;
+		else if(strcmp(sym, "ttl") == 0) context->pool_conf.ttl = (time_t)value.num;
+		else if(strcmp(sym, "size") == 0) context->pool_conf.size = (uint32_t)value.num;
+		else if(strcmp(sym, "event_size") == 0) context->pool_conf.event_size = (uint32_t)value.num;
+		else if(strcmp(sym, "event_timeout") == 0) context->pool_conf.min_timeout = (time_t)value.num;
+		else if(strcmp(sym, "backlog") == 0) context->pool_conf.tcp_backlog = (int)value.num;
+		else if(strcmp(sym, "ipv6") == 0) context->pool_conf.ipv6 = (int)value.num;
+		else if(strcmp(sym, "reuseaddr") == 0) context->pool_conf.reuseaddr = (int)value.num;
 		else return 0;
 	}
-	else if(type == ITC_MODULE_PROPERTY_TYPE_STRING)
+	else if(value.type == ITC_MODULE_PROPERTY_TYPE_STRING)
 	{
-		if(strcmp(sym[0], "bindaddr") == 0)
+		if(strcmp(sym, "bindaddr") == 0)
 		{
-			const char* input = (const char*)data;
+			const char* input = value.str;
 			size_t sz = strlen(input);
-			if(sz > 127) sz = 127;
+			if(sz > sizeof(bindaddr_buffer)) sz = sizeof(bindaddr_buffer);
 			memcpy(bindaddr_buffer, input, sz);
 			bindaddr_buffer[sz] = 0;
 			context->pool_conf.bind_addr = bindaddr_buffer;

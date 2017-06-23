@@ -29,9 +29,19 @@
  *         will be closed anyway.
  **/
 typedef enum {
+	ITC_MODULE_PROPERTY_TYPE_ERROR,   /*!< The error case */
+	ITC_MODULE_PROPERTY_TYPE_NONE,    /*!< Indicates the module do not have this field */
 	ITC_MODULE_PROPERTY_TYPE_INT,     /*!< indicates this is a integer */
 	ITC_MODULE_PROPERTY_TYPE_STRING   /*!< indicates this is a string */
 } itc_module_property_type_t;
+
+typedef struct {
+	itc_module_property_type_t type;
+	union {
+		int64_t num;
+		char*    str;
+	};
+} itc_module_property_value_t;
 
 /**
  * @brief the flag bits that is used by the module instance, the module flags indicates the property of the module
@@ -354,24 +364,22 @@ typedef struct {
 	 * @details the detailed description of a property can be found from the documentation for the itc_module_property_type_t
 	 * @param context the context for this module instance
 	 * @param symbol the symbol of this property, an array of string, NULL terminated
-	 * @param type the type of the value
-	 * @param data the data section to set
+	 * @param value the type of the value
 	 * @note the module has to build its own reference for a string, because it's not guareenteed that
 	 *       the string data is not going to be deallocated later
 	 * @return how many property has been set, or error code
 	 **/
-	int (*set_property)(void* __restrict context, const char** symbol, itc_module_property_type_t type, const void* __restrict data);
+	int (*set_property)(void* __restrict context, const char* symbol, itc_module_property_value_t value);
 
 	/**
 	 * @brief the callback function when the infrastructure is trying to query a module property
 	 * @details the detailed description of a property can be found from the documentation for the itc_module_property_type_t
 	 * @param context the context for this module instance
 	 * @param symbol the symbol of the target property
-	 * @param type the expected type
-	 * @param buffer the buffer used to fill the data in
-	 * @return how many property has been retuened, or error code
+	 * @note  The module should make a new copy of string (must be malloced) for the string value
+	 * @return The value get from the module
 	 **/
-	int (*get_property)(void* __restrict context, const char ** symbol, itc_module_property_type_t type, void* __restrict data);
+	itc_module_property_value_t (*get_property)(void* __restrict context, const char * symbol);
 
 	/**
 	 * @brief the callback function when the infrastructure needs to "fork" a new pipe to create a shadow

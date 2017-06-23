@@ -1,10 +1,5 @@
 /*
 CaseBegin
-	Name: Currently Disabled
-	Expected:
-CaseEnd
-
-CaseBegin
 	Name: module_init_flags
 	Expected: <undefined>
 	          <undefined>
@@ -17,16 +12,15 @@ CaseBegin
 CaseEnd
 */
 
-/*
-echo pipe.mem
-echo mem.pool
+print(pipe.mem)
+print(mem.pool)
 
 if(pipe.mem == undefined) 
 {
 	insmod("mem_pipe");
 	print("mem_pipe installed");
 }
-else echo "mem_pipe has been previously installed"
+else print("mem_pipe has been previously installed")
 
 if(plumber.std == undefined) 
 {
@@ -51,5 +45,3 @@ if(plumber.std == undefined)
 	print("pssm installed");
 }
 else print("pssm has been previously installed");
-
-*/

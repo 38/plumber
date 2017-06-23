@@ -8,19 +8,21 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include <runtime/api.h>
+#include <constants.h>
+#include <error.h>
+
 #include <utils/static_assertion.h>
 #include <utils/log.h>
-#include <error.h>
-#include <constants.h>
+#include <utils/mempool/objpool.h>
+#include <utils/thread.h>
+#include <utils/string.h>
+
+#include <runtime/api.h>
 #include <itc/module_types.h>
 #include <itc/module.h>
 #include <itc/modtab.h>
 #include <itc/binary.h>
-#include <lang/bytecode.h>
 #include <lang/prop.h>
-#include <utils/mempool/objpool.h>
-#include <utils/thread.h>
 
 /**
  * @brief the size of the header
@@ -216,104 +218,94 @@ ERR:
 
 /**
  * @brief the callback function used to pass the property get operation in service script to the module
- * @param cb the callback object related to this invocation
- * @param data the additional data for this call
- * @param nsect the number of sections
  * @param symbol the symbol id for each section
- * @param type the type for the expected value
- * @param buffer the buffer used to return the value
- * @return status code
+ * @param The additional data, which is the module context
+ * @return The result
  **/
-static inline int _get_module_property(const lang_prop_callback_vector_t* cb, const void* data,
-                                       uint32_t nsect, const uint32_t* symbol, lang_prop_type_t type,
-                                       void* buffer)
+static inline lang_prop_value_t _get_module_property(const char* symbol, const void* data)
 {
-	if(NULL == data || NULL == symbol || NULL == buffer) ERROR_RETURN_LOG(int, "Invalid arguments");
-	itc_modtab_instance_t* node  = (itc_modtab_instance_t*)data;
+	lang_prop_value_t ret = {
+		.type = LANG_PROP_TYPE_ERROR
+	};
 
-
-	itc_module_property_type_t itc_type;
-	switch(type)
+	if(NULL == data || NULL == symbol) 
 	{
-		case LANG_PROP_TYPE_INTEGER:
-		    itc_type = ITC_MODULE_PROPERTY_TYPE_INT;
-		    break;
-		case LANG_PROP_TYPE_STRING:
-		    itc_type = ITC_MODULE_PROPERTY_TYPE_STRING;
-		    break;
-		default:
-		    ERROR_RETURN_LOG(int, "Unsupported module property type");
+		LOG_ERROR("Invalid arguments");
+		return ret;
 	}
 
-	if(nsect > 0)
+	itc_modtab_instance_t* node = (itc_modtab_instance_t*)data;
+
+	if(symbol[0])
 	{
-		if(node->module->get_property == NULL) return 0;
-
-		const char* symbol_str[nsect + 1];
-		uint32_t i;
-		for(i = 0; i < nsect; i ++)
+		if(node->module->get_property == NULL) 
 		{
-			if(NULL == (symbol_str[i] = lang_prop_get_symbol_string(cb, symbol[i])))
-			    ERROR_RETURN_LOG(int, "Cannot read the symbol string table");
+			ret.type = LANG_PROP_TYPE_NONE;
+			return ret;
 		}
-		symbol_str[nsect] = NULL;
 
-		return node->module->get_property(node->context, symbol_str, itc_type, buffer);
+		itc_module_property_value_t value = node->module->get_property(node->context, symbol);
+
+		switch(value.type)
+		{
+			case ITC_MODULE_PROPERTY_TYPE_INT:
+				ret.type = LANG_PROP_TYPE_INTEGER;
+				ret.num  = value.num;
+				return ret;
+			case ITC_MODULE_PROPERTY_TYPE_STRING:
+				ret.type = LANG_PROP_TYPE_STRING;
+				ret.str  = value.str;
+				return ret;
+			case ITC_MODULE_PROPERTY_TYPE_NONE:
+				ret.type = LANG_PROP_TYPE_NONE;
+				return ret;
+			case ITC_MODULE_PROPERTY_TYPE_ERROR:
+				return ret;
+		}
 	}
 	else
 	{
-		if(itc_type == ITC_MODULE_PROPERTY_TYPE_INT)
-		{
-			*(int32_t*)buffer = 1;
-			return 1;
-		}
-		return 0;
+		ret.type = LANG_PROP_TYPE_INTEGER;
+		ret.num  = 1;
+		return ret;
 	}
+
+	return ret;
 }
 
 /**
  * @brief the callback function used to pass the property set operation in service script to the module
- * @param cb the callback object related to this invocation
- * @param data the additional data for this call
- * @param nsect the number of sections
- * @param symbol the symbol id for each section
- * @param type the type for the expected value
- * @param buffer the value buffer that contains the value to set
- * @return status code
+ * @param data The module context
+ * @param value The value to set
+ * @param symbol The symbol to set
+ * @return The number of field has been processed or error code
  **/
-static inline int _set_module_property(const lang_prop_callback_vector_t* cb, const void* data,
-                                       uint32_t nsect, const uint32_t* symbol, lang_prop_type_t type,
-                                       const void* buffer)
+static inline int _set_module_property(const char* symbol, lang_prop_value_t value, const void* data)
 {
-	if(NULL == data || NULL == symbol || NULL == buffer) ERROR_RETURN_LOG(int, "Invalid arguments");
+	if(NULL == data || NULL == symbol || LANG_PROP_TYPE_NONE == value.type || LANG_PROP_TYPE_ERROR == value.type) 
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	itc_modtab_instance_t* node  = (itc_modtab_instance_t*)data;
 
 	if(node->module->set_property == NULL) return 0;
 
-	itc_module_property_type_t itc_type;
-	switch(type)
+	itc_module_property_value_t prop;
+
+	switch(value.type)
 	{
 		case LANG_PROP_TYPE_INTEGER:
-		    itc_type = ITC_MODULE_PROPERTY_TYPE_INT;
+		    prop.type = ITC_MODULE_PROPERTY_TYPE_INT;
+			prop.num  = value.num;
 		    break;
 		case LANG_PROP_TYPE_STRING:
-		    itc_type = ITC_MODULE_PROPERTY_TYPE_STRING;
+		    prop.type = ITC_MODULE_PROPERTY_TYPE_STRING;
+			prop.str = value.str;
 		    break;
 		default:
 		    ERROR_RETURN_LOG(int, "Unsupported module property type");
 	}
 
-	const char* symbol_str[nsect + 1];
-	uint32_t i;
-	for(i = 0; i < nsect; i ++)
-	{
-		if(NULL == (symbol_str[i] = lang_prop_get_symbol_string(cb, symbol[i])))
-		    ERROR_RETURN_LOG(int, "Cannot read the symbol string table");
-	}
-	symbol_str[nsect] = NULL;
-
-	return node->module->set_property(node->context, symbol_str, itc_type, buffer);
+	return node->module->set_property(node->context, symbol, prop);
 }
 
 int itc_modtab_insmod(const itc_module_t* module, uint32_t argc, char const* const* argv)

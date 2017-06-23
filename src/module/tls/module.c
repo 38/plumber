@@ -968,17 +968,19 @@ static int _eom(void* __restrict ctx, void* __restrict pipe, const char* buffer,
  * @param data the buffer used to return data
  * @return status code
  **/
-static int _get_prop(void* __restrict ctx, const char** sym, itc_module_property_type_t type, void* __restrict data)
+static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* sym)
 {
+	itc_module_property_value_t ret = {
+		.type = ITC_MODULE_PROPERTY_TYPE_NONE
+	};
 	_module_context_t* context = (_module_context_t*)ctx;
-	if(sym[0] == NULL || sym[1] != NULL) return 0;
-	if(type == ITC_MODULE_PROPERTY_TYPE_INT)
+	if(strcmp(sym, "async_write") == 0)
 	{
-		if(strcmp(sym[0], "async_write") == 0) *(int32_t*)data = (int32_t)context->async_write;
-		else return 0;
+		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
+		ret.num = context->async_write;
+		return ret;
 	}
-	else return 0;
-	return 1;
+	return ret;
 }
 
 /**
@@ -1025,23 +1027,22 @@ RET:
  * @note the only one property currently supported is the async_write flag
  * @return the status code
  **/
-static int _set_prop(void* __restrict ctx, const char** sym, itc_module_property_type_t type, const void* data)
+static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_value_t value)
 {
-#define _IS(v) (strcmp(sym[0], (v)) == 0)
+#define _IS(v) (strcmp(sym, (v)) == 0)
 #define _SYMBOL(cond) else if(cond)
 	_module_context_t* context = (_module_context_t*)ctx;
 
-	if(sym[0] == NULL || sym[1] != NULL) return 0;
-	if(type == ITC_MODULE_PROPERTY_TYPE_INT)
+	if(value.type == ITC_MODULE_PROPERTY_TYPE_INT)
 	{
 		long options = 0;
 		if(0);
-		_SYMBOL(_IS("async_write"))                    context->async_write = (uint32_t)(*(int32_t*)data);
-		_SYMBOL(_IS("ssl2") && 0 == *(int32_t*)data)   options |= SSL_OP_NO_SSLv2;
-		_SYMBOL(_IS("ssl3") && 0 == *(int32_t*)data)   options |= SSL_OP_NO_SSLv3;
-		_SYMBOL(_IS("tls1") && 0 == *(int32_t*)data)   options |= SSL_OP_NO_TLSv1;
-		_SYMBOL(_IS("tls1_1") && 0 == *(int32_t*)data) options |= SSL_OP_NO_TLSv1_1;
-		_SYMBOL(_IS("tls1_2") && 0 == *(int32_t*)data) options |= SSL_OP_NO_TLSv1_2;
+		_SYMBOL(_IS("async_write"))              context->async_write = (value.num != 0);
+		_SYMBOL(_IS("ssl2") && 0 == value.num)   options |= SSL_OP_NO_SSLv2;
+		_SYMBOL(_IS("ssl3") && 0 == value.num)   options |= SSL_OP_NO_SSLv3;
+		_SYMBOL(_IS("tls1") && 0 == value.num)   options |= SSL_OP_NO_TLSv1;
+		_SYMBOL(_IS("tls1_1") && 0 == value.num) options |= SSL_OP_NO_TLSv1_1;
+		_SYMBOL(_IS("tls1_2") && 0 == value.num) options |= SSL_OP_NO_TLSv1_2;
 		else return 0;
 
 		if(options != 0 &&  SSL_CTX_set_options(context->ssl_context, options) <= 0)
@@ -1049,19 +1050,19 @@ static int _set_prop(void* __restrict ctx, const char** sym, itc_module_property
 
 		return 1;
 	}
-	else if(type == ITC_MODULE_PROPERTY_TYPE_STRING)
+	else if(value.type == ITC_MODULE_PROPERTY_TYPE_STRING)
 	{
 		if(0);
 		_SYMBOL(_IS("cipher"))
 		{
-			if(0 == SSL_CTX_set_cipher_list(context->ssl_context, (char*)data))
-			    ERROR_RETURN_LOG(int, "Cipher string %s could be accepted: %s", (char*)data, ERR_error_string(ERR_get_error(), NULL));
+			if(0 == SSL_CTX_set_cipher_list(context->ssl_context, value.str))
+			    ERROR_RETURN_LOG(int, "Cipher string %s could be accepted: %s", value.str, ERR_error_string(ERR_get_error(), NULL));
 			return 1;
 		}
 		_SYMBOL(_IS("extra_cert_chain"))
 		{
 			static char filename[PATH_MAX];
-			const char* ch = (const char*)data;
+			const char* ch = value.str;
 			uint32_t len = 0;
 			for(;; ch ++)
 			{
@@ -1086,7 +1087,7 @@ static int _set_prop(void* __restrict ctx, const char** sym, itc_module_property
 		}
 		_SYMBOL(_IS("dhparam"))
 		{
-			const char* filename = (const char*)data;
+			const char* filename = value.str;
 			FILE* fp = fopen(filename, "r");
 			if(NULL == fp)
 			    ERROR_RETURN_LOG_ERRNO(int, "Cannot load dhparam file %s", filename);
@@ -1108,7 +1109,7 @@ DHPARAM_ERR:
 		}
 		_SYMBOL(_IS("ecdh_curve"))
 		{
-			const char* name = (const char*)data;
+			const char* name = value.str;
 			if(strcmp(name, "auto") == 0)
 			{
 				if(SSL_CTX_set_ecdh_auto(context->ssl_context, 1) <= 0)

@@ -6,8 +6,7 @@
 #include <utils/init.h>
 
 INIT_VEC(modules) = {
-	INIT_MODULE(lang_prop),
-	INIT_MODULE(lang_lex)
+	INIT_MODULE(lang_prop)
 };
 
 

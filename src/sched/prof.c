@@ -25,7 +25,6 @@
 #include <sched/service.h>
 #include <sched/prof.h>
 
-#include <lang/bytecode.h>
 #include <lang/prop.h>
 
 #include <utils/log.h>
@@ -241,23 +240,22 @@ int sched_prof_flush(sched_prof_t* prof)
 	return 0;
 }
 
-static inline int _set_prop(const lang_prop_callback_vector_t* cb, const void* data, uint32_t nsect, const uint32_t* symbol, lang_prop_type_t type, const void* buffer)
+static inline int _set_prop(const char* symbol, lang_prop_value_t value, const void* data)
 {
 	(void) data;
-	(void) cb;
-	if(NULL == symbol || NULL == buffer) ERROR_RETURN_LOG(int, "Invalid arguments");
-	if(nsect == 1 && strcmp(lang_prop_get_symbol_string(cb, symbol[0]), "enabled") == 0)
+	if(NULL == symbol || LANG_PROP_TYPE_ERROR == value.type || LANG_PROP_TYPE_NONE == value.type) 
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+	if(strcmp(symbol, "enabled") == 0)
 	{
-		if(type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
-		uint32_t value = (uint32_t)*(int32_t*)buffer;
-		_prof_enabled = value;
+		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
+		_prof_enabled = (uint32_t)value.num;
 		if(_prof_enabled) LOG_TRACE("Profiler is enabled");
 		else LOG_TRACE("Profiler is disabled");
 	}
-	else if(nsect == 1 && strcmp(lang_prop_get_symbol_string(cb, symbol[0]), "output") == 0)
+	else if(strcmp(symbol, "output") == 0)
 	{
-		if(type != LANG_PROP_TYPE_STRING) ERROR_RETURN_LOG(int, "Type mistach");
-		const char* path = (const char*)buffer;
+		if(value.type != LANG_PROP_TYPE_STRING) ERROR_RETURN_LOG(int, "Type mistach");
+		const char* path = value.str;
 		if(NULL == path) ERROR_RETURN_LOG(int, "Cannot get the string value");
 		if(path[0] == 0)
 		{
@@ -276,7 +274,7 @@ static inline int _set_prop(const lang_prop_callback_vector_t* cb, const void* d
 	}
 	else
 	{
-		LOG_WARNING("Unrecognized symbol name %s", lang_prop_get_symbol_string(cb, symbol[0]));
+		LOG_WARNING("Unrecognized symbol name %s", symbol);
 		return 0;
 	}
 

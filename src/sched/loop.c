@@ -466,40 +466,40 @@ int sched_loop_set_queue_size(uint32_t size)
 	return 0;
 }
 
-static inline int _set_prop(const lang_prop_callback_vector_t* cb, const void* data, uint32_t nsect, const uint32_t* symbol, lang_prop_type_t type, const void* buffer)
+static inline int _set_prop(const char* symbol, lang_prop_value_t value, const void* data)
 {
 	(void) data;
-	(void) cb;
-	if(NULL == symbol || NULL == buffer) ERROR_RETURN_LOG(int, "Invalid arguments");
-	if(nsect == 1 && strcmp(lang_prop_get_symbol_string(cb, symbol[0]), "nthreads") == 0)
+	if(NULL == symbol || NULL == data || LANG_PROP_TYPE_ERROR == value.type || LANG_PROP_TYPE_NONE == value.type) 
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+	if(strcmp(symbol, "nthreads") == 0)
 	{
-		if(type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
-		uint32_t value = (uint32_t)*(int32_t*)buffer;
-		if(sched_loop_set_nthreads(value) < 0) ERROR_RETURN_LOG(int, "Cannot set the number of worker thread");
+		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
+		uint32_t nthreads = (uint32_t)value.num;
+		if(sched_loop_set_nthreads(nthreads) < 0) ERROR_RETURN_LOG(int, "Cannot set the number of worker thread");
 	}
-	else if(nsect == 1 && strcmp(lang_prop_get_symbol_string(cb, symbol[0]), "queue_size") == 0)
+	else if(strcmp(symbol, "queue_size") == 0)
 	{
-		if(type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
-		uint32_t size = (uint32_t)*(int32_t*)buffer;
+		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
+		uint32_t size = (uint32_t)value.num;
 		sched_loop_set_queue_size(size);
 	}
-	else if(nsect == 1 && strcmp(lang_prop_get_symbol_string(cb, symbol[0]), "default_itc_pipe") == 0)
+	else if(strcmp(symbol, "default_itc_pipe") == 0)
 	{
-		if(type != LANG_PROP_TYPE_STRING) ERROR_RETURN_LOG(int, "Type mistach");
-		_mod_mem = itc_modtab_get_module_type_from_path((const char*)buffer);
+		if(value.type != LANG_PROP_TYPE_STRING) ERROR_RETURN_LOG(int, "Type mistach");
+		_mod_mem = itc_modtab_get_module_type_from_path(value.str);
 		if(ERROR_CODE(itc_module_type_t) == _mod_mem)
-		    ERROR_RETURN_LOG(int, "Cannot find the module named %s, aborting", (const char*)buffer);
+		    ERROR_RETURN_LOG(int, "Cannot find the module named %s, aborting", value.str);
 		const itc_modtab_instance_t* inst = itc_modtab_get_from_module_type(_mod_mem);
 		if(NULL == inst) ERROR_RETURN_LOG(int, "Cannot get the module instance of module type 0x%x", _mod_mem);
 
 		if(inst->module == NULL) ERROR_RETURN_LOG(int, "Invalid module definition");
 
 		if(inst->module->allocate == NULL) ERROR_RETURN_LOG(int, "Invalid module type: ITC communication module should have accept function");
-		LOG_DEBUG("Default ITC communication pipe has been set to %s", (const char*)buffer);
+		LOG_DEBUG("Default ITC communication pipe has been set to %s", value.str);
 	}
 	else
 	{
-		LOG_WARNING("Unrecognized symbol name %s", lang_prop_get_symbol_string(cb, symbol[0]));
+		LOG_WARNING("Unrecognized symbol name %s", symbol);
 		return 0;
 	}
 

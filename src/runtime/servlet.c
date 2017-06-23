@@ -26,7 +26,6 @@
 #include <runtime/task.h>
 #include <runtime/stab.h>
 
-#include <lang/bytecode.h>
 #include <lang/prop.h>
 
 /** @brief prevous declearator for the address table */
@@ -90,17 +89,21 @@ static inline const char * _search_for_binary(const char* binary)
 	return NULL;
 }
 
-static inline int _set_prop(const lang_prop_callback_vector_t* cb, const void* data, uint32_t nsect, const uint32_t* symbol, lang_prop_type_t type, const void* buffer)
+static inline int _set_prop(const char* symbol, lang_prop_value_t val, const void* data)
 {
 	(void) data;
-	if(NULL == symbol || NULL == buffer) ERROR_RETURN_LOG(int, "Invalid arguments");
-	if(nsect == 1 && strcmp(lang_prop_get_symbol_string(cb, symbol[0]), "path") == 0)
+	if(NULL == symbol) ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(strcmp(symbol, "path") == 0)
 	{
-		if(type != LANG_PROP_TYPE_STRING) ERROR_RETURN_LOG(int, "Type mismatch");
-		const char* value = (const char*)buffer;
+		if(val.type != LANG_PROP_TYPE_STRING) ERROR_RETURN_LOG(int, "Type mismatch");
 		runtime_servlet_clear_search_path();
+
+		const char* value = val.str;
+		
 		char buffer[PATH_MAX + 1];
 		size_t length = 0;
+		
 		for(;;value ++)
 		{
 			if(*value == ':' || *value == 0)
@@ -122,34 +125,50 @@ static inline int _set_prop(const lang_prop_callback_vector_t* cb, const void* d
 	}
 	else
 	{
-		LOG_WARNING("Undefined property symbol %s", lang_prop_get_symbol_string(cb, symbol[0]));
+		LOG_WARNING("Undefined property symbol %s", symbol);
 		return 0;
 	}
 
 	return 1;
 }
 
-static inline int _get_prop(const lang_prop_callback_vector_t* cb, const void* data, uint32_t nsect, const uint32_t* symbol, lang_prop_type_t type, void* buffer)
+static inline lang_prop_value_t _get_prop(const char* symbol, const void* data)
 {
 	(void) data;
-	if(NULL == symbol || NULL == buffer) ERROR_RETURN_LOG(int, "Invalid arguments");
-	if(nsect == 1 && strcmp(lang_prop_get_symbol_string(cb, symbol[0]), "path") == 0)
-	{
-		if(type != LANG_PROP_TYPE_STRING) ERROR_RETURN_LOG(int, "Type mismatch");
 
+
+	lang_prop_value_t ret = {
+		.type = LANG_PROP_TYPE_ERROR
+	};
+	
+	if(NULL == symbol) 
+	{
+		LOG_ERROR("Invalid arguments");
+		return ret;
+	}
+
+	if(strcmp(symbol, "path") == 0)
+	{
 		size_t i, required_size = 0;
 
 		for(i = 0; i < vector_length(_search_paths); i ++)
 		{
 			const char* path = *VECTOR_GET_CONST(const char *, _search_paths, i);
-			if(NULL == path) ERROR_RETURN_LOG(int, "Cannot get the search path");
+			if(NULL == path) 
+			{
+				LOG_ERROR("Cannot get the search path");
+				return ret;
+			}
 			/* Because we can have either a : in the middle of the string or the \0 at the end */
 			required_size += strlen(path) + 1;
 		}
 
 		char* bufmem = (char*)malloc(required_size);
 		if(NULL == bufmem)
-		    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the result");
+		{
+			LOG_ERROR_ERRNO("Cannot allocate memory for the result");
+			return ret;
+		}
 
 		string_buffer_t strbuf;
 		string_buffer_open(bufmem, required_size, &strbuf);
@@ -162,7 +181,8 @@ static inline int _get_prop(const lang_prop_callback_vector_t* cb, const void* d
 			if(NULL == path)
 			{
 				free(bufmem);
-				ERROR_RETURN_LOG(int, "Cannot get the search path");
+				LOG_ERROR("Cannot get the search path");
+				return ret;
 			}
 
 			if(first)
@@ -175,14 +195,16 @@ static inline int _get_prop(const lang_prop_callback_vector_t* cb, const void* d
 
 		string_buffer_close(&strbuf);
 
-		*(const char**)buffer = bufmem;
+		ret.type = LANG_PROP_TYPE_STRING;
+		ret.str = bufmem;
 
-		return 1;
+		return ret;
 	}
 
-	LOG_WARNING("Undefined property symbol %s", lang_prop_get_symbol_string(cb, symbol[0]));
+	LOG_WARNING("Undefined property symbol %s", symbol);
 
-	return 0;
+	ret.type = LANG_PROP_TYPE_NONE;
+	return ret;
 }
 
 int runtime_servlet_init()

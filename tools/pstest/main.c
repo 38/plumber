@@ -10,6 +10,7 @@
 #include <error.h>
 #include <module/builtins.h>
 #include <utils/thread.h>
+#include <utils/string.h>
 itc_module_type_t mod_file;
 
 int list = 0;

@@ -8,10 +8,6 @@
 #ifndef __PLUMBER_LANG_H__
 #define __PLUMBER_LANG_H__
 
-#include <lang/lex.h>
-#include <lang/bytecode.h>
-#include <lang/compiler.h>
-#include <lang/vm.h>
 #include <lang/prop.h>
 
 /**
