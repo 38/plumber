@@ -9,9 +9,24 @@ List.empty = function() {
 List.range = function(from, to) 
 {
 	var ret = dict()
-	for(var i = 0;from < to; from ++)
+	for(var i = 0; from < to; from ++)
 		ret[i ++] = from;
-	return ret
+	return ret;
+}
+
+List.append = function(list, item)
+{
+	var length = len(list);
+	list[length] = item;
+	return list;
+}
+
+List.slice = function(list, left, right)
+{
+	var ret = List.empty();
+	for(var i = left; i < right; i ++)
+		ret[i - left] = list[i];
+	return ret;
 }
 
 List.map = function(func, list) 
@@ -28,8 +43,7 @@ List.reduce = function(func, list)
 	var ret = undefined;
 	var length = len(list);
 
-	if(length > 0) 
-		ret = list[0];
+	if(length > 0) ret = list[0];
 
 	for(var i = 1; i < length; i ++)
 		ret = func(ret, list[i]);
@@ -42,12 +56,9 @@ List.filter = function(f, l)
 	var length = len(l);
 	var i = 0, j = 0;
 	var ret = dict();
-	while(i < length)
-	{
-		if(f(l[i]))
-			ret[j++] = l[i];
-		i++;
-	}
+
+	for(var i = 0, j = 0; i < length; i ++)
+		if(f(l[i])) ret[j++] = l[i];
 	return ret;
 }
 
@@ -55,12 +66,10 @@ List.print = function(list)
 {
 	var buf = "[";
 	var length = len(list);
-	var i = 0;
-	while(i < length)
+	for(var i = 0; i < length; i ++)
 	{
 		if(i > 0) buf = buf + ", ";
 		buf = buf + list[i];
-		i++;
 	}
 	print(buf, "]")
 }
@@ -70,23 +79,16 @@ List.concat = function(left, right)
 	var ret = dict();
 	var ll = len(left);
 	var rl = len(right);
-	var i = 0;
-	while(i < ll) 
-	{
+	for(var i = 0; i < ll; i ++)
 		ret[i] = left[i];
-		++i;
-	}
-	while(i - ll < rl)
-	{
-		ret[i] = right[i - ll];
-		++i;
-	}
+	for(var i = 0; i < rl; i ++)
+		ret[i + ll] = right[i];
 	return ret;
 }
 
 List.sort = function(list) 
 {
-	var qsort_impl = function(list, comp, qsort)
+	var __qsort = function(list, comp, qsort)
 	{
 		if(len(list) < 2) return list;
 		var p = list[0];
@@ -102,7 +104,25 @@ List.sort = function(list)
 			{
 				return x - y;
 			}
-		return qsort_impl(list, comp, qsort_impl);
+		return __qsort(list, comp, __qsort);
 	}
 }();
+
+List.zip = function(a, b)
+{
+	var la = len(a);
+	var lb = len(b);
+	var l = la;
+	if(la > lb) l = lb;
+	var ret = List.empty();
+
+	for(var i = 0; i < l; i++)
+	{
+		ret[i] = List.empty();
+		ret[i][0] = a[i];
+		ret[i][1] = b[i];
+	}
+
+	return ret;
+}
 

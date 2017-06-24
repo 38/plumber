@@ -1,0 +1,29 @@
+/**
+ * Copyright (C) 2017, Hao Hou
+ **/
+import("list");
+Dict.map = function(func, dictionary)
+{
+	var ret = dict();
+	for(var key in dictionary)
+		ret[key] = func(dictionary[key]);
+	return ret;
+}
+
+Dict.keys = function(dictionary)
+{
+	var ret = List.empty();
+	for(var key in dictionary)
+		List.append(ret, key);
+	return ret;
+}
+
+Dict.values = function(dictionary)
+{
+	var ret = List.empty();
+	for(var key in dictionary)
+		List.append(ret, dictionary[key]);
+	return ret;
+}
+
+

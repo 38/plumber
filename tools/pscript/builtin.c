@@ -265,7 +265,7 @@ static int _external_set(const char* name, pss_value_t data)
 				return lang_prop_set(name, val);
 			}
 		default:
-			ERROR_RETURN_LOG(int, "Cannot handle the symbol %s", name);
+			return 0;
 	}
 }
 
