@@ -468,7 +468,7 @@ static inline int _var_decl_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 
 			/* This means it have a initial value clause */
 			pss_comp_value_t val = {};
-			if(ERROR_CODE(int) == pss_comp_value_parse(comp, &val))
+			if(ERROR_CODE(int) == pss_comp_expr_parse(comp, &val))
 				ERROR_RETURN_LOG(int, "Cannot parse the initializer");
 
 			if(ERROR_CODE(int) == pss_comp_value_simplify(comp, &val))

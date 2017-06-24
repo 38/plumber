@@ -2,6 +2,7 @@
  * Copyright (C) 2017, Hao Hou
  **/
 import("list");
+
 Dict.map = function(func, dictionary)
 {
 	var ret = dict();

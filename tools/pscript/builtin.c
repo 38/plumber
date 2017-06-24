@@ -119,7 +119,7 @@ static pss_value_t _pscript_builtin_import(pss_vm_t* vm, uint32_t argc, pss_valu
 	return ret;
 }
 
-static pss_value_t _pscript_builtin_insmod(pss_vm_t* vm, uint32_t arg_cnt, pss_value_t* args)
+static pss_value_t _pscript_builtin_insmod(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
 	(void)vm;
 	pss_value_t ret = {
@@ -127,75 +127,77 @@ static pss_value_t _pscript_builtin_insmod(pss_vm_t* vm, uint32_t arg_cnt, pss_v
 		.num = PSS_VM_ERROR_TYPE
 	};
 
-	if(arg_cnt < 1) return ret;
+	if(argc < 1) return ret;
 
-	if(args[0].kind != PSS_VALUE_KIND_REF || pss_value_ref_type(args[0]) != PSS_VALUE_REF_TYPE_STRING)
+	if(argv[0].kind != PSS_VALUE_KIND_REF || pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING)
 	{
 		ret.kind = PSS_VALUE_KIND_ERROR;
 		ret.num  = PSS_VM_ERROR_TYPE;
 		return ret;
 	}
-
-	const char* mod_init_str = pss_value_get_data(args[0]);
-
-	if(NULL == mod_init_str)
-	{
-	    LOG_ERROR_ERRNO("Cannot get the initialization string");
-		ret.kind = PSS_VALUE_KIND_ERROR;
-		ret.num  = PSS_VM_ERROR_INTERNAL;
-		return ret;
-	}
-
-	uint32_t arg_cap = 32;
-	uint32_t argc = 0;
-	char** argv = (char**)malloc(arg_cap * sizeof(char*));
-	if(NULL == argv)
-	{
-	    LOG_ERROR_ERRNO("Cannot create the argument buffer");
-		ret.kind = PSS_VALUE_KIND_ERROR;
-		ret.num  = PSS_VM_ERROR_INTERNAL;
-		return ret;
-	}
-
-	const char* ptr, *begin;
+	
+	uint32_t module_arg_cap = 32, module_argc = 0, i;
+	char** module_argv = (char**)malloc(module_arg_cap * sizeof(char*));
 	const itc_module_t* binary = NULL;
-	for(begin = ptr = mod_init_str;; ptr ++)
+	if(NULL == module_argv)
 	{
-		if(*ptr == ' ' || *ptr == 0)
+		LOG_ERROR_ERRNO("Cannot create the argument buffer");
+		ret.kind = PSS_VALUE_KIND_ERROR;
+		ret.num  = PSS_VM_ERROR_INTERNAL;
+		return ret;
+	}
+
+	for(i = 0; i < argc; i ++)
+	{
+		const char* mod_init_str = pss_value_get_data(argv[i]);
+
+		if(NULL == mod_init_str)
 		{
-			if(ptr - begin > 0)
-			{
-				if(argc >= arg_cap)
-				{
-					char** new_argv = (char**)realloc(argv, sizeof(char*) * arg_cap * 2);
-					if(new_argv == NULL)
-					    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot resize the argument buffer");
-					argv = new_argv;
-					arg_cap = arg_cap * 2;
-				}
-
-				argv[argc] = (char*)malloc((size_t)(ptr - begin + 1));
-				if(NULL == argv[argc])
-				    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allcoate memory for the argument string");
-
-				memcpy(argv[argc], begin, (size_t)(ptr - begin));
-				argv[argc][ptr-begin] = 0;
-				argc ++;
-			}
-			begin = ptr + 1;
+			LOG_ERROR_ERRNO("Cannot get the initialization string");
+			ret.kind = PSS_VALUE_KIND_ERROR;
+			ret.num  = PSS_VM_ERROR_INTERNAL;
+			return ret;
 		}
 
-		if(*ptr == 0) break;
+		const char* ptr, *begin = mod_init_str;
+		for(begin = ptr = mod_init_str;; ptr ++)
+		{
+			if(*ptr == ' ' || *ptr == 0)
+			{
+				if(ptr - begin > 0)
+				{
+					if(module_argc >= module_arg_cap)
+					{
+						char** new_argv = (char**)realloc(argv, sizeof(char*) * module_arg_cap * 2);
+						if(new_argv == NULL)
+							ERROR_LOG_ERRNO_GOTO(ERR, "Cannot resize the argument buffer");
+						module_argv = new_argv;
+						module_arg_cap = module_arg_cap * 2;
+					}
+
+					module_argv[module_argc] = (char*)malloc((size_t)(ptr - begin + 1));
+					if(NULL == module_argv[module_argc])
+						ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allcoate memory for the argument string");
+
+					memcpy(module_argv[module_argc], begin, (size_t)(ptr - begin));
+					module_argv[module_argc][ptr-begin] = 0;
+					module_argc ++;
+				}
+				begin = ptr + 1;
+			}
+
+			if(*ptr == 0) break;
+		}
 	}
 
 
-	binary = itc_binary_search_module(argv[0]);
-	if(NULL == binary) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find the module binary named %s", argv[0]);
+	binary = itc_binary_search_module(module_argv[0]);
+	if(NULL == binary) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find the module binary named %s", module_argv[0]);
 
 	LOG_DEBUG("Found module binary @%p", binary);
 
-	if(ERROR_CODE(int) == itc_modtab_insmod(binary, argc - 1, (char const* const*) argv + 1))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot instantiate the mdoule binary using param %s", mod_init_str);
+	if(ERROR_CODE(int) == itc_modtab_insmod(binary, module_argc - 1, (char const* const*) module_argv + 1))
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot instantiate the mdoule binary using param");
 
 	ret.kind = PSS_VALUE_KIND_UNDEF;
 
@@ -205,13 +207,13 @@ ERR:
 	ret.num  = PSS_VM_ERROR_INTERNAL;
 CLEANUP:
 
-	if(NULL != argv)
+	if(NULL != module_argv)
 	{
 		uint32_t i;
-		for(i = 0; i < argc; i ++)
-		    free(argv[i]);
+		for(i = 0; i < module_argc; i ++)
+		    free(module_argv[i]);
 
-		free(argv);
+		free(module_argv);
 	}
 
 	return ret;
