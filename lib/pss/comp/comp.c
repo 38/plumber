@@ -83,6 +83,8 @@ int pss_comp_compile(pss_comp_option_t* option, pss_comp_error_t** error)
 	else rc = 0;
 
 ERR:
+	while(compiler.seg_stack_top > 0)
+		pss_bytecode_segment_free(compiler.seg_stack[--compiler.seg_stack_top]);
 	if(NULL != compiler.env) pss_comp_env_free(compiler.env);
 	return rc;
 }
@@ -95,6 +97,7 @@ int pss_comp_raise(pss_comp_t* comp, const char* msg, ...)
 	va_list ap;
 	va_start(ap, msg);
 	int bytes_required = vsnprintf(NULL, 0, msg, ap);
+	
 	pss_comp_error_t* err = (pss_comp_error_t*)malloc(sizeof(pss_comp_error_t) + (unsigned)bytes_required + 1);
 	if(NULL == err)
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the error message");
@@ -154,7 +157,7 @@ int pss_comp_free_error(pss_comp_error_t* error)
 	if(NULL == error) ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	pss_comp_error_t* this;
-	for(;NULL != error->next;)
+	for(;NULL != error;)
 	{
 		this = error;
 		error = error->next;

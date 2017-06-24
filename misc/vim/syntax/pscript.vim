@@ -1,5 +1,6 @@
-syn	keyword	pssDirective	function var for while undefined return break continue in if
-syn match	pssId			/[_a-zA-Z][_a-zA-Z0-9\.]*/
+syn	keyword	pssDirective	function var for while return break continue in if \$global
+syn keyword pssPredifined   undefined import dict print insmod
+syn match	pssId			/[\$_a-zA-Z][\$_a-zA-Z0-9\.]*/
 syn match   pssNumber		 "\<\(0[bB][0-1]\+\|0[0-7]*\|0[xX]\x\+\|\d\(\d\|_\d\)*\)[lL]\=\>"
 syn match   pssNumber		 "\(\<\d\(\d\|_\d\)*\.\(\d\(\d\|_\d\)*\)\=\|\.\d\(\d\|_\d\)*\)\([eE][-+]\=\d\(\d\|_\d\)*\)\=[fFdD]\="
 syn	match	pssComment		/#.*/
@@ -18,6 +19,7 @@ syn region	pssStringExpr	start=// end=/\(@\[\|;\|#\|\/\/\|\/#\|$\)\@=/ contained
 hi def link pssDirective	Keyword
 hi def link pssString		String
 hi def link pssGraphviz		Comment
+hi def link pssPredifined   Special
 hi def link pssNumber		Number
 hi def link pssComment		Comment
 hi def link pssServlet		Special

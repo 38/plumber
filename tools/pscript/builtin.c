@@ -28,6 +28,7 @@ static pss_value_t _pscript_builtin_print(pss_vm_t* vm, uint32_t argc, pss_value
 		char buf[4096];
 		if(ERROR_CODE(size_t) == pss_value_strify_to_buf(argv[i], buf, sizeof(buf)))
 		{
+			LOG_ERROR("Type error: Got invalid value");
 			ret.kind = PSS_VALUE_KIND_ERROR;
 			break;
 		}
@@ -59,7 +60,12 @@ static pss_value_t _pscript_builtin_len(pss_vm_t* vm, uint32_t argc, pss_value_t
 		.kind = PSS_VALUE_KIND_ERROR,
 		.num  = PSS_VM_ERROR_TYPE
 	};
-	if(argc < 1) return ret;
+	if(argc < 1) 
+	{
+		ret.num = PSS_VM_ERROR_ARGUMENT;
+		LOG_ERROR("Argument error: len function requires at least one argument");
+		return ret;
+	}
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF) return ret;
 
@@ -84,6 +90,7 @@ static pss_value_t _pscript_builtin_len(pss_vm_t* vm, uint32_t argc, pss_value_t
 			break;
 		}
 		default:
+			LOG_ERROR("Type error: len fucntion doesn't support the input type");
 			break;
 	}
 	return ret;
@@ -96,7 +103,12 @@ static pss_value_t _pscript_builtin_import(pss_vm_t* vm, uint32_t argc, pss_valu
 		.num = PSS_VM_ERROR_TYPE
 	};
 
-	if(argc < 1) return ret;
+	if(argc < 1) 
+	{
+		ret.num = PSS_VM_ERROR_ARGUMENT;
+		LOG_ERROR("Argument error: len function requires at least one argument");
+		return ret;
+	}
 	
 	uint32_t i;
 	for(i = 0; i < argc; i ++)
@@ -108,10 +120,17 @@ static pss_value_t _pscript_builtin_import(pss_vm_t* vm, uint32_t argc, pss_valu
 		if(module_is_loaded(name)) continue;
 
 		pss_bytecode_module_t* module = module_from_file(name, 1, 1, NULL);
-		if(NULL == module) return ret;
+		if(NULL == module) 
+		{
+			LOG_ERROR("Module error: Cannot load the required module named %s", name);
+			return ret;
+		}
 
 		if(ERROR_CODE(int) == pss_vm_run_module(vm, module, NULL))
+		{
+			LOG_ERROR("Module error: The module returns with an error code");
 			return ret;
+		}
 	}
 
 	ret.kind = PSS_VALUE_KIND_UNDEF;
@@ -127,12 +146,18 @@ static pss_value_t _pscript_builtin_insmod(pss_vm_t* vm, uint32_t argc, pss_valu
 		.num = PSS_VM_ERROR_TYPE
 	};
 
-	if(argc < 1) return ret;
+	if(argc < 1)
+	{
+		ret.num =  PSS_VM_ERROR_ARGUMENT;
+		LOG_ERROR("Argument error: len function requires at least one argument");
+		return ret;
+	}
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF || pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING)
 	{
 		ret.kind = PSS_VALUE_KIND_ERROR;
 		ret.num  = PSS_VM_ERROR_TYPE;
+		LOG_ERROR("Type error: String argument expected in the insmod builtin");
 		return ret;
 	}
 	

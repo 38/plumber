@@ -22,7 +22,9 @@ typedef enum {
 	PSS_VM_ERROR_BYTECODE,   /*!< An invalid bytecode */
 	PSS_VM_ERROR_TYPE,       /*!< The instruction gets an unsupported type */
 	PSS_VM_ERROR_ARITHMETIC, /*!< The arithmetic error */
-	PSS_VM_ERROR_STACK       /*!< The stack overflow exception */
+	PSS_VM_ERROR_STACK,      /*!< The stack overflow exception */
+	PSS_VM_ERROR_ARGUMENT,   /*!< The argument error */
+	PSS_VM_ERROR_MODULE      /*!< We can not find the required module */
 } pss_vm_error_t;
 
 /**
