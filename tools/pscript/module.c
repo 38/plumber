@@ -105,11 +105,6 @@ int _try_load_module(const char* source_path, const char* compiled_path, int loa
 
 		return 1;
 ERR:
-		if(NULL != fp) fclose(fp);
-		if(NULL != code) free(code);
-		if(NULL != lexer) pss_comp_lex_free(lexer);
-		if(NULL != module) pss_bytecode_module_free(module);
-
 		if(NULL != err)
 		{
 			const pss_comp_error_t* this;
@@ -117,6 +112,12 @@ ERR:
 				fprintf(stderr, "%s:%u:%u:error: %s\n", this->filename, this->line + 1, this->column + 1, this->message);
 			pss_comp_free_error(err);
 		}
+		
+		if(NULL != fp) fclose(fp);
+		if(NULL != code) free(code);
+		if(NULL != lexer) pss_comp_lex_free(lexer);
+		if(NULL != module) pss_bytecode_module_free(module);
+
 		return ERROR_CODE(int);
 	}
 
