@@ -568,16 +568,16 @@ int pss_comp_lex_next_token(pss_comp_lex_t* lexer, pss_comp_lex_token_t* buffer)
 			}
 			break;
 		}
-		_LEX_CASE(':', PSS_COMP_LEX_TOKEN_COLON_EQUAL)
+		_LEX_CASE(':', PSS_COMP_LEX_TOKEN_COLON)
 		{
 			if(_peek(lexer, 1) == '=')
 			{
+				buffer->type = PSS_COMP_LEX_TOKEN_COLON_EQUAL;
 				_consume(lexer, 2);
 			}
 			else
 			{
-				lexer->error = 1;
-				lexer->errstr = "Invalid token";
+				_consume(lexer, 1);
 			}
 			break;
 		}

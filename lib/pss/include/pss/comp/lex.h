@@ -19,6 +19,7 @@ typedef enum {
 	PSS_COMP_LEX_TOKEN_INTEGER,     /*!< a integer literal */
 	PSS_COMP_LEX_TOKEN_STRING,      /*!< a string literal */
 	PSS_COMP_LEX_TOKEN_EQUAL,       /*!< = */
+	PSS_COMP_LEX_TOKEN_COLON,       /*!< := */
 	PSS_COMP_LEX_TOKEN_COLON_EQUAL, /*!< := */
 	PSS_COMP_LEX_TOKEN_LPARENTHESIS,/*!< ( */
 	PSS_COMP_LEX_TOKEN_RPARENTHESIS,/*!< ) */
