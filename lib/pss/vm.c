@@ -1080,3 +1080,14 @@ int pss_vm_add_builtin_func(pss_vm_t* vm, const char* name, pss_value_builtin_t 
 
 	return 0;
 }
+
+int pss_vm_set_global(pss_vm_t* vm, const char* var, pss_value_t val)
+{
+	if(NULL == vm || NULL == var || val.kind == PSS_VALUE_KIND_ERROR)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(ERROR_CODE(int) == pss_dict_set(vm->global, var, val))
+		ERROR_RETURN_LOG(int, "Cannot write to the global dictionary");
+
+	return 0;
+}

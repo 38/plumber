@@ -19,6 +19,7 @@
 #include <pss/comp/block.h>
 #include <pss/comp/value.h>
 #include <pss/comp/expr.h>
+#include <pss/comp/dict.h>
 
 #define _S(what) PSS_BYTECODE_ARG_STRING(what)
 
@@ -542,7 +543,8 @@ int pss_comp_value_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 			break;
 
 		case PSS_COMP_LEX_TOKEN_LBRACE: 
-			return pss_comp_raise(comp, "Fixme: Dictionary literal is not implemented");
+			rc = pss_comp_dict_parse(comp, buf);
+			break;
 
 		case PSS_COMP_LEX_TOKEN_IDENTIFIER:
 			rc = _parse_variable_term(comp, seg, buf);

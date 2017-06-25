@@ -1,4 +1,4 @@
-syn	keyword	pssDirective	function var for while return break continue in if \$global
+syn	keyword	pssDirective	function var for while return break continue in if else \$global
 syn keyword pssPredifined   undefined import dict print insmod
 syn match	pssId			/[\$_a-zA-Z][\$_a-zA-Z0-9\.]*/
 syn match   pssNumber		 "\<\(0[bB][0-1]\+\|0[0-7]*\|0[xX]\x\+\|\d\(\d\|_\d\)*\)[lL]\=\>"

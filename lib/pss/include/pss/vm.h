@@ -89,6 +89,15 @@ int pss_vm_set_external_global_callback(pss_vm_t* vm, pss_vm_external_global_ops
 int pss_vm_add_builtin_func(pss_vm_t* vm, const char* name, pss_value_builtin_t func);
 
 /**
+ * @brief Set the global variable of this virtual machine
+ * @param vm The virtual machine we want to add
+ * @param var The global variable name
+ * @param val The value 
+ * @return status code
+ **/
+int pss_vm_set_global(pss_vm_t* vm, const char* var, pss_value_t val);
+
+/**
  * @brief Dispose an used PSS virtual machine
  * @param vm The virtual machine to dispose
  * @return status code

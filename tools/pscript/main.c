@@ -143,6 +143,49 @@ static void _stop(int signo)
 	sched_loop_kill();
 }
 
+pss_value_t make_argv(int argc, char** argv)
+{
+	pss_value_t ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_DICT, NULL);
+	if(ret.kind == PSS_VALUE_KIND_ERROR)
+	{
+		LOG_ERROR("Cannot create argv value");
+		return ret;
+	}
+
+	pss_dict_t* dict = (pss_dict_t*)pss_value_get_data(ret);
+	if(NULL == dict) 
+		ERROR_LOG_GOTO(ERR, "Cannot get the dictionary object from the dictionary value");
+
+	int i;
+	for(i = 0; i < argc; i ++)
+	{
+		char keybuf[32];
+		snprintf(keybuf, sizeof(keybuf), "%d", i);
+
+		size_t len = strlen(argv[i]);
+		char* buf = (char*)malloc(len + 1);
+		if(NULL == buf) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the argument value");
+
+		memcpy(buf, argv[i], len + 1);
+
+		pss_value_t val = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, buf);
+		if(val.kind == PSS_VALUE_KIND_ERROR)
+			ERROR_LOG_GOTO(ERR, "Cannot create value for argv[%d]", i);
+
+		if(ERROR_CODE(int) == pss_dict_set(dict, keybuf, val))
+		{
+			pss_value_decref(val);
+			ERROR_LOG_GOTO(ERR, "Cannot insert the new strng to dictionary");
+		}
+	}
+
+	return ret;
+ERR:
+	pss_value_decref(ret);
+	ret.kind = PSS_VALUE_KIND_ERROR;
+	return ret;
+}
+
 #ifndef STACK_SIZE
 int main(int argc, char** argv)
 #else
@@ -165,7 +208,7 @@ int _program(int argc, char** argv)
 	int begin = parse_args(argc, argv);
 	int i;
 
-	if(argc - begin != 1)
+	if(argc - begin < 1)
 	{
 		_MESSAGE("Missing script file name");
 		display_help();
@@ -215,8 +258,27 @@ int _program(int argc, char** argv)
 		current_vm = pss_vm_new();
 		if(NULL == current_vm || ERROR_CODE(int) == builtin_init(current_vm)) 
 		{
+			if(current_vm != NULL) pss_vm_free(current_vm);
 			pss_bytecode_module_free(module);
 			LOG_FATAL("Cannot create PSS Virtual Machine");
+			properly_exit(1);
+		}
+
+		pss_value_t argv_obj = make_argv(argc - begin, argv + begin);
+		if(argv_obj.kind == PSS_VALUE_KIND_ERROR)
+		{
+			pss_vm_free(current_vm);
+			pss_bytecode_module_free(module);
+			LOG_FATAL("Cannot create argv object");
+			properly_exit(1);
+		}
+
+		if(ERROR_CODE(int) == pss_vm_set_global(current_vm, "argv", argv_obj))
+		{
+			pss_vm_free(current_vm);
+			pss_bytecode_module_free(module);
+			pss_value_decref(argv_obj);
+			LOG_FATAL("Cannot inject the argv to the Virtual Machine");
 			properly_exit(1);
 		}
 
