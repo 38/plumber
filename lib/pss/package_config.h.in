@@ -56,4 +56,9 @@
  * @brief The maximum number of argument
  **/
 #	define PSS_VM_ARG_MAX @LIB_PSS_VM_ARG_MAX@
+
+/**
+ * @brief The limit for the number of servlets a dictionary literal can hold
+ **/
+#	define PSS_COMP_MAX_SERVLET @LIB_PSS_COMP_MAX_SERVLET@
 #endif /* __PROTO_PACKAGE_CONF_H__ */

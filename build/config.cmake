@@ -96,6 +96,7 @@ constant(LIB_PSS_VM_STACK_LIMIT 2048)
 constant(LIB_PSS_COMP_ENV_HASH_SIZE 209)
 constant(LIB_PSS_COMP_ENV_SCOPE_MAX 1024)
 constant(LIB_PSS_VM_ARG_MAX 256)
+constant(LIB_PSS_COMP_MAX_SERVLET 63103)
 ####################################################################################
 
 string(TOUPPER ${SYSNAME} SYSMACRO)
