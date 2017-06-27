@@ -13,6 +13,8 @@ int pss_init()
 	    ERROR_LOG_GOTO(ERR, "Cannot initialize the dictionary type callbacks");
 	if(ERROR_CODE(int) == pss_string_init())
 	    ERROR_LOG_GOTO(ERR, "Cannot initialize the string type callbacks");
+	if(ERROR_CODE(int) == pss_exotic_init())
+		ERROR_LOG_GOTO(ERR, "Cannot initialize the exotic type callbacks");
 	return 0;
 ERR:
 	return ERROR_CODE(int);
@@ -34,6 +36,11 @@ int pss_finalize()
 	if(ERROR_CODE(int) == pss_closure_init())
 	{
 		LOG_ERROR("Cannot finalize the closure type");
+		rc = ERROR_CODE(int);
+	}
+	if(ERROR_CODE(int) == pss_exotic_init())
+	{
+		LOG_ERROR("Cannot fianlize the exotic type");
 		rc = ERROR_CODE(int);
 	}
 	return rc;

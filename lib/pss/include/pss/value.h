@@ -48,6 +48,7 @@ typedef enum {
 	PSS_VALUE_REF_TYPE_DICT,      /*!< A dictionary */
 	PSS_VALUE_REF_TYPE_STRING,    /*!< A string */
 	PSS_VALUE_REF_TYPE_CLOSURE,   /*!< A closure */
+	PSS_VALUE_REF_TYPE_EXOTIC,    /*!< A external builtin object */
 	PSS_VALUE_REF_TYPE_TEST,      /*!< The type reserved for test cases */
 	PSS_VALUE_REF_TYPE_COUNT      /*!< The number of value reference count */
 } pss_value_ref_type_t;

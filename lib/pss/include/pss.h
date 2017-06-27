@@ -22,6 +22,7 @@
 #include <pss/closure.h>
 #include <pss/dict.h>
 #include <pss/string.h>
+#include <pss/exotic.h>
 #include <pss/vm.h>
 
 #include <pss/comp/lex.h>
