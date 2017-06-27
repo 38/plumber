@@ -6,26 +6,27 @@
  * @file lang/builtin.h
  **/
 
-#ifndef __LANG_BUILTIN_H__
-#define __LANG_BUILTIN_H__
+#ifndef __LANG_SERVICE_H__
+#define __LANG_SERVICE_H__
 
-/**
- * @brief The magic number used to identify this exotic object
- **/
-typedef enum {
-	LANG_BUILTIN_TYPE_MAGIC_SERVICE = 0x31fc532
-} lang_builtin_type_magic_t;
+#define LANG_SERVICE_TYPE_MAGIC 0x31fe25d4u
 
 /**
  * @brief Represent a service object in PSS VM
  **/
-typedef struct _lang_builtin_service_t lang_builtin_service_t;
+typedef struct _lang_service_t lang_service_t;
 
 /**
  * @brief Create a new service object
  * @return status code
  **/
-lang_builtin_service_t* lang_builtin_service_new();
+lang_service_t* lang_service_new();
+
+/**
+ * @brief Dispose a used service
+ * @return status code
+ **/
+int lang_service_free();
 
 /**
  * @brief Create a new service node in the exotic object
@@ -34,7 +35,7 @@ lang_builtin_service_t* lang_builtin_service_new();
  * @param init_args The initialization arguments
  * @return The node id
  **/
-int64_t lang_builtin_service_add_node(lang_builtin_service_t* service, const char* init_args);
+int64_t lang_service_add_node(lang_service_t* service, const char* init_args);
 
 /**
  * @brief Get the name of the port for the give node
@@ -43,7 +44,7 @@ int64_t lang_builtin_service_add_node(lang_builtin_service_t* service, const cha
  * @param name The port name
  * @return The port ID
  **/
-int64_t lang_builtin_service_get_port(lang_builtin_service_t* service, int64_t nid, const char* name);
+int64_t lang_service_get_port(lang_service_t* service, int64_t nid, const char* name);
 
 /**
  * @brief Get the list of the port names
@@ -52,7 +53,7 @@ int64_t lang_builtin_service_get_port(lang_builtin_service_t* service, int64_t n
  * @param input 1 for input pipes, 0 for output
  * @return The array of strings for all the port, the caller should free the memory
  **/
-char** lang_builtin_service_node_port_names(const lang_builtin_service_t* service, int64_t nid, int input);
+char** lang_service_node_port_names(const lang_service_t* service, int64_t nid, int input);
 
 /**
  * @brief Create a pipe connects two nodes
@@ -63,13 +64,13 @@ char** lang_builtin_service_node_port_names(const lang_builtin_service_t* servic
  * @param dst_pid The destination port id
  * @return status code
  **/
-int lang_builtin_service_add_edge(lang_builtin_service_t* service, int64_t src_nid, int64_t src_pid, int64_t dst_nid, int64_t dst_pid);
+int lang_service_add_edge(lang_service_t* service, int64_t src_nid, int64_t src_pid, int64_t dst_nid, int64_t dst_pid);
 
 /**
  * @brief Start the service
  * @param service The service to start
  * @return status code
  **/
-int lang_builtin_service_start(lang_builtin_service_t* service);
+int lang_service_start(lang_service_t* service);
  
 #endif
