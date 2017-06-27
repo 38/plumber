@@ -26,7 +26,7 @@ lang_service_t* lang_service_new();
  * @brief Dispose a used service
  * @return status code
  **/
-int lang_service_free();
+int lang_service_free(lang_service_t* service);
 
 /**
  * @brief Create a new service node in the exotic object
@@ -38,33 +38,41 @@ int lang_service_free();
 int64_t lang_service_add_node(lang_service_t* service, const char* init_args);
 
 /**
- * @brief Get the name of the port for the give node
- * @param service The service to add
- * @param nid The node id
- * @param name The port name
- * @return The port ID
- **/
-int64_t lang_service_get_port(lang_service_t* service, int64_t nid, const char* name);
-
-/**
  * @brief Get the list of the port names
  * @param service The service 
  * @param nid The node id
- * @param input 1 for input pipes, 0 for output
  * @return The array of strings for all the port, the caller should free the memory
  **/
-char** lang_service_node_port_names(const lang_service_t* service, int64_t nid, int input);
+char** lang_service_node_port_names(const lang_service_t* service, int64_t nid);
 
 /**
  * @brief Create a pipe connects two nodes
  * @param service The port to connect
  * @param src_nid The source node id
- * @param src_pid THe source port id
+ * @param src_port THe source port name
  * @param dst_nid THe destination node id
- * @param dst_pid The destination port id
+ * @param dst_port The destination port name
  * @return status code
  **/
-int lang_service_add_edge(lang_service_t* service, int64_t src_nid, int64_t src_pid, int64_t dst_nid, int64_t dst_pid);
+int lang_service_add_edge(lang_service_t* service, int64_t src_nid, const char* src_port, int64_t dst_nid, const char* dst_port);
+
+/**
+ * @brief Set the input node of the service
+ * @param service The service
+ * @param nid The node id
+ * @param port the port name
+ * @return status code
+ **/
+int lang_service_set_input(lang_service_t* service, int64_t nid, const char* port);
+
+/**
+ * @brief Set the output node of the service
+ * @param service The service
+ * @param nid The node id
+ * @param port The port name
+ * @return status code
+ **/
+int lang_service_set_output(lang_service_t* service, int64_t nid, const char* port);
 
 /**
  * @brief Start the service

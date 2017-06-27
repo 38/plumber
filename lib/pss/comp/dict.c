@@ -231,7 +231,7 @@ static inline int _add_edge(_service_ctx_t* ctx, const char* left_node, const ch
 		ERROR_RETURN_LOG(int, "Cannot get the register for the adj list");
 
 	char keybuf[1024];
-	snprintf(keybuf, sizeof(keybuf), "@%s", left_port);
+	snprintf(keybuf, sizeof(keybuf), "%s", left_port);
 	char valbuf[1024];
 	snprintf(valbuf, sizeof(valbuf), "%s@%s", right_node, right_port);
 

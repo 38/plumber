@@ -1,0 +1,46 @@
+/**
+ * Copyright (C) 2017, Hao Hou
+ * The service utilities
+ **/
+
+Service.build = function(serv) 
+{
+	var ret = __service_new();
+	var nodes = {};
+
+	for(var key in serv)
+	{
+		var sp = split(key, "@");
+		if(len(sp) == 1)
+		{
+			nodes[key] = __service_node(ret, serv[key]);
+		}
+	}
+
+	for(var key in serv)
+	{
+		var sp = split(key, "@");
+		if(len(sp) == 2 && sp[0] == "")
+		{
+			var src_node = nodes[sp[1]];
+			for(var src_port in serv[key])
+			{
+				var sp = split(serv[key][src_port], "@");
+				var dst_node = nodes[sp[0]];
+				var dst_port = sp[1];
+				__service_pipe(ret, src_node, src_port, dst_node, dst_port);
+			}
+		}
+	}
+
+	var sp = split(serv["@input@"], "@");
+	var node = nodes[sp[0]];
+	var port = sp[1];
+	__service_input(ret, node, port);
+
+	sp = split(serv["@output@"], "@");
+	node = nodes[sp[0]];
+	port = sp[1];
+	__service_output(ret, node, port);
+	return ret;
+}

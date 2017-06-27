@@ -8,6 +8,7 @@
 #ifndef __PLUMBER_LANG_H__
 #define __PLUMBER_LANG_H__
 
+#include <lang/service.h>
 #include <lang/prop.h>
 
 /**

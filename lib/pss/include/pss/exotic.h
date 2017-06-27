@@ -16,6 +16,7 @@ typedef struct _pss_exotic_t pss_exotic_t;
  **/
 typedef struct {
 	uint32_t  magic_num;  /*!< The magic number of the object */
+	const char* type_name;/*!< The name of the type */
 	/**
 	 * @brief Dispose a use exotic object
 	 * @param mem The memomry to dispose
