@@ -111,9 +111,10 @@ pss_comp_env_t* pss_comp_get_env(pss_comp_t* comp);
  * @param comp The compiler instance
  * @param nargs The arguments
  * @param argnames The name list for the arguments
+ * @param id The function name
  * @return status code
  **/
-int pss_comp_open_closure(pss_comp_t* comp, uint32_t nargs, char const** argnames);
+int pss_comp_open_closure(pss_comp_t* comp, const char* id, uint32_t nargs, char const** argnames);
 
 /**
  * @brief Close the current closure and return the segment ID in the bytecode module

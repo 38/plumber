@@ -78,7 +78,7 @@ static inline _stack_t* _stack_new(pss_vm_t* host, const pss_closure_t* closure,
 	    ERROR_LOG_GOTO(ERR, "Cannot get the module contains the closure");
 	ret->ip = 0;
 	ret->line = 0;
-	ret->func = NULL;
+	ret->func = "<Anonymous>";
 	ret->next = NULL;
 	ret->argc = 0;
 

@@ -57,39 +57,39 @@ Service.for_each_element = function(serv, handler)
 }
 Service.build = function(serv)
 {
-	var _build = function(serv, obj, build) 
+	var _build = function _build_impl(serv, obj, build) 
 	{
 		var nodes = {};
 		var ports = {};
-		var _deref_port = function(node, port)
+		var _deref_port = function _deref_port(node, port)
 		{
 			var nid = nodes[node];
 			if(typeof(nid) == "dict") return nid[port];
 			return {node: nid, port: port};
 		};
-		var node_handler = function(name, def)
+		var node_handler = function _node_handler(name, def)
 		{
 			if(typeof(def) == "dict")
 				nodes[name] = build(def, obj, build);
 			else
 				nodes[name] = __service_node(obj, def);
 		};
-		var pipe_handler = function(src_node, src_port, dst_node, dst_port) 
+		var pipe_handler = function _pipe_handler(src_node, src_port, dst_node, dst_port) 
 		{
 			var src = _deref_port(src_node, src_port);
 			var dst = _deref_port(dst_node, dst_port);
 			__service_pipe(obj, src["node"], src["port"], dst["node"], dst["port"]);
 		};
-		var port_handler = function(name, node, port)
+		var port_handler = function _port_handler(name, node, port)
 		{
 			ports[name] = _deref_port(node, port);
 		};
-		var input_handler = function(node, port)
+		var input_handler = function _input_handler(node, port)
 		{
 			var target = _deref_port(node, port);
 			__service_input(obj, target["node"], target["port"]);
 		};
-		var output_handler = function(node, port)
+		var output_handler = function _output_handler(node, port)
 		{
 			var target = _deref_port(node, port);
 			__service_output(obj, target["node"], target["port"]);
@@ -100,7 +100,7 @@ Service.build = function(serv)
 		return ports;
 	}
 	
-	return function(serv) {
+	return function Service.build(serv) {
 		var obj = __service_new();
 		_build(serv, obj, _build);
 		return obj;

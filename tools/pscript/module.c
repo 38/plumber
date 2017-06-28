@@ -88,7 +88,8 @@ int _try_load_module(const char* source_path, const char* compiled_path, int loa
 
 		pss_comp_option_t opt = {
 			.lexer = lexer,
-			.module = module
+			.module = module,
+			.debug = 1
 		};
 
 		if(ERROR_CODE(int) == pss_comp_compile(&opt, &err))

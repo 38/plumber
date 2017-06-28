@@ -102,11 +102,26 @@ static inline int _make_rvalue(pss_comp_t* comp, pss_comp_value_t* buf)
 
 static inline int _parse_function_literal(pss_comp_t* comp, pss_bytecode_segment_t* seg, pss_comp_value_t* buf)
 {
-	if(ERROR_CODE(int) == pss_comp_expect_keyword(comp, PSS_COMP_LEX_KEYWORD_FUNCTION)) return ERROR_CODE(int);
-	if(ERROR_CODE(int) == pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_LPARENTHESIS)) return ERROR_CODE(int);
+	const pss_comp_lex_token_t* ahead = NULL;
+	char* func_name = NULL;
 	uint32_t argc = 0;
 	char* argv[128] = {};
-	const pss_comp_lex_token_t* ahead = NULL;
+	
+	if(ERROR_CODE(int) == pss_comp_expect_keyword(comp, PSS_COMP_LEX_KEYWORD_FUNCTION)) return ERROR_CODE(int);
+
+	if(NULL == (ahead = pss_comp_peek(comp, 0))) return ERROR_CODE(int);
+	if(ahead->type == PSS_COMP_LEX_TOKEN_IDENTIFIER)
+	{
+		if(NULL == (func_name = strdup(ahead->value.s)))
+		{
+			pss_comp_raise_internal(comp, PSS_COMP_INTERNAL_MALLOC);
+			goto FUNC_ERR;
+		}
+		if(ERROR_CODE(int) == pss_comp_consume(comp, 1)) ERROR_LOG_GOTO(FUNC_ERR, "Cannot consume the ahead token");
+	} 
+
+	if(ERROR_CODE(int) == pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_LPARENTHESIS)) return ERROR_CODE(int);
+
 	for(;argc < sizeof(argv) / sizeof(argv[0]);)
 	{
 		if(NULL == (ahead = pss_comp_peek(comp, 0)))
@@ -143,8 +158,11 @@ static inline int _parse_function_literal(pss_comp_t* comp, pss_bytecode_segment
 	if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
 		ERROR_LOG_GOTO(FUNC_ERR, "Cannot consume the end of argument list");
 
-	if(ERROR_CODE(int) == pss_comp_open_closure(comp, argc, (const char**)argv))
+	if(ERROR_CODE(int) == pss_comp_open_closure(comp, func_name, argc, (const char**)argv))
 		ERROR_LOG_GOTO(FUNC_ERR, "Cannot open the closure for the nested function");
+
+	if(NULL != func_name) free(func_name);
+	func_name = NULL;
 
 	for(; argc > 0; argc --)
 		free(argv[argc - 1]);
@@ -164,6 +182,7 @@ static inline int _parse_function_literal(pss_comp_t* comp, pss_bytecode_segment
 
 	return 0;
 FUNC_ERR:
+	if(NULL != func_name) free(func_name);
 	for(;argc > 0; argc --)
 		free(argv[argc-1]);
 	return ERROR_CODE(int);

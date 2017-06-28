@@ -106,6 +106,13 @@ typedef struct _pss_comp_lex_t pss_comp_lex_t;
 pss_comp_lex_t* pss_comp_lex_new(const char* filename, const char* buffer, uint32_t size);
 
 /**
+ * @brief Get the filename of the lexter
+ * @param lex The file name
+ * @return the filename
+ **/
+const char* pss_comp_lex_get_filename(const pss_comp_lex_t* lex);
+
+/**
  * @brief dispose a used lexer
  * @param lexer the target lexer
  * @return the status code

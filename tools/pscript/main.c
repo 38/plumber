@@ -186,6 +186,13 @@ ERR:
 	return ret;
 }
 
+static void _print_bt(pss_vm_backtrace_t* bt)
+{
+	if(NULL == bt) return;
+	_print_bt(bt->next);
+	LOG_ERROR("\tfunc: %s, line: %u", bt->func, bt->line);
+}
+
 #ifndef STACK_SIZE
 int main(int argc, char** argv)
 #else
@@ -290,6 +297,12 @@ int _program(int argc, char** argv)
 			pss_vm_exception_t* exception = pss_vm_last_exception(current_vm);
 
 			LOG_ERROR("PSS VM Exception: %s", exception->message);
+
+			pss_vm_backtrace_t* backtrace = exception->backtrace;
+
+			LOG_ERROR("======Stack backtrace begin ========");
+			_print_bt(backtrace);
+			LOG_ERROR("======Stack backtrace end   ========");
 
 			pss_vm_exception_free(exception);
 		}

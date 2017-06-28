@@ -37,6 +37,8 @@ typedef struct {
  * @brief The actual data structure for a compiler instance
  **/
 struct _pss_comp_t {
+	uint32_t                 last_line;        /*!< The last line number */
+	uint32_t                 debug:1;          /*!< If we need to emit the debug information */
 	pss_comp_lex_t*          lexer;            /*!< The lexer we are using */
 	pss_bytecode_module_t*   module;           /*!< The output bytecode module */
 	pss_comp_env_t*          env;              /*!< The compile time environment abstraction */
@@ -44,6 +46,7 @@ struct _pss_comp_t {
 	pss_comp_lex_token_t     ahead[_LOOKAHEAD];/*!< The lookahead ring buffer */
 	uint32_t                 ahead_begin;      /*!< The ring buffer begin */
 	pss_bytecode_segment_t*  seg_stack[PSS_COMP_ENV_SCOPE_MAX];  /*!< The current code segment the compiler is writting */
+	char*                    seg_name_stack[PSS_COMP_ENV_SCOPE_MAX]; /*!< The segment name stack */
 	uint32_t                 seg_stack_top;    /*!< The stack top for the current segment ID */
 	_control_block_t         ctl_stack[PSS_COMP_ENV_SCOPE_MAX];    /*!< The control block stack */
 	uint32_t                 ctl_stack_top;/*!< The top pointer of the control block stack */
@@ -59,7 +62,9 @@ int pss_comp_compile(pss_comp_option_t* option, pss_comp_error_t** error)
 		.lexer = option->lexer,
 		.module = option->module,
 		.error_buf = error,
-		.ahead_begin = 0
+		.ahead_begin = 0,
+		.debug = option->debug,
+		.last_line = 0
 	};
 
 	pss_bytecode_segid_t entry_point;
@@ -72,7 +77,7 @@ int pss_comp_compile(pss_comp_option_t* option, pss_comp_error_t** error)
 		return pss_comp_raise(&compiler, "Internal error: Cannot current compile time environment");
 		
 
-	if(ERROR_CODE(int) == pss_comp_open_closure(&compiler, 0, NULL)) goto ERR;
+	if(ERROR_CODE(int) == pss_comp_open_closure(&compiler, pss_comp_lex_get_filename(compiler.lexer), 0, NULL)) goto ERR;
 
 	if(ERROR_CODE(int) == pss_comp_block_parse(&compiler, PSS_COMP_LEX_TOKEN_NAT, PSS_COMP_LEX_TOKEN_EOF)) goto ERR;
 
@@ -84,7 +89,11 @@ int pss_comp_compile(pss_comp_option_t* option, pss_comp_error_t** error)
 
 ERR:
 	while(compiler.seg_stack_top > 0)
+	{
+		if(NULL != compiler.seg_name_stack[compiler.seg_stack_top-1])
+			free(compiler.seg_name_stack[compiler.seg_stack_top-1]);
 		pss_bytecode_segment_free(compiler.seg_stack[--compiler.seg_stack_top]);
+	}
 	if(NULL != compiler.env) pss_comp_env_free(compiler.env);
 	return rc;
 }
@@ -174,7 +183,7 @@ const pss_comp_lex_token_t* pss_comp_peek(pss_comp_t* comp, uint32_t n)
 		pss_comp_raise(comp, "Internal error: Invalid arguments");
 		return NULL;
 	}
-
+	
 	uint32_t i;
 	for(i = 0; i <= n; i ++)
 	{
@@ -188,6 +197,21 @@ const pss_comp_lex_token_t* pss_comp_peek(pss_comp_t* comp, uint32_t n)
 			}
 		}
 	}
+	
+	const pss_comp_lex_token_t* next_token = comp->ahead + comp->ahead_begin % _LOOKAHEAD;
+	if(comp->debug && next_token->type != PSS_COMP_LEX_TOKEN_NAT && next_token->line + 1 != comp->last_line)
+	{
+		pss_bytecode_segment_t* seg = comp->seg_stack[comp->seg_stack_top - 1];
+		comp->last_line = next_token->line + 1;
+		if(ERROR_CODE(pss_bytecode_addr_t) == pss_bytecode_segment_append_code(seg, PSS_BYTECODE_OPCODE_DINFO_LINE,
+					                                                                PSS_BYTECODE_ARG_NUMERIC(next_token->line + 1),
+																					PSS_BYTECODE_ARG_END))
+		{
+			pss_comp_raise(comp, "Internal error: Cannot intert the debugging info");
+			return NULL;
+		}
+	}
+
 	return comp->ahead + (n + comp->ahead_begin) % _LOOKAHEAD;
 }
 
@@ -220,7 +244,7 @@ pss_bytecode_segment_t* pss_comp_get_code_segment(pss_comp_t* comp)
 	return comp->seg_stack[comp->seg_stack_top - 1];
 }
 
-int pss_comp_open_closure(pss_comp_t* comp, uint32_t nargs, char const** argnames)
+int pss_comp_open_closure(pss_comp_t* comp, const char* id, uint32_t nargs, char const** argnames)
 {
 	if(NULL == comp || ERROR_CODE(uint32_t) == nargs || (NULL == argnames && nargs > 0))
 		PSS_COMP_RAISE_INT(comp, ARGS);
@@ -230,6 +254,7 @@ int pss_comp_open_closure(pss_comp_t* comp, uint32_t nargs, char const** argname
 
 	pss_bytecode_regid_t argid[nargs];
 	pss_bytecode_segment_t* segment = NULL;
+	char* name = NULL;
 	uint32_t i;
 	for(i = 0; i < nargs; i ++)
 		if(1 != pss_comp_env_get_var(comp->env, argnames[i], 1, argid + i))
@@ -244,11 +269,48 @@ int pss_comp_open_closure(pss_comp_t* comp, uint32_t nargs, char const** argname
 		goto ERR;
 	}
 
-	comp->seg_stack[comp->seg_stack_top ++] = segment;
+	comp->seg_stack[comp->seg_stack_top] = segment;
+	if(NULL != id)
+	{
+		if(NULL == (name = comp->seg_name_stack[comp->seg_stack_top] = strdup(id)))
+		{
+			pss_comp_raise(comp, "Internal error: Cannot duplicate the function name string");
+			goto ERR;
+		}
+	}
+	else comp->seg_name_stack[comp->seg_stack_top] = NULL;
+
+	if(comp->debug)
+	{
+		char full_name[4096];
+		char* ptr = full_name;
+		uint32_t i;
+		for(i = 0; i <= comp->seg_stack_top; i ++)
+		{
+			size_t bufsize = sizeof(full_name) - (size_t)(ptr - full_name);
+			size_t rc = (size_t)snprintf(ptr, bufsize, (i?"@%s":"%s"), comp->seg_name_stack[i] ? comp->seg_name_stack[i] : "<Anonymous>");
+			if(rc > bufsize) rc = bufsize - 1;
+			bufsize -= rc;
+			ptr += rc;
+		}
+		if(ERROR_CODE(pss_bytecode_addr_t) == 
+		   pss_bytecode_segment_append_code(segment, 
+				PSS_BYTECODE_OPCODE_DINFO_FUNC, 
+				PSS_BYTECODE_ARG_STRING(full_name), 
+				PSS_BYTECODE_ARG_END))
+		{
+			pss_comp_raise(comp, "Internal error: Cannot append debug info to the code segment");
+			goto ERR;
+		}
+	}
+
+	comp->seg_stack_top ++;
 
 	return 0;
 ERR:
 	pss_comp_env_close_scope(comp->env);
+	if(name != NULL)
+		free(name);
 	if(segment != NULL)
 		pss_bytecode_segment_free(segment);
 	return ERROR_CODE(int);
@@ -289,6 +351,9 @@ pss_bytecode_segid_t pss_comp_close_closure(pss_comp_t* comp)
 		 comp->ctl_stack_top --)
 		if(ERROR_CODE(int) == pss_bytecode_segment_patch_label(seg, comp->ctl_stack[comp->ctl_stack_top - 1].end, guard_addr))
 			return (pss_bytecode_addr_t)pss_comp_raise(comp, "Internal error: Cannot apply the label address"); 
+
+	if(NULL != comp->seg_name_stack[comp->seg_stack_top-1]) 
+		free(comp->seg_name_stack[comp->seg_stack_top-1]);
 
 	pss_bytecode_segid_t ret = pss_bytecode_module_append(comp->module, comp->seg_stack[--comp->seg_stack_top]);
 	if(ERROR_CODE(pss_bytecode_segid_t) == ret)

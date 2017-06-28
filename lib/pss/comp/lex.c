@@ -60,6 +60,13 @@ static inline int _lexer_free(pss_comp_lex_t* lexer)
 	return 0;
 }
 
+const char* pss_comp_lex_get_filename(const pss_comp_lex_t* lex)
+{
+	if(NULL == lex) ERROR_PTR_RETURN_LOG_ERRNO("Invalid arguments");
+
+	return lex->filename == NULL ? "<Memory>" : lex->filename;
+}
+
 
 pss_comp_lex_t* pss_comp_lex_new(const char* filename, const char* buffer, uint32_t size)
 {
