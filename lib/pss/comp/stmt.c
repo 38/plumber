@@ -333,7 +333,7 @@ static inline int _foreach_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 	if(r_cnt == ERROR_CODE(pss_bytecode_regid_t))
 		ERROR_RETURN_LOG(int, "Cannot allocate the counter register");
 
-	if(!_INST(seg, INT_LOAD, _N(0), _R(r_cnt)))
+	if(!_INST(seg, INT_LOAD, _N(-1), _R(r_cnt)))
 		PSS_COMP_RAISE_INT(comp, CODE);
 
 	// r_num, r_cnt, ctl_var, set
@@ -343,6 +343,20 @@ static inline int _foreach_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 
 	pss_bytecode_addr_t begin = pss_comp_last_control_block_begin(comp, 0);
 	pss_bytecode_label_t end  = pss_comp_last_control_block_end(comp, 0);
+	
+	pss_bytecode_regid_t one = pss_comp_mktmp(comp);
+	if(ERROR_CODE(pss_bytecode_regid_t) == one)
+		ERROR_RETURN_LOG(int, "Cannot allocate memory for the register");
+
+	if(!_INST(seg, INT_LOAD, _N(1), _R(one)))
+		PSS_COMP_RAISE_INT(comp, CODE);
+
+	if(!_INST(seg, ADD, _R(one), _R(r_cnt), _R(r_cnt)))
+		PSS_COMP_RAISE_INT(comp, CODE);
+	
+	if(ERROR_CODE(int) == pss_comp_rmtmp(comp, one))
+		ERROR_RETURN_LOG(int, "Cannot release the constant register");
+
 
 	pss_bytecode_regid_t r_cmpresult = pss_comp_mktmp(comp);
 	if(ERROR_CODE(pss_bytecode_regid_t) == r_cmpresult)
@@ -351,7 +365,7 @@ static inline int _foreach_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 	pss_bytecode_regid_t r_target = pss_comp_mktmp(comp);
 	if(ERROR_CODE(pss_bytecode_regid_t) == r_target)
 		ERROR_RETURN_LOG(int, "Cannot create the target register");
-
+	
 	if(!_INST(seg, LT, _R(r_cnt), _R(r_num), _R(r_cmpresult)))
 		PSS_COMP_RAISE_INT(comp, CODE);
 
@@ -397,24 +411,17 @@ static inline int _foreach_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 	if(ERROR_CODE(int) == pss_comp_stmt_parse(comp))
 		ERROR_RETURN_LOG(int, "Cannot parse the loop body");
 
-	pss_bytecode_regid_t one = pss_comp_mktmp(comp);
-	if(ERROR_CODE(pss_bytecode_regid_t) == one)
-		ERROR_RETURN_LOG(int, "Cannot allocate memory for the register");
+	if(ERROR_CODE(pss_bytecode_regid_t) == (r_target = pss_comp_mktmp(comp)))
+		ERROR_RETURN_LOG(int, "Cannot allocate the jump target register");
 
-	if(!_INST(seg, INT_LOAD, _N(1), _R(one)))
+	if(!_INST(seg, INT_LOAD, _N(begin), _R(r_target)))
 		PSS_COMP_RAISE_INT(comp, CODE);
 
-	if(!_INST(seg, ADD, _R(one), _R(r_cnt), _R(r_cnt)))
+	if(!_INST(seg, JUMP, _R(r_target)))
 		PSS_COMP_RAISE_INT(comp, CODE);
 
-	if(!_INST(seg, INT_LOAD, _N(begin), _R(one)))
-		PSS_COMP_RAISE_INT(comp, CODE);
-
-	if(!_INST(seg, JUMP, _R(one)))
-		PSS_COMP_RAISE_INT(comp, CODE);
-
-	if(ERROR_CODE(int) == pss_comp_rmtmp(comp, one))
-		ERROR_RETURN_LOG(int, "Cannot release the constant register");
+	if(ERROR_CODE(int) == pss_comp_rmtmp(comp, r_target))
+		ERROR_RETURN_LOG(int, "Cannot release the jump target register");
 
 	if(ERROR_CODE(int) == pss_comp_rmtmp(comp, r_num))
 		ERROR_RETURN_LOG(int, "Cannot release the number register");
