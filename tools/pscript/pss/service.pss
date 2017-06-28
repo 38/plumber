@@ -44,12 +44,12 @@ Service.for_each_element = function Service.for_each_element(serv, handler)
 				if(sp[1] == "input")
 				{
 					if(sp[2] == "") input_handle(dst_node, dst_port);
-					else port_handle(sp[2], dst_node, dst_port);
+					else port_handle(sp[2], dst_node, dst_port, "input");
 				}
 				else if(sp[1] == "output")
 				{
 					if(sp[2] == "") output_handle(dst_node, dst_port);
-					else port_handle(sp[2], dst_node, dst_port);
+					else port_handle(sp[2], dst_node, dst_port, "output");
 				}
 			}
 		}
@@ -112,4 +112,104 @@ Service.start = function Service.start(serv)
 {
 	var serv_obj = Service.build(serv);
 	__service_start(serv_obj);
+}
+
+Service.visualize = function Service.visualize(serv) 
+{
+	print("digraph {");
+	
+	var obj = __service_new();
+
+	var node_handler = function node_handler(name, def) 
+	{
+		var type = typeof(def);
+		var ports;
+		if(type == "string")
+		{
+			var nid = __service_node(obj, def);
+			ports = __service_node_ports(obj, nid);
+		}
+		else if(type == "dict")
+		{
+			ports = {input:{}, output:{}};
+			var in_count = 0;
+			var out_count = 0;
+			for(var key in def)
+			{
+				var parts = split(key, "@");
+				if(len(parts) == 3)
+				{
+					if(parts[0] == "" && parts[2] != "")
+					{
+						if(parts[1] == "input")
+							ports["input"][in_count ++] = parts[2];
+						else if(parts[1] == "output")
+							ports["output"][out_count ++] = parts[2];
+					}
+				}
+			}
+		}
+
+		if(ports != undefined)
+		{
+			var inputs = ports["input"];
+			var outputs = ports["output"];
+			var _dump_ports = function(port_list, avoid)
+			{
+				var ret = "{"
+				var sep = 0;
+				for(var i in port_list)
+				{
+					var port = port_list[i];
+					if(avoid[port] == undefined)
+					{
+						if(sep) ret += "|";
+						ret += "<P" + port + ">" + port;
+						sep = 1;
+					}
+				}
+				return ret + "}";
+			}
+			var nodestr = "\tnode_" + name + "[shape = Mrecord, label = \"{" + 
+						  	_dump_ports(ports["input"], {}) + 
+							"|{<P__null__>N|" + name + "|<P__error__>E}|" + 
+							_dump_ports(ports["output"], {__null__:1, __error__:1}) + "}\"];"
+			print(nodestr);
+		}
+	}
+	
+	var _p = function (node, port)
+	{
+		return "node_" + node + ":P" + port;
+	}
+
+	var pipe_handler = function _pipe_handler(src_node, src_port, dst_node, dst_port) 
+	{
+		print("\t" + _p(src_node, src_port) + "->" + _p(dst_node, dst_port));
+	}
+
+	var port_handler = function _port_handler(name, node, port, dir)
+	{
+		var port_node = "port_" + name;
+		print("\t" + port_node + "[shape = ellipse, label=\"" + name + "\"];");
+		if(dir == "input")
+			print("\t" + port_node + "->" + _p(node, port));
+		else 
+			print("\t" + _p(node, port) + "->" + port_node);
+	}
+
+	var input_handler = function _input_handler(node, port) 
+	{
+		print("\tinput[shape = ellipse];");
+		print("\tinput->" + _p(node, port));
+	}
+	var output_handler = function _output_handler(node, port)
+	{
+		print("\toutput[shape = ellipse];");
+		print("\t" + _p(node, port) + "->output;");
+	}
+	
+	Service.for_each_element(serv, {node: node_handler, pipe: pipe_handler, port: port_handler, input: input_handler, output: output_handler});
+
+	print("}");
 }
