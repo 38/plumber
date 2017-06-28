@@ -5,42 +5,89 @@
 
 Service.build = function(serv) 
 {
-	var ret = __service_new();
-	var nodes = {};
-
-	for(var key in serv)
+	var _build = function(serv, obj, build) 
 	{
-		var sp = split(key, "@");
-		if(len(sp) == 1)
-		{
-			nodes[key] = __service_node(ret, serv[key]);
-		}
-	}
+		var nodes = {};
+		var ports = {};
 
-	for(var key in serv)
-	{
-		var sp = split(key, "@");
-		if(len(sp) == 2 && sp[0] == "")
+		for(var key in serv)
 		{
-			var src_node = nodes[sp[1]];
-			for(var src_port in serv[key])
+			var sp = split(key, "@");
+			if(len(sp) == 1)
 			{
-				var sp = split(serv[key][src_port], "@");
-				var dst_node = nodes[sp[0]];
-				var dst_port = sp[1];
-				__service_pipe(ret, src_node, src_port, dst_node, dst_port);
+				if(typeof(serv[key]) == "dict")
+				{
+					var ports = build(serv[key], obj, build);
+					nodes[key] = {};
+					for(var name in ports)
+						nodes[key][name] = {node: ports[name]["node"], port: ports[name]["port"]};
+				}
+				else nodes[key] = __service_node(obj, serv[key]);
 			}
 		}
+
+		for(var key in serv)
+		{
+			var sp = split(key, "@");
+			if(sp[0] == "")
+			{
+				var lsp = len(sp);
+				if(lsp == 2)
+				{
+					var src = nodes[sp[1]];
+					for(var src_port in serv[key])
+					{
+						var src_node = src;
+						if(typeof(src) == "dict")
+						{
+							src_node = src[src_port]["node"];
+							src_port = src[src_port]["port"];
+						}
+							
+						var sp = split(serv[key][src_port], "@");
+						var dst = nodes[sp[0]];
+						var dst_node = dst;
+						var dst_port = sp[1];
+
+						if(typeof(dst) == "dict")
+						{
+							dst_node = dst[dst_port]["node"];
+							dst_port = dst[dst_port]["port"];
+						}
+
+						__service_pipe(obj, src_node, src_port, dst_node, dst_port);
+					}
+				}
+				else if(lsp == 3)
+				{
+					var vsp = split(serv[key], "@");
+					var node = nodes[vsp[0]];
+					var port = vsp[1];
+					if(typeof(node) == "dict")
+					{
+						node = nodes[vsp[0]][port]["node"];
+						port = nodes[vsp[0]][port]["port"];
+					}
+					if(sp[1] == "input") 
+					{
+						if(sp[2] == "") __service_input(obj, node, port);
+						else ports[sp[2]] = {node: node, port: port};
+					}
+					else if(sp[1] == "output")
+					{
+						if(sp[2] == "") __service_output(obj, node, port);
+						else ports[sp[2]] = {node: node, port: port};
+					}
+				}
+			}
+		}
+
+		return ports;
 	}
 
-	var sp = split(serv["@input@"], "@");
-	var node = nodes[sp[0]];
-	var port = sp[1];
-	__service_input(ret, node, port);
-
-	sp = split(serv["@output@"], "@");
-	node = nodes[sp[0]];
-	port = sp[1];
-	__service_output(ret, node, port);
-	return ret;
-}
+	return function(serv) {
+		var obj = __service_new();
+		_build(serv, obj, _build);
+		return obj;
+	}
+}();
