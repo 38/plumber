@@ -1,8 +1,9 @@
-insmod "mem_pipe";
-insmod "tcp_pipe 1234";
+import("service");
+insmod("mem_pipe");
+insmod("tcp_pipe 1234");
 serv = {
 	ech := "language/pyservlet echo";
 	() -> "in" ech "out" ->();
 }
-start serv;
+Service.start(serv);
 

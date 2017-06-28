@@ -1,6 +1,8 @@
-insmod "mem_pipe";
-insmod "tcp_pipe 1234";
-insmod "pssm";
+import("service");
+
+insmod("mem_pipe");
+insmod("tcp_pipe 1234");
+insmod("pssm");
 
 scheduler.worker.nthreads = 4;    //the number of working thread
 
@@ -8,5 +10,5 @@ serv = {
 	ech := "language/javascript cat.js 1";
 	() -> "input" ech "output" ->();
 }
-start serv;
+Service.start(serv);
 

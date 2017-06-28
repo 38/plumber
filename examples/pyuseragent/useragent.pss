@@ -1,8 +1,10 @@
-insmod "tcp_pipe 1234"
+import("service");
+
+insmod("tcp_pipe 1234");
 #If you want the server support HTTP, use the following lines instead
 #insmod "tcp_pipe --slave 1234"
 #insmod "tls_pipe cert=/tmp/localhost.crt key=/tmp/localhost.key pipe.tcp.port_1234"
-insmod "mem_pipe"
+insmod("mem_pipe");
 
 scheduler.worker.nthreads = 4
 
@@ -13,5 +15,5 @@ serv = {
 	() -> "in" req "out" -> "in" res "out" -> ();
 }
 
-visualize serv >>> "/dev/stdout"
-start serv
+Service.visualize(serv);
+Service.start(serv);

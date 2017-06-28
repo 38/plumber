@@ -1,12 +1,13 @@
-insmod "tcp_pipe 8889";
-insmod "mem_pipe";
-insmod "pssm";
+import("service");
+insmod("tcp_pipe 8889");
+insmod("mem_pipe");
+insmod("pssm");
 runtime.servlet.path = ".";
 scheduler.worker.default_itc_pipe = "pipe.mem"
 scheduler.worker.nthreads = 8
 
-start {
+Service.start({
 	reqparse := "reqparse";
 	resgen   := "resgen";
 	() -> "request" reqparse "user-agent" -> "user-agent" resgen "response" -> ();
-};
+});
