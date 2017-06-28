@@ -2,89 +2,104 @@
  * Copyright (C) 2017, Hao Hou
  * The service utilities
  **/
-
-Service.build = function(serv) 
+Service.for_each_element = function(serv, handler)
+{
+	var _get_func = function(name)
+	{
+		var ret = handler[name];
+		if(ret == undefined) return function(){};
+		return ret;
+	}
+	var node_handle = _get_func("node");
+	var pipe_handle = _get_func("pipe");
+	var port_handle = _get_func("port");
+	var input_handle = _get_func("input");
+	var output_handle = _get_func("output");
+	for(var key in serv)
+	{
+		var sp = split(key, "@");
+		var lsp = len(sp);
+		if(lsp == 1) 
+			node_handle(key, serv[key]);
+		else if(sp[0] == "")
+		{
+			if(lsp == 2)
+			{
+				var src_node = sp[1];
+				var dests = serv[key];
+				for(var src_port in dests)
+				{
+					/* Key is port name and value should be nodeName@portName */
+					var dsp = split(dests[src_port], "@");
+					var dst_node = dsp[0];
+					var dst_port = dsp[1];
+					pipe_handle(src_node, src_port, dst_node, dst_port);
+				}
+			}
+			else if(lsp == 3)
+			{
+				var dst = split(serv[key], "@");
+				var dst_node = dst[0];
+				var dst_port = dst[1];
+				if(sp[1] == "input")
+				{
+					if(sp[2] == "") input_handle(dst_node, dst_port);
+					else port_handle(sp[2], dst_node, dst_port);
+				}
+				else if(sp[1] == "output")
+				{
+					if(sp[2] == "") output_handle(dst_node, dst_port);
+					else port_handle(sp[2], dst_node, dst_port);
+				}
+			}
+		}
+	}
+}
+Service.build = function(serv)
 {
 	var _build = function(serv, obj, build) 
 	{
 		var nodes = {};
 		var ports = {};
-
-		for(var key in serv)
+		var _deref_port = function(node, port)
 		{
-			var sp = split(key, "@");
-			if(len(sp) == 1)
-			{
-				if(typeof(serv[key]) == "dict")
-				{
-					var ports = build(serv[key], obj, build);
-					nodes[key] = {};
-					for(var name in ports)
-						nodes[key][name] = {node: ports[name]["node"], port: ports[name]["port"]};
-				}
-				else nodes[key] = __service_node(obj, serv[key]);
-			}
-		}
-
-		for(var key in serv)
+			var nid = nodes[node];
+			if(typeof(nid) == "dict") return nid[port];
+			return {node: nid, port: port};
+		};
+		var node_handler = function(name, def)
 		{
-			var sp = split(key, "@");
-			if(sp[0] == "")
-			{
-				var lsp = len(sp);
-				if(lsp == 2)
-				{
-					var src = nodes[sp[1]];
-					for(var src_port in serv[key])
-					{
-						var src_node = src;
-						if(typeof(src) == "dict")
-						{
-							src_node = src[src_port]["node"];
-							src_port = src[src_port]["port"];
-						}
-							
-						var sp = split(serv[key][src_port], "@");
-						var dst = nodes[sp[0]];
-						var dst_node = dst;
-						var dst_port = sp[1];
+			if(typeof(def) == "dict")
+				nodes[name] = build(def, obj, build);
+			else
+				nodes[name] = __service_node(obj, def);
+		};
+		var pipe_handler = function(src_node, src_port, dst_node, dst_port) 
+		{
+			var src = _deref_port(src_node, src_port);
+			var dst = _deref_port(dst_node, dst_port);
+			__service_pipe(obj, src["node"], src["port"], dst["node"], dst["port"]);
+		};
+		var port_handler = function(name, node, port)
+		{
+			ports[name] = _deref_port(node, port);
+		};
+		var input_handler = function(node, port)
+		{
+			var target = _deref_port(node, port);
+			__service_input(obj, target["node"], target["port"]);
+		};
+		var output_handler = function(node, port)
+		{
+			var target = _deref_port(node, port);
+			__service_output(obj, target["node"], target["port"]);
+		};
 
-						if(typeof(dst) == "dict")
-						{
-							dst_node = dst[dst_port]["node"];
-							dst_port = dst[dst_port]["port"];
-						}
-
-						__service_pipe(obj, src_node, src_port, dst_node, dst_port);
-					}
-				}
-				else if(lsp == 3)
-				{
-					var vsp = split(serv[key], "@");
-					var node = nodes[vsp[0]];
-					var port = vsp[1];
-					if(typeof(node) == "dict")
-					{
-						node = nodes[vsp[0]][port]["node"];
-						port = nodes[vsp[0]][port]["port"];
-					}
-					if(sp[1] == "input") 
-					{
-						if(sp[2] == "") __service_input(obj, node, port);
-						else ports[sp[2]] = {node: node, port: port};
-					}
-					else if(sp[1] == "output")
-					{
-						if(sp[2] == "") __service_output(obj, node, port);
-						else ports[sp[2]] = {node: node, port: port};
-					}
-				}
-			}
-		}
-
+		Service.for_each_element(serv, {node: node_handler}); 
+		Service.for_each_element(serv, {pipe: pipe_handler, port: port_handler, input: input_handler, output: output_handler});
 		return ports;
 	}
-
+	
 	return function(serv) {
 		var obj = __service_new();
 		_build(serv, obj, _build);
