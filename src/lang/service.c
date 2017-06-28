@@ -51,14 +51,14 @@ lang_service_t* lang_service_new()
 {
 	lang_service_t* ret = (lang_service_t*)malloc(sizeof(*ret));
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the service builtin object");
-	
+
 	ret->sid_cap = 32;
 	if(NULL == (ret->sid_map = (runtime_stab_entry_t*)malloc(sizeof(ret->sid_map[0]) * ret->sid_cap)))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the SID map");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the SID map");
 	memset(ret->sid_map, -1, sizeof(ret->sid_map[0]) * ret->sid_cap);
 
 	if(NULL == (ret->buffer = sched_service_buffer_new()))
-		ERROR_LOG_GOTO(ERR, "Cannot create the service buffer");
+	    ERROR_LOG_GOTO(ERR, "Cannot create the service buffer");
 
 	ret->is_buffer = 1;
 	return ret;
@@ -74,10 +74,10 @@ int lang_service_free(lang_service_t* service)
 
 	int rc = 0;
 	if(service->is_buffer && ERROR_CODE(int) == sched_service_buffer_free(service->buffer))
-		rc = ERROR_CODE(int);
+	    rc = ERROR_CODE(int);
 
 	if(!service->is_buffer && ERROR_CODE(int) == sched_service_free(service->object))
-		rc = ERROR_CODE(int);
+	    rc = ERROR_CODE(int);
 
 	free(service->sid_map);
 
@@ -89,7 +89,7 @@ int lang_service_free(lang_service_t* service)
 int64_t lang_service_add_node(lang_service_t* service, const char* init_args)
 {
 	if(NULL == service || service->is_buffer == 0 || NULL == init_args)
-		ERROR_RETURN_LOG(int64_t, "Invalid arguments");
+	    ERROR_RETURN_LOG(int64_t, "Invalid arguments");
 
 	uint32_t argc = 0;
 	const char* ptr;
@@ -99,8 +99,8 @@ int64_t lang_service_add_node(lang_service_t* service, const char* init_args)
 		int escape = 0;
 		int empty = 1;
 		for(;*ptr && !((*ptr == ' ' || *ptr == '\t') && !escape); ptr ++, empty = 0)
-			if(!escape) escape = (*ptr == '\\');
-			else escape = 0;
+		    if(!escape) escape = (*ptr == '\\');
+		    else escape = 0;
 		if(!empty) argc ++;
 	}
 
@@ -120,7 +120,7 @@ int64_t lang_service_add_node(lang_service_t* service, const char* init_args)
 			else escape = 0;
 			if(!escape) buf[processed++] = buf[scanned];
 		}
-		if(processed > 0) 
+		if(processed > 0)
 		{
 			buf[processed++] = 0;
 			argidx ++;
@@ -129,26 +129,26 @@ int64_t lang_service_add_node(lang_service_t* service, const char* init_args)
 
 	runtime_stab_entry_t sid = runtime_stab_load(argc, argv);
 	if(ERROR_CODE(runtime_stab_entry_t) == sid)
-		ERROR_RETURN_LOG(int64_t, "Cannot not load servlet with init args: %s", init_args);
+	    ERROR_RETURN_LOG(int64_t, "Cannot not load servlet with init args: %s", init_args);
 
 	sched_service_node_id_t nid = sched_service_buffer_add_node(service->buffer, sid);
 	if(ERROR_CODE(sched_service_node_id_t) == nid)
-		ERROR_RETURN_LOG(int64_t, "Cannot add new node to the service buffer");
+	    ERROR_RETURN_LOG(int64_t, "Cannot add new node to the service buffer");
 
 	sched_service_node_id_t new_cap = service->sid_cap;
 	while(nid >= new_cap)
 	{
-		if((ERROR_CODE(sched_service_node_id_t) >> 1) >= new_cap) 
-			new_cap *= 2;
-		else 
-			new_cap = ERROR_CODE(sched_service_node_id_t);
+		if((ERROR_CODE(sched_service_node_id_t) >> 1) >= new_cap)
+		    new_cap *= 2;
+		else
+		    new_cap = ERROR_CODE(sched_service_node_id_t);
 	}
-	
+
 	if(new_cap != service->sid_cap)
 	{
 		runtime_stab_entry_t* sid_map;
 		if(NULL == (sid_map = (runtime_stab_entry_t*)realloc(service->sid_map, sizeof(sid_map[0]) * new_cap)))
-			ERROR_RETURN_LOG(int64_t, "Cannot resize the SID map");
+		    ERROR_RETURN_LOG(int64_t, "Cannot resize the SID map");
 		memset(sid_map + service->sid_cap, -1, sizeof(sid_map[0]) * (new_cap - service->sid_cap));
 		service->sid_map = sid_map;
 		service->sid_cap = new_cap;
@@ -163,17 +163,17 @@ int64_t lang_service_add_node(lang_service_t* service, const char* init_args)
 char** lang_service_node_port_names(const lang_service_t* service, int64_t nid)
 {
 	if(NULL == service || !service->is_buffer || nid < 0 || nid >= ERROR_CODE(sched_service_node_id_t))
-		ERROR_PTR_RETURN_LOG("Invalid arguments");
+	    ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	if(nid >= service->sid_cap || service->sid_map[nid] == ERROR_CODE(runtime_stab_entry_t))
-		ERROR_PTR_RETURN_LOG("Node %u not exist", (uint32_t)nid);
+	    ERROR_PTR_RETURN_LOG("Node %u not exist", (uint32_t)nid);
 
 	int input_size = runtime_stab_get_num_input_pipe(service->sid_map[nid]);
-	if(ERROR_CODE(int) == input_size) 
-		ERROR_PTR_RETURN_LOG("Cannot get the number of input pipes");
+	if(ERROR_CODE(int) == input_size)
+	    ERROR_PTR_RETURN_LOG("Cannot get the number of input pipes");
 	int output_size = runtime_stab_get_num_output_pipe(service->sid_map[nid]);
 	if(ERROR_CODE(int) == output_size)
-		ERROR_PTR_RETURN_LOG("Cannot get the number of output pipes");
+	    ERROR_PTR_RETURN_LOG("Cannot get the number of output pipes");
 
 	char** ret = (char**)calloc((size_t)(input_size + output_size + 2), sizeof(char*));
 
@@ -183,13 +183,13 @@ char** lang_service_node_port_names(const lang_service_t* service, int64_t nid)
 		runtime_api_pipe_id_t pid = (runtime_api_pipe_id_t)i;
 		runtime_api_pipe_flags_t flags = runtime_stab_get_pipe_flags(service->sid_map[nid], pid);
 		if(ERROR_CODE(runtime_api_pipe_flags_t) == flags)
-			ERROR_LOG_GOTO(ERR, "Cannot access the flag of pipe <SID=%u, PID=%u>", service->sid_map[nid], pid);
+		    ERROR_LOG_GOTO(ERR, "Cannot access the flag of pipe <SID=%u, PID=%u>", service->sid_map[nid], pid);
 
 		int idx = -1;
 		if(RUNTIME_API_PIPE_IS_INPUT(flags))
-			idx = ic ++;
+		    idx = ic ++;
 		else if(RUNTIME_API_PIPE_IS_OUTPUT(flags))
-			idx = (oc ++) + input_size + 1;
+		    idx = (oc ++) + input_size + 1;
 
 		if(idx >= 0)
 		{
@@ -199,7 +199,7 @@ char** lang_service_node_port_names(const lang_service_t* service, int64_t nid)
 			if(NULL == name) ERROR_LOG_GOTO(ERR, "Cannot get the name of pipe <SID=%u, PID=%u>", service->sid_map[nid], pid);
 
 			if(NULL == (ret[idx] = strdup(name)))
-				ERROR_LOG_GOTO(ERR, "Cannot duplicate the pipe name");
+			    ERROR_LOG_GOTO(ERR, "Cannot duplicate the pipe name");
 		}
 	}
 
@@ -209,7 +209,7 @@ ERR:
 	{
 		uint32_t i;
 		for(i = 0; i < (size_t)(input_size + output_size + 2); i ++)
-			if(NULL != ret[i]) free(ret[i]);
+		    if(NULL != ret[i]) free(ret[i]);
 		free(ret);
 	}
 	return NULL;
@@ -222,10 +222,10 @@ int lang_service_add_edge(lang_service_t* service, int64_t src_nid, const char* 
 	  NULL == src_port || NULL == dst_port) ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(src_nid >= service->sid_cap || service->sid_map[src_nid] == ERROR_CODE(runtime_stab_entry_t))
-		ERROR_RETURN_LOG(int, "Node %u not exist", (uint32_t)src_nid);
+	    ERROR_RETURN_LOG(int, "Node %u not exist", (uint32_t)src_nid);
 
 	if(dst_nid >= service->sid_cap || service->sid_map[dst_nid] == ERROR_CODE(runtime_stab_entry_t))
-		ERROR_RETURN_LOG(int, "Node %u not exist", (uint32_t)dst_nid);
+	    ERROR_RETURN_LOG(int, "Node %u not exist", (uint32_t)dst_nid);
 
 	const runtime_pdt_t* src_pdt = runtime_stab_get_pdt(service->sid_map[src_nid]);
 	if(NULL == src_pdt) ERROR_RETURN_LOG(int, "Cannot get the PDT for node %u", service->sid_map[src_nid]);
@@ -249,22 +249,22 @@ int lang_service_add_edge(lang_service_t* service, int64_t src_nid, const char* 
 
 static inline int _set_service_input_or_output(lang_service_t* service, int64_t nid, const char* port, int input)
 {
-	if(NULL == service || nid < 0 || nid >= ERROR_CODE(sched_service_node_id_t) || NULL == port) 
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	if(NULL == service || nid < 0 || nid >= ERROR_CODE(sched_service_node_id_t) || NULL == port)
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(nid >= service->sid_cap || service->sid_map[nid] == ERROR_CODE(runtime_stab_entry_t))
-		ERROR_RETURN_LOG(int, "Node %u not exist", (uint32_t)nid);
-	
+	    ERROR_RETURN_LOG(int, "Node %u not exist", (uint32_t)nid);
+
 	const runtime_pdt_t* pdt = runtime_stab_get_pdt(service->sid_map[nid]);
 	if(NULL == pdt) ERROR_RETURN_LOG(int, "Cannot get the PDT for node %u", service->sid_map[nid]);
-	
+
 	runtime_api_pipe_id_t pid = runtime_pdt_get_pd_by_name(pdt, port);
 	if(ERROR_CODE(runtime_api_pipe_id_t) == pid) ERROR_RETURN_LOG(int, "Cannot get the PID for the pipe named %s", port);
 
 	if(input)
-		return sched_service_buffer_set_input(service->buffer, (sched_service_node_id_t)nid, pid);
+	    return sched_service_buffer_set_input(service->buffer, (sched_service_node_id_t)nid, pid);
 	else
-		return sched_service_buffer_set_output(service->buffer, (sched_service_node_id_t)nid, pid);
+	    return sched_service_buffer_set_output(service->buffer, (sched_service_node_id_t)nid, pid);
 }
 int lang_service_set_input(lang_service_t* service, int64_t nid, const char* port)
 {
@@ -278,24 +278,24 @@ int lang_service_set_output(lang_service_t* service, int64_t nid, const char* po
 
 int lang_service_start(lang_service_t* service)
 {
-	if(NULL == service) 
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	if(NULL == service)
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(service->is_buffer)
 	{
 		sched_service_t* service_obj = sched_service_from_buffer(service->buffer);
 		if(NULL == service_obj)
-			ERROR_RETURN_LOG(int, "Cannot build the service object from the service buffer");
+		    ERROR_RETURN_LOG(int, "Cannot build the service object from the service buffer");
 
 		if(ERROR_CODE(int) == sched_service_buffer_free(service->buffer))
-			LOG_WARNING("Cannot dispose the used service buffer");
+		    LOG_WARNING("Cannot dispose the used service buffer");
 
 		service->is_buffer = 0;
 		service->object = service_obj;
 	}
 
 	if(ERROR_CODE(int) == sched_loop_start(service->object))
-		ERROR_RETURN_LOG(int, "Cannot start the service");
+	    ERROR_RETURN_LOG(int, "Cannot start the service");
 
 	return 0;
 }

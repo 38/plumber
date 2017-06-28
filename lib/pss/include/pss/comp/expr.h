@@ -9,7 +9,7 @@
 #define __PSS_COMP_EXPR_H__
 
 /**
- * @brief Parse an expression 
+ * @brief Parse an expression
  * @param comp The compiler instance
  * @param buf The result buffer
  * @return status code

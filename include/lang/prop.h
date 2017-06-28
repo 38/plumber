@@ -52,7 +52,7 @@ typedef lang_prop_value_t (*lang_prop_get_func_t)(const char* symbol, const void
  *       it's not well defined when the value in the vm gets deallocated. <br/>
  * @return the number of propety that modified or error code
  **/
-typedef int (*lang_prop_set_func_t)(const char* symbol, lang_prop_value_t value, const void* param); 
+typedef int (*lang_prop_set_func_t)(const char* symbol, lang_prop_value_t value, const void* param);
 
 /**
  * @brief the callback function used to handle the property
@@ -93,7 +93,7 @@ lang_prop_value_t lang_prop_get(const char* symbol);
 /**
  * @brief set a symbol in the property table
  * @param symbol The symbol to read
- * @param value The value 
+ * @param value The value
  * @return The number of value has been written, or error code
  **/
 int lang_prop_set(const char* symbol, lang_prop_value_t value);

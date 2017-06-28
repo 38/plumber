@@ -96,11 +96,11 @@ static inline const _callback_t* _lookup_callback(const char* symbol)
 	size_t sym_len = strlen(symbol);
 	size_t max_len = 0;
 	for(ptr = _callback_list; NULL != ptr; ptr = ptr->next)
-		if(_match_callback(symbol, sym_len, ptr) && max_len < ptr->sym_prefix_len)
-		{
-			ret = ptr;
-			max_len = ret->sym_prefix_len;
-		}
+	    if(_match_callback(symbol, sym_len, ptr) && max_len < ptr->sym_prefix_len)
+	    {
+		    ret = ptr;
+		    max_len = ret->sym_prefix_len;
+	    }
 	return ret;
 }
 
@@ -110,7 +110,7 @@ lang_prop_value_t lang_prop_get(const char* symbol)
 		.type = LANG_PROP_TYPE_ERROR
 	};
 
-	if(NULL == symbol) 
+	if(NULL == symbol)
 	{
 		LOG_ERROR("Invalid arguments");
 		return err;
@@ -132,7 +132,7 @@ lang_prop_value_t lang_prop_get(const char* symbol)
 int lang_prop_set(const char* symbol, lang_prop_value_t value)
 {
 	if(value.type == LANG_PROP_TYPE_ERROR || value.type == LANG_PROP_TYPE_NONE || symbol == NULL)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	const _callback_t* cb = _lookup_callback(symbol);
 

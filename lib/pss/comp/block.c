@@ -22,31 +22,31 @@ int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token
 	if(NULL == comp) PSS_COMP_RAISE_INT(comp, ARGS);
 
 	if(first_token != PSS_COMP_LEX_TOKEN_NAT && ERROR_CODE(int) == pss_comp_expect_token(comp, first_token))
-		ERROR_RETURN_LOG(int, "Unexpected beginging of the header");
+	    ERROR_RETURN_LOG(int, "Unexpected beginging of the header");
 
 	if(ERROR_CODE(int) == pss_comp_open_scope(comp))
-		ERROR_RETURN_LOG(int, "Cannot open scope");
+	    ERROR_RETURN_LOG(int, "Cannot open scope");
 
 	for(;;)
 	{
 		const pss_comp_lex_token_t* ahead = pss_comp_peek(comp, 0);
 		if(NULL == ahead)
-			ERROR_RETURN_LOG(int, "Cannot peek ahead token");
+		    ERROR_RETURN_LOG(int, "Cannot peek ahead token");
 
-		if(ahead->type == last_token) 
+		if(ahead->type == last_token)
 		{
 			if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
-				ERROR_RETURN_LOG(int, "Cannot consume token");
+			    ERROR_RETURN_LOG(int, "Cannot consume token");
 			break;
 		}
-		
+
 		if(ERROR_CODE(int) == pss_comp_stmt_parse(comp))
-			ERROR_RETURN_LOG(int, "Cannot parse the next statement");
+		    ERROR_RETURN_LOG(int, "Cannot parse the next statement");
 
 	}
 
 	if(ERROR_CODE(int) == pss_comp_close_scope(comp))
-		ERROR_RETURN_LOG(int, "Cannot close scope");
+	    ERROR_RETURN_LOG(int, "Cannot close scope");
 
 	return 0;
 }

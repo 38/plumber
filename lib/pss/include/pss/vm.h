@@ -92,7 +92,7 @@ int pss_vm_add_builtin_func(pss_vm_t* vm, const char* name, pss_value_builtin_t 
  * @brief Set the global variable of this virtual machine
  * @param vm The virtual machine we want to add
  * @param var The global variable name
- * @param val The value 
+ * @param val The value
  * @return status code
  **/
 int pss_vm_set_global(pss_vm_t* vm, const char* var, pss_value_t val);

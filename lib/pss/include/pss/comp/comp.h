@@ -139,7 +139,7 @@ int pss_comp_close_scope(pss_comp_t* comp);
 
 /**
  * @brief Get the local variable
- * @details This function also used to check if we should access the global storage as well, 
+ * @details This function also used to check if we should access the global storage as well,
  * @param comp The compiler instance
  * @param var  The variable name
  * @param resbuf the buffer used to return the register id assigned to this local variable
@@ -157,7 +157,7 @@ int pss_comp_get_local_var(pss_comp_t* comp, const char* var, pss_bytecode_regid
 pss_bytecode_regid_t pss_comp_decl_local_var(pss_comp_t* comp, const char* var);
 
 /**
- * @brief Make a temporory register 
+ * @brief Make a temporory register
  * @parap comp The compiler instance
  * @return The register id
  **/
@@ -207,7 +207,7 @@ pss_bytecode_label_t pss_comp_last_control_block_end(pss_comp_t* comp, uint32_t 
 pss_bytecode_addr_t pss_comp_last_loop_begin(pss_comp_t* comp);
 
 /**
- * @brief Get the label where the nearest loop ends 
+ * @brief Get the label where the nearest loop ends
  * @param comp The compiler
  * @return The label for the end of the loop
  **/
@@ -239,7 +239,7 @@ int pss_comp_expect_keyword(pss_comp_t* comp, pss_comp_lex_keyword_t keyword);
  * @return status code
  **/
 int pss_comp_raise(pss_comp_t* comp, const char* msg, ...)
-	__attribute__((format(printf,2,3)));
+    __attribute__((format(printf,2,3)));
 
 /**
  * @brief raise an internal error and return an error code

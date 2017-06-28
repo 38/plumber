@@ -6,7 +6,7 @@
 #include <testenv.h>
 #include <pss.h>
 
-int test_env() 
+int test_env()
 {
 	pss_comp_env_t* env = pss_comp_env_new();
 
@@ -34,7 +34,7 @@ int test_env()
 	ASSERT(pss_frame_serial_to_regid(0) == regid, CLEANUP_NOP);
 
 	ASSERT_OK(pss_comp_env_close_scope(env), CLEANUP_NOP);
-	
+
 
 	ASSERT_OK(pss_comp_env_free(env), CLEANUP_NOP);
 
@@ -83,8 +83,8 @@ int recur_test()
 	}
 	uint32_t i, j;
 	for(i = 0; i < sizeof(varid) / sizeof(varid[0]); i ++)
-		for(j = i + 1; j < sizeof(varid) / sizeof(varid[0]); j ++)
-			ASSERT(varid[i] != varid[j], CLEANUP_NOP);
+	    for(j = i + 1; j < sizeof(varid) / sizeof(varid[0]); j ++)
+	        ASSERT(varid[i] != varid[j], CLEANUP_NOP);
 	ASSERT(1 == pss_comp_env_get_var(env, "top_level", 0, &regid), CLEANUP_NOP);
 	ASSERT(regid == pss_frame_serial_to_regid(0), CLEANUP_NOP);
 	if(level % 200 == 0)
@@ -98,7 +98,7 @@ int recur_test()
 		ASSERT_OK(recur_test(), CLEANUP_NOP);
 	}
 	else
-		ASSERT_OK(recur_test(), CLEANUP_NOP);
+	    ASSERT_OK(recur_test(), CLEANUP_NOP);
 	ASSERT_OK(pss_comp_env_close_scope(env), CLEANUP_NOP);
 RET:
 	level ++;
@@ -150,7 +150,7 @@ int regsn_test()
 	}
 
 	for(i = 0; i < 0xffff; i ++)
-		ASSERT(count[i] == 1, CLEANUP_NOP);
+	    ASSERT(count[i] == 1, CLEANUP_NOP);
 
 	return 0;
 }
@@ -164,8 +164,8 @@ int setup()
 DEFAULT_TEARDOWN;
 
 TEST_LIST_BEGIN
-	TEST_CASE(test_env),
-	TEST_CASE(recur_test),
-	TEST_CASE(tmp_test),
-	TEST_CASE(regsn_test)
+    TEST_CASE(test_env),
+    TEST_CASE(recur_test),
+    TEST_CASE(tmp_test),
+    TEST_CASE(regsn_test)
 TEST_LIST_END;

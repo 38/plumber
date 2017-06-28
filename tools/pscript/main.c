@@ -101,17 +101,17 @@ int parse_args(int argc, char** argv)
 			    module_paths[module_count++] = optarg;
 			    break;
 			case 'C':
-				do_not_compile = 1;
-				break;
+			    do_not_compile = 1;
+			    break;
 			case 'c':
-				compile_only = 1;
-				break;
+			    compile_only = 1;
+			    break;
 			case 'o':
-				compiled_output = optarg;
-				break;
+			    compiled_output = optarg;
+			    break;
 			case 'd':
-				disassemble = 1;
-				break;
+			    disassemble = 1;
+			    break;
 			case 'h':
 			    display_help();
 			    properly_exit(0);
@@ -153,8 +153,8 @@ pss_value_t make_argv(int argc, char** argv)
 	}
 
 	pss_dict_t* dict = (pss_dict_t*)pss_value_get_data(ret);
-	if(NULL == dict) 
-		ERROR_LOG_GOTO(ERR, "Cannot get the dictionary object from the dictionary value");
+	if(NULL == dict)
+	    ERROR_LOG_GOTO(ERR, "Cannot get the dictionary object from the dictionary value");
 
 	int i;
 	for(i = 0; i < argc; i ++)
@@ -170,7 +170,7 @@ pss_value_t make_argv(int argc, char** argv)
 
 		pss_value_t val = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, buf);
 		if(val.kind == PSS_VALUE_KIND_ERROR)
-			ERROR_LOG_GOTO(ERR, "Cannot create value for argv[%d]", i);
+		    ERROR_LOG_GOTO(ERR, "Cannot create value for argv[%d]", i);
 
 		if(ERROR_CODE(int) == pss_dict_set(dict, keybuf, val))
 		{
@@ -227,7 +227,7 @@ int _program(int argc, char** argv)
 		LOG_FATAL("Cannot initialize libplumber");
 		properly_exit(1);
 	}
-	
+
 	if(pss_init() == ERROR_CODE(int) || pss_log_set_write_callback(log_write_va) == ERROR_CODE(int))
 	{
 		LOG_FATAL("Cannot initialize libpss");
@@ -246,11 +246,11 @@ int _program(int argc, char** argv)
 	    LOG_WARNING("Cannot append servlet search path to servlet search list");
 
 	if(module_set_search_path(module_paths) == ERROR_CODE(int))
-		LOG_WARNING("Cannot set the PSS module search path");
+	    LOG_WARNING("Cannot set the PSS module search path");
 
 	pss_bytecode_module_t* module = module_from_file(argv[begin], !compile_only, 1, compiled_output);
 
-	if(NULL == module) 
+	if(NULL == module)
 	{
 		LOG_FATAL("Cannot load module %s", argv[begin]);
 		properly_exit(1);
@@ -263,7 +263,7 @@ int _program(int argc, char** argv)
 	if(!compile_only && !disassemble)
 	{
 		current_vm = pss_vm_new();
-		if(NULL == current_vm || ERROR_CODE(int) == builtin_init(current_vm)) 
+		if(NULL == current_vm || ERROR_CODE(int) == builtin_init(current_vm))
 		{
 			if(current_vm != NULL) pss_vm_free(current_vm);
 			pss_bytecode_module_free(module);
@@ -308,19 +308,19 @@ int _program(int argc, char** argv)
 		}
 
 		if(ERROR_CODE(int) == pss_vm_free(current_vm))
-			LOG_WARNING("Cannot dipsoes the VM");
+		    LOG_WARNING("Cannot dipsoes the VM");
 	}
 	else if(disassemble)
 	{
 		rc = pss_bytecode_module_logdump(module);
 	}
-	
+
 	if(ERROR_CODE(int) == module_unload_all())
-		LOG_WARNING("Cannot dipsose the module");
+	    LOG_WARNING("Cannot dipsose the module");
 
 
 	if(pss_finalize() == ERROR_CODE(int))
-		LOG_WARNING("Cannot finalize libpss");
+	    LOG_WARNING("Cannot finalize libpss");
 
 	if(plumber_finalize() == ERROR_CODE(int))
 	{

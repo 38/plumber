@@ -15,6 +15,6 @@
  * @param result The statement result
  * @return status code
  **/
-int pss_comp_stmt_parse(pss_comp_t* comp); 
+int pss_comp_stmt_parse(pss_comp_t* comp);
 
 #endif

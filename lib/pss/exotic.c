@@ -63,7 +63,7 @@ static int _free(void* mem)
 	int rc = 0;
 
 	if(NULL != obj->dispose && ERROR_CODE(int) == obj->dispose(obj->data))
-		rc = ERROR_CODE(int);
+	    rc = ERROR_CODE(int);
 
 	free(obj);
 

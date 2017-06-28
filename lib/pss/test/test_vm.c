@@ -66,7 +66,7 @@ int test_extension()
 	CODE(entry, STR_LOAD,    STRING("external_global"),    REG(0));
 	CODE(entry, STR_LOAD,    STRING("__builtin_print"),    REG(1));
 	CODE(entry, GLOBAL_GET,  REG(1),                       REG(1));
-	CODE(entry, ARG,         REG(1)); 
+	CODE(entry, ARG,         REG(1));
 	CODE(entry, CALL,        REG(1),                       REG(3));
 	CODE(entry, GLOBAL_GET,  REG(0),                       REG(4));
 	CODE(entry, INT_LOAD,    NUMERIC(123456),              REG(5));
@@ -380,10 +380,10 @@ int test_first_class_func()
 	ASSERT_PTR(module, CLEANUP_NOP);
 
 	pss_bytecode_regid_t arg_entry[1] = {};
-	
+
 	pss_bytecode_segment_t* entry = pss_bytecode_segment_new(0, arg_entry);
 	ASSERT_PTR(entry, CLEANUP_NOP);
-	
+
 	pss_bytecode_segid_t mid = pss_bytecode_module_append(module, entry);
 
 	ASSERT_OK(pss_bytecode_module_set_entry_point(module, mid), CLEANUP_NOP);
@@ -424,5 +424,5 @@ TEST_LIST_BEGIN
     TEST_CASE(test_generic_add),
     TEST_CASE(test_gcd),
     TEST_CASE(test_extension),
-	TEST_CASE(test_first_class_func)
+    TEST_CASE(test_first_class_func)
 TEST_LIST_END;

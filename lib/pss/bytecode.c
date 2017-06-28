@@ -909,7 +909,7 @@ pss_bytecode_addr_t  pss_bytecode_segment_append_code(pss_bytecode_segment_t* se
 pss_bytecode_addr_t  pss_bytecode_segment_length(const pss_bytecode_segment_t* segment)
 {
 	if(NULL == segment)
-		ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid arguments");
+	    ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid arguments");
 
 	return (pss_bytecode_addr_t)segment->code_table->header.size;
 }

@@ -29,7 +29,7 @@ typedef enum {
  **/
 typedef struct {
 	pss_comp_value_kind_t kind;    /*!< What kind of value it is */
-	pss_comp_value_reg_t  regs[2]; /*!< The registers that carries this value */ 
+	pss_comp_value_reg_t  regs[2]; /*!< The registers that carries this value */
 } pss_comp_value_t;
 
 
@@ -49,9 +49,9 @@ int pss_comp_value_parse(pss_comp_t* comp, pss_comp_value_t* result);
 static inline int pss_comp_value_is_lvalue(const pss_comp_value_t* value)
 {
 	return value->kind == PSS_COMP_VALUE_KIND_DICT ||
-		   value->kind == PSS_COMP_VALUE_KIND_GLOBAL ||
-		   (value->kind == PSS_COMP_VALUE_KIND_REG &&
-			value->regs[0].tmp == 0);
+	       value->kind == PSS_COMP_VALUE_KIND_GLOBAL ||
+	       (value->kind == PSS_COMP_VALUE_KIND_REG &&
+	        value->regs[0].tmp == 0);
 }
 
 /**

@@ -243,8 +243,8 @@ int sched_prof_flush(sched_prof_t* prof)
 static inline int _set_prop(const char* symbol, lang_prop_value_t value, const void* data)
 {
 	(void) data;
-	if(NULL == symbol || LANG_PROP_TYPE_ERROR == value.type || LANG_PROP_TYPE_NONE == value.type) 
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	if(NULL == symbol || LANG_PROP_TYPE_ERROR == value.type || LANG_PROP_TYPE_NONE == value.type)
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 	if(strcmp(symbol, "enabled") == 0)
 	{
 		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");

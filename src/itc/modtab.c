@@ -228,7 +228,7 @@ static inline lang_prop_value_t _get_module_property(const char* symbol, const v
 		.type = LANG_PROP_TYPE_ERROR
 	};
 
-	if(NULL == data || NULL == symbol) 
+	if(NULL == data || NULL == symbol)
 	{
 		LOG_ERROR("Invalid arguments");
 		return ret;
@@ -238,7 +238,7 @@ static inline lang_prop_value_t _get_module_property(const char* symbol, const v
 
 	if(symbol[0])
 	{
-		if(node->module->get_property == NULL) 
+		if(node->module->get_property == NULL)
 		{
 			ret.type = LANG_PROP_TYPE_NONE;
 			return ret;
@@ -249,18 +249,18 @@ static inline lang_prop_value_t _get_module_property(const char* symbol, const v
 		switch(value.type)
 		{
 			case ITC_MODULE_PROPERTY_TYPE_INT:
-				ret.type = LANG_PROP_TYPE_INTEGER;
-				ret.num  = value.num;
-				return ret;
+			    ret.type = LANG_PROP_TYPE_INTEGER;
+			    ret.num  = value.num;
+			    return ret;
 			case ITC_MODULE_PROPERTY_TYPE_STRING:
-				ret.type = LANG_PROP_TYPE_STRING;
-				ret.str  = value.str;
-				return ret;
+			    ret.type = LANG_PROP_TYPE_STRING;
+			    ret.str  = value.str;
+			    return ret;
 			case ITC_MODULE_PROPERTY_TYPE_NONE:
-				ret.type = LANG_PROP_TYPE_NONE;
-				return ret;
+			    ret.type = LANG_PROP_TYPE_NONE;
+			    return ret;
 			case ITC_MODULE_PROPERTY_TYPE_ERROR:
-				return ret;
+			    return ret;
 		}
 	}
 	else
@@ -282,8 +282,8 @@ static inline lang_prop_value_t _get_module_property(const char* symbol, const v
  **/
 static inline int _set_module_property(const char* symbol, lang_prop_value_t value, const void* data)
 {
-	if(NULL == data || NULL == symbol || LANG_PROP_TYPE_NONE == value.type || LANG_PROP_TYPE_ERROR == value.type) 
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	if(NULL == data || NULL == symbol || LANG_PROP_TYPE_NONE == value.type || LANG_PROP_TYPE_ERROR == value.type)
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	itc_modtab_instance_t* node  = (itc_modtab_instance_t*)data;
 
@@ -295,11 +295,11 @@ static inline int _set_module_property(const char* symbol, lang_prop_value_t val
 	{
 		case LANG_PROP_TYPE_INTEGER:
 		    prop.type = ITC_MODULE_PROPERTY_TYPE_INT;
-			prop.num  = value.num;
+		    prop.num  = value.num;
 		    break;
 		case LANG_PROP_TYPE_STRING:
 		    prop.type = ITC_MODULE_PROPERTY_TYPE_STRING;
-			prop.str = value.str;
+		    prop.str = value.str;
 		    break;
 		default:
 		    ERROR_RETURN_LOG(int, "Unsupported module property type");

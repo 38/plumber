@@ -90,7 +90,7 @@ static inline _stack_t* _stack_new(pss_vm_t* host, const pss_closure_t* closure,
 	int actual_size = parent == NULL ? 0 : (int)parent->argc;
 
 	if(NULL != parent) parent->argc = 0;
-	
+
 	if(NULL == (ret->frame = pss_closure_get_frame(closure)))
 	    ERROR_LOG_GOTO(ERR, "Cannot duplicate the environment frame");
 
@@ -291,7 +291,7 @@ static inline int _exec_load(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 			break;
 		}
 		case PSS_BYTECODE_RTYPE_UNDEF:
-			break;
+		    break;
 		default:
 		    vm->error = PSS_VM_ERROR_BYTECODE;
 		    return 0;
@@ -463,7 +463,7 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 		if(inst->opcode == PSS_BYTECODE_OPCODE_EQ)
 		    result.num = (lundef && rundef);
 		else if(inst->opcode == PSS_BYTECODE_OPCODE_NE)
-			result.num = !(lundef && rundef);
+		    result.num = !(lundef && rundef);
 		else
 		{
 			vm->error = PSS_VM_ERROR_TYPE;
@@ -484,8 +484,8 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 			    result.num = (left.num == right.num);
 			    break;
 			case PSS_BYTECODE_OPCODE_NE:
-				result.num = (left.num != right.num);
-				break;
+			    result.num = (left.num != right.num);
+			    break;
 			case PSS_BYTECODE_OPCODE_LT:
 			    result.num = (left.num < right.num);
 			    break;
@@ -493,11 +493,11 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 			    result.num = (left.num <= right.num);
 			    break;
 			case PSS_BYTECODE_OPCODE_GE:
-				result.num = (left.num >= right.num);
-				break;
+			    result.num = (left.num >= right.num);
+			    break;
 			case PSS_BYTECODE_OPCODE_GT:
-				result.num = (left.num > right.num);
-				break;
+			    result.num = (left.num > right.num);
+			    break;
 			default:
 			    vm->error = PSS_VM_ERROR_BYTECODE;
 			    return 0;
@@ -547,11 +547,11 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 				else if(inst->opcode == PSS_BYTECODE_OPCODE_EQ)
 				    result.num = (cmpres == 0);
 				else if(inst->opcode == PSS_BYTECODE_OPCODE_GE)
-					result.num = (cmpres >= 0);
+				    result.num = (cmpres >= 0);
 				else if(inst->opcode == PSS_BYTECODE_OPCODE_GT)
-					result.num = (cmpres > 0);
+				    result.num = (cmpres > 0);
 				else if(inst->opcode == PSS_BYTECODE_OPCODE_NE)
-					result.num = (cmpres != 0);
+				    result.num = (cmpres != 0);
 				break;
 			}
 			default:
@@ -698,13 +698,13 @@ static inline int _exec_builtin(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 		if(argv[i].kind == PSS_VALUE_KIND_ERROR)
 		    ERROR_RETURN_LOG(int, "Cannot get the value from the argument list");
 	}
-	
+
 
 	pss_value_t result = func.builtin(vm, argc, argv);
 	if(result.kind == PSS_VALUE_KIND_ERROR)
 	{
 		vm->error = (pss_vm_error_t)result.num;
-	    LOG_ERROR("The builtin function returns an error");
+		LOG_ERROR("The builtin function returns an error");
 		return 0;
 	}
 
@@ -858,8 +858,8 @@ static inline pss_bytecode_regid_t _exec(pss_vm_t* vm)
 			    retreg = inst.reg[0];
 			    break;
 			case PSS_BYTECODE_OP_ARG:
-				top->arg[top->argc ++] = inst.reg[0];
-				break;
+			    top->arg[top->argc ++] = inst.reg[0];
+			    break;
 			case PSS_BYTECODE_OP_DEBUGINFO:
 			    if(inst.info->rtype == PSS_BYTECODE_RTYPE_INT)
 			        top->line = (uint32_t)inst.num;
@@ -1084,10 +1084,10 @@ int pss_vm_add_builtin_func(pss_vm_t* vm, const char* name, pss_value_builtin_t 
 int pss_vm_set_global(pss_vm_t* vm, const char* var, pss_value_t val)
 {
 	if(NULL == vm || NULL == var || val.kind == PSS_VALUE_KIND_ERROR)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(ERROR_CODE(int) == pss_dict_set(vm->global, var, val))
-		ERROR_RETURN_LOG(int, "Cannot write to the global dictionary");
+	    ERROR_RETURN_LOG(int, "Cannot write to the global dictionary");
 
 	return 0;
 }

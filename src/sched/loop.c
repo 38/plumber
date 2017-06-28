@@ -469,8 +469,8 @@ int sched_loop_set_queue_size(uint32_t size)
 static inline int _set_prop(const char* symbol, lang_prop_value_t value, const void* data)
 {
 	(void) data;
-	if(NULL == symbol || LANG_PROP_TYPE_ERROR == value.type || LANG_PROP_TYPE_NONE == value.type) 
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	if(NULL == symbol || LANG_PROP_TYPE_ERROR == value.type || LANG_PROP_TYPE_NONE == value.type)
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 	if(strcmp(symbol, "nthreads") == 0)
 	{
 		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");

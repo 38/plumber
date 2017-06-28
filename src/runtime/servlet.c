@@ -100,10 +100,10 @@ static inline int _set_prop(const char* symbol, lang_prop_value_t val, const voi
 		runtime_servlet_clear_search_path();
 
 		const char* value = val.str;
-		
+
 		char buffer[PATH_MAX + 1];
 		size_t length = 0;
-		
+
 		for(;;value ++)
 		{
 			if(*value == ':' || *value == 0)
@@ -140,8 +140,8 @@ static inline lang_prop_value_t _get_prop(const char* symbol, const void* data)
 	lang_prop_value_t ret = {
 		.type = LANG_PROP_TYPE_ERROR
 	};
-	
-	if(NULL == symbol) 
+
+	if(NULL == symbol)
 	{
 		LOG_ERROR("Invalid arguments");
 		return ret;
@@ -154,7 +154,7 @@ static inline lang_prop_value_t _get_prop(const char* symbol, const void* data)
 		for(i = 0; i < vector_length(_search_paths); i ++)
 		{
 			const char* path = *VECTOR_GET_CONST(const char *, _search_paths, i);
-			if(NULL == path) 
+			if(NULL == path)
 			{
 				LOG_ERROR("Cannot get the search path");
 				return ret;

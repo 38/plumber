@@ -39,7 +39,7 @@ int64_t lang_service_add_node(lang_service_t* service, const char* init_args);
 
 /**
  * @brief Get the list of the port names
- * @param service The service 
+ * @param service The service
  * @param nid The node id
  * @return The array of strings for all the port, the caller should free the memory
  **/
@@ -80,5 +80,5 @@ int lang_service_set_output(lang_service_t* service, int64_t nid, const char* po
  * @return status code
  **/
 int lang_service_start(lang_service_t* service);
- 
+
 #endif

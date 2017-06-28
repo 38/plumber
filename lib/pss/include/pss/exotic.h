@@ -35,7 +35,7 @@ int pss_exotic_init();
 
 /**
  * @brief FInalize the type callbacks
- * @return status code 
+ * @return status code
  **/
 int pss_exotic_finalize();
 
