@@ -276,4 +276,26 @@ int lang_service_set_output(lang_service_t* service, int64_t nid, const char* po
 	return _set_service_input_or_output(service, nid, port, 0);
 }
 
-int lang_service_start(lang_service_t* service);
+int lang_service_start(lang_service_t* service)
+{
+	if(NULL == service) 
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(service->is_buffer)
+	{
+		sched_service_t* service_obj = sched_service_from_buffer(service->buffer);
+		if(NULL == service_obj)
+			ERROR_RETURN_LOG(int, "Cannot build the service object from the service buffer");
+
+		if(ERROR_CODE(int) == sched_service_buffer_free(service->buffer))
+			LOG_WARNING("Cannot dispose the used service buffer");
+
+		service->is_buffer = 0;
+		service->object = service_obj;
+	}
+
+	if(ERROR_CODE(int) == sched_loop_start(service->object))
+		ERROR_RETURN_LOG(int, "Cannot start the service");
+
+	return 0;
+}

@@ -507,6 +507,37 @@ static pss_value_t _pscript_builtin_service_output(pss_vm_t* vm, uint32_t argc, 
 	return _set_input_or_output(argc, argv, 0);
 }
 
+static pss_value_t _pscript_builtin_service_start(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
+{
+	(void)vm;
+	pss_value_t ret = {
+		.kind = PSS_VALUE_KIND_ERROR,
+		.num  = PSS_VM_ERROR_ARGUMENT
+	};
+
+	if(argc != 1) 
+		return ret;
+
+	if(argv[0].kind != PSS_VALUE_KIND_REF)
+		return ret;
+
+	if(pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_EXOTIC)
+		return ret;
+	
+	pss_exotic_t* obj = (pss_exotic_t*)pss_value_get_data(argv[0]);
+	lang_service_t* serv = (lang_service_t*)pss_exotic_get_data(obj, LANG_SERVICE_TYPE_MAGIC);
+
+	if(ERROR_CODE(int) == lang_service_start(serv))
+	{
+		ret.num = PSS_VM_ERROR_INTERNAL;
+		return ret;
+	}
+
+	ret.kind = PSS_VALUE_KIND_UNDEF;
+
+	return ret;
+}
+
 static pss_value_t _pscript_builtin_typeof(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
 	(void)vm;
@@ -755,6 +786,9 @@ int builtin_init(pss_vm_t* vm)
 
 	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "split", _pscript_builtin_split))
 		ERROR_RETURN_LOG(int, "Cannot register builtin function split");
+
+	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "__service_start", _pscript_builtin_service_start))
+		ERROR_RETURN_LOG(int, "Cannot register builtin function __service_start");
 
 	return 0;
 }
