@@ -28,7 +28,6 @@
 pss_vm_t*     current_vm = NULL;
 char const* * module_paths = NULL;
 char const* * servlet_dirs = NULL;
-char const*   rc_file = PSCRIPT_DEFAULT_RC_FILE;
 uint32_t      max_regs = 65536;
 uint32_t      compile_only = 0;
 uint32_t      disassemble = 0;
@@ -53,8 +52,6 @@ void display_help()
 	_MESSAGE("  -d  --disassemble   Disassemble the given module");
 	_MESSAGE("  -S  --servlet-dir   Set the servlet search directory");
 	_MESSAGE("  -L  --log-level     Set the log level");
-	_MESSAGE("  -N  --no-rc-file    Do not run any RC file");
-	_MESSAGE("  -r  --rc-file       Run the RC file before the script gets executed");
 	_MESSAGE("  -v  --version       Show version information");
 }
 
@@ -129,12 +126,6 @@ int parse_args(int argc, char** argv)
 			    break;
 			case 'S':
 			    servlet_dirs[servlet_count++] = optarg;
-			    break;
-			case 'N':
-			    rc_file = NULL;
-			    break;
-			case 'r':
-			    rc_file = optarg;
 			    break;
 			case 'B':
 				build_mod = 1;

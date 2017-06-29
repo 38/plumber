@@ -112,9 +112,6 @@
 /** @brief the initial thread capacity for the profiler */
 #	define SCHED_PROF_INIT_THREAD_CAPACITY @SCHED_PROF_INIT_THREAD_CAPACITY@
 
-/** @brief the default RC file path for the PSS interpreter */
-#   define PSCRIPT_DEFAULT_RC_FILE @PSCRIPT_DEFAULT_RC_FILE@
-
 /** @brief The default pscript module search path */
 #	define PSCRIPT_GLOBAL_MODULE_PATH @PSCRIPT_GLOBAL_MODULE_PATH@
 

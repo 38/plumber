@@ -76,7 +76,6 @@ constant(LANG_VM_ENV_POOL_INIT_SIZE 4096)
 constant(LANG_VM_PARAM_INIT_SIZE 32)
 constant(LANG_PROP_CALLBACK_VEC_INIT_SIZE 32)
 
-constant(PSCRIPT_DEFAULT_RC_FILE "\"${CMAKE_INSTALL_PREFIX}/etc/plumber.rc\"")
 constant(PSCRIPT_GLOBAL_MODULE_PATH "\"${CMAKE_INSTALL_PREFIX}/lib/plumber/pss\"")
 
 ##LibProto Configurations

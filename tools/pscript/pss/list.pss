@@ -4,7 +4,7 @@
 
 List.empty = function() 
 {
-	return dict();
+	return {};
 }
 
 List.range = function(from, to) 
@@ -116,7 +116,9 @@ List.sort = function(list)
 		{
 			comp = function(x, y) 
 			{
-				return x - y;
+				if(x < y) return -1;
+				if(x > y) return 1;
+				return 0;
 			}
 		}
 		return __qsort(list, comp, __qsort);
