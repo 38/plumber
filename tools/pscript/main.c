@@ -215,7 +215,7 @@ static void _print_bt(pss_vm_backtrace_t* bt)
 
 int run_user_script(const char* name, int argc, char** argv)
 {
-	pss_bytecode_module_t* module = module_from_file(name, !compile_only, 1, compiled_output);
+	pss_bytecode_module_t* module = module_from_file(name, !compile_only, 1, (int)debug, compiled_output);
 
 	if(NULL == module)
 	{
@@ -330,7 +330,7 @@ int compile_dir(const char* path)
 		{
 			_MESSAGE("PScript: Compiling module file %s", dirents[i]->d_name);
 
-			pss_bytecode_module_t* module = module_from_file(pathbuf, 0, 1, NULL);
+			pss_bytecode_module_t* module = module_from_file(pathbuf, 0, 1, (int)debug, NULL);
 
 			if(NULL == module) 
 				ERROR_LOG_GOTO(ERR, "Cannot compile module file %s", dirents[i]->d_name);

@@ -21,7 +21,7 @@ int module_set_search_path(char const* const* paths);
  * @param dump_compiled Indicates if we want to dump the compiled bytecode to the psm file
  * @return status code
  **/
-pss_bytecode_module_t* module_from_file(const char* name, int load_compiled, int dump_compiled, const char* compiled_output);
+pss_bytecode_module_t* module_from_file(const char* name, int load_compiled, int dump_compiled, int debug, const char* compiled_output);
 
 /**
  * @brief Load a module from the given buffer

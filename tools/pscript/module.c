@@ -46,7 +46,7 @@ time_t _get_file_ts(const char* path, off_t* size)
 	return st.st_ctime;
 }
 
-int _try_load_module(const char* source_path, const char* compiled_path, int load_compiled, int dump_compiled, pss_bytecode_module_t** ret)
+int _try_load_module(const char* source_path, const char* compiled_path, int load_compiled, int dump_compiled, int debug, pss_bytecode_module_t** ret)
 {
 	off_t source_sz = 0;
 	time_t source_ts   = source_path == NULL ? ERROR_CODE(time_t) : _get_file_ts(source_path, &source_sz);
@@ -89,7 +89,7 @@ int _try_load_module(const char* source_path, const char* compiled_path, int loa
 		pss_comp_option_t opt = {
 			.lexer = lexer,
 			.module = module,
-			.debug = 1
+			.debug = (debug != 0)
 		};
 
 		if(ERROR_CODE(int) == pss_comp_compile(&opt, &err))
@@ -143,7 +143,7 @@ static inline int _is_previously_loaded(const char* source_path)
 	return (ptr != NULL);
 }
 
-pss_bytecode_module_t* module_from_file(const char* name, int load_compiled, int dump_compiled, const char* compiled_output)
+pss_bytecode_module_t* module_from_file(const char* name, int load_compiled, int dump_compiled, int debug, const char* compiled_output)
 {
 	if(NULL == name) ERROR_PTR_RETURN_LOG("Invalid arguments");
 
@@ -164,7 +164,7 @@ pss_bytecode_module_t* module_from_file(const char* name, int load_compiled, int
 			snprintf(source_path, sizeof(source_path), "%s/%s", _search_path[i], name);
 
 			_compute_hash(source_path, hash);
-			int rc = _try_load_module(source_path, NULL, 0, 0, &ret);
+			int rc = _try_load_module(source_path, NULL, 0, 0, debug, &ret);
 			if(ERROR_CODE(int) == rc) ERROR_PTR_RETURN_LOG("Cannot load module");
 
 			if(rc == 1) goto FOUND;
@@ -180,7 +180,7 @@ pss_bytecode_module_t* module_from_file(const char* name, int load_compiled, int
 		    snprintf(compiled_path, sizeof(compiled_path), "%s", compiled_output);
 
 		_compute_hash(source_path, hash);
-		int rc = _try_load_module(source_path, compiled_path, load_compiled, dump_compiled, &ret);
+		int rc = _try_load_module(source_path, compiled_path, load_compiled, dump_compiled, debug, &ret);
 		if(ERROR_CODE(int) == rc) ERROR_PTR_RETURN_LOG("Cannot load module");
 
 		if(rc == 1) goto FOUND;

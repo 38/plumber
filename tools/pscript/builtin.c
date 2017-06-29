@@ -119,7 +119,9 @@ static pss_value_t _pscript_builtin_import(pss_vm_t* vm, uint32_t argc, pss_valu
 
 		if(module_is_loaded(name)) continue;
 
-		pss_bytecode_module_t* module = module_from_file(name, 1, 1, NULL);
+		extern uint32_t debug;
+
+		pss_bytecode_module_t* module = module_from_file(name, 1, 1, (int)debug, NULL);
 		if(NULL == module)
 		{
 			LOG_ERROR("Module error: Cannot load the required module named %s", name);
