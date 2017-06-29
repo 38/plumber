@@ -42,7 +42,7 @@ const char*   compiled_output = NULL;
 void display_help()
 {
 	_MESSAGE("PScript: The Plumber Service Script Interpreter");
-	_MESSAGE("Usage: pscript [options] service_script_file");
+	_MESSAGE("Usage: pscript [options] service_script_file [arguments-to-script]");
 	_MESSAGE("  -h  --help          Show this help information");
 	_MESSAGE("  -M  --module-path   Set the module search path");
 	_MESSAGE("  -B  --build-mod     Build all the modules under module search path");
