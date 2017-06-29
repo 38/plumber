@@ -9,6 +9,8 @@
 #include <error.h>
 #include <signal.h>
 #include <getopt.h>
+#include <dirent.h>
+
 #include <constants.h>
 #include <utils/string.h>
 #include <unistd.h>
@@ -31,6 +33,9 @@ uint32_t      max_regs = 65536;
 uint32_t      compile_only = 0;
 uint32_t      disassemble = 0;
 uint32_t      do_not_compile = 0;
+uint32_t      build_mod = 0;
+uint32_t      debug = 1;
+int           log_level = 4;
 const char*   compiled_output = NULL;
 
 
@@ -41,10 +46,13 @@ void display_help()
 	_MESSAGE("Usage: pscript [options] service_script_file");
 	_MESSAGE("  -h  --help          Show this help information");
 	_MESSAGE("  -M  --module-path   Set the module search path");
+	_MESSAGE("  -B  --build-mod     Build all the modules under module search path");
+	_MESSAGE("  -n  --no-debug-info Do not emit any debug info during compilation");
 	_MESSAGE("  -c  --compile       The compile only mode");
 	_MESSAGE("  -o  --output        The bytecode output directory");
 	_MESSAGE("  -d  --disassemble   Disassemble the given module");
 	_MESSAGE("  -S  --servlet-dir   Set the servlet search directory");
+	_MESSAGE("  -L  --log-level     Set the log level");
 	_MESSAGE("  -N  --no-rc-file    Do not run any RC file");
 	_MESSAGE("  -r  --rc-file       Run the RC file before the script gets executed");
 	_MESSAGE("  -v  --version       Show version information");
@@ -76,6 +84,9 @@ int parse_args(int argc, char** argv)
 		{"servlet-dir", required_argument,  0,  'S'},
 		{"no-rc-file",  no_argument,        0,  'N'},
 		{"rc-file",     required_argument,  0,  'r'},
+		{"build-mod",   no_argument,        0,  'B'},
+		{"no-debug-info", no_argument,      0,  'n'},
+		{"log-level",   required_argument,  0,  'L'},
 		{"version",     no_argument,        0,  'v'},
 		{NULL,          0,                  0,   0}
 	};
@@ -89,7 +100,7 @@ int parse_args(int argc, char** argv)
 	module_paths[1] = "/";
 
 	int opt_idx, c;
-	for(;(c = getopt_long(argc, argv, "hvNM:S:r:co:d", _options, &opt_idx)) >= 0;)
+	for(;(c = getopt_long(argc, argv, "hvNM:S:r:co:dBnL:", _options, &opt_idx)) >= 0;)
 	{
 		switch(c)
 		{
@@ -125,6 +136,15 @@ int parse_args(int argc, char** argv)
 			case 'r':
 			    rc_file = optarg;
 			    break;
+			case 'B':
+				build_mod = 1;
+				break;
+			case 'n':
+				debug = 0;
+				break;
+			case 'L':
+				log_level = atoi(optarg);
+				break;
 			default:
 			    display_help();
 			    properly_exit(1);
@@ -193,66 +213,13 @@ static void _print_bt(pss_vm_backtrace_t* bt)
 	LOG_ERROR("\tfunc: %s, line: %u", bt->func, bt->line);
 }
 
-#ifndef STACK_SIZE
-int main(int argc, char** argv)
-#else
-int _program(int argc, char** argv);
-
-int main(int argc, char** argv)
+int run_user_script(const char* name, int argc, char** argv)
 {
-	return thread_start_with_aligned_stack(_program, argc, argv);
-}
-
-int _program(int argc, char** argv)
-#endif
-{
-	signal(SIGPIPE, SIG_IGN);
-
-#ifdef GPROFTOOLS
-	ProfilerStart("result.prof");
-#endif
-
-	int begin = parse_args(argc, argv);
-	int i;
-
-	if(argc - begin < 1)
-	{
-		_MESSAGE("Missing script file name");
-		display_help();
-		properly_exit(1);
-	}
-
-	if(plumber_init() == ERROR_CODE(int))
-	{
-		LOG_FATAL("Cannot initialize libplumber");
-		properly_exit(1);
-	}
-
-	if(pss_init() == ERROR_CODE(int) || pss_log_set_write_callback(log_write_va) == ERROR_CODE(int))
-	{
-		LOG_FATAL("Cannot initialize libpss");
-		properly_exit(1);
-	}
-
-
-	if(runtime_servlet_append_search_path(".") == ERROR_CODE(int))
-	    LOG_WARNING("Cannot add default sevlet search path");
-
-	for(i = 0; servlet_dirs != NULL && servlet_dirs[i] != NULL; i ++)
-	    if(runtime_servlet_append_search_path(servlet_dirs[i]) == ERROR_CODE(int))
-	        LOG_WARNING("Cannot append servlet search path to servlet search list");
-
-	if(runtime_servlet_append_search_path(RUNTIME_SERVLET_DEFAULT_SEARCH_PATH) == ERROR_CODE(int))
-	    LOG_WARNING("Cannot append servlet search path to servlet search list");
-
-	if(module_set_search_path(module_paths) == ERROR_CODE(int))
-	    LOG_WARNING("Cannot set the PSS module search path");
-
-	pss_bytecode_module_t* module = module_from_file(argv[begin], !compile_only, 1, compiled_output);
+	pss_bytecode_module_t* module = module_from_file(name, !compile_only, 1, compiled_output);
 
 	if(NULL == module)
 	{
-		LOG_FATAL("Cannot load module %s", argv[begin]);
+		LOG_FATAL("Cannot load module %s", name);
 		properly_exit(1);
 	}
 
@@ -271,7 +238,7 @@ int _program(int argc, char** argv)
 			properly_exit(1);
 		}
 
-		pss_value_t argv_obj = make_argv(argc - begin, argv + begin);
+		pss_value_t argv_obj = make_argv(argc, argv);
 		if(argv_obj.kind == PSS_VALUE_KIND_ERROR)
 		{
 			pss_vm_free(current_vm);
@@ -317,6 +284,154 @@ int _program(int argc, char** argv)
 
 	if(ERROR_CODE(int) == module_unload_all())
 	    LOG_WARNING("Cannot dipsose the module");
+
+	return rc;
+}
+
+int file_filter(const struct dirent* ent)
+{
+	if(ent->d_name[0] == '.') return 0;
+	if(ent->d_type == DT_DIR) return 1;
+	size_t len = strlen(ent->d_name);
+	return strcmp(ent->d_name + len - 4, ".pss") == 0;
+}
+
+int compile_dir(const char* path)
+{
+	int rc = 0;
+	int num_dirent;
+	struct dirent** dirents = NULL;
+
+	num_dirent = scandir(path, &dirents, file_filter, alphasort);
+
+	if(num_dirent < 0) 
+	{
+		LOG_WARNING("Cannot scan the directory %s", path);
+		return 0;
+	}
+
+	char pathbuf[PATH_MAX + 1];
+
+	int i;
+	_MESSAGE("PScript: Entering directory %s", path);
+	for(i = 0; i < num_dirent; i ++)
+	{
+		if(snprintf(pathbuf, sizeof(pathbuf), "%s/%s", path, dirents[i]->d_name) > (int)sizeof(pathbuf))
+		{
+			LOG_WARNING("Discarded extra long dir name %s", pathbuf);
+			continue;
+		}
+		if(dirents[i]->d_type == DT_DIR)
+		{
+			if(ERROR_CODE(int) == compile_dir(pathbuf))
+				ERROR_LOG_GOTO(ERR, "Cannot compile directory %s", pathbuf);
+		}
+		else
+		{
+			_MESSAGE("PScript: Compiling module file %s", dirents[i]->d_name);
+
+			pss_bytecode_module_t* module = module_from_file(pathbuf, 0, 1, NULL);
+
+			if(NULL == module) 
+				ERROR_LOG_GOTO(ERR, "Cannot compile module file %s", dirents[i]->d_name);
+		}
+	}
+	goto EXIT;
+ERR:
+	rc = ERROR_CODE(int);
+EXIT:
+	_MESSAGE("PScript: Leaving directory %s", path);
+	if(dirents != NULL)
+	{
+		for(i = 0; i < num_dirent; i ++) free(dirents[i]);
+		free(dirents);
+	}
+	return rc;
+}
+
+int build_system_module()
+{
+	uint32_t i;
+	for(i = 0; module_paths[i]; i ++)
+		if(strcmp(module_paths[i], ".") && strcmp(module_paths[i], "/"))
+			if(ERROR_CODE(int) == compile_dir(module_paths[i]))
+			{
+				_MESSAGE("Cannot compile module directory %s", module_paths[i]);
+				module_unload_all();
+				plumber_finalize();
+				properly_exit(1);
+			}
+	return module_unload_all();
+}
+
+void pscript_write_log(int level, const char* file, const char* function, int line, const char* fmt, va_list ap)
+{
+	if(level <= log_level) 
+		log_write_va(level, file, function, line, fmt, ap);
+}
+
+#ifndef STACK_SIZE
+int main(int argc, char** argv)
+#else
+int _program(int argc, char** argv);
+
+int main(int argc, char** argv)
+{
+	return thread_start_with_aligned_stack(_program, argc, argv);
+}
+
+int _program(int argc, char** argv)
+#endif
+{
+	signal(SIGPIPE, SIG_IGN);
+
+#ifdef GPROFTOOLS
+	ProfilerStart("result.prof");
+#endif
+
+	int begin = parse_args(argc, argv);
+	int i;
+
+	if((build_mod && argc - begin > 0) || 
+	   (!build_mod && argc - begin < 1))
+	{
+		_MESSAGE("Wrong number of script file argument");
+		display_help();
+		properly_exit(1);
+	}
+
+	if(plumber_init() == ERROR_CODE(int))
+	{
+		LOG_FATAL("Cannot initialize libplumber");
+		properly_exit(1);
+	}
+
+	if(pss_init() == ERROR_CODE(int) || pss_log_set_write_callback(pscript_write_log) == ERROR_CODE(int))
+	{
+		LOG_FATAL("Cannot initialize libpss");
+		properly_exit(1);
+	}
+
+
+	if(runtime_servlet_append_search_path(".") == ERROR_CODE(int))
+	    LOG_WARNING("Cannot add default sevlet search path");
+
+	for(i = 0; servlet_dirs != NULL && servlet_dirs[i] != NULL; i ++)
+	    if(runtime_servlet_append_search_path(servlet_dirs[i]) == ERROR_CODE(int))
+	        LOG_WARNING("Cannot append servlet search path to servlet search list");
+
+	if(runtime_servlet_append_search_path(RUNTIME_SERVLET_DEFAULT_SEARCH_PATH) == ERROR_CODE(int))
+	    LOG_WARNING("Cannot append servlet search path to servlet search list");
+
+	if(module_set_search_path(module_paths) == ERROR_CODE(int))
+	    LOG_WARNING("Cannot set the PSS module search path");
+
+	int rc = 0;	
+	if(build_mod)
+		rc = build_system_module();
+	else 
+		rc = run_user_script(argv[begin], argc - begin, argv + begin);
+
 
 
 	if(pss_finalize() == ERROR_CODE(int))
