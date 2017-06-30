@@ -2,12 +2,12 @@
  * Copyright (C) 2017, Hao Hou
  **/
 
-List.empty = function() 
+List.empty = function List.empty() 
 {
 	return {};
 }
 
-List.range = function(from, to) 
+List.range = function List.range(from, to) 
 {
 	var ret = List.empty()
 	for(var i = 0; from < to; from ++)
@@ -15,14 +15,14 @@ List.range = function(from, to)
 	return ret;
 }
 
-List.append = function(list, item)
+List.append = function List.append(list, item)
 {
 	var length = len(list);
 	list[length] = item;
 	return list;
 }
 
-List.slice = function(list, left, right)
+List.slice = function List.slice(list, left, right)
 {
 	var ret = List.empty();
 	for(var i = left; i < right; i ++)
@@ -30,7 +30,7 @@ List.slice = function(list, left, right)
 	return ret;
 }
 
-List.map = function(func, list) 
+List.map = function List.map(func, list) 
 {
 	var ret = List.empty();
 	var length = len(list);
@@ -39,7 +39,7 @@ List.map = function(func, list)
 	return ret;
 }
 
-List.reduce = function(func, list)
+List.reduce = function List.reduce(func, list)
 {
 	var ret = undefined;
 	var length = len(list);
@@ -52,7 +52,7 @@ List.reduce = function(func, list)
 	return ret;
 }
 
-List.filter = function(f, l) 
+List.filter = function List.filter(f, l) 
 {
 	var length = len(l);
 	var i = 0, j = 0;
@@ -63,7 +63,7 @@ List.filter = function(f, l)
 	return ret;
 }
 
-List.print = function(list)
+List.print = function List.print(list)
 {
 	var buf = "[";
 	var length = len(list);
@@ -75,7 +75,7 @@ List.print = function(list)
 	print(buf, "]")
 }
 
-List.concat = function(left, right)
+List.concat = function List.concat(left, right)
 {
 	var ret = List.empty();
 	var ll = len(left);
@@ -89,7 +89,7 @@ List.concat = function(left, right)
 
 List.sort = function(list) 
 {
-	var __qsort = function(list, comp, qsort)
+	var __qsort = function __sort(list, comp, qsort)
 	{
 		if(len(list) < 2) return list;
 		var p = list[0];
@@ -110,7 +110,7 @@ List.sort = function(list)
 		}
 		return List.concat(List.concat(qsort(left, comp, qsort), equal), qsort(right, comp, qsort));
 	}
-	return function(list, comp) 
+	return function List.sort(list, comp) 
 	{
 		if(comp == undefined)
 		{
@@ -125,7 +125,7 @@ List.sort = function(list)
 	}
 }();
 
-List.zip = function(a, b)
+List.zip = function List.zip(a, b)
 {
 	var la = len(a);
 	var lb = len(b);

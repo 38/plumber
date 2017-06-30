@@ -8,6 +8,8 @@ CaseBegin
               <5>
               <1>
 			  <8>
+			  <3>
+			  <6>
 CaseEnd
 */
 a = 0
@@ -26,3 +28,8 @@ a += a
 a += a
 a += a
 print(a)
+var i = 3;
+var j = i;
+j += i;
+print(i);
+print(j);

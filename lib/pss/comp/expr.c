@@ -153,13 +153,16 @@ int pss_comp_expr_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 				if(ERROR_CODE(pss_bytecode_addr_t) == pss_bytecode_segment_append_code(seg, opcode,
 				            PSS_BYTECODE_ARG_REGISTER(lval),
 				            PSS_BYTECODE_ARG_REGISTER(vs[sp].regs[0].id),
-				            PSS_BYTECODE_ARG_REGISTER(vs[sp].regs[0].id),
+				            PSS_BYTECODE_ARG_REGISTER(lval),
 				            PSS_BYTECODE_ARG_END))
 				    PSS_COMP_RAISE_INT(comp, CODE);
 
-				if(ERROR_CODE(int) == pss_comp_rmtmp(comp, lval))
-				    ERROR_RETURN_LOG(int, "Cannot release the tmp regsiter");
+				if(ERROR_CODE(int) == pss_comp_value_release(comp, vs + sp))
+					ERROR_RETURN_LOG(int, "Cannot release the R-Value");
 
+				vs[sp].regs[0].id = lval;
+				vs[sp].regs[0].tmp = 1;
+				vs[sp].kind = PSS_COMP_VALUE_KIND_REG;
 				ts[sp - 1] = PSS_COMP_LEX_TOKEN_EQUAL;
 			}
 			if(ts[sp - 1] == PSS_COMP_LEX_TOKEN_EQUAL)

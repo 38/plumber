@@ -1,0 +1,21 @@
+/*
+CaseBegin
+    Name: primesum
+    Expected: <76127>
+CaseEnd
+*/
+var N = 1000;
+flag = {};
+for(var i = 2; i < N; i ++)
+	flag[i] = 1;
+
+for(var i = 2; i * i < N ; i ++)
+	if(flag[i] == 1) for(var j = i + i; j < N; j += i)
+		flag[j] = 0;
+
+var sum = 0;
+for(var i = 2; i < N; i ++)
+	if(flag[i] == 1) sum += i;
+
+print(sum);
+
