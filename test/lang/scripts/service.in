@@ -1,0 +1,127 @@
+/*
+CaseBegin
+	Name: service_literal
+	Expected: </@PathParser/__error__	ErrorCombiner@in0>
+		      </@RequestParser/__error__	ErrorCombiner@in1>
+		      </@RequestParser/error	ResponseGenerator@400>
+		      </@RequestParser/path	PathParser@origin>
+		      </@input@	RequestParser@request>
+		      </@input@testinput	ErrorCombiner@in4>
+		      </@output@	ResponseGenerator@output>
+		      </@output@testoutput	ErrorCombiner@__error__>
+		      </ErrorCombiner	dataflow/firstnonempty 4>
+		      </FileReader	filesystem/readfile>
+		      </MIMEGuesser	filesystem/mimetype>
+		      </PathParser	filesystem/parsepath --ext-name>
+		      </RequestParser	getpath>
+		      </ResponseGenerator	 response>
+CaseEnd
+*/
+//define the file server
+fileserver = {
+	RequestParser      := "getpath";
+	PathParser         := "filesystem/parsepath --ext-name";
+	MIMEGuesser        := "filesystem/mimetype";
+	FileReader         := "filesystem/readfile";
+	ResponseGenerator  := " response";
+
+	/* Setup normal logic */
+	() -> "request" RequestParser "path" -> "origin" PathParser {
+		"extname" ->  "extname" MIMEGuesser "mimetype" -> "mime";
+		"relative" -> "path" FileReader "result" -> "file"
+	} ResponseGenerator "output" -> ();
+
+
+	ErrorCombiner      := "dataflow/firstnonempty 4";
+	/* What if we got an invalid request */
+	RequestParser "error" -> "400" ResponseGenerator;
+
+	/* What if we got an invalid path */
+	PathParser "__null__" -> "403" ResponseGenerator;
+
+	/* Let's handle the unexpected service error */
+	{
+		PathParser    "__error__" -> "in0";
+		RequestParser "__error__" -> "in1";
+		MIMEGuesser   "__error__" -> "in2";
+		FileReader    "__error__" -> "in3";
+	} ErrorCombiner "out" -> "500" ResponseGenerator;
+
+	(testinput) -> "in4" ErrorCombiner "__error__" -> (testoutput);
+};
+
+
+
+var qsort = function()
+{
+	var filter = function(f, l) 
+	{
+		var length = len(l);
+		var i = 0, j = 0;
+		var ret = dict();
+
+		for(var i = 0, j = 0; i < length; i ++)
+			if(f(l[i]))
+				ret[j++] = l[i];
+		return ret;
+	}
+
+	var concat = function(left, right)
+	{
+		var ret = dict();
+		var ll = len(left);
+		var rl = len(right);
+		var i = 0;
+		for(i = 0; i < ll; i ++)
+			ret[i] = left[i];
+		for(;i - ll < rl; i ++)
+			ret[i] = right[i - ll];
+		return ret;
+	}
+
+	var qsort_impl = function(list, comp, qsort)
+	{
+		if(len(list) < 2) return list;
+		var p = list[0];
+		var left = filter(function(x) { return comp(x,p) < 0; }, list);
+		var equal = filter(function(x) { return comp(x,p) == 0;}, list);
+		var right = filter(function(x) { return comp(x,p) > 0; }, list);
+		return concat(concat(qsort(left, comp, qsort), equal), qsort(right, comp, qsort));
+	}
+
+	return function(list, comp) {
+		return qsort_impl(list, comp, qsort_impl);
+	}
+}();
+
+to_array = function to_array(obj)
+{
+	var __impl__ = function __impl__(obj, buf, start, prefix, to_array) 
+	 {
+		for(var key in obj)
+		{
+			var fkey = prefix + "/" + key;
+			var val = obj[key];
+			if(val == undefined) continue;
+			if(typeof(val) == "dict") 
+				to_array(obj[key], buf, start, fkey, to_array);
+			else buf[start++] = { key: fkey, val: val };
+		}
+	 }
+	return function (obj) 
+	{
+		var ret = {};
+		__impl__(obj, ret, 0, "", __impl__);
+		return ret;
+	}
+}();
+
+var content = qsort(to_array(fileserver), function(x, y) {
+	if(x["key"] > y["key"]) return 1;
+	if(x["key"] < y["key"]) return -1;
+	return 0;
+});
+
+var cl = len(content);
+for(var i = 0; i < cl; i ++)
+	print(content[i]["key"], "\t", content[i]["val"]);
