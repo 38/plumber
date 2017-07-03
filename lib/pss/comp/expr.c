@@ -158,7 +158,7 @@ int pss_comp_expr_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 				    PSS_COMP_RAISE_INT(comp, CODE);
 
 				if(ERROR_CODE(int) == pss_comp_value_release(comp, vs + sp))
-					ERROR_RETURN_LOG(int, "Cannot release the R-Value");
+				    ERROR_RETURN_LOG(int, "Cannot release the R-Value");
 
 				vs[sp].regs[0].id = lval;
 				vs[sp].regs[0].tmp = 1;

@@ -128,14 +128,14 @@ int parse_args(int argc, char** argv)
 			    servlet_dirs[servlet_count++] = optarg;
 			    break;
 			case 'B':
-				build_mod = 1;
-				break;
+			    build_mod = 1;
+			    break;
 			case 'n':
-				debug = 0;
-				break;
+			    debug = 0;
+			    break;
 			case 'L':
-				log_level = atoi(optarg);
-				break;
+			    log_level = atoi(optarg);
+			    break;
 			default:
 			    display_help();
 			    properly_exit(1);
@@ -295,7 +295,7 @@ int compile_dir(const char* path)
 
 	num_dirent = scandir(path, &dirents, file_filter, alphasort);
 
-	if(num_dirent < 0) 
+	if(num_dirent < 0)
 	{
 		LOG_WARNING("Cannot scan the directory %s", path);
 		return 0;
@@ -315,7 +315,7 @@ int compile_dir(const char* path)
 		if(dirents[i]->d_type == DT_DIR)
 		{
 			if(ERROR_CODE(int) == compile_dir(pathbuf))
-				ERROR_LOG_GOTO(ERR, "Cannot compile directory %s", pathbuf);
+			    ERROR_LOG_GOTO(ERR, "Cannot compile directory %s", pathbuf);
 		}
 		else
 		{
@@ -323,8 +323,8 @@ int compile_dir(const char* path)
 
 			pss_bytecode_module_t* module = module_from_file(pathbuf, 0, 1, (int)debug, NULL);
 
-			if(NULL == module) 
-				ERROR_LOG_GOTO(ERR, "Cannot compile module file %s", dirents[i]->d_name);
+			if(NULL == module)
+			    ERROR_LOG_GOTO(ERR, "Cannot compile module file %s", dirents[i]->d_name);
 		}
 	}
 	goto EXIT;
@@ -344,21 +344,21 @@ int build_system_module()
 {
 	uint32_t i;
 	for(i = 0; module_paths[i]; i ++)
-		if(strcmp(module_paths[i], ".") && strcmp(module_paths[i], "/"))
-			if(ERROR_CODE(int) == compile_dir(module_paths[i]))
-			{
-				_MESSAGE("Cannot compile module directory %s", module_paths[i]);
-				module_unload_all();
-				plumber_finalize();
-				properly_exit(1);
-			}
+	    if(strcmp(module_paths[i], ".") && strcmp(module_paths[i], "/"))
+	        if(ERROR_CODE(int) == compile_dir(module_paths[i]))
+	        {
+		        _MESSAGE("Cannot compile module directory %s", module_paths[i]);
+		        module_unload_all();
+		        plumber_finalize();
+		        properly_exit(1);
+	        }
 	return module_unload_all();
 }
 
 void pscript_write_log(int level, const char* file, const char* function, int line, const char* fmt, va_list ap)
 {
-	if(level <= log_level) 
-		log_write_va(level, file, function, line, fmt, ap);
+	if(level <= log_level)
+	    log_write_va(level, file, function, line, fmt, ap);
 }
 
 #ifndef STACK_SIZE
@@ -383,7 +383,7 @@ int _program(int argc, char** argv)
 	int begin = parse_args(argc, argv);
 	int i;
 
-	if((build_mod && argc - begin > 0) || 
+	if((build_mod && argc - begin > 0) ||
 	   (!build_mod && argc - begin < 1))
 	{
 		_MESSAGE("Wrong number of script file argument");
@@ -417,11 +417,11 @@ int _program(int argc, char** argv)
 	if(module_set_search_path(module_paths) == ERROR_CODE(int))
 	    LOG_WARNING("Cannot set the PSS module search path");
 
-	int rc = 0;	
+	int rc = 0;
 	if(build_mod)
-		rc = build_system_module();
-	else 
-		rc = run_user_script(argv[begin], argc - begin, argv + begin);
+	    rc = build_system_module();
+	else
+	    rc = run_user_script(argv[begin], argc - begin, argv + begin);
 
 
 
