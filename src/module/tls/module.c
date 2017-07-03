@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <pthread.h>
+#include <string.h>
 
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
@@ -31,6 +32,29 @@
 #include <module/tls/bio.h>
 #include <module/tls/api.h>
 #include <module/tls/dra.h>
+
+/**
+ * @brief The supported ALPN protocol names, it should be the NULL terminated strings
+ **/
+static const char* _supported_alpn_protos[] = {
+	"h2",       /*!< The HTTP/2 protocol */
+	"http/1.1", /*!< The HTTP/1.1 Protocol */
+	"spdy/1",   /*!< The SPDY/1 Protocol */
+	"spdy/2",   /*!< The SPDY/2 Protocol */
+	"spdy/3"    /*!< The SPDY/3 Protocol */
+};
+
+typedef struct {
+	uint8_t  begin[0];/*!< Where the actual data section begins */
+	uint8_t  length;  /*!< The length of the protocl */
+	uint8_t  name[0]; /*!< The name of the protocol */
+} __attribute__((packed)) _alpn_protocol_t;
+STATIC_ASSERTION_FOLLOWS(_alpn_protocol_t, begin, length);
+STATIC_ASSERTION_SIZE(_alpn_protocol_t, begin, 0);
+STATIC_ASSERTION_SIZE(_alpn_protocol_t, length, 1);
+STATIC_ASSERTION_SIZE(_alpn_protocol_t, name, 0);
+STATIC_ASSERTION_LAST(_alpn_protocol_t, name);
+STATIC_ASSERTION_FOLLOWS(_alpn_protocol_t, length, name);
 
 /**
  * @brief the type describes the direction of the handle
@@ -88,6 +112,10 @@ typedef struct {
  **/
 struct _module_context_t{
 	SSL_CTX*                       ssl_context;   /*!< the SSL Context */
+	union {
+		_alpn_protocol_t*          alpn_protos;   /*!< The list of ALPN protocols */
+		uint8_t*                   alpn_data;     /*!< The ALPN protocol data */
+	};
 	itc_module_type_t              transport_mod; /*!< the transportation layer module type */
 	uint32_t                       async_write;   /*!< indicates if we want to enable the asnyc write in the transportation layer */
 	mempool_objpool_t*             tls_pool;      /*!< the SSL context pool */
@@ -295,6 +323,8 @@ static int _init(void* __restrict ctx, uint32_t argc, char const* __restrict con
 		ERROR_RETURN_LOG(int, "Cannot create memory pool for the TLS context");
 	}
 
+	context->alpn_protos = NULL;
+
 	LOG_TRACE("TLS context has been initialized!");
 
 	return 0;
@@ -311,6 +341,9 @@ static int _cleanup(void* __restrict ctx)
 	_module_context_t* context = (_module_context_t*)ctx;
 
 	SSL_CTX_free(context->ssl_context);
+
+	if(NULL !=  context->alpn_protos)
+		free(context->alpn_protos);
 
 	if(ERROR_CODE(int) == mempool_objpool_free(context->tls_pool))
 	{
@@ -1019,6 +1052,134 @@ RET:
 }
 
 /**
+ * @brief Get the next ALPN protocol in the ALPN protocol list format
+ * @param prev The previous protocl
+ * @return The next protocol, if its the end of the list, return NULL
+ **/
+static inline const _alpn_protocol_t* _get_next_protocol(const _alpn_protocol_t* prev)
+{
+	_alpn_protocol_t* ret = (_alpn_protocol_t*)&prev->name[prev->length];
+	if(ret->length == 0) return NULL;
+	return ret;
+}
+
+/**
+ * @brief Compare two ALPN protocol descriptor
+ * @param left The left protocol
+ * @param right The right protocol
+ * @return The compare result
+ **/
+static inline int _alpn_protocol_cmp(const unsigned char* left, const unsigned char* right)
+{
+	uint8_t size = left[0];
+	return memcmp(left, right, size);
+}
+
+/**
+ * @brief The open SSL callback used for ALPN protocol selection
+ * @param ssl The ssl context
+ * @param out The out buffer
+ * @param outlen The length of the out buffer
+ * @param in The input buffer
+ * @param inlen The input length
+ * @param ctxptr The pointer pointed to the module context
+ * @return The result code defined by the OpenSSL
+ **/
+static inline int _alpn_select_protocol(SSL* ssl, const unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* ctxptr)
+{
+	(void)ssl;
+	const _alpn_protocol_t* client_proto_list = (const _alpn_protocol_t*)in;
+	_module_context_t* ctx = (_module_context_t*)ctxptr;
+
+	const _alpn_protocol_t* server_proto = ctx->alpn_protos, *client_proto = NULL;
+	for(;NULL != server_proto; server_proto = _get_next_protocol(server_proto))
+		for(client_proto = client_proto_list; 
+			(client_proto->name + client_proto->length) - in <= inlen; 
+			client_proto = _get_next_protocol(client_proto))
+			if(_alpn_protocol_cmp(server_proto->begin, client_proto->begin) == 0)
+			{
+				*out = client_proto->name;
+				*outlen = client_proto->length;
+				return SSL_TLSEXT_ERR_OK;
+			}
+
+	return SSL_TLSEXT_ERR_ALERT_FATAL;
+}
+
+/**
+ * @brief Setup the ALPN protocol list
+ * @param context The context
+ * @param origin_list The original ALPN protocol list
+ * @return status code
+ **/
+static inline int _setup_alpn_support(_module_context_t* context, const char* origin_list)
+{
+	if(NULL != context->alpn_protos)
+	{
+		free(context->alpn_protos);
+		context->alpn_protos = NULL;
+	}
+
+	if(strcmp(origin_list, "disabled") == 0)
+	{
+		SSL_CTX_set_alpn_select_cb(context->ssl_context, NULL, NULL);
+		LOG_DEBUG("The TLS ALPN Extension has been disabled");
+		return 1;
+	}
+
+	size_t size = strlen(origin_list);
+	/* Because in the worst case, the original list only contains one protocol, so in this case
+	 * we need to allocate one more byte for the size of the protocol string.
+	 * In addition we need another trailer 0 */
+	uint8_t* protolist = (uint8_t*)malloc(size + 2);
+	if(NULL == protolist)
+		ERROR_RETURN_LOG(int, "Cannot allocate memory for the ALPN protocol list");
+
+	_alpn_protocol_t* protobuf = (_alpn_protocol_t*)protolist;
+	int escape = 0;
+	protobuf->length = 0;
+
+	do {
+		if(*origin_list == '\\' && !escape)
+		{
+			escape = 1;
+			continue;
+		}
+		if(*origin_list != 0 && (escape == 1 || (*origin_list != ' ' && *origin_list != '\t')))
+		{
+			escape = 0;
+			protobuf->name[protobuf->length ++] = (uint8_t)*origin_list;
+		}
+		else if(protobuf->length > 0)
+		{
+#ifdef LOG_WARNING
+			protobuf->name[protobuf->length] = 0;
+			LOG_DEBUG("TLS ALPN Protocol Support: %s", protobuf->name);
+			uint32_t i;
+			for(i = 0; 
+				i < sizeof(_supported_alpn_protos) / sizeof(_supported_alpn_protos[0]) &&
+				strcmp((const char*)protobuf->name, _supported_alpn_protos[i]) != 0; i ++);
+
+			if(i >= sizeof(_supported_alpn_protos) / sizeof(_supported_alpn_protos[0]))
+			{
+				LOG_WARNING("Unrecognized TLS ALPN Protocol Identifier: %s, The TLS Module may be misconfigured", protobuf->name);
+			}
+#endif /* LOG_WARNING */
+			protobuf = (_alpn_protocol_t*)&protobuf->name[protobuf->length];
+			protobuf->length = 0;
+		}
+	} while(*(origin_list++) != 0);
+
+	context->alpn_protos = (_alpn_protocol_t*)protolist;
+
+	SSL_CTX_set_alpn_select_cb(context->ssl_context, _alpn_select_protocol, context);
+
+	LOG_DEBUG("TLS ALPN is enabled");
+
+	return 1;
+}
+
+/**
  * @brief the callback function to set the property
  * @param ctx the module context
  * @param sym the symbol name
@@ -1133,6 +1294,13 @@ DHPARAM_ERR:
 
 			return 1;
 		}
+		_SYMBOL(_IS("alpn_protos"))
+		{
+			const char* origin_list = value.str;
+			if(ERROR_CODE(int) == _setup_alpn_support(context, origin_list))
+				return ERROR_CODE(int);
+			return 1;
+		}
 		else return 0;
 	}
 	else return 0;
@@ -1166,6 +1334,28 @@ int  _cntl(void* __restrict context, void* __restrict pipe, uint32_t opcode, va_
 				if(handle->tls->state == _TLS_STATE_DISABLED)
 				    handle->tls->state = _TLS_STATE_CONNECTING;
 			}
+			break;
+		}
+		case MODULE_TLS_CNTL_ALPNPROTO:
+		{
+			char*  buf = va_arg(va_args, char*);
+			size_t  bs  = va_arg(va_args, size_t);
+
+			if(NULL == buf || bs == 0) ERROR_RETURN_LOG(int, "Invalid arguments");
+
+			uint8_t const* intbuf;
+			unsigned int  intsize;
+
+			SSL_get0_alpn_selected(handle->tls->ssl, &intbuf, &intsize);
+
+			if(intsize == 0) buf[0] = 0;
+			else
+			{
+				if(bs > intsize + 1) bs = intsize + 1;
+				memcpy(buf, intbuf, bs - 1);
+				buf[bs-1] = 0;
+			}
+
 			break;
 		}
 		default:
