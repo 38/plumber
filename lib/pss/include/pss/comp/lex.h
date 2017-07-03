@@ -82,12 +82,12 @@ typedef struct {
 	const char* file;                       /*!< the file name of this token */
 	uint32_t    line;                       /*!< the line number of this token in the source code */
 	uint32_t    offset;                     /*!< the offset of this token in the source code*/
-	pss_comp_lex_token_type_t type;             /*!< the type of this token */
+	pss_comp_lex_token_type_t type;         /*!< the type of this token */
 	union {
 		int32_t i;                          /*!< the integer value of this token */
 		char s[4096];                       /*!< the string value of this token */
 		const char* e;                      /*!< the error message */
-		pss_comp_lex_keyword_t k;               /*!< the keyword data */
+		pss_comp_lex_keyword_t k;           /*!< the keyword data */
 	} value;
 } pss_comp_lex_token_t;
 
@@ -126,13 +126,5 @@ int pss_comp_lex_free(pss_comp_lex_t* lexer);
  * @return the status code
  **/
 int pss_comp_lex_next_token(pss_comp_lex_t* lexer, pss_comp_lex_token_t* buffer);
-
-/**
- * @brief include a script
- * @param lexer the top-level lexer
- * @param filename the target filename to include
- * @return status code
- **/
-int pss_comp_lex_include_script(pss_comp_lex_t* lexer, const char* filename);
 
 #endif
