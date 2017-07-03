@@ -1008,6 +1008,16 @@ int itc_module_pipe_cntl(itc_module_pipe_t* handle, uint32_t opcode, va_list ap)
 				*actual_size = rc;
 				return 0;
 			}
+			case RUNTIME_API_PIPE_CNTL_OPCODE_MODPATH:
+			{
+				char const**  buf = va_arg(ap, char const**);
+
+				if(NULL == buf) ERROR_RETURN_LOG(int, "Invalid arguments");
+				_GET_MODULE(mod, handle, ERROR_CODE(int));
+
+				*buf = mod->path;
+				return 0;
+			}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_NOP:
 			{
 				return 0;

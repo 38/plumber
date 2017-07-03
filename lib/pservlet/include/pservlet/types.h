@@ -81,6 +81,9 @@ typedef runtime_api_pipe_type_callback_t pipe_type_callback_t;
 /** @brief write the typed header of the pipe */
 #define PIPE_CNTL_WRITEHDR RUNTIME_API_PIPE_CNTL_OPCODE_WRITEHDR
 
+/** @brief Get the module path that operates the given pipe */
+#define PIPE_CNTL_MODPATH  RUNTIME_API_PIPE_CNTL_OPCODE_MODPATH
+
 /** @brief no operation */
 #define PIPE_CNTL_NOP RUNTIME_API_PIPE_CNTL_OPCODE_NOP
 

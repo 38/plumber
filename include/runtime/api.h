@@ -218,6 +218,13 @@ STATIC_ASSERTION_EQ_ID(flags_persist, RUNTIME_API_PIPE_PERSIST, (RUNTIME_API_PIP
 #define RUNTIME_API_PIPE_CNTL_OPCODE_WRITEHDR   0xff000008u
 
 /**
+ * @brief Get the underlying module path used by current pipe
+ * @note  example: pipe_cntl(pipe, PIPE_CNTL_MODPATH, pathbuf, bufsize);
+ *        this function will return the path string of the module the pipe is using
+ **/
+#define RUNTIME_API_PIPE_CNTL_OPCODE_MODPATH   0xff000009u
+
+/**
  * @brief the pipe cntl opcode that indicates no operation
  * @note this is used when the mod_prefix doesn't return any prefix, we need use NOP as the returned opcode <br/>
  *       this should be different with the error code, because they are two different things, ERROR_CODE means program error
