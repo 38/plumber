@@ -75,6 +75,15 @@ int lang_service_set_input(lang_service_t* service, int64_t nid, const char* por
 int lang_service_set_output(lang_service_t* service, int64_t nid, const char* port);
 
 /**
+ * @brief Get the type expression of the given service
+ * @param service The service object
+ * @param nid The node id
+ * @param port The port name
+ * @return The type string
+ **/
+const char* lang_service_get_type(lang_service_t* service, int64_t nid, const char* port);
+
+/**
  * @brief Start the service
  * @param service The service to start
  * @return status code

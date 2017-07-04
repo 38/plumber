@@ -58,7 +58,7 @@ Service.for_each_element = function Service.for_each_element(serv, handler)
 
 Service.build = function(serv)
 {
-	var _build = function _build_impl(serv, obj, build) 
+	var _build = function _build_impl(serv, obj, build, prefix, nodemap) 
 	{
 		var nodes = {};
 		var ports = {};
@@ -71,9 +71,12 @@ Service.build = function(serv)
 		var node_handler = function _node_handler(name, def)
 		{
 			if(typeof(def) == "dict")
-				nodes[name] = build(def, obj, build);
+				nodes[name] = build(def, obj, build, prefix + "@" + name, nodemap);
 			else
+			{
 				nodes[name] = __service_node(obj, def);
+				if(nodemap != undefined) nodemap[prefix + "@" + name] = nodes[name];
+			}
 		};
 		var pipe_handler = function _pipe_handler(src_node, src_port, dst_node, dst_port) 
 		{
@@ -101,9 +104,9 @@ Service.build = function(serv)
 		return ports;
 	}
 	
-	return function Service.build(serv) {
+	return function Service.build(serv, nodemap) {
 		var obj = __service_new();
-		_build(serv, obj, _build);
+		_build(serv, obj, _build, "", nodemap);
 		return obj;
 	}
 }();
@@ -212,4 +215,26 @@ Service.visualize = function Service.visualize(serv)
 	Service.for_each_element(serv, {node: node_handler, pipe: pipe_handler, port: port_handler, input: input_handler, output: output_handler});
 
 	print("}");
+}
+
+Service.typeinfo = function typeinfo(serv) 
+{
+	var ret = {};
+	var nodes = {};
+	var obj = Service.build(serv, nodes);
+	var port_list = {};
+	for(var node in nodes)
+		port_list[node] = __service_node_ports(obj, nodes[node]);
+	
+	for(var node in nodes)
+	{
+		var nid = nodes[node];
+		var inputs = port_list[node]["input"];
+		var outputs = port_list[node]["output"];
+		for(var i in inputs)
+			ret[node + "@" + inputs[i]] = __service_port_type(obj, nid, inputs[i]);
+		for(var i in outputs)
+			ret[node + "@" + outputs[i]] = __service_port_type(obj, nid, outputs[i]);
+	}
+	return ret;
 }
