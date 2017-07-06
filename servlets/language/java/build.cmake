@@ -15,7 +15,7 @@ add_jar(java_pservlet ${java_source}
 	    OUTPUT_NAME pservlet)
 create_javah(TARGET java_pservlet_jni_header
 	         GENERATED_FILES jni_headers
-			 CLASSES info.haohou.pservlet.Pservlet
+			 CLASSES info.haohou.pservlet._Pservlet
 			 CLASSPATH ${GEN_PATH}/pservlet.jar
 			 DEPENDS java_pservlet
 			 OUTPUT_DIR ${GEN_PATH})
