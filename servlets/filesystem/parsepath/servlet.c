@@ -91,7 +91,7 @@ static inline int _simplify_path(scope_token_t path_token, const context_t* ctx,
 	if(sp < 0) return 0;
 
 	uint32_t nprefix = (ctx->prefix_level > (uint32_t)sp) ? 0 : ctx->prefix_level;
-	if(ctx->prefix_token > 0 && ERROR_CODE(int) == _write_path(inst, ctx->prefix_token, bs, es, nprefix))
+	if(ctx->prefix_token != ERROR_CODE(pstd_type_accessor_t) && ERROR_CODE(int) == _write_path(inst, ctx->prefix_token, bs, es, nprefix))
 	    ERROR_RETURN_LOG(int, "Cannot write the path to pipe");
 
 	if(nprefix == 0 && !simplified)
@@ -190,6 +190,8 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 
 	if(NULL == (ctx->model = pstd_type_model_new()))
 	    ERROR_RETURN_LOG(int, "Cannot create type model");
+
+	ctx->prefix_token = ERROR_CODE(pstd_type_accessor_t);
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->prefix_token = pstd_type_model_get_accessor(ctx->model, ctx->prefix, "token")))
 	    ERROR_RETURN_LOG(int, "Cannot get accessor for field prefix.token");
