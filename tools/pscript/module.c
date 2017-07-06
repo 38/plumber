@@ -72,7 +72,7 @@ int _try_load_module(const char* source_path, const char* compiled_path, int loa
 		if(NULL == fp)
 		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open the source code file");
 
-		if(fread(code, (size_t)source_sz, 1, fp) != 1)
+		if(source_sz != 0 && fread(code, (size_t)source_sz, 1, fp) != 1)
 		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read file");
 
 		if(fclose(fp) < 0)
