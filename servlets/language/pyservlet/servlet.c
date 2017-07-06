@@ -80,8 +80,12 @@ static inline int _init_ppi()
 
 	if(NULL == (_module = builtin_init_module()))
 		ERROR_LOG_GOTO(ERR, "Cannot initialize the servlet API module");
-	else if(ERROR_CODE(int) == const_init(_module))
+
+	if(ERROR_CODE(int) == const_init(_module))
 		ERROR_LOG_GOTO(ERR, "Cannot initailize the constant");
+
+	if(ERROR_CODE(int) == typemodel_object_init(_module))
+		ERROR_LOG_GOTO(ERR, "Cannot initialize the typemodel object");
 
 	return 0;
 
