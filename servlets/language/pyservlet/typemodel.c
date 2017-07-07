@@ -71,22 +71,22 @@ static int _type_instance_init(PyObject* _self, PyObject* args, PyObject* kwds)
 	(void)kwds;
 	_type_instance_t* self = (_type_instance_t*)_self;
 	
-	if(self->instance != NULL) return 1;
+	if(self->instance != NULL) return 0;
 
 	_type_model_t* py_model;
-	if(!PyArg_ParseTuple(args, "o", (PyObject**)&py_model) || py_model->magic != _TM_MAGIC)
+	if(!PyArg_ParseTuple(args, "O", (PyObject**)&py_model) || py_model->magic != _TM_MAGIC)
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Invalid arguments");
-		return 0;
+		return -1;
 	}
 
 	if(NULL == (self->instance = pstd_type_instance_new(py_model->model, NULL)))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Invalid arguments");
-		return 0;
+		return -1;
 	}
 
-	return 1;
+	return 0;
 }
 
 static void _type_model_free(_type_model_t* self)
@@ -141,8 +141,168 @@ static PyObject* _type_model_get_accessor(PyObject* _self, PyObject* args)
 	return Py_BuildValue("i", acc);	
 }
 
-static PyMethodDef _methods[] = {
+static PyObject* _type_instance_read_int(PyObject* _self, PyObject* args)
+{
+	_type_instance_t* self = (_type_instance_t*)_self;
+
+	pstd_type_accessor_t acc;
+	int size;
+	int is_signed;
+
+	if(!PyArg_ParseTuple(args, "iii", &acc, &size, &is_signed))
+	{
+		PyErr_SetString(PyExc_RuntimeError, "Invalid arguments");
+		return NULL;
+	}
+
+	if(size != 1 || size != 2 || size != 4 || size != 8)
+	{
+		PyErr_SetString(PyExc_RuntimeError, "Invalid size");
+		return NULL;
+	}
+
+	char buf[size];
+	size_t rc = pstd_type_instance_read(self->instance, acc, buf, (size_t)size);
+	if((size_t)size != rc)
+	{
+		PyErr_SetString(PyExc_RuntimeError, "Cannot read the expected size from the data primitive");
+		return NULL;
+	}
+
+	long retval;
+	switch(size)
+	{
+		case 1:
+			if(is_signed) retval = *(int8_t*)buf;
+			else retval = *(uint8_t*)buf;
+			break;
+		case 2:
+			if(is_signed) retval = *(int16_t*)buf;
+			else retval = *(uint16_t*)buf;
+			break;
+		case 4:
+			if(is_signed) retval = *(int32_t*)buf;
+			else retval = *(uint32_t*)buf;
+			break;
+		case 8:
+			if(is_signed) retval = *(int64_t*)buf;
+			else retval = *(uint32_t*)buf;
+			break;
+	}
+
+	return Py_BuildValue("l", retval);
+}
+
+static PyObject* _type_instance_read_float(PyObject* _self, PyObject* args)
+{
+	_type_instance_t* self = (_type_instance_t*)_self;
+
+	pstd_type_accessor_t acc;
+	int size;
+
+	if(!PyArg_ParseTuple(args, "ii", &acc, &size))
+	{
+		PyErr_SetString(PyExc_RuntimeError, "Invalid arguments");
+		return NULL;
+	}
+
+	if(size != 4 || size != 8)
+	{
+		PyErr_SetString(PyExc_RuntimeError, "Invalid size");
+		return NULL;
+	}
+
+	char buf[size];
+	size_t rc = pstd_type_instance_read(self->instance, acc, buf, (size_t)size);
+	if((size_t)size != rc)
+	{
+		PyErr_SetString(PyExc_RuntimeError, "Cannot read the expected size from the data primitive");
+		return NULL;
+	}
+
+	double retval;
+	switch(size)
+	{
+		case 4:
+			retval = *(float*)buf;
+			break;
+		case 8:
+			retval = *(double*)buf;
+			break;
+	}
+
+	return Py_BuildValue("d", retval);
+}
+
+static PyObject* _type_instance_write_int(PyObject* _self, PyObject* args)
+{
+	_type_instance_t* self = (_type_instance_t*)_self;
+
+	pstd_type_accessor_t acc;
+	int size;
+	int is_signed;
+	long value;
+
+	if(!PyArg_ParseTuple(args, "iiil", &acc, &size, &is_signed, &value))
+	{
+		PyErr_SetString(PyExc_RuntimeError, "Invalid arguments");
+		return NULL;
+	}
+
+	if(size != 1 || size != 2 || size != 4 || size != 8)
+	{
+		PyErr_SetString(PyExc_RuntimeError, "Invalid size");
+		return NULL;
+	}
+
+	if(ERROR_CODE(int) == pstd_type_instance_write(self->instance, acc, &value, (size_t)size))
+	{
+		PyErr_SetString(PyExc_RuntimeError, "Typed header write error");
+		return NULL;
+	}
+
+	Py_RETURN_NONE;
+}
+
+static PyObject* _type_instance_write_float(PyObject* _self, PyObject* args)
+{
+	_type_instance_t* self = (_type_instance_t*)_self;
+
+	pstd_type_accessor_t acc;
+	int size;
+	double value;
+
+	if(!PyArg_ParseTuple(args, "iid", &acc, &size, &value))
+	{
+		PyErr_SetString(PyExc_RuntimeError, "Invalid arguments");
+		return NULL;
+	}
+
+	if(size != 4 || size != 8)
+	{
+		PyErr_SetString(PyExc_RuntimeError, "Invalid size");
+		return NULL;
+	}
+
+	if(ERROR_CODE(int) == pstd_type_instance_write(self->instance, acc, &value, (size_t)size))
+	{
+		PyErr_SetString(PyExc_RuntimeError, "Typed header write error");
+		return NULL;
+	}
+
+	Py_RETURN_NONE;
+}
+
+static PyMethodDef _model_methods[] = {
 	{"accessor",   _type_model_get_accessor, METH_VARARGS, "Get the accessor for the type model"},
+	{NULL,         NULL,                     0,             NULL}
+};
+
+static PyMethodDef _inst_methods[] = {
+	{"read_int",   _type_instance_read_int,  METH_VARARGS, "Read an integer from the type instance"},
+	{"read_float", _type_instance_read_float, METH_VARARGS, "Read a float number from the type instance"},
+	{"write_int",  _type_instance_write_int, METH_VARARGS, "Write an integer to the type instance"},
+	{"write_float", _type_instance_write_float, METH_VARARGS, "Write an float number to the type instance"},
 	{NULL,         NULL,                     0,             NULL}
 };
 
@@ -156,7 +316,7 @@ static PyTypeObject _py_type_model= {
 	.tp_new        = _type_model_new,
 	.tp_dealloc    = (destructor)_type_model_free,
 	.tp_str        = _type_model_str,
-	.tp_methods    = _methods
+	.tp_methods    = _model_methods
 };
 
 static PyTypeObject _py_type_instance = {
@@ -168,7 +328,8 @@ static PyTypeObject _py_type_instance = {
 	.tp_new        = _type_instance_new,
 	.tp_dealloc    = (destructor)_type_instance_free,
 	.tp_str        = _type_instance_str,
-	.tp_init       = _type_instance_init
+	.tp_init       = _type_instance_init,
+	.tp_methods    = _inst_methods
 };
 
 int typemodel_object_init(PyObject* module)
@@ -176,23 +337,23 @@ int typemodel_object_init(PyObject* module)
 	if(NULL == module) 
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	if(!PyType_Ready(&_py_type_model))
+	if(PyType_Ready(&_py_type_model) == -1)
 		ERROR_RETURN_LOG(int, "Cannot initialize the type object");
 
 	Py_INCREF(&_py_type_model);
 
-	if(!PyModule_AddObject(module, "TypeModel", (PyObject*)&_py_type_model))
+	if(PyModule_AddObject(module, "TypeModel", (PyObject*)&_py_type_model) == -1)
 	{
 		Py_DECREF(&_py_type_model);
 		ERROR_RETURN_LOG(int, "Cannot add type to module");
 	}
 
-	if(!PyType_Ready(&_py_type_instance))
+	if(PyType_Ready(&_py_type_instance) == -1)
 		ERROR_RETURN_LOG(int, "Cannot intialize the type object");
 
 	Py_INCREF(&_py_type_instance);
 
-	if(!PyModule_AddObject(module, "TypeInstance", (PyObject*)&_py_type_instance))
+	if(PyModule_AddObject(module, "TypeInstance", (PyObject*)&_py_type_instance) == -1)
 	{
 		Py_DECREF(&_py_type_instance);
 		ERROR_RETURN_LOG(int, "Cannot add type to module");
