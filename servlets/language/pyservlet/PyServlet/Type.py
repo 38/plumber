@@ -67,7 +67,7 @@ def _get_accessor(type_model, pipe, field):
     """
         Create an accessor that can access the given pipe's given field with the specified type model
     """
-    return type_model.get_accessor(pipe, field)
+    return type_model.accessor(pipe, field)
 
 class _Instance(object):
     """
@@ -128,14 +128,14 @@ class TypeContext(object):
             for name in dir(cls):
                 obj = getattr(cls, name)
                 if getattr(obj, "__is_type_model__", False):
-                    accessor = _get_accessor(self._model, pipe, prefix + "." + name) 
+                    accessor = _get_accessor(self._model, pipe, prefix + ("." if prefix else "") + name) 
                     cls.__primitives__[name] = _create_value_accessor(obj, accessor)
                 elif inspect.isclass(obj) and issubclass(obj, ModelBase):
                     cls.__children__.append((name, obj))
-                    setattr(cls, name, _patch_class(obj, prefix + "." + name))
+                    setattr(cls, name, _patch_class(obj, prefix + ("." if prefix else "") + name))
             return cls
         self._types[name] = _patch_class(model, field)
-    def model_class(self, name, pipe, field):
+    def model_class(self, name, pipe, field = ""):
         """
             The decorator used to define a model class
                 name    The name for this model
@@ -143,7 +143,7 @@ class TypeContext(object):
                 field   The field expression we want to access
         """
         def _decorator(cls):
-            self.add_model(name, pipe, field, cls)
+            self._add_model(name, pipe, field, cls)
             return cls
         return _decorator
     def init_instance(self):
@@ -169,9 +169,10 @@ def _define_float_primitive(size):
         def __init__(self):
             self.size = size
         def read(self, instance, accessor):
-            return instance.read_float(accessor, self.size, self.signed + 0)
+            return instance.read_float(accessor, self.size)
         def write(self, instance, accessor, value):
-            return instance.write_float(accessor, self.size, self.signed + 0, float(value))
+            return instance.write_float(accessor, self.size, float(value))
+    return FloatField
 
 Int8  =  _define_int_primitive(1, True)
 Int16 =  _define_int_primitive(2, True)
@@ -183,3 +184,6 @@ Uint32 = _define_int_primitive(4, False)
 Uint64 = _define_int_primitive(8, False)
 Float  = _define_float_primitive(4)
 Double = _define_float_primitive(8)
+
+ScopeToken = Uint32
+

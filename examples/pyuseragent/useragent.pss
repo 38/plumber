@@ -12,7 +12,10 @@ serv = {
 	req := "language/pyservlet parser";
 	res := "language/pyservlet writer";
 	
-	() -> "in" req "out" -> "in" res "out" -> ();
+	() -> "in" req {
+		"out" -> "in";
+		"test" -> "test";
+	} res "out" -> ();
 }
 
 Service.visualize(serv);

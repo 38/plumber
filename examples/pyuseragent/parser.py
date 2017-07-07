@@ -1,11 +1,24 @@
 from pservlet import pipe_define, PIPE_INPUT, PIPE_OUTPUT
-from PyServlet import Pipe
+from PyServlet import Pipe, Type
 def init(args):
-    return (pipe_define("in", PIPE_INPUT),
-            pipe_define("out", PIPE_OUTPUT))
+    ip = pipe_define("in", PIPE_INPUT)
+    op = pipe_define("out", PIPE_OUTPUT)
+    """
+    tp = pipe_define("test", PIPE_OUTPUT, "pyuseragent/Test")
+    tc = Type.TypeContext()
+    @tc.model_class(name = "test", pipe = tp, field = "")
+    class TestModel(Type.ModelBase):
+        testvalue = Type.Double()
+    return (ip, op, tp, tc)
+    """
+    return (ip, op)
 def execute(ctx):
     inp = Pipe(ctx[0], line_delimitor = r"\r\n")
     oup = Pipe(ctx[1], line_delimitor = r"\r\n")
+    """
+    ti  = ctx[3].init_instance()
+    ti.test.testvalue = 5
+    """
     state = inp.getstate()
     user_agent, persist = None, False
     if None != state:

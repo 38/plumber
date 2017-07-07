@@ -23,15 +23,15 @@ static PyObject* _pyservlet_define(PyObject* self, PyObject *args)
 		PyErr_SetString(PyExc_RuntimeError, "Cannot define a pipe");
 		return NULL;
 	}
-	return Py_BuildValue("i", rc);
+	return Py_BuildValue("l", (long)rc);
 }
 
 static PyObject* _pyservlet_read(PyObject* self, PyObject* args)
 {
 	(void) self;
-	pipe_t pipe;
+	long pipe;
 	int howmany = -1;
-	if(!PyArg_ParseTuple(args, "i|i", &pipe, &howmany))
+	if(!PyArg_ParseTuple(args, "l|i", &pipe, &howmany))
 	{
 		PyErr_SetString(PyExc_TypeError, "Invalid arguments");
 		return NULL;
@@ -47,7 +47,7 @@ static PyObject* _pyservlet_read(PyObject* self, PyObject* args)
 		size_t bytes_to_read = sizeof(buffer);
 		if(bytes_to_read > count) bytes_to_read = count;
 
-		size_t bytes_read = pipe_read(pipe, buffer, bytes_to_read);
+		size_t bytes_read = pipe_read((pipe_t)pipe, buffer, bytes_to_read);
 
 		if(bytes_read == ERROR_CODE(size_t)) goto ERR;
 		if(bytes_read == 0) break;
@@ -81,12 +81,12 @@ ERR:
 PyObject* _pyservlet_write(PyObject* self, PyObject* args)
 {
 	(void) self;
-	pipe_t pipe;
+	long pipe;
 	PyObject* dataObject;
 	Py_ssize_t size;
 	char* buffer;
 
-	if(!PyArg_ParseTuple(args, "iS", &pipe, &dataObject)) //ERROR_PTR_RETURN_LOG("Invalid arguments");
+	if(!PyArg_ParseTuple(args, "lS", &pipe, &dataObject)) //ERROR_PTR_RETURN_LOG("Invalid arguments");
 	{
 		PyErr_SetString(PyExc_TypeError, "Invalid arguments");
 		return NULL;
@@ -98,13 +98,13 @@ PyObject* _pyservlet_write(PyObject* self, PyObject* args)
 		return NULL;
 	}
 
-	size_t rc = pipe_write(pipe, buffer, (size_t)size);
+	size_t rc = pipe_write((pipe_t)pipe, buffer, (size_t)size);
 	if(rc == ERROR_CODE(size_t))
 	{
 		PyErr_SetString(PyExc_IOError, "Write failure, see Plumber log for details");
 		return NULL;
 	}
-	return Py_BuildValue("i", rc);
+	return Py_BuildValue("k", (unsigned long)rc);
 }
 
 PyObject* _pyservlet_task_id(PyObject* self, PyObject* args)
@@ -121,7 +121,7 @@ PyObject* _pyservlet_task_id(PyObject* self, PyObject* args)
 		PyErr_SetString(PyExc_RuntimeError, "Cannot complete task_id call, see Plumber log for detials");
 		return NULL;
 	}
-	return Py_BuildValue("i", rc);
+	return Py_BuildValue("I", rc);
 }
 
 PyObject* _pyservlet_log(PyObject* self, PyObject* args)
@@ -152,14 +152,14 @@ PyObject* _pyservlet_log(PyObject* self, PyObject* args)
 PyObject* _pyservlet_eof(PyObject* self, PyObject* args)
 {
 	(void) self;
-	pipe_t pipe;
-	if(!PyArg_ParseTuple(args, "i", &pipe))
+	long pipe;
+	if(!PyArg_ParseTuple(args, "l", &pipe))
 	{
 		PyErr_SetString(PyExc_TypeError, "Invalid arguments");
 		return NULL;
 	}
 
-	int rc = pipe_eof(pipe);
+	int rc = pipe_eof((pipe_t)pipe);
 
 	if(rc == ERROR_CODE(int))
 	{
@@ -172,32 +172,32 @@ PyObject* _pyservlet_eof(PyObject* self, PyObject* args)
 PyObject* _pyservlet_get_flags(PyObject* self, PyObject* args)
 {
 	(void)self;
-	pipe_t pipe;
+	long pipe;
 	pipe_flags_t flags;
-	if(!PyArg_ParseTuple(args, "i", &pipe))
+	if(!PyArg_ParseTuple(args, "l", &pipe))
 	{
 		PyErr_SetString(PyExc_TypeError, "Invalid arguments");
 		return NULL;
 	}
-	if(pipe_cntl(pipe, PIPE_CNTL_GET_FLAGS, &flags) == ERROR_CODE(int))
+	if(pipe_cntl((pipe_t)pipe, PIPE_CNTL_GET_FLAGS, &flags) == ERROR_CODE(int))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Cannot complete the pipe_cntl call, see Plumber log for details");
 		return NULL;
 	}
-	return Py_BuildValue("i", flags);
+	return Py_BuildValue("l", (long)flags);
 }
 
 PyObject* _pyservlet_set_flag(PyObject* self, PyObject* args)
 {
 	(void)self;
-	pipe_t pipe;
-	pipe_flags_t flags;
-	if(!PyArg_ParseTuple(args, "ii", &pipe, &flags))
+	long pipe;
+	long flags;
+	if(!PyArg_ParseTuple(args, "ll", &pipe, &flags))
 	{
 		PyErr_SetString(PyExc_TypeError, "Invalid arguments");
 		return NULL;
 	}
-	if(pipe_cntl(pipe, PIPE_CNTL_SET_FLAG, flags) == ERROR_CODE(int))
+	if(pipe_cntl((pipe_t)pipe, PIPE_CNTL_SET_FLAG, (pipe_flags_t)flags) == ERROR_CODE(int))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Cannot complete the pipe_cntl call, see Plumber log for details");
 		return NULL;
@@ -208,14 +208,14 @@ PyObject* _pyservlet_set_flag(PyObject* self, PyObject* args)
 PyObject* _pyservlet_clr_flag(PyObject* self, PyObject* args)
 {
 	(void)self;
-	pipe_t pipe;
-	pipe_flags_t flags;
-	if(!PyArg_ParseTuple(args, "ii", &pipe, &flags))
+	long pipe;
+	long flags;
+	if(!PyArg_ParseTuple(args, "ll", &pipe, &flags))
 	{
 		PyErr_SetString(PyExc_TypeError, "Invalid arguments");
 		return NULL;
 	}
-	if(pipe_cntl(pipe, PIPE_CNTL_CLR_FLAG, flags) == ERROR_CODE(int))
+	if(pipe_cntl((pipe_t)pipe, PIPE_CNTL_CLR_FLAG, (pipe_flags_t)flags) == ERROR_CODE(int))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Cannot complete pipe_cntl call, see Plumber log for details");
 		return NULL;
@@ -251,15 +251,15 @@ static int _pyobject_free(void* obj)
 PyObject* _pyservlet_push_state(PyObject* self, PyObject* args)
 {
 	(void)self;
-	pipe_t pipe;
+	long pipe;
 	PyObject* state;
-	if(!PyArg_ParseTuple(args, "iO", &pipe, &state))
+	if(!PyArg_ParseTuple(args, "lO", &pipe, &state))
 	{
 		PyErr_SetString(PyExc_TypeError, "Invalid arguments");
 		return NULL;
 	}
 
-	if(ERROR_CODE(int) == pipe_cntl(pipe, PIPE_CNTL_PUSH_STATE, state, _pyobject_free))
+	if(ERROR_CODE(int) == pipe_cntl((pipe_t)pipe, PIPE_CNTL_PUSH_STATE, state, _pyobject_free))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Cannot complete pipe_cntl call, see Plumber log for details");
 		return NULL;
@@ -273,15 +273,15 @@ PyObject* _pyservlet_push_state(PyObject* self, PyObject* args)
 PyObject* _pyservlet_pop_state(PyObject* self, PyObject* args)
 {
 	(void)self;
-	pipe_t pipe;
+	long pipe;
 	PyObject* state;
-	if(!PyArg_ParseTuple(args, "i", &pipe))
+	if(!PyArg_ParseTuple(args, "l", &pipe))
 	{
 		PyErr_SetString(PyExc_TypeError, "Invalid arguments");
 		return NULL;
 	}
 
-	if(ERROR_CODE(int) == pipe_cntl(pipe, PIPE_CNTL_POP_STATE, &state))
+	if(ERROR_CODE(int) == pipe_cntl((pipe_t)pipe, PIPE_CNTL_POP_STATE, &state))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Cannot complete pipe_cntl call, see Plumber log for details");
 		return NULL;

@@ -123,46 +123,50 @@ static PyObject* _type_instance_str(PyObject* self)
 static PyObject* _type_model_get_accessor(PyObject* _self, PyObject* args)
 {
 	_type_model_t* self = (_type_model_t*)_self;
-	pipe_t    pipe;
+	long    pipe;
 	const char* member;
-	if(!PyArg_ParseTuple(args, "is", &pipe, &member))
+	PyObject* first = PyTuple_GetItem(args, 0);
+	PyObject* second = PyTuple_GetItem(args, 1);
+	(void)first;
+	(void)second;
+	if(!PyArg_ParseTuple(args, "ls", &pipe, &member))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Invalid arguments");
 		return NULL;
 	}
 
 	pstd_type_accessor_t acc;
-	if(ERROR_CODE(pstd_type_accessor_t) == (acc = pstd_type_model_get_accessor(self->model, pipe, member)))
+	if(ERROR_CODE(pstd_type_accessor_t) == (acc = pstd_type_model_get_accessor(self->model, (pipe_t)pipe, member)))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Cannot create accessor");
 		return NULL;
 	}
 
-	return Py_BuildValue("i", acc);	
+	return Py_BuildValue("l", (long)acc);	
 }
 
 static PyObject* _type_instance_read_int(PyObject* _self, PyObject* args)
 {
 	_type_instance_t* self = (_type_instance_t*)_self;
 
-	pstd_type_accessor_t acc;
+	long acc;
 	int size;
 	int is_signed;
 
-	if(!PyArg_ParseTuple(args, "iii", &acc, &size, &is_signed))
+	if(!PyArg_ParseTuple(args, "lii", &acc, &size, &is_signed))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Invalid arguments");
 		return NULL;
 	}
 
-	if(size != 1 || size != 2 || size != 4 || size != 8)
+	if(size != 1 && size != 2 && size != 4 && size != 8)
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Invalid size");
 		return NULL;
 	}
 
 	char buf[size];
-	size_t rc = pstd_type_instance_read(self->instance, acc, buf, (size_t)size);
+	size_t rc = pstd_type_instance_read(self->instance, (pstd_type_accessor_t)acc, buf, (size_t)size);
 	if((size_t)size != rc)
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Cannot read the expected size from the data primitive");
@@ -197,23 +201,23 @@ static PyObject* _type_instance_read_float(PyObject* _self, PyObject* args)
 {
 	_type_instance_t* self = (_type_instance_t*)_self;
 
-	pstd_type_accessor_t acc;
+	long acc;
 	int size;
 
-	if(!PyArg_ParseTuple(args, "ii", &acc, &size))
+	if(!PyArg_ParseTuple(args, "li", &acc, &size))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Invalid arguments");
 		return NULL;
 	}
 
-	if(size != 4 || size != 8)
+	if(size != 4 && size != 8)
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Invalid size");
 		return NULL;
 	}
 
 	char buf[size];
-	size_t rc = pstd_type_instance_read(self->instance, acc, buf, (size_t)size);
+	size_t rc = pstd_type_instance_read(self->instance, (pstd_type_accessor_t)acc, buf, (size_t)size);
 	if((size_t)size != rc)
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Cannot read the expected size from the data primitive");
@@ -238,24 +242,24 @@ static PyObject* _type_instance_write_int(PyObject* _self, PyObject* args)
 {
 	_type_instance_t* self = (_type_instance_t*)_self;
 
-	pstd_type_accessor_t acc;
+	long acc;
 	int size;
 	int is_signed;
 	long value;
 
-	if(!PyArg_ParseTuple(args, "iiil", &acc, &size, &is_signed, &value))
+	if(!PyArg_ParseTuple(args, "liil", &acc, &size, &is_signed, &value))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Invalid arguments");
 		return NULL;
 	}
 
-	if(size != 1 || size != 2 || size != 4 || size != 8)
+	if(size != 1 && size != 2 && size != 4 && size != 8)
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Invalid size");
 		return NULL;
 	}
 
-	if(ERROR_CODE(int) == pstd_type_instance_write(self->instance, acc, &value, (size_t)size))
+	if(ERROR_CODE(int) == pstd_type_instance_write(self->instance, (pstd_type_accessor_t)acc, &value, (size_t)size))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Typed header write error");
 		return NULL;
@@ -268,23 +272,28 @@ static PyObject* _type_instance_write_float(PyObject* _self, PyObject* args)
 {
 	_type_instance_t* self = (_type_instance_t*)_self;
 
-	pstd_type_accessor_t acc;
+	long acc;
 	int size;
 	double value;
 
-	if(!PyArg_ParseTuple(args, "iid", &acc, &size, &value))
+	if(!PyArg_ParseTuple(args, "lid", &acc, &size, &value))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Invalid arguments");
 		return NULL;
 	}
 
-	if(size != 4 || size != 8)
+	if(size != 4 && size != 8)
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Invalid size");
 		return NULL;
 	}
 
-	if(ERROR_CODE(int) == pstd_type_instance_write(self->instance, acc, &value, (size_t)size))
+	float fval = (float)value;
+	void* buf = &value;
+
+	if(size == 4) buf = &fval;
+
+	if(ERROR_CODE(int) == pstd_type_instance_write(self->instance, (pstd_type_accessor_t)acc, buf, (size_t)size))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Typed header write error");
 		return NULL;
