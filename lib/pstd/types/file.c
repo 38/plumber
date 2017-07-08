@@ -308,7 +308,7 @@ scope_token_t pstd_file_commit(pstd_file_t* file)
 const char* pstd_file_name(const pstd_file_t* file)
 {
 	if(NULL == file)
-		ERROR_PTR_RETURN_LOG("Invalid arguments");
+	    ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	return file->filename;
 }

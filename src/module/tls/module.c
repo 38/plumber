@@ -343,7 +343,7 @@ static int _cleanup(void* __restrict ctx)
 	SSL_CTX_free(context->ssl_context);
 
 	if(NULL !=  context->alpn_protos)
-		free(context->alpn_protos);
+	    free(context->alpn_protos);
 
 	if(ERROR_CODE(int) == mempool_objpool_free(context->tls_pool))
 	{
@@ -1093,16 +1093,16 @@ static inline int _alpn_select_protocol(SSL* ssl, const unsigned char** out, uns
 
 	const _alpn_protocol_t* server_proto = ctx->alpn_protos, *client_proto = NULL;
 	for(;NULL != server_proto; server_proto = _get_next_protocol(server_proto))
-		for(client_proto = client_proto_list; 
-			client_proto != NULL && 
-			(client_proto->name + client_proto->length) - in <= inlen; 
-			client_proto = _get_next_protocol(client_proto))
-			if(_alpn_protocol_cmp(server_proto->begin, client_proto->begin) == 0)
-			{
-				*out = client_proto->name;
-				*outlen = client_proto->length;
-				return SSL_TLSEXT_ERR_OK;
-			}
+	    for(client_proto = client_proto_list;
+	        client_proto != NULL &&
+	        (client_proto->name + client_proto->length) - in <= inlen;
+	        client_proto = _get_next_protocol(client_proto))
+	        if(_alpn_protocol_cmp(server_proto->begin, client_proto->begin) == 0)
+	        {
+		        *out = client_proto->name;
+		        *outlen = client_proto->length;
+		        return SSL_TLSEXT_ERR_OK;
+	        }
 
 	return SSL_TLSEXT_ERR_ALERT_FATAL;
 }
@@ -1134,7 +1134,7 @@ static inline int _setup_alpn_support(_module_context_t* context, const char* or
 	 * In addition we need another trailer 0 */
 	uint8_t* protolist = (uint8_t*)malloc(size + 2);
 	if(NULL == protolist)
-		ERROR_RETURN_LOG(int, "Cannot allocate memory for the ALPN protocol list");
+	    ERROR_RETURN_LOG(int, "Cannot allocate memory for the ALPN protocol list");
 
 	_alpn_protocol_t* protobuf = (_alpn_protocol_t*)protolist;
 	int escape = 0;
@@ -1157,9 +1157,9 @@ static inline int _setup_alpn_support(_module_context_t* context, const char* or
 			protobuf->name[protobuf->length] = 0;
 			LOG_DEBUG("TLS ALPN Protocol Support: %s", protobuf->name);
 			uint32_t i;
-			for(i = 0; 
-				i < sizeof(_supported_alpn_protos) / sizeof(_supported_alpn_protos[0]) &&
-				strcmp((const char*)protobuf->name, _supported_alpn_protos[i]) != 0; i ++);
+			for(i = 0;
+			    i < sizeof(_supported_alpn_protos) / sizeof(_supported_alpn_protos[0]) &&
+			    strcmp((const char*)protobuf->name, _supported_alpn_protos[i]) != 0; i ++);
 
 			if(i >= sizeof(_supported_alpn_protos) / sizeof(_supported_alpn_protos[0]))
 			{
@@ -1299,7 +1299,7 @@ DHPARAM_ERR:
 		{
 			const char* origin_list = value.str;
 			if(ERROR_CODE(int) == _setup_alpn_support(context, origin_list))
-				return ERROR_CODE(int);
+			    return ERROR_CODE(int);
 			return 1;
 		}
 		else return 0;

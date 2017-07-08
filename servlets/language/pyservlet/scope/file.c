@@ -16,7 +16,7 @@ static void* _create(PyObject* args)
 	if(!PyArg_ParseTuple(args, "s", &filename)) return NULL;
 	if(NULL == filename) return NULL;
 
-	pstd_file_t* ret = pstd_file_new(filename);  
+	pstd_file_t* ret = pstd_file_new(filename);
 
 	return ret;
 }
@@ -42,7 +42,7 @@ static PyObject* _size(PyObject* self, PyObject* args)
 	if(!PyArg_ParseTuple(args, "O", &obj)) return NULL;
 
 	const pstd_file_t* file = (const pstd_file_t*)scope_object_retrieve(SCOPE_OBJECT_TYPE_FILE, obj);
-	if(NULL == file) 
+	if(NULL == file)
 	{
 		PyErr_SetString(PyExc_TypeError, "Invalid arguments");
 		return NULL;
@@ -66,7 +66,7 @@ static PyObject* _exist(PyObject* self, PyObject* args)
 	if(!PyArg_ParseTuple(args, "O", &obj)) return NULL;
 
 	const pstd_file_t* file = (const pstd_file_t*)scope_object_retrieve(SCOPE_OBJECT_TYPE_FILE, obj);
-	if(NULL == file) 
+	if(NULL == file)
 	{
 		PyErr_SetString(PyExc_TypeError, "Invalid arguments");
 		return NULL;
@@ -91,7 +91,7 @@ static PyObject* _open(PyObject* self, PyObject* args)
 	if(!PyArg_ParseTuple(args, "O|s", &obj, &mode)) return NULL;
 
 	const pstd_file_t* file = (const pstd_file_t*)scope_object_retrieve(SCOPE_OBJECT_TYPE_FILE, obj);
-	if(NULL == file) 
+	if(NULL == file)
 	{
 		PyErr_SetString(PyExc_TypeError, "Invalid arguments");
 		return NULL;
@@ -125,11 +125,11 @@ static PyMethodDef _methods[] = {
 int scope_file_init(PyObject* module)
 {
 	if(ERROR_CODE(int) == scope_object_register_type_ops(SCOPE_OBJECT_TYPE_FILE, _ops))
-		ERROR_RETURN_LOG(int, "Cannot register the type callback for the string RLS object");
+	    ERROR_RETURN_LOG(int, "Cannot register the type callback for the string RLS object");
 
 	PyObject* rls_module = Py_InitModule("pservlet.RLS_File", _methods);
 	if(NULL == rls_module)
-		ERROR_RETURN_LOG(int, "Cannot create  pservlet.RLS_File module");
+	    ERROR_RETURN_LOG(int, "Cannot create  pservlet.RLS_File module");
 
 	if(-1 == PyModule_AddObject(module, "RLS_File", rls_module))
 	{

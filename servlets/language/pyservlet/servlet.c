@@ -23,7 +23,7 @@
 #include <scope/file.h>
 
 /**
- * @brief How many times did the python module initialized 
+ * @brief How many times did the python module initialized
  **/
 static int _init_count = 0;
 
@@ -83,26 +83,26 @@ static inline int _init_ppi()
 	}
 
 	if(NULL == (_module = builtin_init_module()))
-		ERROR_LOG_GOTO(ERR, "Cannot initialize the servlet API module");
+	    ERROR_LOG_GOTO(ERR, "Cannot initialize the servlet API module");
 
 	if(ERROR_CODE(int) == const_init(_module))
-		ERROR_LOG_GOTO(ERR, "Cannot initailize the constant");
+	    ERROR_LOG_GOTO(ERR, "Cannot initailize the constant");
 
 	if(ERROR_CODE(int) == typemodel_object_init(_module))
-		ERROR_LOG_GOTO(ERR, "Cannot initialize the typemodel object");
+	    ERROR_LOG_GOTO(ERR, "Cannot initialize the typemodel object");
 
 	if(ERROR_CODE(int) == scope_object_init(_module))
-		ERROR_LOG_GOTO(ERR, "Cannot intialize the ScopeToken");
+	    ERROR_LOG_GOTO(ERR, "Cannot intialize the ScopeToken");
 
 	if(ERROR_CODE(int) == scope_string_init(_module))
-		ERROR_LOG_GOTO(ERR, "Cannot initialize the RLS string object");
+	    ERROR_LOG_GOTO(ERR, "Cannot initialize the RLS string object");
 
 	if(ERROR_CODE(int) == scope_file_init(_module))
-		ERROR_LOG_GOTO(ERR, "Cannot initialize the RLS file object");
+	    ERROR_LOG_GOTO(ERR, "Cannot initialize the RLS file object");
 
 	return 0;
 
-ERR:	
+ERR:
 	Py_DECREF(_module);
 	PyErr_Print();
 	Py_Finalize();

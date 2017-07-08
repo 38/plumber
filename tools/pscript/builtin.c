@@ -326,14 +326,14 @@ static pss_value_t _pscript_builtin_service_node(pss_vm_t* vm, uint32_t argc, ps
 static pss_value_t _pscript_builtin_service_port_type(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
 	(void)vm;
-	
+
 	pss_value_t ret = {
 		.kind = PSS_VALUE_KIND_ERROR,
 		.num  = PSS_VM_ERROR_ARGUMENT
 	};
 
 	if(argc != 3) return ret;
-	
+
 	if(argv[0].kind != PSS_VALUE_KIND_REF || argv[1].kind != PSS_VALUE_KIND_NUM || argv[2].kind != PSS_VALUE_KIND_REF)
 	    return ret;
 
@@ -348,14 +348,14 @@ static pss_value_t _pscript_builtin_service_port_type(pss_vm_t* vm, uint32_t arg
 	if(NULL == port) return ret;
 
 	const char* rettype = lang_service_get_type(serv, argv[1].num, port);
-	if(NULL == rettype) 
+	if(NULL == rettype)
 	{
 		ret.num = PSS_VM_ERROR_INTERNAL;
 		return ret;
 	}
 
 	char* result_buf = strdup(rettype);
-	if(NULL == result_buf) 
+	if(NULL == result_buf)
 	{
 		ret.num = PSS_VM_ERROR_INTERNAL;
 		return ret;
@@ -842,7 +842,7 @@ int builtin_init(pss_vm_t* vm)
 	    ERROR_RETURN_LOG(int, "Cannot register builtin function __service_start");
 
 	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "__service_port_type", _pscript_builtin_service_port_type))
-		ERROR_RETURN_LOG(int, "Cannot register builtin function __service_port_type");
+	    ERROR_RETURN_LOG(int, "Cannot register builtin function __service_port_type");
 
 	return 0;
 }

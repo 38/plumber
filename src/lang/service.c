@@ -279,8 +279,8 @@ int lang_service_set_output(lang_service_t* service, int64_t nid, const char* po
 const char* lang_service_get_type(lang_service_t* service, int64_t nid, const char* port)
 {
 	if(NULL == service || nid >= ERROR_CODE(sched_service_node_id_t) || NULL == port)
-		ERROR_PTR_RETURN_LOG("Invalid arguments");
-	
+	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+
 	if(service->is_buffer)
 	{
 		sched_service_t* service_obj = sched_service_from_buffer(service->buffer);
@@ -293,9 +293,9 @@ const char* lang_service_get_type(lang_service_t* service, int64_t nid, const ch
 		service->is_buffer = 0;
 		service->object = service_obj;
 	}
-	
+
 	const runtime_pdt_t* pdt = runtime_stab_get_pdt(service->sid_map[nid]);
-	
+
 	if(NULL == pdt) ERROR_PTR_RETURN_LOG("Cannot get the PDT for node %u", service->sid_map[nid]);
 
 	runtime_api_pipe_id_t pid = runtime_pdt_get_pd_by_name(pdt, port);
@@ -304,7 +304,7 @@ const char* lang_service_get_type(lang_service_t* service, int64_t nid, const ch
 	const char* type_expr = NULL;
 
 	if(ERROR_CODE(int) == sched_service_get_pipe_type(service->object, (sched_service_node_id_t)nid, pid, &type_expr))
-		ERROR_PTR_RETURN_LOG("Cannot get the concerete type of the service");
+	    ERROR_PTR_RETURN_LOG("Cannot get the concerete type of the service");
 
 	if(NULL == type_expr) return UNTYPED_PIPE_HEADER;
 	return type_expr;

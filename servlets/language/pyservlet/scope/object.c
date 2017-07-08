@@ -11,7 +11,7 @@
 #define _MAGIC 0x5f3e65a1u
 
 /**
- * @brief The scope object type count 
+ * @brief The scope object type count
  **/
 static scope_object_ops_t _obj_ops[SCOPE_OBJECT_TYPE_COUNT] = {};
 
@@ -53,7 +53,7 @@ static int _py_object_init(PyObject* _self, PyObject* args, PyObject* kwds)
 {
 	(void)kwds;
 	_py_object_t* self = (_py_object_t*)_self;
-	if(self->magic != _MAGIC) 
+	if(self->magic != _MAGIC)
 	{
 		PyErr_SetString(PyExc_TypeError, "Invalid type magic number");
 		return -1;
@@ -62,7 +62,7 @@ static int _py_object_init(PyObject* _self, PyObject* args, PyObject* kwds)
 	long l_type;
 	long scope_token;
 	PyObject* first = PyTuple_GetSlice(args, 0, 2);
-	if(NULL == first || !PyArg_ParseTuple(first, "ll", &l_type, &scope_token)) 
+	if(NULL == first || !PyArg_ParseTuple(first, "ll", &l_type, &scope_token))
 	{
 		Py_DECREF(first);
 		PyErr_SetString(PyExc_TypeError, "Invalid arguments");
@@ -140,9 +140,9 @@ static PyObject* _py_object_str(PyObject* _self)
 		return NULL;
 	}
 
-	return PyString_FromFormat("<RLS Scope Object %s: %u(%p)>", 
-		                       _obj_ops[self->type].name, self->token, 
-							   (self->token == ERROR_CODE(scope_token_t)) ? self->owned : self->in_scope);
+	return PyString_FromFormat("<RLS Scope Object %s: %u(%p)>",
+	                           _obj_ops[self->type].name, self->token,
+	                           (self->token == ERROR_CODE(scope_token_t)) ? self->owned : self->in_scope);
 }
 
 static PyObject* _py_object_get_token(PyObject* _self, PyObject* args)
@@ -176,7 +176,7 @@ static PyMethodDef _methods[] = {
 };
 
 /**
- * @brief The type object for the python scope object 
+ * @brief The type object for the python scope object
  **/
 static PyTypeObject _py_type = {
 	PyVarObject_HEAD_INIT(NULL, 0)
@@ -194,20 +194,27 @@ static PyTypeObject _py_type = {
 int scope_object_init(PyObject* module)
 {
 	if(NULL == module)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 	if(PyType_Ready(&_py_type) == -1)
-		ERROR_RETURN_LOG(int, "Cannot initialize the python object");
+	    ERROR_RETURN_LOG(int, "Cannot initialize the python object");
 
-	Py_INCREF(&_py_type);
+	union {
+		PyObject*    obj;
+		PyTypeObject* tp;
+	} cvt = {
+		.tp = &_py_type
+	};
 
-	if(PyModule_AddObject(module, "RLS_Object",  (PyObject*)&_py_type) == -1)
-		ERROR_RETURN_LOG(int, "Caonnot add scope token type to module");
+	Py_INCREF(cvt.obj);
+
+	if(PyModule_AddObject(module, "RLS_Object",  cvt.obj) == -1)
+	    ERROR_RETURN_LOG(int, "Caonnot add scope token type to module");
 
 	if(PyModule_AddIntConstant(module, "SCOPE_TYPE_STRING", SCOPE_OBJECT_TYPE_STRING) == -1)
-		ERROR_RETURN_LOG(int, "Cannot add SCOPE_OBJECT_TYPE_STRING to the module");
+	    ERROR_RETURN_LOG(int, "Cannot add SCOPE_OBJECT_TYPE_STRING to the module");
 
 	if(PyModule_AddIntConstant(module, "SCOPE_TYPE_FILE", SCOPE_OBJECT_TYPE_FILE) == -1)
-		ERROR_RETURN_LOG(int, "Cannot add SCOPE_TYPE_FILE to the module");
+	    ERROR_RETURN_LOG(int, "Cannot add SCOPE_TYPE_FILE to the module");
 
 	return 0;
 }
@@ -215,7 +222,7 @@ int scope_object_init(PyObject* module)
 int scope_object_register_type_ops(scope_object_type_t type, scope_object_ops_t ops)
 {
 	if(type < 0 || type >= SCOPE_OBJECT_TYPE_COUNT || ops.create == NULL || ops.dispose == NULL || ops.commit == NULL)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_obj_ops[type] = ops;
 
@@ -238,7 +245,7 @@ const void* scope_object_retrieve(scope_object_type_t type, PyObject* object)
 	}
 
 	if(ERROR_CODE(scope_token_t) == obj->token)
-		return obj->owned;
+	    return obj->owned;
 
 	return obj->in_scope;
 }

@@ -20,14 +20,14 @@ typedef enum {
 typedef struct {
 	const char* name;   /*!< The name of this type */
 	/**
-	 * @brief Create a new scope object in the specified type 
+	 * @brief Create a new scope object in the specified type
 	 * @param args The creation parameter we need to used
 	 * @return The newly created RLS scope object
 	 **/
 	void* (*create)(PyObject* args);
-	
+
 	/**
-	 * @brief Dispose the scope object 
+	 * @brief Dispose the scope object
 	 * @param The object we need to dispose
 	 * @return status code
 	 **/
@@ -54,7 +54,7 @@ typedef struct {
 
 /**
  * @brief Initialize the scope object API
- * @param module The python module we want to initialize the API 
+ * @param module The python module we want to initialize the API
  * @return status code
  **/
 int scope_object_init(PyObject* module);
