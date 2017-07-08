@@ -53,30 +53,35 @@ static int _py_object_init(PyObject* _self, PyObject* args, PyObject* kwds)
 {
 	(void)kwds;
 	_py_object_t* self = (_py_object_t*)_self;
-	if(self->magic == _MAGIC) 
+	if(self->magic != _MAGIC) 
 	{
 		PyErr_SetString(PyExc_TypeError, "Invalid type magic number");
 		return -1;
 	}
 
-	scope_object_type_t type;
+	long l_type;
 	long scope_token;
-	if(PyArg_ParseTuple(args, "il", &type, &scope_token) == -1) 
+	PyObject* first = PyTuple_GetSlice(args, 0, 2);
+	if(NULL == first || !PyArg_ParseTuple(first, "ll", &l_type, &scope_token)) 
 	{
+		Py_DECREF(first);
 		PyErr_SetString(PyExc_TypeError, "Invalid arguments");
 		return -1;
 	}
+	Py_DECREF(first);
 
-	if(type < 0 || type >= SCOPE_OBJECT_TYPE_COUNT)
+	if(l_type < 0 || l_type >= SCOPE_OBJECT_TYPE_COUNT)
 	{
 		PyErr_SetString(PyExc_TypeError, "Invalid scope type");
 		return -1;
 	}
 
-	if(scope_token >= 0)
+	scope_object_type_t type = (scope_object_type_t)l_type;
+
+	if(scope_token < 0)
 	{
 		Py_ssize_t size = PyTuple_Size(args);
-		PyObject* remaining = PyTuple_GetSlice(args, 1, size);
+		PyObject* remaining = PyTuple_GetSlice(args, 2, size);
 		if(NULL == remaining)
 		{
 			PyErr_SetString(PyExc_RuntimeError, "Cannot create the RLS object creation parameter");
@@ -93,6 +98,7 @@ static int _py_object_init(PyObject* _self, PyObject* args, PyObject* kwds)
 		Py_DECREF(remaining);
 
 		self->token = ERROR_CODE(scope_token_t);
+		self->type = type;
 	}
 	else
 	{
@@ -141,6 +147,7 @@ static PyObject* _py_object_str(PyObject* _self)
 
 static PyObject* _py_object_get_token(PyObject* _self, PyObject* args)
 {
+	(void)args;
 	_py_object_t* self = (_py_object_t*)_self;
 	if(self->magic != _MAGIC || self->type >= SCOPE_OBJECT_TYPE_COUNT)
 	{
@@ -151,7 +158,7 @@ static PyObject* _py_object_get_token(PyObject* _self, PyObject* args)
 	scope_token_t ret = self->token;
 	if(ERROR_CODE(scope_token_t) == ret)
 	{
-		if(_obj_ops[self->type].commit == NULL || _obj_ops[self->type].commit(self->owned) == ERROR_CODE(int))
+		if(_obj_ops[self->type].commit == NULL || (ret = self->token = _obj_ops[self->type].commit(self->owned)) == ERROR_CODE(scope_token_t))
 		{
 			PyErr_SetString(PyExc_RuntimeError, "Cannot commit the RLS object to the scope");
 			return NULL;
@@ -193,7 +200,7 @@ int scope_object_init(PyObject* module)
 
 	Py_INCREF(&_py_type);
 
-	if(PyModule_AddObject(module, "ScopeToken",  (PyObject*)&_py_type) == -1)
+	if(PyModule_AddObject(module, "RLS_Object",  (PyObject*)&_py_type) == -1)
 		ERROR_RETURN_LOG(int, "Caonnot add scope token type to module");
 
 	if(PyModule_AddIntConstant(module, "SCOPE_TYPE_STRING", SCOPE_OBJECT_TYPE_STRING) == -1)
@@ -203,4 +210,35 @@ int scope_object_init(PyObject* module)
 		ERROR_RETURN_LOG(int, "Cannot add SCOPE_TYPE_FILE to the module");
 
 	return 0;
+}
+
+int scope_object_register_type_ops(scope_object_type_t type, scope_object_ops_t ops)
+{
+	if(type < 0 || type >= SCOPE_OBJECT_TYPE_COUNT || ops.create == NULL || ops.dispose == NULL || ops.commit == NULL)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	_obj_ops[type] = ops;
+
+	return 0;
+}
+
+const void* scope_object_retrieve(scope_object_type_t type, PyObject* object)
+{
+	_py_object_t* obj = (_py_object_t*)object;
+	if(type < 0 || type >= SCOPE_OBJECT_TYPE_COUNT || NULL == object || _MAGIC != obj->magic)
+	{
+		PyErr_SetString(PyExc_TypeError, "Invalid arguments");
+		return NULL;
+	}
+
+	if(obj->type != type)
+	{
+		PyErr_SetString(PyExc_TypeError, "Unexpected type code");
+		return NULL;
+	}
+
+	if(ERROR_CODE(scope_token_t) == obj->token)
+		return obj->owned;
+
+	return obj->in_scope;
 }

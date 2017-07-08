@@ -39,6 +39,9 @@ typedef struct {
 	 * @return The scope token
 	 **/
 	scope_token_t (*commit)(void* object);
+
+	/* TODO: Copy the RLS */
+
 } scope_object_ops_t;
 
 /**
@@ -65,10 +68,11 @@ int scope_object_init(PyObject* module);
 int scope_object_register_type_ops(scope_object_type_t type, scope_object_ops_t ops);
 
 /**
- * @brief Retrieve the underlying scope object from the python object
- * @param pyobj The python object
- * @return status code
+ * @brief Retrieve the RLS object from the Python object
+ * @param type The expected RLS type
+ * @param object The python object
+ * @return The pointer to the RLS object
  **/
-void* scope_object_retrive(PyObject* pyobj);
+const void* scope_object_retrieve(scope_object_type_t type, PyObject* object);
 
 #endif

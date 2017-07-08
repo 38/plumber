@@ -1,25 +1,18 @@
-from pservlet import pipe_define, PIPE_INPUT, PIPE_OUTPUT
+from pservlet import pipe_define, PIPE_INPUT, PIPE_OUTPUT, SCOPE_TYPE_STRING, RLS_Object, RLS_String
 from PyServlet import Pipe, Type
 def init(args):
-    ip = pipe_define("in", PIPE_INPUT)
-    op = pipe_define("out", PIPE_OUTPUT)
-    """
-    tp = pipe_define("test", PIPE_INPUT, "pyuseragent/Test")
-    tc = Type.TypeContext()
-    @tc.model_class(name = "test", pipe = tp, field = "")
-    class TestModel(Type.ModelBase):
-        testvalue = Type.Double()
-    return (ip, op, tc)
-    """
-    return (ip, op)
+    input_pipe  = pipe_define("in", PIPE_INPUT, "plumber/std/request_local/String")
+    output_pipe = pipe_define("out", PIPE_OUTPUT)
+    type_context = Type.TypeContext()
+    @type_context.model_class(name = "input", pipe = input_pipe)
+    class _InputModel(Type.ModelBase):
+        token = Type.ScopeToken()
+    return (type_context, output_pipe)
 
 def execute(ctx):
-    inp = Pipe(ctx[0], line_delimitor = "\r\n")
+    type_instance = ctx[0].init_instance()
     oup = Pipe(ctx[1], line_delimitor = "\r\n")
-    """
-    ti  = ctx[2].init_instance()
-    print(ti.test.testvalue)
-    """
+    user_agent = RLS_String.get_value(RLS_Object(SCOPE_TYPE_STRING, type_instance.input.token))
     ua = """<html>
     <head>
         <title>Your User-Agent String</title>
@@ -28,7 +21,7 @@ def execute(ctx):
         <p>Hello World, This is a Plumber-Python Demo</p>
         <p>Your user agent string is: %s</p>
     </body>
-</html>"""%inp.readline()
+</html>"""%user_agent
     try:
         oup.write("HTTP/1.1 200 OK\r\n")
         oup.write("Content-Type: text/html\r\n")

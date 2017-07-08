@@ -1,5 +1,5 @@
 import("service");
-
+insmod("pssm");
 insmod("tcp_pipe 1234");
 #If you want the server support HTTP, use the following lines instead
 #insmod "tcp_pipe --slave 1234"
@@ -14,7 +14,6 @@ serv = {
 	
 	() -> "in" req {
 		"out" -> "in";
-		"test" -> "test";
 	} res "out" -> ();
 }
 

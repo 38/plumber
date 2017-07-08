@@ -19,6 +19,8 @@
 #include <pservlet.h>
 
 #include <scope/object.h>
+#include <scope/string.h>
+#include <scope/file.h>
 
 /**
  * @brief How many times did the python module initialized 
@@ -91,6 +93,12 @@ static inline int _init_ppi()
 
 	if(ERROR_CODE(int) == scope_object_init(_module))
 		ERROR_LOG_GOTO(ERR, "Cannot intialize the ScopeToken");
+
+	if(ERROR_CODE(int) == scope_string_init(_module))
+		ERROR_LOG_GOTO(ERR, "Cannot initialize the RLS string object");
+
+	if(ERROR_CODE(int) == scope_file_init(_module))
+		ERROR_LOG_GOTO(ERR, "Cannot initialize the RLS file object");
 
 	return 0;
 
@@ -250,8 +258,10 @@ int cleanup(void* data)
 	servlet_data_t* s = (servlet_data_t*)data;
 	rc = _invoke_servlet_function(s, "unload");
 
+	PyGILState_STATE state = PyGILState_Ensure();
 	Py_XDECREF(s->data);
 	Py_XDECREF(s->module);
+	PyGILState_Release(state);
 
 	_finalize_ppi();
 	return rc;

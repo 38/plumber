@@ -72,4 +72,11 @@ FILE* pstd_file_open(const pstd_file_t* file, const char* mode);
  **/
 scope_token_t pstd_file_commit(pstd_file_t* file);
 
+/**
+ * @brief Get the filename for this PSTD file
+ * @param file The filename
+ * @return The file name or NULL on error
+ **/
+const char* pstd_file_name(const pstd_file_t* file);
+
 #endif /* __PSTD_TYPE_FILE_H__ */
