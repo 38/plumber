@@ -1,12 +1,11 @@
-from pservlet import pipe_define, PIPE_INPUT, PIPE_OUTPUT, SCOPE_TYPE_STRING, RLS_Object
-from PyServlet import Pipe, Type
+from pservlet import pipe_define, PIPE_INPUT, PIPE_OUTPUT
+from PyServlet import Pipe, Type, RLS
 def init(args):
     input_pipe  = pipe_define("in", PIPE_INPUT)
     output_pipe = pipe_define("out", PIPE_OUTPUT, "plumber/std/request_local/String")
     type_context = Type.TypeContext()
     @type_context.model_class(name = "output", pipe = output_pipe)
-    class _OutputModel(Type.ModelBase):
-        token = Type.ScopeToken()
+    class _OutputModel(RLS.String): pass
     return (input_pipe, type_context)
 
 def execute(ctx):
@@ -37,8 +36,7 @@ def execute(ctx):
             return 0
     if user_agent == None: 
         user_agent = "Unknown"
-    ua_object = RLS_Object(SCOPE_TYPE_STRING, -1, user_agent)
-    type_instance.output.token = ua_object.get_token()
+    type_instance.output.write(user_agent)
     inp.setpersist(persist)
     inp.setstate(None)
     return 0

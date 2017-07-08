@@ -1,18 +1,17 @@
-from pservlet import pipe_define, PIPE_INPUT, PIPE_OUTPUT, SCOPE_TYPE_STRING, RLS_Object, RLS_String
-from PyServlet import Pipe, Type
+from pservlet import pipe_define, PIPE_INPUT, PIPE_OUTPUT
+from PyServlet import Pipe, Type, RLS
 def init(args):
     input_pipe  = pipe_define("in", PIPE_INPUT, "plumber/std/request_local/String")
     output_pipe = pipe_define("out", PIPE_OUTPUT)
     type_context = Type.TypeContext()
     @type_context.model_class(name = "input", pipe = input_pipe)
-    class _InputModel(Type.ModelBase):
-        token = Type.ScopeToken()
+    class _InputModel(RLS.String): pass
     return (type_context, output_pipe)
 
 def execute(ctx):
     type_instance = ctx[0].init_instance()
     oup = Pipe(ctx[1], line_delimitor = "\r\n")
-    user_agent = RLS_String.get_value(RLS_Object(SCOPE_TYPE_STRING, type_instance.input.token))
+    user_agent = type_instance.input.read()
     ua = """<html>
     <head>
         <title>Your User-Agent String</title>

@@ -143,8 +143,11 @@ class TypeContext(object):
                 field   The field expression we want to access
         """
         def _decorator(cls):
-            self._add_model(name, pipe, field, cls)
-            return cls
+            if issubclass(cls, ModelBase):
+                self._add_model(name, pipe, field, cls)
+            else:
+                raise TypeError("The model class must be a subclass of ModelBase")
+            return None
         return _decorator
     def init_instance(self):
         """
