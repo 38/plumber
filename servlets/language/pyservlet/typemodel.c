@@ -160,10 +160,10 @@ static PyObject* _type_instance_read_int(PyObject* _self, PyObject* args)
 		PyErr_SetString(PyExc_RuntimeError, "Invalid size");
 		return NULL;
 	}
-	
+
 
 	char buf[size];
-	
+
 	union {
 		void*    generic;
 		uint8_t* u8;
@@ -201,12 +201,12 @@ static PyObject* _type_instance_read_int(PyObject* _self, PyObject* args)
 		    break;
 		case 8:
 		    if(is_signed) retval = *typed_buf.i64;
-		    else 
-				return Py_BuildValue("K", *typed_buf.u64);
+		    else
+		        return Py_BuildValue("K", *typed_buf.u64);
 		    break;
 		default:
-			PyErr_SetString(PyExc_RuntimeError, "Code bug!");
-			return NULL;
+		    PyErr_SetString(PyExc_RuntimeError, "Code bug!");
+		    return NULL;
 	}
 
 	return Py_BuildValue("l", retval);
@@ -256,8 +256,8 @@ static PyObject* _type_instance_read_float(PyObject* _self, PyObject* args)
 		    retval = *typed.d;
 		    break;
 		default:
-			PyErr_SetString(PyExc_RuntimeError, "Code bug!");
-			return NULL;
+		    PyErr_SetString(PyExc_RuntimeError, "Code bug!");
+		    return NULL;
 	}
 
 	return Py_BuildValue("d", retval);
