@@ -125,10 +125,6 @@ static PyObject* _type_model_get_accessor(PyObject* _self, PyObject* args)
 	_type_model_t* self = (_type_model_t*)_self;
 	long    pipe;
 	const char* member;
-	PyObject* first = PyTuple_GetItem(args, 0);
-	PyObject* second = PyTuple_GetItem(args, 1);
-	(void)first;
-	(void)second;
 	if(!PyArg_ParseTuple(args, "ls", &pipe, &member))
 	{
 		PyErr_SetString(PyExc_RuntimeError, "Invalid arguments");
@@ -352,10 +348,7 @@ int typemodel_object_init(PyObject* module)
 	Py_INCREF(&_py_type_model);
 
 	if(PyModule_AddObject(module, "TypeModel", (PyObject*)&_py_type_model) == -1)
-	{
-		Py_DECREF(&_py_type_model);
 		ERROR_RETURN_LOG(int, "Cannot add type to module");
-	}
 
 	if(PyType_Ready(&_py_type_instance) == -1)
 		ERROR_RETURN_LOG(int, "Cannot intialize the type object");
@@ -363,10 +356,7 @@ int typemodel_object_init(PyObject* module)
 	Py_INCREF(&_py_type_instance);
 
 	if(PyModule_AddObject(module, "TypeInstance", (PyObject*)&_py_type_instance) == -1)
-	{
-		Py_DECREF(&_py_type_instance);
 		ERROR_RETURN_LOG(int, "Cannot add type to module");
-	}
 
 	return 0;
 }

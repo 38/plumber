@@ -18,6 +18,8 @@
 
 #include <pservlet.h>
 
+#include <scope/object.h>
+
 /**
  * @brief How many times did the python module initialized 
  **/
@@ -86,6 +88,9 @@ static inline int _init_ppi()
 
 	if(ERROR_CODE(int) == typemodel_object_init(_module))
 		ERROR_LOG_GOTO(ERR, "Cannot initialize the typemodel object");
+
+	if(ERROR_CODE(int) == scope_object_init(_module))
+		ERROR_LOG_GOTO(ERR, "Cannot intialize the ScopeToken");
 
 	return 0;
 

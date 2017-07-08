@@ -185,5 +185,6 @@ Uint64 = _define_int_primitive(8, False)
 Float  = _define_float_primitive(4)
 Double = _define_float_primitive(8)
 
-ScopeToken = Uint32
+ScopeToken = _define_float_primitive(4, False)
+
 
