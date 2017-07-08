@@ -38,6 +38,7 @@ typedef struct _servlet_t {
 	uint64_t              hash[2];/*!< The 128 bit hash code */
 	char*                 name;   /*!< The servlet name */
 	pss_bytecode_regid_t  reg;    /*!< The register used for the edge set */
+	pss_bytecode_regid_t  rev_reg;/*!< The reverse edge set register */
 	struct _servlet_t*    next;   /*!< The next servlet in the servlet set */
 } _servlet_t;
 
@@ -111,7 +112,7 @@ uint32_t _hashcode(const char* str, size_t len, uint64_t full[2])
  * @param name The name
  * @return The regsister
  **/
-pss_bytecode_regid_t _get_adj_reg(_service_ctx_t* ctx, const char* name)
+pss_bytecode_regid_t _get_adj_reg(_service_ctx_t* ctx, const char* name, int rev)
 {
 	uint64_t hash[2];
 	size_t len;
@@ -119,7 +120,8 @@ pss_bytecode_regid_t _get_adj_reg(_service_ctx_t* ctx, const char* name)
 	_servlet_t* ptr;
 	for(ptr = ctx->nodes[slot]; NULL != ptr && (ptr->hash[0] != hash[0] || ptr->hash[1] != hash[1]) && strcmp(ptr->name, name) != 0; ptr = ptr->next);
 
-	if(NULL != ptr) return ptr->reg;
+	if(NULL != ptr) 
+		return rev ? ptr->rev_reg : ptr->reg;
 
 	_servlet_t* node = (_servlet_t*)calloc(1, sizeof(*node));
 	if(NULL == node)
@@ -129,6 +131,15 @@ pss_bytecode_regid_t _get_adj_reg(_service_ctx_t* ctx, const char* name)
 	    ERROR_LOG_ERRNO_GOTO(CREATE_ERR, "Cannot allocate register for the adj list");
 
 	if(!_INST(ctx->seg, DICT_NEW, _R(node->reg)))
+	{
+		pss_comp_raise_internal(ctx->comp, PSS_COMP_INTERNAL_CODE);
+		goto CREATE_ERR;
+	}
+	
+	if(ERROR_CODE(pss_bytecode_regid_t) == (node->rev_reg = pss_comp_mktmp(ctx->comp)))
+	    ERROR_LOG_ERRNO_GOTO(CREATE_ERR, "Cannot allocate register for the reverse adj list");
+
+	if(!_INST(ctx->seg, DICT_NEW, _R(node->rev_reg)))
 	{
 		pss_comp_raise_internal(ctx->comp, PSS_COMP_INTERNAL_CODE);
 		goto CREATE_ERR;
@@ -144,7 +155,7 @@ pss_bytecode_regid_t _get_adj_reg(_service_ctx_t* ctx, const char* name)
 
 	node->next = ctx->nodes[slot];
 	ctx->nodes[slot] = node;
-	return node->reg;
+	return rev ? node->rev_reg : node->reg;
 CREATE_ERR:
 	if(NULL != node) free(node);
 	return ERROR_CODE(pss_bytecode_regid_t);
@@ -178,28 +189,35 @@ int _service_ctx_free(_service_ctx_t* ctx)
 			_servlet_t* this = ptr;
 			ptr = ptr->next;
 
+			pss_bytecode_regid_t regs[] = {this->reg, this->rev_reg};
+			const char*          pref[] = {"", "!"};
 
-			char buf[1024];
-			snprintf(buf, sizeof(buf), "@%s", this->name);
-			if(NULL != this->name) free(this->name);
-			pss_bytecode_regid_t regid = pss_comp_mktmp(ctx->comp);
-			if(ERROR_CODE(pss_bytecode_regid_t) == regid)
-			    rc = ERROR_CODE(int);
-			else do {
-				if(!_INST(ctx->seg, STR_LOAD, _S(buf), _R(regid)))
-				    goto ERR;
-				if(!_INST(ctx->seg, SET_VAL, _R(this->reg), _R(ctx->dict), _R(regid)))
-				    goto ERR;
-				if(ERROR_CODE(int) == pss_comp_rmtmp(ctx->comp, regid))
-				    goto ERR;
-				break;
+			uint32_t j;
+			for(j = 0; j < 2; j ++)
+			{
+				char buf[1024];
+				snprintf(buf, sizeof(buf), "%s@%s", pref[j], this->name);
+				pss_bytecode_regid_t regid = pss_comp_mktmp(ctx->comp);
+				if(ERROR_CODE(pss_bytecode_regid_t) == regid)
+					rc = ERROR_CODE(int);
+				else do {
+					if(!_INST(ctx->seg, STR_LOAD, _S(buf), _R(regid)))
+						goto ERR;
+					if(!_INST(ctx->seg, SET_VAL, _R(regs[j]), _R(ctx->dict), _R(regid)))
+						goto ERR;
+					if(ERROR_CODE(int) == pss_comp_rmtmp(ctx->comp, regid))
+						goto ERR;
+					break;
 ERR:
-				pss_comp_raise_internal(ctx->comp, PSS_COMP_INTERNAL_CODE);
-				rc = ERROR_CODE(int);
-			} while(0);
+					pss_comp_raise_internal(ctx->comp, PSS_COMP_INTERNAL_CODE);
+					rc = ERROR_CODE(int);
+				} while(0);
+				
+				if(ERROR_CODE(pss_bytecode_regid_t) != regs[j] && ERROR_CODE(int) == pss_comp_rmtmp(ctx->comp, regs[j]))
+					rc = ERROR_CODE(int);
+			}
 
-			if(ERROR_CODE(pss_bytecode_regid_t) != this->reg && ERROR_CODE(int) == pss_comp_rmtmp(ctx->comp, this->reg))
-			    rc = ERROR_CODE(int);
+			if(NULL != this->name) free(this->name);
 			free(this);
 		}
 	}
@@ -217,19 +235,14 @@ ERR:
 
 	return rc;
 }
-
-static inline int _add_edge(_service_ctx_t* ctx, const char* left_node, const char* left_port, const char* right_port, const char* right_node)
+static inline int _append_adj_list(_service_ctx_t* ctx, pss_bytecode_regid_t list_reg,
+		                           const char* left_node, const char* left_port, 
+								   const char* right_port, const char* right_node)
 {
+	(void)left_node;
 	pss_comp_t* comp = ctx->comp;
 	pss_bytecode_segment_t* seg = ctx->seg;
-
-	if(NULL == left_node || NULL == right_node || NULL == left_port || NULL == right_port)
-	    PSS_COMP_RAISE_INT(comp, ARGS);
-
-	pss_bytecode_regid_t list_reg = _get_adj_reg(ctx, left_node);
-	if(ERROR_CODE(pss_bytecode_regid_t) == list_reg)
-	    ERROR_RETURN_LOG(int, "Cannot get the register for the adj list");
-
+	
 	char keybuf[1024];
 	snprintf(keybuf, sizeof(keybuf), "%s", left_port);
 	char valbuf[1024];
@@ -254,6 +267,29 @@ static inline int _add_edge(_service_ctx_t* ctx, const char* left_node, const ch
 
 	if(ERROR_CODE(int) == pss_comp_rmtmp(comp, valreg))
 	    ERROR_RETURN_LOG(int, "Cannot release the val register");
+
+	return 0;
+}
+static inline int _add_edge(_service_ctx_t* ctx, const char* left_node, const char* left_port, const char* right_port, const char* right_node)
+{
+	pss_comp_t* comp = ctx->comp;
+
+	if(NULL == left_node || NULL == right_node || NULL == left_port || NULL == right_port)
+	    PSS_COMP_RAISE_INT(comp, ARGS);
+
+	pss_bytecode_regid_t list_reg = _get_adj_reg(ctx, left_node, 0);
+	if(ERROR_CODE(pss_bytecode_regid_t) == list_reg)
+	    ERROR_RETURN_LOG(int, "Cannot get the register for the adj list");
+
+	if(ERROR_CODE(int) == _append_adj_list(ctx, list_reg, left_node, left_port, right_port, right_node))
+		ERROR_RETURN_LOG(int, "Cannot put the edge to the adj list");
+	
+	pss_bytecode_regid_t list_reg_rev = _get_adj_reg(ctx, right_node, 1);
+	if(ERROR_CODE(pss_bytecode_regid_t) == list_reg_rev)
+		ERROR_RETURN_LOG(int, "Cannot get the register for the reverse adj list");
+
+	if(ERROR_CODE(int) == _append_adj_list(ctx, list_reg_rev, right_node, right_port, left_port, left_node))
+		ERROR_RETURN_LOG(int, "Cannot put the reverse edge to the revers adj list");
 
 	return 0;
 }

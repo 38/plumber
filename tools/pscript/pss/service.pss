@@ -12,6 +12,7 @@ Service.for_each_element = function Service.for_each_element(serv, handler)
 	}
 	var node_handle = _get_func("node");
 	var pipe_handle = _get_func("pipe");
+	var rev_pipe_handle = _get_func("rev_pipe");
 	var port_handle = _get_func("port");
 	var input_handle = _get_func("input");
 	var output_handle = _get_func("output");
@@ -21,7 +22,7 @@ Service.for_each_element = function Service.for_each_element(serv, handler)
 		var lsp = len(sp);
 		if(lsp == 1) 
 			node_handle(key, serv[key]);
-		else if(sp[0] == "")
+		else
 		{
 			if(lsp == 2)
 			{
@@ -33,10 +34,13 @@ Service.for_each_element = function Service.for_each_element(serv, handler)
 					var dsp = split(dests[src_port], "@");
 					var dst_node = dsp[0];
 					var dst_port = dsp[1];
-					pipe_handle(src_node, src_port, dst_node, dst_port);
+					if(sp[0] == "")
+						pipe_handle(src_node, src_port, dst_node, dst_port);
+					else if(sp[0] == "!")
+						rev_pipe_handle(src_node, src_port, dst_node, dst_port);
 				}
 			}
-			else if(lsp == 3)
+			else if(lsp == 3 && sp[0] == "")
 			{
 				var dst = split(serv[key], "@");
 				var dst_node = dst[0];
@@ -56,10 +60,81 @@ Service.for_each_element = function Service.for_each_element(serv, handler)
 	}
 };
 
+Service.add_node = function Service.add_node(serv, name, init_arg)
+{
+	serv[name] = init_arg;
+	serv["@" + name] = {};
+	serv["!@" + name] = {};
+}
+
+Service.add_pipe = function Service.add_pipe(serv, src_node, src_port, dst_port, dst_node) 
+{
+	serv["@" + src_node][src_port] = dst_node + "@" + dst_port;
+	serv["!@" + dst_node][dst_port] = src_node + "@" + src_port
+}
+
+var _add_merger_or_splitter = function _add_merger_or_splitter(serv, splitter, merger) 
+{
+	var downstream = {};
+	var upstream = {};
+	var _get_pipe_handle = function(result) {
+		return function _pipe(src_node, src_port, dst_node, dst_port) 
+		{
+			var key = dst_node + "@" + dst_port; 
+			var val = src_node + "@" + src_port;
+			if(result[key] == undefined) result[key] = {};
+			var n = len(result[key]);
+			result[key][n] = val
+		}
+	}
+
+	Service.for_each_element(serv, {pipe: _get_pipe_handle(upstream), rev_pipe: _get_pipe_handle(downstream)});
+
+
+	for(var from_str in downstream)
+	{
+		var toset = downstream[from_str];
+		var lentoset = len(toset);
+		if(lentoset > 1)
+		{
+			var from = split(from_str, "@");
+			var name = "____splitter_" + from[0] + "_" + from[1];
+			Service.add_node(serv, name, splitter + " " + lentoset);
+			Service.add_pipe(serv, from[0], from[1], "in", name);
+			for(var i in toset)
+			{
+				var to_str = toset[i];
+				var to = split(to_str, "@");
+				Service.add_pipe(serv, name, "out" + i, to[1], to[0]);
+			}
+		}
+	}
+
+	for(var to_str in upstream)
+	{
+		var fromset = upstream[to_str];
+		var lenfromset = len(fromset);
+		if(lenfromset > 1)
+		{
+			var to = split(to_str, "@");
+			name = "____merger_" + to[0] + "_" + to[1];
+			Service.add_node(serv, name, merger + " " + lenfromset);
+			Service.add_pipe(serv, name, "out", to[1], to[0]);
+			for(var i in fromset)
+			{
+				var from_str = fromset[i];
+				var from = split(from_str, "@");
+				Service.add_pipe(serv, from[0], from[1], "in" + i, name);
+			}
+		}
+	}
+}
+
 Service.build = function(serv)
 {
 	var _build = function _build_impl(serv, obj, build, prefix, nodemap) 
 	{
+		_add_merger_or_splitter(serv, "dataflow/dup", "dataflow/firstnonempty");
 		var nodes = {};
 		var ports = {};
 		var _deref_port = function _deref_port(node, port)
@@ -117,8 +192,12 @@ Service.start = function Service.start(serv)
 	__service_start(serv_obj);
 }
 
-Service.visualize = function Service.visualize(serv) 
+Service.visualize = function Service.visualize(serv, config) 
 {
+	if(config == undefined) config = {preprocess: 0}
+	if(config["preprocess"] == undefined) config["preprocess"] = 0;
+	if(config["preprocess"] != 0) _add_merger_or_splitter(serv, "dataflow/dup", "dataflow/firstnonempty");
+
 	print("digraph {");
 	
 	var obj = __service_new();
