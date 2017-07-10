@@ -716,7 +716,6 @@ RET:
 	{
 		ret->revdeps_ok = 0;
 		ret->sandbox = 0;
-		ret->own_type = 0u;
 		ret->type_dirty = 0u;
 		ret->rdep_dirty = 0u;
 		if(ret->node_data != NULL && ret->dispose_node_data != NULL &&
@@ -728,6 +727,7 @@ RET:
 
 		if(ret->own_type && ret->type != NULL && proto_type_free(ret->type) == ERROR_CODE(int))
 		    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
+		ret->own_type = 0u;
 		ret->type = NULL;
 
 		if(ret->revdeps != NULL)

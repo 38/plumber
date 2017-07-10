@@ -38,8 +38,8 @@ typedef struct {
 	const char*        file;     /*!< the filename which contains the token */
 	uint32_t           line;     /*!< the line number for this token */
 	uint32_t           column;   /*!< the column number for this token */
-	uint32_t           reftok:1; /*!< if this type is used as a reference token */
-	uintptr_t __padding__;
+	proto_type_atomic_metadata_t metadata; /*!< The type metadata carried by this lexer token */
+	uintptr_t __padding__[0];
 	union {
 		uint32_t number;        /*!< the number value */
 		uint32_t size;          /*!< the size of this type primitive */

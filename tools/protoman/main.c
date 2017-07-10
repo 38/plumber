@@ -559,7 +559,26 @@ ENT_ERR:
 			if(ent->symbol == NULL) continue;
 			symbol = ent->symbol;
 			offset = proto_db_type_offset(type, symbol, &size);
-			typename = "<primitive>";
+			static char primitive_buf[128];
+			if(ent->metadata == NULL)
+			{
+				typename = "<primitive>";
+			}
+			else if(ent->metadata->flags.scope.valid)
+			{
+				snprintf(primitive_buf, sizeof(primitive_buf), "<%sruntime scope object: %s>", 
+						 ent->metadata->flags.scope.primitive ? "primitive " : "",
+						 ent->metadata->scope_typename);
+				typename = primitive_buf;
+			}
+			else
+			{
+				snprintf(primitive_buf, sizeof(primitive_buf), "<%s%sprimitive>",
+						 ent->metadata->flags.numeric.is_signed ? "signed " : "unsigned ",
+						 ent->metadata->flags.numeric.is_real   ? "float-point " : "interger ");
+				typename = primitive_buf;
+			}
+
 		}
 
 		if(ERROR_CODE(uint32_t) == offset) goto LAYOUT_ERR;

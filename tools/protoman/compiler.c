@@ -229,6 +229,7 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 	    _RAISE(ctx, return ERROR_CODE(int), "Internal error: cannot peek token");
 
 	uint32_t elem_size = tok->data->size;
+	proto_type_atomic_metadata_t metadata = tok->metadata;
 
 	_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);
 
@@ -246,7 +247,7 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 	if(rc == ERROR_CODE(int))
 	    return ERROR_CODE(int);
 
-	if(ERROR_CODE(int) == proto_type_append_atomic(type, namebuf, elem_size, ((rc == 0) ? NULL : dimensions), tok->reftok))
+	if(ERROR_CODE(int) == proto_type_append_atomic(type, namebuf, elem_size, ((rc == 0) ? NULL : dimensions), &metadata))
 	    _LIB_PROTO_ERROR(ctx, return ERROR_CODE(int));
 
 	return 0;
