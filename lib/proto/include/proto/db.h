@@ -37,6 +37,7 @@ const proto_type_t* proto_db_query_type(const char* type_name);
 /**
  * @brief compute the actual size of the protocol type
  * @param type_name the protocol type object to compute
+ * @note This function doesn't support the adhoc primitive type
  * @return the size of the type or error code
  **/
 uint32_t proto_db_type_size(const char* type_name);
@@ -55,6 +56,17 @@ uint32_t proto_db_type_size(const char* type_name);
  * @return the offset from the beginging of the data strcturue, or error code
  **/
 uint32_t proto_db_type_offset(const char* type_name, const char* fieldname, uint32_t* size_buf);
+
+/**
+ * @brief Get the field name of the type
+ * @note If the field is a primitive, it will returns an adhoc data type for the primitves, for example uint32, etc
+ *       For this kinds of virtual typename, the only thing we can access is <typename>.value, which has the primitive
+ *       type
+ * @param type_name The type name
+ * @param fieldname The field name descriptor
+ * @return The field type name
+ **/
+const char* proto_db_field_type(const char* type_name, const char* fieldname);
 
 /**
  * @brief validate the type is well formed, which means the type's references are all defined.

@@ -24,12 +24,104 @@ typedef struct {
 	uint32_t            actual_size;         /*!< the actual size of this type */
 	uint32_t            nentity;             /*!< the number of entities in this type */
 	char*               pwd;                 /*!< the "current working directory" for this type */
+	char*               name;                /*!< The name for this type, not include the pwd */
 	const proto_type_t* type_obj;            /*!< the actual type object */
 	union {
 		uint32_t*       field_off;           /*!< the computed offset */
 		uint32_t*       alias_state;         /*!< the computation state, only used for name alias */
 	};
 } _type_metadata_t;
+
+/**
+ * @brief The flags bit describes an adhoc pritimive
+ **/
+typedef enum {
+	_NONE   = -1,
+	_SIZE1  = 0,     /*!< The size of this primitive is 1 */
+	_SIZE2  = 1,     /*!< The size of this primitive is 2 */
+	_SIZE4  = 2,     /*!< The size of this primitive is 4 */
+	_SIZE8  = 3,     /*!< The size of this primitive is 8 */
+	_FLOAT  = 4,     /*!< This is a float point number */
+	_SIGNED = 8      /*!< This is a signed type */
+} _primitive_desc_t;
+
+
+
+#define _PD_FLOAT(x) (((x)&_FLOAT))
+#define _PD_SIGNED(x)(((x)&_SIGNED))
+#define _PD_SIZE(x)  (1u << ((x)&_SIZE8))
+
+/**
+ * @brief prase an adhoc type name to the primitive descriptor
+ * @param typename The type name to parse
+ * @return The primitive descriptor
+ **/
+static inline _primitive_desc_t _parse_adhoc_type(const char* typename)
+{
+	const char* trailer = NULL;
+	_primitive_desc_t ret = 0;
+	switch(typename[0])
+	{
+		case 'd':
+		case 'f':
+			ret = _SIGNED | _FLOAT | (typename[0] == 'd' ? _SIZE8 : _SIZE4);
+			trailer = (typename[0] == 'd' ? "ouble" : "loat");
+			typename ++;
+			break;
+		case 'u':
+			ret = _SIGNED;
+			if(typename[1] == 'i') typename ++; else return _NONE;
+		case 'i':
+			ret ^= _SIGNED;
+			if(typename[1] == 'n' && typename[2] == 't')
+			{
+				if(typename[3] == '8')       ret |= _SIZE1, trailer = "";
+				else if (typename[3] == '1') ret |= _SIZE2, trailer = "6";
+				else if (typename[3] == '3') ret |= _SIZE4, trailer = "2";
+				else if (typename[3] == '6') ret |= _SIZE8, trailer = "4";
+				typename += 4;
+				break;
+			}
+		default: 
+			return _NONE;
+	}
+	if(NULL == trailer || strcmp(trailer, typename) == 0) return ret;
+	return _NONE;
+}
+
+/**
+ * @brief Generate the type name string from the primitive description
+ * @param p The primitive description
+ * @return The string, NULL if the pritmive description is not valid
+ **/
+static inline const char* _adhoc_typename(_primitive_desc_t p)
+{
+	static char* result_buf[16] = {};
+	static char  memory[16][7] = {};
+
+	if(result_buf[p]) return result_buf[p];
+	char* buf = memory[p];
+
+	if(p & _FLOAT) 
+	{
+		if(~p & _SIGNED) return NULL;
+		if((p & _SIZE8) == _SIZE8) return result_buf[p] = "float";
+		else if((p & _SIZE8) == _SIZE4) return result_buf[p] = "double";
+	}
+	else
+	{
+		char* this = buf;
+		if(~p & _SIGNED) *(this++) = 'u';
+		*(this++) = 'i';
+		*(this++) = 'n';
+		*(this++) = 't';
+		int sz = (1 << (p & _SIZE8)) * 8;
+		if(sz > 10) *(this++) = (char)((sz / 10) + '0');
+		*(this++) = (char)((sz % 10) + '0');
+		return result_buf[p] = buf;
+	}
+	return NULL;
+}
 
 /**
  * @brief allocate memory for a new metadata object
@@ -74,6 +166,7 @@ static inline int _type_metadata_free(void* data)
 	_type_metadata_t* metadata = (_type_metadata_t*)data;
 	if(NULL != metadata->field_off) free(metadata->field_off);
 	if(NULL != metadata->pwd) free(metadata->pwd);
+	if(NULL == metadata->pwd && NULL != metadata->name) free(metadata->name);
 	free(metadata);
 	return 0;
 }
@@ -127,10 +220,11 @@ const proto_type_t* proto_db_query_type(const char* typename)
  * @param result the result buffer
  * @return status code
  **/
-static inline int _get_type_pwd(const char* typename, const char* pwd, char** result)
+static inline int _get_type_pwd(const char* typename, const char* pwd, char** result, char** namebuf)
 {
 
 	*result = NULL;
+	*namebuf = NULL;
 	const char* full_name = proto_cache_full_name(typename, pwd);
 	if(NULL == full_name)
 	    PROTO_ERR_RAISE_RETURN(int, FAIL);
@@ -150,7 +244,8 @@ static inline int _get_type_pwd(const char* typename, const char* pwd, char** re
 		buf[len] = 0;
 		*result = buf;
 	}
-	else free(buf);
+
+	*namebuf = buf + len + (len != 0);
 
 	return 0;
 ERR:
@@ -239,7 +334,7 @@ static inline const _type_metadata_t* _compute_type_metadata(const char* typenam
 	    PROTO_ERR_RAISE_GOTO(ERR, FAIL);
 
 	/* Then we need the full name of the type to construct the pwd for its children */
-	if(ERROR_CODE(int) == _get_type_pwd(typename, pwd, &metadata->pwd))
+	if(ERROR_CODE(int) == _get_type_pwd(typename, pwd, &metadata->pwd, &metadata->name))
 	    PROTO_ERR_RAISE_GOTO(ERR, FAIL);
 
 	uint32_t nsegs, i, padding_size, current_size = 0, prev_padding = 0, total, padding;
@@ -404,6 +499,10 @@ uint32_t proto_db_type_size(const char* typename)
 	if(NULL == typename)
 	    PROTO_ERR_RAISE_RETURN(uint32_t, ARGUMENT);
 
+	_primitive_desc_t pd;
+	if(_NONE != (pd = _parse_adhoc_type(typename)))
+		return _PD_SIZE(pd);
+
 	const _type_metadata_t* metadata = _compute_type_metadata(typename, NULL);
 
 	if(NULL == metadata)
@@ -468,6 +567,7 @@ static inline int _find_basetype(const _type_metadata_t* type_data, _type_metada
  **/
 typedef struct {
 	const _type_metadata_t* typedata;  /*!< the type metadata for the underlying type */
+	const proto_type_atomic_metadata_t* primitive_data;   /*!< The metadata for a primitive field */
 	uint32_t                elemsize;  /*!< the element size for the underlying type, this is necessary because for primitive, we don't have typedata */
 	uint32_t                dimlen;    /*!< the length of dimension data */
 	const uint32_t*         dimension; /*!< the size of each dimension */
@@ -496,6 +596,7 @@ static inline uint32_t _compute_name_offset(const _type_metadata_t* type_data, c
 	uint32_t field_offset;
 	infobuf->elemsize = 0;
 	infobuf->typedata = NULL;
+	infobuf->primitive_data = NULL;
 	infobuf->dimlen   = 0;
 	infobuf->dimension = NULL;
 	const proto_type_entity_t* entity = _find_member(type_data, target_symbol, &field_offset);
@@ -523,6 +624,8 @@ static inline uint32_t _compute_name_offset(const _type_metadata_t* type_data, c
 		    infobuf->elemsize = entity->header.elem_size;
 		    infobuf->dimlen   = entity->header.dimlen;
 		    infobuf->dimension = entity->dimension;
+			if(entity->header.metadata)
+				infobuf->primitive_data = entity->metadata;
 		    break;
 		case PROTO_TYPE_ENTITY_REF_TYPE:
 		    if(NULL == (target_type = proto_ref_typeref_get_path(entity->type_ref)))
@@ -583,12 +686,25 @@ static inline uint32_t _compute_name_offset(const _type_metadata_t* type_data, c
 
 uint32_t proto_db_type_offset(const char* typename, const char* fieldname, uint32_t* size)
 {
+	if(_init_count == 0)
+		PROTO_ERR_RAISE_RETURN(uint32_t, DISALLOWED);
+
 	_compute_token ++;
 
 	proto_err_clear();
 
 	if(NULL == typename || NULL == fieldname)
 	    PROTO_ERR_RAISE_RETURN(uint32_t, ARGUMENT);
+
+	/* Handle the adhoc types */
+	_primitive_desc_t pd;
+	if(_NONE != (pd = _parse_adhoc_type(typename)))
+	{
+		if(strcmp(fieldname, "value") != 0) 
+			PROTO_ERR_RAISE_RETURN(uint32_t, UNDEFINED);
+		if(size != NULL) *size = _PD_SIZE(pd);
+		return 0;
+	}
 
 	proto_ref_nameref_t* name = _parse_name_expr(fieldname);
 	if(NULL == name)
@@ -654,6 +770,10 @@ int proto_db_type_validate(const char* typename)
  **/
 static inline const char* _parent_of(const char* type)
 {
+	/* If this is an adhoc type, the parent the none */
+	if(_NONE != _parse_adhoc_type(type))
+		return NULL;
+
 	const proto_type_t* proto = proto_db_query_type(type);
 
 	if(NULL == proto)
@@ -716,4 +836,64 @@ FOUND:
 	}
 
 	return ret;
+}
+
+const char* proto_db_field_type(const char* typename, const char* fieldname)
+{
+	if(_init_count == 0)
+		PROTO_ERR_RAISE_RETURN_PTR(DISALLOWED);
+
+	_compute_token ++;
+
+	proto_err_clear();
+
+	if(NULL == typename || NULL == fieldname)
+	    PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
+
+	/* Handle the adhoc types */
+	_primitive_desc_t pd;
+	if(_NONE != (pd = _parse_adhoc_type(typename)))
+	{
+		if(strcmp(fieldname, "value") != 0) 
+			PROTO_ERR_RAISE_RETURN_PTR(UNDEFINED);
+		return typename;
+	}
+
+	proto_ref_nameref_t* name = _parse_name_expr(fieldname);
+	if(NULL == name)
+	    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
+
+	_name_info_t info;
+	const _type_metadata_t* metadata = _compute_type_metadata(typename, NULL);
+	uint32_t offset = ERROR_CODE(uint32_t);
+
+	if(NULL != metadata)
+	    offset =  _compute_name_offset(metadata, name, 0, 0, &info);
+
+	proto_ref_nameref_free(name);
+
+	if(ERROR_CODE(uint32_t) == offset)
+	    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
+	
+	if(info.typedata != NULL) 
+		return proto_cache_full_name(info.typedata->name, info.typedata->pwd);
+	else
+	{
+		/* Basically we do not allow any adhoc scope token, because it's dangerous and not make sense */
+		if(info.primitive_data->flags.scope.valid)
+			PROTO_ERR_RAISE_RETURN_PTR(DISALLOWED);
+
+		/* Also we do not allow any constant value becomes an adhoc type */
+		if(info.elemsize == 0)
+			PROTO_ERR_RAISE_RETURN_PTR(DISALLOWED);
+
+		uint8_t sizecode = 0;
+		for(;info.elemsize > 1; sizecode ++, info.elemsize /= 2);
+
+		/* Then let's construct the primitive descriptor */
+		_primitive_desc_t pd = (info.primitive_data->flags.numeric.is_real ? _FLOAT : 0) |
+			                   (info.primitive_data->flags.numeric.is_signed ? _SIGNED : 0) |
+							   sizecode;
+		return _adhoc_typename(pd);
+	}
 }

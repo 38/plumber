@@ -66,12 +66,12 @@ typedef struct __attribute__((packed)) {
  *        protocol entities. And the protocol entities is sorted in the memory layout
  *        order <br/>
  *        The reference data is right after the symbol section.
- * @details When the entity is a inheritence entity use                    [type = NAME, count = 1, elem_size = 0, symlen = 0, reflen > ?] <br/>
- *         When the entity is a field with another non-pritimive type use  [type = NAME, count > 0, elem_size = 0, symlen > 0, reflen > 0] <br/>
- *         When the entity is a pritmive data use                          [type = DATA, count > 0, elem_size > 0  symlen > 0, reflen = 0] <br/>
- *         When the entity is a padding use                                [type = DATA, count > 0, elem_size = 1, symlen = 0, reflen = 0] <br/>
+ * @details When the entity is a inheritence entity use                    [type = TYPE, count = 1, elem_size = 0, symlen = 0, reflen > ?] <br/>
+ *         When the entity is a field with another non-pritimive type use  [type = TYPE, count > 0, elem_size = 0, symlen > 0, reflen > 0] <br/>
+ *         When the entity is a pritmive data use                          [type = NONE, count > 0, elem_size > 0  symlen > 0, reflen = 0] <br/>
+ *         When the entity is a padding use                                [type = NONE, count > 0, elem_size = 1, symlen = 0, reflen = 0] <br/>
  *         When the entity is a name alias                                 [type = NAME, count = 0, elem_size = 0, symlen > 0, reflen > 0] <br/>
- *         When the entity is a constant                                   [type = DATA, count = 0, elem_size = 0, symlen = 0, reflen = 0] <br/> 
+ *         When the entity is a constant                                   [type = NONE, count = 0, elem_size = 0, symlen = 0, reflen = 0] <br/> 
  **/
 typedef struct __attribute__((packed)) {
 	uint32_t                      symlen:31; /*!< the length of the symbol */
