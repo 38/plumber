@@ -12,6 +12,16 @@
 #ifndef __PROTO_DB_H_
 #define __PROTO_DB_H_
 
+/**
+ * @brief The primitive type metadata
+ **/
+typedef struct {
+	uint32_t         is_primitive:1; /*!< If this is a primitive value */
+	uint32_t         is_real:1;      /*!< If this primitive is a real number */
+	uint32_t         is_signed:1;    /*!< If this is a signed number */
+	uint32_t         is_scope:1;     /*!< If this is a scope object */
+	uint32_t         size;           /*!< The size in bytes for this primitive */
+} proto_db_primitvie_metadata_t;
 
 /**
  * @brief initialize the protocol database

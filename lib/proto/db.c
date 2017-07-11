@@ -684,6 +684,27 @@ static inline uint32_t _compute_name_offset(const _type_metadata_t* type_data, c
 	return _compute_name_offset(infobuf->typedata, name, start, base_off + field_offset + array_offset, infobuf);
 }
 
+static inline uint32_t _compute_field_info(const char* typename, const char* fieldname, _name_info_t* infobuf)
+{
+
+	proto_ref_nameref_t* name = _parse_name_expr(fieldname);
+	if(NULL == name)
+	    PROTO_ERR_RAISE_RETURN(uint32_t, FAIL);
+
+	const _type_metadata_t* metadata = _compute_type_metadata(typename, NULL);
+	uint32_t ret = ERROR_CODE(uint32_t);
+
+	if(NULL != metadata)
+	    ret =  _compute_name_offset(metadata, name, 0, 0, infobuf);
+
+	proto_ref_nameref_free(name);
+
+	if(ERROR_CODE(uint32_t) == ret)
+	    PROTO_ERR_RAISE_RETURN(uint32_t, FAIL);
+
+	return ret;
+}
+
 uint32_t proto_db_type_offset(const char* typename, const char* fieldname, uint32_t* size)
 {
 	if(_init_count == 0)
@@ -706,21 +727,10 @@ uint32_t proto_db_type_offset(const char* typename, const char* fieldname, uint3
 		return 0;
 	}
 
-	proto_ref_nameref_t* name = _parse_name_expr(fieldname);
-	if(NULL == name)
-	    PROTO_ERR_RAISE_RETURN(uint32_t, FAIL);
-
 	_name_info_t info;
-	const _type_metadata_t* metadata = _compute_type_metadata(typename, NULL);
-	uint32_t ret = ERROR_CODE(uint32_t);
-
-	if(NULL != metadata)
-	    ret =  _compute_name_offset(metadata, name, 0, 0, &info);
-
-	proto_ref_nameref_free(name);
-
-	if(ERROR_CODE(uint32_t) == ret)
-	    PROTO_ERR_RAISE_RETURN(uint32_t, FAIL);
+	uint32_t ret;
+	if(ERROR_CODE(uint32_t) == (ret = _compute_field_info(typename, fieldname, &info)))
+		PROTO_ERR_RAISE_RETURN(uint32_t, FAIL);
 
 	if(size != NULL)
 	{
@@ -859,22 +869,10 @@ const char* proto_db_field_type(const char* typename, const char* fieldname)
 		return typename;
 	}
 
-	proto_ref_nameref_t* name = _parse_name_expr(fieldname);
-	if(NULL == name)
-	    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
-
 	_name_info_t info;
-	const _type_metadata_t* metadata = _compute_type_metadata(typename, NULL);
-	uint32_t offset = ERROR_CODE(uint32_t);
+	if(ERROR_CODE(uint32_t) == _compute_field_info(typename, fieldname, &info))
+		PROTO_ERR_RAISE_RETURN_PTR(FAIL);
 
-	if(NULL != metadata)
-	    offset =  _compute_name_offset(metadata, name, 0, 0, &info);
-
-	proto_ref_nameref_free(name);
-
-	if(ERROR_CODE(uint32_t) == offset)
-	    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
-	
 	if(info.typedata != NULL) 
 		return proto_cache_full_name(info.typedata->name, info.typedata->pwd);
 	else
@@ -889,6 +887,10 @@ const char* proto_db_field_type(const char* typename, const char* fieldname)
 
 		uint8_t sizecode = 0;
 		for(;info.elemsize > 1; sizecode ++, info.elemsize /= 2);
+
+		/* We do not allow an adhoc array at this point */
+		if(info.dimlen > 1 || (info.dimlen == 1 && info.dimension[0] > 1))
+			PROTO_ERR_RAISE_RETURN_PTR(DISALLOWED);
 
 		/* Then let's construct the primitive descriptor */
 		_primitive_desc_t pd = (info.primitive_data->flags.numeric.is_real ? _FLOAT : 0) |
