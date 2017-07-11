@@ -656,7 +656,7 @@ static inline int _append_padding(proto_type_t* proto, uint32_t next_size)
 
 int proto_type_append_atomic(proto_type_t* proto, const char* symbol, uint32_t elem_size, const uint32_t* dim, const proto_type_atomic_metadata_t* metadata)
 {
-	if(NULL == proto || NULL == symbol || elem_size == 0)
+	if(NULL == proto || NULL == symbol)
 	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
 	uint32_t size = elem_size, i;

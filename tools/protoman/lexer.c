@@ -28,6 +28,8 @@ static const char* _token_name[] = {
 	[LEXER_TOKEN_RBRACE]   = "}",
 	[LEXER_TOKEN_LBRACKET] = "[",
 	[LEXER_TOKEN_RBRACKET] = "]",
+	[LEXER_TOKEN_EQUAL]    = "=",
+	[LEXER_TOKEN_AT]       = "@",
 	[LEXER_TOKEN_K_TYPE]   = "Keyword: type",
 	[LEXER_TOKEN_K_ALIAS]  = "Keyword: alias",
 	[LEXER_TOKEN_K_PACKAGE]= "Keyword: package"
@@ -200,14 +202,31 @@ static inline lexer_token_t* _id_token(const lexer_t* lexer, uint32_t begin, uin
  * @param value the value of the number
  * @return the nlewy created lexer token or NULL
  **/
-static inline lexer_token_t* _num_token(const lexer_t* lexer, uint32_t value)
+static inline lexer_token_t* _num_token(const lexer_t* lexer, int64_t value)
 {
-	lexer_token_t* ret = _token_new(lexer, sizeof(uint32_t), LEXER_TOKEN_NUMBER);
+	lexer_token_t* ret = _token_new(lexer, sizeof(int64_t), LEXER_TOKEN_NUMBER);
 
 	if(NULL == ret) return NULL;
 
 	ret->data->number = value;
 	return ret;
+}
+
+/**
+ * @brief create a float token 
+ * @param lexer the lexer instance
+ * @param value the value of the number
+ * @return the newly created lexer token or NULL when error
+ **/
+static inline lexer_token_t* _float_token(const lexer_t* lexer, double value)
+{
+	lexer_token_t* ret = _token_new(lexer, sizeof(double), LEXER_TOKEN_FLOAT_POINT);
+
+	if(NULL == ret) return NULL;
+
+	ret->data->floatpoint = value;
+	return ret;
+
 }
 
 /**
@@ -354,7 +373,14 @@ static inline void _strip_whilespace_and_comment(lexer_t* lexer)
 lexer_token_t* _parse_number(lexer_t* lexer)
 {
 	int ch = _peek(lexer);
-	uint32_t value = 0;
+	int64_t value = 0;
+	int sign = 1;
+	while(ch == '-' || ch == '+')
+	{
+		if(ch == '-') sign = -sign;
+		_consume(lexer, 1);
+		ch = _peek(lexer);
+	}
 	if(ch == '0')
 	{
 		_consume(lexer, 1);
@@ -378,7 +404,7 @@ lexer_token_t* _parse_number(lexer_t* lexer)
 				_consume(lexer, 1);
 			}
 
-			return valid ? _num_token(lexer, value) : NULL;
+			return valid ? _num_token(lexer, sign * value) : NULL;
 		}
 		else
 		{
@@ -392,7 +418,7 @@ lexer_token_t* _parse_number(lexer_t* lexer)
 				ch = _peek(lexer);
 			}
 
-			return _num_token(lexer, value);
+			return _num_token(lexer, sign * value);
 		}
 	}
 	else
@@ -407,7 +433,56 @@ lexer_token_t* _parse_number(lexer_t* lexer)
 			ch = _peek(lexer);
 		}
 
-		return _num_token(lexer, value);
+		if(ch != '.' && ch != 'e')
+			return _num_token(lexer, sign * value);
+		else
+		{
+			double fval = (double)value;
+			double exp = 1;
+			if(ch == '.')
+			{
+				double mul = 0.1;
+				_consume(lexer, 1);
+				for(;;)
+				{
+					ch = _peek(lexer);
+					if(_INRANGE(ch, '0', '9'))
+						fval += mul * (ch - '0') * mul;
+					else break;
+					_consume(lexer, 1);
+				}
+			}
+			if(ch == 'e')
+			{
+				double mul = 10;
+				_consume(lexer, 1);
+				for(;;)
+				{
+					ch = _peek(lexer);
+					if(ch == '+') ;
+					else if(ch == '-')
+						mul = mul > 1 ? 0.1 : 10.0;
+					else break;
+					_consume(lexer, 1);
+				}
+
+				if(!_INRANGE(ch, '0', '9')) return NULL;
+				
+				int pow = 0;
+				for(;;)
+				{
+					if(_INRANGE(ch, '0', '9'))
+						pow = pow * 10 + ch - '0';
+					else break;
+					_consume(lexer, 1);
+					ch = _peek(lexer);
+				}
+
+				for(;pow; pow /= 2, mul *= mul)
+					if(pow&1) exp *= mul;
+			}
+			return _float_token(lexer, sign * exp * fval);
+		}
 	}
 
 	return NULL;
@@ -465,6 +540,16 @@ lexer_token_t* lexer_next_token(lexer_t* lexer)
 	{
 		_consume(lexer, 1);
 		return _const_token(lexer, LEXER_TOKEN_RBRACKET);
+	}
+	else if(ch == '=')
+	{
+		_consume(lexer, 1);
+		return _const_token(lexer, LEXER_TOKEN_EQUAL);
+	}
+	else if(ch == '@')
+	{
+		_consume(lexer, 1);
+		return _const_token(lexer, LEXER_TOKEN_AT);
 	}
 	else if(_is_letter(ch) || ch == '_' || ch == '$')
 	{
@@ -530,7 +615,7 @@ lexer_token_t* lexer_next_token(lexer_t* lexer)
 			return _id_token(lexer, begin_ofs, end_ofs);
 		}
 	}
-	else if(_INRANGE(ch, '0', '9'))
+	else if(_INRANGE(ch, '0', '9') || ch == '-' || ch == '.')
 	{
 		return _parse_number(lexer);
 	}

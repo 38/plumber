@@ -3,7 +3,7 @@ package plumber.std.request_local;
 /* Request local memory is the memory that is managed
    by the scheduler and enforce Copy-On-Write on it */
 type MemoryObject {
-	request_local_token	token;   //The token is an identifier for the memory
+	request_local_token	token@RLSMemoryOject;   //The token is an identifier for the memory
 };
 
 /* The type for the ditionary type */
