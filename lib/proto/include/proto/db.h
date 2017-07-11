@@ -84,4 +84,11 @@ int proto_db_type_validate(const char* type_name);
  **/
 const char* proto_db_common_ancestor(char const* const* type_name);
 
+/**
+ * @brief Get the type name string that managed by libproto
+ * @param name The name value
+ * @return The pointer
+ **/
+const char* proto_db_get_managed_name(const char* name);
+
 #endif /* __PROTO_DB_H_ */

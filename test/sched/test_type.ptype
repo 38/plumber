@@ -1,6 +1,8 @@
 package test.sched.typing;
 
-type Compressed { }
+type Compressed { 
+	uint64   osize;
+}
 
 type Encrypted { }
 

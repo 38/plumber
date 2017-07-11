@@ -897,3 +897,12 @@ const char* proto_db_field_type(const char* typename, const char* fieldname)
 		return _adhoc_typename(pd);
 	}
 }
+
+const char* proto_db_get_managed_name(const char* name)
+{
+	_primitive_desc_t pd;
+	if(_NONE != (pd = _parse_adhoc_type(name)))
+		return _adhoc_typename(pd);
+
+	return proto_cache_full_name(name, NULL);
+}
