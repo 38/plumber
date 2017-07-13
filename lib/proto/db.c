@@ -60,33 +60,23 @@ static inline _primitive_desc_t _parse_adhoc_type(const char* typename)
 {
 	const char* trailer = NULL;
 	_primitive_desc_t ret = 0;
-	switch(typename[0])
+	if(typename[0] == 'd' || typename[0] == 'f')
 	{
-		case 'd':
-		case 'f':
-			ret = _SIGNED | _FLOAT | (typename[0] == 'd' ? _SIZE8 : _SIZE4);
-			trailer = (typename[0] == 'd' ? "ouble" : "loat");
-			typename ++;
-			break;
-		case 'u':
-			ret = _SIGNED;
-			if(typename[1] == 'i') typename ++; else return _NONE;
-		case 'i':
-			ret ^= _SIGNED;
-			if(typename[1] == 'n' && typename[2] == 't')
-			{
-				if(typename[3] == '8')       ret |= _SIZE1, trailer = "";
-				else if (typename[3] == '1') ret |= _SIZE2, trailer = "6";
-				else if (typename[3] == '3') ret |= _SIZE4, trailer = "2";
-				else if (typename[3] == '6') ret |= _SIZE8, trailer = "4";
-				typename += 4;
-				break;
-			}
-		default: 
-			return _NONE;
+		ret = _SIGNED | _FLOAT | (typename[0] == 'd' ? _SIZE8 : _SIZE4);
+		trailer = (typename++[0] == 'd' ? "ouble" : "loat");
 	}
-	if(NULL == trailer || strcmp(trailer, typename) == 0) return ret;
-	return _NONE;
+	else
+	{
+		if(typename[0] == 'u') typename ++; else ret = _SIGNED;
+		if(typename[0] == 'i' && typename[1] == 'n' && typename[2] == 't')
+		{
+			if      (typename[3] == '8') ret |= _SIZE1, trailer = "int8";
+			else if (typename[3] == '1') ret |= _SIZE2, trailer = "int16";
+			else if (typename[3] == '3') ret |= _SIZE4, trailer = "int32";
+			else if (typename[3] == '6') ret |= _SIZE8, trailer = "int64";
+		}
+	}
+	return (NULL == trailer || strcmp(trailer, typename))? _NONE : ret;
 }
 
 /**
@@ -96,31 +86,14 @@ static inline _primitive_desc_t _parse_adhoc_type(const char* typename)
  **/
 static inline const char* _adhoc_typename(_primitive_desc_t p)
 {
-	static char* result_buf[16] = {};
-	static char  memory[16][7] = {};
+	static char* result_buf[16] = {}, memory[16][7] = {};
+	static char* float_name[] = {[4]"float", [8]"double"};
 
-	if(result_buf[p]) return result_buf[p];
-	char* buf = memory[p];
+	for(;result_buf[p] == NULL;)
+		if(_PD_FLOAT(p)) result_buf[p] = float_name[_PD_SIZE(p)];
+		else snprintf(result_buf[p] = memory[p], 7, "%sint%d", _PD_SIGNED(p) ? "" : "u", _PD_SIZE(p) * 8);
 
-	if(p & _FLOAT) 
-	{
-		if(~p & _SIGNED) return NULL;
-		if((p & _SIZE8) == _SIZE8) return result_buf[p] = "float";
-		else if((p & _SIZE8) == _SIZE4) return result_buf[p] = "double";
-	}
-	else
-	{
-		char* this = buf;
-		if(~p & _SIGNED) *(this++) = 'u';
-		*(this++) = 'i';
-		*(this++) = 'n';
-		*(this++) = 't';
-		int sz = (1 << (p & _SIZE8)) * 8;
-		if(sz > 10) *(this++) = (char)((sz / 10) + '0');
-		*(this++) = (char)((sz % 10) + '0');
-		return result_buf[p] = buf;
-	}
-	return NULL;
+	return result_buf[p];
 }
 
 /**
