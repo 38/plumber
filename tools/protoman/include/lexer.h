@@ -22,8 +22,8 @@ typedef enum {
 	LEXER_TOKEN_COMMA,            /*!< , */
 	LEXER_TOKEN_LBRACE,           /*!< { */
 	LEXER_TOKEN_RBRACE,           /*!< } */
-	LEXER_TOKEN_LBRACKET,         /*!< { */
-	LEXER_TOKEN_RBRACKET,         /*!< } */
+	LEXER_TOKEN_LBRACKET,         /*!< [ */
+	LEXER_TOKEN_RBRACKET,         /*!< ] */
 	LEXER_TOKEN_K_TYPE,           /*!< the keyword "type" */
 	LEXER_TOKEN_K_ALIAS,          /*!< the keyword "alias" */
 	LEXER_TOKEN_K_PACKAGE,        /*!< the keyword "package" */
