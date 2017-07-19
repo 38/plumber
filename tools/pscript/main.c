@@ -16,7 +16,7 @@
 #include <unistd.h>
 #include <utils/thread.h>
 
-#include <pss.h>
+#include <cli.h>
 
 #include <module.h>
 #include <builtin.h>
@@ -197,10 +197,10 @@ ERR:
 	return ret;
 }
 
-static void _print_bt(pss_vm_backtrace_t* bt)
+void print_bt(pss_vm_backtrace_t* bt)
 {
 	if(NULL == bt) return;
-	_print_bt(bt->next);
+	print_bt(bt->next);
 	LOG_ERROR("\tfunc: %s, line: %u", bt->func, bt->line);
 }
 
@@ -259,7 +259,7 @@ int run_user_script(const char* name, int argc, char** argv)
 			pss_vm_backtrace_t* backtrace = exception->backtrace;
 
 			LOG_ERROR("======Stack backtrace begin ========");
-			_print_bt(backtrace);
+			print_bt(backtrace);
 			LOG_ERROR("======Stack backtrace end   ========");
 
 			pss_vm_exception_free(exception);
@@ -383,8 +383,7 @@ int _program(int argc, char** argv)
 	int begin = parse_args(argc, argv);
 	int i;
 
-	if((build_mod && argc - begin > 0) ||
-	   (!build_mod && argc - begin < 1))
+	if((build_mod && argc - begin > 0))
 	{
 		_MESSAGE("Wrong number of script file argument");
 		display_help();
@@ -421,8 +420,11 @@ int _program(int argc, char** argv)
 	if(build_mod)
 	    rc = build_system_module();
 	else
-	    rc = run_user_script(argv[begin], argc - begin, argv + begin);
-
+		// interactive cli
+		if(argc - begin == 0)
+			rc = pss_cli_interactive(debug);
+		else
+			rc = run_user_script(argv[begin], argc - begin, argv + begin);
 
 
 	if(pss_finalize() == ERROR_CODE(int))
