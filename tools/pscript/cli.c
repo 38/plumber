@@ -15,22 +15,23 @@
 
 extern pss_vm_t* current_vm;
 
-#define PSS_CLI_PROMPT "PSS> "
-const char* prompt = PSS_CLI_PROMPT;
+static const char* _prompt = "PSS> ";
 
-struct _line_list {
+struct _line_list_t {
 	char *line;
 	uint32_t size;
-	struct _line_list *next;
+	struct _line_list_t *next;
 };
 
 /** @brief concatenate the lines in line list
  */
-char* _cat_lines(struct _line_list *head, uint32_t code_size)
+static char* _cat_lines(struct _line_list_t *head, uint32_t code_size)
 {
 	char* code = (char*)malloc((size_t)code_size + 1);
+	if(NULL == code)
+		return NULL;
 	uint32_t off = 0;
-	struct _line_list *node = head->next;
+	struct _line_list_t *node = head->next;
 	while(node)
 	{
 		memcpy(code + off, node->line, node->size);
@@ -44,9 +45,9 @@ char* _cat_lines(struct _line_list *head, uint32_t code_size)
 
 /** @brief free the line list
  */
-void _free_line_list(struct _line_list *head)
+static void _free_line_list(struct _line_list_t *head)
 {
-	struct _line_list *p = head->next, *pre;
+	struct _line_list_t *p = head->next, *pre;
 	head->next = NULL;
 	while(p)
 	{
@@ -72,16 +73,16 @@ int b_index;
  * @param lexer lexer should be valid
  * @return 0 if success, other if fail
  **/
-int _scan_brackets(pss_comp_lex_t* lexer)
+static int _scan_brackets(pss_comp_lex_t* lexer)
 {
 	pss_comp_lex_token_t token;
 	int ret = 0;
-	while(0 == ret)
+	while(1)
 	{
 		// TODO: how to check the lexer error. it seems hide some errors inside
 		if(ERROR_CODE(int) == pss_comp_lex_next_token(lexer, &token))
 		{
-			ret = -1;
+			ret = ERROR_CODE(int);
 			break;
 		}
 		switch(token.type)
@@ -99,7 +100,7 @@ int _scan_brackets(pss_comp_lex_t* lexer)
 			    _CHECK_BRACKETS_TOP(PSS_COMP_LEX_TOKEN_LBRACE)
 			case PSS_COMP_LEX_TOKEN_ERROR:
 			    // TODO: needed ?
-			    ret = -1;
+			    ret = ERROR_CODE(int);
 			    break;
 			case PSS_COMP_LEX_TOKEN_EOF:
 				return 0;
@@ -111,7 +112,7 @@ int _scan_brackets(pss_comp_lex_t* lexer)
 		if(b_index >= MAX_BRACKETS)
 		{
 			LOG_ERROR("Code too long");
-			ret = -1;
+			ret = ERROR_CODE(int);
 			break;
 		}
 	}
@@ -121,9 +122,11 @@ int _scan_brackets(pss_comp_lex_t* lexer)
 /** @brief append one line to the line_list
  * @return the new tail
  */
-struct _line_list* _append(struct _line_list* tail, char* line, uint32_t size)
+static struct _line_list_t* _append(struct _line_list_t* tail, char* line, uint32_t size)
 {
-	struct _line_list *node = (struct _line_list*)malloc(sizeof(struct _line_list));
+	struct _line_list_t *node = (struct _line_list_t*)malloc(sizeof(struct _line_list_t));
+	if(NULL == node)
+		return NULL;
 	node->line = line;
 	node->size = size;
 	node->next = NULL;
@@ -138,7 +141,7 @@ int pss_cli_interactive(uint32_t debug)
 	pss_comp_lex_t* lexer = NULL;
 	pss_bytecode_module_t* module = NULL;
 	pss_comp_error_t* err = NULL;
-	struct _line_list head, *tail = &head;
+	struct _line_list_t head, *tail = &head;
 	char *code;
 	uint32_t lex_success;
 
@@ -147,14 +150,23 @@ int pss_cli_interactive(uint32_t debug)
 	{
 		if(current_vm != NULL) pss_vm_free(current_vm);
 		LOG_ERROR("Cannot create PSS Virtual Machine");
-		properly_exit(1);
+		return 1;
 	}
 	uint32_t code_size;
 	while(1)
 	{
-		line = readline(prompt);
+		line = readline(_prompt);
 		// ignore empty line
-		if(NULL != line && 0 == *line)
+		if(NULL == line)
+			continue;
+		if(0 == *line)
+		{
+			free(line);
+			continue;
+		}
+
+		// quit TODO: builtin commands
+		if('q' == *line && 0 == *(line + 1))
 		{
 			free(line);
 			continue;
@@ -169,17 +181,15 @@ int pss_cli_interactive(uint32_t debug)
 		lex_success = 0;
 		err = NULL;
 
-		// quit TODO: builtin commands
-		if(strlen(line) == 1 && 'q' == *line)
-		{
-			free(line);
-			break;
-		}
-
 		while(NULL != line)
 		{
 			uint32_t line_size = (uint32_t)strlen(line);
 			tail = _append(tail, line, line_size);
+			if(NULL == tail)
+			{
+				LOG_ERROR("malloc _line_list_t failed");
+				break;
+			}
 			// should add a newline at the end of each line
 			code_size += line_size + 1;
 			// lexical analysis of a line of code
@@ -204,6 +214,8 @@ int pss_cli_interactive(uint32_t debug)
 			line = readline(NULL);
 		}
 		code = _cat_lines(&head, code_size);
+		if(NULL == code)
+			goto _END_OF_CODE;
 		add_history(code);
 		if(lex_success)
 		{
@@ -241,7 +253,6 @@ _END_OF_CODE:
 		}
 		if(NULL != code) free(code);
 		if(NULL != lexer) pss_comp_lex_free(lexer);
-		// TODO: do not remove?
 		if(NULL != module) pss_bytecode_module_free(module);
 		_free_line_list(&head);
 	}
