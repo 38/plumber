@@ -83,7 +83,7 @@ static int _scan_brackets(pss_comp_lex_t* lexer)
 {
 	pss_comp_lex_token_t token;
 	int ret = 0;
-	while(1)
+	while(0 == ret)
 	{
 		// TODO: how to check the lexer error. it seems hide some errors inside
 		if(ERROR_CODE(int) == pss_comp_lex_next_token(lexer, &token))
