@@ -2,6 +2,7 @@
  * Copyright (C) 2017, Feng Liu
  **/
 #include <stdio.h>
+#include <signal.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 
@@ -17,6 +18,8 @@ extern pss_vm_t* current_vm;
 
 static const char* _prompt = "PSS> ";
 
+static int _interrupt = 0;
+
 struct _line_list_t {
 	char *line;
 	uint32_t size;
@@ -27,6 +30,9 @@ struct _line_list_t {
  */
 static char* _cat_lines(struct _line_list_t *head, uint32_t code_size)
 {
+	if(NULL == head->next)
+		return NULL;
+
 	char* code = (char*)malloc((size_t)code_size + 1);
 	if(NULL == code)
 		return NULL;
@@ -134,6 +140,13 @@ static struct _line_list_t* _append(struct _line_list_t* tail, char* line, uint3
 	return node;
 }
 
+static void _stop(int signo)
+{
+	(void)signo;
+	LOG_DEBUG("SIGINT Caught!");
+	_interrupt = 1;
+}
+
 int pss_cli_interactive(uint32_t debug)
 {
 	static const char* source_path = "_";
@@ -153,6 +166,9 @@ int pss_cli_interactive(uint32_t debug)
 		return 1;
 	}
 	uint32_t code_size;
+
+	signal(SIGINT, _stop);
+
 	while(1)
 	{
 		line = readline(_prompt);
@@ -169,7 +185,7 @@ int pss_cli_interactive(uint32_t debug)
 		if('q' == *line && 0 == *(line + 1))
 		{
 			free(line);
-			continue;
+			return 0;
 		}
 
 		b_index = 0;
@@ -181,7 +197,7 @@ int pss_cli_interactive(uint32_t debug)
 		lex_success = 0;
 		err = NULL;
 
-		while(NULL != line)
+		while(NULL != line && 0 == _interrupt)
 		{
 			uint32_t line_size = (uint32_t)strlen(line);
 			tail = _append(tail, line, line_size);
@@ -255,6 +271,7 @@ _END_OF_CODE:
 		if(NULL != lexer) pss_comp_lex_free(lexer);
 		if(NULL != module) pss_bytecode_module_free(module);
 		_free_line_list(&head);
+		_interrupt = 0;
 	}
 	return 0;
 }
