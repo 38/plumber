@@ -32,16 +32,16 @@ struct _line_list_t {
 static char* _cat_lines(struct _line_list_t *head, uint32_t code_size)
 {
 	if(NULL == head || 0 >= code_size)
-		return NULL;
+	    return NULL;
 
 	char* code = (char*)malloc((size_t)code_size);
 	if(NULL == code)
-		return NULL;
+	    return NULL;
 	struct _line_list_t *node = head;
 	while(node)
 	{
 		if(NULL == node->line)
-			continue;
+		    continue;
 		memcpy(code + node->off, node->line, node->size);
 		// add '\n' in the end of each line
 		*(code + node->off + node->size) = '\n';
@@ -105,9 +105,9 @@ static int _scan_brackets(pss_comp_lex_t* lexer)
 			case PSS_COMP_LEX_TOKEN_RBRACE:
 			    _CHECK_BRACKETS_TOP(PSS_COMP_LEX_TOKEN_LBRACE)
 			case PSS_COMP_LEX_TOKEN_ERROR:
-				ERROR_RETURN_ACTION(int, b_index = 0);
+			    ERROR_RETURN_ACTION(int, b_index = 0);
 			case PSS_COMP_LEX_TOKEN_EOF:
-				return b_index;
+			    return b_index;
 			default:
 			    /* Ignore */
 			    break;
@@ -128,11 +128,11 @@ static int _scan_brackets(pss_comp_lex_t* lexer)
 static struct _line_list_t* _add_line(struct _line_list_t* head, char* line, uint32_t size, uint32_t off)
 {
 	if(NULL == line)
-		return head;
+	    return head;
 
 	struct _line_list_t *node = (struct _line_list_t*)malloc(sizeof(*node));
 	if(NULL == node)
-		return NULL;
+	    return NULL;
 	node->line = line;
 	node->size = size;
 	node->off = off;
@@ -174,7 +174,7 @@ int pss_cli_interactive(uint32_t debug)
 		line = readline(_prompt);
 		// ignore empty line
 		if(NULL == line)
-			continue;
+		    continue;
 		if(0 == *line)
 		{
 			free(line);
@@ -230,12 +230,12 @@ int pss_cli_interactive(uint32_t debug)
 		}
 		code = _cat_lines(head, code_size);
 		if(NULL == code)
-			goto _END_OF_CODE;
+		    goto _END_OF_CODE;
 		add_history(code);
 		if(lex_success)
 		{
 			if(NULL == (module = pss_bytecode_module_new()))
-				ERROR_LOG_GOTO(_END_OF_CODE, "Cannot create module instance");
+			    ERROR_LOG_GOTO(_END_OF_CODE, "Cannot create module instance");
 			lexer = pss_comp_lex_new("stdin", code, (unsigned)code_size);
 			pss_comp_option_t opt = {
 				.lexer = lexer,
@@ -243,7 +243,7 @@ int pss_cli_interactive(uint32_t debug)
 				.debug = (debug != 0)
 			};
 			if(ERROR_CODE(int) == pss_comp_compile(&opt, &err))
-				ERROR_LOG_GOTO(_END_OF_CODE, "Cannot compile the source code");
+			    ERROR_LOG_GOTO(_END_OF_CODE, "Cannot compile the source code");
 			int rc = pss_vm_run_module(current_vm, module, NULL);
 			LOG_INFO("VM terminated with exit code %d", rc);
 			if(ERROR_CODE(int) == rc)
@@ -262,8 +262,8 @@ _END_OF_CODE:
 		{
 			const pss_comp_error_t* this;
 			for(this = err; NULL != this; this = this->next)
-				fprintf(stderr, "%u:%u:error: %s\n", this->line + 1,
-						this->column + 1, this->message);
+			    fprintf(stderr, "%u:%u:error: %s\n", this->line + 1,
+			            this->column + 1, this->message);
 			pss_comp_free_error(err);
 		}
 		if(NULL != code) free(code);

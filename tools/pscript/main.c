@@ -420,11 +420,11 @@ int _program(int argc, char** argv)
 	if(build_mod)
 	    rc = build_system_module();
 	else
-		// interactive cli
-		if(argc - begin == 0)
-			rc = pss_cli_interactive(debug);
-		else
-			rc = run_user_script(argv[begin], argc - begin, argv + begin);
+	    // interactive cli
+	    if(argc - begin == 0)
+	        rc = pss_cli_interactive(debug);
+	    else
+	        rc = run_user_script(argv[begin], argc - begin, argv + begin);
 
 
 	if(pss_finalize() == ERROR_CODE(int))
