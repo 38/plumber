@@ -22,6 +22,7 @@ static int _interrupt = 0;
 
 struct _line_list_t {
 	char *line;
+	uint32_t off;
 	uint32_t size;
 	struct _line_list_t *next;
 };
@@ -30,22 +31,24 @@ struct _line_list_t {
  */
 static char* _cat_lines(struct _line_list_t *head, uint32_t code_size)
 {
-	if(NULL == head->next)
+	if(NULL == head || 0 >= code_size)
 		return NULL;
 
-	char* code = (char*)malloc((size_t)code_size + 1);
+	char* code = (char*)malloc((size_t)code_size);
 	if(NULL == code)
 		return NULL;
-	uint32_t off = 0;
-	struct _line_list_t *node = head->next;
+	struct _line_list_t *node = head;
 	while(node)
 	{
-		memcpy(code + off, node->line, node->size);
-		off += node->size + 1;
-		*(code + off - 1) = '\n';
+		if(NULL == node->line)
+			continue;
+		memcpy(code + node->off, node->line, node->size);
+		// add '\n' in the end of each line
+		*(code + node->off + node->size) = '\n';
 		node = node->next;
 	}
-	*(code + off) = 0;
+	// but do not add '\n' in the end
+	*(code + code_size - 1) = 0;
 	return code;
 }
 
@@ -53,43 +56,40 @@ static char* _cat_lines(struct _line_list_t *head, uint32_t code_size)
  */
 static void _free_line_list(struct _line_list_t *head)
 {
-	struct _line_list_t *p = head->next, *pre;
-	head->next = NULL;
-	while(p)
+	struct _line_list_t *pre;
+	while(head)
 	{
-		if(p->line) free(p->line);
-		pre = p;
-		p = p->next;
+		pre = head;
+		head = head->next;
 		free(pre);
 	}
 }
 
 #define MAX_BRACKETS 256
-pss_comp_lex_token_type_t bracket_stack[MAX_BRACKETS];
-int b_index;
 
 #define _CHECK_BRACKETS_TOP(left) \
     if(0 == b_index || left != bracket_stack[b_index - 1]) \
-        ret = -1; \
+        ERROR_RETURN_ACTION(int, b_index = 0); \
     else \
         b_index--; \
     break;
 
 /** @brief simply check the syntax of code by analyzing the brackets pairs
  * @param lexer lexer should be valid
- * @return 0 if success, other if fail
+ * @return positive if need more inputs, 0 if input complete,
+ * ERROR_CODE(int) if error occurs
+ * @note remember to reset b_index every time when error occurs
  **/
 static int _scan_brackets(pss_comp_lex_t* lexer)
 {
+	static pss_comp_lex_token_type_t bracket_stack[MAX_BRACKETS];
+	static int b_index;
 	pss_comp_lex_token_t token;
-	int ret = 0;
-	while(0 == ret)
+	while(1)
 	{
-		// TODO: how to check the lexer error. it seems hide some errors inside
 		if(ERROR_CODE(int) == pss_comp_lex_next_token(lexer, &token))
 		{
-			ret = ERROR_CODE(int);
-			break;
+			ERROR_RETURN_ACTION(int, b_index = 0);
 		}
 		switch(token.type)
 		{
@@ -105,11 +105,9 @@ static int _scan_brackets(pss_comp_lex_t* lexer)
 			case PSS_COMP_LEX_TOKEN_RBRACE:
 			    _CHECK_BRACKETS_TOP(PSS_COMP_LEX_TOKEN_LBRACE)
 			case PSS_COMP_LEX_TOKEN_ERROR:
-			    // TODO: needed ?
-			    ret = ERROR_CODE(int);
-			    break;
+				ERROR_RETURN_ACTION(int, b_index = 0);
 			case PSS_COMP_LEX_TOKEN_EOF:
-				return 0;
+				return b_index;
 			default:
 			    /* Ignore */
 			    break;
@@ -118,25 +116,27 @@ static int _scan_brackets(pss_comp_lex_t* lexer)
 		if(b_index >= MAX_BRACKETS)
 		{
 			LOG_ERROR("Code too long");
-			ret = ERROR_CODE(int);
-			break;
+			ERROR_RETURN_ACTION(int, b_index = 0);
 		}
 	}
-	return ret;
+	return b_index;
 }
 
-/** @brief append one line to the line_list
- * @return the new tail
+/** @brief add one line to the line_list
+ * @return the new head
  */
-static struct _line_list_t* _append(struct _line_list_t* tail, char* line, uint32_t size)
+static struct _line_list_t* _add_line(struct _line_list_t* head, char* line, uint32_t size, uint32_t off)
 {
-	struct _line_list_t *node = (struct _line_list_t*)malloc(sizeof(struct _line_list_t));
+	if(NULL == line)
+		return head;
+
+	struct _line_list_t *node = (struct _line_list_t*)malloc(sizeof(*node));
 	if(NULL == node)
 		return NULL;
 	node->line = line;
 	node->size = size;
-	node->next = NULL;
-	tail->next = node;
+	node->off = off;
+	node->next = head;
 	return node;
 }
 
@@ -154,7 +154,7 @@ int pss_cli_interactive(uint32_t debug)
 	pss_comp_lex_t* lexer = NULL;
 	pss_bytecode_module_t* module = NULL;
 	pss_comp_error_t* err = NULL;
-	struct _line_list_t head, *tail = &head;
+	struct _line_list_t *head = NULL;
 	char *code;
 	uint32_t lex_success;
 
@@ -188,10 +188,8 @@ int pss_cli_interactive(uint32_t debug)
 			return 0;
 		}
 
-		b_index = 0;
 		code_size = 0;
-		head.next = NULL;
-		tail = &head;
+		head = NULL;
 		module = NULL;
 		lexer = NULL;
 		lex_success = 0;
@@ -200,8 +198,8 @@ int pss_cli_interactive(uint32_t debug)
 		while(NULL != line && 0 == _interrupt)
 		{
 			uint32_t line_size = (uint32_t)strlen(line);
-			tail = _append(tail, line, line_size);
-			if(NULL == tail)
+			head = _add_line(head, line, line_size, code_size);
+			if(NULL == head)
 			{
 				LOG_ERROR("malloc _line_list_t failed");
 				break;
@@ -214,7 +212,8 @@ int pss_cli_interactive(uint32_t debug)
 				LOG_ERROR("Syntax error!");
 				break;
 			}
-			if(_scan_brackets(lexer))
+			int scan_ret = _scan_brackets(lexer);
+			if(ERROR_CODE(int) == scan_ret)
 			{
 				LOG_ERROR("Syntax error!");
 				break;
@@ -222,14 +221,14 @@ int pss_cli_interactive(uint32_t debug)
 			pss_comp_lex_free(lexer);
 			lexer = NULL;
 			// While a piece of code is finished, compile and execute it
-			if(0 == b_index)
+			if(0 == scan_ret)
 			{
 				lex_success = 1;
 				break;
 			}
 			line = readline(NULL);
 		}
-		code = _cat_lines(&head, code_size);
+		code = _cat_lines(head, code_size);
 		if(NULL == code)
 			goto _END_OF_CODE;
 		add_history(code);
@@ -237,7 +236,7 @@ int pss_cli_interactive(uint32_t debug)
 		{
 			if(NULL == (module = pss_bytecode_module_new()))
 				ERROR_LOG_GOTO(_END_OF_CODE, "Cannot create module instance");
-			lexer = pss_comp_lex_new("stdin", code, (unsigned)code_size+1);
+			lexer = pss_comp_lex_new("stdin", code, (unsigned)code_size);
 			pss_comp_option_t opt = {
 				.lexer = lexer,
 				.module = module,
@@ -270,7 +269,7 @@ _END_OF_CODE:
 		if(NULL != code) free(code);
 		if(NULL != lexer) pss_comp_lex_free(lexer);
 		if(NULL != module) pss_bytecode_module_free(module);
-		_free_line_list(&head);
+		_free_line_list(head);
 		_interrupt = 0;
 	}
 	return 0;
