@@ -881,3 +881,106 @@ const char* proto_db_get_managed_name(const char* name)
 
 	return proto_cache_full_name(name, NULL);
 }
+
+proto_db_field_prop_t proto_db_field_type_info(const char* typename, const char* fieldname)
+{
+	if(_init_count == 0)
+		PROTO_ERR_RAISE_RETURN(proto_db_field_prop_t, DISALLOWED);
+
+	_compute_token ++;
+
+	proto_err_clear();
+
+	if(NULL == typename || NULL == fieldname)
+	    PROTO_ERR_RAISE_RETURN(proto_db_field_prop_t, ARGUMENT);
+
+	/* Handle the adhoc types */
+	_primitive_desc_t pd;
+	if(_NONE != (pd = _parse_adhoc_type(typename)))
+	{
+		if(strcmp(fieldname, "value") != 0) 
+			PROTO_ERR_RAISE_RETURN(proto_db_field_prop_t, UNDEFINED);
+		proto_db_field_prop_t ret = (proto_db_field_prop_t)0;
+		if(pd & _FLOAT)  ret |= PROTO_DB_FIELD_PROP_REAL;
+		if(pd & _SIGNED) ret |= PROTO_DB_FIELD_PROP_SIGNED;
+		ret |= PROTO_DB_FIELD_PROP_NUMERIC;
+		return ret;
+	}
+
+	_name_info_t info;
+	if(ERROR_CODE(uint32_t) == _compute_field_info(typename, fieldname, &info))
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
+
+	if(info.primitive_data == NULL)
+		return (proto_db_field_prop_t)0;
+	else
+	{
+		proto_db_field_prop_t ret = (proto_db_field_prop_t)0;
+
+		if(info.primitive_data->flags.scope.valid)
+		{
+			ret |= PROTO_DB_FIELD_PROP_SCOPE;
+			if(info.primitive_data->flags.scope.primitive) ret |= PROTO_DB_FIELD_PROP_PRIMITIVE_SCOPE;
+		}
+		else
+		{
+			ret |= PROTO_DB_FIELD_PROP_NUMERIC;
+			if(info.primitive_data->flags.numeric.is_real) ret |= PROTO_DB_FIELD_PROP_REAL;
+			if(info.primitive_data->flags.numeric.is_signed) ret |= PROTO_DB_FIELD_PROP_SIGNED;
+		}
+		return ret;
+	}
+
+}
+
+const char* proto_db_field_scope_id(const char* typename, const char* fieldname)
+{
+	if(_init_count == 0)
+		PROTO_ERR_RAISE_RETURN_PTR(DISALLOWED);
+
+	_compute_token ++;
+
+	proto_err_clear();
+
+	if(NULL == typename || NULL == fieldname)
+	    PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
+
+	if(_NONE != _parse_adhoc_type(typename)) return NULL;	
+
+	_name_info_t info;
+	if(ERROR_CODE(uint32_t) == _compute_field_info(typename, fieldname, &info))
+		PROTO_ERR_RAISE_RETURN_PTR(FAIL);
+
+	if(info.primitive_data == NULL) return NULL;
+
+	if(!info.primitive_data->flags.scope.valid) return NULL;
+
+	return info.primitive_data->scope_typename;
+}
+
+int proto_db_field_get_default(const char* typename, const char* fieldname, const void** buf, size_t* sizebuf)
+{
+	if(_init_count == 0)
+		PROTO_ERR_RAISE_RETURN(int, DISALLOWED);
+
+	_compute_token ++;
+
+	proto_err_clear();
+
+	if(NULL == typename || NULL == fieldname || NULL == buf || NULL == sizebuf)
+	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+
+	if(_NONE != _parse_adhoc_type(typename)) return 0;
+
+	_name_info_t info;
+	if(ERROR_CODE(uint32_t) == _compute_field_info(typename, fieldname, &info))
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
+
+	if(info.primitive_data == NULL) return 0;
+
+	if(info.primitive_data->flags.scope.valid) return 0;
+
+	*buf = info.primitive_data->numeric_default;
+	*sizebuf = info.primitive_data->flags.numeric.default_size;
+	return 1;
+}
