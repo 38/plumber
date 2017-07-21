@@ -561,7 +561,7 @@ int pstd_type_instance_free(pstd_type_instance_t* inst)
  * @param nbytes how many bytes we need to ensure
  * @return status code
  **/
-int _ensure_header_read(pstd_type_instance_t* inst, const _accessor_t* accessor, size_t nbytes)
+static inline int _ensure_header_read(pstd_type_instance_t* inst, const _accessor_t* accessor, size_t nbytes)
 {
 	const _typeinfo_t* typeinfo = inst->model->type_info + PIPE_GET_ID(accessor->pipe);
 	_header_buf_t* buffer = (_header_buf_t*)(inst->buffer + typeinfo->buf_begin);
@@ -593,6 +593,16 @@ int _ensure_header_read(pstd_type_instance_t* inst, const _accessor_t* accessor,
 	}
 
 	return 0;
+}
+
+size_t pstd_type_instance_field_size(pstd_type_instance_t* inst, pstd_type_accessor_t accessor)
+{
+	if(NULL == inst || ERROR_CODE(pstd_type_accessor_t) == accessor || accessor >= inst->model->accessor_cnt)
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
+
+	const _accessor_t* obj = inst->model->accessor + accessor;
+
+	return obj->init ? obj->size : 0;
 }
 
 size_t pstd_type_instance_read(pstd_type_instance_t* inst, pstd_type_accessor_t accessor, void* buf, size_t bufsize)

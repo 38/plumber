@@ -175,4 +175,11 @@ int pstd_type_model_const(pstd_type_model_t* model, pipe_t pipe, const char* fie
 		pstd_type_model_const(model, pipe, field, signedness, floatpoint, target, (uint32_t)size);\
 	})
 
+/**
+ * @brief Get the size of the field 
+ * @param inst The type instance
+ * @param accessor The accessor
+ * @return the size or error code
+ **/
+size_t pstd_type_instance_field_size(pstd_type_instance_t* inst, pstd_type_accessor_t accessor);
 #endif /* __PSTD_PIPETYPE_H__ */
