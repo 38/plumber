@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017, Feng Liu
  **/
 #include <unistd.h>
 #include <stdint.h>
@@ -46,6 +47,67 @@ time_t _get_file_ts(const char* path, off_t* size)
 	return st.st_ctime;
 }
 
+static inline void _add_module_to_list(pss_bytecode_module_t* m, uint64_t hash[2])
+{
+	_loaded_module_t* module = (_loaded_module_t*)malloc(sizeof(*module));
+	if(NULL == module)
+	{
+		LOG_ERROR_ERRNO("Cannot allocate memory for the new module node");
+		return;
+	}
+	module->hash[0] = hash[0];
+	module->hash[1] = hash[1];
+	module->module = m;
+	module->next = _modules;
+	_modules = module;
+}
+
+static pss_bytecode_module_t* _try_load_module_from_buffer(const char* code, uint32_t code_size, uint32_t debug)
+{
+	pss_comp_lex_t* lexer = NULL;
+	pss_bytecode_module_t* module = NULL;
+	pss_comp_error_t* err = NULL;
+
+	if(NULL == (lexer = pss_comp_lex_new("stdin", code, code_size)))
+		ERROR_LOG_GOTO(_ERR, "Cannot create lexer");
+	if(NULL == (module = pss_bytecode_module_new()))
+		ERROR_LOG_GOTO(_ERR, "Cannot create module instance");
+	pss_comp_option_t opt = {
+		.lexer = lexer,
+		.module = module,
+		.debug = (debug != 0)
+	};
+	if(ERROR_CODE(int) == pss_comp_compile(&opt, &err))
+		ERROR_LOG_GOTO(_ERR, "Can not compile the source code");
+
+	if(ERROR_CODE(int) == pss_comp_lex_free(lexer))
+		LOG_WARNING("Cannot dispose the lexer instance");
+	return module;
+_ERR:
+	if(NULL != err)
+	{
+		const pss_comp_error_t* this;
+		for(this = err; NULL != this; this = this->next)
+			fprintf(stderr, "%s:%u:%u:error: %s\n", this->filename, this->line + 1, this->column + 1, this->message);
+		pss_comp_free_error(err);
+	}
+
+	if(NULL != lexer) pss_comp_lex_free(lexer);
+	if(NULL != module) pss_bytecode_module_free(module);
+	return NULL;
+}
+
+pss_bytecode_module_t* module_from_buffer(const char* code, uint32_t code_size, uint32_t debug)
+{
+	pss_bytecode_module_t* module = NULL;
+	if(NULL == (module = _try_load_module_from_buffer(code, code_size, debug)))
+		return NULL;
+	uint64_t hash[2] = {0, 0};
+	_add_module_to_list(module, hash);
+	return module;
+}
+
+
 int _try_load_module(const char* source_path, const char* compiled_path, int load_compiled, int dump_compiled, int debug, pss_bytecode_module_t** ret)
 {
 	off_t source_sz = 0;
@@ -62,10 +124,10 @@ int _try_load_module(const char* source_path, const char* compiled_path, int loa
 	else if(ERROR_CODE(time_t) != source_ts)
 	{
 		LOG_DEBUG("Found PSS module source at %s", source_path);
-		char* code = (char*)malloc((size_t)(source_sz + 1));
-		pss_comp_lex_t* lexer = NULL;
 		pss_bytecode_module_t* module = NULL;
-		pss_comp_error_t* err = NULL;
+		char* code = (char*)malloc((size_t)(source_sz + 1));
+		if(NULL == code)
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for code");
 		code[source_sz] = 0;
 
 		FILE* fp = fopen(source_path, "r");
@@ -80,23 +142,9 @@ int _try_load_module(const char* source_path, const char* compiled_path, int loa
 		else
 		    fp = NULL;
 
-		if(NULL == (lexer = pss_comp_lex_new(source_path, code, (unsigned)source_sz + 1)))
-		    ERROR_LOG_GOTO(ERR, "Cannot create lexer");
+		if(NULL == (module = _try_load_module_from_buffer(code, (unsigned)(source_sz + 1), (uint32_t)debug)))
+			goto ERR;
 
-		if(NULL == (module = pss_bytecode_module_new()))
-		    ERROR_LOG_GOTO(ERR, "Cannot create module instance");
-
-		pss_comp_option_t opt = {
-			.lexer = lexer,
-			.module = module,
-			.debug = (debug != 0)
-		};
-
-		if(ERROR_CODE(int) == pss_comp_compile(&opt, &err))
-		    ERROR_LOG_GOTO(ERR, "Cannot compile the source code");
-
-		if(ERROR_CODE(int) == pss_comp_lex_free(lexer))
-		    LOG_WARNING("Cannot dispose the lexer instance");
 		free(code);
 
 		if(compiled_path != NULL && dump_compiled && ERROR_CODE(int) == pss_bytecode_module_dump(module, compiled_path))
@@ -106,18 +154,8 @@ int _try_load_module(const char* source_path, const char* compiled_path, int loa
 
 		return 1;
 ERR:
-		if(NULL != err)
-		{
-			const pss_comp_error_t* this;
-			for(this = err; NULL != this; this = this->next)
-			    fprintf(stderr, "%s:%u:%u:error: %s\n", this->filename, this->line + 1, this->column + 1, this->message);
-			pss_comp_free_error(err);
-		}
-
 		if(NULL != fp) fclose(fp);
 		if(NULL != code) free(code);
-		if(NULL != lexer) pss_comp_lex_free(lexer);
-		if(NULL != module) pss_bytecode_module_free(module);
 
 		return ERROR_CODE(int);
 	}
@@ -187,16 +225,8 @@ pss_bytecode_module_t* module_from_file(const char* name, int load_compiled, int
 	}
 	ERROR_PTR_RETURN_LOG("Cannot found the script");
 FOUND:
-	{
-		_loaded_module_t* module = (_loaded_module_t*)malloc(sizeof(*module));
-		if(NULL == module) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new module node");
-		module->hash[0] = hash[0];
-		module->hash[1] = hash[1];
-		module->module = ret;
-		module->next = _modules;
-		_modules = module;
-		return ret;
-	}
+	_add_module_to_list(ret, hash);
+	return ret;
 }
 
 int module_is_loaded(const char* name)

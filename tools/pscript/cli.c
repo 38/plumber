@@ -13,6 +13,7 @@
 #include <plumber.h>
 #include <builtin.h>
 #include <cli.h>
+#include <module.h>
 
 extern pss_vm_t* current_vm;
 
@@ -36,7 +37,10 @@ static char* _cat_lines(struct _line_list_t *head, uint32_t code_size)
 
 	char* code = (char*)malloc((size_t)code_size);
 	if(NULL == code)
+	{
+		LOG_ERROR_ERRNO("Cannot allocate memory for the code");
 	    return NULL;
+	}
 	struct _line_list_t *node = head;
 	while(node)
 	{
@@ -44,11 +48,11 @@ static char* _cat_lines(struct _line_list_t *head, uint32_t code_size)
 		    continue;
 		memcpy(code + node->off, node->line, node->size);
 		// add '\n' in the end of each line
-		*(code + node->off + node->size) = '\n';
+		code[node->off + node->size] = '\n';
 		node = node->next;
 	}
 	// but do not add '\n' in the end
-	*(code + code_size - 1) = 0;
+	code[code_size - 1] = 0;
 	return code;
 }
 
@@ -132,7 +136,10 @@ static struct _line_list_t* _add_line(struct _line_list_t* head, char* line, uin
 
 	struct _line_list_t *node = (struct _line_list_t*)malloc(sizeof(*node));
 	if(NULL == node)
+	{
+		LOG_ERROR_ERRNO("Cannot allocate memory for the code line node");
 	    return NULL;
+	}
 	node->line = line;
 	node->size = size;
 	node->off = off;
@@ -234,16 +241,8 @@ int pss_cli_interactive(uint32_t debug)
 		add_history(code);
 		if(lex_success)
 		{
-			if(NULL == (module = pss_bytecode_module_new()))
-			    ERROR_LOG_GOTO(_END_OF_CODE, "Cannot create module instance");
-			lexer = pss_comp_lex_new("stdin", code, (unsigned)code_size);
-			pss_comp_option_t opt = {
-				.lexer = lexer,
-				.module = module,
-				.debug = (debug != 0)
-			};
-			if(ERROR_CODE(int) == pss_comp_compile(&opt, &err))
-			    ERROR_LOG_GOTO(_END_OF_CODE, "Cannot compile the source code");
+			if(NULL == (module = module_from_buffer(code, code_size, debug)))
+				goto _END_OF_CODE;
 			int rc = pss_vm_run_module(current_vm, module, NULL);
 			LOG_INFO("VM terminated with exit code %d", rc);
 			if(ERROR_CODE(int) == rc)
@@ -268,7 +267,6 @@ _END_OF_CODE:
 		}
 		if(NULL != code) free(code);
 		if(NULL != lexer) pss_comp_lex_free(lexer);
-		if(NULL != module) pss_bytecode_module_free(module);
 		_free_line_list(head);
 		_interrupt = 0;
 	}

@@ -419,12 +419,11 @@ int _program(int argc, char** argv)
 	int rc = 0;
 	if(build_mod)
 	    rc = build_system_module();
+	else if(argc - begin == 0)
+		// interactive cli
+		rc = pss_cli_interactive(debug);
 	else
-	    // interactive cli
-	    if(argc - begin == 0)
-	        rc = pss_cli_interactive(debug);
-	    else
-	        rc = run_user_script(argv[begin], argc - begin, argv + begin);
+		rc = run_user_script(argv[begin], argc - begin, argv + begin);
 
 
 	if(pss_finalize() == ERROR_CODE(int))
