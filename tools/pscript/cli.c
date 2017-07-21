@@ -39,7 +39,7 @@ static char* _cat_lines(struct _line_list_t *head, uint32_t code_size)
 	if(NULL == code)
 	{
 		LOG_ERROR_ERRNO("Cannot allocate memory for the code");
-	    return NULL;
+		return NULL;
 	}
 	struct _line_list_t *node = head;
 	while(node)
@@ -138,7 +138,7 @@ static struct _line_list_t* _add_line(struct _line_list_t* head, char* line, uin
 	if(NULL == node)
 	{
 		LOG_ERROR_ERRNO("Cannot allocate memory for the code line node");
-	    return NULL;
+		return NULL;
 	}
 	node->line = line;
 	node->size = size;
@@ -242,7 +242,7 @@ int pss_cli_interactive(uint32_t debug)
 		if(lex_success)
 		{
 			if(NULL == (module = module_from_buffer(code, code_size, debug)))
-				goto _END_OF_CODE;
+			    goto _END_OF_CODE;
 			int rc = pss_vm_run_module(current_vm, module, NULL);
 			LOG_INFO("VM terminated with exit code %d", rc);
 			if(ERROR_CODE(int) == rc)

@@ -69,26 +69,26 @@ static pss_bytecode_module_t* _try_load_module_from_buffer(const char* code, uin
 	pss_comp_error_t* err = NULL;
 
 	if(NULL == (lexer = pss_comp_lex_new("stdin", code, code_size)))
-		ERROR_LOG_GOTO(_ERR, "Cannot create lexer");
+	    ERROR_LOG_GOTO(_ERR, "Cannot create lexer");
 	if(NULL == (module = pss_bytecode_module_new()))
-		ERROR_LOG_GOTO(_ERR, "Cannot create module instance");
+	    ERROR_LOG_GOTO(_ERR, "Cannot create module instance");
 	pss_comp_option_t opt = {
 		.lexer = lexer,
 		.module = module,
 		.debug = (debug != 0)
 	};
 	if(ERROR_CODE(int) == pss_comp_compile(&opt, &err))
-		ERROR_LOG_GOTO(_ERR, "Can not compile the source code");
+	    ERROR_LOG_GOTO(_ERR, "Can not compile the source code");
 
 	if(ERROR_CODE(int) == pss_comp_lex_free(lexer))
-		LOG_WARNING("Cannot dispose the lexer instance");
+	    LOG_WARNING("Cannot dispose the lexer instance");
 	return module;
 _ERR:
 	if(NULL != err)
 	{
 		const pss_comp_error_t* this;
 		for(this = err; NULL != this; this = this->next)
-			fprintf(stderr, "%s:%u:%u:error: %s\n", this->filename, this->line + 1, this->column + 1, this->message);
+		    fprintf(stderr, "%s:%u:%u:error: %s\n", this->filename, this->line + 1, this->column + 1, this->message);
 		pss_comp_free_error(err);
 	}
 
@@ -101,7 +101,7 @@ pss_bytecode_module_t* module_from_buffer(const char* code, uint32_t code_size, 
 {
 	pss_bytecode_module_t* module = NULL;
 	if(NULL == (module = _try_load_module_from_buffer(code, code_size, debug)))
-		return NULL;
+	    return NULL;
 	uint64_t hash[2] = {0, 0};
 	_add_module_to_list(module, hash);
 	return module;
@@ -127,7 +127,7 @@ int _try_load_module(const char* source_path, const char* compiled_path, int loa
 		pss_bytecode_module_t* module = NULL;
 		char* code = (char*)malloc((size_t)(source_sz + 1));
 		if(NULL == code)
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for code");
+		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for code");
 		code[source_sz] = 0;
 
 		FILE* fp = fopen(source_path, "r");
@@ -143,7 +143,7 @@ int _try_load_module(const char* source_path, const char* compiled_path, int loa
 		    fp = NULL;
 
 		if(NULL == (module = _try_load_module_from_buffer(code, (unsigned)(source_sz + 1), (uint32_t)debug)))
-			goto ERR;
+		    goto ERR;
 
 		free(code);
 
