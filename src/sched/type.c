@@ -465,7 +465,7 @@ static inline const char* _render_type_name(const char* type_expr, const _env_t*
 
 				if(*start == '.')
 				{
-					for(start ++; *start != '\t' && *start != ' ' && *start != '|'; start ++, flen ++)
+					for(start ++; *start && *start != '\t' && *start != ' ' && *start != '|'; start ++, flen ++)
 						fieldname[flen] = *start;
 					fieldname[flen] = 0;
 

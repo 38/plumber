@@ -57,23 +57,20 @@ static int _exec(void* ctxbuf)
 	if(ERROR_CODE(size_t) == sz) ERROR_RETURN_LOG(int, "Cannot get the size of the field");
 
 	char buf[sz];
-	for(;;)
+
+	size_t bytes_read = pstd_type_instance_read(inst, ctx->accessor, buf, sz);
+	if(ERROR_CODE(size_t) == bytes_read)
+		ERROR_RETURN_LOG(int, "Cannot read the header");
+
+	const char* begin = buf;
+
+	while(bytes_read > 0)
 	{
-		size_t bytes_read = pstd_type_instance_read(inst, ctx->accessor, buf, sz);
-		if(bytes_read == 0) break;
-		if(ERROR_CODE(size_t) == bytes_read)
-			ERROR_RETURN_LOG(int, "Cannot read the header");
+		size_t bytes_written = pipe_hdr_write(ctx->output, begin, bytes_read);
+		if(ERROR_CODE(size_t) == bytes_written) ERROR_RETURN_LOG(int, "Cannot write bytes to the pipe");
 
-		const char* begin = buf;
-
-		while(bytes_read > 0)
-		{
-			size_t bytes_written = pipe_hdr_write(ctx->output, begin, bytes_read);
-			if(ERROR_CODE(size_t) == bytes_written) ERROR_RETURN_LOG(int, "Cannot write bytes to the pipe");
-
-			begin += bytes_written;
-			bytes_read -= bytes_written;
-		}
+		begin += bytes_written;
+		bytes_read -= bytes_written;
 	}
 
 	return 0;
