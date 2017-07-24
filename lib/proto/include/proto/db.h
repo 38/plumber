@@ -121,7 +121,7 @@ const char* proto_db_field_scope_id(const char* type_name, const char* field);
 /**
  * @brief Get the default value of a field
  * @note  The field must be a numeric field
- * @param type_name The type name 
+ * @param type_name The type name
  * @param field The field name
  * @param buf The data buffer
  * @param sizebuf The size buffer

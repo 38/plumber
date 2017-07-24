@@ -213,7 +213,7 @@ static inline lexer_token_t* _num_token(const lexer_t* lexer, int64_t value)
 }
 
 /**
- * @brief create a float token 
+ * @brief create a float token
  * @param lexer the lexer instance
  * @param value the value of the number
  * @return the newly created lexer token or NULL when error
@@ -434,7 +434,7 @@ lexer_token_t* _parse_number(lexer_t* lexer)
 		}
 
 		if(ch != '.' && ch != 'e')
-			return _num_token(lexer, sign * value);
+		    return _num_token(lexer, sign * value);
 		else
 		{
 			double fval = (double)value;
@@ -447,7 +447,7 @@ lexer_token_t* _parse_number(lexer_t* lexer)
 				{
 					ch = _peek(lexer);
 					if(_INRANGE(ch, '0', '9'))
-						fval += mul * (ch - '0') * mul;
+					    fval += mul * (ch - '0') * mul;
 					else break;
 					_consume(lexer, 1);
 				}
@@ -461,25 +461,25 @@ lexer_token_t* _parse_number(lexer_t* lexer)
 					ch = _peek(lexer);
 					if(ch == '+') ;
 					else if(ch == '-')
-						mul = mul > 1 ? 0.1 : 10.0;
+					    mul = mul > 1 ? 0.1 : 10.0;
 					else break;
 					_consume(lexer, 1);
 				}
 
 				if(!_INRANGE(ch, '0', '9')) return NULL;
-				
+
 				int pow = 0;
 				for(;;)
 				{
 					if(_INRANGE(ch, '0', '9'))
-						pow = pow * 10 + ch - '0';
+					    pow = pow * 10 + ch - '0';
 					else break;
 					_consume(lexer, 1);
 					ch = _peek(lexer);
 				}
 
 				for(;pow; pow /= 2, mul *= mul)
-					if(pow&1) exp *= mul;
+				    if(pow&1) exp *= mul;
 			}
 			return _float_token(lexer, sign * exp * fval);
 		}

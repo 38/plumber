@@ -48,7 +48,7 @@ typedef struct __attribute__((packed)) {
 		}               scope;                 /*!< The flags used for the scope token object */
 		struct __attribute__((packed)) {
 			uint32_t    invalid:1    ;         /*!< If this is a scope token, which must be 0 */
-			uint32_t    is_signed:1;           /*!< If this type is a signed number */ 
+			uint32_t    is_signed:1;           /*!< If this type is a signed number */
 			uint32_t    is_real:1;             /*!< If this type is a real number */
 			uint32_t    default_size:29;       /*!< The size of the default value */
 		}               numeric;               /*!< The primitive flags */
@@ -71,7 +71,7 @@ typedef struct __attribute__((packed)) {
  *         When the entity is a pritmive data use                          [type = NONE, count > 0, elem_size > 0  symlen > 0, reflen = 0] <br/>
  *         When the entity is a padding use                                [type = NONE, count > 0, elem_size = 1, symlen = 0, reflen = 0] <br/>
  *         When the entity is a name alias                                 [type = NAME, count = 0, elem_size = 0, symlen > 0, reflen > 0] <br/>
- *         When the entity is a constant                                   [type = NONE, count = 0, elem_size = 0, symlen = 0, reflen = 0] <br/> 
+ *         When the entity is a constant                                   [type = NONE, count = 0, elem_size = 0, symlen = 0, reflen = 0] <br/>
  **/
 typedef struct __attribute__((packed)) {
 	uint32_t                      symlen:31; /*!< the length of the symbol */

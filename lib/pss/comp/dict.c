@@ -120,8 +120,8 @@ pss_bytecode_regid_t _get_adj_reg(_service_ctx_t* ctx, const char* name, int rev
 	_servlet_t* ptr;
 	for(ptr = ctx->nodes[slot]; NULL != ptr && (ptr->hash[0] != hash[0] || ptr->hash[1] != hash[1]) && strcmp(ptr->name, name) != 0; ptr = ptr->next);
 
-	if(NULL != ptr) 
-		return rev ? ptr->rev_reg : ptr->reg;
+	if(NULL != ptr)
+	    return rev ? ptr->rev_reg : ptr->reg;
 
 	_servlet_t* node = (_servlet_t*)calloc(1, sizeof(*node));
 	if(NULL == node)
@@ -135,7 +135,7 @@ pss_bytecode_regid_t _get_adj_reg(_service_ctx_t* ctx, const char* name, int rev
 		pss_comp_raise_internal(ctx->comp, PSS_COMP_INTERNAL_CODE);
 		goto CREATE_ERR;
 	}
-	
+
 	if(ERROR_CODE(pss_bytecode_regid_t) == (node->rev_reg = pss_comp_mktmp(ctx->comp)))
 	    ERROR_LOG_ERRNO_GOTO(CREATE_ERR, "Cannot allocate register for the reverse adj list");
 
@@ -199,22 +199,22 @@ int _service_ctx_free(_service_ctx_t* ctx)
 				snprintf(buf, sizeof(buf), "%s@%s", pref[j], this->name);
 				pss_bytecode_regid_t regid = pss_comp_mktmp(ctx->comp);
 				if(ERROR_CODE(pss_bytecode_regid_t) == regid)
-					rc = ERROR_CODE(int);
+				    rc = ERROR_CODE(int);
 				else do {
 					if(!_INST(ctx->seg, STR_LOAD, _S(buf), _R(regid)))
-						goto ERR;
+					    goto ERR;
 					if(!_INST(ctx->seg, SET_VAL, _R(regs[j]), _R(ctx->dict), _R(regid)))
-						goto ERR;
+					    goto ERR;
 					if(ERROR_CODE(int) == pss_comp_rmtmp(ctx->comp, regid))
-						goto ERR;
+					    goto ERR;
 					break;
 ERR:
 					pss_comp_raise_internal(ctx->comp, PSS_COMP_INTERNAL_CODE);
 					rc = ERROR_CODE(int);
 				} while(0);
-				
+
 				if(ERROR_CODE(pss_bytecode_regid_t) != regs[j] && ERROR_CODE(int) == pss_comp_rmtmp(ctx->comp, regs[j]))
-					rc = ERROR_CODE(int);
+				    rc = ERROR_CODE(int);
 			}
 
 			if(NULL != this->name) free(this->name);
@@ -236,13 +236,13 @@ ERR:
 	return rc;
 }
 static inline int _append_adj_list(_service_ctx_t* ctx, pss_bytecode_regid_t list_reg,
-		                           const char* left_node, const char* left_port, 
-								   const char* right_port, const char* right_node)
+                                   const char* left_node, const char* left_port,
+                                   const char* right_port, const char* right_node)
 {
 	(void)left_node;
 	pss_comp_t* comp = ctx->comp;
 	pss_bytecode_segment_t* seg = ctx->seg;
-	
+
 	char keybuf[1024];
 	snprintf(keybuf, sizeof(keybuf), "%s", left_port);
 	char valbuf[1024];
@@ -282,14 +282,14 @@ static inline int _add_edge(_service_ctx_t* ctx, const char* left_node, const ch
 	    ERROR_RETURN_LOG(int, "Cannot get the register for the adj list");
 
 	if(ERROR_CODE(int) == _append_adj_list(ctx, list_reg, left_node, left_port, right_port, right_node))
-		ERROR_RETURN_LOG(int, "Cannot put the edge to the adj list");
-	
+	    ERROR_RETURN_LOG(int, "Cannot put the edge to the adj list");
+
 	pss_bytecode_regid_t list_reg_rev = _get_adj_reg(ctx, right_node, 1);
 	if(ERROR_CODE(pss_bytecode_regid_t) == list_reg_rev)
-		ERROR_RETURN_LOG(int, "Cannot get the register for the reverse adj list");
+	    ERROR_RETURN_LOG(int, "Cannot get the register for the reverse adj list");
 
 	if(ERROR_CODE(int) == _append_adj_list(ctx, list_reg_rev, right_node, right_port, left_port, left_node))
-		ERROR_RETURN_LOG(int, "Cannot put the reverse edge to the revers adj list");
+	    ERROR_RETURN_LOG(int, "Cannot put the reverse edge to the revers adj list");
 
 	return 0;
 }

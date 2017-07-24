@@ -90,8 +90,8 @@ static inline const char* _adhoc_typename(_primitive_desc_t p)
 	static char* float_name[] = {[4]"float", [8]"double"};
 
 	for(;result_buf[p] == NULL;)
-		if(_PD_FLOAT(p)) result_buf[p] = float_name[_PD_SIZE(p)];
-		else snprintf(result_buf[p] = memory[p], 7, "%sint%d", _PD_SIGNED(p) ? "" : "u", _PD_SIZE(p) * 8);
+	    if(_PD_FLOAT(p)) result_buf[p] = float_name[_PD_SIZE(p)];
+	    else snprintf(result_buf[p] = memory[p], 7, "%sint%d", _PD_SIGNED(p) ? "" : "u", _PD_SIZE(p) * 8);
 
 	return result_buf[p];
 }
@@ -474,7 +474,7 @@ uint32_t proto_db_type_size(const char* typename)
 
 	_primitive_desc_t pd;
 	if(_NONE != (pd = _parse_adhoc_type(typename)))
-		return _PD_SIZE(pd);
+	    return _PD_SIZE(pd);
 
 	const _type_metadata_t* metadata = _compute_type_metadata(typename, NULL);
 
@@ -597,8 +597,8 @@ static inline uint32_t _compute_name_offset(const _type_metadata_t* type_data, c
 		    infobuf->elemsize = entity->header.elem_size;
 		    infobuf->dimlen   = entity->header.dimlen;
 		    infobuf->dimension = entity->dimension;
-			if(entity->header.metadata)
-				infobuf->primitive_data = entity->metadata;
+		    if(entity->header.metadata)
+		        infobuf->primitive_data = entity->metadata;
 		    break;
 		case PROTO_TYPE_ENTITY_REF_TYPE:
 		    if(NULL == (target_type = proto_ref_typeref_get_path(entity->type_ref)))
@@ -681,7 +681,7 @@ static inline uint32_t _compute_field_info(const char* typename, const char* fie
 uint32_t proto_db_type_offset(const char* typename, const char* fieldname, uint32_t* size)
 {
 	if(_init_count == 0)
-		PROTO_ERR_RAISE_RETURN(uint32_t, DISALLOWED);
+	    PROTO_ERR_RAISE_RETURN(uint32_t, DISALLOWED);
 
 	_compute_token ++;
 
@@ -694,8 +694,8 @@ uint32_t proto_db_type_offset(const char* typename, const char* fieldname, uint3
 	_primitive_desc_t pd;
 	if(_NONE != (pd = _parse_adhoc_type(typename)))
 	{
-		if(strcmp(fieldname, "value") != 0) 
-			PROTO_ERR_RAISE_RETURN(uint32_t, UNDEFINED);
+		if(strcmp(fieldname, "value") != 0)
+		    PROTO_ERR_RAISE_RETURN(uint32_t, UNDEFINED);
 		if(size != NULL) *size = _PD_SIZE(pd);
 		return 0;
 	}
@@ -703,7 +703,7 @@ uint32_t proto_db_type_offset(const char* typename, const char* fieldname, uint3
 	_name_info_t info;
 	uint32_t ret;
 	if(ERROR_CODE(uint32_t) == (ret = _compute_field_info(typename, fieldname, &info)))
-		PROTO_ERR_RAISE_RETURN(uint32_t, FAIL);
+	    PROTO_ERR_RAISE_RETURN(uint32_t, FAIL);
 
 	if(size != NULL)
 	{
@@ -755,7 +755,7 @@ static inline const char* _parent_of(const char* type)
 {
 	/* If this is an adhoc type, the parent the none */
 	if(_NONE != _parse_adhoc_type(type))
-		return NULL;
+	    return NULL;
 
 	const proto_type_t* proto = proto_db_query_type(type);
 
@@ -824,7 +824,7 @@ FOUND:
 const char* proto_db_field_type(const char* typename, const char* fieldname)
 {
 	if(_init_count == 0)
-		PROTO_ERR_RAISE_RETURN_PTR(DISALLOWED);
+	    PROTO_ERR_RAISE_RETURN_PTR(DISALLOWED);
 
 	_compute_token ++;
 
@@ -837,38 +837,38 @@ const char* proto_db_field_type(const char* typename, const char* fieldname)
 	_primitive_desc_t pd;
 	if(_NONE != (pd = _parse_adhoc_type(typename)))
 	{
-		if(strcmp(fieldname, "value") != 0) 
-			PROTO_ERR_RAISE_RETURN_PTR(UNDEFINED);
+		if(strcmp(fieldname, "value") != 0)
+		    PROTO_ERR_RAISE_RETURN_PTR(UNDEFINED);
 		return typename;
 	}
 
 	_name_info_t info;
 	if(ERROR_CODE(uint32_t) == _compute_field_info(typename, fieldname, &info))
-		PROTO_ERR_RAISE_RETURN_PTR(FAIL);
+	    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
 
-	if(info.typedata != NULL) 
-		return proto_cache_full_name(info.typedata->name, info.typedata->pwd);
+	if(info.typedata != NULL)
+	    return proto_cache_full_name(info.typedata->name, info.typedata->pwd);
 	else
 	{
 		/* Basically we do not allow any adhoc scope token, because it's dangerous and not make sense */
 		if(info.primitive_data->flags.scope.valid)
-			PROTO_ERR_RAISE_RETURN_PTR(DISALLOWED);
+		    PROTO_ERR_RAISE_RETURN_PTR(DISALLOWED);
 
 		/* Also we do not allow any constant value becomes an adhoc type */
 		if(info.elemsize == 0)
-			PROTO_ERR_RAISE_RETURN_PTR(DISALLOWED);
+		    PROTO_ERR_RAISE_RETURN_PTR(DISALLOWED);
 
 		uint8_t sizecode = 0;
 		for(;info.elemsize > 1; sizecode ++, info.elemsize /= 2);
 
 		/* We do not allow an adhoc array at this point */
 		if(info.dimlen > 1 || (info.dimlen == 1 && info.dimension[0] > 1))
-			PROTO_ERR_RAISE_RETURN_PTR(DISALLOWED);
+		    PROTO_ERR_RAISE_RETURN_PTR(DISALLOWED);
 
 		/* Then let's construct the primitive descriptor */
 		_primitive_desc_t pd = (info.primitive_data->flags.numeric.is_real ? _FLOAT : 0) |
-			                   (info.primitive_data->flags.numeric.is_signed ? _SIGNED : 0) |
-							   sizecode;
+		                       (info.primitive_data->flags.numeric.is_signed ? _SIGNED : 0) |
+		                       sizecode;
 		return _adhoc_typename(pd);
 	}
 }
@@ -877,7 +877,7 @@ const char* proto_db_get_managed_name(const char* name)
 {
 	_primitive_desc_t pd;
 	if(_NONE != (pd = _parse_adhoc_type(name)))
-		return _adhoc_typename(pd);
+	    return _adhoc_typename(pd);
 
 	return proto_cache_full_name(name, NULL);
 }
@@ -885,7 +885,7 @@ const char* proto_db_get_managed_name(const char* name)
 proto_db_field_prop_t proto_db_field_type_info(const char* typename, const char* fieldname)
 {
 	if(_init_count == 0)
-		PROTO_ERR_RAISE_RETURN(proto_db_field_prop_t, DISALLOWED);
+	    PROTO_ERR_RAISE_RETURN(proto_db_field_prop_t, DISALLOWED);
 
 	_compute_token ++;
 
@@ -898,8 +898,8 @@ proto_db_field_prop_t proto_db_field_type_info(const char* typename, const char*
 	_primitive_desc_t pd;
 	if(_NONE != (pd = _parse_adhoc_type(typename)))
 	{
-		if(strcmp(fieldname, "value") != 0) 
-			PROTO_ERR_RAISE_RETURN(proto_db_field_prop_t, UNDEFINED);
+		if(strcmp(fieldname, "value") != 0)
+		    PROTO_ERR_RAISE_RETURN(proto_db_field_prop_t, UNDEFINED);
 		proto_db_field_prop_t ret = (proto_db_field_prop_t)0;
 		if(pd & _FLOAT)  ret |= PROTO_DB_FIELD_PROP_REAL;
 		if(pd & _SIGNED) ret |= PROTO_DB_FIELD_PROP_SIGNED;
@@ -909,10 +909,10 @@ proto_db_field_prop_t proto_db_field_type_info(const char* typename, const char*
 
 	_name_info_t info;
 	if(ERROR_CODE(uint32_t) == _compute_field_info(typename, fieldname, &info))
-		PROTO_ERR_RAISE_RETURN(int, FAIL);
+	    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	if(info.primitive_data == NULL)
-		return (proto_db_field_prop_t)0;
+	    return (proto_db_field_prop_t)0;
 	else
 	{
 		proto_db_field_prop_t ret = (proto_db_field_prop_t)0;
@@ -936,7 +936,7 @@ proto_db_field_prop_t proto_db_field_type_info(const char* typename, const char*
 const char* proto_db_field_scope_id(const char* typename, const char* fieldname)
 {
 	if(_init_count == 0)
-		PROTO_ERR_RAISE_RETURN_PTR(DISALLOWED);
+	    PROTO_ERR_RAISE_RETURN_PTR(DISALLOWED);
 
 	_compute_token ++;
 
@@ -945,11 +945,11 @@ const char* proto_db_field_scope_id(const char* typename, const char* fieldname)
 	if(NULL == typename || NULL == fieldname)
 	    PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
 
-	if(_NONE != _parse_adhoc_type(typename)) return NULL;	
+	if(_NONE != _parse_adhoc_type(typename)) return NULL;
 
 	_name_info_t info;
 	if(ERROR_CODE(uint32_t) == _compute_field_info(typename, fieldname, &info))
-		PROTO_ERR_RAISE_RETURN_PTR(FAIL);
+	    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
 
 	if(info.primitive_data == NULL) return NULL;
 
@@ -961,7 +961,7 @@ const char* proto_db_field_scope_id(const char* typename, const char* fieldname)
 int proto_db_field_get_default(const char* typename, const char* fieldname, const void** buf, size_t* sizebuf)
 {
 	if(_init_count == 0)
-		PROTO_ERR_RAISE_RETURN(int, DISALLOWED);
+	    PROTO_ERR_RAISE_RETURN(int, DISALLOWED);
 
 	_compute_token ++;
 
@@ -974,7 +974,7 @@ int proto_db_field_get_default(const char* typename, const char* fieldname, cons
 
 	_name_info_t info;
 	if(ERROR_CODE(uint32_t) == _compute_field_info(typename, fieldname, &info))
-		PROTO_ERR_RAISE_RETURN(int, FAIL);
+	    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	if(info.primitive_data == NULL) return 0;
 

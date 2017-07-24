@@ -173,9 +173,9 @@ int adhoc_type()
 
 	SETIO(input, input, in);
 	SETIO(output, output, output);
-	
+
 	MKSVC;
-	
+
 	CHKTYPE(input, out,   "test/sched/typing/Triangle");
 	CHKTYPE(input, out2,  "test/sched/typing/ColoredTriangle");
 	CHKTYPE(comp1, raw,   "test/sched/typing/Triangle");
@@ -261,6 +261,6 @@ TEST_LIST_BEGIN
     TEST_CASE(untyped),
     TEST_CASE(typed),
     TEST_CASE(invalid_conversion),
-	TEST_CASE(adhoc_type),
+    TEST_CASE(adhoc_type),
     TEST_CASE(invalid_generialization)
 TEST_LIST_END;

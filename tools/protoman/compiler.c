@@ -241,8 +241,8 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 
 	_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);
 
-	if(NULL == (tok = _peek(ctx, 1))) 
-		_RAISE(ctx, return ERROR_CODE(int), "internal error: cannot peek token");
+	if(NULL == (tok = _peek(ctx, 1)))
+	    _RAISE(ctx, return ERROR_CODE(int), "internal error: cannot peek token");
 
 	static uint32_t dimensions[128];
 	int rc = 0;
@@ -253,22 +253,22 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 	if(tok->type == LEXER_TOKEN_EQUAL)
 	{
 		if(metadata.flags.numeric.invalid)
-			_RAISE(ctx, return ERROR_CODE(int), "syntax error: interger expected");
+		    _RAISE(ctx, return ERROR_CODE(int), "syntax error: interger expected");
 		/* This is a constant value */
 		_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);
 		if(NULL == (tok = _peek(ctx, 1)))
-			_RAISE(ctx, return ERROR_CODE(int), "internal error: cannot peek token");
+		    _RAISE(ctx, return ERROR_CODE(int), "internal error: cannot peek token");
 
 		if(tok->type == LEXER_TOKEN_NUMBER)
-			ival = tok->data->number;
+		    ival = tok->data->number;
 		else if(tok->type == LEXER_TOKEN_FLOAT_POINT)
-			dval = tok->data->floatpoint;
+		    dval = tok->data->floatpoint;
 		else _RAISE(ctx, return ERROR_CODE(int), "syntax error: number expected");
 
 		if(metadata.flags.numeric.is_real)
 		{
 			if(tok->type == LEXER_TOKEN_NUMBER) dval = (double)ival;
-			if(elem_size == 4) 
+			if(elem_size == 4)
 			{
 				fval = (float)dval;
 				metadata.numeric_default = &fval;
@@ -294,7 +294,7 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 	else if(tok->type == LEXER_TOKEN_AT)
 	{
 		if(!metadata.flags.scope.valid)
-			_RAISE(ctx, return ERROR_CODE(int), "syntax error: scope object type expected");
+		    _RAISE(ctx, return ERROR_CODE(int), "syntax error: scope object type expected");
 
 		/* This is a @ cluase for the scope token */
 		_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);

@@ -150,11 +150,11 @@ int pstd_type_instance_write(pstd_type_instance_t* inst, pstd_type_accessor_t ac
 /**
  * @brief Get the constant defined by the type of the given pipe
  * @param model The type model
- * @param pipe The pipe 
+ * @param pipe The pipe
  * @param field The field name
  * @param is_signed Is the number signed
  * @param is_real Is the number a real number
- * @param buf The target buffer 
+ * @param buf The target buffer
  * @param bufsize The target buf size
  * @return status code
  **/
@@ -163,20 +163,20 @@ int pstd_type_model_const(pstd_type_model_t* model, pipe_t pipe, const char* fie
 /**
  * @brief Add a constant to the type model
  * @param model The type model
- * @param pipe The pipe 
+ * @param pipe The pipe
  * @param field The field name
  * @param target The variable we used to store the constant
  * @return status code
  **/
 #define PSTD_TYPE_MODEL_ADD_CONST(model, pipe, field, target) ({\
-		size_t size = sizeof(*target);\
-		int signedness = !((typeof(*target))-1 > 0);\
-		int floatpoint = ((typeof(*target))0.1 != 0);\
-		pstd_type_model_const(model, pipe, field, signedness, floatpoint, target, (uint32_t)size);\
-	})
+	    size_t size = sizeof(*target);\
+	    int signedness = !((typeof(*target))-1 > 0);\
+	    int floatpoint = ((typeof(*target))0.1 != 0);\
+	    pstd_type_model_const(model, pipe, field, signedness, floatpoint, target, (uint32_t)size);\
+    })
 
 /**
- * @brief Get the size of the field 
+ * @brief Get the size of the field
  * @param inst The type instance
  * @param accessor The accessor
  * @return the size or error code
