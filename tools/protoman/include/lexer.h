@@ -16,6 +16,7 @@ typedef enum {
 	LEXER_TOKEN_EOF,              /*!< the token indicates this is the end of the file */
 	LEXER_TOKEN_ID,               /*!< an identifier */
 	LEXER_TOKEN_NUMBER,           /*!< the number */
+	LEXER_TOKEN_FLOAT_POINT,      /*!< A float point number */
 	LEXER_TOKEN_DOT,              /*!< dot */
 	LEXER_TOKEN_COLON,            /*!< : */
 	LEXER_TOKEN_SEMICOLON,        /*!< ; */
@@ -24,6 +25,8 @@ typedef enum {
 	LEXER_TOKEN_RBRACE,           /*!< } */
 	LEXER_TOKEN_LBRACKET,         /*!< [ */
 	LEXER_TOKEN_RBRACKET,         /*!< ] */
+	LEXER_TOKEN_EQUAL,            /*!< = */
+	LEXER_TOKEN_AT,               /*!< @ */
 	LEXER_TOKEN_K_TYPE,           /*!< the keyword "type" */
 	LEXER_TOKEN_K_ALIAS,          /*!< the keyword "alias" */
 	LEXER_TOKEN_K_PACKAGE,        /*!< the keyword "package" */
@@ -38,10 +41,11 @@ typedef struct {
 	const char*        file;     /*!< the filename which contains the token */
 	uint32_t           line;     /*!< the line number for this token */
 	uint32_t           column;   /*!< the column number for this token */
-	uint32_t           reftok:1; /*!< if this type is used as a reference token */
-	uintptr_t __padding__;
+	proto_type_atomic_metadata_t metadata; /*!< The type metadata carried by this lexer token */
+	uintptr_t __padding__[0];
 	union {
-		uint32_t number;        /*!< the number value */
+		int64_t  number;        /*!< the number value */
+		double   floatpoint;    /*!< The float point number */
 		uint32_t size;          /*!< the size of this type primitive */
 		char     id[0];         /*!< the identifer */
 	} data[0];                  /*!< the pointer to the token data */

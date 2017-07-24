@@ -28,7 +28,8 @@ static char* _err_desc[] = {
 	[PROTO_ERR_CODE_BUG]          = "Code bug!",
 	[PROTO_ERR_CODE_UNDEFINED]    = "Undefined symbol",
 	[PROTO_ERR_CODE_DIM]          = "Dimensional error",
-	[PROTO_ERR_CODE_OUT_OF_BOUND] = "Index out of boundary"
+	[PROTO_ERR_CODE_OUT_OF_BOUND] = "Index out of boundary",
+	[PROTO_ERR_CODE_VERSION]      = "Unsupported version"
 };
 
 /**

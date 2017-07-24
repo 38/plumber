@@ -156,6 +156,41 @@ int typed()
 	return 0;
 }
 
+int adhoc_type()
+{
+	MKBUF;
+
+	MKNODE(input, "in -> out:test/sched/typing/Triangle out2:test/sched/typing/ColoredTriangle");
+	MKNODE(comp1, "raw:$T -> result:test/sched/typing/GZipCompressed_$T");
+	MKNODE(extract, "input:$T input2:$A -> output:$T.osize output2:$A.color");
+	MKNODE(output, "input:$T input2:$S -> output");
+
+	CONNECT(input, out, comp1, raw);
+	CONNECT(input, out2, extract, input2);
+	CONNECT(comp1, result, extract, input);
+	CONNECT(extract, output, output, input);
+	CONNECT(extract, output2, output, input2);
+
+	SETIO(input, input, in);
+	SETIO(output, output, output);
+
+	MKSVC;
+
+	CHKTYPE(input, out,   "test/sched/typing/Triangle");
+	CHKTYPE(input, out2,  "test/sched/typing/ColoredTriangle");
+	CHKTYPE(comp1, raw,   "test/sched/typing/Triangle");
+	CHKTYPE(comp1, result,"test/sched/typing/GZipCompressed test/sched/typing/Triangle");
+	CHKTYPE(extract, input, "test/sched/typing/GZipCompressed test/sched/typing/Triangle");
+	CHKTYPE(extract, input2, "test/sched/typing/ColoredTriangle");
+	CHKTYPE(extract, output, "uint64");
+	CHKTYPE(extract, output2, "test/sched/typing/ColorRGB");
+	CHKTYPE(output, input, "uint64");
+	CHKTYPE(output, input2, "test/sched/typing/ColorRGB");
+
+	FREESVC;
+	return 0;
+}
+
 int invalid_conversion()
 {
 	MKBUF;
@@ -194,7 +229,7 @@ int invalid_generialization()
 	MKNODE(comp1, "raw:$T -> result:test/sched/typing/Compressed_$T");
 	MKNODE(comp2, "raw:$T -> result:test/sched/typing/Compressed_$T");
 	MKNODE(select, "cond val0:$A val1:$B -> out:$A|$B");
-	MKNODE(output, "input:test/sched/GZipCompressed_$T -> output");
+	MKNODE(output, "input:test/sched/typing/GZipCompressed_$T -> output");
 
 	CONNECT(input, out0, comp1, raw);
 	CONNECT(input, out1, comp2, raw);
@@ -226,5 +261,6 @@ TEST_LIST_BEGIN
     TEST_CASE(untyped),
     TEST_CASE(typed),
     TEST_CASE(invalid_conversion),
+    TEST_CASE(adhoc_type),
     TEST_CASE(invalid_generialization)
 TEST_LIST_END;

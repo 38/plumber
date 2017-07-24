@@ -26,6 +26,10 @@ typedef struct {
 	pstd_type_accessor_t file_token;    /*!< The RLS token to the file */
 	pstd_type_accessor_t redirect_token;/*!< The RLS token to the redirect path */
 	pstd_type_accessor_t status;        /*!< The status code */
+
+	uint32_t             STATUS_OK;   /*!< The ok status */
+	uint32_t             STATUS_MOVED;
+	uint32_t             STATUS_NOT_FOUND;
 } context_t;
 
 static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
@@ -73,6 +77,13 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->status = pstd_type_model_get_accessor(ctx->type_model, ctx->result, "status")))
 	    ERROR_LOG_GOTO(ERR, "Cannot get the accessor for result.status");
+
+	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->result, "STATUS_OK", &ctx->STATUS_OK))
+	    ERROR_LOG_GOTO(ERR, "Cannot get the constant STATUS_OK");
+	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->result, "STATUS_MOVED", &ctx->STATUS_MOVED))
+	    ERROR_LOG_GOTO(ERR, "Cannot get the constant STATUS_OK");
+	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->result, "STATUS_NOT_FOUND", &ctx->STATUS_NOT_FOUND))
+	    ERROR_LOG_GOTO(ERR, "Cannot get the constant STATUS_OK");
 
 	ret = 0;
 ERR:
@@ -170,17 +181,17 @@ static int _exec(void* ctxbuf)
 
 	goto RET_200;
 RET_404:
-	status = 404;
+	status = ctx->STATUS_NOT_FOUND;
 	goto RET;
 RET_302:
-	status = 302;
+	status = ctx->STATUS_MOVED;
 
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, ctx->redirect_token, redir_token))
 	    ERROR_LOG_GOTO(ERR, "Cannot write redirect.token");
 
 	goto RET;
 RET_200:
-	status = 200;
+	status = ctx->STATUS_OK;
 
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, ctx->file_token, file_token))
 	    ERROR_LOG_GOTO(ERR, "Cannot write file.token");
