@@ -10,27 +10,31 @@
 
 #include <pss.h>
 
-#include <plumber.h>
+#include <package_config.h>
+
 #include <builtin.h>
 #include <cli.h>
 #include <module.h>
 
 extern pss_vm_t* current_vm;
 
-static const char* _prompt = "PSS> ";
-
 static int _interrupt = 0;
 
-struct _line_list_t {
+typedef struct _line_list_t {
 	char *line;
 	uint32_t off;
 	uint32_t size;
 	struct _line_list_t *next;
-};
+} _line_list_t;
 
-/** @brief concatenate the lines in line list
- */
-static char* _cat_lines(struct _line_list_t *head, uint32_t code_size)
+/** 
+ * @brief concatenate the lines in line list
+ * @param head The list header
+ * @param code_size The size of the code
+ * @note The line list is in reversed order, and the caller should do cleanup works
+ * @return The newly constructed string
+ **/
+static char* _cat_lines(_line_list_t *head, uint32_t code_size)
 {
 	if(NULL == head || 0 >= code_size)
 	    return NULL;
@@ -41,7 +45,7 @@ static char* _cat_lines(struct _line_list_t *head, uint32_t code_size)
 		LOG_ERROR_ERRNO("Cannot allocate memory for the code");
 		return NULL;
 	}
-	struct _line_list_t *node = head;
+	_line_list_t *node = head;
 	while(node)
 	{
 		if(NULL == node->line)
@@ -56,29 +60,26 @@ static char* _cat_lines(struct _line_list_t *head, uint32_t code_size)
 	return code;
 }
 
-/** @brief free the line list
- */
-static void _free_line_list(struct _line_list_t *head)
+/** 
+ * @brief free the line list
+ * @param head The head of the list
+ * @return nothing
+ **/
+static void _free_line_list(_line_list_t *head)
 {
-	struct _line_list_t *pre;
-	while(head)
+	_line_list_t *pre;
+	while(head != NULL)
 	{
 		pre = head;
 		head = head->next;
+		free(pre->line);
 		free(pre);
 	}
 }
 
-#define MAX_BRACKETS 256
 
-#define _CHECK_BRACKETS_TOP(left) \
-    if(0 == b_index || left != bracket_stack[b_index - 1]) \
-        ERROR_RETURN_ACTION(int, b_index = 0); \
-    else \
-        b_index--; \
-    break;
-
-/** @brief simply check the syntax of code by analyzing the brackets pairs
+/** 
+ * @brief simply check the syntax of code by analyzing the brackets pairs
  * @param lexer lexer should be valid
  * @return positive if need more inputs, 0 if input complete,
  * ERROR_CODE(int) if error occurs
@@ -86,7 +87,13 @@ static void _free_line_list(struct _line_list_t *head)
  **/
 static int _scan_brackets(pss_comp_lex_t* lexer)
 {
-	static pss_comp_lex_token_type_t bracket_stack[MAX_BRACKETS];
+#define _CHECK_BRACKETS_TOP(left) \
+    if(0 == b_index || left != bracket_stack[b_index - 1]) \
+        ERROR_RETURN_ACTION(int, b_index = 0); \
+    else \
+        b_index--; \
+    break;
+	static pss_comp_lex_token_type_t bracket_stack[PSCRIPT_CLI_MAX_BRACKET];
 	static int b_index;
 	pss_comp_lex_token_t token;
 	while(1)
@@ -117,29 +124,27 @@ static int _scan_brackets(pss_comp_lex_t* lexer)
 			    break;
 		}
 		// check stack size
-		if(b_index >= MAX_BRACKETS)
+		if(b_index >= PSCRIPT_CLI_MAX_BRACKET)
 		{
 			LOG_ERROR("Code too long");
 			ERROR_RETURN_ACTION(int, b_index = 0);
 		}
 	}
 	return b_index;
+#undef _CHECK_BRACKETS_TOP
 }
 
-/** @brief add one line to the line_list
+/** 
+ * @brief add one line to the line_list
  * @return the new head
- */
-static struct _line_list_t* _add_line(struct _line_list_t* head, char* line, uint32_t size, uint32_t off)
+ **/
+static inline _line_list_t* _add_line(_line_list_t* head, char* line, uint32_t size, uint32_t off)
 {
 	if(NULL == line)
 	    return head;
 
-	struct _line_list_t *node = (struct _line_list_t*)malloc(sizeof(*node));
-	if(NULL == node)
-	{
-		LOG_ERROR_ERRNO("Cannot allocate memory for the code line node");
-		return NULL;
-	}
+	_line_list_t *node = (_line_list_t*)malloc(sizeof(*node));
+	if(NULL == node) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the code line node");
 	node->line = line;
 	node->size = size;
 	node->off = off;
@@ -161,7 +166,7 @@ int pss_cli_interactive(uint32_t debug)
 	pss_comp_lex_t* lexer = NULL;
 	pss_bytecode_module_t* module = NULL;
 	pss_comp_error_t* err = NULL;
-	struct _line_list_t *head = NULL;
+	_line_list_t *head = NULL;
 	char *code;
 	uint32_t lex_success;
 
@@ -178,13 +183,12 @@ int pss_cli_interactive(uint32_t debug)
 
 	while(1)
 	{
-		line = readline(_prompt);
+		line = readline(PSCRIPT_CLI_PROMPT);
 		// ignore empty line
-		if(NULL == line)
-		    continue;
-		if(0 == *line)
+		if(NULL == line || line[0] == 0)
 		{
-			free(line);
+			if(NULL != line) free(line);
+			else return 0;
 			continue;
 		}
 
@@ -195,6 +199,7 @@ int pss_cli_interactive(uint32_t debug)
 			return 0;
 		}
 
+		code = NULL;
 		code_size = 0;
 		head = NULL;
 		module = NULL;
@@ -206,39 +211,36 @@ int pss_cli_interactive(uint32_t debug)
 		{
 			uint32_t line_size = (uint32_t)strlen(line);
 			head = _add_line(head, line, line_size, code_size);
-			if(NULL == head)
-			{
-				LOG_ERROR("malloc _line_list_t failed");
-				break;
-			}
+			if(NULL == head) ERROR_LOG_GOTO(_END_OF_CODE, "Cannot allocate node for the new line");
+			else line = NULL;
+			
 			// should add a newline at the end of each line
 			code_size += line_size + 1;
 			// lexical analysis of a line of code
-			if(NULL == (lexer = pss_comp_lex_new(source_path, line, line_size + 1)))
-			{
-				LOG_ERROR("Syntax error!");
-				break;
-			}
+			if(NULL == (lexer = pss_comp_lex_new(source_path, head->line, line_size + 1)))
+				ERROR_LOG_GOTO(_ADD_HISTORY, "Syntax error");
 			int scan_ret = _scan_brackets(lexer);
 			if(ERROR_CODE(int) == scan_ret)
-			{
-				LOG_ERROR("Syntax error!");
-				break;
-			}
+				ERROR_LOG_GOTO(_ADD_HISTORY, "Syntax error");
+
 			pss_comp_lex_free(lexer);
 			lexer = NULL;
+
 			// While a piece of code is finished, compile and execute it
 			if(0 == scan_ret)
 			{
 				lex_success = 1;
 				break;
 			}
+
 			line = readline(NULL);
 		}
+_ADD_HISTORY:
 		code = _cat_lines(head, code_size);
-		if(NULL == code)
-		    goto _END_OF_CODE;
+		if(NULL == code) goto _END_OF_CODE;
+
 		add_history(code);
+
 		if(lex_success)
 		{
 			if(NULL == (module = module_from_buffer(code, code_size, debug)))
@@ -256,7 +258,9 @@ int pss_cli_interactive(uint32_t debug)
 				pss_vm_exception_free(exception);
 			}
 		}
+
 _END_OF_CODE:
+		if(NULL != line) free(line);
 		if(NULL != err)
 		{
 			const pss_comp_error_t* this;
@@ -269,6 +273,7 @@ _END_OF_CODE:
 		if(NULL != lexer) pss_comp_lex_free(lexer);
 		_free_line_list(head);
 		_interrupt = 0;
+		continue;
 	}
 	return 0;
 }
