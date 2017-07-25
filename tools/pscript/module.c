@@ -62,13 +62,13 @@ static inline void _add_module_to_list(pss_bytecode_module_t* m, uint64_t hash[2
 	_modules = module;
 }
 
-static pss_bytecode_module_t* _try_load_module_from_buffer(const char* code, uint32_t code_size, uint32_t debug)
+static pss_bytecode_module_t* _try_load_module_from_buffer(const char* file, const char* code, uint32_t code_size, uint32_t debug)
 {
 	pss_comp_lex_t* lexer = NULL;
 	pss_bytecode_module_t* module = NULL;
 	pss_comp_error_t* err = NULL;
 
-	if(NULL == (lexer = pss_comp_lex_new("stdin", code, code_size)))
+	if(NULL == (lexer = pss_comp_lex_new(file, code, code_size)))
 	    ERROR_LOG_GOTO(_ERR, "Cannot create lexer");
 	if(NULL == (module = pss_bytecode_module_new()))
 	    ERROR_LOG_GOTO(_ERR, "Cannot create module instance");
@@ -100,7 +100,7 @@ _ERR:
 pss_bytecode_module_t* module_from_buffer(const char* code, uint32_t code_size, uint32_t debug)
 {
 	pss_bytecode_module_t* module = NULL;
-	if(NULL == (module = _try_load_module_from_buffer(code, code_size, debug)))
+	if(NULL == (module = _try_load_module_from_buffer("<stdin>", code, code_size, debug)))
 	    return NULL;
 	uint64_t hash[2] = {0, 0};
 	_add_module_to_list(module, hash);
@@ -144,7 +144,7 @@ int _try_load_module(const char* source_path, const char* compiled_path, int loa
 		else
 		    fp = NULL;
 
-		if(NULL == (module = _try_load_module_from_buffer(code, (unsigned)(source_sz + 1), (uint32_t)debug)))
+		if(NULL == (module = _try_load_module_from_buffer(source_path, code, (unsigned)(source_sz + 1), (uint32_t)debug)))
 		    goto ERR;
 
 		free(code);
