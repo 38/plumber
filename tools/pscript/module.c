@@ -126,11 +126,13 @@ int _try_load_module(const char* source_path, const char* compiled_path, int loa
 		LOG_DEBUG("Found PSS module source at %s", source_path);
 		pss_bytecode_module_t* module = NULL;
 		char* code = (char*)malloc((size_t)(source_sz + 1));
+		FILE* fp = NULL;
+
 		if(NULL == code)
 		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for code");
 		code[source_sz] = 0;
 
-		FILE* fp = fopen(source_path, "r");
+		fp = fopen(source_path, "r");
 		if(NULL == fp)
 		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open the source code file");
 
