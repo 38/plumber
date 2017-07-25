@@ -147,6 +147,21 @@ static pss_value_t _quit(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 	return ret;
 }
 
+static pss_value_t _help(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
+{
+	(void)vm;
+	(void)argc;
+	(void)argv;
+	pss_value_t ret = {
+		.kind = PSS_VALUE_KIND_UNDEF
+	};
+	printf("plumber %s\n\n", PLUMBER_VERSION);
+	printf("help()  -> Get this help documentation\n");
+	printf("quit()  -> Quit the interactive client\n");
+	printf("\n");
+	return ret;
+}
+
 int pss_cli_interactive(uint32_t debug)
 {
 	static const char* source_path = "_";
@@ -165,13 +180,19 @@ int pss_cli_interactive(uint32_t debug)
 		LOG_ERROR("Cannot create PSS Virtual Machine");
 		return 1;
 	}
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(current_vm, "quit", _quit))
-	{
-		pss_vm_free(current_vm);
-		LOG_ERROR("Cnnot register the quit builtin");
-		return 1;
+#define _ADD_BUILTIN_FUNC(name, func) \
+	if(ERROR_CODE(int) == pss_vm_add_builtin_func(current_vm, name, func)) \
+	{ \
+		pss_vm_free(current_vm); \
+		LOG_ERROR("Cannot register the "name" builtin"); \
+		return 1; \
 	}
+
+	_ADD_BUILTIN_FUNC("quit", _quit)
+	_ADD_BUILTIN_FUNC("help", _help)
+
+#undef _ADD_BUILTIN_FUNC
+	_help(current_vm, 0, NULL);
 	
 	signal(SIGINT, _stop);
 
