@@ -225,7 +225,7 @@ int pss_cli_interactive(uint32_t debug)
 				break;
 			}
 
-			line = readline(NULL);
+			line = readline(".... ");
 		}
 _ADD_HISTORY:
 		if(NULL == (code = _cat_lines(head))) goto _END_OF_CODE;
