@@ -6,9 +6,8 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
-#include <utils/log.h>
-
 #include <pss.h>
+#include <plumber.h>
 
 #include <package_config.h>
 
@@ -29,49 +28,40 @@ typedef struct _line_list_t {
 
 /** 
  * @brief concatenate the lines in line list
- * @param head The list header
+ * @param lines The list of lines has been read
  * @param code_size The size of the code
  * @note The line list is in reversed order, and the caller should do cleanup works
  * @return The newly constructed string
  **/
-static char* _cat_lines(_line_list_t *head, uint32_t code_size)
+static char* _cat_lines(_line_list_t *lines)
 {
-	if(NULL == head || 0 >= code_size)
-	    return NULL;
+	if(NULL == lines) ERROR_PTR_RETURN_LOG("Invalid arguments");
 
-	char* code = (char*)malloc((size_t)code_size);
-	if(NULL == code)
+	char* code = (char*)malloc(lines->off + lines->size);
+	if(NULL == code) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the code");
+	
+	while(lines)
 	{
-		LOG_ERROR_ERRNO("Cannot allocate memory for the code");
-		return NULL;
+		if(NULL == lines->line) continue;
+		memcpy(code + lines->off, lines->line, lines->size);
+		if(lines != lines) code[lines->off + lines->size - 1] = '\n';
+		lines = lines->next;
 	}
-	_line_list_t *node = head;
-	while(node)
-	{
-		if(NULL == node->line)
-		    continue;
-		memcpy(code + node->off, node->line, node->size);
-		// add '\n' in the end of each line
-		code[node->off + node->size] = '\n';
-		node = node->next;
-	}
-	// but do not add '\n' in the end
-	code[code_size - 1] = 0;
 	return code;
 }
 
 /** 
  * @brief free the line list
- * @param head The head of the list
+ * @param list The list to dispose
  * @return nothing
  **/
-static void _free_line_list(_line_list_t *head)
+static void _free_line_list(_line_list_t *list)
 {
 	_line_list_t *pre;
-	while(head != NULL)
+	while(list != NULL)
 	{
-		pre = head;
-		head = head->next;
+		pre = list;
+		list = list->next;
 		free(pre->line);
 		free(pre);
 	}
@@ -81,40 +71,37 @@ static void _free_line_list(_line_list_t *head)
 /** 
  * @brief simply check the syntax of code by analyzing the brackets pairs
  * @param lexer lexer should be valid
- * @return positive if need more inputs, 0 if input complete,
- * ERROR_CODE(int) if error occurs
+ * @return positive if need more inputs, 0 if input complete, ERROR_CODE(int) if error occurs
  * @note remember to reset b_index every time when error occurs
  **/
 static int _scan_brackets(pss_comp_lex_t* lexer)
 {
-#define _CHECK_BRACKETS_TOP(left) \
-    if(0 == b_index || left != bracket_stack[b_index - 1]) \
-        ERROR_RETURN_ACTION(int, b_index = 0); \
-    else \
-        b_index--; \
-    break;
 	static pss_comp_lex_token_type_t bracket_stack[PSCRIPT_CLI_MAX_BRACKET];
 	static int b_index;
 	pss_comp_lex_token_t token;
-	while(1)
+	for(;;)
 	{
 		if(ERROR_CODE(int) == pss_comp_lex_next_token(lexer, &token))
-		{
 			ERROR_RETURN_ACTION(int, b_index = 0);
-		}
 		switch(token.type)
 		{
 			case PSS_COMP_LEX_TOKEN_LPARENTHESIS:
+				bracket_stack[b_index++] = PSS_COMP_LEX_TOKEN_RPARENTHESIS;
+				break;
 			case PSS_COMP_LEX_TOKEN_LBRACKET:
+				bracket_stack[b_index++] = PSS_COMP_LEX_TOKEN_RBRACKET;
+				break;
 			case PSS_COMP_LEX_TOKEN_LBRACE:
-			    bracket_stack[b_index++] = token.type;
-			    break;
+				bracket_stack[b_index++] = PSS_COMP_LEX_TOKEN_RBRACE;
+				break;
 			case PSS_COMP_LEX_TOKEN_RPARENTHESIS:
-			    _CHECK_BRACKETS_TOP(PSS_COMP_LEX_TOKEN_LPARENTHESIS)
 			case PSS_COMP_LEX_TOKEN_RBRACKET:
-			    _CHECK_BRACKETS_TOP(PSS_COMP_LEX_TOKEN_LBRACKET)
 			case PSS_COMP_LEX_TOKEN_RBRACE:
-			    _CHECK_BRACKETS_TOP(PSS_COMP_LEX_TOKEN_LBRACE)
+				if(0 != b_index && token.type == bracket_stack[b_index - 1])
+				{
+					b_index --;
+					break;
+				}
 			case PSS_COMP_LEX_TOKEN_ERROR:
 			    ERROR_RETURN_ACTION(int, b_index = 0);
 			case PSS_COMP_LEX_TOKEN_EOF:
@@ -124,32 +111,13 @@ static int _scan_brackets(pss_comp_lex_t* lexer)
 			    break;
 		}
 		// check stack size
-		if(b_index >= PSCRIPT_CLI_MAX_BRACKET)
+		if(b_index >= (int)(sizeof(bracket_stack) / sizeof(bracket_stack[0])))
 		{
-			LOG_ERROR("Code too long");
+			LOG_ERROR("Too many levels of brackets");
 			ERROR_RETURN_ACTION(int, b_index = 0);
 		}
 	}
 	return b_index;
-#undef _CHECK_BRACKETS_TOP
-}
-
-/** 
- * @brief add one line to the line_list
- * @return the new head
- **/
-static inline _line_list_t* _add_line(_line_list_t* head, char* line, uint32_t size, uint32_t off)
-{
-	if(NULL == line)
-	    return head;
-
-	_line_list_t *node = (_line_list_t*)malloc(sizeof(*node));
-	if(NULL == node) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the code line node");
-	node->line = line;
-	node->size = size;
-	node->off = off;
-	node->next = head;
-	return node;
 }
 
 static void _stop(int signo)
@@ -157,6 +125,23 @@ static void _stop(int signo)
 	(void)signo;
 	LOG_DEBUG("SIGINT Caught!");
 	_interrupt = 1;
+	sched_loop_kill(1);
+}
+
+static pss_value_t _quit(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
+{
+	(void)vm;
+	(void)argc;
+	(void)argv;
+	pss_value_t ret = {
+		.kind = PSS_VALUE_KIND_UNDEF
+	};
+
+	ret.kind = PSS_VALUE_KIND_UNDEF;
+
+	_stop(0);
+
+	return ret;
 }
 
 int pss_cli_interactive(uint32_t debug)
@@ -177,11 +162,17 @@ int pss_cli_interactive(uint32_t debug)
 		LOG_ERROR("Cannot create PSS Virtual Machine");
 		return 1;
 	}
-	uint32_t code_size;
 
+	if(ERROR_CODE(int) == pss_vm_add_builtin_func(current_vm, "quit", _quit))
+	{
+		pss_vm_free(current_vm);
+		LOG_ERROR("Cnnot register the quit builtin");
+		return 1;
+	}
+	
 	signal(SIGINT, _stop);
 
-	while(1)
+	while(!_interrupt)
 	{
 		line = readline(PSCRIPT_CLI_PROMPT);
 		// ignore empty line
@@ -192,15 +183,7 @@ int pss_cli_interactive(uint32_t debug)
 			continue;
 		}
 
-		// quit TODO: builtin commands
-		if('q' == *line && 0 == *(line + 1))
-		{
-			free(line);
-			return 0;
-		}
-
 		code = NULL;
-		code_size = 0;
 		head = NULL;
 		module = NULL;
 		lexer = NULL;
@@ -209,16 +192,22 @@ int pss_cli_interactive(uint32_t debug)
 
 		while(NULL != line && 0 == _interrupt)
 		{
-			uint32_t line_size = (uint32_t)strlen(line);
-			head = _add_line(head, line, line_size, code_size);
-			if(NULL == head) ERROR_LOG_GOTO(_END_OF_CODE, "Cannot allocate node for the new line");
-			else line = NULL;
+			_line_list_t *node = (_line_list_t*)malloc(sizeof(*node));
+			if(NULL == node) 
+				ERROR_LOG_GOTO(_END_OF_CODE, "Cannot allocate node for the new line");
+
+			uint32_t size = (uint32_t)strlen(line);
+			node->line = line;
+			node->size = size + 1;
+			node->off = (head == NULL ? 0 : head->off + head->size);
+			node->next = head;
+			head = node;
+			line = NULL;
 			
-			// should add a newline at the end of each line
-			code_size += line_size + 1;
 			// lexical analysis of a line of code
-			if(NULL == (lexer = pss_comp_lex_new(source_path, head->line, line_size + 1)))
-				ERROR_LOG_GOTO(_ADD_HISTORY, "Syntax error");
+			if(NULL == (lexer = pss_comp_lex_new(source_path, head->line, head->size - 1)))
+				ERROR_LOG_GOTO(_ADD_HISTORY, "Cannot create new lexer");
+
 			int scan_ret = _scan_brackets(lexer);
 			if(ERROR_CODE(int) == scan_ret)
 				ERROR_LOG_GOTO(_ADD_HISTORY, "Syntax error");
@@ -236,17 +225,17 @@ int pss_cli_interactive(uint32_t debug)
 			line = readline(NULL);
 		}
 _ADD_HISTORY:
-		code = _cat_lines(head, code_size);
-		if(NULL == code) goto _END_OF_CODE;
+		if(NULL == (code = _cat_lines(head))) goto _END_OF_CODE;
 
 		add_history(code);
 
 		if(lex_success)
 		{
-			if(NULL == (module = module_from_buffer(code, code_size, debug)))
-			    goto _END_OF_CODE;
+			if(NULL == (module = module_from_buffer(code, head->off + head->size, debug))) goto _END_OF_CODE;
+
 			int rc = pss_vm_run_module(current_vm, module, NULL);
 			LOG_INFO("VM terminated with exit code %d", rc);
+
 			if(ERROR_CODE(int) == rc)
 			{
 				pss_vm_exception_t* exception = pss_vm_last_exception(current_vm);
@@ -272,8 +261,6 @@ _END_OF_CODE:
 		if(NULL != code) free(code);
 		if(NULL != lexer) pss_comp_lex_free(lexer);
 		_free_line_list(head);
-		_interrupt = 0;
-		continue;
 	}
 	return 0;
 }

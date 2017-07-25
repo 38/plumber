@@ -437,12 +437,16 @@ CLEANUP_CTX:
 	return rc;
 }
 
-int sched_loop_kill()
+int sched_loop_kill(int no_error)
 {
+	if(NULL == _scheds) 
+	{
+		if(no_error) return 0;
+		ERROR_RETURN_LOG(int, "Scheduler loops are not started yet");
+	}
+	
 	LOG_INFO("Service gets killed!");
-
-	if(NULL == _scheds) ERROR_RETURN_LOG(int, "Scheduler loops are not started yet");
-
+	
 	_killed = 1;
 	return 0;
 }

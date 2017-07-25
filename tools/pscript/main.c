@@ -151,7 +151,7 @@ static void _stop(int signo)
 	(void)signo;
 
 	LOG_DEBUG("SIGINT Caught!");
-	sched_loop_kill();
+	sched_loop_kill(0);
 }
 
 pss_value_t make_argv(int argc, char** argv)

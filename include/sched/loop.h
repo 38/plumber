@@ -31,9 +31,11 @@ int sched_loop_start(const sched_service_t* service);
 
 /**
  * @brief kill the scheduler loop
+ * @param no_error if this param is non-zero vlaue, it means no error even though the scheduler
+ *        loop haven't been started yet
  * @return status code
  **/
-int sched_loop_kill();
+int sched_loop_kill(int no_error);
 
 /**
  * @brief set the number of thread that should be used
