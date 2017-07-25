@@ -39,13 +39,16 @@ static char* _cat_lines(_line_list_t *lines)
 
 	char* code = (char*)malloc(lines->off + lines->size);
 	if(NULL == code) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the code");
+
+	int first = 1;
 	
 	while(lines)
 	{
 		if(NULL == lines->line) continue;
 		memcpy(code + lines->off, lines->line, lines->size);
-		if(lines != lines) code[lines->off + lines->size - 1] = '\n';
+		if(!first) code[lines->off + lines->size - 1] = '\n';
 		lines = lines->next;
+		first = 0;
 	}
 	return code;
 }

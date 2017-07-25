@@ -50,6 +50,7 @@ struct _pss_comp_t {
 	uint32_t                 seg_stack_top;    /*!< The stack top for the current segment ID */
 	_control_block_t         ctl_stack[PSS_COMP_ENV_SCOPE_MAX];    /*!< The control block stack */
 	uint32_t                 ctl_stack_top;/*!< The top pointer of the control block stack */
+	uint32_t                 last_consumed_line; /*!< The line number of the last consumed token */
 };
 
 int pss_comp_compile(pss_comp_option_t* option, pss_comp_error_t** error)
@@ -64,7 +65,8 @@ int pss_comp_compile(pss_comp_option_t* option, pss_comp_error_t** error)
 		.error_buf = error,
 		.ahead_begin = 0,
 		.debug = option->debug,
-		.last_line = 0
+		.last_line = 0,
+		.last_consumed_line = ERROR_CODE(uint32_t)
 	};
 
 	pss_bytecode_segid_t entry_point;
@@ -221,10 +223,23 @@ int pss_comp_consume(pss_comp_t* comp, uint32_t n)
 	    return pss_comp_raise(comp, "Internal error: Consuming %u tokens ahead is not allowed", n);
 
 	uint32_t i;
+	comp->last_consumed_line = comp->ahead[(comp->ahead_begin + n - 1) % _LOOKAHEAD].line;
+
 	for(i = 0; i < n; i ++)
 	    comp->ahead[(i + comp->ahead_begin) % _LOOKAHEAD].type = PSS_COMP_LEX_TOKEN_NAT;
 	comp->ahead_begin = (comp->ahead_begin + n) % _LOOKAHEAD;
 	return 0;
+}
+
+uint32_t pss_comp_last_consumed_line(pss_comp_t* comp)
+{
+	if(NULL == comp) 
+	{
+		pss_comp_raise(comp, "Internal error: Invalid arguments");
+		return ERROR_CODE(uint32_t);
+	}
+
+	return comp->last_consumed_line;
 }
 
 pss_bytecode_segment_t* pss_comp_get_code_segment(pss_comp_t* comp)
