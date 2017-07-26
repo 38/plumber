@@ -1,5 +1,7 @@
 find_package(PythonLibs)
+aux_source_directory(${SOURCE_PATH}/scope LOCAL_SOURCE)
 list(APPEND LOCAL_INCLUDE ${PYTHON_INCLUDE_DIR})
 list(APPEND LOCAL_LIBS ${PYTHON_LIBRARIES})
+list(APPEND LOCAL_LIBS pstd proto)
 set(INSTALL yes)
 install_includes("${SOURCE_PATH}/PyServlet" "lib/plumber/python/PyServlet" "*.py")

@@ -89,6 +89,158 @@ static inline int _clean_ref(proto_type_entity_t* ref)
 }
 
 /**
+ * @biref Duplicate the metadata
+ * @param metadata The metadata to duplicate
+ * @return The duplicated metadata
+ **/
+static inline proto_type_atomic_metadata_t* _dup_metadata(const proto_type_atomic_metadata_t* metadata)
+{
+	if(NULL == metadata) PROTO_ERR_RAISE_RETURN_PTR(BUG);
+	proto_type_atomic_metadata_t* ret = (proto_type_atomic_metadata_t*)malloc(sizeof(*ret));
+
+	if(NULL == ret) PROTO_ERR_RAISE_RETURN_PTR(ALLOC);
+
+	ret->scope_typename = NULL;
+	ret->numeric_default = NULL;
+
+	ret->size = (uint8_t)(uintptr_t)((proto_type_atomic_metadata_t*)NULL)->header_end;
+
+	if(metadata->flags.scope.valid)
+	{
+		ret->flags.scope = metadata->flags.scope;
+		if(ret->flags.scope.typename_size > 0 && NULL == (ret->scope_typename = (char*)malloc(ret->flags.scope.typename_size + 1u)))
+		    PROTO_ERR_RAISE_GOTO(ERR, ALLOC);
+		if(ret->flags.scope.typename_size > 0)
+		{
+			memcpy(ret->scope_typename, metadata->scope_typename, ret->flags.scope.typename_size);
+			ret->scope_typename[ret->flags.scope.typename_size] = 0;
+		}
+		return ret;
+	}
+	else
+	{
+		ret->flags.numeric = metadata->flags.numeric;
+
+		if(ret->flags.numeric.default_size > 0 && NULL == (ret->numeric_default = malloc(ret->flags.numeric.default_size)))
+		    PROTO_ERR_RAISE_GOTO(ERR, ALLOC);
+		if(ret->flags.numeric.default_size > 0)
+		    memcpy(ret->numeric_default, metadata->numeric_default, ret->flags.numeric.default_size);
+		return ret;
+	}
+ERR:
+	free(ret);
+	return NULL;
+}
+
+/**
+ * @brief Load the metadata from the file
+ * @param fp The file to load
+ * @return The newly created metadata object
+ **/
+static inline proto_type_atomic_metadata_t* _load_metadata(FILE* fp)
+{
+	size_t nbytes = (size_t)((proto_type_atomic_metadata_t*)NULL)->header_end;
+
+	proto_type_atomic_metadata_t* ret = (proto_type_atomic_metadata_t*)malloc(sizeof(*ret));
+	if(NULL == ret)
+	    PROTO_ERR_RAISE_RETURN_PTR(ALLOC);
+
+	ret->numeric_default = NULL;
+	ret->scope_typename  = NULL;
+
+	if(1 != fread(ret, nbytes, 1, fp))
+	    PROTO_ERR_RAISE_GOTO(ERR, FORMAT);
+
+	if(ret->size > nbytes)
+	{
+		char dropped[ret->size - nbytes];
+		if(1 != fread(dropped, ret->size - nbytes, 1, fp))
+		    PROTO_ERR_RAISE_GOTO(ERR, FORMAT);
+	}
+
+	if(ret->flags.scope.valid && (ret->flags.scope.typename_size == 0 ||  NULL != (ret->scope_typename = (char*)malloc(ret->flags.scope.typename_size + 1u))))
+	{
+		if(ret->scope_typename != NULL && fread(ret->scope_typename, ret->flags.scope.typename_size, 1, fp) != 1)
+		    PROTO_ERR_RAISE_GOTO(ERR, FORMAT);
+		if(ret->scope_typename != NULL) ret->scope_typename[ret->flags.scope.typename_size] = 0;
+		return ret;
+	}
+	else if(!ret->flags.numeric.invalid && (ret->flags.numeric.default_size == 0 || NULL != (ret->numeric_default = malloc(ret->flags.numeric.default_size))))
+	{
+		if(ret->numeric_default != NULL && fread(ret->numeric_default, ret->flags.numeric.default_size, 1, fp) != 1)
+		    PROTO_ERR_RAISE_GOTO(ERR, FORMAT);
+		return ret;
+	}
+
+	PROTO_ERR_RAISE_GOTO(ERR, ALLOC);
+
+ERR:
+	if(NULL != ret)
+	{
+		if(NULL != ret->scope_typename)
+		{
+			free(ret->scope_typename);
+			ret->scope_typename = NULL;
+		}
+		if(NULL != ret->numeric_default)
+		{
+			free(ret->numeric_default);
+			ret->numeric_default = NULL;
+		}
+		free(ret);
+	}
+	return NULL;
+}
+
+/**
+ * @brief dump the metadata section to the prototype file
+ * @param fp The file pointer
+ * @param metadata The metadata to dump
+ * @return status code
+ **/
+static inline int _dump_metadata(FILE* fp, const proto_type_atomic_metadata_t* metadata)
+{
+	size_t nbytes = (size_t)((proto_type_atomic_metadata_t*)NULL)->header_end;
+
+	if(1 != fwrite(metadata, nbytes, 1, fp))
+	    PROTO_ERR_RAISE_RETURN(int,  WRITE);
+
+	if(metadata->flags.scope.valid && NULL != metadata->scope_typename)
+	{
+		if(metadata->flags.scope.typename_size > 0 && 1 != fwrite(metadata->scope_typename, metadata->flags.scope.typename_size, 1, fp))
+		    PROTO_ERR_RAISE_RETURN(int, WRITE);
+	}
+	else if(!metadata->flags.numeric.invalid && NULL != metadata->numeric_default)
+	{
+		if(metadata->flags.numeric.default_size > 0 && 1 != fwrite(metadata->numeric_default, metadata->flags.numeric.default_size, 1, fp))
+		    PROTO_ERR_RAISE_RETURN(int, WRITE);
+	}
+
+	return 0;
+}
+
+
+/**
+ * @brief dispose a used metadata
+ * @param metadata The metadata we want to dispose
+ * @return status code
+ **/
+static int _free_metadata(proto_type_atomic_metadata_t* metadata)
+{
+	if(metadata->flags.scope.valid)
+	{
+		if(NULL != metadata->scope_typename) free(metadata->scope_typename);
+	}
+	else
+	{
+		if(NULL != metadata->numeric_default) free(metadata->numeric_default);
+	}
+	free(metadata);
+
+	return 0;
+}
+
+/**
  * @brief append an entity to the proto table
  * @note this function will assume all the param combinition are valid and do not check if it's meaningful
  * @param elem_size the size for each element
@@ -97,7 +249,7 @@ static inline int _clean_ref(proto_type_entity_t* ref)
  * @param dimension the dimensional data terminates with 0
  * @param name_ref the name reference, if there's no name reference pass NULL
  * @param type_ref the type reference, if there's no type reference pass NULL
- * @param reftok if this is an entiy that represent a reference token, for example (RLS token)
+ * @param metadata The metadata for the atomic type, which means the nameref is NULL
  * @note  the dimension data contains at least one element, if this param is NULL, just use {1} as default dimension data <br/>
  *        For the name_ref and type_ref, if the non-NULL pointer passed in, this function will take the ownership of the pointer,
  *        which means the caller do not need to dispose the pointer anymore. And the pointer will be disposed once the protocol type
@@ -107,7 +259,8 @@ static inline int _clean_ref(proto_type_entity_t* ref)
 static inline int _append_entity(proto_type_t* proto,
                                  uint32_t elem_size, const uint32_t* dimension,
                                  const char* symbol, proto_ref_nameref_t* name_ref,
-                                 proto_ref_typeref_t* type_ref, uint32_t reftok)
+                                 proto_ref_typeref_t* type_ref,
+                                 const proto_type_atomic_metadata_t* metadata)
 {
 	/* See the documentation, an entity have both name_ref and type_ref is not allowed anyway */
 	if(name_ref != NULL && type_ref != NULL)
@@ -121,9 +274,10 @@ static inline int _append_entity(proto_type_t* proto,
 	proto_type_entity_t* entity = proto->entity_table + proto->entity_count;
 	entity->symbol = NULL;
 	entity->dimension = NULL;
+	entity->metadata = NULL;
 
 	entity->header.elem_size = elem_size;
-	entity->header.reftok = (reftok > 0);
+	entity->header.metadata = (metadata != NULL);
 
 	if(NULL != symbol)
 	{
@@ -141,21 +295,30 @@ static inline int _append_entity(proto_type_t* proto,
 	{
 		entity->header.reflen = proto_ref_nameref_size(name_ref) & ((1u << 29) - 1);
 		entity->header.refkind = PROTO_TYPE_ENTITY_REF_NAME;
+		entity->header.metadata = 0;
 		entity->name_ref = name_ref;
 	}
 	else if(NULL != type_ref)
 	{
 		entity->header.reflen = proto_ref_typeref_size(type_ref) & ((1u << 29) - 1);
 		entity->header.refkind = PROTO_TYPE_ENTITY_REF_TYPE;
+		entity->header.metadata = (metadata != NULL);
 		entity->type_ref = type_ref;
 	}
 
-	if(NULL == dimension)
-	    dimension = default_dim;
+	if(NULL == dimension) dimension = default_dim;
+
 	for(entity->header.dimlen = 0; dimension[entity->header.dimlen]; entity->header.dimlen ++);
 	if(NULL == (entity->dimension = (uint32_t*)malloc(sizeof(uint32_t) * entity->header.dimlen)))
 	    PROTO_ERR_RAISE_GOTO(ERR, ALLOC);
 	memcpy(entity->dimension, dimension, entity->header.dimlen * sizeof(uint32_t));
+
+	if(entity->header.metadata)
+	{
+		if(NULL == (entity->metadata = _dup_metadata(metadata)))
+		    PROTO_ERR_RAISE_GOTO(ERR, FAIL);
+	}
+	else entity->metadata = NULL;
 
 	proto->entity_count ++;
 
@@ -165,6 +328,7 @@ ERR:
 	{
 		if(NULL != entity->symbol)    free(entity->symbol);
 		if(NULL != entity->dimension) free(entity->dimension);
+		if(NULL != entity->metadata) _free_metadata(entity->metadata);
 	}
 
 	return ERROR_CODE(int);
@@ -204,6 +368,8 @@ ERR:
 				    free(ret->entity_table[i].symbol);
 				if(ret->entity_table[i].dimension != NULL)
 				    free(ret->entity_table[i].dimension);
+				if(ret->entity_table[i].metadata != NULL)
+				    _free_metadata(ret->entity_table[i].metadata);
 			}
 			free(ret->entity_table);
 		}
@@ -230,6 +396,8 @@ int proto_type_free(proto_type_t* proto)
 			    free(entity->symbol);
 			if(entity->dimension != NULL)
 			    free(entity->dimension);
+			if(entity->metadata != NULL && ERROR_CODE(int) == _free_metadata(entity->metadata))
+			    rc = ERROR_CODE(int);
 		}
 		free(proto->entity_table);
 	}
@@ -254,6 +422,7 @@ int _entity_load(FILE* fp, proto_type_entity_t* buf)
 
 	uint32_t* dim = buf->dimension = NULL;
 	char*     sym = buf->symbol    = NULL;
+	buf->metadata = NULL;
 
 	if(buf->header.dimlen > 0)
 	{
@@ -293,11 +462,18 @@ int _entity_load(FILE* fp, proto_type_entity_t* buf)
 		}
 	}
 
+	if(buf->header.metadata)
+	{
+		if(NULL == (buf->metadata = _load_metadata(fp)))
+		    PROTO_ERR_RAISE_GOTO(ERR, FAIL);
+	}
+
 	return 0;
 
 ERR:
 	if(NULL != dim) free(dim);
 	if(NULL != sym) free(sym);
+	if(NULL != buf->metadata) _free_metadata(buf->metadata);
 	_clean_ref(buf);
 	return ERROR_CODE(int);
 }
@@ -394,6 +570,9 @@ int proto_type_dump(const proto_type_t* proto, const char* filename)
 			case PROTO_TYPE_ENTITY_REF_NONE:
 			    break;
 		}
+
+		if(current->header.metadata && ERROR_CODE(int) == _dump_metadata(fp, current->metadata))
+		    PROTO_ERR_RAISE_GOTO(RET, FAIL);
 	}
 
 	ret = 0;
@@ -475,9 +654,9 @@ static inline int _append_padding(proto_type_t* proto, uint32_t next_size)
 	return 0;
 }
 
-int proto_type_append_atomic(proto_type_t* proto, const char* symbol, uint32_t elem_size, const uint32_t* dim, uint32_t reftok)
+int proto_type_append_atomic(proto_type_t* proto, const char* symbol, uint32_t elem_size, const uint32_t* dim, const proto_type_atomic_metadata_t* metadata)
 {
-	if(NULL == proto || NULL == symbol || elem_size == 0)
+	if(NULL == proto || NULL == symbol)
 	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
 	uint32_t size = elem_size, i;
@@ -489,7 +668,7 @@ int proto_type_append_atomic(proto_type_t* proto, const char* symbol, uint32_t e
 	if(ERROR_CODE(int) == _append_padding(proto, size))
 	    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
-	if(ERROR_CODE(int) == _append_entity(proto, elem_size, dim, symbol, NULL, NULL, reftok))
+	if(ERROR_CODE(int) == _append_entity(proto, elem_size, dim, symbol, NULL, NULL, metadata))
 	    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	return 0;
@@ -503,7 +682,7 @@ int proto_type_append_compound(proto_type_t* proto, const char* symbol, const ui
 	if(ERROR_CODE(int) == _append_padding(proto, proto->padding_size))
 	    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
-	if(ERROR_CODE(int) == _append_entity(proto, 0, dim, symbol, NULL, type, 0))
+	if(ERROR_CODE(int) == _append_entity(proto, 0, dim, symbol, NULL, type, NULL))
 	    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	return 0;
@@ -514,7 +693,7 @@ int proto_type_append_alias(proto_type_t* proto, const char* symbol, proto_ref_n
 	if(NULL == proto || NULL == symbol || NULL == target)
 	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
-	if(ERROR_CODE(int) == _append_entity(proto, 0, NULL, symbol, target, NULL, 0))
+	if(ERROR_CODE(int) == _append_entity(proto, 0, NULL, symbol, target, NULL, NULL))
 	    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	return 0;

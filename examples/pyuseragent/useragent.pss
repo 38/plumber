@@ -1,5 +1,5 @@
 import("service");
-
+insmod("pssm");
 insmod("tcp_pipe 1234");
 #If you want the server support HTTP, use the following lines instead
 #insmod "tcp_pipe --slave 1234"
@@ -12,7 +12,9 @@ serv = {
 	req := "language/pyservlet parser";
 	res := "language/pyservlet writer";
 	
-	() -> "in" req "out" -> "in" res "out" -> ();
+	() -> "in" req {
+		"out" -> "in";
+	} res "out" -> ();
 }
 
 Service.visualize(serv);

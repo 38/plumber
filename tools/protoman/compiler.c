@@ -200,7 +200,7 @@ static inline int _parse_subscript(_context_t* ctx, uint32_t* buf, size_t bufsiz
 		    _RAISE(ctx, return ERROR_CODE(int), "syntax error: number token expected in the subscript");
 
 		if(bufsize > len + 1)
-		    buf[len++] = tok->data->number;
+		    buf[len++] = (uint32_t)tok->data->number;
 
 		_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);
 
@@ -229,6 +229,7 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 	    _RAISE(ctx, return ERROR_CODE(int), "Internal error: cannot peek token");
 
 	uint32_t elem_size = tok->data->size;
+	proto_type_atomic_metadata_t metadata = tok->metadata;
 
 	_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);
 
@@ -240,13 +241,77 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 
 	_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);
 
+	if(NULL == (tok = _peek(ctx, 1)))
+	    _RAISE(ctx, return ERROR_CODE(int), "internal error: cannot peek token");
+
 	static uint32_t dimensions[128];
-	int rc = _parse_subscript(ctx, dimensions, sizeof(dimensions) / sizeof(uint32_t));
+	int rc = 0;
+	int64_t ival = 0;
+	double  dval = 0;
+	float   fval = 0;
+
+	if(tok->type == LEXER_TOKEN_EQUAL)
+	{
+		if(metadata.flags.numeric.invalid)
+		    _RAISE(ctx, return ERROR_CODE(int), "syntax error: interger expected");
+		/* This is a constant value */
+		_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);
+		if(NULL == (tok = _peek(ctx, 1)))
+		    _RAISE(ctx, return ERROR_CODE(int), "internal error: cannot peek token");
+
+		if(tok->type == LEXER_TOKEN_NUMBER)
+		    ival = tok->data->number;
+		else if(tok->type == LEXER_TOKEN_FLOAT_POINT)
+		    dval = tok->data->floatpoint;
+		else _RAISE(ctx, return ERROR_CODE(int), "syntax error: number expected");
+
+		if(metadata.flags.numeric.is_real)
+		{
+			if(tok->type == LEXER_TOKEN_NUMBER) dval = (double)ival;
+			if(elem_size == 4)
+			{
+				fval = (float)dval;
+				metadata.numeric_default = &fval;
+				metadata.flags.numeric.default_size = 4;
+			}
+			else
+			{
+				metadata.numeric_default = &dval;
+				metadata.flags.numeric.default_size = 8;
+			}
+			elem_size = 0;
+		}
+		else if(tok->type == LEXER_TOKEN_NUMBER)
+		{
+			ival &= ((1ll << (8 * elem_size)) - 1);
+			metadata.numeric_default = &ival;
+			metadata.flags.numeric.default_size = elem_size & 0x1fffffffu;
+			elem_size = 0;
+		}
+		else _RAISE(ctx, return ERROR_CODE(int), "syntax error: integer expected");
+		_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);
+	}
+	else if(tok->type == LEXER_TOKEN_AT)
+	{
+		if(!metadata.flags.scope.valid)
+		    _RAISE(ctx, return ERROR_CODE(int), "syntax error: scope object type expected");
+
+		/* This is a @ cluase for the scope token */
+		_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);
+		if(NULL != (tok = _peek(ctx, 1)) && tok->type == LEXER_TOKEN_ID)
+		{
+			metadata.flags.scope.typename_size = strlen(tok->data->id) & 0x3fffffff;
+			metadata.scope_typename = (char*)tok->data->id;
+			_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);
+		}
+		else _RAISE(ctx, return ERROR_CODE(int), "syntax error: identifer exepcted");
+	}
+	else rc = _parse_subscript(ctx, dimensions, sizeof(dimensions) / sizeof(uint32_t));
 
 	if(rc == ERROR_CODE(int))
 	    return ERROR_CODE(int);
 
-	if(ERROR_CODE(int) == proto_type_append_atomic(type, namebuf, elem_size, ((rc == 0) ? NULL : dimensions), tok->reftok))
+	if(ERROR_CODE(int) == proto_type_append_atomic(type, namebuf, elem_size, ((rc == 0) ? NULL : dimensions), &metadata))
 	    _LIB_PROTO_ERROR(ctx, return ERROR_CODE(int));
 
 	return 0;
@@ -313,7 +378,7 @@ static inline int _parse_alias_field(_context_t* ctx, proto_type_t* type)
 				    _TRY_CONSUME(ctx, goto ERR, 1);
 				    if(NULL == (tok = _peek(ctx, 1)) || tok->type != LEXER_TOKEN_NUMBER)
 				        _RAISE(ctx, goto ERR, "syntax error: number expected");
-				    if(proto_ref_nameref_append_subscript(ref, tok->data->number) == ERROR_CODE(int))
+				    if(proto_ref_nameref_append_subscript(ref, (uint32_t)tok->data->number) == ERROR_CODE(int))
 				        _LIB_PROTO_ERROR(ctx, goto ERR);
 				    _TRY_CONSUME(ctx, goto ERR, 1);
 				    if(NULL == (tok = _peek(ctx, 1)) || tok->type != LEXER_TOKEN_RBRACKET)

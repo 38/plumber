@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017, Feng Liu
  **/
 /**
  * @brief The pscript module management utilities
@@ -19,16 +20,17 @@ int module_set_search_path(char const* const* paths);
  * @brief Load a module from the given module name
  * @param name The name of the mdoule
  * @param dump_compiled Indicates if we want to dump the compiled bytecode to the psm file
- * @return status code
+ * @return module
  **/
 pss_bytecode_module_t* module_from_file(const char* name, int load_compiled, int dump_compiled, int debug, const char* compiled_output);
 
 /**
  * @brief Load a module from the given buffer
  * @param code The buffer contains the code
+ * @param code_size The size of the code
  * @return The module compiled from the code buffer
  **/
-pss_bytecode_module_t* module_from_buffer(const char* code);
+pss_bytecode_module_t* module_from_buffer(const char* code, uint32_t code_size, uint32_t debug);
 
 /**
  * @brief Check if the module has been previously loaded

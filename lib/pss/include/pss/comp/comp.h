@@ -249,4 +249,11 @@ int pss_comp_raise(pss_comp_t* comp, const char* msg, ...)
  **/
 int pss_comp_raise_internal(pss_comp_t* comp, pss_comp_internal_t reason);
 
+/**
+ * @biref Get the line number of the latest comsumed token
+ * @param comp The compiler instance
+ * @return the line number or error code
+ **/
+uint32_t pss_comp_last_consumed_line(pss_comp_t* comp);
+
 #endif

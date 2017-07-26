@@ -1,20 +1,41 @@
 /*
 CaseBegin
 	Name: service_literal
-	Expected: </@PathParser/__error__	ErrorCombiner@in0>
-		      </@RequestParser/__error__	ErrorCombiner@in1>
-		      </@RequestParser/error	ResponseGenerator@400>
-		      </@RequestParser/path	PathParser@origin>
-		      </@input@	RequestParser@request>
-		      </@input@testinput	ErrorCombiner@in4>
-		      </@output@	ResponseGenerator@output>
-		      </@output@testoutput	ErrorCombiner@__error__>
-		      </ErrorCombiner	dataflow/firstnonempty 4>
-		      </FileReader	filesystem/readfile>
-		      </MIMEGuesser	filesystem/mimetype>
-		      </PathParser	filesystem/parsepath --ext-name>
-		      </RequestParser	getpath>
-		      </ResponseGenerator	 response>
+	Expected: 
+			  </!@ErrorCombiner/in0	PathParser@__error__>
+			  </!@ErrorCombiner/in1	RequestParser@__error__>
+			  </!@ErrorCombiner/in2	MIMEGuesser@__error__>
+			  </!@ErrorCombiner/in3	FileReader@__error__>
+			  </!@FileReader/path	PathParser@relative>
+			  </!@MIMEGuesser/extname	PathParser@extname>
+			  </!@PathParser/origin	RequestParser@path>
+			  </!@ResponseGenerator/400	RequestParser@error>
+			  </!@ResponseGenerator/403	PathParser@__null__>
+			  </!@ResponseGenerator/500	ErrorCombiner@out>
+			  </!@ResponseGenerator/file	FileReader@result>
+			  </!@ResponseGenerator/mime	MIMEGuesser@mimetype>
+			  </@ErrorCombiner/out	ResponseGenerator@500>
+			  </@FileReader/__error__	ErrorCombiner@in3>
+			  </@FileReader/result	ResponseGenerator@file>
+			  </@MIMEGuesser/__error__	ErrorCombiner@in2>
+			  </@MIMEGuesser/mimetype	ResponseGenerator@mime>
+			  </@PathParser/__error__	ErrorCombiner@in0>
+			  </@PathParser/__null__	ResponseGenerator@403>
+			  </@PathParser/extname	MIMEGuesser@extname>
+			  </@PathParser/relative	FileReader@path>
+			  </@RequestParser/__error__	ErrorCombiner@in1>
+			  </@RequestParser/error	ResponseGenerator@400>
+			  </@RequestParser/path	PathParser@origin>
+			  </@input@	RequestParser@request>
+			  </@input@testinput	ErrorCombiner@in4>
+			  </@output@	ResponseGenerator@output>
+			  </@output@testoutput	ErrorCombiner@__error__>
+			  </ErrorCombiner	dataflow/firstnonempty 4>
+			  </FileReader	filesystem/readfile>
+			  </MIMEGuesser	filesystem/mimetype>
+			  </PathParser	filesystem/parsepath --ext-name>
+			  </RequestParser	getpath>
+			  </ResponseGenerator	 response>
 CaseEnd
 */
 //define the file server
@@ -98,15 +119,17 @@ to_array = function to_array(obj)
 {
 	var __impl__ = function __impl__(obj, buf, start, prefix, to_array) 
 	 {
+		var count = 0;
 		for(var key in obj)
 		{
 			var fkey = prefix + "/" + key;
 			var val = obj[key];
 			if(val == undefined) continue;
 			if(typeof(val) == "dict") 
-				to_array(obj[key], buf, start, fkey, to_array);
-			else buf[start++] = { key: fkey, val: val };
+				count += to_array(obj[key], buf, start + count, fkey, to_array);
+			else buf[start + (count ++)] = { key: fkey, val: val };
 		}
+		return count;
 	 }
 	return function (obj) 
 	{

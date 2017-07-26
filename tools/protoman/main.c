@@ -10,6 +10,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include <proto.h>
 #include <proto/cache.h>
@@ -559,7 +560,26 @@ ENT_ERR:
 			if(ent->symbol == NULL) continue;
 			symbol = ent->symbol;
 			offset = proto_db_type_offset(type, symbol, &size);
-			typename = "<primitive>";
+			static char primitive_buf[128];
+			if(ent->metadata == NULL)
+			{
+				typename = "<primitive>";
+			}
+			else if(ent->metadata->flags.scope.valid)
+			{
+				snprintf(primitive_buf, sizeof(primitive_buf), "<%sruntime scope object: %s>",
+				         ent->metadata->flags.scope.primitive ? "primitive " : "",
+				         ent->metadata->scope_typename);
+				typename = primitive_buf;
+			}
+			else
+			{
+				snprintf(primitive_buf, sizeof(primitive_buf), "<%s%sprimitive>",
+				         ent->metadata->flags.numeric.is_signed ? "signed " : "unsigned ",
+				         ent->metadata->flags.numeric.is_real   ? "float-point " : "interger ");
+				typename = primitive_buf;
+			}
+
 		}
 
 		if(ERROR_CODE(uint32_t) == offset) goto LAYOUT_ERR;
@@ -571,6 +591,28 @@ ENT_ERR:
 				uint32_t k;
 				for(k = 0; k < ent->header.dimlen; k ++)
 				    printf("[%u]", ent->dimension[k]);
+			}
+			else if(ent->header.metadata && !ent->metadata->flags.numeric.invalid)
+			{
+				if(ent->metadata->flags.numeric.default_size > 0)
+				{
+					uint32_t size = ent->metadata->flags.numeric.default_size;
+					uint32_t real = ent->metadata->flags.numeric.is_real;
+					uint32_t sign = ent->metadata->flags.numeric.is_signed;
+#define _PRINT_DEF(sz, r, s, f, t) else if(size == sz && real == r && sign == s) printf(" = %"f, *(t*)ent->metadata->numeric_default);
+					if(0);
+					_PRINT_DEF(1, 0, 0, PRIu8, uint8_t)
+					_PRINT_DEF(1, 0, 1, PRId8, int8_t)
+					_PRINT_DEF(2, 0, 0, PRIu16, uint16_t)
+					_PRINT_DEF(2, 0, 1, PRId16, int16_t)
+					_PRINT_DEF(4, 0, 0, PRIu32, uint32_t)
+					_PRINT_DEF(4, 0, 1, PRId32, int32_t)
+					_PRINT_DEF(4, 1, 1, "g", float)
+					_PRINT_DEF(8, 0, 0, PRIu64, uint64_t)
+					_PRINT_DEF(8, 0, 1, PRId64, int64_t)
+					_PRINT_DEF(8, 1, 1, "lg", double)
+					else printf(" = <unrecognized value>");
+				}
 			}
 			puts("}");
 		}

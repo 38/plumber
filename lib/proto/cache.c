@@ -497,7 +497,7 @@ static inline int _revdep_remove(const char* this_type, const char* that_type)
 	if(!node->revdeps_ok) PROTO_ERR_RAISE_RETURN(int, DISALLOWED);
 
 	uint32_t i;
-	for(i = 0; i < node->revdeps_size && strcmp(that_type, node->revdeps[i]) != 0; i ++)
+	for(i = 0; i < node->revdeps_size && strcmp(that_type, node->revdeps[i]) != 0; i ++);
 	if(i == node->revdeps_size) return 0;
 	free(node->revdeps[i]);
 
@@ -716,7 +716,6 @@ RET:
 	{
 		ret->revdeps_ok = 0;
 		ret->sandbox = 0;
-		ret->own_type = 0u;
 		ret->type_dirty = 0u;
 		ret->rdep_dirty = 0u;
 		if(ret->node_data != NULL && ret->dispose_node_data != NULL &&
@@ -728,6 +727,7 @@ RET:
 
 		if(ret->own_type && ret->type != NULL && proto_type_free(ret->type) == ERROR_CODE(int))
 		    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
+		ret->own_type = 0u;
 		ret->type = NULL;
 
 		if(ret->revdeps != NULL)

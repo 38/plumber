@@ -10,6 +10,7 @@
 #include <error.h>
 #include <log.h>
 
+#include <proto.h>
 #include <lexer.h>
 
 /**
@@ -27,6 +28,8 @@ static const char* _token_name[] = {
 	[LEXER_TOKEN_RBRACE]   = "}",
 	[LEXER_TOKEN_LBRACKET] = "[",
 	[LEXER_TOKEN_RBRACKET] = "]",
+	[LEXER_TOKEN_EQUAL]    = "=",
+	[LEXER_TOKEN_AT]       = "@",
 	[LEXER_TOKEN_K_TYPE]   = "Keyword: type",
 	[LEXER_TOKEN_K_ALIAS]  = "Keyword: alias",
 	[LEXER_TOKEN_K_PACKAGE]= "Keyword: package"
@@ -126,6 +129,8 @@ static inline lexer_token_t* _token_new(const lexer_t* lexer, size_t datasize, l
 	ret->line = lexer->line;
 	ret->column = lexer->column;
 	ret->file = lexer->filename;
+	ret->metadata.flags.plain = 0;
+	ret->metadata.size = (uint8_t)(uintptr_t)(((proto_type_atomic_metadata_t*)NULL)->header_end);
 
 	return ret;
 }
@@ -197,9 +202,9 @@ static inline lexer_token_t* _id_token(const lexer_t* lexer, uint32_t begin, uin
  * @param value the value of the number
  * @return the nlewy created lexer token or NULL
  **/
-static inline lexer_token_t* _num_token(const lexer_t* lexer, uint32_t value)
+static inline lexer_token_t* _num_token(const lexer_t* lexer, int64_t value)
 {
-	lexer_token_t* ret = _token_new(lexer, sizeof(uint32_t), LEXER_TOKEN_NUMBER);
+	lexer_token_t* ret = _token_new(lexer, sizeof(int64_t), LEXER_TOKEN_NUMBER);
 
 	if(NULL == ret) return NULL;
 
@@ -208,20 +213,37 @@ static inline lexer_token_t* _num_token(const lexer_t* lexer, uint32_t value)
 }
 
 /**
+ * @brief create a float token
+ * @param lexer the lexer instance
+ * @param value the value of the number
+ * @return the newly created lexer token or NULL when error
+ **/
+static inline lexer_token_t* _float_token(const lexer_t* lexer, double value)
+{
+	lexer_token_t* ret = _token_new(lexer, sizeof(double), LEXER_TOKEN_FLOAT_POINT);
+
+	if(NULL == ret) return NULL;
+
+	ret->data->floatpoint = value;
+	return ret;
+
+}
+
+/**
  * @brief create a type primitvie token
  * @param lexer the lexer instance
  * @param size the size of this pritmive
- * @param reftok indicates if this is a reference token (for example a RLS token)
+ * @param metadata The type medadata
  * @return the nlewy created lexer token or NULL
  **/
-static inline lexer_token_t* _type_primitive_token(const lexer_t* lexer, uint32_t size, uint32_t reftok)
+static inline lexer_token_t* _type_primitive_token(const lexer_t* lexer, uint32_t size, proto_type_atomic_metadata_t metadata)
 {
 	lexer_token_t* ret = _token_new(lexer, sizeof(uint32_t), LEXER_TOKEN_TYPE_PRIMITIVE);
 
 	if(NULL == ret) return NULL;
 
 	ret->data->size = size;
-	ret->reftok = (reftok > 0);
+	ret->metadata = metadata;
 	return ret;
 }
 
@@ -351,7 +373,14 @@ static inline void _strip_whilespace_and_comment(lexer_t* lexer)
 lexer_token_t* _parse_number(lexer_t* lexer)
 {
 	int ch = _peek(lexer);
-	uint32_t value = 0;
+	int64_t value = 0;
+	int sign = 1;
+	while(ch == '-' || ch == '+')
+	{
+		if(ch == '-') sign = -sign;
+		_consume(lexer, 1);
+		ch = _peek(lexer);
+	}
 	if(ch == '0')
 	{
 		_consume(lexer, 1);
@@ -375,7 +404,7 @@ lexer_token_t* _parse_number(lexer_t* lexer)
 				_consume(lexer, 1);
 			}
 
-			return valid ? _num_token(lexer, value) : NULL;
+			return valid ? _num_token(lexer, sign * value) : NULL;
 		}
 		else
 		{
@@ -389,7 +418,7 @@ lexer_token_t* _parse_number(lexer_t* lexer)
 				ch = _peek(lexer);
 			}
 
-			return _num_token(lexer, value);
+			return _num_token(lexer, sign * value);
 		}
 	}
 	else
@@ -404,7 +433,56 @@ lexer_token_t* _parse_number(lexer_t* lexer)
 			ch = _peek(lexer);
 		}
 
-		return _num_token(lexer, value);
+		if(ch != '.' && ch != 'e')
+		    return _num_token(lexer, sign * value);
+		else
+		{
+			double fval = (double)value;
+			double exp = 1;
+			if(ch == '.')
+			{
+				double mul = 0.1;
+				_consume(lexer, 1);
+				for(;;)
+				{
+					ch = _peek(lexer);
+					if(_INRANGE(ch, '0', '9'))
+					    fval += mul * (ch - '0') * mul;
+					else break;
+					_consume(lexer, 1);
+				}
+			}
+			if(ch == 'e')
+			{
+				double mul = 10;
+				_consume(lexer, 1);
+				for(;;)
+				{
+					ch = _peek(lexer);
+					if(ch == '+') ;
+					else if(ch == '-')
+					    mul = mul > 1 ? 0.1 : 10.0;
+					else break;
+					_consume(lexer, 1);
+				}
+
+				if(!_INRANGE(ch, '0', '9')) return NULL;
+
+				int pow = 0;
+				for(;;)
+				{
+					if(_INRANGE(ch, '0', '9'))
+					    pow = pow * 10 + ch - '0';
+					else break;
+					_consume(lexer, 1);
+					ch = _peek(lexer);
+				}
+
+				for(;pow; pow /= 2, mul *= mul)
+				    if(pow&1) exp *= mul;
+			}
+			return _float_token(lexer, sign * exp * fval);
+		}
 	}
 
 	return NULL;
@@ -463,6 +541,16 @@ lexer_token_t* lexer_next_token(lexer_t* lexer)
 		_consume(lexer, 1);
 		return _const_token(lexer, LEXER_TOKEN_RBRACKET);
 	}
+	else if(ch == '=')
+	{
+		_consume(lexer, 1);
+		return _const_token(lexer, LEXER_TOKEN_EQUAL);
+	}
+	else if(ch == '@')
+	{
+		_consume(lexer, 1);
+		return _const_token(lexer, LEXER_TOKEN_AT);
+	}
 	else if(_is_letter(ch) || ch == '_' || ch == '$')
 	{
 #define KEYWORD(literal, value) \
@@ -472,29 +560,47 @@ lexer_token_t* lexer_next_token(lexer_t* lexer)
 			_consume(lexer, sizeof(buf) - 1);\
 			return _const_token(lexer, value);\
 		}
-#define PRITMIVE_TYPE(literal, size, reftok) \
+#define PRITMIVE_TYPE_NUMERIC(literal, size, initializers...) \
 		else if(_peek_ahead(lexer, literal)) \
 		{\
 			static const char buf[] = literal;\
 			_consume(lexer, sizeof(buf) - 1);\
-			return _type_primitive_token(lexer, size, reftok);\
+			proto_type_atomic_metadata_t metadata = {\
+				.flags = {\
+					.numeric = {.invalid = 0, ##initializers}\
+				}\
+			};\
+			return _type_primitive_token(lexer, size, metadata);\
+		}
+
+#define PRITMIVE_TYPE_SCOPE(literal, size, initializers...) \
+		else if(_peek_ahead(lexer, literal)) \
+		{\
+			static const char buf[] = literal;\
+			_consume(lexer, sizeof(buf) - 1);\
+			proto_type_atomic_metadata_t metadata = {\
+				.flags = {\
+					.scope = {.valid = 1, ##initializers}\
+				}\
+			};\
+			return _type_primitive_token(lexer, size, metadata);\
 		}
 		if(0);
 		KEYWORD("type", LEXER_TOKEN_K_TYPE)
 		KEYWORD("alias", LEXER_TOKEN_K_ALIAS)
 		KEYWORD("package", LEXER_TOKEN_K_PACKAGE)
-		PRITMIVE_TYPE("uint64",              8,                0)
-		PRITMIVE_TYPE("int64",               8,                0)
-		PRITMIVE_TYPE("double",              8,                0)
-		PRITMIVE_TYPE("uint32",              4,                0)
-		PRITMIVE_TYPE("int32",               4,                0)
-		PRITMIVE_TYPE("float",               4,                0)
-		PRITMIVE_TYPE("uint16",              2,                0)
-		PRITMIVE_TYPE("int16",               2,                0)
-		PRITMIVE_TYPE("uint8",               1,                0)
-		PRITMIVE_TYPE("int8",                1,                0)
-		PRITMIVE_TYPE("char",                1,                0)
-		PRITMIVE_TYPE("request_local_token", sizeof(uint32_t), 1)
+		PRITMIVE_TYPE_NUMERIC("uint64", 8, .is_real = 0u, .is_signed = 0u, .default_size = 0u)
+		PRITMIVE_TYPE_NUMERIC("int64",  8, .is_real = 0u, .is_signed = 1u, .default_size = 0u)
+		PRITMIVE_TYPE_NUMERIC("double", 8, .is_real = 1u, .is_signed = 1u, .default_size = 0u)
+		PRITMIVE_TYPE_NUMERIC("uint32", 4, .is_real = 0u, .is_signed = 0u, .default_size = 0u)
+		PRITMIVE_TYPE_NUMERIC("int32",  4, .is_real = 0u, .is_signed = 1u, .default_size = 0u)
+		PRITMIVE_TYPE_NUMERIC("float",  4, .is_real = 1u, .is_signed = 1u, .default_size = 0u)
+		PRITMIVE_TYPE_NUMERIC("uint16", 2, .is_real = 0u, .is_signed = 0u, .default_size = 0u)
+		PRITMIVE_TYPE_NUMERIC("int16",  2, .is_real = 0u, .is_signed = 1u, .default_size = 0u)
+		PRITMIVE_TYPE_NUMERIC("uint8",  1, .is_real = 0u, .is_signed = 0u, .default_size = 0u)
+		PRITMIVE_TYPE_NUMERIC("int8",   1, .is_real = 0u, .is_signed = 1u, .default_size = 0u)
+		PRITMIVE_TYPE_NUMERIC("char",   1, .is_real = 0u, .is_signed = 1u, .default_size = 0u)
+		PRITMIVE_TYPE_SCOPE("request_local_token", sizeof(uint32_t), .primitive = 0u, .typename_size = 0u)
 		else
 		{
 			const char* begin = lexer->next;
@@ -509,7 +615,7 @@ lexer_token_t* lexer_next_token(lexer_t* lexer)
 			return _id_token(lexer, begin_ofs, end_ofs);
 		}
 	}
-	else if(_INRANGE(ch, '0', '9'))
+	else if(_INRANGE(ch, '0', '9') || ch == '-' || ch == '.')
 	{
 		return _parse_number(lexer);
 	}

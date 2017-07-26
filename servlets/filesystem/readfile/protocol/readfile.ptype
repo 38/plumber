@@ -4,4 +4,7 @@ type Result {
 	plumber.std.request_local.File   file;
 	plumber.std.request_local.String redirect;
 	uint32                           status;
+	uint32                           STATUS_OK        = 200;
+	uint32                           STATUS_NOT_FOUND = 404;
+	uint32                           STATUS_MOVED     = 302;
 };

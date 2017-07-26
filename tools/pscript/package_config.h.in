@@ -1,0 +1,16 @@
+/**
+ * Copyright (C) 2017, Hao Hou
+ **/
+#ifndef __PSCRIPT_PACKAGE_CONFIG_H__
+
+/**
+ * @brief The prompt string of the pscript command line mode
+ **/
+#define PSCRIPT_CLI_PROMPT "@PSCRIPT_CLI_PROMPT@"
+
+/**
+ * @brief The maximum bracket 
+ **/
+#define PSCRIPT_CLI_MAX_BRACKET @PSCRIPT_CLI_MAX_BRACKET@
+
+#endif /** __PSCRIPT_PACKAGE_CONFIG_H__ */

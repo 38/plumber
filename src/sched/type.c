@@ -122,7 +122,7 @@ static inline char const** _parse_type(const char* type_expr)
 		if(type_buf[0] != '$')
 		{
 			/* Then we have a type name, basically we want to convert the type name to a pointer to the libproto managed type name buffer */
-			if(NULL == (ret[i] = proto_cache_full_name(type_buf, NULL)))
+			if(NULL == (ret[i] = proto_db_get_managed_name(type_buf)))
 			    ERROR_LOG_GOTO(ERR, "Libproto can not find the type named %s", type_buf);
 		}
 		else
@@ -452,15 +452,33 @@ static inline const char* _render_type_name(const char* type_expr, const _env_t*
 			if(parsed_type[i][0] == '$')
 			{
 				/* This is a type variable */
-				uint32_t len = 0;
+				uint32_t len = 0, flen = 0;
 				char varname[PATH_MAX];
+				char fieldname[PATH_MAX];
 				const char* start = parsed_type[i] + 1;
-				for(;*start && *start != ' ' && *start != '\t' && *start != '|'; start ++, len ++)
+				for(;*start && *start != ' ' && *start != '\t' && *start != '|' && *start != '.'; start ++, len ++)
 				    varname[len] = *start;
 				varname[len] = 0;
 
 				if(ERROR_CODE(int) == _env_get(env, varname, &result))
 				    ERROR_LOG_GOTO(ERR, "Cannot look for %s in the environment table", varname);
+
+				if(*start == '.')
+				{
+					for(start ++; *start && *start != '\t' && *start != ' ' && *start != '|'; start ++, flen ++)
+					    fieldname[flen] = *start;
+					fieldname[flen] = 0;
+
+					const char* underlying = NULL;
+					if(NULL == (underlying = proto_db_field_type(result[0], fieldname)))
+					    ERROR_LOG_GOTO(ERR, "Cannot get the type of field [%s = %s].%s", varname, result[0], underlying);
+
+					LOG_DEBUG("Expand field type expression [%s = %s].%s = %s", varname, result[0], fieldname, underlying);
+
+					simple_result[0] = underlying;
+					result = simple_result;
+				}
+
 
 				if(NULL == result)
 				    ERROR_LOG_GOTO(ERR, "Variable %s not found", varname);

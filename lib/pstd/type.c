@@ -43,6 +43,18 @@ typedef struct _type_assertion_t {
 } _type_assertion_t;
 
 /**
+ * @brief The type const object
+ **/
+typedef struct _const_t {
+	char*    field;      /*!< The field name for the const */
+	uint32_t is_real:1;  /*!< If this is the real number */
+	uint32_t is_signed:1;/*!< If this is a signed value */
+	uint32_t size;       /*!< The size of this value */
+	void*    target;     /*!< The buffer for this value */
+	struct _const_t* next;  /*!< The next const definition */
+} _const_t;
+
+/**
  * @brief Represent the type information for one pipe
  **/
 typedef struct {
@@ -53,6 +65,7 @@ typedef struct {
 	uint32_t                used_size;     /*!< The size of the header data we actually used */
 	size_t                  buf_begin;     /*!< The offest for buffer of the type context isntance for this pipe begins */
 	_accessor_t*            accessor_list; /*!< The list of accessors related to this pipe */
+	_const_t*               const_list;    /*!< The list of the constant defined by this pipe */
 	_type_assertion_t*      assertion_list;/*!< The assertion list */
 } _typeinfo_t;
 
@@ -141,6 +154,47 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 	for(assertion = typeinfo->assertion_list; NULL != assertion; assertion = assertion->next)
 	    if(ERROR_CODE(int) == assertion->func(pipe, typename, assertion->data))
 	        ERROR_LOG_GOTO(ERR, "Type assertion failed");
+
+	/* Then we need to fetch all the constants */
+	_const_t* constant;
+	for(constant = typeinfo->const_list; NULL != constant; constant = constant->next)
+	{
+		proto_db_field_prop_t prop = proto_db_field_type_info(typename, constant->field);
+		if(ERROR_CODE(int) == prop)
+		    ERROR_LOG_GOTO(ERR, "Cannot query the field type property");
+
+		if(!(prop & PROTO_DB_FIELD_PROP_NUMERIC))
+		    ERROR_LOG_GOTO(ERR, "Type error: numeric type expected for a constant");
+
+		const void* data;
+		size_t size;
+
+		if(1 != proto_db_field_get_default(typename, constant->field, &data, &size))
+		    ERROR_LOG_GOTO(ERR, "Cannot get the default value of the field");
+
+		if(!(prop & PROTO_DB_FIELD_PROP_REAL))
+		{
+			/* This is an interger value */
+			if(constant->is_real) ERROR_LOG_GOTO(ERR, "Type error: integer value expected, but floating point number got");
+			if(((prop & PROTO_DB_FIELD_PROP_SIGNED) != 0) ^ constant->is_signed)
+			    ERROR_LOG_GOTO(ERR, "Type error: signedness mismatch");
+			if(size  > constant->size)
+			    ERROR_LOG_GOTO(ERR, "Type error: the integer constant has been truncated");
+			memcpy(constant->target, data, size);
+			uint8_t* u8 = (uint8_t*)constant->target;
+			/* If this is a signed value, we should expand the sign bit */
+			if(constant->is_signed && (u8[size - 1]&0x80)) u8[size - 1] &= 0x7f, u8[constant->size - 1] |= 0x80;
+		}
+		else
+		{
+			/* This is a real number */
+			if(!constant->is_real) ERROR_LOG_GOTO(ERR, "Type error: floating point value expected, but integer number got");
+			if(size == 4 && constant->size == 4) *(float*)constant->target = *(float*)data;
+			if(size == 4 && constant->size == 8) *(double*)constant->target = *(float*)data;
+			if(size == 8 && constant->size == 4) *(float*)constant->target = (float)*(double*)data;
+			if(size == 8 && constant->size == 8) *(double*)constant->target = *(double*)data;
+		}
+	}
 
 	/* Fill the offset info into accessors */
 	_accessor_t* accessor;
@@ -327,6 +381,14 @@ int pstd_type_model_free(pstd_type_model_t* model)
 				free(cur);
 			}
 
+			_const_t* con;
+			for(con = model->type_info[i].const_list; NULL != con;)
+			{
+				_const_t* cur = con;
+				con = con->next;
+				free(cur);
+			}
+
 			if(NULL != model->type_info[i].name)
 			    free(model->type_info[i].name);
 		}
@@ -369,6 +431,38 @@ int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_asse
 	typeinfo->assertion_list = obj;
 
 	return 0;
+}
+
+int pstd_type_model_const(pstd_type_model_t* model, pipe_t pipe, const char* field, int is_signed, int is_real, void* buf, uint32_t bufsize)
+{
+	if(NULL == model || NULL == field || ERROR_CODE(pipe_t) == pipe || RUNTIME_API_PIPE_IS_VIRTUAL(pipe))
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(ERROR_CODE(int) == _ensure_pipe_typeinfo(model, pipe))
+	    ERROR_RETURN_LOG(int, "Cannot resize the typeinfo arrray");
+
+	_typeinfo_t* typeinfo = model->type_info + PIPE_GET_ID(pipe);
+
+	_const_t* obj = (_const_t*)malloc(sizeof(*obj));
+	if(NULL == obj)
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the constant object");
+
+	obj->field = NULL;
+	obj->is_signed = (is_signed != 0);
+	obj->is_real   = (is_real != 0);
+	obj->target    = buf;
+	obj->size      = bufsize;
+	if(NULL == (obj->field = strdup(field)))
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the field string");
+	obj->next = typeinfo->const_list;
+	typeinfo->const_list = obj;
+
+	return 0;
+
+ERR:
+	if(obj->field != NULL) free(obj->field);
+	free(obj);
+	return ERROR_CODE(int);
 }
 
 /**
@@ -467,7 +561,7 @@ int pstd_type_instance_free(pstd_type_instance_t* inst)
  * @param nbytes how many bytes we need to ensure
  * @return status code
  **/
-int _ensure_header_read(pstd_type_instance_t* inst, const _accessor_t* accessor, size_t nbytes)
+static inline int _ensure_header_read(pstd_type_instance_t* inst, const _accessor_t* accessor, size_t nbytes)
 {
 	const _typeinfo_t* typeinfo = inst->model->type_info + PIPE_GET_ID(accessor->pipe);
 	_header_buf_t* buffer = (_header_buf_t*)(inst->buffer + typeinfo->buf_begin);
@@ -499,6 +593,16 @@ int _ensure_header_read(pstd_type_instance_t* inst, const _accessor_t* accessor,
 	}
 
 	return 0;
+}
+
+size_t pstd_type_instance_field_size(pstd_type_instance_t* inst, pstd_type_accessor_t accessor)
+{
+	if(NULL == inst || ERROR_CODE(pstd_type_accessor_t) == accessor || accessor >= inst->model->accessor_cnt)
+	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
+
+	const _accessor_t* obj = inst->model->accessor + accessor;
+
+	return obj->init ? obj->size : 0;
 }
 
 size_t pstd_type_instance_read(pstd_type_instance_t* inst, pstd_type_accessor_t accessor, void* buf, size_t bufsize)

@@ -33,19 +33,49 @@ typedef enum {
 } proto_type_entity_ref_type_t;
 
 /**
+ * @brief The additional metadata for this entity
+ * @note This is necessary, because sometimes we want to validate the type at runtime, or
+ *       we want to provide a initial value for the type, then we need use the metadata
+ **/
+typedef struct __attribute__((packed)) {
+	uint8_t             size;                  /*!< The size of the metadata section, it must be the size of this struct */
+	union {
+		uint32_t        plain;                 /*!< The plain value */
+		struct __attribute__((packed)) {
+			uint32_t    valid:1;               /*!< Indicates if this is a scope token object, which must be 1  */
+			uint32_t    primitive:1;           /*!< Indicates if this is a scope primitvie, for example, string, which can be used accross the machine boarder */
+			uint32_t    typename_size:30;      /*!< The scope identifier length */
+		}               scope;                 /*!< The flags used for the scope token object */
+		struct __attribute__((packed)) {
+			uint32_t    invalid:1    ;         /*!< If this is a scope token, which must be 0 */
+			uint32_t    is_signed:1;           /*!< If this type is a signed number */
+			uint32_t    is_real:1;             /*!< If this type is a real number */
+			uint32_t    default_size:29;       /*!< The size of the default value */
+		}               numeric;               /*!< The primitive flags */
+	} flags;                                   /*!< The metadata flags */
+	uint8_t             header_end[0];         /*!< The address of the end of header */
+	union {
+		char*           scope_typename;        /*!< The identifer */
+		void*           numeric_default;       /*!< The default value */
+	};
+} proto_type_atomic_metadata_t;
+
+
+/**
  * @brief represent an entity in a protocol, a protocol is represented as a series of
  *        protocol entities. And the protocol entities is sorted in the memory layout
  *        order <br/>
  *        The reference data is right after the symbol section.
- * @details When the entity is a inheritence entity use                    [type = REF,  count = 1, elem_size = 0, symlen = 0, reflen > ?] <br/>
- *         When the entity is a field with another non-pritimive type use [type = REF,  count > 0, elem_size = 0, symlen > 0, reflen > 0] <br/>
- *         When the entity is a pritmive data use                         [type = DATA, count > 0, elem_size > 0  symlen > 0, reflen = 0] <br/>
- *         When the entity is a padding use                               [type = DATA, count > 0, elem_size = 1, symlen = 0, reflen = 0] <br/>
- *         When the entity is a name alias                                [type = ALIAS,count = 0, elem_size = 0, symlen > 0, reflen > 0] <br/>
+ * @details When the entity is a inheritence entity use                    [type = TYPE, count = 1, elem_size = 0, symlen = 0, reflen > ?] <br/>
+ *         When the entity is a field with another non-pritimive type use  [type = TYPE, count > 0, elem_size = 0, symlen > 0, reflen > 0] <br/>
+ *         When the entity is a pritmive data use                          [type = NONE, count > 0, elem_size > 0  symlen > 0, reflen = 0] <br/>
+ *         When the entity is a padding use                                [type = NONE, count > 0, elem_size = 1, symlen = 0, reflen = 0] <br/>
+ *         When the entity is a name alias                                 [type = NAME, count = 0, elem_size = 0, symlen > 0, reflen > 0] <br/>
+ *         When the entity is a constant                                   [type = NONE, count = 0, elem_size = 0, symlen = 0, reflen = 0] <br/>
  **/
 typedef struct __attribute__((packed)) {
 	uint32_t                      symlen:31; /*!< the length of the symbol */
-	uint32_t                      reftok:1;  /*!< if this is a reference token symbol */
+	uint32_t                      metadata:1;/*!< if this is type has a metadata section */
 	proto_type_entity_ref_type_t  refkind:3; /*!< the kind of the reference */
 	uint32_t                      reflen:29; /*!< the length of the symbol that is referring */
 	uint32_t                      dimlen;    /*!< the dimension data length */
@@ -64,9 +94,10 @@ typedef struct __attribute__((packed)) {
  * @note  In this struct the dimension, symbol and reference data are concidered different memory allocation
  **/
 typedef struct {
-	proto_type_entity_info_t   header;    /*!< the fixed length header */
-	uint32_t*                  dimension; /*!< the dimensional data */
-	char*                      symbol;    /*!< the field name of this entity */
+	proto_type_entity_info_t      header;    /*!< the fixed length header */
+	uint32_t*                     dimension; /*!< the dimensional data */
+	char*                         symbol;    /*!< the field name of this entity */
+	proto_type_atomic_metadata_t* metadata;  /*!< The metadata for this entity if it's an atomic entity */
 	union {
 		proto_ref_nameref_t*     name_ref;  /*!< the pointer to the name reference data */
 		proto_ref_typeref_t*     type_ref;  /*!< the pointer to the type reference data */
@@ -119,10 +150,10 @@ int proto_type_dump(const proto_type_t* proto, const char* filename);
  * @param symbol the field name
  * @param elem_size the element size
  * @param dim the dimensional data
- * @param reftok if this is a reference token, which means represetening a runtime reference, for example (Request Local Scope token)
+ * @param metadata The metadata we should put in this atomic
  * @return status code
  **/
-int proto_type_append_atomic(proto_type_t* proto, const char* symbol, uint32_t elem_size, const uint32_t* dim, uint32_t reftok);
+int proto_type_append_atomic(proto_type_t* proto, const char* symbol, uint32_t elem_size, const uint32_t* dim, const proto_type_atomic_metadata_t* metadata);
 
 /**
  * @brief append a non-primitive type to the type description

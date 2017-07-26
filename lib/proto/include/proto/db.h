@@ -12,6 +12,17 @@
 #ifndef __PROTO_DB_H_
 #define __PROTO_DB_H_
 
+/**
+ * @brief The property mask
+ **/
+typedef enum {
+	PROTO_DB_FIELD_PROP_ERROR   = -1,         /*!< The error status */
+	PROTO_DB_FIELD_PROP_NUMERIC = 1,          /*!< If this is a numeric value */
+	PROTO_DB_FIELD_PROP_SIGNED  = 2,          /*1< If this is a signed value */
+	PROTO_DB_FIELD_PROP_REAL    = 4,          /*!< If this is a real number */
+	PROTO_DB_FIELD_PROP_SCOPE   = 8,          /*!< If this is a scope */
+	PROTO_DB_FIELD_PROP_PRIMITIVE_SCOPE = 16  /*!< If this is a primitive scope */
+} proto_db_field_prop_t;
 
 /**
  * @brief initialize the protocol database
@@ -37,6 +48,7 @@ const proto_type_t* proto_db_query_type(const char* type_name);
 /**
  * @brief compute the actual size of the protocol type
  * @param type_name the protocol type object to compute
+ * @note This function doesn't support the adhoc primitive type
  * @return the size of the type or error code
  **/
 uint32_t proto_db_type_size(const char* type_name);
@@ -57,6 +69,17 @@ uint32_t proto_db_type_size(const char* type_name);
 uint32_t proto_db_type_offset(const char* type_name, const char* fieldname, uint32_t* size_buf);
 
 /**
+ * @brief Get the field name of the type
+ * @note If the field is a primitive, it will returns an adhoc data type for the primitves, for example uint32, etc
+ *       For this kinds of virtual typename, the only thing we can access is <typename>.value, which has the primitive
+ *       type
+ * @param type_name The type name
+ * @param fieldname The field name descriptor
+ * @return The field type name
+ **/
+const char* proto_db_field_type(const char* type_name, const char* fieldname);
+
+/**
  * @brief validate the type is well formed, which means the type's references are all defined.
  *        And there's no cirular dependcy with the type, all the alias are valid
  * @param type_name the name of the type to validate
@@ -71,5 +94,39 @@ int proto_db_type_validate(const char* type_name);
  * @note if the buffer don't have enough space for the result, we will return an error code
  **/
 const char* proto_db_common_ancestor(char const* const* type_name);
+
+/**
+ * @brief Get the type name string that managed by libproto
+ * @param name The name value
+ * @return The pointer
+ **/
+const char* proto_db_get_managed_name(const char* name);
+
+/**
+ * @brief Check if this field is numeric value
+ * @param  type_name The type name we want to inspect
+ * @param  field The field name
+ * @return check result or error code
+ **/
+proto_db_field_prop_t proto_db_field_type_info(const char* type_name, const char* field);
+
+/**
+ * @brief Get the scope type id that the scope token stands for
+ * @param type_name The type name we want to check
+ * @param field The field
+ * @return The type id
+ **/
+const char* proto_db_field_scope_id(const char* type_name, const char* field);
+
+/**
+ * @brief Get the default value of a field
+ * @note  The field must be a numeric field
+ * @param type_name The type name
+ * @param field The field name
+ * @param buf The data buffer
+ * @param sizebuf The size buffer
+ * @return The number of default value has been get from the field, or error code
+ **/
+int proto_db_field_get_default(const char* type_name, const char* field, const void** buf, size_t* sizebuf);
 
 #endif /* __PROTO_DB_H_ */

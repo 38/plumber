@@ -27,6 +27,8 @@ int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token
 	if(ERROR_CODE(int) == pss_comp_open_scope(comp))
 	    ERROR_RETURN_LOG(int, "Cannot open scope");
 
+	uint32_t last_stmt_line = ERROR_CODE(uint32_t);
+
 	for(;;)
 	{
 		const pss_comp_lex_token_t* ahead = pss_comp_peek(comp, 0);
@@ -40,8 +42,23 @@ int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token
 			break;
 		}
 
+		int update_last_line = 0;
+
+		if(ahead->type == PSS_COMP_LEX_TOKEN_SEMICOLON || 
+		   ahead->type == PSS_COMP_LEX_TOKEN_LBRACE) 
+			last_stmt_line = ERROR_CODE(uint32_t);
+		else 
+		{
+			if(ahead->line == last_stmt_line) 
+				PSS_COMP_RAISE_SYN(int, comp, "';' expected");
+			update_last_line = 1;
+		}
+
 		if(ERROR_CODE(int) == pss_comp_stmt_parse(comp))
 		    ERROR_RETURN_LOG(int, "Cannot parse the next statement");
+
+		if(update_last_line && ERROR_CODE(uint32_t) == (last_stmt_line = pss_comp_last_consumed_line(comp)))
+			ERROR_RETURN_LOG(int, "Cannot get the line number of the last consumed line");
 
 	}
 
