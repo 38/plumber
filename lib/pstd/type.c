@@ -421,7 +421,7 @@ int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_asse
 
 	_typeinfo_t* typeinfo = model->type_info + PIPE_GET_ID(pipe);
 
-	_type_assertion_t* obj = (_type_assertion_t*)malloc(sizeof(*assertion));
+	_type_assertion_t* obj = (_type_assertion_t*)malloc(sizeof(*obj));
 	if(NULL == obj)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the type assertion object");
 
