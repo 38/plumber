@@ -130,4 +130,8 @@ class _Pservlet {
 	 **/
 	public static final int PIPE_SHADOW = _constants.get("PIPE_SHADOW").intValue();
 
+
+	static {
+		   System.loadLibrary("java_pservlet_jni");
+	}
 };
