@@ -73,8 +73,7 @@ static int _on_type_determined(pipe_t pipe, const char* type, void* data)
 		uint32_t i;
 		for(i = 0; i < ctx->count && pipe != ctx->modifications[i].input; i ++);
 
-		if(i == ctx->count)
-			ERROR_LOG_GOTO(EXIT, "Cannot match the pipe descriptor");
+		if(i == ctx->count) return 0;
 
 		ctx->modifications[i].actual_type = type;
 	}
@@ -93,7 +92,8 @@ static int _on_type_determined(pipe_t pipe, const char* type, void* data)
 
 			const char* type_array[] = {from_type, to_type, NULL};
 
-			if(proto_db_common_ancestor(type_array) != to_type)
+			const char* lca = proto_db_common_ancestor(type_array);
+			if(lca == NULL || strcmp(lca, to_type) != 0)
 				ERROR_LOG_GOTO(EXIT, "Type error: from type %s and to type [%s.%s] = %s is not compitable", 
 						       from_type, ctx->base_type, ctx->modifications[i].field_name, to_type);
 			ctx->modifications[i].validated = 1;
@@ -154,7 +154,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 			ERROR_RETURN_LOG(int, "Cannot setup the on type determined callback function for input pipe for %s", argv[i + 1]);
 	}
 
-	if(ERROR_CODE(pipe_t) == (ctx->base = pipe_define("output", PIPE_OUTPUT, "$BASE")))
+	if(ERROR_CODE(pipe_t) == (ctx->output = pipe_define("output", PIPE_OUTPUT, "$BASE")))
 		ERROR_RETURN_LOG(int, "Cannot define the output pipe");
 
 	return 0;
@@ -237,13 +237,13 @@ static int _exec(void* ctxbuf)
 			const modification_t* mod = ctx->modifications + i;
 			pipe  = mod->input;
 			begin = mod->offset;
-			end   = end + mod->size;
+			end   = begin + mod->size;
 		}
 		else
 			end = begin = ctx->base_size;
 
 		/* Step 1: copy data within segment [last_written, begin) */
-		if(begin < last_written)
+		if(last_written < begin)
 		{
 			int rc = _copy_header(ctx->base, ctx->output, begin - last_written);
 			if(ERROR_CODE(int) == rc) ERROR_RETURN_LOG(int, "Cannot copy header within [%u, %u)", last_written, begin);
