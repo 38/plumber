@@ -233,7 +233,7 @@ int pss_comp_consume(pss_comp_t* comp, uint32_t n)
 
 uint32_t pss_comp_last_consumed_line(pss_comp_t* comp)
 {
-	if(NULL == comp) 
+	if(NULL == comp)
 	{
 		pss_comp_raise(comp, "Internal error: Invalid arguments");
 		return ERROR_CODE(uint32_t);

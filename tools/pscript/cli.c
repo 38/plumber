@@ -26,7 +26,7 @@ typedef struct _line_list_t {
 	struct _line_list_t *next;
 } _line_list_t;
 
-/** 
+/**
  * @brief concatenate the lines in line list
  * @param lines The list of lines has been read
  * @param code_size The size of the code
@@ -41,7 +41,7 @@ static char* _cat_lines(_line_list_t *lines)
 	if(NULL == code) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the code");
 
 	int first = 1;
-	
+
 	while(lines)
 	{
 		if(NULL == lines->line) continue;
@@ -53,7 +53,7 @@ static char* _cat_lines(_line_list_t *lines)
 	return code;
 }
 
-/** 
+/**
  * @brief free the line list
  * @param list The list to dispose
  * @return nothing
@@ -71,7 +71,7 @@ static void _free_line_list(_line_list_t *list)
 }
 
 
-/** 
+/**
  * @brief simply check the syntax of code by analyzing the brackets pairs
  * @param lexer lexer should be valid
  * @return positive if need more inputs, 0 if input complete, ERROR_CODE(int) if error occurs
@@ -85,26 +85,26 @@ static int _scan_brackets(pss_comp_lex_t* lexer)
 	for(;;)
 	{
 		if(ERROR_CODE(int) == pss_comp_lex_next_token(lexer, &token))
-			ERROR_RETURN_ACTION(int, b_index = 0);
+		    ERROR_RETURN_ACTION(int, b_index = 0);
 		switch(token.type)
 		{
 			case PSS_COMP_LEX_TOKEN_LPARENTHESIS:
-				bracket_stack[b_index++] = PSS_COMP_LEX_TOKEN_RPARENTHESIS;
-				break;
+			    bracket_stack[b_index++] = PSS_COMP_LEX_TOKEN_RPARENTHESIS;
+			    break;
 			case PSS_COMP_LEX_TOKEN_LBRACKET:
-				bracket_stack[b_index++] = PSS_COMP_LEX_TOKEN_RBRACKET;
-				break;
+			    bracket_stack[b_index++] = PSS_COMP_LEX_TOKEN_RBRACKET;
+			    break;
 			case PSS_COMP_LEX_TOKEN_LBRACE:
-				bracket_stack[b_index++] = PSS_COMP_LEX_TOKEN_RBRACE;
-				break;
+			    bracket_stack[b_index++] = PSS_COMP_LEX_TOKEN_RBRACE;
+			    break;
 			case PSS_COMP_LEX_TOKEN_RPARENTHESIS:
 			case PSS_COMP_LEX_TOKEN_RBRACKET:
 			case PSS_COMP_LEX_TOKEN_RBRACE:
-				if(0 != b_index && token.type == bracket_stack[b_index - 1])
-				{
-					b_index --;
-					break;
-				}
+			    if(0 != b_index && token.type == bracket_stack[b_index - 1])
+			    {
+				    b_index --;
+				    break;
+			    }
 			case PSS_COMP_LEX_TOKEN_ERROR:
 			    ERROR_RETURN_ACTION(int, b_index = 0);
 			case PSS_COMP_LEX_TOKEN_EOF:
@@ -193,7 +193,7 @@ int pss_cli_interactive(uint32_t debug)
 
 #undef _ADD_BUILTIN_FUNC
 	_help(current_vm, 0, NULL);
-	
+
 	signal(SIGINT, _stop);
 
 	while(!_interrupt)
@@ -217,8 +217,8 @@ int pss_cli_interactive(uint32_t debug)
 		while(NULL != line && 0 == _interrupt)
 		{
 			_line_list_t *node = (_line_list_t*)malloc(sizeof(*node));
-			if(NULL == node) 
-				ERROR_LOG_GOTO(_END_OF_CODE, "Cannot allocate node for the new line");
+			if(NULL == node)
+			    ERROR_LOG_GOTO(_END_OF_CODE, "Cannot allocate node for the new line");
 
 			uint32_t size = (uint32_t)strlen(line);
 			node->line = line;
@@ -227,14 +227,14 @@ int pss_cli_interactive(uint32_t debug)
 			node->next = head;
 			head = node;
 			line = NULL;
-			
+
 			// lexical analysis of a line of code
 			if(NULL == (lexer = pss_comp_lex_new(source_path, head->line, head->size - 1)))
-				ERROR_LOG_GOTO(_ADD_HISTORY, "Cannot create new lexer");
+			    ERROR_LOG_GOTO(_ADD_HISTORY, "Cannot create new lexer");
 
 			int scan_ret = _scan_brackets(lexer);
 			if(ERROR_CODE(int) == scan_ret)
-				ERROR_LOG_GOTO(_ADD_HISTORY, "Syntax error");
+			    ERROR_LOG_GOTO(_ADD_HISTORY, "Syntax error");
 
 			pss_comp_lex_free(lexer);
 			lexer = NULL;
