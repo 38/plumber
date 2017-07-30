@@ -228,7 +228,7 @@ static int _exec(void* ctxbuf)
 	if(eof_rc) return 0;
 	
 	uint32_t i, last_written = 0;
-	for(i = 0; i < ctx->count; i ++)
+	for(i = 0; i <= ctx->count; i ++)
 	{
 		pipe_t pipe = ERROR_CODE(pipe_t);
 		uint32_t begin, end;
@@ -251,18 +251,21 @@ static int _exec(void* ctxbuf)
 		}
 
 		/* Step 2: copy data from the modification pipe */
-		int rc = _copy_header(pipe, ctx->output, end - begin);
-		if(ERROR_CODE(int) == rc) ERROR_RETURN_LOG(int, "Cannot copy header from modification pipe");
-		if(rc == 0) 
+		if(begin < end)
 		{
-			/* Which means we have an empty input, so copy from the base directly */
-			if(1 != _copy_header(ctx->base, ctx->output, end - begin))
-				ERROR_RETURN_LOG(int, "Cannot copy the header within [%u, %u)", begin ,end);
-		}
-		else
-		{
-			if(1 != _copy_header(ctx->base, ERROR_CODE(pipe_t), end - begin))
-				ERROR_RETURN_LOG(int, "Cannot skip the header within [%u, %u)", begin, end);
+			int rc = _copy_header(pipe, ctx->output, end - begin);
+			if(ERROR_CODE(int) == rc) ERROR_RETURN_LOG(int, "Cannot copy header from modification pipe");
+			if(rc == 0) 
+			{
+				/* Which means we have an empty input, so copy from the base directly */
+				if(1 != _copy_header(ctx->base, ctx->output, end - begin))
+					ERROR_RETURN_LOG(int, "Cannot copy the header within [%u, %u)", begin ,end);
+			}
+			else
+			{
+				if(1 != _copy_header(ctx->base, ERROR_CODE(pipe_t), end - begin))
+					ERROR_RETURN_LOG(int, "Cannot skip the header within [%u, %u)", begin, end);
+			}
 		}
 
 		last_written = end;
