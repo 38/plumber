@@ -43,6 +43,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 
 static int _exec(void* ctxbuf)
 {
+	int rc = ERROR_CODE(int);
 	context_t* ctx = (context_t*)ctxbuf;
 
 	size_t ti_size = pstd_type_instance_size(ctx->model);
@@ -54,26 +55,38 @@ static int _exec(void* ctxbuf)
 	if(NULL == inst) ERROR_RETURN_LOG(int, "Cannot create new type instance");
 
 	size_t sz = pstd_type_instance_field_size(inst, ctx->accessor);
-	if(ERROR_CODE(size_t) == sz) ERROR_RETURN_LOG(int, "Cannot get the size of the field");
-
+	if(ERROR_CODE(size_t) == sz) 
+	{
+		LOG_ERROR("Cannot get the size of the field");
+		pstd_type_instance_free(inst);
+		return ERROR_CODE(int);
+	}
 	char buf[sz];
 
 	size_t bytes_read = pstd_type_instance_read(inst, ctx->accessor, buf, sz);
 	if(ERROR_CODE(size_t) == bytes_read)
-	    ERROR_RETURN_LOG(int, "Cannot read the header");
+	    ERROR_LOG_GOTO(ERR, "Cannot read the header");
 
 	const char* begin = buf;
 
 	while(bytes_read > 0)
 	{
+		int rc = pipe_eof(ctx->output);
+		if(ERROR_CODE(int) == rc) ERROR_LOG_GOTO(ERR, "Cannot check if the pipe contains more data");
+		if(rc) ERROR_LOG_GOTO(ERR, "Unexpected EOF from the input pipe");
 		size_t bytes_written = pipe_hdr_write(ctx->output, begin, bytes_read);
-		if(ERROR_CODE(size_t) == bytes_written) ERROR_RETURN_LOG(int, "Cannot write bytes to the pipe");
+		if(ERROR_CODE(size_t) == bytes_written) ERROR_LOG_GOTO(ERR, "Cannot write bytes to the pipe");
 
 		begin += bytes_written;
 		bytes_read -= bytes_written;
 	}
+	rc = 0;
 
-	return 0;
+ERR:
+	if(ERROR_CODE(int) == pstd_type_instance_free(inst))
+		ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
+
+	return rc;
 }
 
 static int _cleanup(void* ctxbuf)

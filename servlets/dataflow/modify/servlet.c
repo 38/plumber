@@ -64,6 +64,10 @@ static int _type_assert(pipe_t pipe, const char* type, const void* data)
 						         from_type, ctx->base_type, ctx->modifications[i].field_name, to_type);
 			ctx->modifications[i].validated = 1;
 		}
+
+	if(ERROR_CODE(pipe_t) == (ctx->output = pipe_define("output", PIPE_OUTPUT, "$T")))
+		ERROR_RETURN_LOG(int, "Cannot define the output pipe");
+
 	return 0;
 }
 
@@ -121,6 +125,45 @@ static int _cleanup(void* ctxbuf)
 		rc = ERROR_CODE(int);
 	return rc;
 }
+#if 0
+static int _exec(void* ctxbuf)
+{
+	context_t* ctx = (context_t*)ctxbuf;
+	size_t ti_size = pstd_type_instance_size(ctx->type_model);
+	if(ERROR_CODE(size_t) == ti_size)
+		ERROR_RETURN_LOG(int, "Cannot get the size of the type instance");
+
+	char ti_buf[ti_size];
+	pstd_type_instance_t* inst = pstd_type_instance_new(ctx->type_model, ti_buf);
+	if(NULL == inst) ERROR_RETURN_LOG(int, "Cannot create new type instance");
+
+	uint32_t i;
+	for(i = 0; i < ctx->count; i ++)
+	{
+		const modification_t* mod = ctx->modifications + i;
+		size_t size = pstd_type_instance_field_size(inst, mod->accessor);
+		if(ERROR_CODE(size_t) == size)
+			ERROR_LOG_GOTO(ERR, "Cannot get the size of the accessor");
+		char buf[size];
+
+		size_t bytes_to_read = size;
+
+		while(bytes_to_read > 0)
+		{
+			int rc = pipe_eof(mod->input);
+			if(ERROR_CODE(int) == rc) ERROR_LOG_GOTO(ERR, "Cannot check if the pipe contains data");
+			if(rc) break;
+
+			size_t bytes_read = pipe_hdr_read(mod->input, buf + size - bytes_to_read, bytes_to_read);
+			if(ERROR_CODE(size_t) == bytes_read) ERROR_LOG_GOTO(ERR, "Cannot read header from the input");
+		}
+
+		if(bytes_to_read == size) continue;  /* We need ignore the pipes that is totally empty */
+		else if(bytes_to_read != size) ERROR_LOG_GOTO(ERR, "Incomplete typed header");
+
+	}
+}
+#endif
 
 SERVLET_DEF = {
 	.desc = "The servlet used to modify fields on the fly",

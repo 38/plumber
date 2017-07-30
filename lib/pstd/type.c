@@ -557,25 +557,25 @@ int pstd_type_instance_free(pstd_type_instance_t* inst)
 /**
  * @brief Ensure we have read the nbytes-th bytes in the header
  * @param inst the type context instance
- * @param accessor the accessor object
+ * @param pipe the pipe we want to read
  * @param nbytes how many bytes we need to ensure
  * @return status code
  **/
-static inline int _ensure_header_read(pstd_type_instance_t* inst, const _accessor_t* accessor, size_t nbytes)
+static inline int _ensure_header_read(pstd_type_instance_t* inst, pipe_t pipe, size_t nbytes)
 {
-	const _typeinfo_t* typeinfo = inst->model->type_info + PIPE_GET_ID(accessor->pipe);
+	const _typeinfo_t* typeinfo = inst->model->type_info + PIPE_GET_ID(pipe);
 	_header_buf_t* buffer = (_header_buf_t*)(inst->buffer + typeinfo->buf_begin);
 	size_t bytes_can_read = typeinfo->used_size - buffer->valid_size;
 
 	while(buffer->valid_size < nbytes)
 	{
-		size_t rc = pipe_hdr_read(accessor->pipe, buffer->data + buffer->valid_size, bytes_can_read);
+		size_t rc = pipe_hdr_read(pipe, buffer->data + buffer->valid_size, bytes_can_read);
 		if(ERROR_CODE(size_t) == rc)
 		    ERROR_RETURN_LOG(int, "Cannot read header");
 
 		if(rc == 0)
 		{
-			int eof_rc = pipe_eof(accessor->pipe);
+			int eof_rc = pipe_eof(pipe);
 			if(ERROR_CODE(int) == eof_rc)
 			    ERROR_RETURN_LOG(int, "pipe_eof returns an error");
 
@@ -621,7 +621,7 @@ size_t pstd_type_instance_read(pstd_type_instance_t* inst, pstd_type_accessor_t 
 
 	if(bufsize == 0) return 0;
 
-	if(ERROR_CODE(int) == _ensure_header_read(inst, obj, obj->offset + bufsize))
+	if(ERROR_CODE(int) == _ensure_header_read(inst, obj->pipe, obj->offset + bufsize))
 	    ERROR_RETURN_LOG(size_t, "Cannot ensure the header buffer is valid");
 
 	const _header_buf_t* buffer = (const _header_buf_t*)(inst->buffer + inst->model->type_info[PIPE_GET_ID(obj->pipe)].buf_begin);
@@ -634,9 +634,17 @@ size_t pstd_type_instance_read(pstd_type_instance_t* inst, pstd_type_accessor_t 
 	return bufsize;
 }
 
-static inline int _ensure_header_write(pstd_type_instance_t* inst, const _accessor_t* accessor, size_t nbytes)
+/**
+ * @brief Ensure the pipe header written properly. This means it will make sure all the bytes in [0, nbytes) must be
+ *        properly initialized
+ * @param inst The type instance
+ * @param pipe the pipe we want to ensure
+ * @param nbytes how many bytes we need to ensure
+ * @return status code
+ **/
+static inline int _ensure_header_write(pstd_type_instance_t* inst, pipe_t pipe, size_t nbytes)
 {
-	const _typeinfo_t* typeinfo = inst->model->type_info + PIPE_GET_ID(accessor->pipe);
+	const _typeinfo_t* typeinfo = inst->model->type_info + PIPE_GET_ID(pipe);
 	_header_buf_t* buffer = (_header_buf_t*)(inst->buffer + typeinfo->buf_begin);
 	if(nbytes <= buffer->valid_size) return 0;
 
@@ -648,6 +656,26 @@ static inline int _ensure_header_write(pstd_type_instance_t* inst, const _access
 
 	return 0;
 }
+
+/*
+static inline int _copy_header_bytes(pstd_type_instance_t* inst, pipe_t from, pipe_t to)
+{
+	const _typeinfo_t* from_tinfo = inst->model->type_info + PIPE_GET_ID(from);
+	const _typeinfo_t* to_tinfo   = inst->model->type_info + PIPE_GET_ID(to);
+
+	if(from_tinfo->name != to_tinfo->name) 
+		ERROR_RETURN_LOG(int, "Type mismatch, copying header is allowed when the from pipe and to pipe are in the same type");
+
+	if(ERROR_CODE(int) == _ensure_header_read(inst, from, from_tinfo->full_size))
+		ERROR_RETURN_LOG(int, "Cannot ensure all the bytes are properly read from the read pipe");
+
+	const _header_buf_t* from_buf = (const _header_buf_t*)(inst->buffer + from_tinfo->buf_begin);
+	_header_buf_t* to_buf   = (_header_buf_t*)(inst->buffer + to_tinfo->buf_begin);
+
+	memcpy(to_buf->data, from_buf->data, from_tinfo->full_size);
+
+	buffer->valid_size = 
+} */
 
 int pstd_type_instance_write(pstd_type_instance_t* inst, pstd_type_accessor_t accessor, const void* buf, size_t bufsize)
 {
@@ -662,7 +690,7 @@ int pstd_type_instance_write(pstd_type_instance_t* inst, pstd_type_accessor_t ac
 
 	if(bufsize == 0) return 0;
 
-	if(ERROR_CODE(int) == _ensure_header_write(inst, obj, obj->offset + bufsize))
+	if(ERROR_CODE(int) == _ensure_header_write(inst, obj->pipe, obj->offset + bufsize))
 	    ERROR_RETURN_LOG(int, "Cannot ensure the header buffer is valid");
 
 	_header_buf_t* buffer = (_header_buf_t*)(inst->buffer + inst->model->type_info[PIPE_GET_ID(obj->pipe)].buf_begin);
