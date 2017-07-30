@@ -15,8 +15,10 @@
 typedef struct {
 	pipe_t                 input;       /*!< The input pipe where we takes the data that needs to be written */
 	const char*            actual_type; /*!< The actual type of the pipe */
-	const char*            field_name;  /*!< The field name we want to modify in the base input */
-	pstd_type_accessor_t   accessor;    /*!< The accessor we used to access the related field */
+	const char*            expected_type; /*!< The expected type name for this modification */
+	char*                  field_name;  /*!< The field name we want to modify in the base input, this is a copy of the param */
+	uint32_t               offset;      /*!< The offset where the field begins */
+	uint32_t               size;        /*!< The size of the field */
 	uint32_t               validated:1; /*!< If the type of the pipe has been validated */
 } modification_t;
 
@@ -27,91 +29,110 @@ typedef struct {
 	pipe_t                base;      /*!< The base we want to modify */
 	const char*           base_type; /*!< The base type */
 	pipe_t                output;    /*!< The output pipe */
-	pstd_type_model_t*    type_model;/*!< The type model */
-	size_t                count;     /*!< The number of fields that needs to be changed */
+	uint32_t              base_size; /*!< The size of the base type */
+	uint32_t              count;     /*!< The number of fields that needs to be changed */
 	modification_t*       modifications;  /*!< The modification we needs to performe */
 } context_t;
 
-static int _type_assert(pipe_t pipe, const char* type, const void* data)
+static int _on_type_determined(pipe_t pipe, const char* type, void* data)
 {
+	int ret = ERROR_CODE(int);
+	if(ERROR_CODE(int) == proto_init())
+		ERROR_RETURN_LOG(int, "Cannot initialize the libproto");
+
 	context_t* ctx = (context_t*)data;
 	if(pipe == ctx->base)
+	{
 		ctx->base_type = type;
+		if(ERROR_CODE(uint32_t) == (ctx->base_size = proto_db_type_size(type)))
+			ERROR_RETURN_LOG(int, "Cannot get the size of the base type %s", type);
+
+		uint32_t i;
+		for(i = 0; i < ctx->count; i ++)
+		{
+			modification_t* mod = ctx->modifications + i;
+			if(NULL == (mod->expected_type = proto_db_field_type(type, mod->field_name)))
+				ERROR_RETURN_LOG(int, "Cannot get the type of field %s.%s", type, mod->field_name);
+
+			if(ERROR_CODE(uint32_t) == (mod->offset = proto_db_type_offset(type, mod->field_name, &mod->size)))
+				ERROR_RETURN_LOG(int, "Cannot get the offset of the field %s.%s", type, mod->field_name);
+		}
+	}
 	else 
 	{
 		uint32_t i;
 		for(i = 0; i < ctx->count && pipe != ctx->modifications[i].input; i ++);
 
 		if(i == ctx->count)
-			ERROR_RETURN_LOG(int, "Cannot match the pipe descriptor");
+			ERROR_LOG_GOTO(EXIT, "Cannot match the pipe descriptor");
 
 		ctx->modifications[i].actual_type = type;
 	}
 
 	uint32_t i;
-	for(i = 0; i < ctx->count && ctx->base_type != NULL; i ++)
-		if(ctx->modifications[i].actual_type != NULL && !ctx->modifications[i].validated)
+	for(i = 0; i < ctx->count; i ++)
+		if(ctx->modifications[i].actual_type != NULL &&
+		   ctx->modifications[i].expected_type != NULL && 
+		   !ctx->modifications[i].validated)
 		{
 			const char* from_type = ctx->modifications[i].actual_type;
-			const char* to_type   = proto_db_field_type(ctx->base_type, ctx->modifications[i].field_name);
+			const char* to_type   = ctx->modifications[i].expected_type;
 			if(NULL == from_type || NULL == to_type)
-				ERROR_RETURN_LOG(int, "Cannot get either from type or to type");
+				ERROR_LOG_GOTO(EXIT, "Cannot get either from type or to type");
 
 			const char* type_array[] = {from_type, to_type, NULL};
 
 			if(proto_db_common_ancestor(type_array) != to_type)
-				ERROR_RETURN_LOG(int, "Type error: from type %s and to type [%s.%s] = %s is not compitable", 
-						         from_type, ctx->base_type, ctx->modifications[i].field_name, to_type);
+				ERROR_LOG_GOTO(EXIT, "Type error: from type %s and to type [%s.%s] = %s is not compitable", 
+						       from_type, ctx->base_type, ctx->modifications[i].field_name, to_type);
 			ctx->modifications[i].validated = 1;
 		}
 
 	if(ERROR_CODE(pipe_t) == (ctx->output = pipe_define("output", PIPE_OUTPUT, "$T")))
-		ERROR_RETURN_LOG(int, "Cannot define the output pipe");
+		ERROR_LOG_GOTO(EXIT, "Cannot define the output pipe");
 
-	return 0;
+	ret = 0;
+EXIT:
+
+	if(ERROR_CODE(int) == proto_finalize())
+		ERROR_RETURN_LOG(int, "Cannot finalize the libproto");
+	return ret;
 }
 
 static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 {
+	uint32_t i;
 	context_t* ctx = (context_t*)ctxbuf;
 	ctx->base_type = NULL;
-	ctx->type_model = NULL;
 	ctx->modifications = NULL;
-	ctx->count = 0;
+	ctx->count = argc - 1;
 	ctx->base_type = NULL;
 	ctx->modifications = NULL;
 	
-	if(NULL == (ctx->type_model = pstd_type_model_new()))
-		ERROR_RETURN_LOG(int, "Cannot create new type model");
-
-	if(ERROR_CODE(pipe_t) == (ctx->base = pipe_define("base", PIPE_INPUT, "$T")))
+	if(ERROR_CODE(pipe_t) == (ctx->base = pipe_define("base", PIPE_INPUT, "$BASE")))
 		ERROR_RETURN_LOG(int, "Cannot define the base input pipe");
 	
-	if(ERROR_CODE(int) == pstd_type_model_assert(ctx->type_model, ctx->base, _type_assert, ctx))
-		ERROR_RETURN_LOG(int, "Cannot install the type assertion callback");
-
-	ctx->count = argc - 1;
-
+	if(ERROR_CODE(int) == pipe_set_type_callback(ctx->base, _on_type_determined, ctx))
+		ERROR_RETURN_LOG(int, "Cannot setup the on type determined callback function for the base input");
 
 	if(NULL == (ctx->modifications = calloc(1, sizeof(modification_t) * ctx->count)))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the modification array");
 
-
-	uint32_t i;
 	for(i = 0; i < ctx->count; i ++)
 	{
 		char buf[32];
 		snprintf(buf, sizeof(buf), "$M_%d", i);
 		if(ERROR_CODE(pipe_t) == (ctx->modifications[i].input = pipe_define(argv[i + 1], PIPE_INPUT, buf)))
 			ERROR_RETURN_LOG(int, "Cannot define pipe for field %s", argv[i + 1]);
-		ctx->modifications[i].field_name = argv[i + 1];
-		
-		if(ERROR_CODE(int) == pstd_type_model_assert(ctx->type_model, ctx->modifications[i].input, _type_assert, ctx))
-			ERROR_RETURN_LOG(int, "Cannot install the type assertion callback");
+		if(NULL == (ctx->modifications[i].field_name = strdup(argv[i + 1])))
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate string %s", argv[i + 1]);
 
-		if(ERROR_CODE(pstd_type_accessor_t) == (ctx->modifications[i].accessor = pstd_type_model_get_accessor(ctx->type_model, ctx->base, argv[i + 1])))
-			ERROR_RETURN_LOG(int, "Cannot get the accessor for the field %s", argv[i + 1]);
+		if(ERROR_CODE(int) == pipe_set_type_callback(ctx->modifications[i].input, _on_type_determined, ctx))
+			ERROR_RETURN_LOG(int, "Cannot setup the on type determined callback function for input pipe for %s", argv[i + 1]);
 	}
+
+	if(ERROR_CODE(pipe_t) == (ctx->base = pipe_define("output", PIPE_OUTPUT, "$BASE")))
+		ERROR_RETURN_LOG(int, "Cannot define the output pipe");
 
 	return 0;
 }
@@ -119,11 +140,16 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 static int _cleanup(void* ctxbuf)
 {
 	context_t* ctx = (context_t*)ctxbuf;
-	int rc = 0;
-	if(NULL != ctx->modifications) free(ctx->modifications);
-	if(NULL != ctx->type_model && ERROR_CODE(int) == pstd_type_model_free(ctx->type_model))
-		rc = ERROR_CODE(int);
-	return rc;
+	if(NULL != ctx->modifications) 
+	{
+		uint32_t i;
+		for(i = 0; i < ctx->count; i ++)
+			if(ctx->modifications[i].field_name != NULL)
+				free(ctx->modifications[i].field_name);
+		free(ctx->modifications);
+	}
+
+	return 0;
 }
 #if 0
 static int _exec(void* ctxbuf)

@@ -657,26 +657,6 @@ static inline int _ensure_header_write(pstd_type_instance_t* inst, pipe_t pipe, 
 	return 0;
 }
 
-/*
-static inline int _copy_header_bytes(pstd_type_instance_t* inst, pipe_t from, pipe_t to)
-{
-	const _typeinfo_t* from_tinfo = inst->model->type_info + PIPE_GET_ID(from);
-	const _typeinfo_t* to_tinfo   = inst->model->type_info + PIPE_GET_ID(to);
-
-	if(from_tinfo->name != to_tinfo->name) 
-		ERROR_RETURN_LOG(int, "Type mismatch, copying header is allowed when the from pipe and to pipe are in the same type");
-
-	if(ERROR_CODE(int) == _ensure_header_read(inst, from, from_tinfo->full_size))
-		ERROR_RETURN_LOG(int, "Cannot ensure all the bytes are properly read from the read pipe");
-
-	const _header_buf_t* from_buf = (const _header_buf_t*)(inst->buffer + from_tinfo->buf_begin);
-	_header_buf_t* to_buf   = (_header_buf_t*)(inst->buffer + to_tinfo->buf_begin);
-
-	memcpy(to_buf->data, from_buf->data, from_tinfo->full_size);
-
-	buffer->valid_size = 
-} */
-
 int pstd_type_instance_write(pstd_type_instance_t* inst, pstd_type_accessor_t accessor, const void* buf, size_t bufsize)
 {
 	if(NULL == inst || ERROR_CODE(pstd_type_accessor_t) == accessor || NULL == buf || accessor >= inst->model->accessor_cnt)
