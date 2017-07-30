@@ -34,6 +34,16 @@ typedef struct {
 	modification_t*       modifications;  /*!< The modification we needs to performe */
 } context_t;
 
+static int _cmp_modification(const void* pa, const void* pb)
+{
+	const modification_t* a = (modification_t*)pa;
+	const modification_t* b = (modification_t*)pb;
+
+	if(a->offset < b->offset) return -1;
+	if(a->offset > b->offset) return 1;
+	return 0;
+}
+
 static int _on_type_determined(pipe_t pipe, const char* type, void* data)
 {
 	int ret = ERROR_CODE(int);
@@ -69,8 +79,9 @@ static int _on_type_determined(pipe_t pipe, const char* type, void* data)
 		ctx->modifications[i].actual_type = type;
 	}
 
-	uint32_t i;
+	uint32_t i, validated = 0;
 	for(i = 0; i < ctx->count; i ++)
+	{
 		if(ctx->modifications[i].actual_type != NULL &&
 		   ctx->modifications[i].expected_type != NULL && 
 		   !ctx->modifications[i].validated)
@@ -87,9 +98,21 @@ static int _on_type_determined(pipe_t pipe, const char* type, void* data)
 						       from_type, ctx->base_type, ctx->modifications[i].field_name, to_type);
 			ctx->modifications[i].validated = 1;
 		}
+		if(ctx->modifications[i].validated) validated ++;
+	}
 
-	if(ERROR_CODE(pipe_t) == (ctx->output = pipe_define("output", PIPE_OUTPUT, "$T")))
-		ERROR_LOG_GOTO(EXIT, "Cannot define the output pipe");
+	if(validated == ctx->count)
+	{
+		/* When every thing has been validated, we need to sort it */
+		qsort(ctx->modifications, ctx->count, sizeof(ctx->modifications[0]), _cmp_modification);
+		/* Then we need to verify the areas the modifcation writes are not overlapping */
+		for(i = 0; i < ctx->count - 1; i ++)
+		{
+			uint32_t end = ctx->modifications[i].offset + ctx->modifications[i].size;
+			if(end > ctx->modifications[i + 1].offset) 
+				ERROR_LOG_GOTO(EXIT, "The area of the modification areas are overlapped");
+		}
+	}
 
 	ret = 0;
 EXIT:
@@ -151,50 +174,108 @@ static int _cleanup(void* ctxbuf)
 
 	return 0;
 }
-#if 0
+
+static inline int _copy_header(pipe_t from, pipe_t to, uint32_t size)
+{
+	char buf[size];
+	size_t bytes_to_copy = size;
+
+	int eof_rc = pipe_eof(from);
+	if(ERROR_CODE(int) == eof_rc) ERROR_RETURN_LOG(int, "Cannot check if the from segment contains data");
+	/* This means we just leave the to pipe there */
+	if(eof_rc) return 0;
+
+	while(bytes_to_copy > 0)
+	{
+		size_t bytes_read = pipe_hdr_read(from, buf, bytes_to_copy);
+		if(ERROR_CODE(size_t) == bytes_read)
+			ERROR_RETURN_LOG(int, "Cannot read header from the input pipe");
+
+		if(bytes_read == 0)
+		{
+			eof_rc = pipe_eof(from);
+			if(ERROR_CODE(int) == eof_rc) 
+				ERROR_RETURN_LOG(int, "Cannot check if the from segment contains data");
+			if(eof_rc) ERROR_RETURN_LOG(int, "Incomplete header data");
+		}
+
+		if(to != ERROR_CODE(pipe_t))
+		{
+			const char* data_begin = buf;
+			while(bytes_read > 0)
+			{
+				size_t bytes_written = pipe_hdr_write(to, data_begin, bytes_read);
+				if(ERROR_CODE(size_t) == bytes_written)
+					ERROR_RETURN_LOG(int, "Cannot write data to header");
+				data_begin += bytes_written;
+				bytes_read -= bytes_written;
+				bytes_to_copy -= bytes_written;
+			}
+		}
+		else bytes_to_copy -= bytes_read;
+	}
+
+	return 1;
+}
+
 static int _exec(void* ctxbuf)
 {
 	context_t* ctx = (context_t*)ctxbuf;
-	size_t ti_size = pstd_type_instance_size(ctx->type_model);
-	if(ERROR_CODE(size_t) == ti_size)
-		ERROR_RETURN_LOG(int, "Cannot get the size of the type instance");
 
-	char ti_buf[ti_size];
-	pstd_type_instance_t* inst = pstd_type_instance_new(ctx->type_model, ti_buf);
-	if(NULL == inst) ERROR_RETURN_LOG(int, "Cannot create new type instance");
-
-	uint32_t i;
+	int eof_rc = pipe_eof(ctx->base);
+	if(ERROR_CODE(int) == eof_rc) 
+		ERROR_RETURN_LOG(int, "Cannot check if the pipe contains data");
+	if(eof_rc) return 0;
+	
+	uint32_t i, last_written = 0;
 	for(i = 0; i < ctx->count; i ++)
 	{
-		const modification_t* mod = ctx->modifications + i;
-		size_t size = pstd_type_instance_field_size(inst, mod->accessor);
-		if(ERROR_CODE(size_t) == size)
-			ERROR_LOG_GOTO(ERR, "Cannot get the size of the accessor");
-		char buf[size];
-
-		size_t bytes_to_read = size;
-
-		while(bytes_to_read > 0)
+		pipe_t pipe = ERROR_CODE(pipe_t);
+		uint32_t begin, end;
+		if(i < ctx->count)
 		{
-			int rc = pipe_eof(mod->input);
-			if(ERROR_CODE(int) == rc) ERROR_LOG_GOTO(ERR, "Cannot check if the pipe contains data");
-			if(rc) break;
+			const modification_t* mod = ctx->modifications + i;
+			pipe  = mod->input;
+			begin = mod->offset;
+			end   = end + mod->size;
+		}
+		else
+			end = begin = ctx->base_size;
 
-			size_t bytes_read = pipe_hdr_read(mod->input, buf + size - bytes_to_read, bytes_to_read);
-			if(ERROR_CODE(size_t) == bytes_read) ERROR_LOG_GOTO(ERR, "Cannot read header from the input");
+		/* Step 1: copy data within segment [last_written, begin) */
+		if(begin < last_written)
+		{
+			int rc = _copy_header(ctx->base, ctx->output, begin - last_written);
+			if(ERROR_CODE(int) == rc) ERROR_RETURN_LOG(int, "Cannot copy header within [%u, %u)", last_written, begin);
+			if(rc == 0) ERROR_RETURN_LOG(int, "Incomplete header from base pipe");
 		}
 
-		if(bytes_to_read == size) continue;  /* We need ignore the pipes that is totally empty */
-		else if(bytes_to_read != size) ERROR_LOG_GOTO(ERR, "Incomplete typed header");
+		/* Step 2: copy data from the modification pipe */
+		int rc = _copy_header(pipe, ctx->output, end - begin);
+		if(ERROR_CODE(int) == rc) ERROR_RETURN_LOG(int, "Cannot copy header from modification pipe");
+		if(rc == 0) 
+		{
+			/* Which means we have an empty input, so copy from the base directly */
+			if(1 != _copy_header(ctx->base, ctx->output, end - begin))
+				ERROR_RETURN_LOG(int, "Cannot copy the header within [%u, %u)", begin ,end);
+		}
+		else
+		{
+			if(1 != _copy_header(ctx->base, ERROR_CODE(pipe_t), end - begin))
+				ERROR_RETURN_LOG(int, "Cannot skip the header within [%u, %u)", begin, end);
+		}
 
+		last_written = end;
 	}
+
+	return 0;
 }
-#endif
 
 SERVLET_DEF = {
 	.desc = "The servlet used to modify fields on the fly",
 	.version = 0x0,
 	.size = sizeof(context_t),
 	.init = _init,
-	.unload = _cleanup
+	.unload = _cleanup,
+	.exec = _exec
 };
