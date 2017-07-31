@@ -38,7 +38,7 @@ static int _cmp_modification(const void* pa, const void* pb)
 {
 	const modification_t* a = (modification_t*)pa;
 	const modification_t* b = (modification_t*)pb;
-
+	
 	if(a->offset < b->offset) return -1;
 	if(a->offset > b->offset) return 1;
 	return 0;
@@ -55,17 +55,27 @@ static int _on_type_determined(pipe_t pipe, const char* type, void* data)
 	{
 		ctx->base_type = type;
 		if(ERROR_CODE(uint32_t) == (ctx->base_size = proto_db_type_size(type)))
-			ERROR_RETURN_LOG(int, "Cannot get the size of the base type %s", type);
+			ERROR_LOG_GOTO(EXIT, "Cannot get the size of the base type %s", type);
 
 		uint32_t i;
 		for(i = 0; i < ctx->count; i ++)
 		{
 			modification_t* mod = ctx->modifications + i;
 			if(NULL == (mod->expected_type = proto_db_field_type(type, mod->field_name)))
-				ERROR_RETURN_LOG(int, "Cannot get the type of field %s.%s", type, mod->field_name);
+				ERROR_LOG_GOTO(EXIT, "Cannot get the type of field %s.%s", type, mod->field_name);
 
 			if(ERROR_CODE(uint32_t) == (mod->offset = proto_db_type_offset(type, mod->field_name, &mod->size)))
-				ERROR_RETURN_LOG(int, "Cannot get the offset of the field %s.%s", type, mod->field_name);
+				ERROR_LOG_GOTO(EXIT, "Cannot get the offset of the field %s.%s", type, mod->field_name);
+		}
+
+		/* When every thing has been validated, we need to sort it */
+		qsort(ctx->modifications, ctx->count, sizeof(ctx->modifications[0]), _cmp_modification);
+		/* Then we need to verify the areas the modifcation writes are not overlapping */
+		for(i = 0; i < ctx->count - 1; i ++)
+		{
+			uint32_t end = ctx->modifications[i].offset + ctx->modifications[i].size;
+			if(end > ctx->modifications[i + 1].offset) 
+				ERROR_LOG_GOTO(EXIT, "The area of the modification areas are overlapped");
 		}
 	}
 	else 
@@ -78,7 +88,7 @@ static int _on_type_determined(pipe_t pipe, const char* type, void* data)
 		ctx->modifications[i].actual_type = type;
 	}
 
-	uint32_t i, validated = 0;
+	uint32_t i;
 	for(i = 0; i < ctx->count; i ++)
 	{
 		if(ctx->modifications[i].actual_type != NULL &&
@@ -97,20 +107,6 @@ static int _on_type_determined(pipe_t pipe, const char* type, void* data)
 				ERROR_LOG_GOTO(EXIT, "Type error: from type %s and to type [%s.%s] = %s is not compitable", 
 						       from_type, ctx->base_type, ctx->modifications[i].field_name, to_type);
 			ctx->modifications[i].validated = 1;
-		}
-		if(ctx->modifications[i].validated) validated ++;
-	}
-
-	if(validated == ctx->count)
-	{
-		/* When every thing has been validated, we need to sort it */
-		qsort(ctx->modifications, ctx->count, sizeof(ctx->modifications[0]), _cmp_modification);
-		/* Then we need to verify the areas the modifcation writes are not overlapping */
-		for(i = 0; i < ctx->count - 1; i ++)
-		{
-			uint32_t end = ctx->modifications[i].offset + ctx->modifications[i].size;
-			if(end > ctx->modifications[i + 1].offset) 
-				ERROR_LOG_GOTO(EXIT, "The area of the modification areas are overlapped");
 		}
 	}
 
