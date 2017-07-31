@@ -421,7 +421,7 @@ int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_asse
 
 	_typeinfo_t* typeinfo = model->type_info + PIPE_GET_ID(pipe);
 
-	_type_assertion_t* obj = (_type_assertion_t*)malloc(sizeof(*assertion));
+	_type_assertion_t* obj = (_type_assertion_t*)malloc(sizeof(*obj));
 	if(NULL == obj)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the type assertion object");
 
@@ -557,25 +557,25 @@ int pstd_type_instance_free(pstd_type_instance_t* inst)
 /**
  * @brief Ensure we have read the nbytes-th bytes in the header
  * @param inst the type context instance
- * @param accessor the accessor object
+ * @param pipe the pipe we want to read
  * @param nbytes how many bytes we need to ensure
  * @return status code
  **/
-static inline int _ensure_header_read(pstd_type_instance_t* inst, const _accessor_t* accessor, size_t nbytes)
+static inline int _ensure_header_read(pstd_type_instance_t* inst, pipe_t pipe, size_t nbytes)
 {
-	const _typeinfo_t* typeinfo = inst->model->type_info + PIPE_GET_ID(accessor->pipe);
+	const _typeinfo_t* typeinfo = inst->model->type_info + PIPE_GET_ID(pipe);
 	_header_buf_t* buffer = (_header_buf_t*)(inst->buffer + typeinfo->buf_begin);
 	size_t bytes_can_read = typeinfo->used_size - buffer->valid_size;
 
 	while(buffer->valid_size < nbytes)
 	{
-		size_t rc = pipe_hdr_read(accessor->pipe, buffer->data + buffer->valid_size, bytes_can_read);
+		size_t rc = pipe_hdr_read(pipe, buffer->data + buffer->valid_size, bytes_can_read);
 		if(ERROR_CODE(size_t) == rc)
 		    ERROR_RETURN_LOG(int, "Cannot read header");
 
 		if(rc == 0)
 		{
-			int eof_rc = pipe_eof(accessor->pipe);
+			int eof_rc = pipe_eof(pipe);
 			if(ERROR_CODE(int) == eof_rc)
 			    ERROR_RETURN_LOG(int, "pipe_eof returns an error");
 
@@ -621,7 +621,7 @@ size_t pstd_type_instance_read(pstd_type_instance_t* inst, pstd_type_accessor_t 
 
 	if(bufsize == 0) return 0;
 
-	if(ERROR_CODE(int) == _ensure_header_read(inst, obj, obj->offset + bufsize))
+	if(ERROR_CODE(int) == _ensure_header_read(inst, obj->pipe, obj->offset + bufsize))
 	    ERROR_RETURN_LOG(size_t, "Cannot ensure the header buffer is valid");
 
 	const _header_buf_t* buffer = (const _header_buf_t*)(inst->buffer + inst->model->type_info[PIPE_GET_ID(obj->pipe)].buf_begin);
@@ -634,9 +634,17 @@ size_t pstd_type_instance_read(pstd_type_instance_t* inst, pstd_type_accessor_t 
 	return bufsize;
 }
 
-static inline int _ensure_header_write(pstd_type_instance_t* inst, const _accessor_t* accessor, size_t nbytes)
+/**
+ * @brief Ensure the pipe header written properly. This means it will make sure all the bytes in [0, nbytes) must be
+ *        properly initialized
+ * @param inst The type instance
+ * @param pipe the pipe we want to ensure
+ * @param nbytes how many bytes we need to ensure
+ * @return status code
+ **/
+static inline int _ensure_header_write(pstd_type_instance_t* inst, pipe_t pipe, size_t nbytes)
 {
-	const _typeinfo_t* typeinfo = inst->model->type_info + PIPE_GET_ID(accessor->pipe);
+	const _typeinfo_t* typeinfo = inst->model->type_info + PIPE_GET_ID(pipe);
 	_header_buf_t* buffer = (_header_buf_t*)(inst->buffer + typeinfo->buf_begin);
 	if(nbytes <= buffer->valid_size) return 0;
 
@@ -662,7 +670,7 @@ int pstd_type_instance_write(pstd_type_instance_t* inst, pstd_type_accessor_t ac
 
 	if(bufsize == 0) return 0;
 
-	if(ERROR_CODE(int) == _ensure_header_write(inst, obj, obj->offset + bufsize))
+	if(ERROR_CODE(int) == _ensure_header_write(inst, obj->pipe, obj->offset + bufsize))
 	    ERROR_RETURN_LOG(int, "Cannot ensure the header buffer is valid");
 
 	_header_buf_t* buffer = (_header_buf_t*)(inst->buffer + inst->model->type_info[PIPE_GET_ID(obj->pipe)].buf_begin);
