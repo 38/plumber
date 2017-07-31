@@ -55,7 +55,7 @@ static int _exec(void* ctxbuf)
 	if(NULL == inst) ERROR_RETURN_LOG(int, "Cannot create new type instance");
 
 	size_t sz = pstd_type_instance_field_size(inst, ctx->accessor);
-	if(ERROR_CODE(size_t) == sz) 
+	if(ERROR_CODE(size_t) == sz)
 	{
 		LOG_ERROR("Cannot get the size of the field");
 		pstd_type_instance_free(inst);
@@ -84,7 +84,7 @@ static int _exec(void* ctxbuf)
 
 ERR:
 	if(ERROR_CODE(int) == pstd_type_instance_free(inst))
-		ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
+	    ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
 
 	return rc;
 }
