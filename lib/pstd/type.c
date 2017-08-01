@@ -386,6 +386,7 @@ int pstd_type_model_free(pstd_type_model_t* model)
 			{
 				_const_t* cur = con;
 				con = con->next;
+				if(cur->field != NULL) free(cur->field);
 				free(cur);
 			}
 
