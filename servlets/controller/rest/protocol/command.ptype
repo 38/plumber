@@ -1,0 +1,14 @@
+package plumber.std_servlet.controller.rest;
+
+type Command {
+	uint32                                   OPCODE_CREATE = 0; /*!< Create a new resource */
+	uint32                                   OPCODE_DELETE = 1; /*!< Delete an existing resource */
+	uint32                                   OPCODE_QUERY  = 2; /*!< Query all the object */
+	uint32                                   OPCODE_MODIFY = 3; /*!< Modify an existing object */
+	uint32                                   OPCODE_CONTENT = 4;/*!< Get the content of the object */
+	uint32                                   opcode;            /*!< The operation code */
+	plumber.std.request_local.String         object_id;         /*!< The object ID */
+	plumber.std.request_local.String         content;           /*!< The data we want to put to the object */
+	plumber.std.request_local.String         parent_id;         /*!< The object ID of its parent */
+	plumber.std.request_local.String         param;             /*!< The additional parameters */
+};
