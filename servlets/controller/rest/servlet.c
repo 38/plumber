@@ -45,6 +45,16 @@ typedef struct {
 	pstd_type_accessor_t   data_acc;        /*!< The data accessor */
 } context_t; 
 
+#if 0
+static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
+{
+	context_t* ctx = (context_t*)ctxbuf;
+	ctx->commands = NULL;
+	ctx->model    = NULL;
+
+}
+#endif
+
 SERVLET_DEF = {
 	.desc    = "RESTful API Controller",
 	.version = 0x0,
