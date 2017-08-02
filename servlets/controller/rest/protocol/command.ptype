@@ -1,7 +1,6 @@
 package plumber.std_servlet.controller.rest;
 type UUID {
-	uint64	hi;   /*!< The high 8 bytes */
-	uint64  lo;   /*!< The low 8 bytes */
+	uint8                                    data[16];   /*!< The high 8 bytes */
 };
 type OpCodes {
 	uint32                                   CREATE = 0; /*!< Create a new resource */

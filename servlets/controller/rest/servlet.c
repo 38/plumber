@@ -7,11 +7,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <uuid/uuid.h>
 
 #include <utils/static_assertion.h>
 
 #include <pservlet.h>
 #include <pstd.h>
+
+#include <bsr64.h>
 
 /**
  * @brief The context for a rest storage command
@@ -190,7 +193,19 @@ static int _exec(void* ctxbuf)
 
 	/* If the path is empty, it means we can not do anything on this request */
 	if(NULL == path) return 0;
-	
+	while(*path == '/') path ++;
+	void* parent_id = NULL;
+	uuid_t parent_id_uuid;
+	if(*path == '$')
+	{
+		const char* end = path;
+		while(*end && *end != '/') end ++;
+		if(sizeof(parent_id_uuid) == bsr64_to_bin(path, end, parent_id_uuid, sizeof(parent_id_uuid)))
+			return 0;
+		parent_id = parent_id_uuid;
+	}
+
+	(void)parent_id;
 
 	rc = 0;
 	goto EXIT;

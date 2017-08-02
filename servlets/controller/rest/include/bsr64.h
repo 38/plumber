@@ -23,7 +23,7 @@
 static inline const char* bsr64_from_bin(const void* bin, size_t count, char* buffer, size_t bufsize)
 {
 	const char* ret = buffer;
-	static const char _val2ch[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	static const char _val2ch[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-";
 	const uint8_t* begin = (const uint8_t*)bin;
 	const uint8_t* end   = begin + count;
 	for(;end - begin >= 8 && bufsize > 0; begin += 6)
@@ -41,7 +41,7 @@ static inline const char* bsr64_from_bin(const void* bin, size_t count, char* bu
 	{
 		uint32_t to_read = required;
 		if(to_read > rem) to_read = rem;
-		val |= ((begin[0] & (((1 << to_read) - 1) << (8 - rem))) >> (8 - rem)) << (6 - required);
+		val |= ((begin[0] & (((1u << to_read) - 1) << (8 - rem))) >> (8 - rem)) << (6 - required);
 		rem -= to_read;
 		required -= to_read;
 
@@ -65,7 +65,7 @@ static inline const char* bsr64_from_bin(const void* bin, size_t count, char* bu
  * @param bufsize The size of the buffer
  * @return status code
  **/
-static inline size_t bsr64_to_raw(const char* bsr, void* buf, size_t bufsize)
+static inline size_t bsr64_to_bin(const char* bsr_begin, const char* bsr_end, void* buf, size_t bufsize)
 {
 	size_t ret = 0;
 	static const uint8_t _ch2val[] = {
@@ -90,32 +90,36 @@ static inline size_t bsr64_to_raw(const char* bsr, void* buf, size_t bufsize)
 	uint8_t begin = 8;
 	uint8_t* ptr = ((uint8_t*)buf) - 1;
 	uint8_t  cur = 0;
-	for(;*bsr && bufsize > 0; bsr ++)
+	for(;bsr_begin != bsr_end && bufsize > 0; bsr_begin ++)
 	{
-		uint8_t val = _ch2val[*(uint8_t*)bsr];
+		uint8_t val = _ch2val[*(uint8_t*)bsr_begin];
 
 		if(val == 64) return 0;
 
 		if(begin + 6 > 8)
 		{
 			if(begin < 8) 
-				cur |= ((val & ((1 << (8 - begin)) - 1)) << (begin));
+			{
+				uint8_t delta = (uint8_t)((val & ((1u << (8 - begin)) - 1u)) << begin);
+				cur |= delta;
+			}
 			*(ptr++) = cur;
 			bufsize --;
-			cur = ((val >> (8 - begin)));
+			cur = (uint8_t)((val >> (8 - begin)));
 			ret ++;
-			begin = begin + 6 - 8;
+			begin = (uint8_t)(begin + 6u - 8u);
 		}
 		else
 		{
-			cur |= (val << begin);
-			begin += 6;
+			uint8_t delta = (uint8_t)(val << begin);
+			cur |= delta;
+			begin = (uint8_t)(begin + 6u);
 		}
 	}
 
 	if(begin == 8 && bufsize > 0) *(ptr++) = cur, ret ++;
 
-	if(*bsr != 0) return 0;
+	if(bsr_begin != bsr_end) return 0;
 	return ret;
 }
 
