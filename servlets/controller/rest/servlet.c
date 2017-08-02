@@ -57,6 +57,7 @@ typedef struct {
 		uint32_t           QUERY;           /*!< Query a resource */
 		uint32_t           MODIFY;          /*!< Modify a resource */
 		uint32_t           CONTENT;         /*!< Get the content of a source */
+		uint32_t           EXISTS;          /*!< Check if the resource id exists */
 	}                      opcode;          /*!< The operation code defined by the protocol */
 	struct {
 		uint32_t           GET;             /*!< GET HTTP request */
@@ -102,11 +103,11 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->method_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "method")))
 		ERROR_RETURN_LOG(int, "Cannot get the accessor for request.method");
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->path_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "path")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->path_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "path.token")))
 		ERROR_RETURN_LOG(int, "Cannot get the accessor for request.path");
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->param_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "param")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->param_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "param.token")))
 		ERROR_RETURN_LOG(int, "Cannot get the accessor for request.method");
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->data_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "data")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->data_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "data.token")))
 		ERROR_RETURN_LOG(int, "Cannot get the accessor for request.method");
 
 	uint32_t i, j;
@@ -138,9 +139,9 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 			ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.parent_id", ctx->resources[i - 1].res_name);
 		if(ERROR_CODE(pstd_type_accessor_t) == (res->object_id_acc =pstd_type_model_get_accessor(ctx->model, res->output, "object_id")))
 			ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.object_id", ctx->resources[i - 1].res_name);
-		if(ERROR_CODE(pstd_type_accessor_t) == (res->param_acc =pstd_type_model_get_accessor(ctx->model, res->output, "param")))
+		if(ERROR_CODE(pstd_type_accessor_t) == (res->param_acc =pstd_type_model_get_accessor(ctx->model, res->output, "param.token")))
 			ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.param", ctx->resources[i - 1].res_name);
-		if(ERROR_CODE(pstd_type_accessor_t) == (res->content_acc =pstd_type_model_get_accessor(ctx->model, res->output, "content")))
+		if(ERROR_CODE(pstd_type_accessor_t) == (res->content_acc =pstd_type_model_get_accessor(ctx->model, res->output, "content.token")))
 			ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.param", ctx->resources[i - 1].res_name);
 	}
 
@@ -288,6 +289,13 @@ static int _exec(void* ctxbuf)
 
 	uint32_t method = PSTD_TYPE_INST_READ_PRIMITIVE(uint32_t, inst, ctx->method_acc);
 	if(ERROR_CODE(uint32_t) == method) ERROR_LOG_GOTO(EXIT, "Cannot read method code from the request input");
+	
+	scope_token_t param_token, data_token;
+	if(ERROR_CODE(scope_token_t) == (param_token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->param_acc)))
+		ERROR_LOG_GOTO(EXIT, "Cannot read the RLS token for param");
+
+	if(ERROR_CODE(scope_token_t) == (data_token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->data_acc)))
+		ERROR_LOG_GOTO(EXIT, "Cannot read the RLS token for data"); 
 
 	uint32_t storage_opcode = ERROR_CODE(uint32_t);
 	
@@ -302,6 +310,7 @@ static int _exec(void* ctxbuf)
 		{
 			/* This means we want to modify an existing resource */
 			storage_opcode = ctx->opcode.MODIFY;
+			parent_id = NULL;  /* we ignore the parent id in this case */
 		}
 
 	}
@@ -309,7 +318,8 @@ static int _exec(void* ctxbuf)
 	{
 		if(object_id != NULL)
 		{
-			storage_opcode =ctx->opcode.DELETE;
+			storage_opcode = ctx->opcode.DELETE;
+			parent_id = NULL;    /* we ignore the parent id */
 		}
 	}
 	else if(method == ctx->method_code.GET)
@@ -321,6 +331,7 @@ static int _exec(void* ctxbuf)
 		else
 		{
 			storage_opcode = ctx->opcode.CONTENT;
+			parent_id = NULL;   /* we ignore the parent id */
 		}
 	}
 
@@ -331,7 +342,32 @@ static int _exec(void* ctxbuf)
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, res_ctx->opcode_acc, storage_opcode))
 		ERROR_LOG_GOTO(EXIT, "Cannot write the storage opcode to the output pipe");
 
-	(void)parent_id;  /* TODO: we need produce an validate command to it's parent */
+	if(parent_id != NULL && ERROR_CODE(int) == pstd_type_instance_write(inst, res_ctx->parent_id_acc, parent_id->u8, sizeof(parent_id->u8)))
+		ERROR_LOG_GOTO(EXIT, "Cannot write the parent id to the storage command output");
+
+	if(object_id != NULL && ERROR_CODE(int) == pstd_type_instance_write(inst, res_ctx->object_id_acc, object_id->u8, sizeof(object_id->u8)))
+		ERROR_LOG_GOTO(EXIT, "Cannot write the object id to the storage command output");
+
+	/* Then we need to copy the parameters and data */
+
+	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, res_ctx->content_acc, data_token))
+		ERROR_LOG_GOTO(EXIT, "Cannot write the data RLS token to the storage command");
+
+	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, res_ctx->param_acc, param_token))
+		ERROR_LOG_GOTO(EXIT, "Cannot write the param RLS token to the storage command");
+
+	/* If the URL contains a parent id, then we need to ask the parent storage controller if the parent exists */
+	if(parent_id != NULL)
+	{
+		/* If the resource context do not have a parent resource, things goes wrong */ 
+		if(res_ctx->parent == NULL) goto EXIT_NORMALLY;
+		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, res_ctx->parent->opcode_acc, ctx->opcode.EXISTS))
+			ERROR_LOG_GOTO(EXIT, "Cannot write the exists validation opcode to the parent stroage controller");
+
+		if(ERROR_CODE(int) == pstd_type_instance_write(inst, res_ctx->parent->object_id_acc, parent_id->u8, sizeof(parent_id->u8)))
+			ERROR_LOG_GOTO(EXIT, "Cannot write the parent object id to the storage controller");
+	}
+
 
 EXIT_NORMALLY:
 	rc = 0;
