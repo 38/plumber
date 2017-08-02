@@ -32,6 +32,18 @@ typedef struct _rc_t {
 } resource_ctx_t;
 STATIC_ASSERTION_FIRST(resource_ctx_t, res_name);
 
+/**
+ * @brief The internal object representation
+ **/
+typedef union {
+	uuid_t   uuid;     /*!< The uuid representation */
+	uint64_t u64[2];   /*!< The uint64 representation */
+	uint8_t  u8[16];   /*!< The uint8 represetnation */
+} object_id_t;
+STATIC_ASSERTION_SIZE(object_id_t, uuid, sizeof(object_id_t));
+STATIC_ASSERTION_SIZE(object_id_t, u64,  sizeof(object_id_t));
+STATIC_ASSERTION_SIZE(object_id_t, u8,   sizeof(object_id_t));
+
 /**he         
  * @param The servlet context
  **/
@@ -170,12 +182,80 @@ static int _unload(void* ctxbuf)
 
 	return rc;
 }
+
 static inline const char* _read_string(pstd_type_instance_t* inst, pstd_type_accessor_t acc)
 {
 	scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, acc);
 	if(ERROR_CODE(scope_token_t) == token) return NULL;
 
 	return (const char*)pstd_scope_get(token);
+}
+
+/**
+ * @brief search for the first element bound of the element which is strictly larger than ch
+ **/
+static inline uint32_t _search(const context_t* ctx, char ch, uint32_t n, uint32_t l, uint32_t r)
+{
+	/* If all the elements is larger than ch, which means the bound should be [l,l) */
+	if(ctx->resources[l].res_name[n] > ch)
+		return l;
+
+	/* Search for the last item which ctx->resources[x]->res_name[n] <= ch */
+	while(r - l > 1)
+	{
+		uint32_t m = (l + r) / 2;
+		if(ctx->resources[m].res_name[n] <= ch) l = m;
+		else r = m;
+	}
+
+	return r;
+}
+
+static inline object_id_t* _parse_object_id(char const** path, object_id_t* buf)
+{
+	const char* begin = *path;
+	/* Step1: strip the leading slash */
+	while(*begin == '/') begin ++;
+
+	/* Step2: delete the object id */
+	if(*begin == '$')
+	{
+		begin ++;
+		const char* end = begin;
+		while(*end && *end != '/') end ++;
+		if(sizeof(*buf) == bsr64_to_bin(begin, end, buf->u8, sizeof(*buf)))
+			return NULL;
+		*path = end;
+		return buf;
+	}
+
+	return NULL;
+}
+
+static inline const resource_ctx_t* _parse_resource_type(char const* * path, const context_t* ctx)
+{
+	const char* begin = *path;
+	while(*begin == '/') begin ++;
+	if(*begin == '/') begin ++;
+	uint32_t l = 0, r = ctx->count, i;
+	/* Do the binary search */
+	for(i = 0;*begin != 0 && *begin != '/' && r - l > 1; begin ++, i ++)
+	{
+		char ch = *begin;
+		l =_search(ctx, (char)(ch - 1), i, l, r);
+		if(r - l < 1 || ctx->resources[l].res_name[i] != begin[0]) 
+			return NULL;
+		r = _search(ctx, ch, i, l, r);
+		if(r - l < 1 || ctx->resources[r - 1].res_name[i] != begin[0])
+			return NULL;
+	}
+	for(;*begin != 0 && *begin != '/'; begin ++, i ++)
+		if(ctx->resources[l].res_name[i] != *begin) 
+			return NULL;
+
+	*path = begin;
+
+	return ctx->resources + l;
 }
 
 static int _exec(void* ctxbuf)
@@ -192,39 +272,68 @@ static int _exec(void* ctxbuf)
 	const char* path = _read_string(inst, ctx->path_acc);
 
 	/* If the path is empty, it means we can not do anything on this request */
-	if(NULL == path) return 0;
+	if(NULL == path) goto EXIT_NORMALLY;
 
-	/* Parse the UUID */
-	while(*path == '/') path ++;
-	if(*path == '/') path ++;
-	void* parent_id = NULL;
-	uuid_t parent_id_uuid;
-	if(*path == '$')
+	/* we need to detect the parent id */
+	object_id_t parent_id_buf;
+	object_id_t* parent_id = _parse_object_id(&path, &parent_id_buf);
+
+	/* Then we need to parse the resource type */
+	const resource_ctx_t* res_ctx = _parse_resource_type(&path, ctx);
+	if(NULL == res_ctx) goto EXIT_NORMALLY; /* This means we can not handle this request */
+
+	/* Parse the object id */
+	object_id_t object_id_buf;
+	object_id_t* object_id = _parse_object_id(&path, &object_id_buf);
+
+	uint32_t method = PSTD_TYPE_INST_READ_PRIMITIVE(uint32_t, inst, ctx->method_acc);
+	if(ERROR_CODE(uint32_t) == method) ERROR_LOG_GOTO(EXIT, "Cannot read method code from the request input");
+
+	uint32_t storage_opcode = ERROR_CODE(uint32_t);
+	
+	if(method == ctx->method_code.POST)
 	{
-		const char* end = path;
-		while(*end && *end != '/') end ++;
-		if(sizeof(parent_id_uuid) == bsr64_to_bin(path, end, parent_id_uuid, sizeof(parent_id_uuid)))
-			return 0;
-		parent_id = parent_id_uuid;
-		path = end;
+		if(object_id == NULL)
+		{
+			/* This means we want to create a new resource */
+			storage_opcode = ctx->opcode.CREATE;
+		}
+		else 
+		{
+			/* This means we want to modify an existing resource */
+			storage_opcode = ctx->opcode.MODIFY;
+		}
+
+	}
+	else if(method == ctx->method_code.DELETE)
+	{
+		if(object_id != NULL)
+		{
+			storage_opcode =ctx->opcode.DELETE;
+		}
+	}
+	else if(method == ctx->method_code.GET)
+	{
+		if(object_id == NULL)
+		{
+			storage_opcode = ctx->opcode.QUERY;
+		}
+		else
+		{
+			storage_opcode = ctx->opcode.CONTENT;
+		}
 	}
 
-	/* Parse the resource type */
-	while(*path == '/') path ++;
-	if(*path == '/') path ++;
-	uint32_t l = 0, r = ctx->count;
-	/* Do the binary search */
-	for(;*path != 0 && *path != '/'; path ++)
-	{
-		char ch = *path;
-		/* Do binary search */
-		(void)ch;
-		(void)l;
-		(void)r;
-	}
+	/* If this happens, it means it's not a valid restful operation */
+	if(ERROR_CODE(uint32_t) == storage_opcode) goto EXIT_NORMALLY;
 
-	(void)parent_id;
+	/* Construct the output */
+	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, res_ctx->opcode_acc, storage_opcode))
+		ERROR_LOG_GOTO(EXIT, "Cannot write the storage opcode to the output pipe");
 
+	(void)parent_id;  /* TODO: we need produce an validate command to it's parent */
+
+EXIT_NORMALLY:
 	rc = 0;
 	goto EXIT;
 EXIT:
