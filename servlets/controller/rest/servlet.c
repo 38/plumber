@@ -167,11 +167,44 @@ static int _unload(void* ctxbuf)
 
 	return rc;
 }
+static inline const char* _read_string(pstd_type_instance_t* inst, pstd_type_accessor_t acc)
+{
+	scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, acc);
+	if(ERROR_CODE(scope_token_t) == token) return NULL;
+
+	return (const char*)pstd_scope_get(token);
+}
+
+static int _exec(void* ctxbuf)
+{
+	int rc = 0;
+	const context_t* ctx = (context_t*)ctxbuf;
+
+	size_t ti_size = pstd_type_instance_size(ctx->model);
+	if(ERROR_CODE(size_t) == ti_size) ERROR_RETURN_LOG(int, "Cannot get the size of the type instance");
+	char buf[ti_size];
+	pstd_type_instance_t* inst = pstd_type_instance_new(ctx->model, buf);
+	if(NULL == inst) ERROR_RETURN_LOG(int, "Cannot create the type instance for the type model");
+
+	const char* path = _read_string(inst, ctx->path_acc);
+
+	/* If the path is empty, it means we can not do anything on this request */
+	if(NULL == path) return 0;
+	
+
+	rc = 0;
+	goto EXIT;
+EXIT:
+	if(ERROR_CODE(int) == pstd_type_instance_free(inst))
+		ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
+	return rc;
+}
 
 SERVLET_DEF = {
 	.desc    = "Simple RESTful API Controller",
 	.version = 0x0,
 	.size    = sizeof(context_t),
 	.init    = _init,
-	.unload  = _unload
+	.unload  = _unload,
+	.exec    = _exec
 };
