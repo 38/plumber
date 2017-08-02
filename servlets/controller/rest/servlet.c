@@ -193,7 +193,10 @@ static int _exec(void* ctxbuf)
 
 	/* If the path is empty, it means we can not do anything on this request */
 	if(NULL == path) return 0;
+
+	/* Parse the UUID */
 	while(*path == '/') path ++;
+	if(*path == '/') path ++;
 	void* parent_id = NULL;
 	uuid_t parent_id_uuid;
 	if(*path == '$')
@@ -203,6 +206,21 @@ static int _exec(void* ctxbuf)
 		if(sizeof(parent_id_uuid) == bsr64_to_bin(path, end, parent_id_uuid, sizeof(parent_id_uuid)))
 			return 0;
 		parent_id = parent_id_uuid;
+		path = end;
+	}
+
+	/* Parse the resource type */
+	while(*path == '/') path ++;
+	if(*path == '/') path ++;
+	uint32_t l = 0, r = ctx->count;
+	/* Do the binary search */
+	for(;*path != 0 && *path != '/'; path ++)
+	{
+		char ch = *path;
+		/* Do binary search */
+		(void)ch;
+		(void)l;
+		(void)r;
 	}
 
 	(void)parent_id;
