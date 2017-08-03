@@ -92,7 +92,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	if(NULL == (ctx->model = pstd_type_model_new()))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot create the type model");
 
-	if(ERROR_CODE(pipe_t) == (ctx->request = pipe_define("request", PIPE_INPUT, "plumber.std_servlet.network.http.httpreq.Request")))
+	if(ERROR_CODE(pipe_t) == (ctx->request = pipe_define("request", PIPE_INPUT, "plumber/std_servlet/network/http/httpreq/Request")))
 		ERROR_RETURN_LOG(int, "Cannot define the requested pipe");
 
 #define _READ_CONST_CHK(p, base, name) (ERROR_CODE(int) ==  _fill_const(ctx->model, ctx->p, #name, &ctx->base.name))
@@ -123,7 +123,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 		if(NULL == (res->res_name = strdup(resname)))
 			ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the resource name");
 
-		if(ERROR_CODE(pipe_t) == (res->output = pipe_define(res->res_name, PIPE_OUTPUT, "plumber.std_servlet.controller.rest.Command")))
+		if(ERROR_CODE(pipe_t) == (res->output = pipe_define(res->res_name, PIPE_OUTPUT, "plumber/std_servlet/controller/rest/Command")))
 			ERROR_RETURN_LOG(int, "Cannot define the request pipe");
 
 		if(i == 1 && (_READ_CONST_CHK(resources[i - 1].output, opcode, CREATE) ||
