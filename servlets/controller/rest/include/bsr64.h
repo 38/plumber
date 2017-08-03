@@ -71,7 +71,7 @@ static inline size_t bsr64_to_bin(const char* bsr_begin, const char* bsr_end, vo
 	static const uint8_t _ch2val[] = {
 		64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
 		64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-		64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 62, 64, 64, 64, 63,
+		64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 62, 64, 63, 64, 64,
 		52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 64, 64, 64, 64, 64, 64,
 		64,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
 		15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 64, 64, 64, 64, 64,
@@ -87,8 +87,8 @@ static inline size_t bsr64_to_bin(const char* bsr_begin, const char* bsr_end, vo
 		64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64
 	};
 
-	uint8_t begin = 8;
-	uint8_t* ptr = ((uint8_t*)buf) - 1;
+	uint8_t begin = 0;
+	uint8_t* ptr = ((uint8_t*)buf);
 	uint8_t  cur = 0;
 	for(;bsr_begin != bsr_end && bufsize > 0; bsr_begin ++)
 	{
