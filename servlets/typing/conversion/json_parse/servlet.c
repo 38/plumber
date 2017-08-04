@@ -51,6 +51,23 @@ typedef struct {
 	pstd_type_model_t* model;  /*!< The type model */
 } context_t;
 
+static int _type_determined(pipe_t pipe, const char* type, const void* data)
+{
+	(void)pipe;
+	(void)type;
+	(void)data;
+	int rc = 0;
+	if(ERROR_CODE(int) == proto_init())
+		ERROR_RETURN_LOG(int, "Cannot intialize libproto");
+
+	goto EXIT;
+EXIT:
+	if(ERROR_CODE(int) == proto_finalize())
+		ERROR_RETURN_LOG(int, "Cannot finalize libproto");
+
+	return rc;
+}
+
 static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 {
 	if(argc < 2 || (argc == 2 && 0 == strcmp(argv[1], "--raw")))
@@ -87,6 +104,9 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 		const char* type = arg + 1;
 		if(ERROR_CODE(pipe_t) == (ctx->outs[i].pipe = pipe_define(pipe_name, PIPE_OUTPUT, type)))
 			ERROR_RETURN_LOG(int, "Cannot define the output pipes");
+
+		if(ERROR_CODE(int) == pstd_type_model_assert(ctx->model, ctx->outs[i].pipe, _type_determined, ctx->outs + i))
+			ERROR_RETURN_LOG(int, "Cannot define install the type determined callback function for pipe %s", pipe_name);
 	}
 
 	return 0;
