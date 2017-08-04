@@ -32,6 +32,7 @@ typedef struct {
 	enum {
 		TYPE_SIGNED,              /*!< This is an integer */
 		TYPE_UNSIGNED,            /*!< This is a unsigned integer */
+		TYPE_FLOAT,               /*!< THis is a float point number */
 		TYPE_STRING               /*!< This is a string */
 	}                    type; /*!< Only used for primitive: The type of this data field */
 } oper_t;
@@ -82,7 +83,7 @@ static inline int _ensure_space(output_t* out)
  * @param out The output context
  * @return status code
  **/
-static int _resolve_type(const char* base_type, const char* field_expr, output_t* out)
+static int _resolve_type(pstd_type_model_t* model, const char* base_type, const char* field_expr, output_t* out)
 {
 	/* Step 1 : We need get the actual type of the part we want to process */
 	const char* type = base_type;
@@ -114,12 +115,13 @@ static int _resolve_type(const char* base_type, const char* field_expr, output_t
 		if(NULL == rel_type) ERROR_RETURN_LOG(int, "Cannot get the type name of the base type");
 		const char* full_type = proto_cache_full_name(rel_type, pwd);
 		if(NULL == full_type) ERROR_RETURN_LOG(int, "Cannot get the full name of the base type");
-		if(ERROR_CODE(int) == _resolve_type(full_type, field_expr, out))
+		if(ERROR_CODE(int) == _resolve_type(model, full_type, field_expr, out))
 			ERROR_RETURN_LOG(int, "Cannot resolve the base type %s", full_type);
 		/* Because we already resolved the base type, so we start from 1 */
 		ent_begin = 1; 
 	}
 
+	char field_buffer[PATH_MAX];
 	uint32_t i;
 	for(i = ent_begin; i < nent; i ++)
 	{
@@ -131,6 +133,7 @@ static int _resolve_type(const char* base_type, const char* field_expr, output_t
 				ERROR_RETURN_LOG(int, "Bug: duplicated base type entity");
 			else
 			{
+				snprintf(field_buffer, sizeof(field_buffer), field_expr[0] == 0 ? "%s%s" : "%s.%s", field_expr, ent->symbol);
 				/* In here we need to open it */
 				const char* rel_type = proto_ref_typeref_get_path(ent->type_ref);
 				if(NULL == rel_type)
@@ -141,18 +144,58 @@ static int _resolve_type(const char* base_type, const char* field_expr, output_t
 
 				if(strcmp(full_type, "plumber/std/request_local/String") == 0)
 				{
-					/* TODO: This is a string primitive in JSON actually */
+					if(ERROR_CODE(int) == _ensure_space(out))
+						ERROR_RETURN_LOG(int, "Cannot ensure the output model have enough space");
+					out->ops[out->nops].opcode   = WRITE;
+					size_t len = strlen(field_buffer);
+					snprintf(field_buffer + len, sizeof(field_buffer) - len, ".token");
+					if(ERROR_CODE(pstd_type_accessor_t) == (out->ops[out->nops].acc = pstd_type_model_get_accessor(model, out->pipe, field_buffer)))
+						ERROR_RETURN_LOG(int, "Cannot get the accessor for the string object");
+					out->ops[out->nops].size = sizeof(scope_token_t);
+					out->ops[out->nops].type = TYPE_STRING;
+					out->nops ++;
 				}
 				else 
 				{
-					/* TODO: This is a complex type */
+					if(ERROR_CODE(int) == _ensure_space(out))
+						ERROR_RETURN_LOG(int, "Cannot ensure the output model have enough space");
+					out->ops[out->nops].opcode = OPEN;
+					if(NULL == (out->ops[out->nops].field  = strdup(ent->symbol)))
+						ERROR_RETURN_LOG(int, "Cannot duplicate the symbol name");
+					out->nops ++;
 
+					if(ERROR_CODE(int) == _resolve_type(model, base_type, field_buffer, out))
+						ERROR_RETURN_LOG(int, "Failed to resolvle the field %s.%s", base_type, field_buffer);
+
+					if(ERROR_CODE(int) == _ensure_space(out))
+						ERROR_RETURN_LOG(int, "Cannot ensure the output model have enough space for the close operation");
+					out->ops[out->nops].opcode = CLOSE;
+					out->nops ++;
 				}
 			}
 		}
 		else if(ent->header.refkind == PROTO_TYPE_ENTITY_REF_NONE)
 		{
-			/* TODO: handle the primitive */
+			proto_db_field_prop_t prop = proto_db_field_type_info(base_type, field_buffer);
+			if(ERROR_CODE(proto_db_field_prop_t) == prop)
+				ERROR_RETURN_LOG(int, "Cannot resolve the type property for the type");
+
+			uint32_t size;
+			uint32_t offset = proto_db_type_offset(base_type, field_buffer, &size);
+			if(ERROR_CODE(uint32_t) == offset)
+				ERROR_RETURN_LOG(int, "Cannot get the offset and size information from the protocol db for %s.%s", base_type, field_buffer);
+
+			if(size > 0)
+			{
+				/* well this is a non-constant value */
+				if(ERROR_CODE(int) == _ensure_space(out))
+					ERROR_RETURN_LOG(int, "Cannot make sure the output model contains the engouh space");
+
+				out->ops[out->nops].opcode = WRITE;
+				if(ERROR_CODE(pstd_type_accessor_t) == (out->ops[out->nops].acc = (pstd_type_model_get_accessor(model, out->pipe, field_buffer))))
+					ERROR_RETURN_LOG(int, "Cannot get the type accessor for %s.%s", base_type, field_buffer);
+				out->nops ++;
+			}
 		}
 		/* And we do not really care about the alias */
 	}
@@ -203,7 +246,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 		if(NULL == (ctx->outs[i].ops = (oper_t*)calloc(ctx->outs[i].cap = 32, sizeof(oper_t))))
 			ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the operation array");
 
-		if(ERROR_CODE(int) == _resolve_type(type, "", ctx->outs + i))
+		if(ERROR_CODE(int) == _resolve_type(ctx->model, type, "", ctx->outs + i))
 			ERROR_RETURN_LOG(int, "Cannot resolve the type %s", type);
 	}
 
