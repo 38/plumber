@@ -415,7 +415,8 @@ static inline int _exec(void* ctxbuf)
 		scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->json_acc);
 		if(ERROR_CODE(scope_token_t) == token)
 			ERROR_LOG_GOTO(ERR, "Cannot read the token from the json pipe");
-		if(NULL == (data = (const char*)pstd_scope_get(token)))
+		const pstd_string_t* str = pstd_string_from_rls(token);
+		if(NULL == str || NULL == (data = pstd_string_value(str)))
 			ERROR_LOG_GOTO(ERR, "Cannot get the string from the given RLS token");
 	}
 
@@ -472,6 +473,7 @@ static inline int _exec(void* ctxbuf)
 					sp --;
 					break;
 				case WRITE:
+					if(cur_obj == NULL) break;
 					switch(op->type)
 					{
 						case TYPE_SIGNED:
@@ -494,7 +496,7 @@ static inline int _exec(void* ctxbuf)
 							double d_value = json_object_get_double(cur_obj);
 							float  f_value = (float)d_value;
 							void* data = op->size == sizeof(double) ? (void*)&d_value : (void*)&f_value;
-							if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, &data, op->size))
+							if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, data, op->size))
 								ERROR_LOG_GOTO(ERR, "Cannot write field");
 							break;
 						}
