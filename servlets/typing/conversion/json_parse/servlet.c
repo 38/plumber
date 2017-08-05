@@ -91,7 +91,7 @@ static int _traverse_type(proto_db_field_info_t info, void* data);
 
 static int _process_scalar(proto_db_field_info_t info, const char* actual_name, _traverse_data_t* td)
 {
-	if(info.primitive_prop == 0)
+	if(info.primitive_prop == 0 && strcmp(info.type, "plumber/std/request_local/String") == 0)
 	{
 		size_t prefix_size = strlen(td->field_prefix) + strlen(actual_name) + 2;
 		char prefix[prefix_size];
@@ -106,30 +106,32 @@ static int _process_scalar(proto_db_field_info_t info, const char* actual_name, 
 		};
 		if(ERROR_CODE(int) == proto_db_type_traverse(info.type, _traverse_type, &new_td))
 			ERROR_RETURN_LOG(int, "Cannot process %s.%s", td->root_type, prefix);
+		return 0;
 	}
-	else
-	{
-		if(ERROR_CODE(int) == _ensure_space(td->out))
-			ERROR_RETURN_LOG(int, "Cannot ensure the output model has enough space");
-		oper_t* op = td->out->ops + td->out->nops;
-		op->opcode = WRITE;
-		op->size = info.size;
-		if(PROTO_DB_FIELD_PROP_REAL & info.primitive_prop)
-			op->type = TYPE_FLOAT;
-		else if(PROTO_DB_FIELD_PROP_SIGNED & info.primitive_prop)
-			op->type = TYPE_SIGNED;
-		else 
-			op->type = TYPE_UNSIGNED;
-		if(ERROR_CODE(pstd_type_accessor_t) == (op->acc = pstd_type_model_get_accessor(td->model, td->out->pipe, actual_name)))
-			ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.%s", td->root_type, actual_name);
-		td->out->nops ++;
-	}
+
+	if(ERROR_CODE(int) == _ensure_space(td->out))
+		ERROR_RETURN_LOG(int, "Cannot ensure the output model has enough space");
+	oper_t* op = td->out->ops + td->out->nops;
+	op->opcode = WRITE;
+	op->size = info.size;
+	if(strcmp(info.type, "plumber/std/request_local/String") == 0)
+		op->type = TYPE_STRING;
+	else if(PROTO_DB_FIELD_PROP_REAL & info.primitive_prop)
+		op->type = TYPE_FLOAT;
+	else if(PROTO_DB_FIELD_PROP_SIGNED & info.primitive_prop)
+		op->type = TYPE_SIGNED;
+	else 
+		op->type = TYPE_UNSIGNED;
+	/* TODO: make sure for the string case we only write the token */
+	if(ERROR_CODE(pstd_type_accessor_t) == (op->acc = pstd_type_model_get_accessor(td->model, td->out->pipe, actual_name)))
+		ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.%s", td->root_type, actual_name);
+	td->out->nops ++;
 	return 0;
 }
 
 static int _build_dimension(proto_db_field_info_t info, _traverse_data_t* td, uint32_t k, const char* actual_name, char* begin, size_t size)
 {
-	if(k >= info.ndims) return _process_scalar(info, actual_name, td);
+	if(k >= info.ndims || (info.ndims - k == 1 && info.dims[k] == 1)) return _process_scalar(info, actual_name, td);
 
 	uint32_t i;
 	for(i = 0; i < info.dims[k]; i++)

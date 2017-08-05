@@ -1040,6 +1040,8 @@ int proto_db_type_traverse(const char* type_name, proto_db_field_callback_t func
 				PROTO_ERR_RAISE_RETURN(int, FAIL);
 			continue;
 		}
+
+		if(ent->symbol == NULL) continue;
 		
 		_compute_token ++;
 		_name_info_t name_info;
@@ -1060,7 +1062,7 @@ int proto_db_type_traverse(const char* type_name, proto_db_field_callback_t func
 		if(ERROR_CODE(proto_db_field_prop_t) == (info.primitive_prop = proto_db_field_type_info(type_name, namebuf)))
 			PROTO_ERR_RAISE_RETURN(int, FAIL);
 
-		if((info.primitive_prop & PROTO_DB_FIELD_PROP_SCOPE) == 0 && NULL == (info.type = proto_db_field_type(type_name, namebuf)))
+		if((info.primitive_prop & PROTO_DB_FIELD_PROP_SCOPE) == 0 && name_info.elemsize > 0 && NULL == (info.type = proto_db_field_type(type_name, namebuf)))
 			PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 		if(ERROR_CODE(uint32_t) == (info.offset = proto_db_type_offset(type_name, info.name, &info.size)))
