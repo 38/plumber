@@ -24,6 +24,29 @@ typedef enum {
 	PROTO_DB_FIELD_PROP_PRIMITIVE_SCOPE = 16  /*!< If this is a primitive scope */
 } proto_db_field_prop_t;
 
+
+/**
+ * @brief The information about a field
+ **/
+typedef struct {
+	const char*           name;              /*!< The name of the field */
+	const char*           type;              /*!< The type name of the field */
+	uint32_t              size;              /*!< The size of the field */
+	uint32_t              offset;            /*!< The offset of the field, frome the begining of the type */
+	proto_db_field_prop_t primitive_prop;    /*!< The primitive props */
+	uint32_t              ndims;             /*!< The number of dimensions */
+	const uint32_t*       dims;              /*!< The dimension size */
+	uint32_t              is_alias:1;        /*!< If this field is a name alias */
+} proto_db_field_info_t;
+
+/**
+ * @brief The callback function type used to traverse the all the field in the given type
+ * @param info The information about current field
+ * @param data The additional data would pass to the callback
+ * @return status code
+ **/
+typedef int (*proto_db_field_callback_t)(proto_db_field_info_t info, void* data);
+
 /**
  * @brief initialize the protocol database
  * @note for each servlet uses the protocol database, this function should be called in the init callback and
@@ -128,5 +151,14 @@ const char* proto_db_field_scope_id(const char* type_name, const char* field);
  * @return The number of default value has been get from the field, or error code
  **/
 int proto_db_field_get_default(const char* type_name, const char* field, const void** buf, size_t* sizebuf);
+
+/**
+ * @brief traverse all the field of the given type name
+ * @param type_name The name of the type
+ * @param func The traverse function
+ * @param data The addtional data that would be passed
+ * @return status ccode
+ **/
+int proto_db_type_traverse(const char* type_name, proto_db_field_callback_t func, void* data);
 
 #endif /* __PROTO_DB_H_ */

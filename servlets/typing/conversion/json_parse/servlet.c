@@ -16,9 +16,10 @@
  * @brief the operation we should perform
  **/
 typedef enum {
-	OPEN,    /*!< This means we should open an object for write */
-	CLOSE,   /*!< This means we should close the object because nothing to write */
-	WRITE    /*!< We need to write the primitive to the type */
+	OPEN,     /*!< This means we should open an object for write */
+	OPEN_SUBS,/*!< This means we want to open a subscription */
+	CLOSE,    /*!< This means we should close the object because nothing to write */
+	WRITE     /*!< We need to write the primitive to the type */
 } opcode_t;
 
 /**
@@ -27,6 +28,7 @@ typedef enum {
 typedef struct {
 	opcode_t    opcode;        /*!< The operation code */
 	char*       field;         /*!< Only used for opening a field: The field name we need to open */
+	uint32_t    index;         /*!< The index used when we are opening an array list */
 	pstd_type_accessor_t acc;  /*!< Only used for primitive field: The accessor we should use */
 	size_t               size; /*!< Only used for primitive: The size of the data field */
 	enum {
@@ -72,136 +74,128 @@ static inline int _ensure_space(output_t* out)
 		if(NULL == new_arr) ERROR_RETURN_LOG_ERRNO(int, "Cannot resize the operation array");
 		out->ops = new_arr;
 		out->cap *= 2;
+		memset(new_arr + out->nops, 0, sizeof(oper_t) * (out->cap - out->nops));
 	}
 
 	return 0;
 }
 
-/**
- * @brief resolve the types and fill the operation array
- * @param type The type name to resolve
- * @param out The output context
- * @return status code
- **/
-static int _resolve_type(pstd_type_model_t* model, const char* base_type, const char* field_expr, output_t* out)
+typedef struct {
+	output_t*    out;
+	const char*  root_type;
+	const char*  field_prefix;
+	pstd_type_model_t* model;
+} _traverse_data_t;
+
+static int _traverse_type(proto_db_field_info_t info, void* data);
+
+static int _process_scalar(proto_db_field_info_t info, const char* actual_name, _traverse_data_t* td)
 {
-	/* Step 1 : We need get the actual type of the part we want to process */
-	const char* type = base_type;
-	if(field_expr[0] != 0 && NULL == (type = proto_db_field_type(base_type, field_expr)))
-		ERROR_RETURN_LOG(int, "Cannot get the field type of %s.%s", base_type, field_expr);
-
-	/* Step 2 : Get the protocol object from the protodb */
-	const proto_type_t* proto = proto_db_query_type(type);
-	if(NULL == proto)
-		ERROR_RETURN_LOG(int, "Cannot get the type information for type %s", type);
-
-	uint32_t nent = proto_type_get_size(proto);
-	if(ERROR_CODE(uint32_t) == nent)
-		ERROR_RETURN_LOG(int, "Cannot get the size of the protocol definition");
-
-	char pwd[PATH_MAX];
-	size_t pwd_len = strlen(type);
-	if(pwd_len >= sizeof(pwd)) ERROR_RETURN_LOG(int, "Type name too long");
-	memcpy(pwd, type, pwd_len + 1);
-	for(;pwd_len > 0 && pwd[pwd_len - 1] != '/'; pwd[--pwd_len] = 0);
-
-	/* Then we need to go through this type to figure out what is needed */
-	const proto_type_entity_t* base = proto_type_get_entity(proto, 0);
-	uint32_t ent_begin = 0;
-	if(NULL != base && base->symbol == NULL && base->header.refkind == PROTO_TYPE_ENTITY_REF_TYPE)
+	if(info.primitive_prop == 0)
 	{
-		/* This is the base type of the type, we resolve it recursively */
-		const char* rel_type = proto_ref_typeref_get_path(base->type_ref);
-		if(NULL == rel_type) ERROR_RETURN_LOG(int, "Cannot get the type name of the base type");
-		const char* full_type = proto_cache_full_name(rel_type, pwd);
-		if(NULL == full_type) ERROR_RETURN_LOG(int, "Cannot get the full name of the base type");
-		if(ERROR_CODE(int) == _resolve_type(model, full_type, field_expr, out))
-			ERROR_RETURN_LOG(int, "Cannot resolve the base type %s", full_type);
-		/* Because we already resolved the base type, so we start from 1 */
-		ent_begin = 1; 
+		size_t prefix_size = strlen(td->field_prefix) + strlen(actual_name) + 2;
+		char prefix[prefix_size];
+		if(td->field_prefix[0] > 0)
+			snprintf(prefix, prefix_size, "%s.%s", td->field_prefix, actual_name);
+		/* If this is a complex field */
+		_traverse_data_t new_td = {
+			.out = td->out,
+			.root_type = td->root_type,
+			.field_prefix = td->field_prefix[0] ? prefix : actual_name,
+			.model = td->model
+		};
+		if(ERROR_CODE(int) == proto_db_type_traverse(info.type, _traverse_type, &new_td))
+			ERROR_RETURN_LOG(int, "Cannot process %s.%s", td->root_type, prefix);
 	}
+	else
+	{
+		if(ERROR_CODE(int) == _ensure_space(td->out))
+			ERROR_RETURN_LOG(int, "Cannot ensure the output model has enough space");
+		oper_t* op = td->out->ops + td->out->nops;
+		op->opcode = WRITE;
+		op->size = info.size;
+		if(PROTO_DB_FIELD_PROP_REAL & info.primitive_prop)
+			op->type = TYPE_FLOAT;
+		else if(PROTO_DB_FIELD_PROP_SIGNED & info.primitive_prop)
+			op->type = TYPE_SIGNED;
+		else 
+			op->type = TYPE_UNSIGNED;
+		if(ERROR_CODE(pstd_type_accessor_t) == (op->acc = pstd_type_model_get_accessor(td->model, td->out->pipe, actual_name)))
+			ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.%s", td->root_type, actual_name);
+		td->out->nops ++;
+	}
+	return 0;
+}
 
-	char field_buffer[PATH_MAX];
+static int _build_dimension(proto_db_field_info_t info, _traverse_data_t* td, uint32_t k, const char* actual_name, char* begin, size_t size)
+{
+	if(k >= info.ndims) return _process_scalar(info, actual_name, td);
+
 	uint32_t i;
-	for(i = ent_begin; i < nent; i ++)
+	for(i = 0; i < info.dims[k]; i++)
 	{
-		const proto_type_entity_t* ent = proto_type_get_entity(proto, i);
-		if(NULL == ent) ERROR_RETURN_LOG(int, "Cannot get the entiy at offest %u", i);
-		if(ent->header.refkind == PROTO_TYPE_ENTITY_REF_TYPE)
-		{
-			if(NULL == ent->symbol)
-				ERROR_RETURN_LOG(int, "Bug: duplicated base type entity");
-			else
-			{
-				snprintf(field_buffer, sizeof(field_buffer), field_expr[0] == 0 ? "%s%s" : "%s.%s", field_expr, ent->symbol);
-				/* In here we need to open it */
-				const char* rel_type = proto_ref_typeref_get_path(ent->type_ref);
-				if(NULL == rel_type)
-					ERROR_RETURN_LOG(int, "Cannot get the relative type path to the field type");
-				const char* full_type = proto_cache_full_name(rel_type, pwd);
-				if(NULL == full_type)
-					ERROR_RETURN_LOG(int, "Cannot get the full type name of the field type");
-
-				if(strcmp(full_type, "plumber/std/request_local/String") == 0)
-				{
-					if(ERROR_CODE(int) == _ensure_space(out))
-						ERROR_RETURN_LOG(int, "Cannot ensure the output model have enough space");
-					out->ops[out->nops].opcode   = WRITE;
-					size_t len = strlen(field_buffer);
-					snprintf(field_buffer + len, sizeof(field_buffer) - len, ".token");
-					if(ERROR_CODE(pstd_type_accessor_t) == (out->ops[out->nops].acc = pstd_type_model_get_accessor(model, out->pipe, field_buffer)))
-						ERROR_RETURN_LOG(int, "Cannot get the accessor for the string object");
-					out->ops[out->nops].size = sizeof(scope_token_t);
-					out->ops[out->nops].type = TYPE_STRING;
-					out->nops ++;
-				}
-				else 
-				{
-					if(ERROR_CODE(int) == _ensure_space(out))
-						ERROR_RETURN_LOG(int, "Cannot ensure the output model have enough space");
-					out->ops[out->nops].opcode = OPEN;
-					if(NULL == (out->ops[out->nops].field  = strdup(ent->symbol)))
-						ERROR_RETURN_LOG(int, "Cannot duplicate the symbol name");
-					out->nops ++;
-
-					if(ERROR_CODE(int) == _resolve_type(model, base_type, field_buffer, out))
-						ERROR_RETURN_LOG(int, "Failed to resolvle the field %s.%s", base_type, field_buffer);
-
-					if(ERROR_CODE(int) == _ensure_space(out))
-						ERROR_RETURN_LOG(int, "Cannot ensure the output model have enough space for the close operation");
-					out->ops[out->nops].opcode = CLOSE;
-					out->nops ++;
-				}
-			}
-		}
-		else if(ent->header.refkind == PROTO_TYPE_ENTITY_REF_NONE)
-		{
-			proto_db_field_prop_t prop = proto_db_field_type_info(base_type, field_buffer);
-			if(ERROR_CODE(proto_db_field_prop_t) == prop)
-				ERROR_RETURN_LOG(int, "Cannot resolve the type property for the type");
-
-			uint32_t size;
-			uint32_t offset = proto_db_type_offset(base_type, field_buffer, &size);
-			if(ERROR_CODE(uint32_t) == offset)
-				ERROR_RETURN_LOG(int, "Cannot get the offset and size information from the protocol db for %s.%s", base_type, field_buffer);
-
-			if(size > 0)
-			{
-				/* well this is a non-constant value */
-				if(ERROR_CODE(int) == _ensure_space(out))
-					ERROR_RETURN_LOG(int, "Cannot make sure the output model contains the engouh space");
-
-				out->ops[out->nops].opcode = WRITE;
-				if(ERROR_CODE(pstd_type_accessor_t) == (out->ops[out->nops].acc = (pstd_type_model_get_accessor(model, out->pipe, field_buffer))))
-					ERROR_RETURN_LOG(int, "Cannot get the type accessor for %s.%s", base_type, field_buffer);
-				out->nops ++;
-			}
-		}
-		/* And we do not really care about the alias */
+		size_t rc = (size_t)snprintf(begin, size, "[%u]", i);
+		if(ERROR_CODE(int) == _ensure_space(td->out))
+			ERROR_RETURN_LOG(int, "Cannont ensure the output model has enough space");
+		td->out->ops[td->out->nops].opcode = OPEN_SUBS;
+		td->out->ops[td->out->nops].index = i;
+		td->out->nops ++;
+		if(ERROR_CODE(int) == _build_dimension(info, td, k + 1, actual_name, begin + rc, size - rc))
+			ERROR_RETURN_LOG(int, "Cannot build the dimensional data");
+		if(ERROR_CODE(int) == _ensure_space(td->out))
+			ERROR_RETURN_LOG(int, "Cannont ensure the output model has enough space");
+		td->out->ops[td->out->nops].opcode = CLOSE;
+		td->out->nops ++;
 	}
+	return 0;
+}
+
+static int _traverse_type(proto_db_field_info_t info, void* data)
+{
+	_traverse_data_t* td =(_traverse_data_t*)data;
+
+	if(info.is_alias) return 0;
+	if(info.size == 0)     return 0;
+	if(info.type == NULL) return 0;
+
+	size_t buf_size = strlen(td->field_prefix);
+	if(buf_size > 0) buf_size ++;  /* We need add a dot after the prefix if it's nonempty */
+	buf_size += strlen(info.name);
+
+	uint32_t i;
+	for(i = 0; i< info.ndims; i ++)
+	{
+		uint32_t d = info.dims[i];
+		buf_size += 2;
+		for(;d > 0; d /= 10, buf_size ++);
+	}
+
+	if(ERROR_CODE(int) == _ensure_space(td->out))
+		ERROR_RETURN_LOG(int, "Cannot enough the output model has enough space");
+	td->out->ops[td->out->nops].opcode = OPEN;
+	if(NULL == (td->out->ops[td->out->nops].field  = strdup(info.name)))
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot dup the field name");
+	td->out->nops ++;
+
+	char buf[buf_size + 1];
+
+	if(td->field_prefix[0] == 0)
+		snprintf(buf, buf_size + 1, "%s", info.name);
+	else
+		snprintf(buf, buf_size + 1, "%s.%s", td->field_prefix, info.name);
+	
+
+	if(ERROR_CODE(int) == _build_dimension(info, td, 0, buf, buf + strlen(buf), buf_size + 1))
+		ERROR_RETURN_LOG(int, "Cannot process the field");
+
+	if(ERROR_CODE(int) == _ensure_space(td->out))
+		ERROR_RETURN_LOG(int, "Cannot enough the output model has enough space");
+	td->out->ops[td->out->nops].opcode = CLOSE;
+	td->out->nops ++;
 
 	return 0;
 }
+
 
 static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 {
@@ -246,8 +240,21 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 		if(NULL == (ctx->outs[i].ops = (oper_t*)calloc(ctx->outs[i].cap = 32, sizeof(oper_t))))
 			ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the operation array");
 
-		if(ERROR_CODE(int) == _resolve_type(ctx->model, type, "", ctx->outs + i))
-			ERROR_RETURN_LOG(int, "Cannot resolve the type %s", type);
+		_traverse_data_t td = {
+			.model = ctx->model,
+			.out   = ctx->outs + i,
+			.root_type = type,
+			.field_prefix = ""
+		};
+		if(ERROR_CODE(int) == proto_db_type_traverse(type, _traverse_type, &td))
+		{
+			const proto_err_t* err = proto_err_stack();
+			static char buf[1024];
+			for(;err;err = err->child)
+				LOG_ERROR("Libproto: %s", proto_err_str(err, buf, sizeof(buf)));
+			ERROR_RETURN_LOG(int, "Cannot traverse the type %s", type);
+		}
+
 	}
 
 	if(ERROR_CODE(int) == proto_finalize())
@@ -265,8 +272,13 @@ static int _cleanup(void* ctxbuf)
 		uint32_t i, j;
 		for(i = 0; i < ctx->nouts; i ++)
 		{
-			for(j = 0; j < ctx->outs[i].nops; j ++)
-				if(NULL != ctx->outs[i].ops[j].field) free(ctx->outs[i].ops[j].field);
+			if(ctx->outs[i].ops != NULL)
+			{
+				for(j = 0; j < ctx->outs[i].nops; j ++)
+					if(NULL != ctx->outs[i].ops[j].field) 
+						free(ctx->outs[i].ops[j].field);
+				free(ctx->outs[i].ops);
+			}
 		}
 		free(ctx->outs);
 	}
