@@ -469,7 +469,7 @@ static inline int _exec(void* ctxbuf)
 					sp ++; 
 					break;
 				case CLOSE:
-					if(NULL != cur_obj) json_object_put(cur_obj);
+					//if(NULL != cur_obj) json_object_put(cur_obj);
 					sp --;
 					break;
 				case WRITE:
