@@ -520,7 +520,7 @@ static inline int _exec(void* ctxbuf)
 								ERROR_LOG_GOTO(ERR, "Cannot commit the string to the RLS");
 							}
 							/* From this point, we lose the ownership of the RLS object */
-							if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, &data, sizeof(scope_token_t)))
+							if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, &token, sizeof(scope_token_t)))
 								ERROR_LOG_GOTO(ERR, "Cannot write the RLS token to the output pipe");
 							break;
 						}
