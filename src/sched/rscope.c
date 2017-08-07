@@ -309,7 +309,7 @@ runtime_api_scope_token_t sched_rscope_add(sched_rscope_t* scope, const runtime_
 
 int sched_rscope_copy(sched_rscope_t* scope, runtime_api_scope_token_t token, sched_rscope_copy_result_t* result)
 {
-	if(NULL == scope || _NULL_ENTRY == token || NULL == result)
+	if(NULL == scope || _NULL_ENTRY == token || token >= _entry_table.capacity || NULL == result)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	const _entry_t* source = _entry_table.data + token;
@@ -339,7 +339,7 @@ ERR:
 
 const void* sched_rscope_get(const sched_rscope_t* scope, runtime_api_scope_token_t token)
 {
-	if(NULL == scope || _NULL_ENTRY == token)
+	if(NULL == scope || _NULL_ENTRY == token || token >= _entry_table.capacity)
 	    ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	if(_entry_table.data[token].data->entity.data == NULL ||
@@ -351,7 +351,7 @@ const void* sched_rscope_get(const sched_rscope_t* scope, runtime_api_scope_toke
 
 sched_rscope_stream_t* sched_rscope_stream_open(runtime_api_scope_token_t token)
 {
-	if(ERROR_CODE(runtime_api_scope_token_t) == token || _entry_table.data[token].data == NULL)
+	if(_NULL_ENTRY == token || token >= _entry_table.capacity || _entry_table.data[token].data == NULL)
 	    ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	const _entry_t* target = _entry_table.data + token;
