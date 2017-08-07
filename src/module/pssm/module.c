@@ -346,6 +346,17 @@ static inline int _thread_local_free(thread_pset_t* pset)
 	return rc;
 }
 
+/**
+ * @note The external token used by the application is shifted by 1 compare to the internal one.
+ * Yes, this is a tricky solution, however, it's make sense that we have 0 in the 
+ * internal representation of RLS token as a valid token. Because the array is 0
+ * based. 
+ * But in the application level, this is not true, because the libproto writes 0 
+ * by default. So to avoid it getting wrong RLS object, we should disallow this from
+ * happening, which means RLS token 0 shouldn't be a valid token.
+ * This solution actually addresses this.
+ * @todo Any better solution than have this hack ?
+ **/
 static inline int _rscope_add(const runtime_api_scope_entity_t* entity, uint32_t* result)
 {
 	sched_rscope_t* current = sched_step_current_scope();
@@ -355,40 +366,61 @@ static inline int _rscope_add(const runtime_api_scope_entity_t* entity, uint32_t
 	if(NULL == entity || NULL == result)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	if(ERROR_CODE(uint32_t) == (*result = sched_rscope_add(current, entity)))
+	uint32_t internal_token;
+
+	if(ERROR_CODE(uint32_t) == (internal_token = sched_rscope_add(current, entity)))
 	    ERROR_RETURN_LOG(int, "Cannot add pointer to scope");
+
+	*result = internal_token + 1;
 
 	return 0;
 }
 
+/**
+ * @note see the notes for _rscope_add, the same situation applies
+ **/
 static inline int _rscope_copy(uint32_t token, uint32_t* result_token, void** result_ptr)
 {
 	sched_rscope_t* current = sched_step_current_scope();
 	if(NULL == current)
 	    ERROR_RETURN_LOG(int, "Cannot get the current scope");
 
+	if(token == 0 || token == ERROR_CODE(uint32_t)) 
+		ERROR_RETURN_LOG(int, "Invalid arguments: application level RLS token is invalid");
+
+	runtime_api_scope_token_t internal_token = token - 1;
+
 	sched_rscope_copy_result_t result;
-	int rc = sched_rscope_copy(current, token, &result);
+	int rc = sched_rscope_copy(current, internal_token, &result);
 
 	if(rc != ERROR_CODE(int))
 	{
-		if(NULL != result_token) *result_token = result.token;
+		if(NULL != result_token) *result_token = result.token + 1;
 		if(NULL != result_ptr) *result_ptr = result.ptr;
 	}
 
 	return rc;
 }
 
+/**
+ * @note see the notes for _rscope_add
+ **/
 static inline int _rscope_get(uint32_t token, const void** result)
 {
+	if(NULL == result)
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+	
+	if(token == 0 || token == ERROR_CODE(uint32_t)) 
+		ERROR_RETURN_LOG(int, "Invalid arguments: application level RLS token is invalid");
+
+	runtime_api_scope_token_t internal_token = token - 1;
+
+
 	sched_rscope_t* current = sched_step_current_scope();
 	if(NULL == current)
 	    ERROR_RETURN_LOG(int, "Cannot get the current scope");
-
-	if(NULL == result)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
-
-	*result = sched_rscope_get(current, token);
+	
+	*result = sched_rscope_get(current, internal_token);
 
 	if(NULL == *result) return ERROR_CODE(int);
 
