@@ -53,7 +53,8 @@ size_t pipe_hdr_write(pipe_t pipe, const void* buffer, size_t nbytes)
 
 int pipe_write_scope_token(pipe_t pipe, scope_token_t token, const scope_token_data_req_t* datareq)
 {
-	return RUNTIME_ADDRESS_TABLE_SYM->write_scope_token(pipe, token, datareq);
+	scope_token_t internal_token = (token == ERROR_CODE(scope_token_t) || token == 0) ? ERROR_CODE(scope_token_t) : token - 1;
+	return RUNTIME_ADDRESS_TABLE_SYM->write_scope_token(pipe, internal_token, datareq);
 }
 
 int pipe_eof(pipe_t pipe)
