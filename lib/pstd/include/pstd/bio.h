@@ -102,6 +102,15 @@ size_t pstd_bio_printf(pstd_bio_t* pstd_bio, const char* fmt, ...)
     __attribute__((format (printf, 2, 3)));
 
 /**
+ * @brief similar to pstd_bio_printf, the differents is this function accepts va_list
+ * @param pstd_bio The target BIO
+ * @param fmt The formatting string
+ * @param ap The additional parameters
+ * @return number of bytes has been written
+ **/
+size_t pstd_bio_vprintf(pstd_bio_t* pstd_bio, const char* fmt, va_list ap);
+
+/**
  * @brief write a string to a BIO object
  * @param pstd_bio the target BIO
  * @param str the line to write

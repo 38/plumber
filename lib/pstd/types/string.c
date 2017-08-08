@@ -311,32 +311,34 @@ size_t pstd_string_write(pstd_string_t* str, const char* data, size_t size)
 	return size;
 }
 
-size_t pstd_string_printf(pstd_string_t* str, const char* fmt, ...)
+size_t pstd_string_vprintf(pstd_string_t* str, const char* fmt, va_list ap)
 {
 	if(NULL == str || NULL == fmt)
-	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
 	size_t ret = 0;
-	va_list ap;
-	va_start(ap,fmt);
+	
 	for(;;)
 	{
 		int rc = vsnprintf(str->buffer + str->length, str->capacity - str->length, fmt, ap);
 		if(rc < 0)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot output the formated string to the string buffer");
+		    ERROR_RETURN_LOG(size_t, "Cannot output the formated string to the string buffer");
 
 		ret = (size_t)rc;
 
 		if(ret + 1 <= str->capacity - str->length) break;
 
 		if(ERROR_CODE(int) == _ensure_capacity(str, str->capacity - str->length))
-		    ERROR_LOG_GOTO(ERR, "Cannot resize the buffer to fit the buffer size");
+			ERROR_RETURN_LOG(size_t, "Cannot resize the buffer to fit the buffer size");
 	}
-	va_end(ap);
-
 	str->length += ret;
-
 	return ret;
-ERR:
+}
+
+size_t pstd_string_printf(pstd_string_t* str, const char* fmt, ...)
+{
+	va_list ap;
+	va_start(ap,fmt);
+	size_t ret = pstd_string_vprintf(str, fmt, ap);
 	va_end(ap);
-	return ERROR_CODE(size_t);
+	return ret;
 }

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include <json.h>
 
@@ -186,14 +187,185 @@ static int _cleanup(void* ctxbuf)
 	return rc;
 }
 
-#if 0
+static inline int _write(pstd_string_t* str, pstd_bio_t* bio, const char* fmt, ...)
+{
+	if(NULL == fmt) return 0;
+	va_list ap;
+	va_start(ap, fmt);
+	if(bio != NULL)
+	{
+		if(ERROR_CODE(size_t) == pstd_bio_vprintf(bio, fmt, ap))
+			ERROR_RETURN_LOG(int, "Cannot write content to pipe");
+	}
+	else
+	{
+		if(ERROR_CODE(size_t) == pstd_string_vprintf(str, fmt, ap))
+			ERROR_RETURN_LOG(int, "Cannot write content to string");
+	}
+	va_end(ap);
+
+	return 0;
+}
+
+static inline int _write_name(pstd_string_t* str, pstd_bio_t* bio, const char* fmt, const char* name)
+{
+	json_object* name_obj = json_object_new_string(name);
+	const char* name_repr = NULL;
+	if(NULL == name_obj) ERROR_LOG_GOTO(ERR, "Cannot create JSON object for the pipe name %s", name);
+	name_repr = json_object_to_json_string(name_obj);
+	if(NULL == name_repr) ERROR_LOG_GOTO(ERR, "Cannot get the JSON representation of the pipe name %s", name);
+	_write(str, bio, fmt, name_repr);
+	json_object_put(name_obj);
+	return 0;
+ERR:
+	if(NULL != name_obj) json_object_put(name_obj);
+	return ERROR_CODE(int);
+}
+
 static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
 {
-	int rc = ERROR_CODE(int);
+	pstd_string_t* str = NULL;
+	pstd_bio_t*    bio = NULL;
 
-	
+	if(ctx->raw && NULL == (bio = pstd_bio_new(ctx->json)))
+		ERROR_LOG_GOTO(ERR, "Cannot create new BIO object on the json pipe");
+
+	if(!ctx->raw && NULL == (str = pstd_string_new(32)))
+		ERROR_LOG_GOTO(ERR, "Cannot create new string object for the JSON content");
+
+	_write(str, bio, "{");
+
+	uint32_t i;
+	for(i = 0; i < ctx->count; i ++)
+	{
+		const json_model_t* jm = ctx->typed + i;
+
+		if(ERROR_CODE(int) == _write_name(str, bio, "%s:", jm->name))
+			ERROR_LOG_GOTO(ERR, "Cannot write the pipe name");
+
+		uint32_t pc;
+		enum {
+			_O1,
+			_O2,
+			_C1,
+			_C2
+		} state = _O1;
+		const char* stack[1024];
+		uint32_t sp = 1;
+		stack[0] = "}";
+		for(pc = 0; pc < jm->nops; pc ++)
+		{
+			if(sp >= sizeof(stack)/sizeof(stack[0]))
+				ERROR_LOG_GOTO(ERR, "Operation stack overflow");
+			if(sp == 0) ERROR_LOG_GOTO(ERR, "Invalid operation sequence");
+
+			const json_model_op_t* op = jm->ops + pc;
+			if(op->opcode == JSON_MODEL_OPCODE_OPEN || op->opcode == JSON_MODEL_OPCODE_OPEN_SUBS)
+			{
+				if(state == _O1 || state == _O2) state = _O2;
+				else state = _O1;
+			}
+			else if(op->opcode == JSON_MODEL_OPCODE_CLOSE)
+			{
+				if(state == _C1 || state == _C2) state = _C2;
+				else state = _C1;
+			}
+			switch(op->opcode)
+			{
+				case JSON_MODEL_OPCODE_OPEN:
+					if(ERROR_CODE(int) == _write_name(str, bio, state == _O2 ? "{%s:" : ",%s:", op->field))
+						ERROR_LOG_GOTO(ERR, "Cannot write field name");
+					stack[sp++] = state == _O2 ? "}" : NULL;
+					break;
+				case JSON_MODEL_OPCODE_OPEN_SUBS:
+					if(ERROR_CODE(int) == _write(str, bio, state == _O2 ? "[" : ","))
+						ERROR_LOG_GOTO(ERR, "Cannot write the list sperator");
+					stack[sp++] = state == _O2 ? "]" : NULL;
+					break;
+				case JSON_MODEL_OPCODE_CLOSE:
+					if(state == _C2 && ERROR_CODE(int) == _write(str, bio, stack[--sp]))
+						ERROR_LOG_GOTO(ERR, "Cannote write the end of block");
+					break;
+				case JSON_MODEL_OPCODE_WRITE:
+					switch(op->type)
+					{
+						case JSON_MODEL_TYPE_SIGNED:
+						{
+							int64_t val = 0;
+							if(ERROR_CODE(size_t) == pstd_type_instance_read(inst, op->acc, &val, op->size))
+								ERROR_LOG_GOTO(ERR, "Cannot read data from the typed pipe");
+
+							if(ERROR_CODE(int) == _write(str, bio, "%"PRId64, val))
+								ERROR_LOG_GOTO(ERR, "Cannot write the JSON value");
+							break;
+						}
+						case JSON_MODEL_TYPE_UNSIGNED:
+						{
+							uint64_t val = 0;
+							if(ERROR_CODE(size_t) == pstd_type_instance_read(inst, op->acc, &val, op->size))
+								ERROR_LOG_GOTO(ERR, "Cannot read data from the typed pipe");
+
+							if(ERROR_CODE(int) == _write(str, bio, "%"PRIu64, val))
+								ERROR_LOG_GOTO(ERR, "Cannot write the JSON value");
+							break;
+						}
+						case JSON_MODEL_TYPE_FLOAT:
+						{
+							union {
+								double d;
+								float  f;
+							} val;
+							if(ERROR_CODE(size_t) == pstd_type_instance_read(inst, op->acc, &val, op->size))
+								ERROR_LOG_GOTO(ERR, "Cannot read data from the typed pipe");
+
+							if(sizeof(double) == op->size)
+							{
+								if(ERROR_CODE(int) == _write(str, bio, "%llg", val.d))
+									ERROR_LOG_GOTO(ERR, "Cannot write the JSON value");
+							}
+							else if(ERROR_CODE(int) == _write(str, bio, "%g", val.f))
+								ERROR_LOG_GOTO(ERR, "Cannot write the JSON value");
+							break;
+						}
+						case JSON_MODEL_TYPE_STRING:
+						{
+							scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, op->acc);
+							if(ERROR_CODE(scope_token_t) == token)
+								ERROR_LOG_GOTO(ERR, "Cannot read RLS token");
+							const pstd_string_t* ps = pstd_string_from_rls(token);
+							if(NULL == ps) ERROR_LOG_GOTO(ERR, "Cannot get the RLS token from the Scope");
+							const char* val = pstd_string_value(ps);
+							if(NULL == val) ERROR_LOG_GOTO(ERR, "Cannot get the string from the RLS string object");
+							if(ERROR_CODE(int) == _write_name(str, bio, "%s", val))
+								ERROR_LOG_GOTO(ERR, "Cannot write the string to JSON represetnation");
+							break;
+						}
+					}
+			}
+		}
+		
+	}
+	_write(str, bio, "}");
+
+	if(NULL != bio && ERROR_CODE(int) == pstd_bio_free(bio))
+		ERROR_RETURN_LOG(int, "Cannot dispose the BIO object");
+	if(NULL != str)
+	{
+		scope_token_t token = pstd_string_commit(str);
+		if(ERROR_CODE(scope_token_t) == token)
+		{
+			pstd_string_free(str);
+			ERROR_RETURN_LOG(int, "Cannot commit the string to RLS");
+		}
+		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, ctx->json_acc, token))
+			ERROR_RETURN_LOG(int, "Cannot write token to the pipe");
+	}
+	return 0;
+ERR:
+	if(NULL != bio) pstd_bio_free(bio);
+	if(NULL != str) pstd_string_free(str);
+	return ERROR_CODE(int);
 }
-#endif
 
 static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 {
@@ -371,6 +543,8 @@ static inline int _exec(void* ctxbuf)
 
 	if(ctx->from_json)
 		rc = _exec_from_json(ctx, inst);
+	else 
+		rc = _exec_to_json(ctx, inst);
 
 	if(ERROR_CODE(int) == pstd_type_instance_free(inst))
 		ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
