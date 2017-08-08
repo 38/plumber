@@ -251,13 +251,11 @@ static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
 			_C2
 		} state = _O1;
 		const char* stack[1024];
-		uint32_t sp = 1;
-		stack[0] = "}";
+		uint32_t sp = 0;
 		for(pc = 0; pc < jm->nops; pc ++)
 		{
 			if(sp >= sizeof(stack)/sizeof(stack[0]))
 				ERROR_LOG_GOTO(ERR, "Operation stack overflow");
-			if(sp == 0) ERROR_LOG_GOTO(ERR, "Invalid operation sequence");
 
 			const json_model_op_t* op = jm->ops + pc;
 			if(op->opcode == JSON_MODEL_OPCODE_OPEN || op->opcode == JSON_MODEL_OPCODE_OPEN_SUBS)
@@ -275,15 +273,15 @@ static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
 				case JSON_MODEL_OPCODE_OPEN:
 					if(ERROR_CODE(int) == _write_name(str, bio, state == _O2 ? "{%s:" : ",%s:", op->field))
 						ERROR_LOG_GOTO(ERR, "Cannot write field name");
-					stack[sp++] = state == _O2 ? "}" : NULL;
+					if(state == _O2) stack[sp++] = "}";
 					break;
 				case JSON_MODEL_OPCODE_OPEN_SUBS:
 					if(ERROR_CODE(int) == _write(str, bio, state == _O2 ? "[" : ","))
 						ERROR_LOG_GOTO(ERR, "Cannot write the list sperator");
-					stack[sp++] = state == _O2 ? "]" : NULL;
+					if(state == _O2) stack[sp++] = "]";
 					break;
 				case JSON_MODEL_OPCODE_CLOSE:
-					if(state == _C2 && ERROR_CODE(int) == _write(str, bio, stack[--sp]))
+					if(state == _C2 && (sp == 0 || ERROR_CODE(int) == _write(str, bio, stack[--sp])))
 						ERROR_LOG_GOTO(ERR, "Cannote write the end of block");
 					break;
 				case JSON_MODEL_OPCODE_WRITE:
@@ -343,7 +341,8 @@ static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
 					}
 			}
 		}
-		
+
+		if(sp == 1) _write(str, bio, stack[0]);
 	}
 	_write(str, bio, "}");
 
