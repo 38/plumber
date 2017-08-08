@@ -105,7 +105,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	}
 	
 	if(argc < 2)
-		ERROR_RETURN_LOG(int, "Usage: %s [--raw] <name>:<type> [<name>:<type> ...]", servlet_name);
+		ERROR_RETURN_LOG(int, "Usage: %s [--from-json|--to-json] [--raw] <name>:<type> [<name>:<type> ...]", servlet_name);
 
 	ctx->typed = NULL;
 	ctx->model = NULL;
