@@ -186,6 +186,15 @@ static int _cleanup(void* ctxbuf)
 	return rc;
 }
 
+#if 0
+static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
+{
+	int rc = ERROR_CODE(int);
+
+	
+}
+#endif
+
 static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 {
 	int rc = ERROR_CODE(int);

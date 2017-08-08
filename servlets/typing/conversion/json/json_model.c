@@ -193,6 +193,24 @@ json_model_t* json_model_new(const char* pipe_name, const char* type_name, int i
 	if(NULL == (ret->ops = (json_model_op_t*)calloc(ret->cap = 32, sizeof(json_model_op_t))))
 		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the operation array");
 
+	proto_db_field_info_t info;
+	int adhoc_rc = proto_db_is_adhoc(type_name, &info);
+	if(ERROR_CODE(int) == adhoc_rc)
+		ERROR_PTR_RETURN_LOG("Cannot check if the type is an adhoc type");
+
+	int is_str = 0;
+
+	if(adhoc_rc || (is_str = (strcmp(type_name, "plumber/std/request_local/String") == 0)))
+	{
+		ret->ops[0].opcode = JSON_MODEL_OPCODE_WRITE;
+		ret->ops[0].size   = info.size;
+		
+		if(ERROR_CODE(pstd_type_accessor_t) == (ret->ops[0].acc = pstd_type_model_get_accessor(type_model, ret->pipe, is_str ? "token" : "value")))
+			ERROR_PTR_RETURN_LOG("Cannot get the accessor for primitive type %s", type_name);
+		ret->nops = 1;
+		return 0;
+	}
+
 	_traverse_data_t td = {
 		.type_model   = type_model,
 		.json_model   = ret,
@@ -208,6 +226,7 @@ json_model_t* json_model_new(const char* pipe_name, const char* type_name, int i
 
 	return ret;
 }
+
 
 int json_model_free(json_model_t* model)
 {
