@@ -235,13 +235,19 @@ static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
 
 	_write(str, bio, "{");
 
-	uint32_t i;
+	uint32_t i, first = 1;
 	for(i = 0; i < ctx->count; i ++)
 	{
 		const json_model_t* jm = ctx->typed + i;
+		
+		int eof_rc = pipe_eof(jm->pipe);
+		if(ERROR_CODE(int) == eof_rc) ERROR_RETURN_LOG(int, "Cannot check if the pipe contnains no data");
+		if(eof_rc) continue;
 
-		if(ERROR_CODE(int) == _write_name(str, bio, "%s:", jm->name))
+		if(ERROR_CODE(int) == _write_name(str, bio, first ? "%s:" : ",%s:", jm->name))
 			ERROR_LOG_GOTO(ERR, "Cannot write the pipe name");
+
+		first = 0;
 
 		uint32_t pc;
 		enum {

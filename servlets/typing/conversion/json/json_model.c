@@ -204,11 +204,20 @@ json_model_t* json_model_new(const char* pipe_name, const char* type_name, int i
 	{
 		ret->ops[0].opcode = JSON_MODEL_OPCODE_WRITE;
 		ret->ops[0].size   = info.size;
+	
+		if(is_str)
+			ret->ops[0].type = JSON_MODEL_TYPE_STRING;
+		else if(info.primitive_prop & PROTO_DB_FIELD_PROP_REAL)
+			ret->ops[0].type = JSON_MODEL_TYPE_FLOAT;
+		else if(info.primitive_prop & PROTO_DB_FIELD_PROP_SIGNED)
+			ret->ops[0].type = JSON_MODEL_TYPE_SIGNED;
+		else
+			ret->ops[0].type = JSON_MODEL_TYPE_UNSIGNED;
 		
 		if(ERROR_CODE(pstd_type_accessor_t) == (ret->ops[0].acc = pstd_type_model_get_accessor(type_model, ret->pipe, is_str ? "token" : "value")))
 			ERROR_PTR_RETURN_LOG("Cannot get the accessor for primitive type %s", type_name);
 		ret->nops = 1;
-		return 0;
+		return ret;
 	}
 
 	_traverse_data_t td = {
