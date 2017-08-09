@@ -7,6 +7,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <errno.h>
+#include <stdlib.h>
 
 #include <error.h>
 #include <utils/log.h>
@@ -57,13 +58,96 @@ static inline int _parse_comment(FILE* fp)
 	return 0;
 }
 
-#if 0
 static inline int _parse_command(_module_context_t* ctx, FILE* fp)
 {
+	(void) ctx; /* TODO: remove this */
 	char buf[1024];
-	fgets(buf, sizeof(buf), fp)
+	if(NULL == fgets(buf, sizeof(buf), fp)) 
+		ERROR_RETURN_LOG(int, "Unexpected EOF");
+	char const* command = NULL;
+	char const* label = NULL;
+	
+	char* ptr;
+	for(ptr = buf; *ptr == 0 || *ptr == ' ' || *ptr == '\t'; ptr ++);
+	command = buf;
+	if(*ptr != 0)
+	{
+		*ptr = 0;
+		for(ptr ++; *ptr == ' ' || *ptr == '\t'; ptr++);
+		label = ptr;
+	}
+	if(label == NULL || label[0] == 0) 
+		ERROR_RETURN_LOG(int, "Missing event label: it should follows pattern .<command> <label>");
+
+	int is_text = (strcmp(command, "TEXT") == 0);
+	int is_file = (strcmp(command, "FILE") == 0);
+
+	if(!is_text && !is_file) ERROR_RETURN_LOG(int, "Invalid event type %s", command);
+
+	size_t size, len = 0;
+	char* event_data = (char*)malloc(size = 32);
+	if(NULL == event_data) ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the event body");
+
+	static const char* event_end = "\n.END";
+	const char* state = event_end;
+
+	for(;;)
+	{
+		int ch = fgetc(fp);
+		if(EOF == ch && ferror(fp))
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the event file");
+		if(EOF == ch && *state != 0)
+			ERROR_LOG_GOTO(ERR, "Unexpected EOF while .end directive is expected");
+		if(*state == 0)
+		{
+			while(ch == ' ' || ch == '\t' || ch == '\r')
+				ch = fgetc(fp);
+			if(ch == EOF || ch == '\n') break;
+			else ERROR_LOG_GOTO(ERR, "Unexpected end of event syntax, a line with .END is expected");
+		}
+		else
+		{
+			if(*state == ch)
+			{
+				state ++;
+				continue;
+			}
+			size_t delta = (size_t)(state - event_end + 1);
+			size_t new_size = size;
+			while(len + delta + 1 >= new_size)
+				new_size *= 2;
+			if(new_size != size)
+			{
+				char* new_data = (char*)realloc(event_data, new_size);
+				if(NULL == new_data) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot resize the event data buffer");
+				size  = new_size;
+				event_data = new_data;
+			}
+			const char* p;
+			for(p = event_end; p < state; p ++)
+				event_data[len++] = *p;
+			event_data[len++] = (char)ch;
+			event_data[len] = 0;
+		}
+	}
+
+	/* Then we have the content */
+	if(is_text)
+	{
+		/* TODO: Then we need warp this text in a event struct */
+	}
+	else if(is_file)
+	{
+		/* TODO: We need read the file content */
+	}
+	else ERROR_LOG_ERRNO_GOTO(ERR, "Code bug!");
+
+	return 0;
+ERR:
+	if(NULL != event_data) free(event_data);
+	return ERROR_CODE(int);
+
 }
-#endif
 
 static inline int _parse_input(_module_context_t* ctx, FILE* fp)
 {
