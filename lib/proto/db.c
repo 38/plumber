@@ -958,6 +958,33 @@ const char* proto_db_field_scope_id(const char* typename, const char* fieldname)
 	return info.primitive_data->scope_typename;
 }
 
+int proto_db_is_adhoc(const char* typename, proto_db_field_info_t* info_buf)
+{
+	if(_init_count == 0)
+		PROTO_ERR_RAISE_RETURN(int, DISALLOWED);
+
+	if(NULL == typename) PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+
+	_primitive_desc_t pd = _parse_adhoc_type(typename);
+	if(pd == _NONE) return 0;
+
+	if(NULL != info_buf)
+	{
+		info_buf->name = "value";
+		info_buf->type = typename;
+		info_buf->size = _PD_SIZE(pd);
+		info_buf->offset = 0;
+		info_buf->primitive_prop = PROTO_DB_FIELD_PROP_NUMERIC;
+		if(_PD_SIGNED(pd)) info_buf->primitive_prop |= PROTO_DB_FIELD_PROP_SIGNED;
+		if(_PD_FLOAT(pd))  info_buf->primitive_prop |= PROTO_DB_FIELD_PROP_REAL;
+		info_buf->ndims = 1;
+		static uint32_t dim = 1;
+		info_buf->dims = &dim;
+	}
+
+	return 1;
+}
+
 int proto_db_field_get_default(const char* typename, const char* fieldname, const void** buf, size_t* sizebuf)
 {
 	if(_init_count == 0)
