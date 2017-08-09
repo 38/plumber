@@ -247,26 +247,15 @@ size_t pstd_bio_write(pstd_bio_t* pstd_bio, const void* ptr, size_t size)
 	return ret;
 }
 
-size_t pstd_bio_printf(pstd_bio_t* pstd_bio, const char* fmt, ...)
+size_t pstd_bio_vprintf(pstd_bio_t* pstd_bio, const char* fmt, va_list ap)
 {
 	char _b[1024];
 	size_t _bsz = sizeof(_b);
 	size_t ret = 0;
-
-	va_list ap;
-	va_start(ap, fmt);
+	
 	int rc = vsnprintf(_b, _bsz, fmt, ap);
-	if(rc < 0) ERROR_LOG_ERRNO_GOTO(PR_ERR, "vsnprintf error");
-
-	ret = (size_t)rc;
-
-	goto PR_END;
-PR_ERR:
-	ret = ERROR_CODE(size_t);
-	return ret;
-PR_END:
-	va_end(ap);
-
+	if(rc < 0) ERROR_RETURN_LOG_ERRNO(size_t, "vsnprintf returns an error");
+	
 	if(ret != ERROR_CODE(size_t))
 	{
 		size_t bytes_to_write = ret;
@@ -279,6 +268,17 @@ PR_END:
 			p += rc;
 		}
 	}
+
+	return ret;
+
+}
+
+size_t pstd_bio_printf(pstd_bio_t* pstd_bio, const char* fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	size_t ret = pstd_bio_vprintf(pstd_bio, fmt, ap);
+	va_end(ap);
 
 	return ret;
 }

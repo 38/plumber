@@ -93,4 +93,14 @@ size_t pstd_string_write(pstd_string_t* str, const char* data, size_t size);
 size_t pstd_string_printf(pstd_string_t* str, const char* fmt, ...)
     __attribute__((format (printf, 2, 3)));
 
+/**
+ * @biref append the formatted string to the string object. This is similar to pstd_string_printf, but it accepts
+ *        va_list as additional parameters
+ * @param str The string object
+ * @param fmt The formatting string
+ * @param ap  The additional parameter
+ * @return The number of bytes has been appended to the string object
+ **/
+size_t pstd_string_vprintf(pstd_string_t* str, const char* fmt, va_list ap);
+
 #endif /* __PSTD_TYPES_STRING_H__ */
