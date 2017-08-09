@@ -83,6 +83,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	if(argc < 2)
 		ERROR_RETURN_LOG(int, "Usage: %s [parent:resource] | [resource]", argv[0]);
 	context_t* ctx = (context_t*)ctxbuf;
+	memset(ctx, 0, sizeof(context_t));
 	ctx->model    = NULL;
 	ctx->count = argc - 1;
 
