@@ -1,0 +1,38 @@
+/**
+ * Copyright (C) 2017, Hao Hou
+ * The module testing utiles
+ **/
+import("service");
+Testbed.embed = function embed(graph, in_ports, out_ports) 
+{
+	var src_servlet = "typing/conversion/json --raw --from-json";
+	var dst_servlet = "typing/conversion/json --raw --to-json";
+
+	for(var name in in_ports)
+	{
+		var type = in_ports[name];
+		src_servlet += " " + name  + ":" + type;
+	}
+
+	for(var name in out_ports)
+	{
+		var type = out_ports[name];
+		dst_servlet += " " + name + ":" + type;
+	}
+
+	var ret = {
+		source := src_servlet;
+		sink   := dst_servlet;
+		graph  := graph;
+		() -> "json" source;
+		sink "json" -> ();
+	};
+
+	for(var name in in_ports)
+		Service.add_pipe(ret, "source", name, name, "graph");
+
+	for(var name in out_ports)
+		Service.add_pipe(ret, "graph", name, name, "sink");
+
+	return ret;
+}
