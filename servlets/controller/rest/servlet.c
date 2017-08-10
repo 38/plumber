@@ -319,6 +319,8 @@ static int _exec(void* ctxbuf)
 		{
 			/* This means we want to create a new resource */
 			storage_opcode = ctx->opcode.CREATE;
+			object_id = &object_id_buf;
+			uuid_generate(object_id_buf.uuid);
 		}
 		else 
 		{
