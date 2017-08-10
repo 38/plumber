@@ -79,6 +79,14 @@ static inline int _fill_const(pstd_type_model_t* model, pipe_t pipe, const char*
 	return 0;
 }
 
+static inline int _cmp(const void* a, const void* b)
+{
+	const resource_ctx_t* ra = (const resource_ctx_t*)a;
+	const resource_ctx_t* rb = (const resource_ctx_t*)b;
+
+	return strcmp(ra->res_name, rb->res_name);
+}
+
 static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 {
 	if(argc < 2)
@@ -147,7 +155,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 			ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.param", ctx->resources[i - 1].res_name);
 	}
 
-	qsort(ctx->resources, ctx->count, sizeof(resource_ctx_t), (int (*)(const void*, const void*))strcmp);
+	qsort(ctx->resources, ctx->count, sizeof(resource_ctx_t), _cmp);
 
 	for(i = 0; i < ctx->count; i ++)
 	{
@@ -282,7 +290,7 @@ static int _exec(void* ctxbuf)
 	if(NULL == path) goto EXIT_NORMALLY;
 
 	/* we need to detect the parent id */
-	object_id_t parent_id_buf;
+	object_id_t parent_id_buf = {};
 	object_id_t* parent_id = _parse_object_id(&path, &parent_id_buf);
 
 	/* Then we need to parse the resource type */
@@ -290,7 +298,7 @@ static int _exec(void* ctxbuf)
 	if(NULL == res_ctx) goto EXIT_NORMALLY; /* This means we can not handle this request */
 
 	/* Parse the object id */
-	object_id_t object_id_buf;
+	object_id_t object_id_buf = {};
 	object_id_t* object_id = _parse_object_id(&path, &object_id_buf);
 
 	uint32_t method = PSTD_TYPE_INST_READ_PRIMITIVE(uint32_t, inst, ctx->method_acc);
