@@ -13,6 +13,7 @@
 
 #include <pservlet.h>
 #include <pstd.h>
+#include <pstd/types/string.h>
 
 #include <bsr64.h>
 
@@ -190,7 +191,11 @@ static inline const char* _read_string(pstd_type_instance_t* inst, pstd_type_acc
 	scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, acc);
 	if(ERROR_CODE(scope_token_t) == token) return NULL;
 
-	return (const char*)pstd_scope_get(token);
+	const pstd_string_t* ps = pstd_string_from_rls(token);
+
+	if(ps == NULL) return NULL;
+
+	return pstd_string_value(ps);
 }
 
 /**
