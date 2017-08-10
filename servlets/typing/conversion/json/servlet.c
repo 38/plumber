@@ -347,7 +347,7 @@ static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
 							}
 							else
 							{
-								if(ERROR_CODE(int) == _write(str, bio, "null", val))
+								if(ERROR_CODE(int) == _write(str, bio, "null"))
 									ERROR_LOG_GOTO(ERR, "Cannot write to JSON");
 							}
 							break;
