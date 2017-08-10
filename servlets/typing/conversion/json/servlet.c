@@ -336,12 +336,20 @@ static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
 							scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, op->acc);
 							if(ERROR_CODE(scope_token_t) == token)
 								ERROR_LOG_GOTO(ERR, "Cannot read RLS token");
-							const pstd_string_t* ps = pstd_string_from_rls(token);
-							if(NULL == ps) ERROR_LOG_GOTO(ERR, "Cannot get the RLS token from the Scope");
-							const char* val = pstd_string_value(ps);
-							if(NULL == val) ERROR_LOG_GOTO(ERR, "Cannot get the string from the RLS string object");
-							if(ERROR_CODE(int) == _write_name(str, bio, "%s", val))
-								ERROR_LOG_GOTO(ERR, "Cannot write the string to JSON represetnation");
+							if(token != 0)
+							{
+								const pstd_string_t* ps = pstd_string_from_rls(token);
+								if(NULL == ps) ERROR_LOG_GOTO(ERR, "Cannot get the RLS token from the Scope");
+								const char* val = pstd_string_value(ps);
+								if(NULL == val) ERROR_LOG_GOTO(ERR, "Cannot get the string from the RLS string object");
+								if(ERROR_CODE(int) == _write_name(str, bio, "%s", val))
+									ERROR_LOG_GOTO(ERR, "Cannot write the string to JSON represetnation");
+							}
+							else
+							{
+								if(ERROR_CODE(int) == _write(str, bio, "null", val))
+									ERROR_LOG_GOTO(ERR, "Cannot write to JSON");
+							}
 							break;
 						}
 					}
