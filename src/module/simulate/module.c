@@ -27,7 +27,6 @@ typedef struct _event_t {
 	size_t                outsize;/*!< The size of the output */
 	char*                 outbuf; /*!< The output buffer */
 	struct _event_t*      next;   /*!< The next event in the event list */
-	uint32_t              terminate:1; /*!< Indicates this event is actuall terminate the platform */
 } _event_t;
 
 /**
@@ -39,6 +38,8 @@ typedef struct {
 	_event_t*      next_event;       /*!< The next event we want to raise */
 	char*          label;            /*!< The label for this module instance */
 	char*          outfile;          /*!< The file we want to dump the output to */
+	uint32_t       remaining;        /*!< How many events is currently not closed */
+	uint32_t       terminate:1;      /*!< Indicates this event is actuall terminate the platform */
 } _module_context_t;
 
 /**
@@ -77,6 +78,7 @@ static inline void _append_event(_module_context_t* ctx, _event_t* event)
 		event->next = NULL;
 		ctx->event_list_tail = event;
 	}
+	ctx->remaining ++;
 }
 
 static inline int _parse_command(_module_context_t* ctx, FILE* fp)
@@ -105,10 +107,7 @@ static inline int _parse_command(_module_context_t* ctx, FILE* fp)
 
 	if(!is_text && !is_file && strcmp(command, "STOP") == 0)
 	{
-		_event_t* event = (_event_t*)calloc(sizeof(*event), 1);
-		if(NULL == event) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the event");
-		event->terminate = 1;
-		_append_event(ctx, event);
+		ctx->terminate = 1;
 		return 0;
 	}
 	
@@ -227,9 +226,6 @@ ERR:
 
 static inline int _parse_input(_module_context_t* ctx, FILE* fp)
 {
-#ifdef LOG_DEBUG_ENABLED
-	uint32_t count = 0;
-#endif
 	for(;;)
 	{
 		int ch = fgetc(fp);
@@ -246,7 +242,6 @@ static inline int _parse_input(_module_context_t* ctx, FILE* fp)
 					ERROR_RETURN_LOG(int, "Cannot parse the comment");
 				break;
 			case '.':
-				count ++;
 				if(ERROR_CODE(int) == _parse_command(ctx, fp))
 					ERROR_RETURN_LOG(int, "Cannot parse the command");
 				break;
@@ -255,7 +250,7 @@ static inline int _parse_input(_module_context_t* ctx, FILE* fp)
 		}
 	}
 
-	LOG_DEBUG("%u events has been loaded from file", count);
+	LOG_DEBUG("%u events has been loaded from file", ctx->remaining);
 
 	return 0;
 }
@@ -311,6 +306,8 @@ static int _init(void* __restrict ctxbuf, uint32_t argc, char const* __restrict 
 
 	LOG_DEBUG("Event Simulation Module has been initialized, input = %s, output = %s", input_name, output_name);
 
+	ctx->next_event = ctx->event_list_head;
+
 	return 0;
 ERR:
 	return ERROR_CODE(int);
@@ -335,7 +332,7 @@ static inline int _cleanup(void* __restrict ctxbuf)
 		if(event->label != NULL && event->outbuf != NULL) 
 		{
 			size_t bytes_to_write = event->outsize;
-			const char* data_buf = event->data;
+			const char* data_buf = event->outbuf;
 			fprintf(fout, ".OUTPUT %s\n", event->label);
 			for(;bytes_to_write > 0;)
 			{
@@ -349,7 +346,7 @@ static inline int _cleanup(void* __restrict ctxbuf)
 				data_buf += rc;
 				bytes_to_write -= rc;
 			}
-			fprintf(fout, ".END\n");
+			fprintf(fout, "\n.END\n");
 			free(event->outbuf);
 			LOG_DEBUG("Dumped simulated event output %s", event->label);
 		}
@@ -380,12 +377,6 @@ static int _accept(void* __restrict ctxbuf, const void* __restrict args, void* _
 		return ERROR_CODE(int);
 	}
 
-	if(ctx->next_event->terminate) 
-	{
-		ctx->next_event = NULL;
-		kill(0, SIGINT);
-	}
-
 	_handle_t* in = (_handle_t*)inbuf;
 	_handle_t* out = (_handle_t*)outbuf;
 
@@ -400,12 +391,25 @@ static int _accept(void* __restrict ctxbuf, const void* __restrict args, void* _
 	return 0;
 }
 
-static int _dealloc(void* __restrict ctx, void* __restrict pipe, int error, int purge)
+static int _dealloc(void* __restrict ctxbuf, void* __restrict pipe, int error, int purge)
 {
-	(void)purge;
 	(void)error;
-	(void)ctx;
 	(void)pipe;
+	
+	_module_context_t* ctx = (_module_context_t*)ctxbuf;
+
+	if(purge)
+	{
+		uint32_t value;
+		do{
+			value = ctx->remaining;
+		} while(!__sync_bool_compare_and_swap(&ctx->remaining, value, value - 1));
+		if(value == 1 && ctx->terminate)
+		{
+			LOG_NOTICE("Terminating the entire platform");
+			kill(0, SIGINT);
+		}
+	}
 
 	LOG_DEBUG("Event simulation pipe is dead");
 
