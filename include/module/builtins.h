@@ -16,6 +16,7 @@
 #include <module/file/module.h>
 #include <module/pssm/module.h>
 #include <module/tls/module.h>
+#include <module/simulate/module.h>
 
 #if MODULE_TLS_ENABLED
 #	define _TLS_MODULE_DEF {"tls_pipe", &module_tls_module_def},
@@ -29,7 +30,8 @@
 	{"test_pipe",&module_test_module_def},\
 	{"file_pipe", &module_file_module_def},\
 	_TLS_MODULE_DEF \
-	{"pssm",      &module_pssm_module_def}\
+	{"pssm",      &module_pssm_module_def},\
+	{"simulate",  &module_simulate_module_def}\
 }
 
 #endif /* __PLUMBER_MODULE_BUILTINS__ */

@@ -69,6 +69,10 @@ Service.add_node = function Service.add_node(serv, name, init_arg)
 
 Service.add_pipe = function Service.add_pipe(serv, src_node, src_port, dst_port, dst_node) 
 {
+	if(serv["@"+ src_node] == undefined)
+		serv["@" + src_node] = {};
+	if(serv["!@" + dst_node] == undefined)
+		serv["!@" + dst_node] = {};
 	serv["@" + src_node][src_port] = dst_node + "@" + dst_port;
 	serv["!@" + dst_node][dst_port] = src_node + "@" + src_port;
 }
