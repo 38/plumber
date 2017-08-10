@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <signal.h>
 
 #include <error.h>
 #include <utils/log.h>
@@ -377,6 +378,12 @@ static int _accept(void* __restrict ctxbuf, const void* __restrict args, void* _
 	{
 		LOG_NOTICE("Event exhausted, terminating the event loop");
 		return ERROR_CODE(int);
+	}
+
+	if(ctx->next_event->terminate) 
+	{
+		ctx->next_event = NULL;
+		kill(0, SIGINT);
 	}
 
 	_handle_t* in = (_handle_t*)inbuf;
