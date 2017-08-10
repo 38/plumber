@@ -43,6 +43,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 
 	if(argc != 2)
 	    ERROR_RETURN_LOG(int, "Usage: %s <number-of-inputs>", argv[0]);
+	ctx->header_size = 0;
 
 	ctx->n = (uint32_t)atoi(argv[1]);
 

@@ -30,7 +30,7 @@ typedef struct _accessor_t {
 	pipe_t              pipe;           /*!< The target pipe */
 	uint32_t            offset;         /*!< The begining of the interested memory region */
 	uint32_t            size;           /*!< The size of the interested memory region */
-	struct _accessor_t* next;           /*!< The next accessor for the same pipe */
+	uint32_t            next;           /*!< The next accessor for the same pipe */
 } _accessor_t;
 
 /**
@@ -64,7 +64,7 @@ typedef struct {
 	uint32_t                full_size;     /*!< The size of the header section */
 	uint32_t                used_size;     /*!< The size of the header data we actually used */
 	size_t                  buf_begin;     /*!< The offest for buffer of the type context isntance for this pipe begins */
-	_accessor_t*            accessor_list; /*!< The list of accessors related to this pipe */
+	uint32_t                accessor_list; /*!< The list of accessors related to this pipe */
 	_const_t*               const_list;    /*!< The list of the constant defined by this pipe */
 	_type_assertion_t*      assertion_list;/*!< The assertion list */
 } _typeinfo_t;
@@ -197,9 +197,11 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 	}
 
 	/* Fill the offset info into accessors */
+	uint32_t offset;
 	_accessor_t* accessor;
-	for(accessor = typeinfo->accessor_list; NULL != accessor; accessor = accessor->next)
+	for(offset = typeinfo->accessor_list; ERROR_CODE(uint32_t) != offset; offset = accessor->next)
 	{
+		accessor = model->accessor + offset;
 		if(ERROR_CODE(uint32_t) == (accessor->offset = proto_db_type_offset(typename, accessor->field, &accessor->size)))
 		    ERROR_LOG_GOTO(ERR, "Cannot get the type param for %s.%s", typename, accessor->field);
 		accessor->init = 1;
@@ -260,6 +262,10 @@ static inline int _ensure_pipe_typeinfo(pstd_type_model_t* ctx, pipe_t pipe)
 		    ERROR_RETURN_LOG_ERRNO(int, "Cannot resize the type info array");
 
 		memset(newbuf + sizeof(ctx->type_info[0]) * ctx->pipe_cap, 0,  sizeof(ctx->type_info[0]) * ctx->pipe_cap);
+		
+		uint32_t i;
+		for(i = ctx->pipe_cap; i < ctx->pipe_cap * 2; i ++)
+			ctx->type_info[i].accessor_list = ERROR_CODE(uint32_t);
 
 		ctx->pipe_cap <<= 1u;
 		ctx->type_info = newbuf;
@@ -277,6 +283,7 @@ static inline int _ensure_pipe_typeinfo(pstd_type_model_t* ctx, pipe_t pipe)
 
 		ctx->type_info[pid].cb_setup = 1;
 	}
+
 
 	return 0;
 }
@@ -317,7 +324,7 @@ static inline _acc_t _accessor_alloc(pstd_type_model_t* ctx, pipe_t pipe, const 
 	    ERROR_RETURN_LOG_ERRNO(_acc_t, "Cannot resize the typeinfo array");
 
 	accessor->next = ctx->type_info[PIPE_GET_ID(pipe)].accessor_list;
-	ctx->type_info[PIPE_GET_ID(pipe)].accessor_list = accessor;
+	ctx->type_info[PIPE_GET_ID(pipe)].accessor_list = (uint32_t)(accessor - ctx->accessor);
 
 	return ctx->accessor_cnt ++;
 }
@@ -333,6 +340,10 @@ pstd_type_model_t* pstd_type_model_new()
 
 	if(NULL == (ret->type_info = (_typeinfo_t*)calloc(ret->pipe_cap, sizeof(ret->type_info[0]))))
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for for the typeinfo array");
+
+	uint32_t i;
+	for(i = 0; i < ret->pipe_cap; i ++)
+		ret->type_info[i].accessor_list = ERROR_CODE(uint32_t);
 
 	ret->accessor_cnt = 0;
 	ret->accessor_cap = 32;   /*!< TODO: magic number */

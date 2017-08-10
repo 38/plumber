@@ -51,6 +51,7 @@ typedef struct {
 typedef enum {
 	ITC_MODULE_FLAGS_NONE       = 0x0,     /*!< indicates we have nothing in the flag bits */
 	ITC_MODULE_FLAGS_EVENT_LOOP = 0x1,     /*!< indicates that we should start a event loop for this module */
+	ITC_MODULE_FLAGS_EVENT_EXHUASTED = 0x2  /*!< Indicates this module will not pop up any event for sure */
 } itc_module_flags_t;
 
 /**
