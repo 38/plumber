@@ -258,7 +258,7 @@ size_t pstd_bio_vprintf(pstd_bio_t* pstd_bio, const char* fmt, va_list ap)
 	
 	if(ret != ERROR_CODE(size_t))
 	{
-		size_t bytes_to_write = ret;
+		size_t bytes_to_write = (size_t)rc;
 		const char* p = _b;
 		while(bytes_to_write > 0)
 		{

@@ -77,6 +77,16 @@ static inline void* _module_event_loop_main(void* data)
 
 		if(itc_module_pipe_accept(_self->module_type, param, &event.in, &event.out) == ERROR_CODE(int))
 		{
+			itc_module_flags_t flags = itc_module_get_flags(_self->module_type);
+			if(ERROR_CODE(itc_module_flags_t) == flags)
+				LOG_ERROR("Cannot get the module flags from module #%u", _self->module_type);
+			if(flags & ITC_MODULE_FLAGS_EVENT_EXHUASTED)
+			{
+				LOG_NOTICE("Event from the module #%u has been exhuasted, exiting the event loop", _self->module_type);
+				itc_eloop_thread_killed = _self->killed = 1;
+				itc_module_loop_killed(_self->module_type);
+				break;
+			}
 			LOG_ERROR("failed to accept the incoming request from module #%u", _self->module_type);
 			continue;
 		}

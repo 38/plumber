@@ -22,6 +22,9 @@ typedef struct _event_t {
 	char*                 label;  /*!< The label for this event t */
 	size_t                size;   /*!< The size of this event */
 	char*                 data;   /*!< The data for this event */
+	size_t                outcap; /*!< The capacity of the output buffer */
+	size_t                outsize;/*!< The size of the output */
+	char*                 outbuf; /*!< The output buffer */
 	struct _event_t*      next;   /*!< The next event in the event list */
 	uint32_t              terminate:1; /*!< Indicates this event is actuall terminate the platform */
 } _event_t;
@@ -32,15 +35,17 @@ typedef struct _event_t {
 typedef struct {
 	_event_t*      event_list_tail;  /*!< The tail of the event list */
 	_event_t*      event_list_head;  /*!< The event we want to simulate */
+	_event_t*      next_event;       /*!< The next event we want to raise */
 	char*          label;            /*!< The label for this module instance */
-	FILE*          outfile;          /*!< The file we want to dump the output to */
+	char*          outfile;          /*!< The file we want to dump the output to */
 } _module_context_t;
 
 /**
  * @brief The pipe handle
  **/
 typedef struct {
-	const _event_t*      event;   /*!< The event we are handling */
+	uint32_t             output:1;/*!< If this is the output */
+	_event_t*            event;   /*!< The event we are handling */
 	size_t               offset;  /*!< The offset for where we are */
 } _handle_t;
 
@@ -75,7 +80,6 @@ static inline void _append_event(_module_context_t* ctx, _event_t* event)
 
 static inline int _parse_command(_module_context_t* ctx, FILE* fp)
 {
-	(void) ctx; /* TODO: remove this */
 	char buf[1024];
 	if(NULL == fgets(buf, sizeof(buf), fp)) 
 		ERROR_RETURN_LOG(int, "Unexpected EOF");
@@ -222,7 +226,6 @@ ERR:
 
 static inline int _parse_input(_module_context_t* ctx, FILE* fp)
 {
-	(void)ctx;
 #ifdef LOG_DEBUG_ENABLED
 	uint32_t count = 0;
 #endif
@@ -275,8 +278,8 @@ static int _init(void* __restrict ctxbuf, uint32_t argc, char const* __restrict 
 	for(i = 0; i < argc; i ++)
 	{
 		if(_start_with(argv[i], input_prefix)) input_name = argv[i] + sizeof(input_prefix) - 1;
-		else if(_start_with(argv[i], output_prefix)) output_name = argv[i] + sizeof(output_name) - 1;
-		else if(_start_with(argv[i], id_prefix)) id = argv[i] + sizeof(output_name) - 1;
+		else if(_start_with(argv[i], output_prefix)) output_name = argv[i] + sizeof(output_prefix) - 1;
+		else if(_start_with(argv[i], id_prefix)) id = argv[i] + sizeof(id_prefix) - 1;
 		else ERROR_RETURN_LOG(int, "Invalid module initialization arguments, expected: simulate input=inputfile output=outputfile label=labelname");
 	}
 
@@ -302,7 +305,7 @@ static int _init(void* __restrict ctxbuf, uint32_t argc, char const* __restrict 
 
 	fclose(fp);
 
-	if(NULL == (ctx->outfile = fopen(output_name, "wb")))
+	if(NULL == (ctx->outfile = strdup(output_name)))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open the output file %s", output_name);
 
 	LOG_DEBUG("Event Simulation Module has been initialized, input = %s, output = %s", input_name, output_name);
@@ -314,18 +317,48 @@ ERR:
 
 static inline int _cleanup(void* __restrict ctxbuf)
 {
+	int ret = 0;
+	FILE* fout = NULL;
 	_module_context_t* ctx = (_module_context_t*)ctxbuf;
 	if(ctx->label != NULL) free(ctx->label);
-	if(ctx->outfile != NULL) fclose(ctx->outfile);
+	if(ctx->outfile != NULL && NULL == (fout = fopen(ctx->outfile, "wb"))) 
+	{
+		LOG_ERROR_ERRNO("Cannot open the output file");
+		ret = ERROR_CODE(int);
+	}
+	if(ctx->outfile != NULL) free(ctx->outfile);
 	for(;ctx->event_list_head != NULL;)
 	{
 		_event_t* event = ctx->event_list_head;
 		ctx->event_list_head = ctx->event_list_head->next;
+		if(event->label != NULL && event->outbuf != NULL) 
+		{
+			size_t bytes_to_write = event->outsize;
+			const char* data_buf = event->data;
+			fprintf(fout, ".OUTPUT %s\n", event->label);
+			for(;bytes_to_write > 0;)
+			{
+				size_t rc = fwrite(data_buf, 1, bytes_to_write, fout);
+				if(rc == 0 && ferror(fout))
+				{
+					LOG_ERROR_ERRNO("Cannot write to the output file");
+					ret = ERROR_CODE(int);
+					break;
+				}
+				data_buf += rc;
+				bytes_to_write -= rc;
+			}
+			fprintf(fout, ".END\n");
+			free(event->outbuf);
+			LOG_DEBUG("Dumped simulated event output %s", event->label);
+		}
+		else if(event->label != NULL) LOG_DEBUG("Skip untouched simulated event %s", event->label);
 		if(event->data != NULL) free(event->data);
 		if(event->label != NULL) free(event->label);
 		free(event);
 	}
-	return 0;
+	if(NULL != fout) fclose(fout);
+	return ret;
 }
 
 static const char* _get_path(void* __restrict ctx, char* buf, size_t sz)
@@ -335,12 +368,137 @@ static const char* _get_path(void* __restrict ctx, char* buf, size_t sz)
 	return buf;
 }
 
+static int _accept(void* __restrict ctxbuf, const void* __restrict args, void* __restrict inbuf, void* __restrict outbuf)
+{
+	(void)args;
+	_module_context_t* ctx = (_module_context_t*)ctxbuf;
+	if(NULL == ctx) ERROR_RETURN_LOG(int, "Invalid arguments");	
+	if(NULL == ctx->next_event) 
+	{
+		LOG_NOTICE("Event exhausted, terminating the event loop");
+		return ERROR_CODE(int);
+	}
+
+	_handle_t* in = (_handle_t*)inbuf;
+	_handle_t* out = (_handle_t*)outbuf;
+
+	in->output = 0;
+	out->output = 1;
+
+	in->event = out->event = ctx->next_event;
+	in->offset = out->offset = 0;
+
+	ctx->next_event = ctx->next_event->next;
+
+	return 0;
+}
+
+static int _dealloc(void* __restrict ctx, void* __restrict pipe, int error, int purge)
+{
+	(void)purge;
+	(void)error;
+	(void)ctx;
+	(void)pipe;
+
+	LOG_DEBUG("Event simulation pipe is dead");
+
+	return 0;
+}
+
+static size_t _read(void* __restrict ctxbuf, void* __restrict buffer, size_t nbytes, void* __restrict pipe)
+{
+	(void)ctxbuf;
+	_handle_t* handle = (_handle_t*)pipe;
+	if(handle->output) ERROR_RETURN_LOG(size_t, "Invalid pipe type: input side expected");
+
+	size_t bytes_to_read = nbytes;
+	if(bytes_to_read > handle->event->size - handle->offset)
+		bytes_to_read = handle->event->size - handle->offset;
+
+	memcpy(buffer, handle->event->data + handle->offset, bytes_to_read);
+
+	handle->offset += bytes_to_read;
+
+	return bytes_to_read;
+}
+
+static size_t _write(void* __restrict ctx, const void* __restrict buffer, size_t nbytes, void* __restrict pipe)
+{
+	(void)ctx;
+	_handle_t* handle = (_handle_t*)pipe;
+	if(handle->output == 0) ERROR_RETURN_LOG(size_t, "Invalid pipe type: output side expected");
+
+	if(handle->event->outbuf == NULL)
+	{
+		if(NULL == (handle->event->outbuf = (char*)malloc(handle->event->outcap = (nbytes < 128 ? nbytes * 2 : 256))))
+			ERROR_RETURN_LOG_ERRNO(size_t, "Cannot allocate the buffer for the output");
+		handle->event->outsize = 0;
+	}
+
+	size_t bufsize = handle->event->outcap;
+	for(;bufsize < handle->event->outsize + nbytes; bufsize *= 2);
+	if(bufsize != handle->event->outcap)
+	{
+		char* new_buf = (char*)realloc(handle->event->outbuf, bufsize);
+		if(NULL == new_buf) ERROR_RETURN_LOG_ERRNO(size_t, "Cannot allocate memory for the bytes to write");
+		handle->event->outbuf = new_buf;
+		handle->event->outcap = bufsize;
+	}
+
+	memcpy(handle->event->outbuf + handle->event->outsize, buffer, nbytes);
+	handle->event->outsize += nbytes;
+
+	return nbytes;
+}
+
+static int _fork(void* __restrict ctx, void* __restrict dest, void* __restrict src, const void* __restrict args)
+{
+	(void) ctx;
+	(void) args;
+	_handle_t* dh = (_handle_t*)dest;
+	_handle_t* sh = (_handle_t*)src;
+
+	dh->output = 0;
+	dh->event = sh->event;
+	dh->offset = 0;
+	
+	return 0;
+}
+
+static int _has_unread_data(void* __restrict ctx, void* __restrict data)
+{
+	(void)ctx;
+	_handle_t *handle = (_handle_t*)data;
+
+	if(handle->output) ERROR_RETURN_LOG(int, "Invalid pipe type: input pipe expected for this module call");
+
+	return handle->event->size > handle->offset;
+}
+
+static itc_module_flags_t _get_flags(void* __restrict ctx)
+{
+	_module_context_t* context = (_module_context_t*)ctx;
+	itc_module_flags_t flags = ITC_MODULE_FLAGS_EVENT_LOOP;
+
+	if(context->next_event == NULL) flags |= ITC_MODULE_FLAGS_EVENT_EXHUASTED;
+
+	return flags;
+}
+
+
 
 itc_module_t module_simulate_module_def = {
 	.mod_prefix   = "pipe.simulate",
 	.context_size = sizeof(_module_context_t),
 	.handle_size  = sizeof(_handle_t),
 	.module_init  = _init,
-	.module_cleanup = _cleanup,
-	.get_path = _get_path
+	.module_cleanup  = _cleanup,
+	.get_path        = _get_path,
+	.accept          = _accept,
+	.deallocate      = _dealloc,
+	.read            = _read,
+	.write           = _write,
+	.fork            = _fork,
+	.has_unread_data = _has_unread_data,
+	.get_flags       = _get_flags
 };
