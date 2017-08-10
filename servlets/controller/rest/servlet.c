@@ -10,12 +10,12 @@
 #include <uuid/uuid.h>
 
 #include <utils/static_assertion.h>
+#include <utils/bsr64.h>
 
 #include <pservlet.h>
 #include <pstd.h>
 #include <pstd/types/string.h>
 
-#include <bsr64.h>
 
 /**
  * @brief The context for a rest storage command
@@ -140,7 +140,8 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 					  _READ_CONST_CHK(resources[i - 1].output, opcode, DELETE) ||
 					  _READ_CONST_CHK(resources[i - 1].output, opcode, MODIFY) ||
 					  _READ_CONST_CHK(resources[i - 1].output, opcode, QUERY)  ||
-					  _READ_CONST_CHK(resources[i - 1].output, opcode, CONTENT)))
+					  _READ_CONST_CHK(resources[i - 1].output, opcode, CONTENT) || 
+					  _READ_CONST_CHK(resources[i - 1].output, opcode, EXISTS)))
 			return ERROR_CODE(int);
 
 		if(ERROR_CODE(pstd_type_accessor_t) == (res->opcode_acc =pstd_type_model_get_accessor(ctx->model, res->output, "opcode")))

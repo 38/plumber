@@ -1,0 +1,26 @@
+import("service");
+import("testbed");
+insmod("mem_pipe");
+insmod("pssm");
+insmod("simulate input=./rest.in output=./rest.out label=REST");
+
+to_test = {
+	rest := "controller/rest user user:post post:comment";
+	(request) -> "request" rest {
+		"post" -> (post)
+		"comment" -> (comment);
+		"user" -> (user);
+	}
+};
+
+in_def = {
+	"request" : "plumber/std_servlet/network/http/httpreq/Request"
+};
+
+out_def = {
+	"post" : "plumber/std_servlet/controller/rest/Command"
+	"comment" : "plumber/std_servlet/controller/rest/Command"
+	"user" : "plumber/std_servlet/controller/rest/Command",
+};
+
+Service.start(Testbed.embed(to_test, in_def, out_def));

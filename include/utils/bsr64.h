@@ -4,7 +4,7 @@
 
 /**
  * @brief The bsr64 utils
- * @file servlet/controller/rest/include/bsr64.h
+ * @file utils/bsr64.h
  **/
 
 #ifndef __BSR64_H__

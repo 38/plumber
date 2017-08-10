@@ -1,0 +1,75 @@
+#Add a resource
+.TEXT test_case_add
+{
+	"request": {
+		"path": "/user",
+		"method": 3,
+		"data": "dummy_data"
+	}
+}
+.END
+
+#Add a resource under another one
+.TEXT test_case_add_child
+{
+	"request": {
+		"path": "$12345/post",
+		"method": 3,
+		"data": "dummy_data"
+	}
+}
+.END
+
+#Delete a resource
+.TEXT test_case_delete
+{
+	"request": {
+		"path": "/post/$12345",
+		"method": 5
+	}
+}
+.END
+
+#Modify a resource
+.TEXT test_case_modify
+{
+	"request": {
+		"path": "/post/$12345",
+		"method": 3,
+		"data": "overrided"
+	}
+}
+.END
+
+#Query the existing posts
+.TEXT test_case_query_posts
+{
+	"request": {
+		"path": "/post",
+		"method": 1,
+		"param": "keyword=zelda&limit=10"
+	}
+}
+.END
+
+#Query one's posts
+.TEXT test_case_query_child
+{
+	"request": {
+		"path": "$1234/post"
+		"method": 1,
+		"param": "limit=20&from=0"
+	}
+}
+.END
+
+#Get the content
+.TEXT test_case_get_content
+{
+	"request": {
+		"path": "/user/$12345",
+		"method": 1
+	}
+}
+.END
+.STOP

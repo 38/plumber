@@ -245,6 +245,11 @@ static inline int _parse_input(_module_context_t* ctx, FILE* fp)
 				if(ERROR_CODE(int) == _parse_command(ctx, fp))
 					ERROR_RETURN_LOG(int, "Cannot parse the command");
 				break;
+			case ' ':
+			case '\t':
+			case '\n':
+			case '\r':
+				break;
 			default:
 				ERROR_RETURN_LOG(int, "Invalid sytax");
 		}
