@@ -23,4 +23,6 @@ out_def = {
 	"user" : "plumber/std_servlet/controller/rest/Command",
 };
 
+scheduler.worker.nthreads = 1;
+
 Service.start(Testbed.embed(to_test, in_def, out_def));

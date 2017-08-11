@@ -15,6 +15,8 @@
 #include <pstd/types/string.h>
 #include <pservlet.h>
 #include <proto.h>
+#include <module/simulate/api.h>
+
 
 #include <json_model.h>
 
@@ -390,6 +392,14 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 
 	if(ctx->raw)
 	{
+#ifdef LOG_INFO_ENABLED
+	const char* input_label = NULL;
+
+	if(ERROR_CODE(int) == pipe_cntl(ctx->json, MODULE_SIMULATE_CNTL_OPCODE_GET_LABEL, &input_label))
+		ERROR_RETURN_LOG(int, "Cannot get the input label");
+
+	if(NULL != input_label) LOG_INFO("Processing event with label %s", input_label);
+#endif
 		/* If this servlet is in the raw mode, then we need to read it from the pipe directly */
 		tl_buf_t* tl_buf = pstd_thread_local_get(_tl_bufs);
 		if(NULL == tl_buf)

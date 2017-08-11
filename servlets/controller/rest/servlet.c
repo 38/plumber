@@ -163,7 +163,11 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 		if(ctx->resources[i].parent_name == NULL) continue;
 		for(j = 0; j < ctx->count; j ++)
 			if(strcmp(ctx->resources[i].parent_name, ctx->resources[j].res_name) == 0)
+			{
+				if(i == j) ERROR_RETURN_LOG(int, "Self referencing is not allowed");
 				ctx->resources[i].parent = ctx->resources + j;
+				break;
+			}
 	}
 
 	for(i = 0; i < ctx->count; i ++)
@@ -321,6 +325,13 @@ static int _exec(void* ctxbuf)
 			/* This means we want to create a new resource */
 			storage_opcode = ctx->opcode.CREATE;
 			object_id = &object_id_buf;
+			if((parent_id == NULL) ^ (res_ctx->parent == NULL))
+			{
+				LOG_DEBUG("Creating a isolated resource which should have a parent or a attached resource which should be isolated"
+						  "is perhibited");
+				goto EXIT_NORMALLY;
+						  
+			}
 			uuid_generate(object_id_buf.uuid);
 		}
 		else 

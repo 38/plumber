@@ -10,11 +10,13 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <signal.h>
+#include <stdarg.h>
 
 #include <error.h>
 #include <utils/log.h>
 #include <itc/module_types.h>
 #include <module/simulate/module.h>
+#include <module/simulate/api.h>
 
 /**
  * @brief represent a simulated event, which is defined by the event file
@@ -390,9 +392,11 @@ static int _accept(void* __restrict ctxbuf, const void* __restrict args, void* _
 
 	in->event = out->event = ctx->next_event;
 	in->offset = out->offset = 0;
+	
+	LOG_NOTICE("Event %s has been poped up to the application", ctx->next_event->label);
 
 	ctx->next_event = ctx->next_event->next;
-
+	
 	return 0;
 }
 
@@ -501,7 +505,24 @@ static itc_module_flags_t _get_flags(void* __restrict ctx)
 	return flags;
 }
 
+static int  _cntl(void* __restrict context, void* __restrict pipe, uint32_t opcode, va_list va_args)
+{
+	(void)context;
+	_handle_t* handle = (_handle_t*)pipe;
 
+	switch(opcode)
+	{
+		case MODULE_SIMULATE_CNTL_OPCODE_GET_LABEL:
+		{
+			const char** target = va_arg(va_args, char const**);
+			if(NULL == target) ERROR_RETURN_LOG(int, "Invalid arguments");
+			*target = handle->event->label;
+			return 0;
+		}
+		default:
+			ERROR_RETURN_LOG(int, "Invalid opcode");
+	}
+}
 
 itc_module_t module_simulate_module_def = {
 	.mod_prefix   = "pipe.simulate",
@@ -516,5 +537,6 @@ itc_module_t module_simulate_module_def = {
 	.write           = _write,
 	.fork            = _fork,
 	.has_unread_data = _has_unread_data,
-	.get_flags       = _get_flags
+	.get_flags       = _get_flags,
+	.cntl            = _cntl
 };

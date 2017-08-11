@@ -13,7 +13,7 @@
 .TEXT test_case_add_child
 {
 	"request": {
-		"path": "$12345/post",
+		"path": "$wEjMzQTN2cDO5ATYiNGZlBA/post",
 		"method": 3,
 		"data": "dummy_data"
 	}
@@ -24,7 +24,7 @@
 .TEXT test_case_delete
 {
 	"request": {
-		"path": "/post/$12345",
+		"path": "/post/$wEjMzQTN2cDO5ATYiNGZlBA",
 		"method": 5
 	}
 }
@@ -34,7 +34,7 @@
 .TEXT test_case_modify
 {
 	"request": {
-		"path": "/post/$12345",
+		"path": "/post/$wEjMzQTN2cDO5ATYiNGZlBA",
 		"method": 3,
 		"data": "overrided"
 	}
@@ -56,7 +56,7 @@
 .TEXT test_case_query_child
 {
 	"request": {
-		"path": "$1234/post"
+		"path": "$wEjMzQTN2cDO5ATYiNGZlBA/post",
 		"method": 1,
 		"param": "limit=20&from=0"
 	}
@@ -67,8 +67,48 @@
 .TEXT test_case_get_content
 {
 	"request": {
-		"path": "/user/$12345",
+		"path": "/user/$wEjMzQTN2cDO5ATYiNGZlBA",
 		"method": 1
+	}
+}
+.END
+
+# Creates a user under another task
+.TEXT test_case_create_user_under_resource
+{
+	"request": {
+		"path": "$wEjMzQTN2cDO5ATYiNGZlBA/user",
+		"method": 3,
+		"data": "should fail"
+	}
+}
+.END
+
+# Create a post isolated from user
+.TEXT test_case_create_user_isolated
+{
+	"request": {
+		"path": "/post",
+		"method": 3,
+		"data": "should fail"
+	}
+}
+.END
+
+.TEXT test_case_ignore_undefined_resource
+{
+	"request": {
+		"path": "/undefined/$wEjMzQTN2cDO5ATYiNGZlBA",
+		"method": 1
+	}
+}
+.END
+
+.TEXT test_case_invalid_rest_path
+{
+	"request": {
+		"path": "../../../../../admin.php"
+		"method":1
 	}
 }
 .END

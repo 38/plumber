@@ -1310,7 +1310,7 @@ DHPARAM_ERR:
 }
 
 
-int  _cntl(void* __restrict context, void* __restrict pipe, uint32_t opcode, va_list va_args)
+static int  _cntl(void* __restrict context, void* __restrict pipe, uint32_t opcode, va_list va_args)
 {
 	(void)context;
 	_handle_t* handle = (_handle_t*)pipe;
