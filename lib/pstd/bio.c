@@ -252,10 +252,10 @@ size_t pstd_bio_vprintf(pstd_bio_t* pstd_bio, const char* fmt, va_list ap)
 	char _b[1024];
 	size_t _bsz = sizeof(_b);
 	size_t ret = 0;
-	
+
 	int rc = vsnprintf(_b, _bsz, fmt, ap);
 	if(rc < 0) ERROR_RETURN_LOG_ERRNO(size_t, "vsnprintf returns an error");
-	
+
 	if(ret != ERROR_CODE(size_t))
 	{
 		size_t bytes_to_write = (size_t)rc;

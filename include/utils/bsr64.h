@@ -31,7 +31,7 @@ static inline const char* bsr64_from_bin(const void* bin, size_t count, char* bu
 		uint64_t v48 = 0xffff000000000000ull;
 		v48 |= *(uint64_t*)begin;
 		for(;v48 != 0xffff && bufsize > 0; v48 >>= 6, bufsize --)
-			*(buffer++) = _val2ch[v48&63];
+		    *(buffer++) = _val2ch[v48&63];
 	}
 
 	uint32_t rem = 8;
@@ -60,7 +60,7 @@ static inline const char* bsr64_from_bin(const void* bin, size_t count, char* bu
 
 /**
  * @brief Convert the binary-string representation to binary
- * @param bsr The BSR to convert 
+ * @param bsr The BSR to convert
  * @param buf the buffer for the binary
  * @param bufsize The size of the buffer
  * @return status code
@@ -98,7 +98,7 @@ static inline size_t bsr64_to_bin(const char* bsr_begin, const char* bsr_end, vo
 
 		if(begin + 6 > 8)
 		{
-			if(begin < 8) 
+			if(begin < 8)
 			{
 				uint8_t delta = (uint8_t)((val & ((1u << (8 - begin)) - 1u)) << begin);
 				cur |= delta;

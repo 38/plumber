@@ -32,7 +32,7 @@ typedef struct _event_t {
 } _event_t;
 
 /**
- * @brief The module context 
+ * @brief The module context
  **/
 typedef struct {
 	_event_t*      event_list_tail;  /*!< The tail of the event list */
@@ -86,11 +86,11 @@ static inline void _append_event(_module_context_t* ctx, _event_t* event)
 static inline int _parse_command(_module_context_t* ctx, FILE* fp)
 {
 	char buf[1024];
-	if(NULL == fgets(buf, sizeof(buf), fp)) 
-		ERROR_RETURN_LOG(int, "Unexpected EOF");
+	if(NULL == fgets(buf, sizeof(buf), fp))
+	    ERROR_RETURN_LOG(int, "Unexpected EOF");
 	char const* command = NULL;
 	char const* label = NULL;
-	
+
 	char* ptr;
 	for(ptr = buf; !(*ptr == 0 || *ptr == ' ' || *ptr == '\t' || *ptr == '\r' || *ptr == '\n'); ptr ++);
 	command = buf;
@@ -112,13 +112,13 @@ static inline int _parse_command(_module_context_t* ctx, FILE* fp)
 		ctx->terminate = 1;
 		return 0;
 	}
-	
+
 	if(label[0] == 0) ERROR_RETURN_LOG(int, "Missing event label");
 
 	LOG_DEBUG("Data %s event section %s", command, label);
 
-	if(label == NULL || label[0] == 0) 
-		ERROR_RETURN_LOG(int, "Missing event label: it should follows pattern .<command> <label>");
+	if(label == NULL || label[0] == 0)
+	    ERROR_RETURN_LOG(int, "Missing event label: it should follows pattern .<command> <label>");
 
 	if(!is_text && !is_file) ERROR_RETURN_LOG(int, "Invalid event type %s", command);
 
@@ -133,13 +133,13 @@ static inline int _parse_command(_module_context_t* ctx, FILE* fp)
 	{
 		int ch = fgetc(fp);
 		if(EOF == ch && ferror(fp))
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the event file");
+		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the event file");
 		if(EOF == ch && *state != 0)
-			ERROR_LOG_GOTO(ERR, "Unexpected EOF while .end directive is expected");
+		    ERROR_LOG_GOTO(ERR, "Unexpected EOF while .end directive is expected");
 		if(*state == 0)
 		{
 			while(ch == ' ' || ch == '\t' || ch == '\r')
-				ch = fgetc(fp);
+			    ch = fgetc(fp);
 			if(ch == EOF || ch == '\n') break;
 			else goto FLUSH;
 		}
@@ -155,7 +155,7 @@ FLUSH:
 			delta = (size_t)(state - event_end);
 			new_size = size;
 			while(len + delta + 1 >= new_size)
-				new_size *= 2;
+			    new_size *= 2;
 			if(new_size != size)
 			{
 				char* new_data = (char*)realloc(event_data, new_size);
@@ -165,7 +165,7 @@ FLUSH:
 			}
 			const char* p;
 			for(p = event_end; p < state; p ++)
-				event_data[len++] = *p;
+			    event_data[len++] = *p;
 			event_data[len++] = (char)ch;
 			event_data[len] = 0;
 			state = event_end;
@@ -176,7 +176,7 @@ FLUSH:
 	if(NULL == event) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the event");
 
 	if(NULL == (event->label = strdup(label)))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the label name");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the label name");
 
 	if(is_text)
 	{
@@ -187,22 +187,22 @@ FLUSH:
 	{
 		struct stat st;
 		if(stat(event_data, &st) < 0)
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot get the stat of the file %s", event_data);
-		
+		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot get the stat of the file %s", event_data);
+
 		size_t data_size = (size_t)st.st_size;
 
 		char* data_buffer = (char*)malloc(data_size);
 		FILE* data_fp = fopen(event_data, "rb");
 		if(data_fp == NULL)
-			ERROR_LOG_ERRNO_GOTO(FILE_ERR, "Cannot open the data file %s", event_data);
+		    ERROR_LOG_ERRNO_GOTO(FILE_ERR, "Cannot open the data file %s", event_data);
 
 		event->data = data_buffer;
 
 		for(;data_size > 0;)
 		{
 			size_t bytes_written = fread(data_buffer, 1, data_size, data_fp);
-			if(bytes_written == 0) 
-				ERROR_LOG_ERRNO_GOTO(FILE_ERR, "Cannot read the data from file %s", event_data);
+			if(bytes_written == 0)
+			    ERROR_LOG_ERRNO_GOTO(FILE_ERR, "Cannot read the data from file %s", event_data);
 			data_size -= bytes_written;
 			data_buffer += bytes_written;
 		}
@@ -237,23 +237,23 @@ static inline int _parse_input(_module_context_t* ctx, FILE* fp)
 			else break;
 		}
 
-		switch(ch) 
+		switch(ch)
 		{
 			case '#':
-				if(ERROR_CODE(int) == _parse_comment(fp))
-					ERROR_RETURN_LOG(int, "Cannot parse the comment");
-				break;
+			    if(ERROR_CODE(int) == _parse_comment(fp))
+			        ERROR_RETURN_LOG(int, "Cannot parse the comment");
+			    break;
 			case '.':
-				if(ERROR_CODE(int) == _parse_command(ctx, fp))
-					ERROR_RETURN_LOG(int, "Cannot parse the command");
-				break;
+			    if(ERROR_CODE(int) == _parse_command(ctx, fp))
+			        ERROR_RETURN_LOG(int, "Cannot parse the command");
+			    break;
 			case ' ':
 			case '\t':
 			case '\n':
 			case '\r':
-				break;
+			    break;
 			default:
-				ERROR_RETURN_LOG(int, "Invalid sytax");
+			    ERROR_RETURN_LOG(int, "Invalid sytax");
 		}
 	}
 
@@ -287,14 +287,14 @@ static int _init(void* __restrict ctxbuf, uint32_t argc, char const* __restrict 
 	}
 
 	if(input_name == NULL || input_name[0] == 0)
-		ERROR_RETURN_LOG(int, "Missing input file name");
+	    ERROR_RETURN_LOG(int, "Missing input file name");
 	if(output_name == NULL || output_name[0] == 0)
-		ERROR_RETURN_LOG(int, "Missing output file name");
+	    ERROR_RETURN_LOG(int, "Missing output file name");
 	if(id == NULL || id[0] == 0)
-		ERROR_RETURN_LOG(int, "Missing label of the module");
+	    ERROR_RETURN_LOG(int, "Missing label of the module");
 
 	if(NULL == (ctx->label = strdup(id)))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the ID label");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the ID label");
 
 	/* Then let's parse the input file */
 	FILE* fp = fopen(input_name, "r");
@@ -309,7 +309,7 @@ static int _init(void* __restrict ctxbuf, uint32_t argc, char const* __restrict 
 	fclose(fp);
 
 	if(NULL == (ctx->outfile = strdup(output_name)))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open the output file %s", output_name);
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open the output file %s", output_name);
 
 	LOG_DEBUG("Event Simulation Module has been initialized, input = %s, output = %s", input_name, output_name);
 
@@ -326,7 +326,7 @@ static inline int _cleanup(void* __restrict ctxbuf)
 	FILE* fout = NULL;
 	_module_context_t* ctx = (_module_context_t*)ctxbuf;
 	if(ctx->label != NULL) free(ctx->label);
-	if(ctx->outfile != NULL && NULL == (fout = fopen(ctx->outfile, "wb"))) 
+	if(ctx->outfile != NULL && NULL == (fout = fopen(ctx->outfile, "wb")))
 	{
 		LOG_ERROR_ERRNO("Cannot open the output file");
 		ret = ERROR_CODE(int);
@@ -336,7 +336,7 @@ static inline int _cleanup(void* __restrict ctxbuf)
 	{
 		_event_t* event = ctx->event_list_head;
 		ctx->event_list_head = ctx->event_list_head->next;
-		if(event->label != NULL && event->outbuf != NULL) 
+		if(event->label != NULL && event->outbuf != NULL)
 		{
 			size_t bytes_to_write = event->outsize;
 			const char* data_buf = event->outbuf;
@@ -377,8 +377,8 @@ static int _accept(void* __restrict ctxbuf, const void* __restrict args, void* _
 {
 	(void)args;
 	_module_context_t* ctx = (_module_context_t*)ctxbuf;
-	if(NULL == ctx) ERROR_RETURN_LOG(int, "Invalid arguments");	
-	if(NULL == ctx->next_event) 
+	if(NULL == ctx) ERROR_RETURN_LOG(int, "Invalid arguments");
+	if(NULL == ctx->next_event)
 	{
 		LOG_NOTICE("Event exhausted, terminating the event loop");
 		return ERROR_CODE(int);
@@ -392,11 +392,11 @@ static int _accept(void* __restrict ctxbuf, const void* __restrict args, void* _
 
 	in->event = out->event = ctx->next_event;
 	in->offset = out->offset = 0;
-	
+
 	LOG_NOTICE("Event %s has been poped up to the application", ctx->next_event->label);
 
 	ctx->next_event = ctx->next_event->next;
-	
+
 	return 0;
 }
 
@@ -404,7 +404,7 @@ static int _dealloc(void* __restrict ctxbuf, void* __restrict pipe, int error, i
 {
 	(void)error;
 	(void)pipe;
-	
+
 	_module_context_t* ctx = (_module_context_t*)ctxbuf;
 
 	if(purge)
@@ -433,7 +433,7 @@ static size_t _read(void* __restrict ctxbuf, void* __restrict buffer, size_t nby
 
 	size_t bytes_to_read = nbytes;
 	if(bytes_to_read > handle->event->size - handle->offset)
-		bytes_to_read = handle->event->size - handle->offset;
+	    bytes_to_read = handle->event->size - handle->offset;
 
 	memcpy(buffer, handle->event->data + handle->offset, bytes_to_read);
 
@@ -451,7 +451,7 @@ static size_t _write(void* __restrict ctx, const void* __restrict buffer, size_t
 	if(handle->event->outbuf == NULL)
 	{
 		if(NULL == (handle->event->outbuf = (char*)malloc(handle->event->outcap = (nbytes < 128 ? nbytes * 2 : 256))))
-			ERROR_RETURN_LOG_ERRNO(size_t, "Cannot allocate the buffer for the output");
+		    ERROR_RETURN_LOG_ERRNO(size_t, "Cannot allocate the buffer for the output");
 		handle->event->outsize = 0;
 	}
 
@@ -481,7 +481,7 @@ static int _fork(void* __restrict ctx, void* __restrict dest, void* __restrict s
 	dh->output = 0;
 	dh->event = sh->event;
 	dh->offset = 0;
-	
+
 	return 0;
 }
 
@@ -520,7 +520,7 @@ static int  _cntl(void* __restrict context, void* __restrict pipe, uint32_t opco
 			return 0;
 		}
 		default:
-			ERROR_RETURN_LOG(int, "Invalid opcode");
+		    ERROR_RETURN_LOG(int, "Invalid opcode");
 	}
 }
 

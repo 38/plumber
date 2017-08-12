@@ -314,9 +314,9 @@ size_t pstd_string_write(pstd_string_t* str, const char* data, size_t size)
 size_t pstd_string_vprintf(pstd_string_t* str, const char* fmt, va_list ap)
 {
 	if(NULL == str || NULL == fmt)
-		ERROR_RETURN_LOG(size_t, "Invalid arguments");
+	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
 	size_t ret = 0;
-	
+
 	for(;;)
 	{
 		int rc = vsnprintf(str->buffer + str->length, str->capacity - str->length, fmt, ap);
@@ -328,7 +328,7 @@ size_t pstd_string_vprintf(pstd_string_t* str, const char* fmt, va_list ap)
 		if(ret + 1 <= str->capacity - str->length) break;
 
 		if(ERROR_CODE(int) == _ensure_capacity(str, str->capacity - str->length))
-			ERROR_RETURN_LOG(size_t, "Cannot resize the buffer to fit the buffer size");
+		    ERROR_RETURN_LOG(size_t, "Cannot resize the buffer to fit the buffer size");
 	}
 	str->length += ret;
 	return ret;

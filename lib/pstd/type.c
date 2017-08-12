@@ -262,10 +262,10 @@ static inline int _ensure_pipe_typeinfo(pstd_type_model_t* ctx, pipe_t pipe)
 		    ERROR_RETURN_LOG_ERRNO(int, "Cannot resize the type info array");
 
 		memset(newbuf + sizeof(ctx->type_info[0]) * ctx->pipe_cap, 0,  sizeof(ctx->type_info[0]) * ctx->pipe_cap);
-		
+
 		uint32_t i;
 		for(i = ctx->pipe_cap; i < ctx->pipe_cap * 2; i ++)
-			ctx->type_info[i].accessor_list = ERROR_CODE(uint32_t);
+		    ctx->type_info[i].accessor_list = ERROR_CODE(uint32_t);
 
 		ctx->pipe_cap <<= 1u;
 		ctx->type_info = newbuf;
@@ -343,7 +343,7 @@ pstd_type_model_t* pstd_type_model_new()
 
 	uint32_t i;
 	for(i = 0; i < ret->pipe_cap; i ++)
-		ret->type_info[i].accessor_list = ERROR_CODE(uint32_t);
+	    ret->type_info[i].accessor_list = ERROR_CODE(uint32_t);
 
 	ret->accessor_cnt = 0;
 	ret->accessor_cap = 32;   /*!< TODO: magic number */

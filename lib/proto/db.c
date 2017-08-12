@@ -961,7 +961,7 @@ const char* proto_db_field_scope_id(const char* typename, const char* fieldname)
 int proto_db_is_adhoc(const char* typename, proto_db_field_info_t* info_buf)
 {
 	if(_init_count == 0)
-		PROTO_ERR_RAISE_RETURN(int, DISALLOWED);
+	    PROTO_ERR_RAISE_RETURN(int, DISALLOWED);
 
 	if(NULL == typename) PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
@@ -1033,8 +1033,8 @@ int proto_db_type_traverse(const char* type_name, proto_db_field_callback_t func
 			.is_alias = 0
 		};
 		int rc = func(info, data);
-		if(ERROR_CODE(int) == rc) 
-			PROTO_ERR_RAISE_RETURN(int, FAIL);
+		if(ERROR_CODE(int) == rc)
+		    PROTO_ERR_RAISE_RETURN(int, FAIL);
 		return 0;
 	}
 
@@ -1050,7 +1050,7 @@ int proto_db_type_traverse(const char* type_name, proto_db_field_callback_t func
 	{
 		const proto_type_entity_t* ent = proto_type_get_entity(proto, i);
 		if(NULL == ent)
-			PROTO_ERR_RAISE_RETURN(int, FAIL);
+		    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 		proto_db_field_info_t info = {
 			.name = ent->symbol
@@ -1064,16 +1064,16 @@ int proto_db_type_traverse(const char* type_name, proto_db_field_callback_t func
 			if(NULL == rel_type) PROTO_ERR_RAISE_RETURN(int, FAIL);
 			/* This is a base type */
 			if(ERROR_CODE(int) == proto_db_type_traverse(abs_type, func, data))
-				PROTO_ERR_RAISE_RETURN(int, FAIL);
+			    PROTO_ERR_RAISE_RETURN(int, FAIL);
 			continue;
 		}
 
 		if(ent->symbol == NULL) continue;
-		
+
 		_compute_token ++;
 		_name_info_t name_info;
 		if(ERROR_CODE(uint32_t) == _compute_field_info(type_name, info.name, &name_info))
-			PROTO_ERR_RAISE_RETURN(int, FAIL);
+		    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 		info.ndims = name_info.dimlen;
 		info.dims  = name_info.dimension;
@@ -1083,27 +1083,27 @@ int proto_db_type_traverse(const char* type_name, proto_db_field_callback_t func
 		memcpy(namebuf, info.name, namelen);
 		uint32_t i;
 		for(i = 0; i < info.ndims; i ++)
-			memcpy(namebuf + namelen + i * 3, "[0]", 3);
+		    memcpy(namebuf + namelen + i * 3, "[0]", 3);
 		namebuf[namelen + 3 * info.ndims] = 0;
-		
+
 		if(ERROR_CODE(proto_db_field_prop_t) == (info.primitive_prop = proto_db_field_type_info(type_name, namebuf)))
-			PROTO_ERR_RAISE_RETURN(int, FAIL);
+		    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 		if((info.primitive_prop & PROTO_DB_FIELD_PROP_SCOPE) == 0 && name_info.elemsize > 0 && NULL == (info.type = proto_db_field_type(type_name, namebuf)))
-			PROTO_ERR_RAISE_RETURN(int, FAIL);
+		    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 		if(ERROR_CODE(uint32_t) == (info.offset = proto_db_type_offset(type_name, info.name, &info.size)))
-			PROTO_ERR_RAISE_RETURN(int, FAIL);
+		    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 		for(i = 0; i < info.ndims; i ++)
-			info.size /= info.dims[i];
+		    info.size /= info.dims[i];
 
 		if(ent->header.refkind == PROTO_TYPE_ENTITY_REF_NAME)
-			info.is_alias = 1u;
+		    info.is_alias = 1u;
 
 
 		if(ERROR_CODE(int) == func(info, data))
-			PROTO_ERR_RAISE_RETURN(int, FAIL);
+		    PROTO_ERR_RAISE_RETURN(int, FAIL);
 	}
 
 	return 0;

@@ -438,7 +438,7 @@ int itc_module_pipe_deallocate(itc_module_pipe_t* handle)
 size_t itc_module_pipe_read(void* buffer, size_t nbytes, itc_module_pipe_t* handle)
 {
 	_GET_MODULE(mod, handle, 0);
-	
+
 	if(handle->pipe_flags & RUNTIME_API_PIPE_DISABLED) return 0;
 
 	if(handle->stat.s_hold) ERROR_RETURN_LOG(size_t, "Cannot read from a shadow output pipe");

@@ -2,7 +2,7 @@
  * Copyright (C) 2017, Hao Hou
  **/
 /**
- * @brief The module used to simulate the event, this could be useful when we want to do some 
+ * @brief The module used to simulate the event, this could be useful when we want to do some
  *        automatic testing
  * @file  module/silumate/module.h
  **/
