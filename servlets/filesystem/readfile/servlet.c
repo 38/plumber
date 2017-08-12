@@ -51,7 +51,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	if(ERROR_CODE(pipe_t) == (ctx->path = pipe_define("path", PIPE_INPUT, "plumber/std/request_local/String")))
 	    ERROR_RETURN_LOG(int, "Cannot create input pipe");
 
-	if(ERROR_CODE(pipe_t) == (ctx->result = pipe_define("result", PIPE_OUTPUT, "plumber/std_servlet/filesystem/readfile/Result")))
+	if(ERROR_CODE(pipe_t) == (ctx->result = pipe_define("result", PIPE_OUTPUT, "plumber/std_servlet/filesystem/readfile/v0/Result")))
 	    ERROR_RETURN_LOG(int, "Cannot create the output pipe");
 
 	ctx->type_model = NULL;

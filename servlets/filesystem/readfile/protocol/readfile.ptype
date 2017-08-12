@@ -1,4 +1,4 @@
-package plumber.std_servlet.filesystem.readfile;
+package plumber.std_servlet.filesystem.readfile.v0;
 
 type Result {
 	plumber.std.request_local.File   file;

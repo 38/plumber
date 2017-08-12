@@ -1,4 +1,4 @@
-package plumber.std_servlet.controller.rest;
+package plumber.std_servlet.controller.rest.v0;
 type UUID {
 	uint8                                    data[16];   /*!< The high 8 bytes */
 };

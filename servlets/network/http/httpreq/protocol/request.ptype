@@ -1,4 +1,4 @@
-package plumber.std_servlet.network.http.httpreq;
+package plumber.std_servlet.network.http.httpreq.v0;
 type MethodCode {
 	uint32 OPTIONS = 0;    /*!< OPTIONS */
 	uint32 GET     = 1;    /*!< GET */
