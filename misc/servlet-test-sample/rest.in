@@ -34,7 +34,7 @@
 .TEXT test_case_modify
 {
 	"request": {
-		"path": "/post/$wEjMzQTN2cDO5ATYiNGZlBA",
+		"path": "/post/$wEjMzQTN2cDO5ATYiNGZlBA/like",
 		"method": 3,
 		"data": "overrided"
 	}

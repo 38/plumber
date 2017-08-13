@@ -16,4 +16,5 @@ type Command : OpCodes {
 	UUID                                     parent_id;         /*!< The object ID of its parent */
 	plumber.std.request_local.String         content;           /*!< The data we want to put to the object */
 	plumber.std.request_local.String         param;             /*!< The additional parameters */
+	plumber.std.request_local.String         path;              /*!< The additional path */
 };
