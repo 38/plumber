@@ -116,19 +116,17 @@ static inline int _simplify_path(scope_token_t path_token, const context_t* ctx,
 	return 0;
 }
 
-static int _set_options(uint32_t idx, pstd_option_param_t* params, uint32_t nparams, const pstd_option_t* options, uint32_t n, void* args)
+static int _set_options(pstd_option_data_t data)
 {
-	(void)nparams;
-	(void)n;
-	char what = options[idx].short_opt;
-	context_t* ctx = (context_t*)args;
+	char what = data.current_option->short_opt;
+	context_t* ctx = (context_t*)data.cb_data;
 
 	switch(what)
 	{
 		case 'L':
-		    if(params[0].intval < 0 || params[0].intval > PATH_MAX / 2 + 1)
-		        ERROR_RETURN_LOG(int, "Invalid prefix level %"PRId64, params[0].intval);
-		    ctx->prefix_level = (uint32_t)params[0].intval;
+		    if(data.param_array[0].intval < 0 || data.param_array[0].intval > PATH_MAX / 2 + 1)
+		        ERROR_RETURN_LOG(int, "Invalid prefix level %"PRId64, data.param_array[0].intval);
+		    ctx->prefix_level = (uint32_t)data.param_array[0].intval;
 		    return 0;
 		case 'e':
 		    ctx->need_extname = 1;

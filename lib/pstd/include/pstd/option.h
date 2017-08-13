@@ -37,16 +37,23 @@ typedef struct {
 } pstd_option_param_t;
 
 /**
+ * @brief The command line option data when we are parsing a command line option
+ **/
+typedef struct {
+	const pstd_option_t*   option_array;   /*!< The list of all the options */
+	const pstd_option_t*   current_option; /*!< The current option we are talking about */
+	pstd_option_param_t*   param_array;    /*!< The array that contains the parameter for this option */
+	uint32_t               option_array_size; /*!< The size of the option array */
+	uint32_t               param_array_size;  /*!< The size of the parameter array */
+	void*                  cb_data;           /*!< The additional callback function data */
+} pstd_option_data_t;
+
+/**
  * @brief the callback function used to handle the option
- * @param idx the index of the option that need to be handled in the pstd_option_t array
- * @param params the parameter arrary
- * @param nparam the number of params
- * @param option the option definition (this will pass the entire options array), so the current option should be options[idx]
- * @param n the number of options
- * @param args the user-defined arguments
+ * @param data the option data
  * @return status code
  **/
-typedef int (*pstd_option_handler_t)(uint32_t idx, pstd_option_param_t* params, uint32_t nparams, const pstd_option_t* options, uint32_t n, void* args);
+typedef int (*pstd_option_handler_t)(pstd_option_data_t data);
 
 /**
  * @brief describe a single option
@@ -84,15 +91,10 @@ uint32_t pstd_option_parse(const pstd_option_t* options, uint32_t n, uint32_t ar
 
 /**
  * @brief the standard option handler that print the help message
- * @param idx the index in the options array
- * @param params the param of this option
- * @param nparams the number of parameters
- * @param options the option array
- * @param n the number of options
- * @param userdata the user-defined data
+ * @param data The option data
  * @return status code
  **/
-int pstd_option_handler_print_help(uint32_t idx, pstd_option_param_t* params, uint32_t nparams, const pstd_option_t* options, uint32_t n, void* userdata);
+int pstd_option_handler_print_help(pstd_option_data_t data);
 
 /**
  * @brief sort the options in alphabetical order

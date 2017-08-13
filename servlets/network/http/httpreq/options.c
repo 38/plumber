@@ -13,29 +13,23 @@
 #include <httpreq.h>
 #include <options.h>
 
-static inline int _show_version(uint32_t idx, pstd_option_param_t* params, uint32_t nparams, const pstd_option_t* options, uint32_t n, void* userdata)
+static inline int _show_version(pstd_option_data_t data)
 {
-	(void)idx;
-	(void)params;
-	(void)nparams;
-	(void)options;
-	(void)n;
-	(void)userdata;
+	(void)data;
 	fprintf(stderr, "HTTP Request Parser Version: 0.0.0\n");
 	return 0;
 }
 
-static inline int _produce_output(uint32_t idx, pstd_option_param_t* params, uint32_t nparams, const pstd_option_t* options, uint32_t n, void* userdata)
+static inline int _produce_output(pstd_option_data_t data)
 {
-	(void)n;
-	char pipe_name = options[idx].short_opt;
-	httpreq_options_t* buffer = (httpreq_options_t*)userdata;
+	char pipe_name = data.current_option->short_opt;
+	httpreq_options_t* buffer = (httpreq_options_t*)data.cb_data;
 
 	uint32_t val = 1;
 
-	if(nparams > 0 && params[0].type == PSTD_OPTION_TYPE_INT)
+	if(data.param_array_size > 0 && data.param_array[0].type == PSTD_OPTION_TYPE_INT)
 	{
-		int64_t value = params[0].intval;
+		int64_t value = data.param_array[0].intval;
 		if(value != 0) val = 1;
 		else val = 0;
 	}
@@ -61,19 +55,16 @@ static inline int _produce_output(uint32_t idx, pstd_option_param_t* params, uin
 	return 0;
 }
 
-static inline int _allowed_method(uint32_t idx, pstd_option_param_t* params, uint32_t nparams, const pstd_option_t* options, uint32_t n, void* userdata)
+static inline int _allowed_method(pstd_option_data_t data)
 {
-	(void)idx;
-	(void)options;
-	(void)n;
 	uint32_t i;
-	httpreq_options_t* buffer = (httpreq_options_t*)userdata;
+	httpreq_options_t* buffer = (httpreq_options_t*)data.cb_data;
 
-	for(i = 0; i < nparams; i ++)
+	for(i = 0; i < data.param_array_size; i ++)
 	{
 		char buf[32];
 		uint32_t pptr = 0, bptr = 0;
-#define _IS(name) else if(params[i].type == PSTD_OPTION_STRING && strcmp(#name, buf) == 0) \
+#define _IS(name) else if(data.param_array[i].type == PSTD_OPTION_STRING && strcmp(#name, buf) == 0) \
 		do {\
 			buffer->method_allowed |= (1ull << HTTPREQ_VERB_##name);\
 			bptr = 0;\
@@ -81,7 +72,7 @@ static inline int _allowed_method(uint32_t idx, pstd_option_param_t* params, uin
 		} while(0)
 		for(;;)
 		{
-			char ch = params[i].strval[pptr++];
+			char ch = data.param_array[i].strval[pptr++];
 			if(ch != ',' && ch != 0)
 			{
 				if(bptr < sizeof(buf)) buf[bptr++] = ch, buf[bptr] = 0;
@@ -101,14 +92,9 @@ static inline int _allowed_method(uint32_t idx, pstd_option_param_t* params, uin
 RET:
 	return 0;
 }
-static inline int _enable_text_output(uint32_t idx, pstd_option_param_t* params, uint32_t nparams, const pstd_option_t* options, uint32_t n, void* userdata)
+static inline int _enable_text_output(pstd_option_data_t data)
 {
-	(void)idx;
-	(void)options;
-	(void)n;
-	(void)params;
-	(void)nparams;
-	httpreq_options_t* buffer = (httpreq_options_t*)userdata;
+	httpreq_options_t* buffer = (httpreq_options_t*)data.cb_data;
 
 	buffer->text_output = 1;
 
