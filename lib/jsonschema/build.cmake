@@ -1,0 +1,15 @@
+find_package(PkgConfig)
+pkg_check_modules(PC_JSON json-c)
+set(PACKAGE_CONF_INSTALL_PATH "include/jsonschema")
+
+if(NOT "${PC_JSON_FOUND}" STREQUAL "1")
+	set(build_jsonschema "no")
+endif("${PC_JSON_FOUND}" STREQUAL "1")
+
+set(TYPE shared-library)
+set(APPEND LOCAL_CFLAGS "-fPIC")
+Set(APPEND LOCAL_INCLUDE "${PC_JSON_INCLUDE_DIRS}")
+set(APPEND LOCAL_LIBS "${PC_JSON_LIBRARIES}")
+set(INSTALL "yes")
+install_includes("${SOURCE_PATH}/include" "include/jsonschema" "*.h")
+install_includes("${CMAKE_SOURCE_DIR}/include/" "include/jsonschema" "error.h")
