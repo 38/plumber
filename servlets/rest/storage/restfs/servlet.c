@@ -23,6 +23,23 @@ typedef struct {
 	pipe_t  data;                /*!< The actual resoure data or the list of resource id in JSON / the raw file RLS token  */
 } context_t;
 
+static int _ts_option(pstd_option_data_t data)
+{
+	context_t* ctx = (context_t*)data.cb_data;
+	switch(data.current_option->short_opt)
+	{
+		case 'c':
+			ctx->create_time = 1;
+			break;
+		case 'm':
+			ctx->modify_time =1;
+			break;
+		default:
+			ERROR_RETURN_LOG(int, "Invalid command line parameter");
+	}
+	return 0;
+}
+
 static int _process_json_schema(pstd_option_data_t data)
 {
 	context_t* ctx = (context_t*)data.cb_data;
@@ -59,8 +76,16 @@ static int _process_json_schema(pstd_option_data_t data)
 		free(buf);
 		buf = NULL;
 
-		json_object_put(schema_obj);
 		/* TODO: do something with the schema_obj */
+		json_object_iter iter;
+
+		json_object_object_foreachC(schema_obj, iter)
+		{
+			LOG_DEBUG("%s", iter.key);
+			LOG_DEBUG("%s", json_object_get_string(iter.val));
+		}
+		
+		json_object_put(schema_obj);
 		return 0;
 
 SCHEMA_ERR:
@@ -85,9 +110,25 @@ static pstd_option_t _options[] = {
 	{
 		.long_opt  = "json",
 		.short_opt = 'j',
-		.pattern   = "S",
+		.pattern   = "?S",
 		.description = "The servlet process JSON data with the given data schema",
 		.handler     = _process_json_schema,
+		.args        = NULL
+	},
+	{
+		.long_opt  = "create-timestamp",
+		.short_opt = 'c',
+		.pattern   = "",
+		.description = "If we need to add the creation timestamp autoamtically to the data",
+		.handler     = _ts_option,
+		.args        = NULL
+	},
+	{
+		.long_opt  = "modify-timestamp",
+		.short_opt = 'm',
+		.pattern   = "",
+		.description = "If we need to add modification timestamp automatically to the data",
+		.handler     = _ts_option,
 		.args        = NULL
 	}
 };
