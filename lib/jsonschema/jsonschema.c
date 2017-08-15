@@ -49,6 +49,7 @@ typedef union {
 typedef struct {
 	_elemtype_t type;  /*!< The element type */
 	_address_t  addr;  /*!< How we locate this element */
+	uint32_t    close; /*!< Only valid for the open element, this is the pointer to the close */
 	_primitive_type_t primitive;   /*!< This field only valid when the element is an primitve */
 } _element_t;
 
@@ -247,6 +248,8 @@ static inline int _traverse_schema(json_object* schema_obj, _address_t addr, jso
 			if(ERROR_CODE(int) == _schema_append_objops(/* is_obj */ 0, /* is_open */ 1, addr, buf))
 				ERROR_RETURN_LOG(int, "Cannot create open directive for the list operation");
 
+			_element_t* this = buf->elem + buf->count - 1;
+
 			int i;
 			for(i = 0; i < size; i ++)
 			{
@@ -258,8 +261,11 @@ static inline int _traverse_schema(json_object* schema_obj, _address_t addr, jso
 					ERROR_RETURN_LOG(int, "Cannot traverse list member %d", i);
 			}
 
+
 			if(ERROR_CODE(int) == _schema_append_objops(/* is_obj */ 0, /* is_open */ 0, addr, buf))
 				ERROR_RETURN_LOG(int, "Cannot create the close directive for the list operation");
+
+			this->close = buf->count - 1;
 
 			return 0;
 		}
@@ -267,6 +273,9 @@ static inline int _traverse_schema(json_object* schema_obj, _address_t addr, jso
 		{
 			if(ERROR_CODE(int) == _schema_append_objops(/* is_obj */ 1, /* is_open */ 1, addr, buf))
 				ERROR_RETURN_LOG(int, "Cannot create open directive for the object operation");
+			
+			_element_t* this = buf->elem + buf->count - 1;
+			
 			json_object_iter iter;
 			
 			json_object_object_foreachC(schema_obj, iter)
@@ -286,6 +295,9 @@ static inline int _traverse_schema(json_object* schema_obj, _address_t addr, jso
 			}
 			if(ERROR_CODE(int) == _schema_append_objops(/* is_obj */ 1, /* is_open */ 0, addr, buf))
 				ERROR_RETURN_LOG(int, "Cannot create close directive for the object operation");
+			
+			this->close = buf->count - 1;
+			
 			return 0;
 		}
 		default:
