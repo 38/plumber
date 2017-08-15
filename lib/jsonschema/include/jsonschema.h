@@ -31,7 +31,14 @@ typedef struct _jsonschema_t jsonschema_t;
  * @param schema_obj The schema object
  * @return The newly created schema object
  **/
-jsonschema_t* jsonschema_new(const json_object* schema_obj);
+jsonschema_t* jsonschema_new(json_object* schema_obj);
+
+/**
+ * @brief Load a JSON schema from a string
+ * @param scehma_str The schema string
+ * @return the newly created schema or NULL on error case
+ **/
+jsonschema_t* jsonschema_from_string(const char* schema_str);
 
 /**
  * @brief Load a JSON schema from the schema file
@@ -39,6 +46,13 @@ jsonschema_t* jsonschema_new(const json_object* schema_obj);
  * @return The newly created schema object from the file
  **/
 jsonschema_t* jsonschema_from_file(const char* schema_file);
+
+/**
+ * @brief Dispose a used JSON schema
+ * @param schema The json schema to dispose
+ * @return status code
+ **/
+int jsonschema_free(jsonschema_t* schema);
 
 /**
  * @brief Validate if a JSON object is a valid form of the given schema
