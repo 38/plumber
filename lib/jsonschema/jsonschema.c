@@ -187,8 +187,9 @@ static inline _primitive_type_t _parse_primitive_type(char const* * ptr_str)
 	}
 	if(expected == NULL) return 0;
 	for(;*expected && *expected == *ptr; expected ++, ptr ++);
-	if(*expected == 0) return ret;
-	return 0;
+	if(*expected) return 0; 
+	*ptr_str = ptr;
+	return ret;
 }
 
 /**
@@ -313,12 +314,14 @@ int jsonschema_free(jsonschema_t* schema)
 	for(i = 0; i < schema->count; i ++)
 	{
 		_element_t* this = schema->elem + i;
-		if(sp > 0 && (stack[(sp - 1) / 64] & (1ull << ((sp - 1) % 64))) > 0)
+		if(sp > 0 && (stack[(sp - 1) / 64] & (1ull << ((sp - 1) % 64))) &&
+		   this->type != _ELEMTYPE_CLOSE_LIST && this->type != _ELEMTYPE_CLOSE_OBJ)
 			free(this->addr.key);
 		switch(this->type)
 		{
 			case _ELEMTYPE_OPEN_OBJ:
 			case _ELEMTYPE_OPEN_LIST:
+				stack[sp/64] &= ~(1ull << (sp %64));
 				stack[sp/64] |= (((uint64_t)(this->type == _ELEMTYPE_OPEN_OBJ)) << (sp %64));
 				sp ++;
 				break;
@@ -342,6 +345,14 @@ jsonschema_t* jsonschema_new(json_object* schema_obj)
 	_address_t nil = {};
 	jsonschema_t* ret = (jsonschema_t*)calloc(1, sizeof(jsonschema_t));
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the json schema object");
+
+	ret->capacity = 32;
+	if(NULL == (ret->elem = (_element_t*)calloc(ret->capacity, sizeof(_element_t))))
+	{
+		LOG_ERROR_ERRNO("Cannot allocaate memory for the element array");
+		free(ret);
+		return NULL;
+	}
 
 	if(ERROR_CODE(int) == _traverse_schema(schema_obj, nil, ret))
 		ERROR_LOG_GOTO(ERR, "Traversing schema object");
