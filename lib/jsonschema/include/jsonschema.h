@@ -8,15 +8,44 @@
  *         The syntax is very easy, for the object, instead of putting the value, we actaully puts
  *         a list of type name to the value. For example. 
  *         <code>
- *         	{
- *         		"x": "number|null",
- *         		"y": "number",
- *         		"message": "string",
- *         		"array":["number*"]   
+ *
+ *         {
+ *         	  "name": "string",
+ *         	  "nickname": "string|null",
+ *         	  "address": {
+ *         		"__schema_property__": "nullable",
+ *         		"street": "string",
+ *         		"room_number": "string|null",
+ *         		"city": "string",
+ *         		"state": "string",
+ *         		"country": "string",
+ *         		"zipcode": "string"
+ *         	  },
+ *         	  "items": [{
+ *         		"code": "string",
+ *         		"count": "int",
+ *         		"unit_price": "float"
+ *         	  }, "*"]
+ *           }
+ *         
  *         </code>
- *         So for the list case, ["number*"] means we want to a list of number but don't have the contrain on the
- *         number of element. However, if we use ["number", "number", "number"] it means it would only accept the triple
- *         with 3 numbers.
+ *         In this case, the address object contains a __schema_property__ field which means we
+ *         have some additional directive to this object, in this case, this means the object is nullable.
+ *         For the list like examples, if the last element is "*" it means we need to repeat the list containt
+ *         And this is called a repeat marker. <br/>
+ *         The schema library also support performe a "schema based merge" operation, which means, we can send 
+ *         a subset of the object, which indicates the part of the object that needs to be changed. 
+ *         In this case we handle the list differently. For the list, if we send a list in the diff like:
+ *         { "items": [{"code":"123","count"1, "unit_price": 1.0}] }
+ *         This means we want to verride the list to the list that contains only one element, rather than
+ *         we want to modify the first element in this list.
+ *         
+ *         If we want to modify the first element in this list, we should use the different syntax for this purpose:
+ *         {
+ *             "__diff_type__": "listdiff",
+ *             "0": { "code": 123 }
+ *         }
+ *         This means we need to change the object's items[0].code to 123
  **/
 #ifndef __JSONSCHEMA_H__
 #define __JSONSCHEMA_H__
