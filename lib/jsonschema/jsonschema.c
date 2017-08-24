@@ -361,3 +361,157 @@ int jsonschema_free(jsonschema_t* schema)
 
 	return _schema_free(schema);
 }
+
+jsonschema_t* jsonschema_from_string(const char* schema_str)
+{
+	if(NULL == schema_str) ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+	json_object* schema = json_tokener_parse(schema_str);
+	if(NULL == schema) ERROR_PTR_RETURN_LOG("Invalid JSON object");
+
+	jsonschema_t* ret = jsonschema_new(schema);
+
+	json_object_put(schema);
+	return ret;
+}
+
+jsonschema_t* jsonschema_from_file(const char* schema_file)
+{
+	jsonschema_t* ret = NULL;
+	if(NULL == schema_file) ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+	struct stat st;
+	if(stat(schema_file, &st) < 0)
+		ERROR_PTR_RETURN_LOG_ERRNO("stat error");
+
+	FILE* fp = fopen(schema_file, "r");
+	if(NULL == fp) ERROR_PTR_RETURN_LOG_ERRNO("Cannot open schema file");
+
+	size_t sz = (size_t)st.st_size;
+	char* buffer = (char*)malloc(sz + 1);
+	if(NULL == buffer) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the file content");
+
+	buffer[sz] = 0;
+	if(1 != fread(buffer, sz, 1, fp))
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read data from the schema file");
+
+	ret = jsonschema_from_string(buffer);
+
+ERR:
+	if(NULL != buffer) free(buffer);
+	if(NULL != fp) fclose(fp);
+
+	return ret;
+}
+
+/**
+ * @brief Validate a primitive schema element
+ * @param data The primitive schema data
+ * @param nullable If this object can be nullable
+ * @param object The data object
+ * @return The vlaidation result, or error code
+ **/
+static inline int _validate_primitive(_primitive_t data, uint32_t nullable, json_object* object)
+{
+	int type = json_object_get_type(object);
+	switch(type)
+	{
+		case json_type_int:
+			return data & _INT;
+		case json_type_double:
+			return data & _FLOAT;
+		case json_type_boolean:
+			return data & _BOOL;
+		case json_type_string:
+			return data & _STRING;
+		case json_type_null:
+			return nullable > 0;
+		default:
+			return 0;
+	}
+}
+
+/**
+ * @brief Validate if the data object is the instance of the given list schema
+ * @param data The list schema data
+ * @param nullable if this object is nullable
+ * @param object The data object
+ * @todo currently we don't support nullable list, so we need support that at some point
+ * @return status code
+ **/
+static inline int _validate_list(const _list_t* data, uint32_t nullable, json_object* object)
+{
+	(void)nullable;
+	int is_array = json_object_is_type(object, json_type_array);
+	if(!is_array) return is_array;
+	uint32_t first = 1;
+	uint32_t idx = 0;
+	uint32_t len = (uint32_t)json_object_array_length(object);
+	for(;first || data->repeat; first = 0)
+	{
+		uint32_t i;
+		for(i = 0; i < data->size && idx < len; i ++, idx ++)
+		{
+			json_object* elem_data = json_object_array_get_idx(object, (int)idx);
+			int rc = jsonschema_validate(data->element[i], elem_data);
+			if(ERROR_CODE(int) == rc) return ERROR_CODE(int);
+			if(0 == rc) break;
+		}
+
+		/* It could be zero length */
+		if(i == 0 && first && data->repeat) return 1;
+
+		/* Because we don't fully match the pattern */
+		if(i != 0) return 0;
+	}
+
+	return 1;
+}
+
+/**
+ * @brief Validate if the data object is the instance of the given object schema
+ * @param data The schema data
+ * @param nullable If this object is a nullable one
+ * @param object The data object
+ * @return status code
+ **/
+static inline int _validate_obj(const _obj_t* data, uint32_t nullable, json_object* object)
+{
+	int type = json_object_get_type(object);
+	if(type == json_type_null && nullable) return 1;
+	if(type != json_type_object) return 0;
+
+	uint32_t i;
+	for(i = 0; i < data->size; i ++)
+	{
+		json_object* this;
+		int rc = json_object_object_get_ex(object, data->element[i].key, &this);
+
+		if(rc == 0) this = NULL;
+
+		int child_rc = jsonschema_validate(data->element[i].val, this);
+		if(ERROR_CODE(int) == child_rc)
+			ERROR_RETURN_LOG(int, "Child validation failure");
+
+		if(child_rc == 0) return 0;
+	}
+
+	return 1;
+}
+
+int jsonschema_validate(const jsonschema_t* schema, json_object* object)
+{
+	if(NULL == schema) ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	switch(schema->type)
+	{
+		case _SCHEMA_TYPE_PRIMITIVE:
+			return _validate_primitive(schema->primitive[0], schema->nullable, object);
+		case _SCHEMA_TYPE_LIST:
+			return _validate_list(schema->list, schema->nullable, object);
+		case _SCHEMA_TYPE_OBJ:
+			return _validate_obj(schema->obj, schema->nullable, object);
+		default:
+			ERROR_RETURN_LOG(int, "Code bug: Invalid schema type");
+	}
+}
