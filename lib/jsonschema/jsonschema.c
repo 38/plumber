@@ -522,6 +522,7 @@ int jsonschema_validate(const jsonschema_t* schema, json_object* object)
 
 int jsonchema_update(const jsonschema_t* schema, json_object* target, const json_object* patch)
 {
+	/* TODO: update this not supported currently */
 	(void)schema;
 	(void)target;
 	(void)patch;
