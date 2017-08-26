@@ -1,0 +1,19 @@
+{
+	"name": "string",
+	"nickname": "string|null",
+	"address": {
+		"__schema_property__": "nullable",
+		"street": "string",
+		"room_number": "string|null",
+		"city": "string",
+		"state": "string",
+		"country": "string",
+		"zipcode": "string"
+	},
+	"items": [{
+		"code": "string",
+		"count": "int",
+		"unit_price": "float"
+	}, "*"]
+}
+

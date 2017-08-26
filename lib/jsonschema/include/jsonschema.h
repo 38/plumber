@@ -41,11 +41,11 @@
  *         we want to modify the first element in this list.
  *         
  *         If we want to modify the first element in this list, we should use the different syntax for this purpose:
- *         {
- *             "__diff_type__": "listdiff",
- *             "0": { "code": 123 }
- *         }
+ *         { "items": {"__deletion__":[], "0":{"code": 123}}}
  *         This means we need to change the object's items[0].code to 123
+ *         The optional deletion list indicates what needs to be deleted from the list, *before* we actually
+ *         do the modification
+ *
  **/
 #ifndef __JSONSCHEMA_H__
 #define __JSONSCHEMA_H__
