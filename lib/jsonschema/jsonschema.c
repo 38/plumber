@@ -139,7 +139,7 @@ static inline jsonschema_t* _primitive_new(const char* desc)
 	static const char _float[]    = "float";
 	static const char _string[]   = "string";
 	static const char _bool[]     = "bool";
-	static const char _nullable[] = "nullable";
+	static const char _nullable[] = "null";
 
 	_primitive_t types = 0;
 	uint32_t nullable = 0;
@@ -183,7 +183,7 @@ static inline jsonschema_t* _primitive_new(const char* desc)
 
 		for(;keyword != NULL && keylen > 0 && *keyword == *desc; keyword ++, keylen--, desc ++);
 		
-		if(NULL == keyword) ERROR_PTR_RETURN_LOG("Invalid type description");
+		if(NULL == keyword || *keyword != 0) ERROR_PTR_RETURN_LOG("Invalid type description");
 
 		if(*desc == '|') desc ++;
 	}
@@ -213,6 +213,9 @@ static inline jsonschema_t* _list_new(json_object* object)
 	if(NULL == (ret->list->element = (jsonschema_t**)calloc(sizeof(jsonschema_t*) , len)))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the element array");
 
+	ret->type = _SCHEMA_TYPE_LIST;
+	ret->list->size = (uint32_t)len;
+
 	size_t i;
 	for(i = 0; i < len; i ++)
 	{
@@ -221,7 +224,7 @@ static inline jsonschema_t* _list_new(json_object* object)
 
 		if(i == len - 1 && json_object_is_type(curobj, json_type_string))
 		{
-			const char* str = json_object_get_string(object);
+			const char* str = json_object_get_string(curobj);
 			if(strcmp(str, "*") == 0) 
 			{
 				ret->list->size --;
@@ -292,6 +295,7 @@ static inline jsonschema_t* _obj_new(json_object* obj)
 	if(NULL == (ret->obj->element = (_obj_elem_t*)calloc(sizeof(_obj_elem_t), len)))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the member array");
 	ret->obj->size = (uint32_t)len;
+	ret->type = _SCHEMA_TYPE_OBJ;
 
 	json_object_iter iter;
 	uint32_t cnt = 0;
@@ -417,13 +421,13 @@ static inline int _validate_primitive(_primitive_t data, uint32_t nullable, json
 	switch(type)
 	{
 		case json_type_int:
-			return data & _INT;
+			return (data & _INT) > 0 || (data & _FLOAT) > 0;
 		case json_type_double:
-			return data & _FLOAT;
+			return (data & _FLOAT) > 0;
 		case json_type_boolean:
-			return data & _BOOL;
+			return (data & _BOOL) > 0;
 		case json_type_string:
-			return data & _STRING;
+			return (data & _STRING) > 0;
 		case json_type_null:
 			return nullable > 0;
 		default:
@@ -455,14 +459,14 @@ static inline int _validate_list(const _list_t* data, uint32_t nullable, json_ob
 			json_object* elem_data = json_object_array_get_idx(object, (int)idx);
 			int rc = jsonschema_validate(data->element[i], elem_data);
 			if(ERROR_CODE(int) == rc) return ERROR_CODE(int);
-			if(0 == rc) break;
+			if(0 == rc) return 0;
 		}
 
 		/* It could be zero length */
-		if(i == 0 && first && data->repeat) return 1;
+		if(i == 0 && data->repeat) return 1;
 
 		/* Because we don't fully match the pattern */
-		if(i != 0) return 0;
+		if(i != data->size) return 0;
 	}
 
 	return 1;
@@ -514,4 +518,12 @@ int jsonschema_validate(const jsonschema_t* schema, json_object* object)
 		default:
 			ERROR_RETURN_LOG(int, "Code bug: Invalid schema type");
 	}
+}
+
+int jsonchema_update(const jsonschema_t* schema, json_object* target, const json_object* patch)
+{
+	(void)schema;
+	(void)target;
+	(void)patch;
+	return 0;
 }

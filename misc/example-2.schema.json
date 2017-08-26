@@ -1,0 +1,12 @@
+{
+	"vtx": [{
+		"x":"float|null",
+		"y":"float|null"
+	}, "*"],
+	"clr": {
+		"__schema_property__":"nullable",
+		"r": "float",
+		"g": "float",
+		"b": "float"
+	}
+}
