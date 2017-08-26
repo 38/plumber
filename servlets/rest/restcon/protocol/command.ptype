@@ -1,13 +1,13 @@
 package plumber.std_servlet.rest.restcon.v0;
 type UUID {
-	uint8                                    data[16];   /*!< The high 8 bytes */
+	uint8                                    data[16];   /*!< The 128 bits UUID data */
 };
 type OpCodes {
 	uint32                                   CREATE  = 0; /*!< Create a new resource */
 	uint32                                   DELETE  = 1; /*!< Delete an existing resource */
 	uint32                                   QUERY   = 2; /*!< Query all the object */
 	uint32                                   MODIFY  = 3; /*!< Modify an existing object */
-	uint32                                   CONTENT = 4;/*!< Get the content of the object */
+	uint32                                   CONTENT = 4; /*!< Get the content of the object */
 	uint32                                   EXISTS  = 5; /*!< Verify the resource actually exists */
 };
 type Command : OpCodes {

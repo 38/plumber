@@ -12,11 +12,14 @@
 
 #include <pservlet.h>
 #include <pstd.h>
+#include <jsonschema.h>
+#include <jsonschema/log.h>
 
 typedef struct {
 	uint32_t json_mode:1;        /*!< The JSON mode */
 	uint32_t modify_time:1;      /*!< If we need change time */
 	uint32_t create_time:1;      /*!< If we need the creating time */
+	jsonschema_t* schema;        /*!< The schema of this resource, if this field is NULL, we are in schema-less mode */
 	pipe_t  command;             /*!< The storage command input pipe */
 	pipe_t  parent_not_exist;    /*!< The input side of the signal for the parent resource is not exist */
 	pipe_t  not_exist;           /*!< The signal pipe which will trigger when the exist command is required and the resource is not avaliable */
@@ -47,52 +50,17 @@ static int _process_json_schema(pstd_option_data_t data)
 	if(data.param_array_size == 0)
 	{
 		/* The schemaless mode */
+		ctx->schema = NULL;
 		LOG_DEBUG("The servlet is configured to a schemaless mode");
 	}
 	else if(data.param_array_size != 1 || data.param_array == NULL || data.param_array[0].type != PSTD_OPTION_STRING)
 		ERROR_RETURN_LOG(int, "Invalid arguments use --help to see the usage");
 	else
 	{
-		struct stat st;
-		if(stat(data.param_array[0].strval, &st) < 0)
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot stat the schema file %s", data.param_array[0].strval);
-		size_t size = (size_t)st.st_size;
-		if(size == 0) ERROR_RETURN_LOG(int, "Invalid schema file %s: schema is empty", data.param_array[0].strval);
-		char* buf = (char*)malloc(size + 1);
-		FILE* fp = NULL;
-		json_object* schema_obj = NULL;
-		if(NULL == buf)
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the schema text");
-		if(NULL == (fp = fopen(data.param_array[0].strval, "r")))
-			ERROR_LOG_ERRNO_GOTO(SCHEMA_ERR, "Cannot open the schema file %s", data.param_array[0].strval);
-		
-		if(fread(buf, size, 1, fp) != 1) ERROR_LOG_ERRNO_GOTO(SCHEMA_ERR, "Cannot read the schema file %s", data.param_array[0].strval);
-		fclose(fp);
-		fp = NULL;
-		buf[size] = 0;
+		const char* schema_file = data.param_array[0].strval;
 
-		if(NULL == (schema_obj = json_tokener_parse(buf)))
-			ERROR_LOG_GOTO(SCHEMA_ERR, "Invalid schema file %s: Syntax error", data.param_array[0].strval);
-		free(buf);
-		buf = NULL;
-
-		/* TODO: do something with the schema_obj */
-		json_object_iter iter;
-
-		json_object_object_foreachC(schema_obj, iter)
-		{
-			LOG_DEBUG("%s", iter.key);
-			LOG_DEBUG("%s", json_object_get_string(iter.val));
-		}
-		
-		json_object_put(schema_obj);
-		return 0;
-
-SCHEMA_ERR:
-		if(NULL != fp) fclose(fp);
-		if(NULL != buf) free(buf);
-		if(NULL != schema_obj) json_object_put(schema_obj);
-		return ERROR_CODE(int);
+		if(NULL == (ctx->schema = jsonschema_from_file(schema_file)))
+			return ERROR_CODE(int);
 	}
 	
 	return 0;
@@ -135,9 +103,11 @@ static pstd_option_t _options[] = {
 
 static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 {
-	(void)argc;
-	(void)argv;
 	context_t* ctx = (context_t*)ctxbuf;
+
+	ctx->schema = NULL;
+
+	jsonschema_log_set_write_callback(RUNTIME_ADDRESS_TABLE_SYM->log_write);
 
 	if(ERROR_CODE(int) == pstd_option_sort(_options, sizeof(_options) / sizeof(_options[0])))
 		ERROR_RETURN_LOG(int, "Cannot sort the options");
@@ -148,7 +118,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 
 	if(rc != argc) ERROR_RETURN_LOG(int, "Invalid command arguments");
 
-	if(ERROR_CODE(pipe_t) == (ctx->command = pipe_define("command", PIPE_INPUT, "plumber/std_servlet/rest/restcon/v1/Command")))
+	if(ERROR_CODE(pipe_t) == (ctx->command = pipe_define("command", PIPE_INPUT, "plumber/std_servlet/rest/restcon/v0/Command")))
 		ERROR_RETURN_LOG(int, "Cannot define the command input pipe");
 	if(ERROR_CODE(pipe_t) == (ctx->parent_not_exist = pipe_define("parent_not_exist", PIPE_INPUT, NULL)))
 		ERROR_RETURN_LOG(int, "Cannot define the signal pipe for the parent not exists");
@@ -157,12 +127,15 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	if(ERROR_CODE(pipe_t) == (ctx->data = pipe_define("data", PIPE_OUTPUT, "plumber/std/request_local/MemoryObject")))
 		ERROR_RETURN_LOG(int, "Cannot define the data output");
 
-	/* TODO: it seems we could have two mode, JSON mode and raw data mode,
-	 *       For the json mode, we need to provide a schema file so that the servlet
-	 *       can validate the input is valid. also we can make it automatically add creation time
-	 *       and/or modification time 
-	 *       For the raw data we don't need these options 
-	 **/
+	return 0;
+}
+
+static int _unload(void* ctxbuf)
+{
+	context_t* ctx = (context_t*)ctxbuf;
+
+	if(NULL != ctx->schema && ERROR_CODE(int) == jsonschema_free(ctx->schema))
+		ERROR_RETURN_LOG(int, "Cannot dispose the JSON schema");
 
 	return 0;
 }
@@ -170,5 +143,6 @@ SERVLET_DEF = {
 	.desc    = "The filesystem based restful storage controller",
 	.version = 0,
 	.size    = sizeof(context_t),
-	.init    = _init
+	.init    = _init,
+	.unload  = _unload
 };
