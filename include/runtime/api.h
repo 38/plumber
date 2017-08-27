@@ -385,6 +385,14 @@ typedef struct {
 typedef int (*runtime_api_pipe_type_callback_t)(runtime_api_pipe_t pipe, const char* type_name, void* data);
 
 /**
+ * @brief Execute the initialized async task, the only input of the async buf is the async buf
+ *        In this function, all the API calls are disallowed.
+ * @param async_buf The async data buffer
+ * @return status code
+ **/
+typedef int (*runtime_api_async_exec_func_t)(void* async_data);
+
+/**
  * @brief the address table that contains the address of the pipe APIs
  * @note we do not need the servlet instance id, because the caller of the exec of the init will definately have the execution info. <br/>
  *       All the function defined in this place can only be called within the servlet context. <br/>
@@ -607,13 +615,7 @@ typedef struct {
 	 **/
 	int (*async_setup)(void* async_buf, void* data);
 
-	/**
-	 * @brief Execute the initialized async task, the only input of the async buf is the async buf
-	 *        In this function, all the API calls are disallowed.
-	 * @param async_buf The async data buffer
-	 * @return status code
-	 **/
-	int (*async_exec)(void* async_data);
+	runtime_api_async_exec_func_t async_exec;   /*!< The async exec function */
 
 	/**
 	 * @brief Clean the used async data

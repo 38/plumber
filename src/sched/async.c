@@ -1,6 +1,7 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
+#include <runtime/api.h>
 #include <sched/async.h>
 
 int sched_async_init()
