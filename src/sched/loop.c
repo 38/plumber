@@ -49,7 +49,7 @@ typedef struct _context_t {
 	pthread_mutex_t mutex;           /*!< the mutex used with the cond */
 	pthread_cond_t  cond;            /*!< the cond var that is used for the loop wait for new event */
 	uintptr_t __padding__[0];
-	sched_loop_event_t events[0];    /*!< the actual event queue */
+	itc_equeue_event_t events[0];    /*!< the actual event queue */
 } _context_t;
 STATIC_ASSERTION_LAST(_context_t, events);
 STATIC_ASSERTION_SIZE(_context_t, events, 0);
@@ -82,7 +82,7 @@ static itc_module_type_t _mod_mem = ERROR_CODE(itc_module_type_t);
 static inline _context_t* _context_new(uint32_t tid)
 {
 	LOG_DEBUG("Creating thread context for scheduler #%d", tid);
-	_context_t* ret = (_context_t*)malloc(sizeof(_context_t) + sizeof(sched_loop_event_t) * _queue_size);
+	_context_t* ret = (_context_t*)malloc(sizeof(_context_t) + sizeof(itc_equeue_event_t) * _queue_size);
 
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the shceduler thread context");
 	ret->started = 0;
@@ -125,20 +125,17 @@ static inline int _context_free(_context_t* ctx)
 	for(i = ctx->front; i != ctx->rear; i ++)
 	{
 		uint32_t p = i & (ctx->size - 1);
-		if(ctx->events[p].type == SCHED_LOOP_EVENT_TYPE_ITC)
+		/* TODO: This is no longer true once we have async event */
+		if(itc_module_pipe_deallocate(ctx->events[p].in) == ERROR_CODE(int))
 		{
-			if(itc_module_pipe_deallocate(ctx->events[p].itc.in) == ERROR_CODE(int))
-			{
-				LOG_ERROR("Cannot deallocate the input pipe");
-				rc = ERROR_CODE(int);
-			}
-			if(itc_module_pipe_deallocate(ctx->events[p].itc.out) == ERROR_CODE(int))
-			{
-				LOG_ERROR("Cannot deallocate the output pipe");
-				rc = ERROR_CODE(int);
-			}
+			LOG_ERROR("Cannot deallocate the input pipe");
+			rc = ERROR_CODE(int);
 		}
-		else LOG_WARNING("Invalid event type");
+		if(itc_module_pipe_deallocate(ctx->events[p].out) == ERROR_CODE(int))
+		{
+			LOG_ERROR("Cannot deallocate the output pipe");
+			rc = ERROR_CODE(int);
+		}
 	}
 
 	free(ctx);
@@ -197,7 +194,7 @@ static inline void* _sched_main(void* data)
 		/* TODO: Confused - (Async Task) then at this point the thread event queue is not necessarily non-empty any more */
 
 		uint32_t position = context->front & (context->size - 1);
-		sched_loop_event_t current = context->events[position];
+		itc_equeue_event_t current = context->events[position];
 
 		BARRIER();
 
@@ -217,15 +214,9 @@ static inline void* _sched_main(void* data)
 			    LOG_WARNING_ERRNO("Cannot unlock the dispatcher mutex");
 		}
 
-		switch(current.type)
-		{
-			case SCHED_LOOP_EVENT_TYPE_ITC:
-			    if(sched_task_new_request(stc, _service, current.itc.in, current.itc.out) == ERROR_CODE(sched_task_request_t))
-			        LOG_ERROR("Cannot add the incoming request to scheduler");
-			    break;
-			default:
-			    LOG_WARNING("Invalid schedluer event type");
-		}
+		/* TODO: we need handle two different types of event: Module IO event and Async Task event */
+		if(sched_task_new_request(stc, _service, current.in, current.out) == ERROR_CODE(sched_task_request_t))
+			LOG_ERROR("Cannot add the incoming request to scheduler");
 
 		while(sched_step_next(stc, _mod_mem) > 0 && !_killed);
 	}
@@ -274,12 +265,9 @@ static inline int _dispatcher_main()
 
 		if(_killed) break;
 
-		//itc_equeue_event_t event;
-		sched_loop_event_t event = {
-			.type = SCHED_LOOP_EVENT_TYPE_ITC
-		};
+		itc_equeue_event_t event;
 
-		if(itc_equeue_take(sched_token, &event.itc) == ERROR_CODE(int))
+		if(itc_equeue_take(sched_token, &event) == ERROR_CODE(int))
 		{
 			LOG_ERROR("Cannot take next event from the event queue");
 			continue;

@@ -4,23 +4,6 @@
 
 #ifndef __PLUMBER_SCHED_LOOP_H__
 #define __PLUMBER_SCHED_LOOP_H__
-/**
- * @brief the type used to describe the type of the event message
- * @note this is useful when we have more things that can wake up the scheduler thread
- **/
-typedef enum {
-	SCHED_LOOP_EVENT_TYPE_ITC    /*!< Indicates this is a ITC event, typically a incoming request */
-} sched_loop_event_type_t;
-
-/**
- * @brief descirbes a loop event
- **/
-typedef struct {
-	sched_loop_event_type_t type;  /*!< the type of the event */
-	union {
-		itc_equeue_event_t itc; /*!< a module event */
-	};
-} sched_loop_event_t;
 
 /**
  * @brief start scheduler loop
