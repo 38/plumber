@@ -125,16 +125,27 @@ static inline int _context_free(_context_t* ctx)
 	for(i = ctx->front; i != ctx->rear; i ++)
 	{
 		uint32_t p = i & (ctx->size - 1);
-		/* TODO: This is no longer true once we have async event */
-		if(itc_module_pipe_deallocate(ctx->events[p].in) == ERROR_CODE(int))
+
+		switch(ctx->events[p].type)
 		{
-			LOG_ERROR("Cannot deallocate the input pipe");
-			rc = ERROR_CODE(int);
-		}
-		if(itc_module_pipe_deallocate(ctx->events[p].out) == ERROR_CODE(int))
-		{
-			LOG_ERROR("Cannot deallocate the output pipe");
-			rc = ERROR_CODE(int);
+			case ITC_EQUEUE_EVENT_TYPE_IO:
+			{
+				if(itc_module_pipe_deallocate(ctx->events[p].io.in) == ERROR_CODE(int))
+				{
+					LOG_ERROR("Cannot deallocate the input pipe");
+					rc = ERROR_CODE(int);
+				}
+				if(itc_module_pipe_deallocate(ctx->events[p].io.out) == ERROR_CODE(int))
+				{
+					LOG_ERROR("Cannot deallocate the output pipe");
+					rc = ERROR_CODE(int);
+				}
+				break;
+			}
+			case ITC_EQUEUE_EVENT_TYPE_TASK:
+				/* TODO: See how we dispose this */
+			default:
+				LOG_WARNING("Invalid event type in the queue, may indicates code bug");
 		}
 	}
 
@@ -215,8 +226,17 @@ static inline void* _sched_main(void* data)
 		}
 
 		/* TODO: we need handle two different types of event: Module IO event and Async Task event */
-		if(sched_task_new_request(stc, _service, current.in, current.out) == ERROR_CODE(sched_task_request_t))
-			LOG_ERROR("Cannot add the incoming request to scheduler");
+		switch(current.type)
+		{
+			case ITC_EQUEUE_EVENT_TYPE_IO:
+				if(sched_task_new_request(stc, _service, current.io.in, current.io.out) == ERROR_CODE(sched_task_request_t))
+					LOG_ERROR("Cannot add the incoming request to scheduler");
+				break;
+			case ITC_EQUEUE_EVENT_TYPE_TASK:
+				/* TODO: here's the point we actually process the async task event (Don't forget dispose them!) */
+			default:
+				LOG_ERROR("Invalid task type");
+		}
 
 		while(sched_step_next(stc, _mod_mem) > 0 && !_killed);
 	}
@@ -282,6 +302,13 @@ static inline int _dispatcher_main()
 		abstime.tv_sec = now.tv_sec+1;
 		abstime.tv_nsec = 0;
 
+		/* The round-robin scheduler try to pick up next worker */
+		/* TODO: Although the IO event can be dispatched randomly, however, 
+		 *       for a async task event, we need to dispatch to the scpecified destination <br/>
+		 *       So it seems we need a linked list as a async task event buffer, and once we have
+		 *       the async event, we need put the event to the buffer. And then we need dispatch 
+		 *       the async event whenever it's avaiable
+		 **/
 		for(;;)
 		{
 			first = 1;

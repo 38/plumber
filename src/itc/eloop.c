@@ -73,9 +73,11 @@ static inline void* _module_event_loop_main(void* data)
 	{
 		itc_equeue_event_t event;
 
+		event.type = ITC_EQUEUE_EVENT_TYPE_IO;
+
 		itc_module_pipe_param_t param = _self->accept_param[_self->buffer_valid];
 
-		if(itc_module_pipe_accept(_self->module_type, param, &event.in, &event.out) == ERROR_CODE(int))
+		if(itc_module_pipe_accept(_self->module_type, param, &event.io.in, &event.io.out) == ERROR_CODE(int))
 		{
 			itc_module_flags_t flags = itc_module_get_flags(_self->module_type);
 			if(ERROR_CODE(itc_module_flags_t) == flags)
