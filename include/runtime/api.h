@@ -567,7 +567,7 @@ typedef struct {
 typedef struct {
 	size_t size;					   /*!< the size of the additional data for this servlet */
 	const char* desc;				   /*!< the description of this servlet */
-	uint32_t version;				   /*!< the version number of this servlet */
+	uint32_t version;				   /*!< the required API version for this servlet, currently is 0 */
 	/**
 	 * @brief The function that will be called by the initialize task
 	 * @param argc the argument count
@@ -588,6 +588,41 @@ typedef struct {
 	 * @return status code
 	 **/
 	int (*unload)(void* data);
+
+
+	/** The async task part, and it should be NULL and 0 if servlet has a exec callback */
+
+	uint32_t async_buf_size;   /*!< The async buffer size */
+
+	/**
+	 * @brief The initialization stage of the async task
+	 * @param data The servlet local context
+	 * @param async_buf The buffer we are going to carry to the async_exec
+	 * @note For the async_exec function, we don't allow the servlet access any servlet context, 
+	 *       because this breaks the thread convention of the worker thread. 
+	 *       This make the async task has to copy all the required data to the async buf, which is
+	 *       complete different memory, and this memory will be the only data the async_exec function
+	 *       can access
+	 * @return status code
+	 **/
+	int (*async_setup)(void* async_buf, void* data);
+
+	/**
+	 * @brief Execute the initialized async task, the only input of the async buf is the async buf
+	 *        In this function, all the API calls are disallowed.
+	 * @param async_buf The async data buffer
+	 * @return status code
+	 **/
+	int (*async_exec)(void* async_data);
+
+	/**
+	 * @brief Clean the used async data
+	 * @param async_data The async data we have used
+	 * @param data The servlet local context data
+	 * @return status code
+	 **/
+	int (*async_cleanup)(void* async_data, void* data);
+
 } runtime_api_servlet_def_t;
 
 #endif /*__RUNTIME_API_H__*/

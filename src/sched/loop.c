@@ -202,8 +202,6 @@ static inline void* _sched_main(void* data)
 
 		LOG_TRACE("Scheduler Thread %u: new event acquired", context->thread_id);
 
-		/* TODO: Confused - (Async Task) then at this point the thread event queue is not necessarily non-empty any more */
-
 		uint32_t position = context->front & (context->size - 1);
 		itc_equeue_event_t current = context->events[position];
 

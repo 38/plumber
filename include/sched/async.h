@@ -26,5 +26,4 @@ int sched_async_init();
  **/
 int sched_async_finalize();
 
-
 #endif /* __SCHED_ASYNC_H__ */
