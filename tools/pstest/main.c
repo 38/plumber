@@ -250,7 +250,7 @@ void run_task(uint32_t argc, char const* const* argv)
 		    task->pipes[pid] = pipe;
 	    }
 
-	if(runtime_task_start(task) < 0)
+	if(runtime_task_start(task, NULL) < 0)
 	{
 		LOG_FATAL("Task terminates with an error code");
 		exit(1);

@@ -49,27 +49,56 @@ static inline runtime_task_t* _task_new(runtime_servlet_t* servlet, uint32_t act
 	static uint32_t _next_task_id = 0;
 	runtime_task_t* ret = NULL;
 	if(NULL == servlet) return NULL;
-	if((RUNTIME_TASK_FLAG_ACTION_MASK & action) != RUNTIME_TASK_FLAG_ACTION_INIT &&
-	   (RUNTIME_TASK_FLAG_ACTION_MASK & action) != RUNTIME_TASK_FLAG_ACTION_UNLOAD)
+	if((RUNTIME_TASK_FLAG_ACTION_MASK & ~RUNTIME_TASK_FLAG_ACTION_ASYNC & action) != RUNTIME_TASK_FLAG_ACTION_INIT &&
+	   (RUNTIME_TASK_FLAG_ACTION_MASK & ~RUNTIME_TASK_FLAG_ACTION_ASYNC & action) != RUNTIME_TASK_FLAG_ACTION_UNLOAD)
 	{
+		/* Because we use npipes later, so we need to check this outside of the if clause */
 		npipes = runtime_pdt_get_size(servlet->pdt);
-		if(NULL == servlet->task_pool)
+		if(NULL == servlet->bin->task_pool)
 		{
 			size_t size = sizeof(runtime_task_t) + npipes * sizeof(itc_module_pipe_t*);
 			if(pthread_mutex_lock(&_pool_mutex) < 0)
 			    LOG_WARNING_ERRNO("Cannot acquire the pool mutex");
 			/* Because there may be multiple threads blocked here, so we need to check if the pool is already allocated
 			 * after we acquired the lock */
-			if(NULL == servlet->task_pool && NULL == (servlet->task_pool = mempool_objpool_new((uint32_t)size)))
+			if(NULL == servlet->bin->task_pool && NULL == (servlet->bin->task_pool = mempool_objpool_new((uint32_t)size)))
 			        ERROR_PTR_RETURN_LOG("Cannot create memory pool for the servlet task");
 			if(pthread_mutex_unlock(&_pool_mutex) < 0)
 			    LOG_WARNING_ERRNO("Cannot release the pool mutex");
 		}
-		ret = mempool_objpool_alloc(servlet->task_pool);
+		
+		if(NULL == (ret = mempool_objpool_alloc(servlet->bin->task_pool)))
+			ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the new task");
+
+		/* If this is an async servlet and try to creat an exec task, then we need allocate the async data buffer */
+		if(servlet->async)
+		{
+			/* If this is an async servlet, then we need to allocate the async buffer */
+			if(NULL == servlet->bin->async_pool)
+			{
+				size_t size = (size_t)servlet->bin->define->async_buf_size;
+
+				if(pthread_mutex_lock(&_pool_mutex) < 0)
+					LOG_WARNING_ERRNO("Cannot acquire the pool mutex");
+
+				if(NULL == servlet->bin->async_pool && NULL == (servlet->bin->async_pool = mempool_objpool_new((uint32_t)size)))
+					ERROR_LOG_GOTO(ERR, "Cannot create memory pool for the servlet async buffer");
+
+				if(pthread_mutex_unlock(&_pool_mutex) < 0)
+					LOG_WARNING_ERRNO("Cannot release the pool mutex");
+			}
+
+			if(NULL == (ret->async_data = mempool_objpool_alloc(servlet->bin->async_pool)))
+				ERROR_LOG_GOTO(ERR, "Cannot allocate the async data buffer");
+		}
+		goto EXIT;
+ERR:
+		if(NULL != ret) mempool_objpool_dealloc(servlet->bin->task_pool, ret);
+		ret = NULL;
 	}
 	else
 	    ret = (runtime_task_t*)malloc(sizeof(runtime_task_t));
-
+EXIT:
 	if(NULL == ret) return NULL;
 
 	ret->servlet = servlet;
@@ -94,9 +123,13 @@ int runtime_task_free(runtime_task_t* task)
 		}
 	}
 
+	if(task->servlet->async && NULL != task->async_data && 
+	   ERROR_CODE(int) == mempool_objpool_dealloc(task->servlet->bin->async_pool, task->async_data))
+		rc = ERROR_CODE(int);
+
 	runtime_task_flags_t action = RUNTIME_TASK_FLAG_GET_ACTION(task->flags);
 	if(action != RUNTIME_TASK_FLAG_ACTION_INIT && action != RUNTIME_TASK_FLAG_ACTION_UNLOAD)
-	    mempool_objpool_dealloc(task->servlet->task_pool, task);
+	    mempool_objpool_dealloc(task->servlet->bin->task_pool, task);
 	else
 	    free(task);
 	return rc;
@@ -111,6 +144,8 @@ runtime_task_t* runtime_task_new(runtime_servlet_t* servlet, runtime_task_flags_
 
 	if(NULL == ret) ERROR_PTR_RETURN_LOG("Cannot create task context");
 
+	if(RUNTIME_TASK_FLAG_GET_ACTION(flags) == RUNTIME_TASK_FLAG_ACTION_EXEC && servlet->async)
+		flags = (flags & ~RUNTIME_TASK_FLAG_ACTION_MASK) | RUNTIME_TASK_FLAG_ACTION_ASYNC | RUNTIME_TASK_FLAG_ACTION_INIT;
 	ret->flags = flags;
 	_current_task = ret;
 
@@ -127,12 +162,19 @@ int runtime_task_start_exec_fast(runtime_task_t* task)
 	_current_task = task;
 
 	if(NULL != task->servlet->bin->define->exec)
-	    return task->servlet->bin->define->exec(task->servlet->data);
+		return task->servlet->bin->define->exec(task->servlet->data);
 
 	return 0;
 }
 
-int runtime_task_start(runtime_task_t *task)
+int runtime_task_start_async_init_fast(runtime_task_t* task, void* async_handle)
+{
+	LOG_TRACE("Async task %s (TID = %d) is being initialized", task->servlet->bin->name, task->id);
+
+	return task->servlet->bin->define->async_setup(async_handle, task->async_data, task->servlet->data);
+}
+
+int runtime_task_start(runtime_task_t *task, void* async_handle)
 {
 	if(NULL == task)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
@@ -146,28 +188,57 @@ int runtime_task_start(runtime_task_t *task)
 
 	_current_task = task;
 
-	switch(RUNTIME_TASK_FLAG_GET_ACTION(task->flags))
+	if(0 == (task->flags & RUNTIME_TASK_FLAG_ACTION_ASYNC))
 	{
-		case RUNTIME_TASK_FLAG_ACTION_INIT:
-		    if(NULL != task->servlet->bin->define->init)
-		        rc = task->servlet->bin->define->init(task->servlet->argc, (char const* const*)task->servlet->argv, task->servlet->data);
-		    else
-		        rc = 0;
-		    break;
-		case RUNTIME_TASK_FLAG_ACTION_EXEC:
-		    if(NULL != task->servlet->bin->define->exec)
-		        rc = task->servlet->bin->define->exec(task->servlet->data);
-		    else
-		        rc = 0;
-		    break;
-		case RUNTIME_TASK_FLAG_ACTION_UNLOAD:
-		    if(NULL != task->servlet->bin->define->unload)
-		        rc = task->servlet->bin->define->unload(task->servlet->data);
-		    else
-		        rc = 0;
-		    break;
-		default:
-		    LOG_ERROR("Invalid action bit");
+		switch(RUNTIME_TASK_FLAG_GET_ACTION(task->flags))
+		{
+			case RUNTIME_TASK_FLAG_ACTION_INIT:
+				if(NULL != task->servlet->bin->define->init)
+					rc = task->servlet->bin->define->init(task->servlet->argc, (char const* const*)task->servlet->argv, task->servlet->data);
+				else
+					rc = 0;
+				break;
+			case RUNTIME_TASK_FLAG_ACTION_EXEC:
+				if(NULL != task->servlet->bin->define->exec)
+					rc = task->servlet->bin->define->exec(task->servlet->data);
+				else
+					rc = 0;
+				break;
+			case RUNTIME_TASK_FLAG_ACTION_UNLOAD:
+				if(NULL != task->servlet->bin->define->unload)
+					rc = task->servlet->bin->define->unload(task->servlet->data);
+				else
+					rc = 0;
+				break;
+			default:
+				LOG_ERROR("Invalid action bit");
+		}
+	}
+	else
+	{
+		switch(RUNTIME_TASK_FLAG_GET_ACTION(task->flags))
+		{
+			case RUNTIME_TASK_FLAG_ACTION_INIT:
+				if(NULL != task->servlet->bin->define->async_setup)
+					rc = task->servlet->bin->define->async_setup(async_handle, task->async_data, task->servlet->data);
+				else 
+					rc = 0;
+				break;
+			case RUNTIME_TASK_FLAG_ACTION_EXEC:
+				if(NULL != task->servlet->bin->define->async_exec)
+					rc = task->servlet->bin->define->async_exec(async_handle, task->async_data);
+				else 
+					rc = 0;
+				break;
+			case RUNTIME_TASK_FLAG_ACTION_UNLOAD:
+				if(NULL != task->servlet->bin->define->async_cleanup)
+					rc = task->servlet->bin->define->async_cleanup(task->async_data, task->servlet->data);
+				else 
+					rc = 0;
+				break;
+			default:
+				LOG_ERROR("Invalid action bit");
+		}
 	}
 
 	_current_task = NULL;

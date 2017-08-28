@@ -291,7 +291,7 @@ const char* runtime_servlet_find_binary(const char* servlet)
 	return _search_for_binary(servlet);
 }
 
-runtime_servlet_t* runtime_servlet_new(const runtime_servlet_binary_t* binary, uint32_t argc, char const* const* argv)
+runtime_servlet_t* runtime_servlet_new(runtime_servlet_binary_t* binary, uint32_t argc, char const* const* argv)
 {
 	runtime_servlet_t* ret = NULL;
 	runtime_pdt_t* pdt = NULL;
@@ -332,7 +332,6 @@ runtime_servlet_t* runtime_servlet_new(const runtime_servlet_binary_t* binary, u
 		memcpy(arguments[i], argv[i], len + 1);
 	}
 
-	ret->task_pool = NULL;
 	ret->owner = NULL;
 
 	/* Invoke the init task */
@@ -341,13 +340,21 @@ runtime_servlet_t* runtime_servlet_new(const runtime_servlet_binary_t* binary, u
 		if(NULL == (init_task = runtime_task_new(ret, RUNTIME_TASK_FLAG_ACTION_INIT)))
 		    ERROR_LOG_GOTO(ERR, "cannot create init task for servlet instance of %s", binary->name);
 
-		if(runtime_task_start(init_task) == ERROR_CODE(int))
+		int rc;
+		if((rc = runtime_task_start(init_task, NULL)) == ERROR_CODE(int))
 		    ERROR_LOG_GOTO(ERR, "init task for servlet instance of %s has failed", binary->name);
+
+		if(rc == RUNTIME_API_INIT_RESULT_SYNC) ret->async = 0;
+		else if(rc == RUNTIME_API_INIT_RESULT_ASYNC) ret->async = 1;
+		else ERROR_LOG_GOTO(ERR, "Invalid init function return vlaue");
 	}
 
 	if(runtime_task_free(init_task) == ERROR_CODE(int))
 	    LOG_WARNING("cannot dispose executed init task for the servlet instance %s, memory leak possible!", binary->name);
 
+	if(ret->async && ret->bin->define->async_setup == NULL)
+		ERROR_LOG_GOTO(ERR, "Invalid servlet, a async servlet without async_setup function defined");
+	
 	LOG_INFO("Servlet instance of %s has been created with arguments", binary->name);
 
 	for(i = 0; i < argc; i ++)
@@ -383,7 +390,7 @@ int runtime_servlet_free(runtime_servlet_t* servlet)
 			LOG_WARNING("could not create unload task for servlet instance of %s", servlet->bin->name);
 			rc = ERROR_CODE(int);
 		}
-		else if(runtime_task_start(task) == ERROR_CODE(int))
+		else if(runtime_task_start(task, NULL) == ERROR_CODE(int))
 		{
 			LOG_WARNING("could not exeute the unload task for servlet instance of %s", servlet->bin->name);
 			rc = ERROR_CODE(int);
@@ -409,9 +416,6 @@ int runtime_servlet_free(runtime_servlet_t* servlet)
 		        free(servlet->argv[i]);
 		free(servlet->argv);
 	}
-
-	if(servlet->task_pool != NULL && mempool_objpool_free(servlet->task_pool) == ERROR_CODE(int))
-	    LOG_WARNING("Cannot dispose the task memory pool");
 
 	if(rc != ERROR_CODE(int))
 	    LOG_DEBUG("Servlet instance of %s has been unloaded successfully", servlet->bin->name);
@@ -454,10 +458,11 @@ runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const ch
 	                        "make sure symbol `%s' has been defined in the servlet (dlerror: %s)",
 	                   RUNTIME_ADDRESS_TABLE_STR, dlerror());
 
+	/* Here gives us an chance to support multiple version of APIs */
 	*addrtab = &runtime_api_address_table;
 
 	ret = (runtime_servlet_binary_t*)malloc(sizeof(runtime_servlet_binary_t));
-	if(NULL == ret) ERROR_LOG_GOTO(ERR, "Failed to allocate memory for the servlet binary %s", name);
+	if(NULL == ret) ERROR_LOG_ERRNO_GOTO(ERR, "Failed to allocate memory for the servlet binary %s", name);
 
 	ret->define = def;
 	ret->dl_handler = dl_handler;
@@ -465,6 +470,9 @@ runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const ch
 	string_buffer_open(ret->name, sizeof(ret->name), &strbuf);
 	string_buffer_append(name, &strbuf);
 	string_buffer_close(&strbuf);
+
+	ret->task_pool = ret->async_pool = NULL;
+
 
 #ifdef LOG_NOTICE_ENABLED
 	const struct link_map* linkmap = (const struct link_map*)dl_handler;
@@ -495,6 +503,12 @@ int runtime_servlet_binary_unload(runtime_servlet_binary_t* binary)
 		rc = ERROR_CODE(int);
 		LOG_ERROR("Can not close the dynamic library: %s", dlerror());
 	}
+	
+	if(binary->task_pool != NULL && mempool_objpool_free(binary->task_pool) == ERROR_CODE(int))
+	    LOG_WARNING("Cannot dispose the task memory pool");
+
+	if(binary->async_pool != NULL && mempool_objpool_free(binary->async_pool) == ERROR_CODE(int))
+		LOG_WARNING("Cannot dispose the async buffer memory pool");
 
 	/* free the servlet memory */
 	free(binary);

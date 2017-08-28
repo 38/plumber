@@ -41,11 +41,12 @@ typedef uint32_t runtime_task_flags_t;
  * @brief the struct used to describe a task  <br/> the task is a execution instance of a servlet
  **/
 typedef struct {
-	runtime_api_task_id_t id;   /*!< The task ID */
-	runtime_task_flags_t flags; /*!< The flag of this task */
-	runtime_servlet_t* servlet; /*!< The servlet has been activated in this task */
-	size_t npipes;              /*!< The number of pipes for this task */
-	itc_module_pipe_t* pipes[0];/*!< The pipe table for this task */
+	runtime_api_task_id_t id;         /*!< The task ID */
+	runtime_task_flags_t  flags;      /*!< The flag of this task */
+	runtime_servlet_t*    servlet;    /*!< The servlet has been activated in this task */
+	size_t                npipes;     /*!< The number of pipes for this task */
+	void*                 async_data; /*!< The async task data buffer */
+	itc_module_pipe_t*    pipes[0];   /*!< The pipe table for this task */
 } runtime_task_t;
 
 STATIC_ASSERTION_LAST(runtime_task_t, pipes);
@@ -101,10 +102,11 @@ int runtime_task_async_companions(const runtime_task_t* task, runtime_task_t** e
 /**
  * @brief start the task
  * @param task the task to start
+ * @param data an additional data would pass to the task, this will only used for the async_setup and async_exec tasks
  * @note  change this
  * @return the status code
  **/
-int runtime_task_start(runtime_task_t* task);
+int runtime_task_start(runtime_task_t* task, void* data);
 
 /**
  * @brief This is the fast version to start an exec task

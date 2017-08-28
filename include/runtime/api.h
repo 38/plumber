@@ -414,6 +414,15 @@ typedef struct {
  **/
 typedef int (*runtime_api_pipe_type_callback_t)(runtime_api_pipe_t pipe, const char* type_name, void* data);
 
+/**
+ * @brief The return value for the servlet's init function, which indicates the property of the servlet
+ **/
+enum {
+	RUNTIME_API_INIT_RESULT_SYNC   = 0,    /*!< This is a sync servlet */
+	RUNTIME_API_INIT_RESULT_ASYNC  = 1,    /*!< This is an async servlet */
+};
+
+
 
 /**
  * @brief the address table that contains the address of the pipe APIs
@@ -606,18 +615,19 @@ typedef struct {
 
 /** 
  * @brief the data structure used to define a servlet 
- * @note  Here's the way we way we determine if a servlet is an async servlet or a  sync servlet: <br/>
- *        If the exec function has been defined, all the async_* function *MUST NOT* be  defined at the same time.
- *        This case indicates we have a sync servlet. <br/>
- *        If the asyc_init function has been defined, the exec function *MUST NOT* be define at the same time. 
+ * @note  Instead of checking if the callback fuction is defined to determine if this is an async task. We relies on the
+ *        return value of the init function. This is because for the language support servlet, we can not tell if it's a 
+ *        async servlet or not during the compile time. The only way for us to kown this is get the servlet fully initialized<br/>
+ *        If the init function returns RUNTIME_API_INIT_RESULT_SYNC and exec function has been defined, all the async_* function 
+ *        won't be used any mopre. This case indicates we have a sync servlet. <br/>
+ *        If the init function returns RUNTIME_API_INIT_RESULT_ASYNC, asyc_init must be defined
  *        This case indicates we have an async servlet <br/>
  *        The async_exec and async_cleanup function is not necessarily to be defined. Because for some case, we 
  *        actually can have a task initialize a async IO form the async_init and set the async task mode to the wait mode
  *        Then we can have an undefined async_exec function, which means we don't need to do anything other than initializing 
  *        the IO. <br/>
- *        If neither async_init nor exec function has been defined by the servlet, it means we got a sync servlet with a NOP
- *        exec function. This is useful, when we have a servlet which only defines a shadow output (for example, dataflow/dup)
- *        <br/>
+ *        If the exec function is not defined and init returns RUNTIME_API_INIT_RESULT_SYNC, this indicates we have an sync servlet
+ *        with an empty exec function. This is useful when we only have a shadow output for the servlet, for example, dataflow/dup.
  * @todo  When a servlet is loaded we should 
  **/
 typedef struct {
@@ -629,7 +639,7 @@ typedef struct {
 	 * @param argc the argument count
 	 * @param argv the value list of arguments
 	 * @param data the servlet local data that needs to be intialized
-	 * @return status code
+	 * @return The servlet property flags, or error code
 	 **/
 	int (*init)(uint32_t argc, char const* const* argv, void* data);
 	/**

@@ -95,12 +95,12 @@ runtime_stab_entry_t runtime_stab_load(uint32_t argc, char const * const * argv)
 	const char* name = argv[0];
 
 	unsigned i;
-	const runtime_servlet_binary_t* binary = NULL;
+	runtime_servlet_binary_t* binary = NULL;
 	size_t nentry = vector_length(_btable);
 
 	for(i = 0; i < nentry; i ++)
 	{
-		binary = *VECTOR_GET_CONST(const runtime_servlet_binary_t*, _btable, i);
+		binary = *VECTOR_GET_CONST(runtime_servlet_binary_t*, _btable, i);
 		if(strcmp(binary->name, name) == 0)
 		{
 			LOG_DEBUG("Servlet binary %s has been previous loaded", name);

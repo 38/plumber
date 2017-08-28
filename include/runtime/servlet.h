@@ -19,9 +19,11 @@
  * @brief the binary interface for a servlet
  **/
 typedef struct {
-	runtime_api_servlet_def_t* define;   /*!< The additional data that used by the servlet */
-	void* dl_handler;                    /*!< The dynamic library handler */
-	char name[RUNTIME_SERVLET_NAME_LEN]; /*!< The name of the servlet */
+	runtime_api_servlet_def_t* define;                         /*!< The additional data that used by the servlet */
+	void*                      dl_handler;                     /*!< The dynamic library handler */
+	char                       name[RUNTIME_SERVLET_NAME_LEN]; /*!< The name of the servlet */
+	mempool_objpool_t*         task_pool;                      /*!< The memory pool for the task created from this servlet */
+	mempool_objpool_t*         async_pool;                     /*!< The memory pool for the async buffer for this servlet, it's only meaning ful if this servlet is async */
 } runtime_servlet_binary_t;
 
 /**
@@ -34,11 +36,11 @@ typedef struct {
  *        In addition, if we share the context, the context is not isolated per node. <br/>
  **/
 typedef struct{
-	const runtime_servlet_binary_t* bin;        /*!< The binary interface */
+	runtime_servlet_binary_t*       bin;        /*!< The binary interface */
+	uint32_t                        async:1;    /*!< If this is an async servlet */
 	uint32_t                        argc;       /*!< The number of argument has been pass to this servlet */
 	char**                          argv;       /*!< The argument list for this servlet*/
 	runtime_pdt_t*                  pdt;        /*!< The pipe name table */
-	mempool_objpool_t*              task_pool;  /*!< The memory pool for the task created from this servlet */
 	const void*                     owner;      /*!< The pointer used to make a back reference to the service node owns this servlet */
 	runtime_api_pipe_t              sig_null;   /*!< The pipe used as the zero output signal */
 	runtime_api_pipe_t              sig_error;  /*!< The pipe used as the internal error signal */
@@ -122,7 +124,7 @@ int runtime_servlet_binary_unload(runtime_servlet_binary_t* binary);
  * @param argv the value arrray for arguments
  * @return the newly initialized servlet, NULL on error
  **/
-runtime_servlet_t* runtime_servlet_new(const runtime_servlet_binary_t* binary, uint32_t argc, char const* const* argv);
+runtime_servlet_t* runtime_servlet_new(runtime_servlet_binary_t* binary, uint32_t argc, char const* const* argv);
 
 /**
  * @brief free the servlet instance, but do not free the binary object

@@ -132,7 +132,7 @@ int test_pipe_read()
 	ASSERT_OK(itc_module_pipe_deallocate(task->pipes[4]), goto ERR);
 	task->pipes[4] = NULL;
 
-	ASSERT_OK(runtime_task_start(task), goto ERR);
+	ASSERT_OK(runtime_task_start(task, NULL), goto ERR);
 
 
 	ASSERT_OK(read_write_test_rc, goto ERR);

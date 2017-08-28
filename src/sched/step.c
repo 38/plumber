@@ -93,10 +93,11 @@ int sched_step_next(sched_task_context_t* stc, itc_module_type_t type)
 	counter ++;
 #endif
 	_current_request_scope = task->scope;
+	/* TODO: what should we do for the async task ? */
 #ifdef FULL_OPTIMIZATION
 	if(runtime_task_start_exec_fast(task->exec_task) == ERROR_CODE(int))
 #else
-	if(runtime_task_start(task->exec_task) == ERROR_CODE(int))
+	if(runtime_task_start(task->exec_task, NULL) == ERROR_CODE(int))
 #endif
 	{
 #ifdef ENABLE_PROFILER
