@@ -260,6 +260,36 @@ STATIC_ASSERTION_EQ_ID(__non_module_related_push_state__, 0xff, RUNTIME_API_PIPE
 STATIC_ASSERTION_EQ_ID(__non_module_related_pop_state__, 0xff, RUNTIME_API_PIPE_CNTL_OPCODE_MODULE_ID(RUNTIME_API_PIPE_CNTL_OPCODE_POP_STATE));
 
 /**
+ * @brief Switch the async task to the event mode, which means the async task processor won't
+ *        emit the async task completed event until the given async task token has been notified 
+ *        finished
+ * @example   ....
+ * 			  async_cntl(ASYNC_CNTL_OPCODE_SET_WAIT, &task_handle);
+ * 			  // Here we initialize a async IO and set a callback function on_finished
+ * 			  return 0;
+ * 			onfinished() {
+ * 				// Post process the IO
+ * 				async_cntl(ASYNC_CNTL_OPCODE_NOTIFY_WAIT, task_handle, status_code);
+ * 				return 0;
+ * 			}
+ * @note In this example, we actually makes the async worker thread initialize an IO operation and yeild the async thread. <br/>
+ *       When the operation is done, the callback function may or may not be called from the same thread. But if calls the notify 
+ *       operation, and this will makes the async task change it state from waiting to finished, at this point, the async task
+ *       processor will emit the event to the event queue. <br/>
+ *       If we are not switching to this mode, the async task event will be emitted right after the async callback function returns. <br/>
+ *       The wait mode is an abstraction of the event driven IO model in the plumber framework. And it's more like to have high troughput
+ *       The non-wait mode is the example for how we avoid the worker thread been blocked by the slow operation, like database access, etc.
+ **/
+#define RUNTIME_API_ASYNC_CNTL_OPCODE_SET_WAIT 0
+
+/**
+ * @brief Notify the waiting async task for the completed state. When this function is called, it means we have a async task has been set to
+ *        the wait mode and we have completed the operation and it's the time for us to notify the framework on this
+ * @note The usagage async_cntl(ASYNC_CNTL_OPCODE_NOTIFY_WAIT, task_handle, status_code);
+ **/
+#define RUNTIME_API_ASYNC_CNTL_OPCODE_NOTIFY_WAIT 1
+
+/**
  * @brief the token used to request local scope token
  **/
 typedef uint32_t runtime_api_scope_token_t;
@@ -384,13 +414,6 @@ typedef struct {
  **/
 typedef int (*runtime_api_pipe_type_callback_t)(runtime_api_pipe_t pipe, const char* type_name, void* data);
 
-/**
- * @brief Execute the initialized async task, the only input of the async buf is the async buf
- *        In this function, all the API calls are disallowed.
- * @param async_buf The async data buffer
- * @return status code
- **/
-typedef int (*runtime_api_async_exec_func_t)(void* async_data);
 
 /**
  * @brief the address table that contains the address of the pipe APIs
@@ -569,9 +592,34 @@ typedef struct {
 	 **/
 	const char* (*version)();
 
+	/**
+	 * @brief The async task control function
+	 * @note This function is the only plumber API can be called from the async processing thread. 
+	 *       And we actually have the limit for this function is we should call this function with task context, 
+	 *       otherwise we should provide the task_handle (The example for this case is the ASYNC_CNTL_OPCODE_NOTIFY_WAIT,
+	 *       which we may not call the function from the thread working on the async task. In this case, we just extract
+	 *       the async context from the handle
+	 * @return status code
+	 **/
+	int (*async_cntl)(const void* task_handle, uint32_t opcode, va_list ap);
 } runtime_api_address_table_t;
 
-/** @brief the data structure used to define a servlet */
+/** 
+ * @brief the data structure used to define a servlet 
+ * @note  Here's the way we way we determine if a servlet is an async servlet or a  sync servlet: <br/>
+ *        If the exec function has been defined, all the async_* function *MUST NOT* be  defined at the same time.
+ *        This case indicates we have a sync servlet. <br/>
+ *        If the asyc_init function has been defined, the exec function *MUST NOT* be define at the same time. 
+ *        This case indicates we have an async servlet <br/>
+ *        The async_exec and async_cleanup function is not necessarily to be defined. Because for some case, we 
+ *        actually can have a task initialize a async IO form the async_init and set the async task mode to the wait mode
+ *        Then we can have an undefined async_exec function, which means we don't need to do anything other than initializing 
+ *        the IO. <br/>
+ *        If neither async_init nor exec function has been defined by the servlet, it means we got a sync servlet with a NOP
+ *        exec function. This is useful, when we have a servlet which only defines a shadow output (for example, dataflow/dup)
+ *        <br/>
+ * @todo  When a servlet is loaded we should 
+ **/
 typedef struct {
 	size_t size;					   /*!< the size of the additional data for this servlet */
 	const char* desc;				   /*!< the description of this servlet */
@@ -597,13 +645,13 @@ typedef struct {
 	 **/
 	int (*unload)(void* data);
 
-
 	/** The async task part, and it should be NULL and 0 if servlet has a exec callback */
 
 	uint32_t async_buf_size;   /*!< The async buffer size */
 
 	/**
 	 * @brief The initialization stage of the async task
+	 * @param task_handle This is the handle we used to pass to the async_cntl funciton
 	 * @param data The servlet local context
 	 * @param async_buf The buffer we are going to carry to the async_exec
 	 * @note For the async_exec function, we don't allow the servlet access any servlet context, 
@@ -613,18 +661,24 @@ typedef struct {
 	 *       can access
 	 * @return status code
 	 **/
-	int (*async_setup)(void* async_buf, void* data);
+	int (*async_setup)(const void* task_handle, void* async_buf, void* data);
 
-	runtime_api_async_exec_func_t async_exec;   /*!< The async exec function */
+	/**
+	 * @brief Execute the initialized async task, the only input of the async buf is the async buf
+	 *        In this function, all the API calls are disallowed.
+	 * @param async_buf The async data buffer
+	 * @param task_handle This is the handle we used to pass to the async_cntl funciton
+	 * @return status code
+	 **/
+	int (*async_exec)(const void* task_handle, void* async_data);
 
 	/**
 	 * @brief Clean the used async data
-	 * @param async_data The async data we have used
 	 * @param data The servlet local context data
+	 * @param task_handle This is the handle we used to pass to the async_cntl funciton
 	 * @return status code
 	 **/
 	int (*async_cleanup)(void* async_data, void* data);
-
 } runtime_api_servlet_def_t;
 
 #endif /*__RUNTIME_API_H__*/

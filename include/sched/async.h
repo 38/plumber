@@ -14,11 +14,38 @@
 #ifndef __SCHED_ASYNC_H__
 #define __SCHED_ASYNC_H__
 
+/**
+ * @brief The type used to describe a task
+ * @todo Determine if we need a timeout
+ **/
 typedef struct {
 	void*                          data;         /*!< The data used by this task */
 	void*                          thread_data;  /*!< The source task scheduler thread context */
 	void*                          sched_data;   /*!< The additional scheduler data */
-	runtime_api_async_exec_func_t  func;         /*!< The function we should run for this task */
+	void*                          servlet_ctx;  /*!< The servlet context data */
+	/**
+	 * @brief Initialize the async task
+	 * @param handle The async task handle
+	 * @param async_buf The async data buffer we need to fill
+	 * @param ctxbuf The servlet context buffer
+	 * @return status code
+	 **/
+	int (*init)(const void* handle, void* async_buf, void* ctxbuf);
+	/**
+	 * @brief Actual execution callback, which we should run from the async processing thread
+	 * @note In this function, we don't have any plumber API access besides async_cntl with the handle
+	 * @param handle The task handle
+	 * @param async_buf The async buffer
+	 * @return status code
+	 **/
+	int (*exec)(const void* handle, void* async_buf);
+	/**
+	 * @brief Do the cleanup after the async task is done
+	 * @param async_buf The async buffer
+	 * @param ctxbuf The context buffer
+	 * @return status code
+	 **/
+	int (*cleanup)(void* async_buf, void* ctxbuf);
 } sched_async_task_t;
 
 /**
@@ -34,11 +61,16 @@ int sched_async_init();
 int sched_async_finalize();
 
 /**
- * @brief set how many thread can we have in the async thread pool
- * @param n the number of thread 
- * @return status 
+ * @brief Start all the async thread and make the async task processor ready to run
+ * @return status code
  **/
-int sched_async_set_thread_pool_size(uint32_t n);
+int sched_async_start();
+
+/**
+ * @biref Kill all the async thread and cleanup all the resource it occupies
+ * @return status code
+ **/
+int sched_async_kill();
 
 /**
  * @brief Post as new task to the async task pool, and wait one of the async thread picking up the task

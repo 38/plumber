@@ -53,7 +53,7 @@ typedef enum {
  *           This type of event should be raised from the async worker.
  **/
 typedef struct {
-	void*                     dest_sched;     /*!< The destination scheduler */
+	void*                     dest_sched;     /*!< The destination scheduler, this should be the thread context */
 	void*                     task;           /*!< Which task we are talking aobut */
 	itc_equeue_task_status_t  status;         /*!< The status of this task */
 } itc_equeue_task_event_t;
