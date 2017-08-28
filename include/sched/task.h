@@ -31,14 +31,20 @@ typedef uint64_t sched_task_request_t;
 /**
  * @brief the type for a scheduler task
  **/
-typedef struct {
+typedef struct _sched_task_t sched_task_t;
+
+/**
+ * @brief The actual type for a scheduler task 
+ **/
+struct _sched_task_t {
 	sched_task_context_t*    ctx;     /*!< The scheduler task context */
 	const sched_service_t*   service; /*!< the service that owns this task */
 	sched_rscope_t*          scope;   /*!< the request local scope for this task */
 	sched_service_node_id_t  node;    /*!< the node id for this task */
 	sched_task_request_t     request; /*!< the request id for this task */
-	runtime_task_t*          exec_task;/*!< the actual runtime task */
-} sched_task_t;
+	runtime_task_t*          exec_task; /*!< the actual runtime task, for an async task, this is the async init task<br/>
+	                                     *   And we are able to get related task based on this */
+};
 
 /**
  * @brief initialize the scheduler task table
@@ -55,9 +61,10 @@ int sched_task_finalize();
 
 /**
  * @brief Initialize a new scheduler task context
+ * @param thread_ctx The thread context that creates this scheduler context
  * @return status code
  **/
-sched_task_context_t* sched_task_context_new();
+sched_task_context_t* sched_task_context_new(sched_loop_t* thread_ctx);
 
 /**
  * @brief Dispose a used scheduler task context

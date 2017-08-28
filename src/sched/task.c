@@ -38,6 +38,7 @@ typedef struct _request_entry_t {
  * @brief The context used by a task table
  **/
 struct _sched_task_context_t {
+	void*                 thread_handle;  /*!< The thread handle which creates this scheduler task context */
 	_task_entry_t**       task_table;     /*!< The hash table used to organize tasks */
 	_request_entry_t**    request_table;  /*!< The requet information table, maps the request id to the request entry */
 	_task_entry_t*        queue_head;     /*!< The ready queue head */
@@ -290,7 +291,7 @@ int sched_task_init()
 	return 0;
 }
 
-sched_task_context_t* sched_task_context_new()
+sched_task_context_t* sched_task_context_new(sched_loop_t* thread_ctx)
 {
 	sched_task_context_t* ret = (sched_task_context_t*)calloc(1, sizeof(*ret));
 
@@ -299,6 +300,9 @@ sched_task_context_t* sched_task_context_new()
 
 	if(NULL == (ret->request_table = (_request_entry_t**)calloc(SCHED_TASK_TABLE_SLOT_SIZE, sizeof(ret->request_table[0]))))
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the request hash table");
+
+	ret->thread_handle = thread_ctx;
+
 	return ret;
 
 ERR:

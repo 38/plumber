@@ -491,7 +491,7 @@ int setup()
 	mod_mem = itc_modtab_get_module_type_from_path("pipe.mem");
 	ASSERT(ERROR_CODE(itc_module_type_t) != mod_mem, CLEANUP_NOP);
 	ASSERT_OK(runtime_servlet_append_search_path(TESTDIR), CLEANUP_NOP);
-	ASSERT_PTR(stc = sched_task_context_new(), CLEANUP_NOP);
+	ASSERT_PTR(stc = sched_task_context_new(NULL), CLEANUP_NOP);
 
 	return 0;
 }

@@ -31,11 +31,15 @@
 #include <utils/log.h>
 #include <utils/thread.h>
 
-#include <runtime/api.h>
-
 #include <itc/module_types.h>
 #include <itc/module.h>
 #include <itc/equeue.h>
+
+#include <runtime/api.h>
+#include <runtime/pdt.h>
+#include <runtime/servlet.h>
+#include <runtime/task.h>
+
 
 #include <sched/async.h>
 
@@ -51,18 +55,31 @@ static uint32_t _nthread = 32;
  **/
 static uint32_t _queue_size = 65536;
 
-static uint32_t _handle_magic = 0x35fc32ffu;
+/**
+ * @brief The magic number used to verify a pointer is actually the async task handle
+ **/
+#define _HANDLE_MAGIC 0x35fc32ffu
 
+/**
+ * @brief The async task status
+ **/
 typedef enum {
 	_STATE_INIT,   /*!< Indicates the task is about to call async_init function */
 	_STATE_EXEC,   /*!< The task is about to call async_exec function */
 	_STATE_DONE    /*!< The task is about to call asnyc_clean function and emit the event */
 } _state_t;
 
+/**
+ * @brief The task handle
+ **/
 typedef struct {
 	uint32_t            magic_num;   /*!< The magic number we used to make sure the task handle valid */
 	uint32_t            wait_mode:1; /*!< If this task is in a wait mode */
-	sched_async_task_t  task;        /*!< The actual task definition */
+	_state_t            state;
+	sched_loop_t*       sched_loop;   /*!< The scheduler loop */
+	sched_task_t*       sched_task;   /*!< The scheduler task we are working on */
+	runtime_task_t*     exec_task;    /*!< The async_exec task */
+	runtime_task_t*     cleanup_task; /*!< The async_cleanup task */
 } _handle_t;
 
 /**
@@ -73,6 +90,7 @@ static struct {
 	uint32_t             front;  /*!< The queue front */
 	uint32_t             rear;   /*!< The queue rear */
 	pthread_mutex_t      mutex;  /*!< The queue mutex */
+	_handle_t*           data;   /*!< The actual queue data array */
 } _queue;
 
 /**
@@ -84,9 +102,6 @@ static struct {
  **/
 static inline int _set_prop(const char* symbol, lang_prop_value_t value, const void* data)
 {
-(void)_handle_magic;
-(void)_queue;
-
 	(void)data;
 	if(strcmp(symbol, "nthread") == 0)
 	{
@@ -116,6 +131,7 @@ static inline int _set_prop(const char* symbol, lang_prop_value_t value, const v
 
 int sched_async_init()
 {
+	(void)_queue;
 	lang_prop_callback_t cb = {
 		.param         = NULL,
 		.get           = NULL,

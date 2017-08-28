@@ -6,6 +6,11 @@
 #define __PLUMBER_SCHED_LOOP_H__
 
 /**
+ * @brief The scheduler loop context
+ **/
+typedef struct _sched_loop_t sched_loop_t;
+
+/**
  * @brief start scheduler loop
  * @param service the service to run
  * @return status code

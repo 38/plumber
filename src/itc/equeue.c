@@ -258,7 +258,7 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 
 	if(event.type == ITC_EQUEUE_EVENT_TYPE_IO && (event.io.in == NULL || event.io.out == NULL))
 	    ERROR_RETURN_LOG(int, "Invalid IO event");
-	else if(event.type == ITC_EQUEUE_EVENT_TYPE_TASK && (event.task.dest_sched == NULL || event.task.task == NULL))
+	else if(event.type == ITC_EQUEUE_EVENT_TYPE_TASK && (event.task.loop == NULL || event.task.task == NULL))
 		ERROR_RETURN_LOG(int, "Invalid Task event");
 	else if(event.type != ITC_EQUEUE_EVENT_TYPE_IO && event.type != ITC_EQUEUE_EVENT_TYPE_TASK)
 		ERROR_RETURN_LOG(int, "Invalid event type");

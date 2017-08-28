@@ -20,6 +20,12 @@
 #include <utils/static_assertion.h>
 
 /**
+ * The previous definitions 
+ **/
+typedef struct _sched_loop_t sched_loop_t;
+typedef struct _sched_task_t sched_task_t;
+
+/**
  * @brief The IO event in equeue
  * @details In Plumber, an event is defined as "a pair of input and output pipes, which represents
  *         an IO request". An event comes out means we have unconsumed data that needs to be read. <br/>
@@ -53,8 +59,8 @@ typedef enum {
  *           This type of event should be raised from the async worker.
  **/
 typedef struct {
-	void*                     dest_sched;     /*!< The destination scheduler, this should be the thread context */
-	void*                     task;           /*!< Which task we are talking aobut */
+	sched_loop_t*             loop;          /*!< The destination scheduler, this should be the thread context */
+	sched_task_t*             task;           /*!< Which task we are talking aobut */
 	itc_equeue_task_status_t  status;         /*!< The status of this task */
 } itc_equeue_task_event_t;
 

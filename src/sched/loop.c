@@ -38,8 +38,8 @@ static uint32_t _queue_size = SCHED_LOOP_EVENT_QUEUE_SIZE;
 /**
  * @brief a scheduler loop context
  **/
-typedef struct _context_t {
-	struct _context_t* next;         /*!< the next thread in the loop linked list */
+struct _sched_loop_t {
+	sched_loop_t* next;         /*!< the next thread in the loop linked list */
 	int       started;               /*!< if the loop has started */
 	thread_t* thread;                /*!< the thread object */
 	uint32_t  thread_id;             /*!< the thread id */
@@ -50,14 +50,14 @@ typedef struct _context_t {
 	pthread_cond_t  cond;            /*!< the cond var that is used for the loop wait for new event */
 	uintptr_t __padding__[0];
 	itc_equeue_event_t events[0];    /*!< the actual event queue */
-} _context_t;
-STATIC_ASSERTION_LAST(_context_t, events);
-STATIC_ASSERTION_SIZE(_context_t, events, 0);
+};
+STATIC_ASSERTION_LAST(sched_loop_t, events);
+STATIC_ASSERTION_SIZE(sched_loop_t, events, 0);
 
 /**
  * @brief the scheduler list
  **/
-static _context_t* _scheds = NULL;
+static sched_loop_t* _scheds = NULL;
 
 /**
  * @brief indicate if the dispatcher is waiting
@@ -79,10 +79,10 @@ static pthread_cond_t _dispatcher_cond;
  **/
 static itc_module_type_t _mod_mem = ERROR_CODE(itc_module_type_t);
 
-static inline _context_t* _context_new(uint32_t tid)
+static inline sched_loop_t* _context_new(uint32_t tid)
 {
 	LOG_DEBUG("Creating thread context for scheduler #%d", tid);
-	_context_t* ret = (_context_t*)malloc(sizeof(_context_t) + sizeof(itc_equeue_event_t) * _queue_size);
+	sched_loop_t* ret = (sched_loop_t*)malloc(sizeof(sched_loop_t) + sizeof(itc_equeue_event_t) * _queue_size);
 
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the shceduler thread context");
 	ret->started = 0;
@@ -106,7 +106,7 @@ MUTEX_ERR:
 	return NULL;
 }
 
-static inline int _context_free(_context_t* ctx)
+static inline int _context_free(sched_loop_t* ctx)
 {
 	int rc = 0;
 	if(pthread_mutex_destroy(&ctx->mutex) < 0)
@@ -157,13 +157,13 @@ static inline int _context_free(_context_t* ctx)
 static inline void* _sched_main(void* data)
 {
 	thread_set_name("PbWorker");
-	_context_t* context = (_context_t*)data;
+	sched_loop_t* context = (sched_loop_t*)data;
 
 	context->started = 1;
 
 	sched_task_context_t* stc = NULL;
 
-	if(NULL == (stc = sched_task_context_new()))
+	if(NULL == (stc = sched_task_context_new(context)))
 	    ERROR_LOG_ERRNO_GOTO(KILLED, "Cannot initialize the thread locals for the scheduler thread %u", context->thread_id);
 
 	if(ERROR_CODE(int) == sched_rscope_init_thread())
@@ -252,7 +252,7 @@ KILLED:
 	return NULL;
 }
 
-static inline int _start_loop(_context_t* ctx)
+static inline int _start_loop(sched_loop_t* ctx)
 {
 	if(NULL == (ctx->thread = thread_new(_sched_main, ctx, THREAD_TYPE_WORKER)))
 	    ERROR_RETURN_LOG(int, "Cannot start new scheduler thread");
@@ -269,7 +269,7 @@ static inline int _dispatcher_main()
 
 	if(ERROR_CODE(itc_equeue_token_t) == sched_token) ERROR_RETURN_LOG(int, "Cannot acquire the scheduler token");
 
-	_context_t* round_robin_start = _scheds;
+	sched_loop_t* round_robin_start = _scheds;
 
 	LOG_DEBUG("Dispatcher: loop started");
 
@@ -291,7 +291,7 @@ static inline int _dispatcher_main()
 			continue;
 		}
 
-		_context_t* scheduler = round_robin_start;
+		sched_loop_t* scheduler = round_robin_start;
 		int first;
 
 		struct timespec abstime;
@@ -389,7 +389,7 @@ int sched_loop_start(const sched_service_t* service)
 	if(NULL != _scheds) ERROR_RETURN_LOG_ERRNO(int, "Cannot call the sched loop function twice");
 
 	uint32_t i;
-	_context_t* ptr = NULL;
+	sched_loop_t* ptr = NULL;
 
 	for(i = 0; i < _nthreads; i ++)
 	    if(NULL == _context_new(i))
@@ -431,7 +431,7 @@ CLEANUP_CTX:
 
 	for(ptr = _scheds; ptr != NULL;)
 	{
-		_context_t* cur = ptr;
+		sched_loop_t* cur = ptr;
 		ptr = ptr->next;
 		if(cur->started)
 		{

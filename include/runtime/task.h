@@ -26,6 +26,9 @@
 /** @brief the flag that indicate that this task has been invoked */
 #define RUNTIME_TASK_FLAG_ACTION_INVOKED 0x20000000u
 
+/** @brief The flag indicates this is an async task */
+#define RUNTIME_TASK_FLAG_ACTION_ASYNC   0x10000000u
+
 /** @brief the type for the task flags */
 typedef uint32_t runtime_task_flags_t;
 /**
@@ -69,6 +72,8 @@ int runtime_task_free(runtime_task_t* task);
 
 /**
  * @brief create a new task
+ * @note If the servlet is an async servlet, and flag is EXEC, we are creating a async_init task
+ * @todo implement the note
  * @param servlet the target servlet
  * @param flags the flags of this task
  * @return the newly created task
@@ -76,8 +81,27 @@ int runtime_task_free(runtime_task_t* task);
 runtime_task_t* runtime_task_new(runtime_servlet_t* servlet, runtime_task_flags_t flags);
 
 /**
+ * @brief Check if this task is an async task
+ * @param task The task we want to check
+ * @todo implement this
+ * @return If the task is the async task or error code
+ **/
+int runtime_task_is_async(const runtime_task_t* task);
+
+/**
+ * @brief This function will create the companions of the asnyc task
+ * @param task The async_exec task
+ * @param exec_buf The buffer used to return the execz_buf
+ * @param cleanup_buf The buffer used to return cleanup_buf
+ * @todo implement this
+ * @return status code
+ **/
+int runtime_task_async_companions(const runtime_task_t* task, runtime_task_t** exec_buf, runtime_task_t** cleanup_buf);
+
+/**
  * @brief start the task
  * @param task the task to start
+ * @note  change this
  * @return the status code
  **/
 int runtime_task_start(runtime_task_t* task);
@@ -88,6 +112,8 @@ int runtime_task_start(runtime_task_t* task);
  *          The task is exec task. In addition, it do not recover the current task variable
  *          This function is completely for performance purpose, because most of the task
  *          are exec task and we should have a way to do it faster
+ * @todo Please becareful, now we could have async tasks being started, so make sure this is not
+ *       an async task, and then we are able to move on
  * @param task The task to start
  * @return status code
  **/

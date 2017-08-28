@@ -15,40 +15,6 @@
 #define __SCHED_ASYNC_H__
 
 /**
- * @brief The type used to describe a task
- * @todo Determine if we need a timeout
- **/
-typedef struct {
-	void*                          data;         /*!< The data used by this task */
-	void*                          thread_data;  /*!< The source task scheduler thread context */
-	void*                          sched_data;   /*!< The additional scheduler data */
-	void*                          servlet_ctx;  /*!< The servlet context data */
-	/**
-	 * @brief Initialize the async task
-	 * @param handle The async task handle
-	 * @param async_buf The async data buffer we need to fill
-	 * @param ctxbuf The servlet context buffer
-	 * @return status code
-	 **/
-	int (*init)(const void* handle, void* async_buf, void* ctxbuf);
-	/**
-	 * @brief Actual execution callback, which we should run from the async processing thread
-	 * @note In this function, we don't have any plumber API access besides async_cntl with the handle
-	 * @param handle The task handle
-	 * @param async_buf The async buffer
-	 * @return status code
-	 **/
-	int (*exec)(const void* handle, void* async_buf);
-	/**
-	 * @brief Do the cleanup after the async task is done
-	 * @param async_buf The async buffer
-	 * @param ctxbuf The context buffer
-	 * @return status code
-	 **/
-	int (*cleanup)(void* async_buf, void* ctxbuf);
-} sched_async_task_t;
-
-/**
  * @brief Initialize the async subsystem
  * @return status code
  **/
@@ -74,10 +40,11 @@ int sched_async_kill();
 
 /**
  * @brief Post as new task to the async task pool, and wait one of the async thread picking up the task
+ * @param loop The scheduler loop which posts this task 
  * @param task The task we want to post
  * @note  This function should be called from the worker thread only
  * @return status code
  **/
-int sched_async_post_task(sched_async_task_t task);
+int sched_async_task_post(sched_loop_t* loop, sched_task_t* task);
 
 #endif /* __SCHED_ASYNC_H__ */
