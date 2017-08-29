@@ -422,6 +422,11 @@ enum {
 	RUNTIME_API_INIT_RESULT_ASYNC  = 1,    /*!< This is an async servlet */
 };
 
+/**
+ * @brief This is the dummy type we used to make the compilter aware we are dealing with a async task handle
+ **/
+typedef struct _runtime_api_async_task_handle_t runtime_api_async_handle_t;
+
 
 
 /**
@@ -661,7 +666,7 @@ typedef struct {
 
 	/**
 	 * @brief The initialization stage of the async task
-	 * @param task_handle This is the handle we used to pass to the async_cntl funciton
+	 * @param task This is the handle we used to pass to the async_cntl funciton
 	 * @param data The servlet local context
 	 * @param async_buf The buffer we are going to carry to the async_exec
 	 * @note For the async_exec function, we don't allow the servlet access any servlet context, 
@@ -671,16 +676,16 @@ typedef struct {
 	 *       can access
 	 * @return status code
 	 **/
-	int (*async_setup)(const void* task_handle, void* async_buf, void* data);
+	int (*async_setup)(const runtime_api_async_handle_t* task, void* async_buf, void* data);
 
 	/**
 	 * @brief Execute the initialized async task, the only input of the async buf is the async buf
 	 *        In this function, all the API calls are disallowed.
 	 * @param async_buf The async data buffer
-	 * @param task_handle This is the handle we used to pass to the async_cntl funciton
+	 * @param task This is the handle we used to pass to the async_cntl funciton
 	 * @return status code
 	 **/
-	int (*async_exec)(const void* task_handle, void* async_data);
+	int (*async_exec)(const runtime_api_async_handle_t* task, void* async_data);
 
 	/**
 	 * @brief Clean the used async data

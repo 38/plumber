@@ -30,6 +30,7 @@
 
 #include <utils/log.h>
 #include <utils/thread.h>
+#include <utils/mempool/objpool.h>
 
 #include <itc/module_types.h>
 #include <itc/module.h>
@@ -79,7 +80,6 @@ typedef struct {
 	sched_loop_t*       sched_loop;   /*!< The scheduler loop */
 	sched_task_t*       sched_task;   /*!< The scheduler task we are working on */
 	runtime_task_t*     exec_task;    /*!< The async_exec task */
-	runtime_task_t*     cleanup_task; /*!< The async_cleanup task */
 } _handle_t;
 
 /**
@@ -89,9 +89,16 @@ static struct {
 	uint32_t             size;   /*!< The size of the queue */
 	uint32_t             front;  /*!< The queue front */
 	uint32_t             rear;   /*!< The queue rear */
-	pthread_mutex_t      mutex;  /*!< The queue mutex */
-	_handle_t*           data;   /*!< The actual queue data array */
+	pthread_mutex_t      mutex;  /*!< The mutex used to block the readers */
+	pthread_cond_t       cond;   /*!< The condvar used to block the either reader or writer */
+	mempool_objpool_t*   pool;   /*!< The memory pool used to allocate handles */
+	_handle_t**          data;   /*!< The actual queue data array */
 } _queue;
+
+/**
+ * @brief The initiazation state
+ **/
+static int _init = 0;
 
 /**
  * @brief setup the async task processor properties
@@ -146,3 +153,83 @@ int sched_async_finalize()
 {
 	return 0;
 }
+
+int sched_async_start()
+{
+	if(NULL != _queue.data) 
+		ERROR_RETURN_LOG(int, "Cannot initialize the async task queue twice");
+
+	/* First thing, let's initialze the queue */
+	_queue.size = _queue_size;
+	_queue.front = _queue.rear = 0;
+
+	if(pthread_mutex_init(&_queue.mutex, NULL) < 0)
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot intialize the queue mutex");
+
+	if(pthread_cond_init(&_queue.cond, NULL) < 0)
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the queue cond variable");
+
+	if(NULL == (_queue.data = (_handle_t**)malloc(sizeof(_queue.data[0]) * _queue.size)))
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the queue memory");
+
+	if(NULL == (_queue.pool = (mempool_objpool_t*)mempool_objpool_new(sizeof(_handle_t))))
+		ERROR_LOG_GOTO(ERR, "Cannot create memory pool for async handles");
+
+	/* TODO: Then we need to start the async processing threads */
+
+
+	/* Finally, we  should set the initialization flag */
+	_init = 1;
+
+	return 0;
+
+ERR:
+
+	if(_queue.data != NULL) free(_queue.data);
+	if(_queue.pool != NULL) mempool_objpool_free(_queue.pool);
+
+	return ERROR_CODE(int);
+}
+
+int sched_async_kill()
+{
+#if 0
+	if(!_init) ERROR_RETURN_LOG(int, "The async processor haven't been started yet");
+	int rc = 0;
+
+	/* TODO: stop all the started async processing threads */
+
+	/* We need to dispose the queue */
+	uint32_t i;
+	for(i = _queue.front; i < _queue.rear; i ++)
+	{
+		if(_queue.data[i] == NULL) continue;
+		if(_queue.data[i]->exec_task != NULL && ERROR_CODE(int) == runtime_task_free(_queue.data[i]->exec_task))
+			rc = ERROR_CODE(int);
+		if(ERROR_CODE(int) == mempool_objpool_dealloc(_queue.pool, _queue.data[i]))
+			rc = ERROR_CODE(int);
+	}
+	// TODO
+#endif
+	return 0;
+}
+
+#if 0
+int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
+{
+	/* First, let's verify this task is a valid async init task */
+	if(NULL == loop || NULL == task) 
+		ERROR_RETURN_LOG(int, "Invalid argumetns");
+
+	if(task->exec_task == NULL)
+		ERROR_RETURN_LOG(int, "The async processor cannot take an uninstantiated task");
+
+	if(RUNTIME_TASK_FLAG_GET_ACTION(task->exec_task->flags) != RUNTIME_TASK_FLAG_ACTION_ASYNC | RUNTIME_TASK_FLAG_ACTION_INIT)
+		ERROR_RETURN_LOG(int, "The async_setup task is expected");
+
+	/* Then let's construct the handle */
+	_handle_t handle = {
+	};
+	return 0;
+}
+#endif

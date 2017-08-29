@@ -30,6 +30,11 @@ static __thread runtime_task_t* _current_task = NULL;
  **/
 static pthread_mutex_t _pool_mutex;
 
+/**
+ * @brief What is the next task ID
+ **/
+static uint32_t _next_task_id = 0;
+
 int runtime_task_init()
 {
 	if(pthread_mutex_init(&_pool_mutex, NULL) < 0) ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the pool mutex");
@@ -46,7 +51,6 @@ int runtime_task_finalize()
 static inline runtime_task_t* _task_new(runtime_servlet_t* servlet, uint32_t action)
 {
 	size_t npipes = 0;
-	static uint32_t _next_task_id = 0;
 	runtime_task_t* ret = NULL;
 	if(NULL == servlet) return NULL;
 	if((RUNTIME_TASK_FLAG_ACTION_MASK & ~RUNTIME_TASK_FLAG_ACTION_ASYNC & action) != RUNTIME_TASK_FLAG_ACTION_INIT &&
@@ -54,20 +58,20 @@ static inline runtime_task_t* _task_new(runtime_servlet_t* servlet, uint32_t act
 	{
 		/* Because we use npipes later, so we need to check this outside of the if clause */
 		npipes = runtime_pdt_get_size(servlet->pdt);
-		if(NULL == servlet->bin->task_pool)
+		if(NULL == servlet->task_pool)
 		{
 			size_t size = sizeof(runtime_task_t) + npipes * sizeof(itc_module_pipe_t*);
 			if(pthread_mutex_lock(&_pool_mutex) < 0)
 			    LOG_WARNING_ERRNO("Cannot acquire the pool mutex");
 			/* Because there may be multiple threads blocked here, so we need to check if the pool is already allocated
 			 * after we acquired the lock */
-			if(NULL == servlet->bin->task_pool && NULL == (servlet->bin->task_pool = mempool_objpool_new((uint32_t)size)))
+			if(NULL == servlet->task_pool && NULL == (servlet->task_pool = mempool_objpool_new((uint32_t)size)))
 			        ERROR_PTR_RETURN_LOG("Cannot create memory pool for the servlet task");
 			if(pthread_mutex_unlock(&_pool_mutex) < 0)
 			    LOG_WARNING_ERRNO("Cannot release the pool mutex");
 		}
 		
-		if(NULL == (ret = mempool_objpool_alloc(servlet->bin->task_pool)))
+		if(NULL == (ret = mempool_objpool_alloc(servlet->task_pool)))
 			ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the new task");
 
 		/* If this is an async servlet and try to creat an exec task, then we need allocate the async data buffer */
@@ -90,10 +94,12 @@ static inline runtime_task_t* _task_new(runtime_servlet_t* servlet, uint32_t act
 
 			if(NULL == (ret->async_data = mempool_objpool_alloc(servlet->bin->async_pool)))
 				ERROR_LOG_GOTO(ERR, "Cannot allocate the async data buffer");
+
+			ret->async_owner = 1;
 		}
 		goto EXIT;
 ERR:
-		if(NULL != ret) mempool_objpool_dealloc(servlet->bin->task_pool, ret);
+		if(NULL != ret) mempool_objpool_dealloc(servlet->task_pool, ret);
 		ret = NULL;
 	}
 	else
@@ -123,13 +129,16 @@ int runtime_task_free(runtime_task_t* task)
 		}
 	}
 
-	if(task->servlet->async && NULL != task->async_data && 
+	/* We only dispose the async data buffer when the owner of this buffer is dead. 
+	 * For the convention for who owns the async buffer, please read the documentation
+	 * of async_owner field */
+	if((task->flags & RUNTIME_TASK_FLAG_ACTION_ASYNC) && task->async_owner && NULL != task->async_data && 
 	   ERROR_CODE(int) == mempool_objpool_dealloc(task->servlet->bin->async_pool, task->async_data))
 		rc = ERROR_CODE(int);
 
 	runtime_task_flags_t action = RUNTIME_TASK_FLAG_GET_ACTION(task->flags);
 	if(action != RUNTIME_TASK_FLAG_ACTION_INIT && action != RUNTIME_TASK_FLAG_ACTION_UNLOAD)
-	    mempool_objpool_dealloc(task->servlet->bin->task_pool, task);
+	    mempool_objpool_dealloc(task->servlet->task_pool, task);
 	else
 	    free(task);
 	return rc;
@@ -167,14 +176,21 @@ int runtime_task_start_exec_fast(runtime_task_t* task)
 	return 0;
 }
 
-int runtime_task_start_async_init_fast(runtime_task_t* task, void* async_handle)
+int runtime_task_start_async_setup_fast(runtime_task_t* task, runtime_api_async_handle_t* async_handle)
 {
-	LOG_TRACE("Async task %s (TID = %d) is being initialized", task->servlet->bin->name, task->id);
+	LOG_TRACE("Async init task %s (TID = %d) is being initialized", task->servlet->bin->name, task->id);
 
 	return task->servlet->bin->define->async_setup(async_handle, task->async_data, task->servlet->data);
 }
 
-int runtime_task_start(runtime_task_t *task, void* async_handle)
+int runtime_task_start_async_cleanup_fast(runtime_task_t* task)
+{
+	LOG_TRACE("Async cleanup task %s (TID = %d) is being initialized", task->servlet->bin->name, task->id);
+
+	return task->servlet->bin->define->async_cleanup(task->async_data, task->servlet->data);
+}
+
+int runtime_task_start(runtime_task_t *task, runtime_api_async_handle_t* async_handle)
 {
 	if(NULL == task)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
@@ -253,3 +269,48 @@ runtime_task_t* runtime_task_current()
 	return _current_task;
 }
 
+int runtime_task_async_companions(runtime_task_t* task, runtime_task_t** exec_buf, runtime_task_t** cleanup_buf)
+{
+	if(NULL == task || NULL == exec_buf || NULL == cleanup_buf || 
+	   RUNTIME_TASK_FLAG_GET_ACTION(task->flags) != (RUNTIME_TASK_FLAG_ACTION_UNLOAD | RUNTIME_TASK_FLAG_ACTION_ASYNC))
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(!task->async_owner) ERROR_RETURN_LOG(int, "Cannot create companion tasks for the async task do not hold the owership of the async buffer");
+
+	void* async_buf = task->async_data;
+	if(task->servlet->task_pool == NULL) ERROR_RETURN_LOG(int, "Code bug: How can the init task created without task pool ?");
+
+	if(NULL == (*exec_buf = mempool_objpool_alloc(task->servlet->task_pool)))
+		ERROR_RETURN_LOG(int, "Cannot allocate the async_exec task object from the task pool");
+
+	if(NULL == (*cleanup_buf = mempool_objpool_alloc(task->servlet->task_pool)))
+		ERROR_LOG_GOTO(ERR, "Cannot allocate the async_cleanup task object from the task pool");
+
+	exec_buf[0]->async_data = cleanup_buf[0]->async_data = async_buf;
+
+	exec_buf[0]->servlet = cleanup_buf[0]->servlet = task->servlet;
+
+	exec_buf[0]->flags = cleanup_buf[0]->flags = (task->flags & ~RUNTIME_TASK_FLAG_ACTION_MASK) | RUNTIME_TASK_FLAG_ACTION_ASYNC;
+	exec_buf[0]->flags |= RUNTIME_TASK_FLAG_ACTION_EXEC;
+	exec_buf[0]->flags |= RUNTIME_TASK_FLAG_ACTION_UNLOAD;
+	
+	/* We don't allow the exec task access any pipe */
+	exec_buf[0]->npipes = 0;
+	cleanup_buf[0]->npipes = task->npipes;
+	memcpy(cleanup_buf[0]->pipes, task->pipes, sizeof(task->pipes[0]) * task->npipes);
+
+	/* Assign the task id */
+	exec_buf[0]->id = _next_task_id ++;
+	cleanup_buf[0]->id = _next_task_id ++;
+
+	/* Finally we take the ownership from the async init task and assign it to the cleanup task */
+	task->async_owner = 0;
+	cleanup_buf[0]->async_owner = 1;
+
+	return 0;
+ERR:
+	if(NULL != *exec_buf) mempool_objpool_dealloc(task->servlet->task_pool, *exec_buf);
+	if(NULL != *cleanup_buf) mempool_objpool_dealloc(task->servlet->task_pool, *cleanup_buf);
+
+	return ERROR_CODE(int);
+}

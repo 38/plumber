@@ -332,6 +332,7 @@ runtime_servlet_t* runtime_servlet_new(runtime_servlet_binary_t* binary, uint32_
 		memcpy(arguments[i], argv[i], len + 1);
 	}
 
+	ret->task_pool = NULL;
 	ret->owner = NULL;
 
 	/* Invoke the init task */
@@ -416,6 +417,10 @@ int runtime_servlet_free(runtime_servlet_t* servlet)
 		        free(servlet->argv[i]);
 		free(servlet->argv);
 	}
+	
+	if(servlet->task_pool != NULL && mempool_objpool_free(servlet->task_pool) == ERROR_CODE(int))
+	    LOG_WARNING("Cannot dispose the task memory pool");
+
 
 	if(rc != ERROR_CODE(int))
 	    LOG_DEBUG("Servlet instance of %s has been unloaded successfully", servlet->bin->name);
@@ -471,7 +476,7 @@ runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const ch
 	string_buffer_append(name, &strbuf);
 	string_buffer_close(&strbuf);
 
-	ret->task_pool = ret->async_pool = NULL;
+	ret->async_pool = NULL;
 
 
 #ifdef LOG_NOTICE_ENABLED
@@ -504,9 +509,6 @@ int runtime_servlet_binary_unload(runtime_servlet_binary_t* binary)
 		LOG_ERROR("Can not close the dynamic library: %s", dlerror());
 	}
 	
-	if(binary->task_pool != NULL && mempool_objpool_free(binary->task_pool) == ERROR_CODE(int))
-	    LOG_WARNING("Cannot dispose the task memory pool");
-
 	if(binary->async_pool != NULL && mempool_objpool_free(binary->async_pool) == ERROR_CODE(int))
 		LOG_WARNING("Cannot dispose the async buffer memory pool");
 

@@ -22,7 +22,6 @@ typedef struct {
 	runtime_api_servlet_def_t* define;                         /*!< The additional data that used by the servlet */
 	void*                      dl_handler;                     /*!< The dynamic library handler */
 	char                       name[RUNTIME_SERVLET_NAME_LEN]; /*!< The name of the servlet */
-	mempool_objpool_t*         task_pool;                      /*!< The memory pool for the task created from this servlet */
 	mempool_objpool_t*         async_pool;                     /*!< The memory pool for the async buffer for this servlet, it's only meaning ful if this servlet is async */
 } runtime_servlet_binary_t;
 
@@ -41,6 +40,7 @@ typedef struct{
 	uint32_t                        argc;       /*!< The number of argument has been pass to this servlet */
 	char**                          argv;       /*!< The argument list for this servlet*/
 	runtime_pdt_t*                  pdt;        /*!< The pipe name table */
+	mempool_objpool_t*              task_pool;  /*!< The memory pool for the task created from this servlet */
 	const void*                     owner;      /*!< The pointer used to make a back reference to the service node owns this servlet */
 	runtime_api_pipe_t              sig_null;   /*!< The pipe used as the zero output signal */
 	runtime_api_pipe_t              sig_error;  /*!< The pipe used as the internal error signal */
