@@ -147,9 +147,10 @@ int runtime_task_start_async_setup_fast(runtime_task_t* task, runtime_api_async_
  *          see the documentation for runtime_task_start_async_setup_fast and runtime_task_start_exec_fast
  *          for more details
  * @param task The task to start
+ * @param async_handle The async handle we want to use
  * @return status code
  **/
-int runtime_task_start_async_cleanup_fast(runtime_task_t* task);
+int runtime_task_start_async_cleanup_fast(runtime_task_t* task, runtime_api_async_handle_t* async_handle);
 
 /**
  * @brief get current task

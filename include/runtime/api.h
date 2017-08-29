@@ -290,6 +290,15 @@ STATIC_ASSERTION_EQ_ID(__non_module_related_pop_state__, 0xff, RUNTIME_API_PIPE_
 #define RUNTIME_API_ASYNC_CNTL_OPCODE_NOTIFY_WAIT 1
 
 /**
+ * @brief Gets the return status code of this task
+ * @details This is useful when have the cleanup function, because in some case
+ *          we need to know if this task is on error or not. 
+ *          This function give us a chance to get the return code of the asnyc task
+ * @note usage async_cntl(ASYNC_CNTL_OPCODE_RETCODE, &retcode);
+ **/
+#define RUNTIME_API_ASYNC_CNTL_OPCODE_RETCODE 2
+
+/**
  * @brief the token used to request local scope token
  **/
 typedef uint32_t runtime_api_scope_token_t;
@@ -426,7 +435,6 @@ enum {
  * @brief This is the dummy type we used to make the compilter aware we are dealing with a async task handle
  **/
 typedef struct _runtime_api_async_task_handle_t runtime_api_async_handle_t;
-
 
 
 /**
@@ -613,6 +621,7 @@ typedef struct {
 	 *       otherwise we should provide the task_handle (The example for this case is the ASYNC_CNTL_OPCODE_NOTIFY_WAIT,
 	 *       which we may not call the function from the thread working on the async task. In this case, we just extract
 	 *       the async context from the handle
+	 * @todo implement this 
 	 * @return status code
 	 **/
 	int (*async_cntl)(const void* task_handle, uint32_t opcode, va_list ap);
@@ -693,7 +702,7 @@ typedef struct {
 	 * @param task_handle This is the handle we used to pass to the async_cntl funciton
 	 * @return status code
 	 **/
-	int (*async_cleanup)(void* async_data, void* data);
+	int (*async_cleanup)(const runtime_api_async_handle_t* task, void* async_data, void* data);
 } runtime_api_servlet_def_t;
 
 #endif /*__RUNTIME_API_H__*/

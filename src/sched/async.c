@@ -40,8 +40,11 @@
 #include <runtime/pdt.h>
 #include <runtime/servlet.h>
 #include <runtime/task.h>
+#include <runtime/stab.h>
 
-
+#include <sched/rscope.h>
+#include <sched/service.h>
+#include <sched/task.h>
 #include <sched/async.h>
 
 #include <lang/prop.h>
@@ -65,7 +68,7 @@ static uint32_t _queue_size = 65536;
  * @brief The async task status
  **/
 typedef enum {
-	_STATE_INIT,   /*!< Indicates the task is about to call async_init function */
+	_STATE_INIT,   /*!< Indicates the task is about to call async_setup function */
 	_STATE_EXEC,   /*!< The task is about to call async_exec function */
 	_STATE_DONE    /*!< The task is about to call asnyc_clean function and emit the event */
 } _state_t;
@@ -74,16 +77,24 @@ typedef enum {
  * @brief The task handle
  **/
 typedef struct {
-	uint32_t            magic_num;   /*!< The magic number we used to make sure the task handle valid */
-	uint32_t            wait_mode:1; /*!< If this task is in a wait mode */
-	_state_t            state;
+	uint32_t            magic_num;    /*!< The magic number we used to make sure the task handle valid */
+	uint32_t            wait_mode:1;  /*!< If this task is in a wait mode */
+	int                 status_code;  /*!< The status code of this task */
+	_state_t            state;        /*!< The state of this handle */
 	sched_loop_t*       sched_loop;   /*!< The scheduler loop */
 	sched_task_t*       sched_task;   /*!< The scheduler task we are working on */
 	runtime_task_t*     exec_task;    /*!< The async_exec task */
+	runtime_task_t*     cleanup_task; /*!< The async_cleanup task */
 } _handle_t;
 
 /**
  * @brief The data structure for the async task queue
+ * @note  The writer would only be blocked when the
+ *        queue is full and the reader would only be blocked when the queue is empty. 
+ *        Because the queue size should be strictly larger than 0. So reader and writer won't 
+ *        be blocked at the same time. (It's impossible there are readers and writers being
+ *        blocked at the same time). Which means we can use the condition variable
+ *        for both reader and writer.
  **/
 static struct {
 	uint32_t             size;   /*!< The size of the queue */
@@ -172,7 +183,7 @@ int sched_async_start()
 	if(NULL == (_queue.data = (_handle_t**)malloc(sizeof(_queue.data[0]) * _queue.size)))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the queue memory");
 
-	if(NULL == (_queue.pool = (mempool_objpool_t*)mempool_objpool_new(sizeof(_handle_t))))
+	if(NULL == (_queue.pool = mempool_objpool_new(sizeof(_handle_t))))
 		ERROR_LOG_GOTO(ERR, "Cannot create memory pool for async handles");
 
 	/* TODO: Then we need to start the async processing threads */
@@ -193,7 +204,6 @@ ERR:
 
 int sched_async_kill()
 {
-#if 0
 	if(!_init) ERROR_RETURN_LOG(int, "The async processor haven't been started yet");
 	int rc = 0;
 
@@ -209,12 +219,21 @@ int sched_async_kill()
 		if(ERROR_CODE(int) == mempool_objpool_dealloc(_queue.pool, _queue.data[i]))
 			rc = ERROR_CODE(int);
 	}
-	// TODO
-#endif
-	return 0;
+
+	if(ERROR_CODE(int) == mempool_objpool_free(_queue.pool))
+		rc = ERROR_CODE(int);
+
+	free(_queue.data);
+
+	_queue.data = NULL;
+	_queue.size = 0;
+	_queue.front = _queue.rear = 0;
+
+	_init = 0;
+
+	return rc;
 }
 
-#if 0
 int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 {
 	/* First, let's verify this task is a valid async init task */
@@ -224,12 +243,63 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	if(task->exec_task == NULL)
 		ERROR_RETURN_LOG(int, "The async processor cannot take an uninstantiated task");
 
-	if(RUNTIME_TASK_FLAG_GET_ACTION(task->exec_task->flags) != RUNTIME_TASK_FLAG_ACTION_ASYNC | RUNTIME_TASK_FLAG_ACTION_INIT)
+	if(RUNTIME_TASK_FLAG_GET_ACTION(task->exec_task->flags) != (RUNTIME_TASK_FLAG_ACTION_ASYNC | RUNTIME_TASK_FLAG_ACTION_INIT))
 		ERROR_RETURN_LOG(int, "The async_setup task is expected");
 
 	/* Then let's construct the handle */
-	_handle_t handle = {
-	};
+	runtime_task_t *async_exec = NULL;
+	runtime_task_t *async_cleanup = NULL;
+	_handle_t* handle = mempool_objpool_alloc(_queue.pool);
+	
+	if(NULL == handle) 
+		ERROR_RETURN_LOG(int, "Cannot allocate memory for the handle");
+
+	handle->magic_num   = _HANDLE_MAGIC;
+	handle->wait_mode   = 0;
+	handle->state       = _STATE_INIT;
+	handle->sched_loop  = loop;
+	handle->sched_task  = task;
+	handle->status_code = 0;
+
+	/* After that we need to call the async_setup function to get this initialized */
+	if(ERROR_CODE(int) == runtime_task_start(task->exec_task, (runtime_api_async_handle_t*)handle))
+		ERROR_LOG_GOTO(ERR, "The async setup task returns an error code");
+
+	/* Ok it seems the task has been successfully setup, construct its continuation at this point */
+	if(ERROR_CODE(int) == runtime_task_async_companions(task->exec_task, &async_exec, &async_cleanup))
+		ERROR_LOG_GOTO(ERR, "Cannot Create the companion of the task");
+	
+	handle->state = _STATE_EXEC;
+
+	if(ERROR_CODE(int) == runtime_task_free(task->exec_task))
+		ERROR_LOG_GOTO(ERR, "Cannot dispose the async setup task");
+
+	task->exec_task = async_cleanup;
+	handle->exec_task = async_exec;
+
+	/* At this point, we got a fully initialized async task handle */
+
+	/* TODO: we need to add the task to the queue */
+
+
 	return 0;
+ERR:
+	if(task->exec_task != NULL && task->exec_task != async_cleanup) 
+		runtime_task_free(task->exec_task);
+
+	if(async_exec != NULL) 
+		runtime_task_free(async_exec);
+
+	if(async_cleanup != NULL)
+	{
+		handle->status_code = ERROR_CODE(int);
+		if(ERROR_CODE(int) == runtime_task_start(async_cleanup, (runtime_api_async_handle_t*)handle))
+			LOG_WARNING("The async cleanup task returns an error code");
+		runtime_task_free(async_cleanup);
+	}
+
+	if(NULL != handle) 
+		mempool_objpool_dealloc(_queue.pool, handle);
+
+	return ERROR_CODE_OT(int);
 }
-#endif

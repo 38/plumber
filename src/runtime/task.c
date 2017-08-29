@@ -120,12 +120,16 @@ int runtime_task_free(runtime_task_t* task)
 	unsigned i = 0;
 	int rc = 0;
 
-	for(i = 0; i < task->npipes; i ++)
+	/* We actually needs to keep the pipe alive if the task is not the asnyc owner */
+	if((task->flags & RUNTIME_TASK_FLAG_ACTION_ASYNC) == 0 || task->async_owner)
 	{
-		if(NULL != task->pipes[i] && itc_module_pipe_deallocate(task->pipes[i]) < 0)
+		for(i = 0; i < task->npipes; i ++)
 		{
-			LOG_WARNING("cannot dispose pipe #%d", i);
-			rc = ERROR_CODE(int);
+			if(NULL != task->pipes[i] && itc_module_pipe_deallocate(task->pipes[i]) < 0)
+			{
+				LOG_WARNING("cannot dispose pipe #%d", i);
+				rc = ERROR_CODE(int);
+			}
 		}
 	}
 
@@ -183,11 +187,11 @@ int runtime_task_start_async_setup_fast(runtime_task_t* task, runtime_api_async_
 	return task->servlet->bin->define->async_setup(async_handle, task->async_data, task->servlet->data);
 }
 
-int runtime_task_start_async_cleanup_fast(runtime_task_t* task)
+int runtime_task_start_async_cleanup_fast(runtime_task_t* task, runtime_api_async_handle_t* async_handle)
 {
 	LOG_TRACE("Async cleanup task %s (TID = %d) is being initialized", task->servlet->bin->name, task->id);
 
-	return task->servlet->bin->define->async_cleanup(task->async_data, task->servlet->data);
+	return task->servlet->bin->define->async_cleanup(async_handle, task->async_data, task->servlet->data);
 }
 
 int runtime_task_start(runtime_task_t *task, runtime_api_async_handle_t* async_handle)
@@ -248,7 +252,7 @@ int runtime_task_start(runtime_task_t *task, runtime_api_async_handle_t* async_h
 				break;
 			case RUNTIME_TASK_FLAG_ACTION_UNLOAD:
 				if(NULL != task->servlet->bin->define->async_cleanup)
-					rc = task->servlet->bin->define->async_cleanup(task->async_data, task->servlet->data);
+					rc = task->servlet->bin->define->async_cleanup(async_handle, task->async_data, task->servlet->data);
 				else 
 					rc = 0;
 				break;
@@ -306,6 +310,7 @@ int runtime_task_async_companions(runtime_task_t* task, runtime_task_t** exec_bu
 	/* Finally we take the ownership from the async init task and assign it to the cleanup task */
 	task->async_owner = 0;
 	cleanup_buf[0]->async_owner = 1;
+	exec_buf[0]->async_owner = 0;
 
 	return 0;
 ERR:
