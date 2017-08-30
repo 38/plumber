@@ -2,6 +2,7 @@
  * Copyright (C) 2017, Hao Hou
  **/
 /**
+ * @todo Desgin the awaiting task managing code
  * @note I have thought about if the async task queue should be lock-free and do we really care about the
  *       lock overhead of posting a async task to the queue. The answer seems not. <br/>
  *       For the enttire processing procedure, it's hard to believe that most of the time the worker thread 
@@ -75,7 +76,6 @@ typedef struct _handle_t {
 	sched_loop_t*       sched_loop;   /*!< The scheduler loop */
 	sched_task_t*       sched_task;   /*!< The scheduler task we are working on */
 	runtime_task_t*     exec_task;    /*!< The async_exec task */
-	runtime_task_t*     cleanup_task; /*!< The async_cleanup task */
 } _handle_t;
 
 /**
@@ -164,6 +164,11 @@ static void* _async_processor_main(void* data)
 {
 	_thread_data_t* thread_data = (_thread_data_t*)data;
 
+	itc_equeue_token_t token = itc_equeue_module_token(ITC_MODULE_EVENT_QUEUE_SIZE);
+
+	if(ERROR_CODE(itc_equeue_token_t) == token) 
+		ERROR_PTR_RETURN_LOG("Cannot get the enent queue token for the async processing thread");
+
 	for(;!_ctx.killed;)
 	{
 		if(pthread_mutex_lock(&_ctx.q_mutex) < 0)
@@ -202,8 +207,31 @@ UNLOCK:
 		/* Then we need check if we have picked up a task, if not, we need to wait for another one */
 		if(thread_data->task == NULL) continue;
 
-		/* TODO: At this point, we will be able to process it */
-		/* At this point, the task should be the exec task */
+		LOG_DEBUG("Staring the async exec task");
+		if(ERROR_CODE(int) == runtime_task_start(thread_data->task->exec_task, (runtime_api_async_handle_t*)thread_data->task))
+		{
+			thread_data->task->status_code = ERROR_CODE(int);;
+			LOG_ERROR("The async exec task returns an error");
+		}
+		else thread_data->task->status_code = 0;
+
+		itc_equeue_event_t event;
+
+		event.type = ITC_EQUEUE_EVENT_TYPE_TASK;
+		event.task.loop = thread_data->task->sched_loop;
+		event.task.task = thread_data->task->sched_task;
+		event.task.async_handle = (runtime_api_async_handle_t*)thread_data->task;
+
+		/* Finally we can dispose the task at this point */
+		if(ERROR_CODE(int) == runtime_task_free(thread_data->task->exec_task))
+		{
+			LOG_ERROR("Cannot dispose the executed async exec task");
+			thread_data->task->status_code = ERROR_CODE(int);
+		}
+
+		/* Send a event to the event queue, so that the scheduler knows about the event */
+		if(ERROR_CODE(int) == itc_equeue_put(token, event))
+			LOG_ERROR("Cannot send the task event to the event queue");
 	}
 
 	return thread_data;
@@ -417,4 +445,14 @@ ERR:
 		mempool_objpool_dealloc(_ctx.q_pool, handle);
 
 	return ERROR_CODE_OT(int);
+}
+
+int sched_async_handle_dispose(runtime_api_async_handle_t* handle)
+{
+	_handle_t* mem = (_handle_t*)handle;
+
+	if(NULL == mem || mem->magic_num != _HANDLE_MAGIC) 
+		ERROR_RETURN_LOG(int, "Invalid arguments: Invalid async task handle");
+
+	return mempool_objpool_dealloc(_ctx.q_pool, mem);
 }

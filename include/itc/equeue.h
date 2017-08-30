@@ -44,14 +44,6 @@ typedef struct {
 } itc_equeue_io_event_t;
 
 /**
- * @brief The status of the task
- **/
-typedef enum {
-	ITC_EQUEUE_TASK_STATUS_SUCCESS,   /*!< The task is successfully completed */
-	ITC_EQUEUE_TASK_STATUS_FAILED     /*!< The task is failed */
-} itc_equeue_task_status_t;
-
-/**
  * @brief    The task event in equeue
  * @details  This is the event different from the IO event, it's not triggered by the external IO
  *           event. This types of event is caused by the status change of the task. And it means
@@ -59,9 +51,9 @@ typedef enum {
  *           This type of event should be raised from the async worker.
  **/
 typedef struct {
-	sched_loop_t*             loop;          /*!< The destination scheduler, this should be the thread context */
-	sched_task_t*             task;           /*!< Which task we are talking aobut */
-	itc_equeue_task_status_t  status;         /*!< The status of this task */
+	sched_loop_t*               loop;           /*!< The destination scheduler, this should be the thread context */
+	sched_task_t*               task;           /*!< Which task we are talking aobut */
+	runtime_api_async_handle_t* async_handle;   /*!< The async handle */
 } itc_equeue_task_event_t;
 
 /**

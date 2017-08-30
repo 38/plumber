@@ -54,4 +54,11 @@ int sched_async_kill();
  **/
 int sched_async_task_post(sched_loop_t* loop, sched_task_t* task);
 
+/**
+ * @brief Dispose the async task handle
+ * @param handle The task handle to dispose
+ * @return ststua code
+ **/
+int sched_async_handle_dispose(runtime_api_async_handle_t* handle);
+
 #endif /* __SCHED_ASYNC_H__ */
