@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <pthread.h>
+#include <sys/time.h>
 
 #include <error.h>
 
@@ -50,16 +51,6 @@
 #include <lang/prop.h>
 
 /**
- * @brief The number of the worker thread in the async task thread pool
- **/
-static uint32_t _nthread = 32;
-
-/**
- * @brief The maximum size of the queue
- **/
-static uint32_t _queue_size = 65536;
-
-/**
  * @brief The magic number used to verify a pointer is actually the async task handle
  **/
 #define _HANDLE_MAGIC 0x35fc32ffu
@@ -76,9 +67,9 @@ typedef enum {
 /**
  * @brief The task handle
  **/
-typedef struct {
+typedef struct _handle_t {
 	uint32_t            magic_num;    /*!< The magic number we used to make sure the task handle valid */
-	uint32_t            wait_mode:1;  /*!< If this task is in a wait mode */
+	uint32_t            await_id;     /*!< The index of the handle in the wait list, ERROR_CODE if this handle is not in the awaiting list */
 	int                 status_code;  /*!< The status code of this task */
 	_state_t            state;        /*!< The state of this handle */
 	sched_loop_t*       sched_loop;   /*!< The scheduler loop */
@@ -88,7 +79,15 @@ typedef struct {
 } _handle_t;
 
 /**
- * @brief The data structure for the async task queue
+ * @brief The data structure for a async thread
+ **/
+typedef struct {
+	thread_t*    thread; /*!< The thread object for this async thread */
+	_handle_t*   task;   /*!< The task this thread is current processing */
+} _thread_data_t;
+
+/**
+ * @brief The data structure for the ATP(Async Task Processor)
  * @note  The writer would only be blocked when the
  *        queue is full and the reader would only be blocked when the queue is empty. 
  *        Because the queue size should be strictly larger than 0. So reader and writer won't 
@@ -97,19 +96,28 @@ typedef struct {
  *        for both reader and writer.
  **/
 static struct {
-	uint32_t             size;   /*!< The size of the queue */
-	uint32_t             front;  /*!< The queue front */
-	uint32_t             rear;   /*!< The queue rear */
-	pthread_mutex_t      mutex;  /*!< The mutex used to block the readers */
-	pthread_cond_t       cond;   /*!< The condvar used to block the either reader or writer */
-	mempool_objpool_t*   pool;   /*!< The memory pool used to allocate handles */
-	_handle_t**          data;   /*!< The actual queue data array */
-} _queue;
+	uint32_t             init:1;    /*!< Indicates if the async task processor has been initialized */
+	uint32_t             killed:1;  /*!< Indicates if the entire Async Task Processor has been killed */
 
-/**
- * @brief The initiazation state
- **/
-static int _init = 0;
+	/*********** The queue related data ***************/
+	uint32_t             q_cap;    /*!< The capacity of the queue */
+	uint32_t             q_front;  /*!< The queue front */
+	uint32_t             q_rear;   /*!< The queue rear */
+	pthread_mutex_t      q_mutex;  /*!< The mutex used to block the readers */
+	pthread_cond_t       q_cond;   /*!< The condvar used to block the either reader or writer */
+	mempool_objpool_t*   q_pool;   /*!< The memory pool used to allocate handles */
+	_handle_t**          q_data;   /*!< The actual queue data array */
+
+	/********** The awaiting list *********************/
+	uint32_t             al_cap;   /*!< The awaiting list capacity */
+	uint32_t             al_size;  /*!< The actual number of awaiting tasks in the list */
+	uint32_t**           al_unused;/*!< The unused wait list id */
+	_handle_t**          al_list;  /*!< The awating list */
+
+	/********* Thread releated data *******************/
+	uint32_t             nthreads;    /*!< The number of threads in the async processing thread pool */
+	_thread_data_t*      thread_data; /*!< The thread data for each async processing thread */
+} _ctx;
 
 /**
  * @brief setup the async task processor properties
@@ -121,11 +129,11 @@ static int _init = 0;
 static inline int _set_prop(const char* symbol, lang_prop_value_t value, const void* data)
 {
 	(void)data;
-	if(strcmp(symbol, "nthread") == 0)
+	if(strcmp(symbol, "nthreads") == 0)
 	{
 		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
-		_nthread = (uint32_t)value.num;
-		LOG_DEBUG("Setting the number of async processing thread to %u", _nthread);
+		_ctx.nthreads = (uint32_t)value.num;
+		LOG_DEBUG("Setting the number of async processing thread to %u", _ctx.nthreads);
 	}
 	else if(strcmp(symbol, "queue_size") == 0)
 	{
@@ -137,7 +145,7 @@ static inline int _set_prop(const char* symbol, lang_prop_value_t value, const v
 		if((uint32_t)value.num != actual)
 			LOG_WARNING("Adjusted the desired async processor queue size from %u to %u", (uint32_t)value.num, actual);
 		LOG_DEBUG("Setting the async processor queue size to %u", actual);
-		_queue_size = actual;
+		_ctx.q_cap = actual;
 	}
 	else 
 	{
@@ -147,9 +155,64 @@ static inline int _set_prop(const char* symbol, lang_prop_value_t value, const v
 	return 0;
 }
 
+/**
+ * @brief The main function of the async processor
+ * @param data The thread data
+ * @return status code
+ **/
+static void* _async_processor_main(void* data)
+{
+	_thread_data_t* thread_data = (_thread_data_t*)data;
+
+	for(;!_ctx.killed;)
+	{
+		if(pthread_mutex_lock(&_ctx.q_mutex) < 0)
+		{
+			LOG_ERROR("Cannot acquire the async task queue mutex");
+			continue;
+		}
+
+		struct timespec abstime;
+		struct timeval now;
+		gettimeofday(&now,NULL);
+		abstime.tv_sec = now.tv_sec+1;
+		abstime.tv_nsec = 0;
+
+		while(_ctx.q_front == _ctx.q_rear && !_ctx.killed)
+		{
+			if(pthread_cond_timedwait(&_ctx.q_cond, &_ctx.q_mutex, &abstime) < 0 && errno != EINTR && errno != ETIMEDOUT)
+				ERROR_LOG_ERRNO_GOTO(UNLOCK, "Cannot wait for the reader cond var");
+
+			abstime.tv_sec ++;
+		}
+
+		if(_ctx.killed) goto UNLOCK;
+
+		/* At this point we can claim the task */
+		thread_data->task = _ctx.q_data[_ctx.q_front ++];
+
+		/* At the same time, we need to check if this operation unblocks the writer */
+		if(_ctx.q_rear - _ctx.q_front == _ctx.q_cap - 1 && pthread_cond_signal(&_ctx.q_cond) < 0)
+			ERROR_LOG_ERRNO_GOTO(UNLOCK, "Cannot disp notify the writer");
+
+UNLOCK:
+		if(pthread_mutex_unlock(&_ctx.q_mutex) < 0)
+			LOG_ERROR("Cannot release the async task queue mutex");
+
+		/* Then we need check if we have picked up a task, if not, we need to wait for another one */
+		if(thread_data->task == NULL) continue;
+
+		/* TODO: At this point, we will be able to process it */
+		/* At this point, the task should be the exec task */
+	}
+
+	return thread_data;
+}
+
 int sched_async_init()
 {
-	(void)_queue;
+	_ctx.q_cap = 65536;
+	_ctx.nthreads = 32;
 	lang_prop_callback_t cb = {
 		.param         = NULL,
 		.get           = NULL,
@@ -167,69 +230,93 @@ int sched_async_finalize()
 
 int sched_async_start()
 {
-	if(NULL != _queue.data) 
+	uint32_t i = 0;
+	if(_ctx.init) 
 		ERROR_RETURN_LOG(int, "Cannot initialize the async task queue twice");
 
 	/* First thing, let's initialze the queue */
-	_queue.size = _queue_size;
-	_queue.front = _queue.rear = 0;
+	_ctx.q_front = _ctx.q_rear = 0;
 
-	if(pthread_mutex_init(&_queue.mutex, NULL) < 0)
+	if(pthread_mutex_init(&_ctx.q_mutex, NULL) < 0)
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot intialize the queue mutex");
 
-	if(pthread_cond_init(&_queue.cond, NULL) < 0)
+	if(pthread_cond_init(&_ctx.q_cond, NULL) < 0)
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the queue cond variable");
 
-	if(NULL == (_queue.data = (_handle_t**)malloc(sizeof(_queue.data[0]) * _queue.size)))
+	if(NULL == (_ctx.q_data = (_handle_t**)malloc(sizeof(_ctx.q_data[0]) * _ctx.q_cap)))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the queue memory");
 
-	if(NULL == (_queue.pool = mempool_objpool_new(sizeof(_handle_t))))
+	if(NULL == (_ctx.q_pool = mempool_objpool_new(sizeof(_handle_t))))
 		ERROR_LOG_GOTO(ERR, "Cannot create memory pool for async handles");
 
-	/* TODO: Then we need to start the async processing threads */
+	/* Then, we need to start the async processing threads */
+	if(NULL == (_ctx.thread_data = (_thread_data_t*)calloc(sizeof(_thread_data_t), _ctx.nthreads)))
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the async task thread pool");
 
 
+	for(i = 0; i < _ctx.nthreads; i ++)
+		if(NULL == (_ctx.thread_data[i].thread = thread_new(_async_processor_main, _ctx.thread_data + i, THREAD_TYPE_ASYNC)))
+			ERROR_LOG_GOTO(ERR, "Cannot start the new thread for the Async Task Processor");
 	/* Finally, we  should set the initialization flag */
-	_init = 1;
+	_ctx.init = 1;
 
 	return 0;
 
 ERR:
 
-	if(_queue.data != NULL) free(_queue.data);
-	if(_queue.pool != NULL) mempool_objpool_free(_queue.pool);
+	if(_ctx.q_data != NULL) free(_ctx.q_data);
+	if(_ctx.q_pool != NULL) mempool_objpool_free(_ctx.q_pool);
+	if(_ctx.thread_data != NULL)
+	{
+		_ctx.killed = 1;
 
+		/* We need to let everyone know they are killed */
+		pthread_cond_broadcast(&_ctx.q_cond);
+
+		for(i = 0; i < _ctx.nthreads; i ++)
+			if(_ctx.thread_data[i].thread != NULL)
+				thread_free(_ctx.thread_data[i].thread, NULL);
+
+		free(_ctx.thread_data);
+	}
 	return ERROR_CODE(int);
 }
 
 int sched_async_kill()
 {
-	if(!_init) ERROR_RETURN_LOG(int, "The async processor haven't been started yet");
+	if(!_ctx.init) ERROR_RETURN_LOG(int, "The async processor haven't been started yet");
 	int rc = 0;
 
-	/* TODO: stop all the started async processing threads */
+	_ctx.killed = 1;
+
+	/* Let't kill all the async processing thread at this point */
+	pthread_cond_broadcast(&_ctx.q_cond);
+	uint32_t i;
+	for(i = 0; i < _ctx.nthreads; i ++)
+		if(ERROR_CODE(int) == thread_free(_ctx.thread_data[i].thread, NULL))
+			rc = ERROR_CODE(int);
+	free(_ctx.thread_data);
 
 	/* We need to dispose the queue */
-	uint32_t i;
-	for(i = _queue.front; i < _queue.rear; i ++)
+	for(i = _ctx.q_front; i < _ctx.q_rear; i ++)
 	{
-		if(_queue.data[i] == NULL) continue;
-		if(_queue.data[i]->exec_task != NULL && ERROR_CODE(int) == runtime_task_free(_queue.data[i]->exec_task))
+		if(_ctx.q_data[i & (_ctx.q_cap - 1)] == NULL) continue;
+		if(_ctx.q_data[i & (_ctx.q_cap - 1)]->exec_task != NULL && 
+		   ERROR_CODE(int) == runtime_task_free(_ctx.q_data[i & (_ctx.q_cap - 1)]->exec_task))
 			rc = ERROR_CODE(int);
-		if(ERROR_CODE(int) == mempool_objpool_dealloc(_queue.pool, _queue.data[i]))
+		if(ERROR_CODE(int) == mempool_objpool_dealloc(_ctx.q_pool, _ctx.q_data[i & (_ctx.q_cap - 1)]))
 			rc = ERROR_CODE(int);
 	}
 
-	if(ERROR_CODE(int) == mempool_objpool_free(_queue.pool))
+	if(ERROR_CODE(int) == mempool_objpool_free(_ctx.q_pool))
 		rc = ERROR_CODE(int);
 
-	free(_queue.data);
+	free(_ctx.q_data);
 
-	_queue.data = NULL;
-	_queue.size = 0;
-	_queue.front = _queue.rear = 0;
+	_ctx.q_data = NULL;
+	_ctx.q_front = _ctx.q_rear = 0;
 
-	_init = 0;
+	_ctx.init = 0;
 
 	return rc;
 }
@@ -249,13 +336,13 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	/* Then let's construct the handle */
 	runtime_task_t *async_exec = NULL;
 	runtime_task_t *async_cleanup = NULL;
-	_handle_t* handle = mempool_objpool_alloc(_queue.pool);
+	_handle_t* handle = mempool_objpool_alloc(_ctx.q_pool);
 	
 	if(NULL == handle) 
 		ERROR_RETURN_LOG(int, "Cannot allocate memory for the handle");
 
 	handle->magic_num   = _HANDLE_MAGIC;
-	handle->wait_mode   = 0;
+	handle->await_id    = ERROR_CODE(uint32_t);
 	handle->state       = _STATE_INIT;
 	handle->sched_loop  = loop;
 	handle->sched_task  = task;
@@ -277,10 +364,38 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	task->exec_task = async_cleanup;
 	handle->exec_task = async_exec;
 
-	/* At this point, we got a fully initialized async task handle */
+	if(pthread_mutex_lock(&_ctx.q_mutex) < 0)
+		ERROR_RETURN_LOG(int, "Cannot acquire the queue mutex");
 
-	/* TODO: we need to add the task to the queue */
+	struct timespec abstime;
+	struct timeval now;
+	gettimeofday(&now,NULL);
+	abstime.tv_sec = now.tv_sec+1;
+	abstime.tv_nsec = 0;
 
+	while(_ctx.q_rear - _ctx.q_front >= _ctx.q_cap && !_ctx.killed)
+	{
+		if(pthread_cond_timedwait(&_ctx.q_cond, &_ctx.q_mutex, &abstime) < 0 && errno != ETIMEDOUT && errno != EINTR)
+			ERROR_RETURN_LOG(int, "Cannot wait for the writer condition variable");
+		abstime.tv_sec ++;
+	}
+	
+	if(_ctx.killed) 
+	{
+		LOG_INFO("The async process has been killed!");
+		goto RET;
+	}
+
+	/* Then we need actually put the handle in the queue */
+	_ctx.q_data[(_ctx.q_rear ++) & (_ctx.q_cap - 1)] = handle;
+
+	/* If this queue is previously empty, then we need to notify the reader */
+	if(_ctx.q_rear - _ctx.q_front == 1 && pthread_cond_signal(&_ctx.q_cond) < 0)
+		ERROR_RETURN_LOG(int, "Cannot notify the reader about the incoming task");
+
+RET:
+	if(pthread_mutex_unlock(&_ctx.q_mutex) < 0)
+		ERROR_RETURN_LOG(int, "Cannot reliease the queue mutex");
 
 	return 0;
 ERR:
@@ -299,7 +414,7 @@ ERR:
 	}
 
 	if(NULL != handle) 
-		mempool_objpool_dealloc(_queue.pool, handle);
+		mempool_objpool_dealloc(_ctx.q_pool, handle);
 
 	return ERROR_CODE_OT(int);
 }

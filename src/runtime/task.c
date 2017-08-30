@@ -312,6 +312,8 @@ int runtime_task_async_companions(runtime_task_t* task, runtime_task_t** exec_bu
 	cleanup_buf[0]->async_owner = 1;
 	exec_buf[0]->async_owner = 0;
 
+	LOG_DEBUG("Created the async exec task %u and async cleanup task %u for the async exec %u", task->id, exec_buf[0]->id, cleanup_buf[0]->id);
+
 	return 0;
 ERR:
 	if(NULL != *exec_buf) mempool_objpool_dealloc(task->servlet->task_pool, *exec_buf);

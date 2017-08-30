@@ -140,10 +140,11 @@ static inline uint32_t _thread_type_to_idx()
 		case THREAD_TYPE_EVENT:  return 0;
 		case THREAD_TYPE_WORKER: return 1;
 		case THREAD_TYPE_IO:     return 2;
-		default:                 return 3;
+		case THREAD_TYPE_ASYNC:  return 3;
+		default:                 return 4;
 	}
 }
-STATIC_ASSERTION_EQ_ID(THREAD_NUM_IS_3, THREAD_NUM_TYPES, 3);
+STATIC_ASSERTION_EQ_ID(THREAD_NUM_IS_4, THREAD_NUM_TYPES, 4);
 
 /**
  * @brief get the current cached object limit
