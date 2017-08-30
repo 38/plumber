@@ -60,9 +60,10 @@
  * @brief The async task status
  **/
 typedef enum {
-	_STATE_INIT,   /*!< Indicates the task is about to call async_setup function */
-	_STATE_EXEC,   /*!< The task is about to call async_exec function */
-	_STATE_DONE    /*!< The task is about to call asnyc_clean function and emit the event */
+	_STATE_INIT,     /*!< Indicates the task is about to call async_setup function */
+	_STATE_EXEC,     /*!< The task is about to call async_exec function */
+	_STATE_DONE,     /*!< The task is about to call asnyc_clean function and emit the event */
+	_STATE_AWAITING  /*!< The task is waitnig for the async_cntl call */
 } _state_t;
 
 /**
@@ -87,6 +88,15 @@ typedef struct {
 } _thread_data_t;
 
 /**
+ * @brief The data structure used to describe an awaiting task
+ **/
+typedef struct {
+	_handle_t*    task;        /*!< The asnyc task handle that is awaiting for the completed signal */
+	uint32_t      valid;       /*!< Indicates if this awaiter is current valid */
+	uint32_t      next;        /*!< The next awaiting task which is already compelted */
+} _awaiter_t;
+
+/**
  * @brief The data structure for the ATP(Async Task Processor)
  * @note  The writer would only be blocked when the
  *        queue is full and the reader would only be blocked when the queue is empty. 
@@ -109,10 +119,11 @@ static struct {
 	_handle_t**          q_data;   /*!< The actual queue data array */
 
 	/********** The awaiting list *********************/
-	uint32_t             al_cap;   /*!< The awaiting list capacity */
-	uint32_t             al_size;  /*!< The actual number of awaiting tasks in the list */
-	uint32_t**           al_unused;/*!< The unused wait list id */
-	_handle_t**          al_list;  /*!< The awating list */
+	uint32_t             al_cap;    /*!< The awaiting list capacity */
+	pthread_mutex_t      al_mutex;  /*!< The mutex used for the awaiting list */
+	uint32_t             al_unused; /*!< The head of the unused awaiting list slot */
+	uint32_t             al_done;   /*!< The head of the completed awaiting task list */
+	_awaiter_t*          al_list;   /*!< The awaiting list */
 
 	/********* Thread releated data *******************/
 	uint32_t             nthreads;    /*!< The number of threads in the async processing thread pool */
@@ -147,12 +158,85 @@ static inline int _set_prop(const char* symbol, lang_prop_value_t value, const v
 		LOG_DEBUG("Setting the async processor queue size to %u", actual);
 		_ctx.q_cap = actual;
 	}
+	else if(strcmp(symbol, "wait_list_size") == 0)
+	{
+		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
+		_ctx.al_cap = (uint32_t)value.num;
+	}
 	else 
 	{
 		LOG_WARNING("Invalid property scheduler.async.%s", symbol);
 		return 0;
 	}
+
+	return 1;
+}
+
+/**
+ * @brief post a task completion event to the event qeueue
+ * @param token The event queue token we used to post the task
+ * @param handle The handle we want to pose
+ * @return status code
+ **/
+static inline int _post_task_complete_event(itc_equeue_token_t token, _handle_t* handle)
+{
+	LOG_DEBUG("The task is not in the wait mode, sending the task compelted event to the event queue");
+	itc_equeue_event_t event;
+
+	event.type = ITC_EQUEUE_EVENT_TYPE_TASK;
+	event.task.loop = handle->sched_loop;
+	event.task.task = handle->sched_task;
+	event.task.async_handle = (runtime_api_async_handle_t*)handle;
+
+	/* Send a event to the event queue, so that the scheduler knows about the event */
+	if(ERROR_CODE(int) == itc_equeue_put(token, event))
+		LOG_ERROR("Cannot send the task event to the event queue");
+
 	return 0;
+}
+
+/**
+ * @brief send the task completion event to the event qeueu
+ * @param token The event queue token we want to use
+ * @param set_error indicates if we need to set the status to error
+ * @return status code
+ **/
+static inline int _notify_compeleted_awaiters(itc_equeue_token_t token, int set_error)
+{
+	int rc = 0;
+	/* the first thing we need to do is to clean the awaiting list */
+	if(pthread_mutex_lock(&_ctx.al_mutex) < 0)
+		ERROR_RETURN_LOG(int, "Cannot acquire the async task awaiting list mutex");
+	else
+	{
+		/* Here we need to send all the compelted awaiting tasks to the event queue */
+		uint32_t ptr;
+		for(ptr = _ctx.al_done; ptr != ERROR_CODE(uint32_t);)
+		{
+			uint32_t cur = ptr;
+			ptr = _ctx.al_list[ptr].next;
+			_awaiter_t* this = _ctx.al_list + cur;
+
+			if(set_error) this->task->status_code = ERROR_CODE(int);
+
+			if(ERROR_CODE(int) == _post_task_complete_event(token, this->task))
+			{
+				LOG_ERROR("Cannot post the task compeletion event to the event queue");
+				rc = ERROR_CODE(int);
+			}
+
+			this->valid = 0;
+
+			this->next = _ctx.al_unused;
+			_ctx.al_unused = cur;
+
+			_ctx.al_done = ptr;
+		}
+		if(pthread_mutex_unlock(&_ctx.al_mutex) < 0)
+			ERROR_RETURN_LOG(int, "Cannot release the async task awaiting list mutex");
+	}
+
+	return rc;
 }
 
 /**
@@ -162,6 +246,8 @@ static inline int _set_prop(const char* symbol, lang_prop_value_t value, const v
  **/
 static void* _async_processor_main(void* data)
 {
+	thread_set_name("PBAsyncTask");
+
 	_thread_data_t* thread_data = (_thread_data_t*)data;
 
 	itc_equeue_token_t token = itc_equeue_module_token(ITC_MODULE_EVENT_QUEUE_SIZE);
@@ -171,11 +257,15 @@ static void* _async_processor_main(void* data)
 
 	for(;!_ctx.killed;)
 	{
+		
+		/* Before we actually move ahead, we need to look at the awaiter list and make sure
+		 * all the compeleted awaiters has been notified at this time */
+		if(ERROR_CODE(int) == _notify_compeleted_awaiters(token, 0))
+			LOG_ERROR("Cannot notify the completed awaiters");
+
+		/* Then we need to make sure that we have work to do */
 		if(pthread_mutex_lock(&_ctx.q_mutex) < 0)
-		{
-			LOG_ERROR("Cannot acquire the async task queue mutex");
-			continue;
-		}
+			ERROR_PTR_RETURN_LOG("Cannot acquire the async task queue mutex");
 
 		struct timespec abstime;
 		struct timeval now;
@@ -187,6 +277,11 @@ static void* _async_processor_main(void* data)
 		{
 			if(pthread_cond_timedwait(&_ctx.q_cond, &_ctx.q_mutex, &abstime) < 0 && errno != EINTR && errno != ETIMEDOUT)
 				ERROR_LOG_ERRNO_GOTO(UNLOCK, "Cannot wait for the reader cond var");
+		
+			/* Because it's possible that all the async processing thread is being blocked here, so we need to have a way
+			 * to make it work */
+			if(ERROR_CODE(int) == _notify_compeleted_awaiters(token, 0))
+				LOG_ERROR("Cannot notify the completed awaiters");
 
 			abstime.tv_sec ++;
 		}
@@ -215,12 +310,8 @@ UNLOCK:
 		}
 		else thread_data->task->status_code = 0;
 
-		itc_equeue_event_t event;
-
-		event.type = ITC_EQUEUE_EVENT_TYPE_TASK;
-		event.task.loop = thread_data->task->sched_loop;
-		event.task.task = thread_data->task->sched_task;
-		event.task.async_handle = (runtime_api_async_handle_t*)thread_data->task;
+		if(thread_data->task->await_id == ERROR_CODE(uint32_t))
+			thread_data->task->state = _STATE_DONE;
 
 		/* Finally we can dispose the task at this point */
 		if(ERROR_CODE(int) == runtime_task_free(thread_data->task->exec_task))
@@ -229,10 +320,18 @@ UNLOCK:
 			thread_data->task->status_code = ERROR_CODE(int);
 		}
 
-		/* Send a event to the event queue, so that the scheduler knows about the event */
-		if(ERROR_CODE(int) == itc_equeue_put(token, event))
-			LOG_ERROR("Cannot send the task event to the event queue");
+		if(thread_data->task->state == _STATE_DONE)
+		{
+			if(ERROR_CODE(int) == _post_task_complete_event(token, thread_data->task))
+				LOG_ERROR("Cannot post the task completion event to the event queue");
+		}
+		else
+			LOG_DEBUG("The task is not done yet, waiting for the async_cntl call"); 
 	}
+
+	/* Before we actually stop running, we need to make sure all the pending task has been handled propertly */
+	if(ERROR_CODE(int) == _notify_compeleted_awaiters(token, 1))
+		ERROR_PTR_RETURN_LOG("Cannot notify the completed awaiters");
 
 	return thread_data;
 }
@@ -241,6 +340,7 @@ int sched_async_init()
 {
 	_ctx.q_cap = 65536;
 	_ctx.nthreads = 32;
+	_ctx.al_cap = 65536;
 	lang_prop_callback_t cb = {
 		.param         = NULL,
 		.get           = NULL,
@@ -271,20 +371,38 @@ int sched_async_start()
 	if(pthread_cond_init(&_ctx.q_cond, NULL) < 0)
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the queue cond variable");
 
+	if(pthread_mutex_init(&_ctx.al_mutex, NULL) < 0)
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the awaiting list mutex");
+
 	if(NULL == (_ctx.q_data = (_handle_t**)malloc(sizeof(_ctx.q_data[0]) * _ctx.q_cap)))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the queue memory");
 
 	if(NULL == (_ctx.q_pool = mempool_objpool_new(sizeof(_handle_t))))
 		ERROR_LOG_GOTO(ERR, "Cannot create memory pool for async handles");
 
+	/* Initialize the awaiting list */
+	if(NULL == (_ctx.al_list = (_awaiter_t*)malloc(sizeof(_awaiter_t) * _ctx.al_cap)))
+		ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the awaiting task list");
+
+	_ctx.al_unused = 0;
+
+	for(i = 0; i < _ctx.al_cap; i ++)
+	{
+		_ctx.al_list[i].valid = 0;
+		_ctx.al_list[i].next = i + 1;
+		_ctx.al_list[i].task = NULL;
+	}
+	_ctx.al_list[_ctx.al_cap - 1].next = ERROR_CODE(uint32_t);
+	_ctx.al_done = ERROR_CODE(uint32_t);
+
 	/* Then, we need to start the async processing threads */
 	if(NULL == (_ctx.thread_data = (_thread_data_t*)calloc(sizeof(_thread_data_t), _ctx.nthreads)))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the async task thread pool");
 
-
 	for(i = 0; i < _ctx.nthreads; i ++)
 		if(NULL == (_ctx.thread_data[i].thread = thread_new(_async_processor_main, _ctx.thread_data + i, THREAD_TYPE_ASYNC)))
 			ERROR_LOG_GOTO(ERR, "Cannot start the new thread for the Async Task Processor");
+
 	/* Finally, we  should set the initialization flag */
 	_ctx.init = 1;
 
@@ -307,6 +425,7 @@ ERR:
 
 		free(_ctx.thread_data);
 	}
+	if(_ctx.al_list != NULL) free(_ctx.al_list);
 	return ERROR_CODE(int);
 }
 
@@ -340,6 +459,8 @@ int sched_async_kill()
 		rc = ERROR_CODE(int);
 
 	free(_ctx.q_data);
+
+	free(_ctx.al_list);
 
 	_ctx.q_data = NULL;
 	_ctx.q_front = _ctx.q_rear = 0;
@@ -455,4 +576,82 @@ int sched_async_handle_dispose(runtime_api_async_handle_t* handle)
 		ERROR_RETURN_LOG(int, "Invalid arguments: Invalid async task handle");
 
 	return mempool_objpool_dealloc(_ctx.q_pool, mem);
+}
+
+int sched_async_handle_set_await(runtime_api_async_handle_t* handle)
+{
+	int rc = ERROR_CODE(int);
+	_handle_t* task = (_handle_t*)handle;
+
+	if(NULL == task || task->magic_num != _HANDLE_MAGIC)
+		ERROR_RETURN_LOG(int, "Invalid arguments: Invalid aync task handle");
+
+	if(task->await_id != ERROR_CODE(uint32_t))
+		ERROR_RETURN_LOG(int, "Cannot set the task to wait mode twice");
+
+	if(pthread_mutex_lock(&_ctx.al_mutex) < 0)
+		ERROR_RETURN_LOG(int, "Cannot acquire the async task waiting list mutex");
+
+	if(ERROR_CODE(uint32_t) == _ctx.al_unused)
+		ERROR_LOG_GOTO(EXIT, "Too many tasks in the waiting list, scheduler.async.wait_list_size may be too small");
+
+	uint32_t claimed = _ctx.al_unused;
+	_ctx.al_unused = _ctx.al_list[claimed].next;
+
+	_ctx.al_list[claimed].task = task;
+	_ctx.al_list[claimed].next = ERROR_CODE(uint32_t);
+	_ctx.al_list[claimed].valid = 1;
+	task->await_id = claimed;
+	task->state = _STATE_AWAITING;
+
+	LOG_DEBUG("The task has been added to the waiting list as waiting task #%u", claimed);
+
+	rc = 0;
+
+EXIT:
+	if(pthread_mutex_lock(&_ctx.al_mutex) < 0)
+		ERROR_RETURN_LOG(int, "Cannot release the async task waiting list mutex");
+
+	return rc;
+}
+
+int sched_async_handle_await_complete(runtime_api_async_handle_t* handle, int status)
+{
+	int rc = ERROR_CODE(int);
+	_handle_t *task = (_handle_t*)handle;
+
+	if(NULL == task || task->magic_num != _HANDLE_MAGIC)
+		ERROR_RETURN_LOG(int, "Invalid arguments: Invalid aync task handle");
+
+	if(task->await_id == ERROR_CODE(uint32_t))
+		ERROR_RETURN_LOG(int, "Invalid arguments: The async task is not in the wait mode");
+
+	if(pthread_mutex_lock(&_ctx.al_mutex) < 0)
+		ERROR_RETURN_LOG(int, "Cannot acquire the async task waiting list mutex");
+
+	uint32_t slot = task->await_id;
+
+	if(_ctx.al_list[slot].next != ERROR_CODE(uint32_t))
+	{
+		LOG_DEBUG("The task has already been notified");
+		rc = 0;
+		goto EXIT;
+	}
+
+	_ctx.al_list[slot].next = _ctx.al_done;
+	_ctx.al_done = slot;
+	task->state = _STATE_DONE;
+
+	if(ERROR_CODE(int) == status && task->status_code != ERROR_CODE(int))
+	{
+		LOG_DEBUG("Setting the task status to failure");
+		task->status_code = ERROR_CODE(int);
+	}
+
+	rc = 0;
+EXIT:
+	if(pthread_mutex_unlock(&_ctx.al_mutex) < 0)
+		ERROR_RETURN_LOG(int, "Cannot release the async task waiting list mutex");
+
+	return rc;
 }

@@ -61,4 +61,36 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task);
  **/
 int sched_async_handle_dispose(runtime_api_async_handle_t* handle);
 
+/**
+ * @brief Get current status code of the async task
+ * @param handle The async handle
+ * @param resbuf The result buffer 
+ * @note Because both the async task handle and the fucntion itself uses the error code convention
+ *       so it's impossible to distiuish the function failure and the task failure if we returns the status 
+ *       code directly. So we need pass in a result buffer just for the task status so that we can distinguish
+ *       the function faiulre and the ask failure.
+ * @return status code
+ **/
+int sched_async_handle_get_status_code(runtime_api_async_handle_t* handle, int* resbuf);
+
+/**
+ * @brief Make the async handle to the await mode, which means even though the async task has been done
+ *        but we simply done send the task compeltion event util the async_cntl function has been called 
+ *        for the task compeletion
+ * @param handle The task handle
+ * @todo  Actually we have an issue about what if the waiting task never calls the async_cntl funciton. 
+ *        The best way for us to address is having a time limit for the task. So the time limit for the task
+ *        becomes a very intersting thing, because it may means we need to cancel this.
+ * @return status code
+ **/
+int sched_async_handle_await_set(runtime_api_async_handle_t* handle);
+
+/**
+ * @brief The function that notify the await function has been completed
+ * @param handle the task handle
+ * @param status The status code we want to pass to the task
+ * @return status code
+ **/
+int sched_async_handle_await_complete(runtime_api_async_handle_t* handle, int status);
+
 #endif /* __SCHED_ASYNC_H__ */
