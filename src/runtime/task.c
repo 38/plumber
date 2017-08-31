@@ -190,7 +190,7 @@ static const char* _get_task_full_name(const runtime_task_t* task, char* buf, si
 	string_buffer_t sbuf;
 	string_buffer_open(buf, size, &sbuf);
 
-	string_buffer_appendf(&sbuf, "%s for [", task_type);
+	string_buffer_appendf(&sbuf, "%s task [", task_type);
 
 	uint32_t i;
 	for(i = 0; i < task->servlet->argc; i ++)
@@ -199,6 +199,8 @@ static const char* _get_task_full_name(const runtime_task_t* task, char* buf, si
 		if(i != task->servlet->argc - 1)
 			string_buffer_append(" ", &sbuf);
 	}
+
+	string_buffer_append("]", &sbuf);
 
 	return string_buffer_close(&sbuf);
 }
