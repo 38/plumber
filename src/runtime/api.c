@@ -102,14 +102,6 @@ static int _write_scope_token(runtime_api_pipe_t pipe, runtime_api_scope_token_t
 	else ERROR_RETURN_LOG(int, "Service module reference doesn't support write operation");
 }
 
-static runtime_api_task_id_t _get_tid()
-{
-	runtime_task_t* task = _get_task((runtime_task_flags_t)-1);
-	if(NULL == task) return ERROR_CODE(runtime_api_task_id_t);
-
-	return task->id;
-}
-
 static int _eof(runtime_api_pipe_t pipe)
 {
 	if(RUNTIME_API_PIPE_IS_NORMAL(pipe))
@@ -236,7 +228,6 @@ runtime_api_address_table_t runtime_api_address_table = {
 	.read   = _read,
 	.write = _write,
 	.write_scope_token = _write_scope_token,
-	.get_tid = _get_tid,
 	.trap = NULL,
 	.eof = _eof,
 	.cntl = _cntl,

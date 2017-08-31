@@ -69,9 +69,6 @@ typedef uint32_t runtime_api_pipe_t;
  **/
 #define RUNTIME_API_PIPE_VIRTUAL_GET_OPCODE(pipe) ((pipe)&0xffffffu)
 
-/** @brief the type used for the task ID */
-typedef uint32_t runtime_api_task_id_t;
-
 /** @brief the type used for the pipe define flags
  *  @note the bit layout of a pipe flags is  <br/>
  *        rrrrrrrr rrrDsapd tttttttt tttttttt <br/>
@@ -512,12 +509,6 @@ typedef struct {
 	 * @return status code
 	 **/
 	int      (*write_scope_token) (runtime_api_pipe_t pipe, runtime_api_scope_token_t token, const runtime_api_scope_token_data_request_t* data_req);
-
-	/**
-	 * @brief get current task ID
-	 * @return either task id or a negative error code
-	 **/
-	runtime_api_task_id_t (*get_tid)      ();
 
 	/**
 	 * @brief write a log to the plumber logging system

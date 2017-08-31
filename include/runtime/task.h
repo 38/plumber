@@ -41,7 +41,6 @@ typedef uint32_t runtime_task_flags_t;
  * @brief the struct used to describe a task  <br/> the task is a execution instance of a servlet
  **/
 typedef struct {
-	runtime_api_task_id_t id;            /*!< The task ID */
 	runtime_task_flags_t  flags;         /*!< The flag of this task */
 	runtime_servlet_t*    servlet;       /*!< The servlet has been activated in this task */
 	size_t                npipes;        /*!< The number of pipes for this task */

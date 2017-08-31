@@ -7,14 +7,12 @@
 runtime_servlet_binary_t* binary;
 runtime_servlet_t* servlet;
 runtime_task_t* task;
-runtime_api_task_id_t task_id;
 int task_started = 0;
 static void trap(int id)
 {
 	if(id == 0)
 	{
 		task = runtime_task_current();
-		task_id = task->id;
 	}
 	else if(id == 1)
 	{
@@ -55,8 +53,6 @@ int test_get_current_task()
 	ASSERT_PTR(servlet = runtime_servlet_new(binary, 1, argv), CLEANUP_NOP);
 
 	ASSERT_PTR(task, CLEANUP_NOP);
-
-	ASSERT(task_id == 0, CLEANUP_NOP);
 
 	return 0;
 }

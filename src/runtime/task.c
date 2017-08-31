@@ -19,6 +19,7 @@
 #include <error.h>
 
 #include <utils/mempool/objpool.h>
+#include <utils/string.h>
 
 /**
  * @brief the variable that use to track the current task
@@ -29,11 +30,6 @@ static __thread runtime_task_t* _current_task = NULL;
  * @brief the mutex used to initialize the memory pool for a servlet
  **/
 static pthread_mutex_t _pool_mutex;
-
-/**
- * @brief What is the next task ID
- **/
-static uint32_t _next_task_id = 0;
 
 int runtime_task_init()
 {
@@ -108,7 +104,6 @@ EXIT:
 	if(NULL == ret) return NULL;
 
 	ret->servlet = servlet;
-	ret->id = (_next_task_id ++);
 	ret->npipes = npipes;
 	memset(ret->pipes, 0, npipes * sizeof(itc_module_pipe_t*));
 	return ret;
@@ -148,6 +143,66 @@ int runtime_task_free(runtime_task_t* task)
 	return rc;
 }
 
+/**
+ * @brief Get the full name of the task
+ * @param task The task
+ * @param buf  The result buffer
+ * @param size The size of the buffer
+ * @return The result string or NULL on error case
+ * @note If the buffer is not large enough the name will be truncated autoamtically
+ **/
+static const char* _get_task_full_name(const runtime_task_t* task, char* buf, size_t size)
+{
+	const char* task_type = NULL;
+	if(RUNTIME_TASK_FLAG_ACTION_ASYNC & task->flags)
+	{
+		switch(RUNTIME_TASK_FLAG_GET_ACTION(task->flags) & ~RUNTIME_TASK_FLAG_ACTION_ASYNC)
+		{
+			case RUNTIME_TASK_FLAG_ACTION_INIT:
+				task_type = "async setup";
+				break;
+			case RUNTIME_TASK_FLAG_ACTION_EXEC:
+				task_type = "async execute";
+				break;
+			case RUNTIME_TASK_FLAG_ACTION_UNLOAD:
+				task_type = "async cleanup";
+				break;
+		}
+	}
+	else
+	{
+		switch(RUNTIME_TASK_FLAG_GET_ACTION(task->flags))
+		{
+			case RUNTIME_TASK_FLAG_ACTION_INIT:
+				task_type = "servlet initialize";
+				break;
+			case RUNTIME_TASK_FLAG_ACTION_EXEC:
+				task_type = "sync execute";
+				break;
+			case RUNTIME_TASK_FLAG_ACTION_UNLOAD:
+				task_type = "servlet unload";
+				break;
+		}
+	}
+
+	if(NULL == task_type) return NULL;
+
+	string_buffer_t sbuf;
+	string_buffer_open(buf, size, &sbuf);
+
+	string_buffer_appendf(&sbuf, "%s for [", task_type);
+
+	uint32_t i;
+	for(i = 0; i < task->servlet->argc; i ++)
+	{
+		string_buffer_append(task->servlet->argv[i], &sbuf);
+		if(i != task->servlet->argc - 1)
+			string_buffer_append(" ", &sbuf);
+	}
+
+	return string_buffer_close(&sbuf);
+}
+
 runtime_task_t* runtime_task_new(runtime_servlet_t* servlet, runtime_task_flags_t flags)
 {
 	if(NULL == servlet || (flags & RUNTIME_TASK_FLAG_ACTION_INVOKED))
@@ -162,7 +217,10 @@ runtime_task_t* runtime_task_new(runtime_servlet_t* servlet, runtime_task_flags_
 	ret->flags = flags;
 	_current_task = ret;
 
-	LOG_TRACE("%s Task (TID = %d) has been created", ret->servlet->bin->name, ret->id);
+#ifdef LOG_TRACE_ENABLED
+	char buf[4096];
+#endif
+	LOG_TRACE("%s has been created", _get_task_full_name(ret, buf, sizeof(buf)));
 
 	return ret;
 
@@ -170,7 +228,10 @@ runtime_task_t* runtime_task_new(runtime_servlet_t* servlet, runtime_task_flags_
 
 int runtime_task_start_exec_fast(runtime_task_t* task)
 {
-	LOG_TRACE("%s Task (TID = %d) started", task->servlet->bin->name, task->id);
+#ifdef LOG_TRACE_ENABLED
+	char buf[4096];
+#endif
+	LOG_TRACE("%s is started", _get_task_full_name(task, buf, sizeof(buf)));
 
 	_current_task = task;
 
@@ -182,14 +243,20 @@ int runtime_task_start_exec_fast(runtime_task_t* task)
 
 int runtime_task_start_async_setup_fast(runtime_task_t* task, runtime_api_async_handle_t* async_handle)
 {
-	LOG_TRACE("Async init task %s (TID = %d) is being initialized", task->servlet->bin->name, task->id);
+#ifdef LOG_TRACE_ENABLED
+	char buf[4096];
+#endif
+	LOG_TRACE("%s is started", _get_task_full_name(task, buf, sizeof(buf)));
 
 	return task->servlet->bin->define->async_setup(async_handle, task->async_data, task->servlet->data);
 }
 
 int runtime_task_start_async_cleanup_fast(runtime_task_t* task, runtime_api_async_handle_t* async_handle)
 {
-	LOG_TRACE("Async cleanup task %s (TID = %d) is being initialized", task->servlet->bin->name, task->id);
+#ifdef LOG_TRACE_ENABLED
+	char buf[4096];
+#endif
+	LOG_TRACE("%s is started", _get_task_full_name(task, buf, sizeof(buf)));
 
 	return task->servlet->bin->define->async_cleanup(async_handle, task->async_data, task->servlet->data);
 }
@@ -202,7 +269,10 @@ int runtime_task_start(runtime_task_t *task, runtime_api_async_handle_t* async_h
 	if(task->flags & RUNTIME_TASK_FLAG_ACTION_INVOKED)
 	    ERROR_RETURN_LOG(int, "Trying to launch a executed task");
 
-	LOG_TRACE("%s Task (TID = %d) started", task->servlet->bin->name, task->id);
+#ifdef LOG_TRACE_ENABLED
+	char buf[4096];
+#endif
+	LOG_TRACE("%s is started", _get_task_full_name(task, buf, sizeof(buf)));
 	task->flags |= RUNTIME_TASK_FLAG_ACTION_INVOKED;
 	int rc = ERROR_CODE(int);
 
@@ -263,7 +333,7 @@ int runtime_task_start(runtime_task_t *task, runtime_api_async_handle_t* async_h
 
 	_current_task = NULL;
 
-	LOG_TRACE("%s Task (TID = %d) exited with status code %d", task->servlet->bin->name, task->id, rc);
+	LOG_TRACE("%s exited with status code %d", _get_task_full_name(task, buf, sizeof(buf)), rc);
 
 	return rc;
 }
@@ -303,16 +373,16 @@ int runtime_task_async_companions(runtime_task_t* task, runtime_task_t** exec_bu
 	cleanup_buf[0]->npipes = task->npipes;
 	memcpy(cleanup_buf[0]->pipes, task->pipes, sizeof(task->pipes[0]) * task->npipes);
 
-	/* Assign the task id */
-	exec_buf[0]->id = _next_task_id ++;
-	cleanup_buf[0]->id = _next_task_id ++;
-
 	/* Finally we take the ownership from the async init task and assign it to the cleanup task */
 	task->async_owner = 0;
 	cleanup_buf[0]->async_owner = 1;
 	exec_buf[0]->async_owner = 0;
 
-	LOG_DEBUG("Created the async exec task %u and async cleanup task %u for the async exec %u", task->id, exec_buf[0]->id, cleanup_buf[0]->id);
+#ifdef LOG_DEBUG_ENABLED
+	char buf[4096];
+#endif
+
+	LOG_DEBUG("Created the async exec task companions for task %s", _get_task_full_name(task, buf, sizeof(buf)));
 
 	return 0;
 ERR:

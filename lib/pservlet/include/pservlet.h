@@ -26,7 +26,6 @@ extern "C" {
 #include <pservlet/log.h>
 #include <pservlet/pipe.h>
 #include <pservlet/trap.h>
-#include <pservlet/task.h>
 #include <pservlet/runtime.h>
 #include <pservlet/module.h>
 

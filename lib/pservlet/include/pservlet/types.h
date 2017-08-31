@@ -18,9 +18,6 @@ typedef runtime_api_pipe_t pipe_t;
 /** @brief the function address table that provide by the framework */
 typedef runtime_api_address_table_t address_table_t;
 
-/** @brief the type for the task id */
-typedef runtime_api_task_id_t task_id_t;
-
 /** @brief the type for the pipe flags */
 typedef runtime_api_pipe_flags_t pipe_flags_t;
 
