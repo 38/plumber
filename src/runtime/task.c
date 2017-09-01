@@ -308,7 +308,7 @@ int runtime_task_start(runtime_task_t *task, runtime_api_async_handle_t* async_h
 	}
 	else
 	{
-		switch(RUNTIME_TASK_FLAG_GET_ACTION(task->flags))
+		switch(RUNTIME_TASK_FLAG_GET_ACTION(task->flags) & RUNTIME_TASK_FLAG_ACTION_ASYNC)
 		{
 			case RUNTIME_TASK_FLAG_ACTION_INIT:
 				if(NULL != task->servlet->bin->define->async_setup)
@@ -348,7 +348,7 @@ runtime_task_t* runtime_task_current()
 int runtime_task_async_companions(runtime_task_t* task, runtime_task_t** exec_buf, runtime_task_t** cleanup_buf)
 {
 	if(NULL == task || NULL == exec_buf || NULL == cleanup_buf || 
-	   RUNTIME_TASK_FLAG_GET_ACTION(task->flags) != (RUNTIME_TASK_FLAG_ACTION_UNLOAD | RUNTIME_TASK_FLAG_ACTION_ASYNC))
+	   RUNTIME_TASK_FLAG_GET_ACTION(task->flags) != (RUNTIME_TASK_FLAG_ACTION_INIT | RUNTIME_TASK_FLAG_ACTION_ASYNC))
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(!task->async_owner) ERROR_RETURN_LOG(int, "Cannot create companion tasks for the async task do not hold the owership of the async buffer");

@@ -79,7 +79,6 @@ int runtime_task_free(runtime_task_t* task);
 /**
  * @brief create a new task
  * @note If the servlet is an async servlet, and flag is EXEC, we are creating a async_init task
- * @todo implement the note
  * @param servlet the target servlet
  * @param flags the flags of this task
  * @return the newly created task
@@ -89,7 +88,6 @@ runtime_task_t* runtime_task_new(runtime_servlet_t* servlet, runtime_task_flags_
 /**
  * @brief Check if this task is an async task
  * @param task The task we want to check
- * @todo implement this
  * @return If the task is the async task or error code
  **/
 int runtime_task_is_async(const runtime_task_t* task);
@@ -102,7 +100,6 @@ int runtime_task_is_async(const runtime_task_t* task);
  * @note  This function will copy the task pipe table from the given task, which means uless the
  *        scheduler is sure all the pipe has been assigned all the pipes to the task, this function shouldn't be called.
  *        By which means, this function should be called just before the async_init function is to be executed.
- * @todo implement this
  * @return status code
  **/
 int runtime_task_async_companions(runtime_task_t* task, runtime_task_t** exec_buf, runtime_task_t** cleanup_buf);
@@ -122,7 +119,7 @@ int runtime_task_start(runtime_task_t* task, runtime_api_async_handle_t* handle)
  *          The task is exec task. In addition, it do not recover the current task variable
  *          This function is completely for performance purpose, because most of the task
  *          are exec task and we should have a way to do it faster
- * @todo Please becareful, now we could have async tasks being started, so make sure this is not
+ * @note Please becareful, now we could have async tasks being started, so make sure this is not
  *       an async task, and then we are able to move on
  * @param task The task to start
  * @return status code
@@ -133,7 +130,6 @@ int runtime_task_start_exec_fast(runtime_task_t* task);
  * @brief This is the similar function for the runtime_task_start_async_init_fast
  * @details In this function we will assume we have a valid async_setup task, otherwise
  *          it's extermely dangerous
- * @todo determine where we should use this function
  * @param task The task to start
  * @param async_handle The pointer to the async handle
  * @return status code

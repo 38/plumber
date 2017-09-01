@@ -190,7 +190,32 @@ static inline int _post_task_complete_event(itc_equeue_token_t token, _handle_t*
 
 	/* Send a event to the event queue, so that the scheduler knows about the event */
 	if(ERROR_CODE(int) == itc_equeue_put(token, event))
+	{
+		/* At this point, we directly dispose the handle */
+		if(handle->await_id != ERROR_CODE(uint32_t))
+		{
+			/* This means we need to remove it from the waiting list, becuase this
+			 * is really rare, so we just go through the linked list */
+			uint32_t prev = handle->state == _STATE_AWAITING ? ERROR_CODE(uint32_t) : _ctx.al_done;
+			/* If this is the first element in the done list, we need to update the al_done pointer*/
+			if(prev == handle->await_id)
+			{
+				_ctx.al_done = _ctx.al_list[prev].next;
+				prev = ERROR_CODE(uint32_t);
+			}
+			/* Search for the prevoius node */
+			for(;prev != ERROR_CODE(uint32_t) && _ctx.al_list[prev].next == handle->await_id; prev = _ctx.al_list[prev].next);
+			if(prev != ERROR_CODE(uint32_t))
+				_ctx.al_list[prev].next = _ctx.al_list[handle->await_id].next;
+			/* Insert the awaiter to the unused list */
+			_ctx.al_list[handle->await_id].next = _ctx.al_unused;
+			_ctx.al_unused = handle->await_id;
+			/* Finally we need to dispose it */
+			mempool_objpool_dealloc(_ctx.q_pool, handle);
+		}
 		LOG_ERROR("Cannot send the task event to the event queue");
+		return ERROR_CODE(int);
+	}
 
 	return 0;
 }
@@ -257,6 +282,10 @@ static void* _async_processor_main(void* data)
 
 	for(;!_ctx.killed;)
 	{
+		/* We need to reset the previous task at this point, and the task should be able find by the scheudler thread 
+		 * with the completion event. However, if the task failed to post to the event queue, then it's the point to
+		 * dispose it  */
+		thread_data->task = NULL;
 		
 		/* Before we actually move ahead, we need to look at the awaiter list and make sure
 		 * all the compeleted awaiters has been notified at this time */
@@ -289,7 +318,7 @@ static void* _async_processor_main(void* data)
 		if(_ctx.killed) goto UNLOCK;
 
 		/* At this point we can claim the task */
-		thread_data->task = _ctx.q_data[_ctx.q_front ++];
+		thread_data->task = _ctx.q_data[(_ctx.q_front ++) & (_ctx.q_cap - 1)];
 
 		/* At the same time, we need to check if this operation unblocks the writer */
 		if(_ctx.q_rear - _ctx.q_front == _ctx.q_cap - 1 && pthread_cond_signal(&_ctx.q_cond) < 0)
@@ -320,8 +349,9 @@ UNLOCK:
 			thread_data->task->status_code = ERROR_CODE(int);
 		}
 
-		if(thread_data->task->state == _STATE_DONE)
+		if(thread_data->task->await_id == ERROR_CODE(uint32_t))
 		{
+			LOG_DEBUG("The task is completed and post the task completion event");
 			if(ERROR_CODE(int) == _post_task_complete_event(token, thread_data->task))
 				LOG_ERROR("Cannot post the task completion event to the event queue");
 		}
@@ -472,6 +502,7 @@ int sched_async_kill()
 
 int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 {
+	int normal_rc = 0;
 	/* First, let's verify this task is a valid async init task */
 	if(NULL == loop || NULL == task) 
 		ERROR_RETURN_LOG(int, "Invalid argumetns");
@@ -532,6 +563,11 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	if(_ctx.killed) 
 	{
 		LOG_INFO("The async process has been killed!");
+		if(async_exec != NULL && ERROR_CODE(int) == runtime_task_free(async_exec))
+			normal_rc = ERROR_CODE(int);
+		if(ERROR_CODE(int) == mempool_objpool_dealloc(_ctx.q_pool, handle))
+			normal_rc = ERROR_CODE(int);
+		/* What should be keep is the cleanup task, and it should be disposed by the scheduler */
 		goto RET;
 	}
 
@@ -546,7 +582,7 @@ RET:
 	if(pthread_mutex_unlock(&_ctx.q_mutex) < 0)
 		ERROR_RETURN_LOG(int, "Cannot reliease the queue mutex");
 
-	return 0;
+	return normal_rc;
 ERR:
 	if(task->exec_task != NULL && task->exec_task != async_cleanup) 
 		runtime_task_free(task->exec_task);

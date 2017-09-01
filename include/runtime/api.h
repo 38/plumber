@@ -427,6 +427,7 @@ enum {
 	RUNTIME_API_INIT_RESULT_SYNC   = 0,    /*!< This is a sync servlet */
 	RUNTIME_API_INIT_RESULT_ASYNC  = 1,    /*!< This is an async servlet */
 };
+STATIC_ASSERTION_EQ(RUNTIME_API_INIT_RESULT_SYNC, 0);
 
 /**
  * @brief This is the dummy type we used to make the compilter aware we are dealing with a async task handle
