@@ -106,6 +106,7 @@ int itc_equeue_finalize()
 		LOG_ERROR_ERRNO("Cannot lock the global mutex");
 		rc = ERROR_CODE(int);
 	}
+	/* Before we actually stop, we should dispose all the tasks which is still in the queue */
 	if(_queues != NULL)
 	{
 		size_t i;
@@ -137,7 +138,17 @@ int itc_equeue_finalize()
 							break;
 						}
 						case ITC_EQUEUE_EVENT_TYPE_TASK:
-							/*TODO: see how we dispose the task event */
+						{
+							itc_equeue_task_event_t* event = &queue->events[j & (queue->size - 1)].task;
+
+							if(event->async_handle != NULL && ERROR_CODE(int) == sched_async_handle_dispose(event->async_handle))
+							{
+								LOG_ERROR("Cannot deallocatet the task handle");
+								rc = ERROR_CODE(int);
+							}
+
+							break;
+						}
 						default:
 							rc = ERROR_CODE(int);
 							LOG_ERROR("Invalid type of event");

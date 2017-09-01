@@ -210,9 +210,20 @@ static inline int _post_task_complete_event(itc_equeue_token_t token, _handle_t*
 			/* Insert the awaiter to the unused list */
 			_ctx.al_list[handle->await_id].next = _ctx.al_unused;
 			_ctx.al_unused = handle->await_id;
-			/* Finally we need to dispose it */
-			mempool_objpool_dealloc(_ctx.q_pool, handle);
 		}
+
+		/*TODO: we could have an issue that the pending task in schedulder never get a chance to dispose the cerepsonding scheduler task,
+		 *      Currently, we just leave it there, because this is not likely to happen, and when this happens, it's more likely the entire
+		 *      system stop working from here. 
+		 *      So we don't address this issue here, but we definitely needs to handle that
+		 **/
+
+		/* Finally we need to dispose it */
+		mempool_objpool_dealloc(_ctx.q_pool, handle);
+
+		/* Of cousrse, we may have memory leak at this point, but it seems 
+		 * we can't do anything better than that, because the data flow is 
+		 * broken, and all the mechanism is not working here */
 		LOG_ERROR("Cannot send the task event to the event queue");
 		return ERROR_CODE(int);
 	}
@@ -250,11 +261,14 @@ static inline int _notify_compeleted_awaiters(itc_equeue_token_t token, int set_
 				rc = ERROR_CODE(int);
 			}
 
+			/* Since we have passed the task handle to the event queue, so we should not dispose it
+			 * The worst case of this is the event queue can not accept the handle, but in this case
+			 * the _post_task_complete_event function will be responsible for disposing the handle */
 			this->valid = 0;
+			this->task = NULL;
 
 			this->next = _ctx.al_unused;
 			_ctx.al_unused = cur;
-
 			_ctx.al_done = ptr;
 		}
 		if(pthread_mutex_unlock(&_ctx.al_mutex) < 0)

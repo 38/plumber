@@ -264,12 +264,18 @@ static inline int _dispatcher_main()
 {
 
 	thread_set_name("PbDispatcher");
+	
+	if(ERROR_CODE(int) == sched_async_start())
+		ERROR_RETURN_LOG(int, "Cannot start the async task processor");
 
 	itc_equeue_token_t sched_token = itc_equeue_scheduler_token();
 
 	if(ERROR_CODE(itc_equeue_token_t) == sched_token) ERROR_RETURN_LOG(int, "Cannot acquire the scheduler token");
 
 	sched_loop_t* round_robin_start = _scheds;
+
+	/* TODO: the task event may not be sucessfully dispatched, so we need something to make sure it doesn't
+	 *       block the dispatcher when this happend first time */
 
 	LOG_DEBUG("Dispatcher: loop started");
 
@@ -296,7 +302,7 @@ static inline int _dispatcher_main()
 
 		struct timespec abstime;
 		struct timeval now;
-		gettimeofday(&now,NULL);
+		gettimeofday(&now, NULL);
 		abstime.tv_sec = now.tv_sec+1;
 		abstime.tv_nsec = 0;
 
@@ -366,6 +372,9 @@ EXIT_LOOP:
 			    LOG_WARNING_ERRNO("Cannot release the thread local mutex");
 		}
 	}
+
+	if(ERROR_CODE(int) == sched_async_kill())
+		ERROR_RETURN_LOG(int, "Cannot kill the async processor");
 
 	LOG_INFO("Dispatcher gets killed");
 
