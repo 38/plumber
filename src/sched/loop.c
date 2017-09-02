@@ -55,6 +55,23 @@ STATIC_ASSERTION_LAST(sched_loop_t, events);
 STATIC_ASSERTION_SIZE(sched_loop_t, events, 0);
 
 /**
+ * @brief The data structure we used to carry the pending event
+ * @detail A pending event is a event that should be sent to specified
+ *         scheduler, how ever the scheduler's queue is current full. 
+ *         In this case, we put this task to the pending list and will
+ *         check if this can be dispatched later
+ * @note The reason why we use list instead of array: It seems this thing
+ *       is unlikely to happen. If we keep an array for this purpose we 
+ *       are wasting a lot of memory for it. So it seems the liked list
+ *       is a way to make the queue size on demand. At the same time, we
+ *       should have the size limit as well
+ **/
+typedef struct _pending_event_t {
+	struct _pending_event_t*       next;   /*!< The next pending event in the list */
+	itc_equeue_event_t             event;  /*!< The actual event data */
+} _pending_event_t;
+
+/**
  * @brief the scheduler list
  **/
 static sched_loop_t* _scheds = NULL;
@@ -274,13 +291,53 @@ static inline int _dispatcher_main()
 
 	sched_loop_t* round_robin_start = _scheds;
 
-	/* TODO: the task event may not be sucessfully dispatched, so we need something to make sure it doesn't
-	 *       block the dispatcher when this happend first time */
-
 	LOG_DEBUG("Dispatcher: loop started");
+
+	_pending_event_t* pending_list = NULL;
+	uint32_t pending_list_size = 0;
 
 	for(;!_killed;)
 	{
+		/* Before we do anything let's check the pending list first */
+		_pending_event_t* next_event, *prev_event = NULL;
+		for(next_event = pending_list; next_event != NULL;)
+		{
+			_pending_event_t* this_event = next_event;
+			next_event = this_event->next;
+			sched_loop_t* target_loop = this_event->event.task.loop;
+			/* If the event queue is current full, we just keep it */
+			if(target_loop->rear - target_loop->front >= target_loop->size) 
+			{
+				prev_event = this_event;
+				continue;
+			}
+
+			target_loop->events[target_loop->rear  & (target_loop->size - 1)] = this_event->event;
+
+			uint32_t needs_notify = (target_loop->rear == target_loop->front);
+			BARRIER();
+			arch_atomic_sw_increment_u32(&target_loop->rear);
+			if(needs_notify)
+			{
+				if(pthread_mutex_lock(&target_loop->mutex) < 0)
+					LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
+
+				if(pthread_cond_signal(&target_loop->cond) < 0)
+					LOG_WARNING_ERRNO("Cannot notify new incoming event for the target_loop thread %u", target_loop->thread_id);
+
+				if(pthread_mutex_unlock(&target_loop->mutex) < 0)
+					LOG_WARNING_ERRNO("Cannot release the thread local mutex");
+			}
+
+			/* Finally we remove the event from the list */
+			if(NULL != prev_event) prev_event->next = next_event;
+			else pending_list = next_event;
+
+			free(this_event);
+			pending_list_size --;
+		}
+
+		/* After we process the pending list, then we can go ahead */
 		if(itc_equeue_wait(sched_token, &_killed) == ERROR_CODE(int))
 		{
 			LOG_WARNING("Cannot wait for the the event queue gets ready");
@@ -306,22 +363,51 @@ static inline int _dispatcher_main()
 		abstime.tv_sec = now.tv_sec+1;
 		abstime.tv_nsec = 0;
 
+		if(event.type == ITC_EQUEUE_EVENT_TYPE_TASK)
+			scheduler = event.task.loop;
+
 		/* The round-robin scheduler try to pick up next worker */
-		/* TODO: Although the IO event can be dispatched randomly, however, 
-		 *       for a async task event, we need to dispatch to the scpecified destination <br/>
-		 *       So it seems we need a linked list as a async task event buffer, and once we have
-		 *       the async event, we need put the event to the buffer. And then we need dispatch 
-		 *       the async event whenever it's avaiable
-		 **/
 		for(;;)
 		{
-			first = 1;
-			for(;(first || scheduler != round_robin_start) &&
-			     scheduler->rear - scheduler->front >= scheduler->size;
-			     scheduler = scheduler->next == NULL ? _scheds : scheduler->next)
-			    first = 0;
-			round_robin_start = scheduler->next == NULL ? _scheds : scheduler->next;
+			if(scheduler == NULL)
+			{
+				LOG_DEBUG("The event is not associated with any scheduler, use the round-robin dispatcher");
+				first = 1;
+				for(;(first || scheduler != round_robin_start) &&
+					 scheduler->rear - scheduler->front >= scheduler->size;
+					 scheduler = scheduler->next == NULL ? _scheds : scheduler->next)
+					first = 0;
+				round_robin_start = scheduler->next == NULL ? _scheds : scheduler->next;
+			}
+			else 
+			{
+				LOG_DEBUG("The event is assocated with specified scheduler, try to send the event to the given scheduler");
+				if(scheduler->rear - scheduler->front >= scheduler->size && pending_list_size < SCHED_LOOP_MAX_PENDING_TASKS)
+				{
+					LOG_DEBUG("The target scheduler is currently busy, add the event to the pending task list and try it later");
 
+					_pending_event_t* pe = (_pending_event_t*)malloc(sizeof(*pe));
+					if(NULL == pe) 
+					{
+						LOG_WARNING_ERRNO("Cannot allocate memory for the pending event, waiting for the scheduler");
+						goto SCHED_WAIT;
+					}
+
+					pe->next = pending_list;
+					pe->event = event;
+					pending_list = pe;
+
+					pending_list_size ++;
+
+					LOG_DEBUG("Added the event to the pending list(new pending list size: %u)", pending_list_size);
+					
+					goto NEXT_ITER;
+				}
+
+				LOG_DEBUG("Sending the event to the scheduler");
+			}
+
+SCHED_WAIT:
 			if(scheduler->rear - scheduler->front >= scheduler->size)
 			{
 				int need_lock = !_dispatcher_waiting;
@@ -371,6 +457,8 @@ EXIT_LOOP:
 			if(pthread_mutex_unlock(&scheduler->mutex) < 0)
 			    LOG_WARNING_ERRNO("Cannot release the thread local mutex");
 		}
+NEXT_ITER:
+		(void)0;
 	}
 
 	if(ERROR_CODE(int) == sched_async_kill())

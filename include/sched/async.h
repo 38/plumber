@@ -10,6 +10,33 @@
  *          wake the pending task up in the scheduler task. <br/>
  *          This mechamism is useful, if we need to performe some slow operation in
  *          a servlet. Because this types of task won't block the worker thread
+ * @note    The task event may not be sucessfully dispatched, so we need something to make sure it doesn't
+ *          block the dispatcher when this happend first time. 
+ *          If an async task's downstream blocks the schceduler thread, and during the async task running,
+ *          a lot of requests have been sent to the scheduler, and those tasks will create another async task
+ *          as an result, there will be a lot of async task compeletion event raised after times. 
+ *          The worst case is, the event has filled up the scheduler event queue and global event queue. 
+ *          As the result of this worst case, no scheduler thread is able to move on. 
+ *          
+ *          The desigin decision of this is, we currently just ignore this situation, because, it's really rare
+ *          that we could have too many task that block all the queue. In addition, because the service graph has
+ *          finite nodes, and the size of scheduler queue is finite. Which means the async task can be blocked in 
+ *          the event queue can not be larger than a constant. This means at least we can avoid this by adjusting
+ *          the event queue size. 
+ *
+ *          TODO: But ideally we could have some mechanism to address this even tough the event queue isn't large engouh
+ *          to avoid this. It seems the best candicate of the mechanism is allow each task has a time limit, and if the
+ *          task timed out it will be killed. However, this introduces an serious issue about the how to clean the killed 
+ *          task. Since we share the address space, we don't have a chance to dispose all the allocated memory. However,
+ *          we can provide a way for the servlet author to address this. 
+ *
+ *          It seems we can have a cleanup label in the exec function after the return clause. And we can call a API function
+ *          reigster this label and once we decide to kill it, the thread will jump to that label. Although for javascript, 
+ *          python and other GC language, it could have a lot of work to do. But at least when a native servlet is killed
+ *          it has the chance to do the correct thing. 
+ *
+ *          After we have the timeout mechanism, we not only solve the async dispatching problem, but also the long running
+ *          task won't make the entire server freeze anymore.
  **/
 #ifndef __SCHED_ASYNC_H__
 #define __SCHED_ASYNC_H__
