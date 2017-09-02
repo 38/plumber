@@ -141,6 +141,9 @@ int itc_equeue_finalize()
 						{
 							itc_equeue_task_event_t* event = &queue->events[j & (queue->size - 1)].task;
 
+							/* We don't call the cleanup task at this point for now.
+							 * TODO: do we need a way to make it properly cleaned up */
+
 							if(event->async_handle != NULL && ERROR_CODE(int) == sched_async_handle_dispose(event->async_handle))
 							{
 								LOG_ERROR("Cannot deallocatet the task handle");

@@ -377,6 +377,8 @@ UNLOCK:
 	if(ERROR_CODE(int) == _notify_compeleted_awaiters(token, 1))
 		ERROR_PTR_RETURN_LOG("Cannot notify the completed awaiters");
 
+	LOG_DEBUG("Async processing thread %p has been killed", thread_data);
+
 	return thread_data;
 }
 

@@ -123,6 +123,7 @@ MUTEX_ERR:
 	return NULL;
 }
 
+
 static inline int _context_free(sched_loop_t* ctx)
 {
 	int rc = 0;
@@ -160,7 +161,16 @@ static inline int _context_free(sched_loop_t* ctx)
 				break;
 			}
 			case ITC_EQUEUE_EVENT_TYPE_TASK:
-				/* TODO: See how we dispose this */
+			{
+				/* We don't call the cleanup task at this point for now.
+				 * TODO: do we need a way to make it properly cleaned up */
+				if(NULL != ctx->events[p].task.async_handle && ERROR_CODE(int) == sched_async_handle_dispose(ctx->events[p].task.async_handle))
+				{
+					LOG_ERROR("Cannot dispose the unprocessed async handle");
+					rc = ERROR_CODE(int);
+				}
+				break;
+			}
 			default:
 				LOG_WARNING("Invalid event type in the queue, may indicates code bug");
 		}
@@ -198,14 +208,7 @@ static inline void* _sched_main(void* data)
 			gettimeofday(&now,NULL);
 			abstime.tv_sec = now.tv_sec+1;
 			abstime.tv_nsec = 0;
-
-			/* TODO: (Async Task) we also want the async task's event wake up the cond var
-			 *                    However, since we changed the desgin, we probably do not
-			 *                    need to handle this case at this point, because the async
-			 *                    task thread should also be a ITC event source.
-			 *                    Then we don't need the type of sched_loop_event_t, instead
-			 *                    we add another field in itc_equeue_event_t for the task event
-			 **/
+			
 			if(pthread_mutex_lock(&context->mutex) < 0) LOG_WARNING_ERRNO("Cannot acquire the scheduler event mutex");
 			while(context->rear == context->front)
 			{
@@ -214,6 +217,7 @@ static inline void* _sched_main(void* data)
 				if(_killed) goto KILLED;
 				abstime.tv_sec ++;
 			}
+			
 			if(pthread_mutex_unlock(&context->mutex) < 0) LOG_WARNING_ERRNO("Cannot release the scheduler event mutex");
 		}
 
@@ -240,7 +244,6 @@ static inline void* _sched_main(void* data)
 			    LOG_WARNING_ERRNO("Cannot unlock the dispatcher mutex");
 		}
 
-		/* TODO: we need handle two different types of event: Module IO event and Async Task event */
 		switch(current.type)
 		{
 			case ITC_EQUEUE_EVENT_TYPE_IO:
@@ -249,6 +252,7 @@ static inline void* _sched_main(void* data)
 				break;
 			case ITC_EQUEUE_EVENT_TYPE_TASK:
 				/* TODO: here's the point we actually process the async task event (Don't forget dispose them!) */
+				break;
 			default:
 				LOG_ERROR("Invalid task type");
 		}
@@ -459,6 +463,18 @@ EXIT_LOOP:
 		}
 NEXT_ITER:
 		(void)0;
+	}
+
+	/* Let's cleanup all the unprocessed pending event at this point */
+	for(;pending_list != NULL;)
+	{
+		_pending_event_t* this = pending_list;
+		pending_list = pending_list->next;
+
+		if(this->event.task.async_handle != NULL && ERROR_CODE(int) == sched_async_handle_dispose(this->event.task.async_handle))
+			LOG_WARNING("Cannot dispose the unprocessed async task handle");
+
+		free(this);
 	}
 
 	if(ERROR_CODE(int) == sched_async_kill())
