@@ -730,3 +730,15 @@ EXIT:
 
 	return rc;
 }
+
+int sched_async_handle_status_code(runtime_api_async_handle_t* handle, int* resbuf)
+{
+	_handle_t* task = (_handle_t*)handle;
+
+	if(NULL == task || _HANDLE_MAGIC != task->magic_num || NULL == resbuf)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	*resbuf = task->status_code;
+
+	return 0;
+}

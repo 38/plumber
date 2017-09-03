@@ -98,7 +98,7 @@ int sched_async_handle_dispose(runtime_api_async_handle_t* handle);
  *       the function faiulre and the ask failure.
  * @return status code
  **/
-int sched_async_handle_get_status_code(runtime_api_async_handle_t* handle, int* resbuf);
+int sched_async_handle_status_code(runtime_api_async_handle_t* handle, int* resbuf);
 
 /**
  * @brief Make the async handle to the await mode, which means even though the async task has been done
@@ -110,7 +110,7 @@ int sched_async_handle_get_status_code(runtime_api_async_handle_t* handle, int* 
  *        becomes a very intersting thing, because it may means we need to cancel this.
  * @return status code
  **/
-int sched_async_handle_await_set(runtime_api_async_handle_t* handle);
+int sched_async_handle_set_await(runtime_api_async_handle_t* handle);
 
 /**
  * @brief The function that notify the await function has been completed
@@ -119,5 +119,4 @@ int sched_async_handle_await_set(runtime_api_async_handle_t* handle);
  * @return status code
  **/
 int sched_async_handle_await_complete(runtime_api_async_handle_t* handle, int status);
-
 #endif /* __SCHED_ASYNC_H__ */

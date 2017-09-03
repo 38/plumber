@@ -13,6 +13,8 @@
 #include <runtime/pdt.h>
 #include <runtime/servlet.h>
 #include <runtime/task.h>
+
+#include <sched/async.h>
 /**
  * @brief get the current task
  * @param action the action filter checks what kinds of action we expected, if any type of action
@@ -219,6 +221,33 @@ static int _set_type_hook(runtime_api_pipe_t pipe, runtime_api_pipe_type_callbac
 	else ERROR_RETURN_LOG(int, "Cannot set up the type callback for a service module function pipe");
 }
 
+static int _async_cntl(runtime_api_async_handle_t* async_handle, uint32_t opcode, va_list ap)
+{
+	if(NULL == async_handle || NULL == ap) ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	switch(opcode)
+	{
+		case RUNTIME_API_ASYNC_CNTL_OPCODE_SET_WAIT:
+		{
+			return sched_async_handle_set_await(async_handle);
+		}
+		case RUNTIME_API_ASYNC_CNTL_OPCODE_NOTIFY_WAIT:
+		{
+			int status_code =  va_arg(ap, int);
+			return sched_async_handle_await_complete(async_handle, status_code);
+		}
+		case RUNTIME_API_ASYNC_CNTL_OPCODE_RETCODE:
+		{
+			int* buf = va_arg(ap, int*);
+			return sched_async_handle_status_code(async_handle, buf);
+		}
+		default:
+			LOG_ERROR("Invalid async_cntl opcode");
+	}
+
+	return ERROR_CODE(int);
+}
+
 /**
  * @brief this is the framework address table
  **/
@@ -235,7 +264,8 @@ runtime_api_address_table_t runtime_api_address_table = {
 	.get_module_func = _get_module_func,
 	.mod_open = _mod_open,
 	.mod_cntl_prefix = _mod_cntl_prefix,
-	.set_type_hook = _set_type_hook
+	.set_type_hook = _set_type_hook,
+	.async_cntl = _async_cntl
 };
 
 

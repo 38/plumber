@@ -616,7 +616,7 @@ typedef struct {
 	 * @todo implement this 
 	 * @return status code
 	 **/
-	int (*async_cntl)(const void* task_handle, uint32_t opcode, va_list ap);
+	int (*async_cntl)(runtime_api_async_handle_t* async_handle, uint32_t opcode, va_list ap);
 } runtime_api_address_table_t;
 
 /** 
