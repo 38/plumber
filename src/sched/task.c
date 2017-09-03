@@ -64,6 +64,7 @@ static inline void _async_comp_enqueue(sched_task_context_t* ctx, _task_entry_t*
 	if(NULL != ctx->async_completed_tail) ctx->async_completed_tail->next = task;
 	else ctx->async_completed_head = task;
 	ctx->async_completed_tail = task;
+	task->next = NULL;
 }
 
 /**
@@ -566,26 +567,37 @@ ERR:
 	return ERROR_CODE(sched_task_request_t);
 }
 
-int sched_task_input_pipe(sched_task_context_t* ctx, const sched_service_t* service, sched_task_request_t request,
-                          sched_service_node_id_t node, runtime_api_pipe_id_t pipe,
-                          itc_module_pipe_t* handle)
+static inline int _input_ready(_task_entry_t* entry, itc_module_pipe_t* handle)
 {
-	_task_entry_t* task = _task_table_find(ctx, service, request, node);
-	if(NULL == task) task = _task_table_insert(ctx, service, request, node);
-
-	if(ERROR_CODE(int) == _task_add_pipe(task, pipe, handle, 1))
-	    ERROR_RETURN_LOG(int, "Cannot add pipe to the task");
-
-	/* Because we have a signle thread model for each request, it we can simply that the pipe is ready once is gets assigned */
-	if(sched_task_pipe_ready((sched_task_t*)task) == ERROR_CODE(int))
+	if(sched_task_pipe_ready(&entry->task) == ERROR_CODE(int))
 	    ERROR_RETURN_LOG(int, "Cannot set the shadow pipe to ready state");
-
+	
 	int rc;
 	if(ERROR_CODE(int) == (rc = itc_module_is_pipe_cancelled(handle)))
 	    ERROR_RETURN_LOG(int, "Cannot check if the pipe is already cancelled");
 
-	if(rc != 0 && ERROR_CODE(int) == sched_task_input_cancelled((sched_task_t*)task))
+	if(rc != 0 && ERROR_CODE(int) == sched_task_input_cancelled(&entry->task))
 	    ERROR_RETURN_LOG(int, "Cannot notify the cancel state to its owner");
+
+	return 0;
+}
+
+int sched_task_input_pipe(sched_task_context_t* ctx, const sched_service_t* service, sched_task_request_t request,
+                          sched_service_node_id_t node, runtime_api_pipe_id_t pipe,
+                          itc_module_pipe_t* handle, int async)
+{
+	_task_entry_t* task = _task_table_find(ctx, service, request, node);
+	if(NULL == task) task = _task_table_insert(ctx, service, request, node);
+
+
+	if(handle != NULL && ERROR_CODE(int) == _task_add_pipe(task, pipe, handle, 1))
+	    ERROR_RETURN_LOG(int, "Cannot add pipe to the task");
+
+	/* Because we have a signle thread model for each request, it we can simply that the pipe is ready once is gets assigned */
+	if(!async || (async && handle == NULL)) 
+		return _input_ready(task, handle == NULL ? task->task.exec_task->pipes[pipe] : handle);
+	else 
+		LOG_DEBUG("The upstream task is an async task, so we don't notify the ready state for now");
 
 	return 0;
 }
@@ -765,27 +777,8 @@ sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx)
 			_get_task_args(next, arg_buffer, sizeof(arg_buffer));
 			LOG_TRACE("task `%s' has been picked up as next step", arg_buffer);
 #endif
-
-			if(runtime_task_is_async(next->task.exec_task))
-			{
-				int rc = sched_async_task_post(ctx->thread_handle, &next->task);
-				if(ERROR_CODE(int) == rc) 
-					next->task.exec_task = NULL;
-				if(ERROR_CODE(int) == rc || ERROR_CODE_OT(int) == rc)
-				{
-					sched_task_free(&next->task);
-					ERROR_PTR_RETURN_LOG("Cannot start the async task");
-				}
-				else
-				{
-					LOG_DEBUG("The async task has been sent to the task queue");
-					_async_pending_add(ctx, next);
-					/* If this is a async task, we don't want to pop them to the sched_step first, because
-					 * The pipe data is not ready at this point */
-					continue;
-				}
-			}
-
+			/* We just return this directly, because even if this is an async task, we need to initialize the pipe,
+			 * so we have to pop this to the stepper */
 			return &next->task;
 		}
 	}
@@ -820,4 +813,18 @@ int sched_task_request_status(const sched_task_context_t* ctx, sched_task_reques
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	return NULL != _request_entry_find(ctx, request);
+}
+
+int sched_task_launch_async(sched_task_t* task)
+{
+	if(NULL == task || !runtime_task_is_async(task->exec_task))
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+	int rc = sched_async_task_post(task->ctx->thread_handle, task);
+	if(ERROR_CODE(int) == rc) 
+		task->exec_task = NULL;
+	if(ERROR_CODE(int) == rc || ERROR_CODE_OT(int) == rc)
+		ERROR_RETURN_LOG(int, "Cannot post the async task to the async queue");
+	LOG_DEBUG("The async task has been sent to the task queue");
+	_async_pending_add(task->ctx, (_task_entry_t*)task);
+	return 0;
 }

@@ -536,7 +536,7 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	if(task->exec_task == NULL)
 		ERROR_RETURN_LOG(int, "The async processor cannot take an uninstantiated task");
 
-	if(RUNTIME_TASK_FLAG_GET_ACTION(task->exec_task->flags) != (RUNTIME_TASK_FLAG_ACTION_ASYNC | RUNTIME_TASK_FLAG_ACTION_INIT))
+	if(RUNTIME_TASK_FLAG_GET_ACTION(task->exec_task->flags) != RUNTIME_TASK_FLAG_ACTION_INIT || !runtime_task_is_async(task->exec_task))
 		ERROR_RETURN_LOG(int, "The async_setup task is expected");
 
 	/* Then let's construct the handle */

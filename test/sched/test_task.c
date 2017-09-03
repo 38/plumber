@@ -220,7 +220,7 @@ static inline int request_test(int seed)
 			if(sched_task_output_pipe(task, result[i].source_pipe_desc, pipes[0]) == ERROR_CODE(int))
 			    goto LERR;
 
-			if(sched_task_input_pipe(stc, task->service, task->request, result[i].destination_node_id, result[i].destination_pipe_desc, pipes[1]) < 0)
+			if(sched_task_input_pipe(stc, task->service, task->request, result[i].destination_node_id, result[i].destination_pipe_desc, pipes[1], 0) < 0)
 			    goto LERR;
 		}
 

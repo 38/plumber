@@ -37,111 +37,132 @@ int sched_step_next(sched_task_context_t* stc, itc_module_type_t type)
 
 	if(NULL == (result = sched_service_get_outgoing_pipes(task->service, task->node, &size)))
 	    ERROR_LOG_GOTO(LERR, "Cannot get outgoing pipes");
+	
+	/* We should initialize the pipes only for the sync request and the async init */
+	int pipe_init = (!runtime_task_is_async(task->exec_task)) || !(task->exec_task->flags & (RUNTIME_TASK_FLAG_ACTION_UNLOAD | RUNTIME_TASK_FLAG_ACTION_EXEC));
+	int async_init = pipe_init && runtime_task_is_async(task->exec_task);
 
 	for(i = 0; i < size; i ++)
 	{
-		runtime_api_pipe_flags_t out_flags = 0, in_flags = 0;
-
-		out_flags = sched_service_get_pipe_flags(task->service, result[i].source_node_id, result[i].source_pipe_desc);
-		if(ERROR_CODE(runtime_api_pipe_flags_t) == out_flags)
-		    ERROR_LOG_GOTO(LERR, "Cannot get output pipe flags");
-
-		in_flags = sched_service_get_pipe_flags(task->service, result[i].destination_node_id, result[i].destination_pipe_desc);
-		if(ERROR_CODE(runtime_api_pipe_flags_t) == in_flags)
-		    ERROR_LOG_GOTO(LERR, "Cannot get input pipe flags");
-
-		size_t input_header_size, output_header_size;
-
-		if(ERROR_CODE(size_t) == (output_header_size = sched_service_get_pipe_type_size(task->service,
-		                                                                                result[i].source_node_id,
-		                                                                                result[i].source_pipe_desc)))
-		    ERROR_LOG_GOTO(LERR, "Cannot get the size of output header size");
-
-		if(ERROR_CODE(size_t) == (input_header_size = sched_service_get_pipe_type_size(task->service,
-		                                                                               result[i].destination_node_id,
-		                                                                               result[i].destination_pipe_desc)))
-		    ERROR_LOG_GOTO(LERR, "Cannot get the size of output header size");
-
-		itc_module_pipe_param_t param = {
-			.output_flags  = out_flags,
-			.output_header = output_header_size,
-			.input_flags   = in_flags,
-			.input_header  = input_header_size,
-			.args = NULL
-		};
-
-		if(out_flags & RUNTIME_API_PIPE_SHADOW)
+		if(pipe_init)
 		{
-			runtime_api_pipe_id_t target_pid = RUNTIME_API_PIPE_GET_TARGET(out_flags);
-			runtime_api_pipe_flags_t disabled = (out_flags & RUNTIME_API_PIPE_DISABLED);
-			pipes[0] = NULL;
-			pipes[1] = itc_module_pipe_fork(task->exec_task->pipes[target_pid], in_flags | RUNTIME_API_PIPE_SHADOW | target_pid | disabled, input_header_size, NULL);
+			runtime_api_pipe_flags_t out_flags = 0, in_flags = 0;
 
-			if(ERROR_CODE(int) == sched_task_output_shadow(task, result[i].source_pipe_desc, pipes[1]))
-			    ERROR_LOG_GOTO(LERR, "Cannot add the forked pipe as shadow");
+			out_flags = sched_service_get_pipe_flags(task->service, result[i].source_node_id, result[i].source_pipe_desc);
+			if(ERROR_CODE(runtime_api_pipe_flags_t) == out_flags)
+				ERROR_LOG_GOTO(LERR, "Cannot get output pipe flags");
+
+			in_flags = sched_service_get_pipe_flags(task->service, result[i].destination_node_id, result[i].destination_pipe_desc);
+			if(ERROR_CODE(runtime_api_pipe_flags_t) == in_flags)
+				ERROR_LOG_GOTO(LERR, "Cannot get input pipe flags");
+
+			size_t input_header_size, output_header_size;
+
+			if(ERROR_CODE(size_t) == (output_header_size = sched_service_get_pipe_type_size(task->service,
+																							result[i].source_node_id,
+																							result[i].source_pipe_desc)))
+				ERROR_LOG_GOTO(LERR, "Cannot get the size of output header size");
+
+			if(ERROR_CODE(size_t) == (input_header_size = sched_service_get_pipe_type_size(task->service,
+																						   result[i].destination_node_id,
+																						   result[i].destination_pipe_desc)))
+				ERROR_LOG_GOTO(LERR, "Cannot get the size of output header size");
+
+			itc_module_pipe_param_t param = {
+				.output_flags  = out_flags,
+				.output_header = output_header_size,
+				.input_flags   = in_flags,
+				.input_header  = input_header_size,
+				.args = NULL
+			};
+
+			if(out_flags & RUNTIME_API_PIPE_SHADOW)
+			{
+				runtime_api_pipe_id_t target_pid = RUNTIME_API_PIPE_GET_TARGET(out_flags);
+				runtime_api_pipe_flags_t disabled = (out_flags & RUNTIME_API_PIPE_DISABLED);
+				pipes[0] = NULL;
+				pipes[1] = itc_module_pipe_fork(task->exec_task->pipes[target_pid], in_flags | RUNTIME_API_PIPE_SHADOW | target_pid | disabled, input_header_size, NULL);
+
+				if(ERROR_CODE(int) == sched_task_output_shadow(task, result[i].source_pipe_desc, pipes[1]))
+					ERROR_LOG_GOTO(LERR, "Cannot add the forked pipe as shadow");
+			}
+			else if(itc_module_pipe_allocate(type, 0, param, pipes + 0, pipes + 1) < 0)
+				ERROR_LOG_GOTO(LERR, "Cannot allocate pipe from <NID = %d, PID = %d> -> <NID = %d, PID = %d>",
+									 result[i].source_node_id, result[i].source_pipe_desc,
+									 result[i].destination_node_id, result[i].destination_pipe_desc);
+
+			if(pipes[0] != NULL && sched_task_output_pipe(task, result[i].source_pipe_desc, pipes[0]) == ERROR_CODE(int))
+				ERROR_LOG_GOTO(LERR, "Cannot assign output pipe to the task");
+
+			if(sched_task_input_pipe(stc, task->service, task->request, result[i].destination_node_id, result[i].destination_pipe_desc, pipes[1], async_init) == ERROR_CODE(int))
+				ERROR_LOG_GOTO(LERR, "Cannot assign the input pipe to the downstream task");
 		}
-		else if(itc_module_pipe_allocate(type, 0, param, pipes + 0, pipes + 1) < 0)
-		    ERROR_LOG_GOTO(LERR, "Cannot allocate pipe from <NID = %d, PID = %d> -> <NID = %d, PID = %d>",
-		                         result[i].source_node_id, result[i].source_pipe_desc,
-		                         result[i].destination_node_id, result[i].destination_pipe_desc);
-
-		if(pipes[0] != NULL && sched_task_output_pipe(task, result[i].source_pipe_desc, pipes[0]) == ERROR_CODE(int))
-		    ERROR_LOG_GOTO(LERR, "Cannot assign output pipe to the task");
-
-		if(sched_task_input_pipe(stc, task->service, task->request, result[i].destination_node_id, result[i].destination_pipe_desc, pipes[1]) == ERROR_CODE(int))
-		    ERROR_LOG_GOTO(LERR, "Cannot assign the input pipe to the downstream task");
+		else if(ERROR_CODE(int) == sched_task_input_pipe(stc, task->service, task->request, result[i].destination_node_id, result[i].destination_pipe_desc, NULL, 1))
+			ERROR_LOG_GOTO(LERR, "Cannot set the async task pipe to ready state");
 	}
 
-#ifdef ENABLE_PROFILER
-	static __thread int counter = 0;
-
-	if(sched_service_profiler_timer_start(task->service, task->node) == ERROR_CODE(int))
-	    LOG_WARNING("Cannot start the profiler");
-	counter ++;
-#endif
-	_current_request_scope = task->scope;
-	/* TODO: what should we do for the async task ? */
-#ifdef FULL_OPTIMIZATION
-	if(_run_task_fast(task->exec_task) == ERROR_CODE(int))
-#else
-	if(runtime_task_start(task->exec_task) == ERROR_CODE(int))
-#endif
+	if(!async_init)
 	{
+
+#ifdef ENABLE_PROFILER
+		static __thread int counter = 0;
+
+		if(sched_service_profiler_timer_start(task->service, task->node) == ERROR_CODE(int))
+			LOG_WARNING("Cannot start the profiler");
+		counter ++;
+#endif
+		_current_request_scope = task->scope;
+		/* TODO: what should we do for the async task ? */
+#ifdef FULL_OPTIMIZATION
+		if(_run_task_fast(task->exec_task) == ERROR_CODE(int))
+#else
+		if(runtime_task_start(task->exec_task) == ERROR_CODE(int))
+#endif
+		{
+#ifdef ENABLE_PROFILER
+			if(sched_service_profiler_timer_stop(task->service) == ERROR_CODE(int))
+				LOG_WARNING("Cannot stop the profiler");
+#endif
+			ERROR_LOG_GOTO(TASK_FAILED, "Task failed");
+		}
 #ifdef ENABLE_PROFILER
 		if(sched_service_profiler_timer_stop(task->service) == ERROR_CODE(int))
-		    LOG_WARNING("Cannot stop the profiler");
+			LOG_WARNING("Cannot stop the profiler");
+		if(counter > 10000)
+		{
+			sched_service_profiler_flush(task->service);
+			counter = 0;
+		}
 #endif
-		ERROR_LOG_GOTO(TASK_FAILED, "Task failed");
-	}
-#ifdef ENABLE_PROFILER
-	if(sched_service_profiler_timer_stop(task->service) == ERROR_CODE(int))
-	    LOG_WARNING("Cannot stop the profiler");
-	if(counter > 10000)
-	{
-		sched_service_profiler_flush(task->service);
-		counter = 0;
-	}
-#endif
-	runtime_api_pipe_id_t null_pid = RUNTIME_API_PIPE_TO_PID(task->exec_task->servlet->sig_null);
+		runtime_api_pipe_id_t null_pid = RUNTIME_API_PIPE_TO_PID(task->exec_task->servlet->sig_null);
 
-	if(task->exec_task->pipes[null_pid] != NULL)
+		if(task->exec_task->pipes[null_pid] != NULL)
+		{
+			for(i = 0; i < size; i ++)
+			{
+				int touched = 0;
+				if(result[i].source_pipe_desc != task->exec_task->servlet->sig_null &&
+				   result[i].source_pipe_desc != task->exec_task->servlet->sig_error &&
+				   ERROR_CODE(int) == (touched = itc_module_pipe_is_touched(task->exec_task->pipes[RUNTIME_API_PIPE_TO_PID(result[i].source_pipe_desc)])))
+					ERROR_LOG_GOTO(LERR, "Cannot check if the pipe has been touched");
+				if(touched) break;
+			}
+			if(i == size)
+			{
+				LOG_DEBUG("The servlet produces zero output, set the __null__ signal");
+				size_t rc;
+				for(;0 == (rc = itc_module_pipe_write("", 1, task->exec_task->pipes[null_pid])););
+				if(ERROR_CODE(size_t) == rc) ERROR_LOG_GOTO(LERR, "Cannot touch the null signal pipe");
+			}
+		}
+	}
+	else if(ERROR_CODE(int) == sched_task_launch_async(task))
+		ERROR_LOG_GOTO(TASK_FAILED, "Cannot launch the async task");
+	else 
 	{
-		for(i = 0; i < size; i ++)
-		{
-			int touched = 0;
-			if(result[i].source_pipe_desc != task->exec_task->servlet->sig_null &&
-			   result[i].source_pipe_desc != task->exec_task->servlet->sig_error &&
-			   ERROR_CODE(int) == (touched = itc_module_pipe_is_touched(task->exec_task->pipes[RUNTIME_API_PIPE_TO_PID(result[i].source_pipe_desc)])))
-			    ERROR_LOG_GOTO(LERR, "Cannot check if the pipe has been touched");
-			if(touched) break;
-		}
-		if(i == size)
-		{
-			LOG_DEBUG("The servlet produces zero output, set the __null__ signal");
-			size_t rc;
-			for(;0 == (rc = itc_module_pipe_write("", 1, task->exec_task->pipes[null_pid])););
-			if(ERROR_CODE(size_t) == rc) ERROR_LOG_GOTO(LERR, "Cannot touch the null signal pipe");
-		}
+		LOG_DEBUG("Async task has been started");
+		/* In this case, we must not dispose the task, because it's in the pending list */
+		goto RETURN;
 	}
 
 	goto CLEANUP;
@@ -168,6 +189,8 @@ TASK_FAILED:
 	/* At this point, we are good to go */
 CLEANUP:
 	if(sched_task_free(task) == ERROR_CODE(int)) LOG_WARNING("Cannot dispose task");
+
+RETURN:
 
 	return 1;
 LERR:

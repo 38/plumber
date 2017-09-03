@@ -251,7 +251,8 @@ static inline void* _sched_main(void* data)
 					LOG_ERROR("Cannot add the incoming request to scheduler");
 				break;
 			case ITC_EQUEUE_EVENT_TYPE_TASK:
-				/* TODO: here's the point we actually process the async task event (Don't forget dispose them!) */
+				if(sched_task_async_completed(current.task.task) == ERROR_CODE(int))
+					LOG_ERROR("Cannot notify the scheduler about the task completion");
 				break;
 			default:
 				LOG_ERROR("Invalid task type");

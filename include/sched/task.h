@@ -92,11 +92,12 @@ sched_task_request_t sched_task_new_request(sched_task_context_t* ctx, const sch
  * @param request the request ID
  * @param pipe the target pipe of the node
  * @param handle the pipe handle
+ * @param async if this is an async task, which means we can not set the downstream end of the pipe to ready right away
  * @return status code
  **/
 int sched_task_input_pipe(sched_task_context_t* ctx, const sched_service_t* service, sched_task_request_t request,
                           sched_service_node_id_t node, runtime_api_pipe_id_t pipe,
-                          itc_module_pipe_t* handle);
+                          itc_module_pipe_t* handle, int async);
 
 /**
  * @brief get next runnable task, and remove the task from the list
@@ -170,5 +171,13 @@ int sched_task_input_cancelled(sched_task_t* task);
  * @return if the scheduler is currently working on this (or in the pending state), or error code
  **/
 int sched_task_request_status(const sched_task_context_t* ctx, sched_task_request_t request);
+
+/**
+ * @brief Launch the async task
+ * @param task The task we need to launch, what it actually did is post the async task
+ *       to the async task queue
+ * @return status code
+ **/
+int sched_task_launch_async(sched_task_t* task);
 
 #endif /* __PLUMBER_SCHED_TASK_H__ */

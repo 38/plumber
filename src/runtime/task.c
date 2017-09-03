@@ -144,7 +144,7 @@ int runtime_task_free(runtime_task_t* task)
 
 
 	runtime_task_flags_t action = RUNTIME_TASK_FLAG_GET_ACTION(task->flags);
-	if(action != RUNTIME_TASK_FLAG_ACTION_INIT && action != RUNTIME_TASK_FLAG_ACTION_UNLOAD)
+	if((task->flags & RUNTIME_TASK_FLAG_ACTION_ASYNC) || (action != RUNTIME_TASK_FLAG_ACTION_INIT && action != RUNTIME_TASK_FLAG_ACTION_UNLOAD))
 	    mempool_objpool_dealloc(task->servlet->task_pool, task);
 	else
 	    free(task);
@@ -318,7 +318,7 @@ int runtime_task_start(runtime_task_t *task)
 	{
 		runtime_api_async_handle_t* async_handle = task->async_handle;
 
-		switch(RUNTIME_TASK_FLAG_GET_ACTION(task->flags) & RUNTIME_TASK_FLAG_ACTION_ASYNC)
+		switch(RUNTIME_TASK_FLAG_GET_ACTION(task->flags))
 		{
 			case RUNTIME_TASK_FLAG_ACTION_INIT:
 				if(NULL != task->servlet->bin->define->async_setup)
@@ -358,7 +358,8 @@ runtime_task_t* runtime_task_current()
 int runtime_task_async_companions(runtime_task_t* task, runtime_task_t** exec_buf, runtime_task_t** cleanup_buf)
 {
 	if(NULL == task || NULL == exec_buf || NULL == cleanup_buf || 
-	   RUNTIME_TASK_FLAG_GET_ACTION(task->flags) != (RUNTIME_TASK_FLAG_ACTION_INIT | RUNTIME_TASK_FLAG_ACTION_ASYNC))
+	   RUNTIME_TASK_FLAG_GET_ACTION(task->flags) != RUNTIME_TASK_FLAG_ACTION_INIT ||
+	   !runtime_task_is_async(task))
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(!task->async_owner) ERROR_RETURN_LOG(int, "Cannot create companion tasks for the async task do not hold the owership of the async buffer");
@@ -380,9 +381,9 @@ int runtime_task_async_companions(runtime_task_t* task, runtime_task_t** exec_bu
 
 	exec_buf[0]->async_handle = cleanup_buf[0]->async_handle = task->async_handle;
 
-	exec_buf[0]->flags = cleanup_buf[0]->flags = (task->flags & ~RUNTIME_TASK_FLAG_ACTION_MASK) | RUNTIME_TASK_FLAG_ACTION_ASYNC;
+	exec_buf[0]->flags = cleanup_buf[0]->flags = (task->flags & ~RUNTIME_TASK_FLAG_ACTION_MASK & ~RUNTIME_TASK_FLAG_ACTION_INVOKED);
 	exec_buf[0]->flags |= RUNTIME_TASK_FLAG_ACTION_EXEC;
-	exec_buf[0]->flags |= RUNTIME_TASK_FLAG_ACTION_UNLOAD;
+	cleanup_buf[0]->flags |= RUNTIME_TASK_FLAG_ACTION_UNLOAD;
 	
 	/* We don't allow the exec task access any pipe */
 	exec_buf[0]->npipes = 0;
