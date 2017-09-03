@@ -86,6 +86,18 @@ sched_task_request_t sched_task_new_request(sched_task_context_t* ctx, const sch
  * @brief notify the task table there's a newly create pipe which can connect to the given node, given pipe
  *        if there's no task for this request on this node, create a new task
  *        It will return a ready task if this turns out that one task becomes mature
+ * @note Since now we have the async task, which means we can not mark the downstream task is ready before the async
+ *       task is done. <br/>
+ *       This means, we need to sperate this function into two stage: <br/>
+ *       First, we need to assign the downstream runtime task pipes array <br/>
+ *       Second, we need to notify the downstream task for the pipe ready state <br/>
+ *       For the sync task, the logic will be the same. However, for the async one,
+ *       we need do the first step before the async_setup task is called and do the second
+ *       step when the async_cleanup is completed. <br/>
+ *       This function actually handle this, if async = 0, the behavior is the original one, which 
+ *       do the step 1 and step 2 at the same time.
+ *       if the async = 1, and handle is not NULL, we actually do stage 1 <br/>
+ *       if the async = 1 and handle is NULL, we do stage 2 <br/>
  * @param service the target service
  * @param ctx The scheduler task context
  * @param node the target node
