@@ -16,6 +16,8 @@
 #include <runtime/servlet.h>
 #include <runtime/task.h>
 
+#include <sched/async.h>
+
 #include <error.h>
 
 #include <utils/mempool/objpool.h>
@@ -92,6 +94,7 @@ static inline runtime_task_t* _task_new(runtime_servlet_t* servlet, uint32_t act
 				ERROR_LOG_GOTO(ERR, "Cannot allocate the async data buffer");
 
 			ret->async_owner = 1;
+			ret->async_handle = NULL;
 		}
 		goto EXIT;
 ERR:
@@ -131,9 +134,14 @@ int runtime_task_free(runtime_task_t* task)
 	/* We only dispose the async data buffer when the owner of this buffer is dead. 
 	 * For the convention for who owns the async buffer, please read the documentation
 	 * of async_owner field */
-	if((task->flags & RUNTIME_TASK_FLAG_ACTION_ASYNC) && task->async_owner && NULL != task->async_data && 
-	   ERROR_CODE(int) == mempool_objpool_dealloc(task->servlet->bin->async_pool, task->async_data))
-		rc = ERROR_CODE(int);
+	if((task->flags & RUNTIME_TASK_FLAG_ACTION_ASYNC) && task->async_owner)
+	{
+		if(NULL != task->async_data && ERROR_CODE(int) == mempool_objpool_dealloc(task->servlet->bin->async_pool, task->async_data))
+			rc = ERROR_CODE(int);
+		if(NULL != task->async_handle && ERROR_CODE(int) == sched_async_handle_dispose(task->async_handle))
+			rc = ERROR_CODE(int);
+	}
+
 
 	runtime_task_flags_t action = RUNTIME_TASK_FLAG_GET_ACTION(task->flags);
 	if(action != RUNTIME_TASK_FLAG_ACTION_INIT && action != RUNTIME_TASK_FLAG_ACTION_UNLOAD)
@@ -243,27 +251,27 @@ int runtime_task_start_exec_fast(runtime_task_t* task)
 	return 0;
 }
 
-int runtime_task_start_async_setup_fast(runtime_task_t* task, runtime_api_async_handle_t* async_handle)
+int runtime_task_start_async_setup_fast(runtime_task_t* task)
 {
 #ifdef LOG_TRACE_ENABLED
 	char buf[4096];
 #endif
 	LOG_TRACE("%s is started", _get_task_full_name(task, buf, sizeof(buf)));
 
-	return task->servlet->bin->define->async_setup(async_handle, task->async_data, task->servlet->data);
+	return task->servlet->bin->define->async_setup(task->async_handle, task->async_data, task->servlet->data);
 }
 
-int runtime_task_start_async_cleanup_fast(runtime_task_t* task, runtime_api_async_handle_t* async_handle)
+int runtime_task_start_async_cleanup_fast(runtime_task_t* task)
 {
 #ifdef LOG_TRACE_ENABLED
 	char buf[4096];
 #endif
 	LOG_TRACE("%s is started", _get_task_full_name(task, buf, sizeof(buf)));
 
-	return task->servlet->bin->define->async_cleanup(async_handle, task->async_data, task->servlet->data);
+	return task->servlet->bin->define->async_cleanup(task->async_handle, task->async_data, task->servlet->data);
 }
 
-int runtime_task_start(runtime_task_t *task, runtime_api_async_handle_t* async_handle)
+int runtime_task_start(runtime_task_t *task)
 {
 	if(NULL == task)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
@@ -308,6 +316,8 @@ int runtime_task_start(runtime_task_t *task, runtime_api_async_handle_t* async_h
 	}
 	else
 	{
+		runtime_api_async_handle_t* async_handle = task->async_handle;
+
 		switch(RUNTIME_TASK_FLAG_GET_ACTION(task->flags) & RUNTIME_TASK_FLAG_ACTION_ASYNC)
 		{
 			case RUNTIME_TASK_FLAG_ACTION_INIT:
@@ -353,6 +363,8 @@ int runtime_task_async_companions(runtime_task_t* task, runtime_task_t** exec_bu
 
 	if(!task->async_owner) ERROR_RETURN_LOG(int, "Cannot create companion tasks for the async task do not hold the owership of the async buffer");
 
+	if(!task->async_handle) ERROR_RETURN_LOG(int, "Cannot create companions for the async task don't have an associated async handle");
+
 	void* async_buf = task->async_data;
 	if(task->servlet->task_pool == NULL) ERROR_RETURN_LOG(int, "Code bug: How can the init task created without task pool ?");
 
@@ -365,6 +377,8 @@ int runtime_task_async_companions(runtime_task_t* task, runtime_task_t** exec_bu
 	exec_buf[0]->async_data = cleanup_buf[0]->async_data = async_buf;
 
 	exec_buf[0]->servlet = cleanup_buf[0]->servlet = task->servlet;
+
+	exec_buf[0]->async_handle = cleanup_buf[0]->async_handle = task->async_handle;
 
 	exec_buf[0]->flags = cleanup_buf[0]->flags = (task->flags & ~RUNTIME_TASK_FLAG_ACTION_MASK) | RUNTIME_TASK_FLAG_ACTION_ASYNC;
 	exec_buf[0]->flags |= RUNTIME_TASK_FLAG_ACTION_EXEC;

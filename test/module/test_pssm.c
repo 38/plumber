@@ -17,7 +17,7 @@ int test_mem_pool()
 	runtime_task_t* task;
 	ASSERT_PTR(task = runtime_stab_create_exec_task(mem_pool_sid, RUNTIME_TASK_FLAG_ACTION_EXEC), CLEANUP_NOP);
 
-	ASSERT_OK(runtime_task_start(task, NULL), CLEANUP_NOP);
+	ASSERT_OK(runtime_task_start(task), CLEANUP_NOP);
 
 	ASSERT_OK(runtime_task_free(task), CLEANUP_NOP);
 
@@ -32,7 +32,7 @@ int test_method()
 		runtime_task_t* task;
 		ASSERT_PTR(task = runtime_stab_create_exec_task(thread_local_test_sid, RUNTIME_TASK_FLAG_ACTION_EXEC), CLEANUP_NOP);
 
-		ASSERT_OK(runtime_task_start(task, NULL), CLEANUP_NOP);
+		ASSERT_OK(runtime_task_start(task), CLEANUP_NOP);
 
 		ASSERT_OK(runtime_task_free(task), CLEANUP_NOP);
 	}

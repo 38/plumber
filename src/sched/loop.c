@@ -321,6 +321,7 @@ static inline int _dispatcher_main()
 			uint32_t needs_notify = (target_loop->rear == target_loop->front);
 			BARRIER();
 			arch_atomic_sw_increment_u32(&target_loop->rear);
+			BARRIER();
 			if(needs_notify)
 			{
 				if(pthread_mutex_lock(&target_loop->mutex) < 0)

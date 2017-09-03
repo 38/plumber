@@ -108,6 +108,7 @@ typedef struct {
 static struct {
 	uint32_t             init:1;    /*!< Indicates if the async task processor has been initialized */
 	uint32_t             killed:1;  /*!< Indicates if the entire Async Task Processor has been killed */
+	/* TODO: do we need to add the mutex and condvar initlaization mutexs? */
 
 	/*********** The queue related data ***************/
 	uint32_t             q_cap;    /*!< The capacity of the queue */
@@ -346,7 +347,7 @@ UNLOCK:
 		if(thread_data->task == NULL) continue;
 
 		LOG_DEBUG("Staring the async exec task");
-		if(ERROR_CODE(int) == runtime_task_start(thread_data->task->exec_task, (runtime_api_async_handle_t*)thread_data->task))
+		if(ERROR_CODE(int) == runtime_task_start(thread_data->task->exec_task))
 		{
 			thread_data->task->status_code = ERROR_CODE(int);;
 			LOG_ERROR("The async exec task returns an error");
@@ -501,12 +502,20 @@ int sched_async_kill()
 			rc = ERROR_CODE(int);
 	}
 
-	if(ERROR_CODE(int) == mempool_objpool_free(_ctx.q_pool))
-		rc = ERROR_CODE(int);
 
-	free(_ctx.q_data);
+	/* At this point we should take care of all the awating tasks */
+	for(i = 0; i < _ctx.al_cap; i ++)
+		if(_ctx.al_list[i].valid && _ctx.al_list[i].task->state == _STATE_AWAITING)
+		{
+			if(ERROR_CODE(int) == mempool_objpool_dealloc(_ctx.q_pool, _ctx.al_list[i].task))
+				rc = ERROR_CODE(int);
+		}
 
 	free(_ctx.al_list);
+	free(_ctx.q_data);
+
+	if(ERROR_CODE(int) == mempool_objpool_free(_ctx.q_pool))
+		rc = ERROR_CODE(int);
 
 	_ctx.q_data = NULL;
 	_ctx.q_front = _ctx.q_rear = 0;
@@ -519,6 +528,7 @@ int sched_async_kill()
 int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 {
 	int normal_rc = 0;
+	int error_code = ERROR_CODE(int);
 	/* First, let's verify this task is a valid async init task */
 	if(NULL == loop || NULL == task) 
 		ERROR_RETURN_LOG(int, "Invalid argumetns");
@@ -544,8 +554,14 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	handle->sched_task  = task;
 	handle->status_code = 0;
 
+	task->exec_task->async_handle = (runtime_api_async_handle_t*)handle;
+
 	/* After that we need to call the async_setup function to get this initialized */
-	if(ERROR_CODE(int) == runtime_task_start(task->exec_task, (runtime_api_async_handle_t*)handle))
+#ifdef FULL_OPTIMIZATION
+	if(ERROR_CODE(int) == runtime_task_start_async_setup_fast(task->exec_task))
+#else
+	if(ERROR_CODE(int) == runtime_task_start(task->exec_task))
+#endif
 		ERROR_LOG_GOTO(ERR, "The async setup task returns an error code");
 
 	/* Ok it seems the task has been successfully setup, construct its continuation at this point */
@@ -601,7 +617,12 @@ RET:
 	return normal_rc;
 ERR:
 	if(task->exec_task != NULL && task->exec_task != async_cleanup) 
-		runtime_task_free(task->exec_task);
+	{
+		if(ERROR_CODE(int) != runtime_task_free(task->exec_task))
+			error_code = ERROR_CODE_OT(int);
+	}
+
+	if(task->exec_task == NULL) error_code = ERROR_CODE_OT(int);
 
 	if(async_exec != NULL) 
 		runtime_task_free(async_exec);
@@ -609,15 +630,17 @@ ERR:
 	if(async_cleanup != NULL)
 	{
 		handle->status_code = ERROR_CODE(int);
-		if(ERROR_CODE(int) == runtime_task_start(async_cleanup, (runtime_api_async_handle_t*)handle))
+		if(ERROR_CODE(int) == runtime_task_start(async_cleanup))
 			LOG_WARNING("The async cleanup task returns an error code");
-		runtime_task_free(async_cleanup);
+
+		if(ERROR_CODE(int) != runtime_task_free(async_cleanup))
+			error_code = ERROR_CODE_OT(int);
 	}
 
 	if(NULL != handle) 
 		mempool_objpool_dealloc(_ctx.q_pool, handle);
 
-	return ERROR_CODE_OT(int);
+	return error_code;
 }
 
 int sched_async_handle_dispose(runtime_api_async_handle_t* handle)

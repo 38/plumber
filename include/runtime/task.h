@@ -50,6 +50,7 @@ typedef struct {
 										  *   This means, if we don't have the async_cleanup task created, we need to dispose the async buffer for sure.
 										  *   At this point, we introduced an assumption, once the async_cleanup task is created, it must be disposed later,
 										  *   but this is obviously true, otherwise we should have memory leak issue */
+	runtime_api_async_handle_t* async_handle; /*!< The async handle for this task */
 	void*                 async_data;    /*!< The async task data buffer */
 	itc_module_pipe_t*    pipes[0];      /*!< The pipe table for this task */
 } runtime_task_t;
@@ -90,7 +91,10 @@ runtime_task_t* runtime_task_new(runtime_servlet_t* servlet, runtime_task_flags_
  * @param task The task we want to check
  * @return If the task is the async task or error code
  **/
-int runtime_task_is_async(const runtime_task_t* task);
+static inline int runtime_task_is_async(const runtime_task_t* task)
+{
+	return (task->flags & RUNTIME_TASK_FLAG_ACTION_ASYNC) != 0;
+}
 
 /**
  * @brief This function will create the companions of the asnyc task
@@ -111,7 +115,7 @@ int runtime_task_async_companions(runtime_task_t* task, runtime_task_t** exec_bu
  * @note  change this
  * @return the status code
  **/
-int runtime_task_start(runtime_task_t* task, runtime_api_async_handle_t* handle);
+int runtime_task_start(runtime_task_t* task);
 
 /**
  * @brief This is the fast version to start an exec task
@@ -134,7 +138,7 @@ int runtime_task_start_exec_fast(runtime_task_t* task);
  * @param async_handle The pointer to the async handle
  * @return status code
  **/
-int runtime_task_start_async_setup_fast(runtime_task_t* task, runtime_api_async_handle_t* async_handle);
+int runtime_task_start_async_setup_fast(runtime_task_t* task);
 
 /**
  * @brief This is the faster version function to start a async_cleanup task
@@ -145,7 +149,7 @@ int runtime_task_start_async_setup_fast(runtime_task_t* task, runtime_api_async_
  * @param async_handle The async handle we want to use
  * @return status code
  **/
-int runtime_task_start_async_cleanup_fast(runtime_task_t* task, runtime_api_async_handle_t* async_handle);
+int runtime_task_start_async_cleanup_fast(runtime_task_t* task);
 
 /**
  * @brief get current task

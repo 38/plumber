@@ -342,7 +342,7 @@ runtime_servlet_t* runtime_servlet_new(runtime_servlet_binary_t* binary, uint32_
 		    ERROR_LOG_GOTO(ERR, "cannot create init task for servlet instance of %s", binary->name);
 
 		int rc;
-		if((rc = runtime_task_start(init_task, NULL)) == ERROR_CODE(int))
+		if((rc = runtime_task_start(init_task)) == ERROR_CODE(int))
 		    ERROR_LOG_GOTO(ERR, "init task for servlet instance of %s has failed", binary->name);
 
 		if(rc == RUNTIME_API_INIT_RESULT_SYNC) ret->async = 0;
@@ -391,7 +391,7 @@ int runtime_servlet_free(runtime_servlet_t* servlet)
 			LOG_WARNING("could not create unload task for servlet instance of %s", servlet->bin->name);
 			rc = ERROR_CODE(int);
 		}
-		else if(runtime_task_start(task, NULL) == ERROR_CODE(int))
+		else if(runtime_task_start(task) == ERROR_CODE(int))
 		{
 			LOG_WARNING("could not exeute the unload task for servlet instance of %s", servlet->bin->name);
 			rc = ERROR_CODE(int);

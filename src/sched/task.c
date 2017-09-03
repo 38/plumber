@@ -38,11 +38,14 @@ typedef struct _request_entry_t {
  * @brief The context used by a task table
  **/
 struct _sched_task_context_t {
-	void*                 thread_handle;  /*!< The thread handle which creates this scheduler task context */
+	sched_loop_t*         thread_handle;  /*!< The thread handle which creates this scheduler task context */
 	_task_entry_t**       task_table;     /*!< The hash table used to organize tasks */
 	_request_entry_t**    request_table;  /*!< The requet information table, maps the request id to the request entry */
 	_task_entry_t*        queue_head;     /*!< The ready queue head */
 	_task_entry_t*        queue_tail;     /*!< The ready queue tail */
+	_task_entry_t*        async_pending;  /*!< The pending async task list */
+	_task_entry_t*        async_completed_head; /*!< The head of completed async task queue */
+	_task_entry_t*        async_completed_tail; /*!< The tail of completed async task queue */
 	uint32_t              queue_size;     /*!< The size of the queue */
 };
 
@@ -50,6 +53,63 @@ struct _sched_task_context_t {
 static mempool_objpool_t* _task_pool = NULL;
 /** @brief the memory pool used for the request entrt */
 static mempool_objpool_t* _request_pool = NULL;
+
+/**
+ * @brief enqlueue a task to the async completed task queue
+ * @param task The task to insert
+ * @param ctx The scheduler context
+ **/
+static inline void _async_comp_enqueue(sched_task_context_t* ctx, _task_entry_t* task)
+{
+	if(NULL != ctx->async_completed_tail) ctx->async_completed_tail->next = task;
+	else ctx->async_completed_head = task;
+	ctx->async_completed_tail = task;
+}
+
+/**
+ * @brief get the first task from the async completion queue
+ * @param ctx The context
+ * @return the task, NULL if the queue is empty
+ **/
+static inline _task_entry_t* _async_comp_dequeue(sched_task_context_t* ctx)
+{
+	if(NULL == ctx->async_completed_head) return NULL;
+	_task_entry_t* ret = ctx->async_completed_head;
+	if(NULL == (ctx->async_completed_head = ret->next))
+		ctx->async_completed_tail = NULL;
+	return ret;
+}
+
+/**
+ * @brief Add the task to the async pending list
+ * @param ctx The scheduler context we want to add the task to
+ * @param task The task we want to add
+ * @return nothing
+ **/
+static inline void _async_pending_add(sched_task_context_t* ctx, _task_entry_t* task)
+{
+	task->next = ctx->async_pending;
+	task->prev = NULL;
+
+	if(NULL != ctx->async_pending) 
+		ctx->async_pending->prev = task;
+
+	ctx->async_pending = task;
+}
+
+/**
+ * @brief Remove the async pending task from the async pending list
+ * @param ctx The context to remove
+ * @param task The task to remove
+ * @return nothing
+ **/
+static inline void _async_pending_remove(sched_task_context_t* ctx, _task_entry_t* task)
+{
+	if(NULL == task->prev) ctx->async_pending = task->next;
+	else task->prev->next = task->next;
+
+	if(NULL != task->next) task->next->prev = task->prev;
+}
 
 /**
  * @brief enqueue a task to the ready quee
@@ -530,6 +590,21 @@ int sched_task_input_pipe(sched_task_context_t* ctx, const sched_service_t* serv
 	return 0;
 }
 
+int sched_task_async_completed(sched_task_t* task)
+{
+	/* TODO: this function do not check if the task is an async task, but we need
+	 *       to figure out if we need to check this  */
+	if(NULL == task)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	_task_entry_t* task_internal = (_task_entry_t*)task;
+
+	_async_pending_remove(task->ctx, task_internal);
+	_async_comp_enqueue(task->ctx, task_internal);
+
+	return 0;
+}
+
 int sched_task_output_pipe(sched_task_t* task, runtime_api_pipe_id_t pipe, itc_module_pipe_t* handle)
 {
 	if(NULL == task || pipe == ERROR_CODE(runtime_api_pipe_id_t) || NULL == handle)
@@ -618,7 +693,17 @@ sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx)
 {
 	for(;;)
 	{
-		_task_entry_t* next = _dequeue(ctx);
+		_task_entry_t* next = NULL;
+		/* The first thing is we need to look at the compelted async task list, if there's some task, we can move on */
+		if(NULL != (next = _async_comp_dequeue(ctx)))
+			LOG_DEBUG("Picking up the completed async task from the completion list");
+		else
+		{
+			next = _dequeue(ctx);
+			LOG_DEBUG("Picking up the next runnable sync task to run");
+		}
+
+		/* If still can not find anything, it means we don't have anything can be handled currently */
 		if(NULL == next) return NULL;
 
 		/* Check if this task is cancelled */
@@ -680,6 +765,27 @@ sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx)
 			_get_task_args(next, arg_buffer, sizeof(arg_buffer));
 			LOG_TRACE("task `%s' has been picked up as next step", arg_buffer);
 #endif
+
+			if(runtime_task_is_async(next->task.exec_task))
+			{
+				int rc = sched_async_task_post(ctx->thread_handle, &next->task);
+				if(ERROR_CODE(int) == rc) 
+					next->task.exec_task = NULL;
+				if(ERROR_CODE(int) == rc || ERROR_CODE_OT(int) == rc)
+				{
+					sched_task_free(&next->task);
+					ERROR_PTR_RETURN_LOG("Cannot start the async task");
+				}
+				else
+				{
+					LOG_DEBUG("The async task has been sent to the task queue");
+					_async_pending_add(ctx, next);
+					/* If this is a async task, we don't want to pop them to the sched_step first, because
+					 * The pipe data is not ready at this point */
+					continue;
+				}
+			}
+
 			return &next->task;
 		}
 	}
@@ -715,4 +821,3 @@ int sched_task_request_status(const sched_task_context_t* ctx, sched_task_reques
 
 	return NULL != _request_entry_find(ctx, request);
 }
-

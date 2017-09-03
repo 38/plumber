@@ -13,6 +13,13 @@ sched_rscope_t* sched_step_current_scope()
 	return _current_request_scope;
 }
 
+static inline int _run_task_fast(runtime_task_t* task)
+{
+	if(task->flags & RUNTIME_TASK_FLAG_ACTION_ASYNC) 
+		return runtime_task_start_async_cleanup_fast(task);
+	return runtime_task_start_exec_fast(task);
+}
+
 int sched_step_next(sched_task_context_t* stc, itc_module_type_t type)
 {
 	sched_task_t* task = NULL;
@@ -95,9 +102,9 @@ int sched_step_next(sched_task_context_t* stc, itc_module_type_t type)
 	_current_request_scope = task->scope;
 	/* TODO: what should we do for the async task ? */
 #ifdef FULL_OPTIMIZATION
-	if(runtime_task_start_exec_fast(task->exec_task) == ERROR_CODE(int))
+	if(_run_task_fast(task->exec_task) == ERROR_CODE(int))
 #else
-	if(runtime_task_start(task->exec_task, NULL) == ERROR_CODE(int))
+	if(runtime_task_start(task->exec_task) == ERROR_CODE(int))
 #endif
 	{
 #ifdef ENABLE_PROFILER
@@ -160,7 +167,7 @@ TASK_FAILED:
 
 	/* At this point, we are good to go */
 CLEANUP:
-	if(sched_task_free(task) < 0) LOG_WARNING("Cannot dispose task");
+	if(sched_task_free(task) == ERROR_CODE(int)) LOG_WARNING("Cannot dispose task");
 
 	return 1;
 LERR:

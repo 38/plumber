@@ -114,7 +114,7 @@ int single_node_test()
 
 		ASSERT_PTR(task = sched_task_next_ready_task(stc), goto TASK_ERR);
 
-		ASSERT_OK(runtime_task_start(task->exec_task, NULL), goto TASK_ERR);
+		ASSERT_OK(runtime_task_start(task->exec_task), goto TASK_ERR);
 
 		ASSERT_RETOK(size_t, itc_module_pipe_read(&result, sizeof(int), output[1]), goto TASK_ERR);
 		ASSERT_OK(itc_module_pipe_deallocate(output[1]), goto TASK_ERR);
@@ -224,7 +224,7 @@ static inline int request_test(int seed)
 			    goto LERR;
 		}
 
-		if(runtime_task_start(task->exec_task, NULL) < 0)
+		if(runtime_task_start(task->exec_task) < 0)
 		    goto LERR;
 
 		if(1 != sched_task_request_status(stc, reqid))

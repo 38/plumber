@@ -107,6 +107,14 @@ int sched_task_input_pipe(sched_task_context_t* ctx, const sched_service_t* serv
 sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx);
 
 /**
+ * @brief Notify the task scheduler on the async task compeletion event, this means we should 
+ *        move on to the downstream task in this request
+ * @param task The async task we want to nofiy
+ * @return status code
+ **/
+int sched_task_async_completed(sched_task_t* task);
+
+/**
  * @brief dispose a task that is already launched
  * @param task the task to dispose
  * @return status code

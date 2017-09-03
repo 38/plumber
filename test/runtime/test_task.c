@@ -63,7 +63,7 @@ int test_exec_task()
 
 	ASSERT_PTR(task, CLEANUP_NOP);
 
-	ASSERT_OK(runtime_task_start(task, NULL), runtime_task_free(task));
+	ASSERT_OK(runtime_task_start(task), runtime_task_free(task));
 
 	ASSERT_OK(runtime_task_free(task), CLEANUP_NOP);
 
