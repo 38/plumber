@@ -364,6 +364,8 @@ UNLOCK:
 			thread_data->task->status_code = ERROR_CODE(int);
 		}
 
+		thread_data->task->exec_task = NULL;
+
 		if(thread_data->task->await_id == ERROR_CODE(uint32_t))
 		{
 			LOG_DEBUG("The task is completed and post the task completion event");
@@ -684,7 +686,7 @@ int sched_async_handle_set_await(runtime_api_async_handle_t* handle)
 	rc = 0;
 
 EXIT:
-	if(pthread_mutex_lock(&_ctx.al_mutex) < 0)
+	if(pthread_mutex_unlock(&_ctx.al_mutex) < 0)
 		ERROR_RETURN_LOG(int, "Cannot release the async task waiting list mutex");
 
 	return rc;
