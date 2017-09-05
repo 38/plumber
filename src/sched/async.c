@@ -63,7 +63,8 @@ typedef enum {
 	_STATE_INIT,     /*!< Indicates the task is about to call async_setup function */
 	_STATE_EXEC,     /*!< The task is about to call async_exec function */
 	_STATE_DONE,     /*!< The task is about to call asnyc_clean function and emit the event */
-	_STATE_AWAITING  /*!< The task is waitnig for the async_cntl call */
+	_STATE_AWAITING, /*!< The task is waitnig for the async_cntl call */
+	_STATE_CANCELED  /*!< The task is canceled, which means we do not run the async_exec */
 } _state_t;
 
 /**
@@ -127,8 +128,8 @@ static struct {
 	_awaiter_t*          al_list;   /*!< The awaiting list */
 
 	/********* Thread releated data *******************/
-	uint32_t             nthreads;    /*!< The number of threads in the async processing thread pool */
-	_thread_data_t*      thread_data; /*!< The thread data for each async processing thread */
+	uint32_t             nthreads;      /*!< The number of threads in the async processing thread pool */
+	_thread_data_t*      thread_data;   /*!< The thread data for each async processing thread */
 } _ctx;
 
 /**
@@ -529,7 +530,7 @@ int sched_async_kill()
 
 int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 {
-	int normal_rc = 0;
+	int normal_rc = 1;
 	int error_code = ERROR_CODE(int);
 	/* First, let's verify this task is a valid async init task */
 	if(NULL == loop || NULL == task) 
@@ -570,13 +571,25 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	if(ERROR_CODE(int) == runtime_task_async_companions(task->exec_task, &async_exec, &async_cleanup))
 		ERROR_LOG_GOTO(ERR, "Cannot Create the companion of the task");
 	
-	handle->state = _STATE_EXEC;
-
 	if(ERROR_CODE(int) == runtime_task_free(task->exec_task))
 		ERROR_LOG_GOTO(ERR, "Cannot dispose the async setup task");
 
 	task->exec_task = async_cleanup;
 	handle->exec_task = async_exec;
+
+	if(handle->state == _STATE_CANCELED)
+	{
+		LOG_DEBUG("Not going to post the task to the async processor, because it has been canceled");
+		if(ERROR_CODE(int) == runtime_task_free(handle->exec_task))
+			ERROR_LOG_GOTO(ERR, "Cannot dispose the async exec task");
+		handle->exec_task = NULL;
+		async_exec = NULL;
+		/* At this point, the handle could be owned by the cleanup task already, so it's ok to return directly */
+		return 0;
+	}
+	
+	handle->state = _STATE_EXEC;
+
 
 	if(pthread_mutex_lock(&_ctx.q_mutex) < 0)
 		ERROR_RETURN_LOG(int, "Cannot acquire the queue mutex");
@@ -743,4 +756,56 @@ int sched_async_handle_status_code(runtime_api_async_handle_t* handle, int* resb
 	*resbuf = task->status_code;
 
 	return 0;
+}
+
+int sched_async_handle_cancel(runtime_api_async_handle_t* handle, int status)
+{
+	_handle_t* task = (_handle_t*)handle;
+
+	if(NULL == task || _HANDLE_MAGIC != task->magic_num)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(ERROR_CODE(int) == status)
+		task->status_code = ERROR_CODE(int);
+
+	if(task->state != _STATE_EXEC && task->state != _STATE_INIT)
+		ERROR_RETURN_LOG(int, "Cannot cancel a started async task");
+
+	task->state = _STATE_CANCELED;
+
+	LOG_DEBUG("Async task has been canceled");
+
+	return 0;
+}
+
+int sched_async_handle_cntl(runtime_api_async_handle_t* handle, uint32_t opcode, va_list ap)
+{
+	if(NULL == handle || NULL == ap) ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	switch(opcode)
+	{
+		case RUNTIME_API_ASYNC_CNTL_OPCODE_SET_WAIT:
+		{
+			return sched_async_handle_set_await(handle);
+		}
+		case RUNTIME_API_ASYNC_CNTL_OPCODE_NOTIFY_WAIT:
+		{
+			int status_code =  va_arg(ap, int);
+			return sched_async_handle_await_complete(handle, status_code);
+		}
+		case RUNTIME_API_ASYNC_CNTL_OPCODE_RETCODE:
+		{
+			int* buf = va_arg(ap, int*);
+			return sched_async_handle_status_code(handle, buf);
+		}
+		case RUNTIME_API_ASYNC_CNTL_OPCODE_CANCEL:
+		{
+			int status_code = va_arg(ap, int);
+			return sched_async_handle_cancel(handle, status_code);
+		}
+		default:
+			LOG_ERROR("Invalid async_cntl opcode");
+	}
+
+	return ERROR_CODE(int);
 }

@@ -96,6 +96,9 @@ typedef runtime_api_async_handle_t async_handle_t;
 /** @brief The opocde used to get the status code of an async task */
 #define ASYNC_CNTL_RETCODE RUNTIME_API_ASYNC_CNTL_OPCODE_RETCODE
 
+/** @brief The opcode used to cancel the async exec function */
+#define ASYNC_CNTL_CANCEL RUNTIME_API_ASYNC_CNTL_OPCODE_CANCEL
+
 /**
  * @brief decide if a pipe is a readable pipe
  * @param f the pipe flags to examine

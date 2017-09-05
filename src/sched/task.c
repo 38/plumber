@@ -824,7 +824,11 @@ int sched_task_launch_async(sched_task_t* task)
 		task->exec_task = NULL;
 	if(ERROR_CODE(int) == rc || ERROR_CODE_OT(int) == rc)
 		ERROR_RETURN_LOG(int, "Cannot post the async task to the async queue");
-	LOG_DEBUG("The async task has been sent to the task queue");
-	_async_pending_add(task->ctx, (_task_entry_t*)task);
-	return 0;
+	if(rc > 0)
+	{
+		LOG_DEBUG("The async task has been sent to the task queue");
+		_async_pending_add(task->ctx, (_task_entry_t*)task);
+	}
+	else LOG_DEBUG("The async exec task has been canceled");
+	return rc;
 }

@@ -119,4 +119,22 @@ int sched_async_handle_set_await(runtime_api_async_handle_t* handle);
  * @return status code
  **/
 int sched_async_handle_await_complete(runtime_api_async_handle_t* handle, int status);
+
+/**
+ * @brief Cancel a started async task, which means we prevent the async_exec task from being
+ *        posted to the async queue
+ * @param handle The async handle
+ * @param status The status code we want to set to the async handle
+ * @return status code
+ **/
+int sched_async_handle_cancel(runtime_api_async_handle_t* handle, int status);
+
+/**
+ * @brief The actual handle cntl implemnetaiton
+ * @param handle The async handle 
+ * @param opcode The opcode
+ * @return ap The va list
+ * @return status code
+ **/
+int sched_async_handle_cntl(runtime_api_async_handle_t* handle, uint32_t opcode, va_list ap);
 #endif /* __SCHED_ASYNC_H__ */

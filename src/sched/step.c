@@ -26,8 +26,11 @@ int sched_step_next(sched_task_context_t* stc, itc_module_type_t type)
 	uint32_t size, i;
 	const sched_service_pipe_descriptor_t* result;
 	itc_module_pipe_t *pipes[2];
+	int async_post_rc;
 
 	task = sched_task_next_ready_task(stc);
+
+START_OVER:
 
 	if(NULL == task)
 	{
@@ -134,6 +137,18 @@ int sched_step_next(sched_task_context_t* stc, itc_module_type_t type)
 			counter = 0;
 		}
 #endif
+		if(pipe_init == 0) 
+		{
+			/* If the pipe_init flag is 0, the only possible case is we are processing
+			 * the async cleanup funciton, in this case, we need to check the async task
+			 * status as well */
+			int task_rc;
+			if(ERROR_CODE(int) == sched_async_handle_status_code(task->exec_task->async_handle, &task_rc))
+				ERROR_LOG_GOTO(TASK_FAILED, "Cannot get the status code of the async task, assume task has failed");
+
+			if(ERROR_CODE(int) == task_rc)
+				ERROR_LOG_GOTO(TASK_FAILED, "The async task status is failed");
+		}
 		runtime_api_pipe_id_t null_pid = RUNTIME_API_PIPE_TO_PID(task->exec_task->servlet->sig_null);
 
 		if(task->exec_task->pipes[null_pid] != NULL)
@@ -156,13 +171,22 @@ int sched_step_next(sched_task_context_t* stc, itc_module_type_t type)
 			}
 		}
 	}
-	else if(ERROR_CODE(int) == sched_task_launch_async(task))
+	else if(ERROR_CODE(int) == (async_post_rc = sched_task_launch_async(task)))
 		ERROR_LOG_GOTO(TASK_FAILED, "Cannot launch the async task");
 	else 
 	{
-		LOG_DEBUG("Async task has been started");
-		/* In this case, we must not dispose the task, because it's in the pending list */
-		goto RETURN;
+		if(async_post_rc == 0) 
+		{
+			/* This indicates the task has been cancelled during the async init is running */
+			LOG_DEBUG("Async task has been cancelled, call cleanup directly");
+			goto START_OVER;
+		}
+		else 
+		{
+			LOG_DEBUG("Async task has been started");
+			/* In this case, we must not dispose the task, because it's in the pending list */
+			goto RETURN;
+		}
 	}
 
 	goto CLEANUP;

@@ -282,7 +282,7 @@ STATIC_ASSERTION_EQ_ID(__non_module_related_pop_state__, 0xff, RUNTIME_API_PIPE_
 /**
  * @brief Notify the waiting async task for the completed state. When this function is called, it means we have a async task has been set to
  *        the wait mode and we have completed the operation and it's the time for us to notify the framework on this
- * @note The usagage async_cntl(ASYNC_CNTL_OPCODE_NOTIFY_WAIT, task_handle, status_code);
+ * @note The usagage async_cntl(handle, ASYNC_CNTL_OPCODE_NOTIFY_WAIT, task_handle, status_code);
  **/
 #define RUNTIME_API_ASYNC_CNTL_OPCODE_NOTIFY_WAIT 1
 
@@ -291,9 +291,19 @@ STATIC_ASSERTION_EQ_ID(__non_module_related_pop_state__, 0xff, RUNTIME_API_PIPE_
  * @details This is useful when have the cleanup function, because in some case
  *          we need to know if this task is on error or not. 
  *          This function give us a chance to get the return code of the asnyc task
- * @note usage async_cntl(ASYNC_CNTL_OPCODE_RETCODE, &retcode);
+ * @note usage async_cntl(handle, ASYNC_CNTL_OPCODE_RETCODE, &retcode);
  **/
 #define RUNTIME_API_ASYNC_CNTL_OPCODE_RETCODE 2
+
+/**
+ * @brief Cancel the async task, which means we skip the async_exec task and move foward to the async_cleanup directly
+ * @detail This is useful when the servlet calls a server and maintains a cache. <br/> 
+ *         The async_init task can lookup the local cache first to determine if we need to actually make the remote call
+ *         Also, we give this operation the ability to set the async operation's status code. Which means if the init task
+ *         realize the cache has something wrong with it, it can skip the task and set the async task to error
+ * @note usage async_cntl(handle, ASYNC_CNTL_OPCODE_CANCEL, status_code);
+ **/
+#define RUNTIME_API_ASYNC_CNTL_OPCODE_CANCEL 3
 
 /**
  * @brief the token used to request local scope token
