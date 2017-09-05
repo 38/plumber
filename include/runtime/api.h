@@ -687,7 +687,7 @@ typedef struct {
 	 *       can access
 	 * @return status code
 	 **/
-	int (*async_setup)(const runtime_api_async_handle_t* task, void* async_buf, void* data);
+	int (*async_setup)(runtime_api_async_handle_t* task, void* async_buf, void* data);
 
 	/**
 	 * @brief Execute the initialized async task, the only input of the async buf is the async buf
@@ -696,7 +696,7 @@ typedef struct {
 	 * @param task This is the handle we used to pass to the async_cntl funciton
 	 * @return status code
 	 **/
-	int (*async_exec)(const runtime_api_async_handle_t* task, void* async_data);
+	int (*async_exec)(runtime_api_async_handle_t* task, void* async_data);
 
 	/**
 	 * @brief Clean the used async data
@@ -704,7 +704,7 @@ typedef struct {
 	 * @param task_handle This is the handle we used to pass to the async_cntl funciton
 	 * @return status code
 	 **/
-	int (*async_cleanup)(const runtime_api_async_handle_t* task, void* async_data, void* data);
+	int (*async_cleanup)(runtime_api_async_handle_t* task, void* async_data, void* data);
 } runtime_api_servlet_def_t;
 
 #endif /*__RUNTIME_API_H__*/
