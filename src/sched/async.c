@@ -2,7 +2,6 @@
  * Copyright (C) 2017, Hao Hou
  **/
 /**
- * @todo Desgin the awaiting task managing code
  * @note I have thought about if the async task queue should be lock-free and do we really care about the
  *       lock overhead of posting a async task to the queue. The answer seems not. <br/>
  *       For the enttire processing procedure, it's hard to believe that most of the time the worker thread 
@@ -109,7 +108,9 @@ typedef struct {
 static struct {
 	uint32_t             init:1;    /*!< Indicates if the async task processor has been initialized */
 	uint32_t             killed:1;  /*!< Indicates if the entire Async Task Processor has been killed */
-	/* TODO: do we need to add the mutex and condvar initlaization mutexs? */
+	uint32_t             q_mutex_init:1;  /*!< If queue mutex has been initalized */
+	uint32_t             al_mutex_init:1; /*!< If the waiting list mutex has been initialized */
+	uint32_t             q_cond_init:1;   /*!< If the queue condvar has been initialized */
 
 	/*********** The queue related data ***************/
 	uint32_t             q_cap;    /*!< The capacity of the queue */
@@ -418,11 +419,17 @@ int sched_async_start()
 	if(pthread_mutex_init(&_ctx.q_mutex, NULL) < 0)
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot intialize the queue mutex");
 
+	_ctx.q_mutex_init = 1;
+
 	if(pthread_cond_init(&_ctx.q_cond, NULL) < 0)
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the queue cond variable");
 
+	_ctx.q_cond_init = 1;
+
 	if(pthread_mutex_init(&_ctx.al_mutex, NULL) < 0)
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the awaiting list mutex");
+
+	_ctx.al_mutex_init = 1;
 
 	if(NULL == (_ctx.q_data = (_handle_t**)malloc(sizeof(_ctx.q_data[0]) * _ctx.q_cap)))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the queue memory");
@@ -476,6 +483,16 @@ ERR:
 		free(_ctx.thread_data);
 	}
 	if(_ctx.al_list != NULL) free(_ctx.al_list);
+
+	if(_ctx.q_mutex_init) 
+		pthread_mutex_destroy(&_ctx.q_mutex);
+
+	if(_ctx.q_cond_init)
+		pthread_cond_destroy(&_ctx.q_cond);
+
+	if(_ctx.al_mutex_init)
+		pthread_mutex_destroy(&_ctx.al_mutex);
+
 	return ERROR_CODE(int);
 }
 
@@ -522,6 +539,27 @@ int sched_async_kill()
 
 	_ctx.q_data = NULL;
 	_ctx.q_front = _ctx.q_rear = 0;
+
+	if(_ctx.q_mutex_init && pthread_mutex_destroy(&_ctx.q_mutex) < 0)
+	{
+		LOG_ERROR_ERRNO("Cannot destory the queue mutex");
+		rc = ERROR_CODE(int);
+	}
+	else _ctx.q_mutex_init = 0;
+	
+	if(_ctx.al_mutex_init && pthread_mutex_destroy(&_ctx.al_mutex) < 0)
+	{
+		LOG_ERROR_ERRNO("Cannot destory the waiting list mutex");
+		rc = ERROR_CODE(int);
+	}
+	else _ctx.al_mutex_init = 0;
+	
+	if(_ctx.q_cond_init && pthread_cond_destroy(&_ctx.q_cond) < 0)
+	{
+		LOG_ERROR_ERRNO("Cannot destory the queue cond var");
+		rc = ERROR_CODE(int);
+	}
+	else _ctx.q_cond_init = 0;
 
 	_ctx.init = 0;
 
