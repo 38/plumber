@@ -76,22 +76,26 @@ static inline runtime_task_t* _task_new(runtime_servlet_t* servlet, uint32_t act
 		if(servlet->async)
 		{
 			/* If this is an async servlet, then we need to allocate the async buffer */
-			if(NULL == servlet->bin->async_pool)
+			if(servlet->bin->define->async_buf_size > 0)
 			{
-				size_t size = (size_t)servlet->bin->define->async_buf_size;
+				if(NULL == servlet->bin->async_pool)
+				{
+					size_t size = (size_t)servlet->bin->define->async_buf_size;
 
-				if(pthread_mutex_lock(&_pool_mutex) < 0)
-					LOG_WARNING_ERRNO("Cannot acquire the pool mutex");
+					if(pthread_mutex_lock(&_pool_mutex) < 0)
+						LOG_WARNING_ERRNO("Cannot acquire the pool mutex");
 
-				if(NULL == servlet->bin->async_pool && NULL == (servlet->bin->async_pool = mempool_objpool_new((uint32_t)size)))
-					ERROR_LOG_GOTO(ERR, "Cannot create memory pool for the servlet async buffer");
+					if(NULL == servlet->bin->async_pool && NULL == (servlet->bin->async_pool = mempool_objpool_new((uint32_t)size)))
+						ERROR_LOG_GOTO(ERR, "Cannot create memory pool for the servlet async buffer");
 
-				if(pthread_mutex_unlock(&_pool_mutex) < 0)
-					LOG_WARNING_ERRNO("Cannot release the pool mutex");
-			}
+					if(pthread_mutex_unlock(&_pool_mutex) < 0)
+						LOG_WARNING_ERRNO("Cannot release the pool mutex");
+				}
 
-			if(NULL == (ret->async_data = mempool_objpool_alloc(servlet->bin->async_pool)))
-				ERROR_LOG_GOTO(ERR, "Cannot allocate the async data buffer");
+				if(NULL == (ret->async_data = mempool_objpool_alloc(servlet->bin->async_pool)))
+					ERROR_LOG_GOTO(ERR, "Cannot allocate the async data buffer");
+			} 
+			else ret->async_data = NULL;
 
 			ret->async_owner = 1;
 			ret->async_handle = NULL;
@@ -159,7 +163,7 @@ int runtime_task_free(runtime_task_t* task)
  * @return The result string or NULL on error case
  * @note If the buffer is not large enough the name will be truncated autoamtically
  **/
-static const char* _get_task_full_name(const runtime_task_t* task, char* buf, size_t size)
+static inline const char* _get_task_full_name(const runtime_task_t* task, char* buf, size_t size)
 {
 	const char* task_type = NULL;
 	if(RUNTIME_TASK_FLAG_ACTION_ASYNC & task->flags)

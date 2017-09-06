@@ -371,6 +371,8 @@ static inline int _dispatcher_main()
 
 		if(event.type == ITC_EQUEUE_EVENT_TYPE_TASK)
 			scheduler = event.task.loop;
+		else 
+			scheduler = NULL;
 
 		/* The round-robin scheduler try to pick up next worker */
 		for(;;)
@@ -379,6 +381,7 @@ static inline int _dispatcher_main()
 			{
 				LOG_DEBUG("The event is not associated with any scheduler, use the round-robin dispatcher");
 				first = 1;
+				scheduler = round_robin_start;
 				for(;(first || scheduler != round_robin_start) &&
 					 scheduler->rear - scheduler->front >= scheduler->size;
 					 scheduler = scheduler->next == NULL ? _scheds : scheduler->next)

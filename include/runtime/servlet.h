@@ -19,10 +19,10 @@
  * @brief the binary interface for a servlet
  **/
 typedef struct {
-	runtime_api_servlet_def_t* define;                         /*!< The additional data that used by the servlet */
+	runtime_api_servlet_def_t* define;                         /*!< The servlet definition */
 	void*                      dl_handler;                     /*!< The dynamic library handler */
 	char                       name[RUNTIME_SERVLET_NAME_LEN]; /*!< The name of the servlet */
-	mempool_objpool_t*         async_pool;                     /*!< The memory pool for the async buffer for this servlet, it's only meaning ful if this servlet is async */
+	mempool_objpool_t*         async_pool;                     /*!< The memory pool for the async buffer for this servlet, it's only meaningful if this servlet is async */
 } runtime_servlet_binary_t;
 
 /**

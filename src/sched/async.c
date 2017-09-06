@@ -743,6 +743,19 @@ EXIT:
 	if(pthread_mutex_unlock(&_ctx.al_mutex) < 0)
 		ERROR_RETURN_LOG(int, "Cannot release the async task waiting list mutex");
 
+	if(rc == 0)
+	{
+		/* Let's notify the async thread on this */
+		if(pthread_mutex_lock(&_ctx.q_mutex) < 0)
+			ERROR_RETURN_LOG(int, "Cannot acquire the async processor queue mutex");
+
+		if(pthread_cond_signal(&_ctx.q_cond) < 0)
+			ERROR_RETURN_LOG(int, "Cannot notify the async processing thread on the task ready event");
+
+		if(pthread_mutex_unlock(&_ctx.q_mutex) < 0)
+			ERROR_RETURN_LOG(int, "Cannot release the async processor queue mutex");
+	}
+
 	return rc;
 }
 
