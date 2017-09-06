@@ -86,5 +86,4 @@
 /** @brief check the type is unsigned */
 #define STATIC_ASSERTION_UNSIGNED(type) __STATIC_ASSERTION_POSITIVE__(unsigned_check_##type,\
         (((type)0) < (~(type)0)) - 1)
-
 #endif

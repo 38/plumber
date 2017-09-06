@@ -71,9 +71,6 @@ static int _exec(void* ctxbuf)
 
 	while(bytes_read > 0)
 	{
-		int rc = pipe_eof(ctx->output);
-		if(ERROR_CODE(int) == rc) ERROR_LOG_GOTO(ERR, "Cannot check if the pipe contains more data");
-		if(rc) ERROR_LOG_GOTO(ERR, "Unexpected EOF from the input pipe");
 		size_t bytes_written = pipe_hdr_write(ctx->output, begin, bytes_read);
 		if(ERROR_CODE(size_t) == bytes_written) ERROR_LOG_GOTO(ERR, "Cannot write bytes to the pipe");
 

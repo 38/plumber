@@ -103,6 +103,9 @@
 /** @brief the default size of a worker loop's event queue */
 #	define SCHED_LOOP_EVENT_QUEUE_SIZE @SCHED_LOOP_EVENT_QUEUE_SIZE@
 
+/** @brief the maximum number of pending task in the pending task queue in dispatcher */
+#	define SCHED_LOOP_MAX_PENDING_TASKS @SCHED_LOOP_MAX_PENDING_TASKS@
+
 /** @brief the maximum length of a path in the module addressing table */
 #   define ITC_MODTAB_MAX_PATH @ITC_MODTAB_MAX_PATH@
 

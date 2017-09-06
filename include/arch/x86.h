@@ -72,9 +72,9 @@ __attribute__((noinline, used)) static int arch_switch_stack(void* baseaddr, siz
 	/* Because clang do not support named register variables, we need handle it differently */
 	asm volatile (
 	    "movl %%esp, (%0)\n"
-:
+		:
 	    : "r"(stack)
-:
+		:
 	);
 #else
 	register void* rsp   asm ("rsp");
@@ -90,7 +90,7 @@ __attribute__((noinline, used)) static int arch_switch_stack(void* baseaddr, siz
 	    "\tpopl  %%edx\n"
 	    "\tpop   %%edx\n"
 	    "\tmovl %%edx, %%esp\n"
-:
+		:
 	    : "r"(argc), "r"(argv), "r"(main), "r"(stack)
 	    : "edx"
 	);
@@ -98,8 +98,8 @@ __attribute__((noinline, used)) static int arch_switch_stack(void* baseaddr, siz
 	asm volatile (
 	    "movl %%eax, %0"
 	    : "=r"(rc)
-:
-:
+		:
+		:
 	);
 #endif
 	return rc;

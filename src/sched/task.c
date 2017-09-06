@@ -38,10 +38,14 @@ typedef struct _request_entry_t {
  * @brief The context used by a task table
  **/
 struct _sched_task_context_t {
+	sched_loop_t*         thread_handle;  /*!< The thread handle which creates this scheduler task context */
 	_task_entry_t**       task_table;     /*!< The hash table used to organize tasks */
 	_request_entry_t**    request_table;  /*!< The requet information table, maps the request id to the request entry */
 	_task_entry_t*        queue_head;     /*!< The ready queue head */
 	_task_entry_t*        queue_tail;     /*!< The ready queue tail */
+	_task_entry_t*        async_pending;  /*!< The pending async task list */
+	_task_entry_t*        async_completed_head; /*!< The head of completed async task queue */
+	_task_entry_t*        async_completed_tail; /*!< The tail of completed async task queue */
 	uint32_t              queue_size;     /*!< The size of the queue */
 };
 
@@ -49,6 +53,64 @@ struct _sched_task_context_t {
 static mempool_objpool_t* _task_pool = NULL;
 /** @brief the memory pool used for the request entrt */
 static mempool_objpool_t* _request_pool = NULL;
+
+/**
+ * @brief enqlueue a task to the async completed task queue
+ * @param task The task to insert
+ * @param ctx The scheduler context
+ **/
+static inline void _async_comp_enqueue(sched_task_context_t* ctx, _task_entry_t* task)
+{
+	if(NULL != ctx->async_completed_tail) ctx->async_completed_tail->next = task;
+	else ctx->async_completed_head = task;
+	ctx->async_completed_tail = task;
+	task->next = NULL;
+}
+
+/**
+ * @brief get the first task from the async completion queue
+ * @param ctx The context
+ * @return the task, NULL if the queue is empty
+ **/
+static inline _task_entry_t* _async_comp_dequeue(sched_task_context_t* ctx)
+{
+	if(NULL == ctx->async_completed_head) return NULL;
+	_task_entry_t* ret = ctx->async_completed_head;
+	if(NULL == (ctx->async_completed_head = ret->next))
+		ctx->async_completed_tail = NULL;
+	return ret;
+}
+
+/**
+ * @brief Add the task to the async pending list
+ * @param ctx The scheduler context we want to add the task to
+ * @param task The task we want to add
+ * @return nothing
+ **/
+static inline void _async_pending_add(sched_task_context_t* ctx, _task_entry_t* task)
+{
+	task->next = ctx->async_pending;
+	task->prev = NULL;
+
+	if(NULL != ctx->async_pending) 
+		ctx->async_pending->prev = task;
+
+	ctx->async_pending = task;
+}
+
+/**
+ * @brief Remove the async pending task from the async pending list
+ * @param ctx The context to remove
+ * @param task The task to remove
+ * @return nothing
+ **/
+static inline void _async_pending_remove(sched_task_context_t* ctx, _task_entry_t* task)
+{
+	if(NULL == task->prev) ctx->async_pending = task->next;
+	else task->prev->next = task->next;
+
+	if(NULL != task->next) task->next->prev = task->prev;
+}
 
 /**
  * @brief enqueue a task to the ready quee
@@ -290,7 +352,7 @@ int sched_task_init()
 	return 0;
 }
 
-sched_task_context_t* sched_task_context_new()
+sched_task_context_t* sched_task_context_new(sched_loop_t* thread_ctx)
 {
 	sched_task_context_t* ret = (sched_task_context_t*)calloc(1, sizeof(*ret));
 
@@ -299,6 +361,9 @@ sched_task_context_t* sched_task_context_new()
 
 	if(NULL == (ret->request_table = (_request_entry_t**)calloc(SCHED_TASK_TABLE_SLOT_SIZE, sizeof(ret->request_table[0]))))
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the request hash table");
+
+	ret->thread_handle = thread_ctx;
+
 	return ret;
 
 ERR:
@@ -502,26 +567,52 @@ ERR:
 	return ERROR_CODE(sched_task_request_t);
 }
 
-int sched_task_input_pipe(sched_task_context_t* ctx, const sched_service_t* service, sched_task_request_t request,
-                          sched_service_node_id_t node, runtime_api_pipe_id_t pipe,
-                          itc_module_pipe_t* handle)
+static inline int _input_ready(_task_entry_t* entry, itc_module_pipe_t* handle)
 {
-	_task_entry_t* task = _task_table_find(ctx, service, request, node);
-	if(NULL == task) task = _task_table_insert(ctx, service, request, node);
-
-	if(ERROR_CODE(int) == _task_add_pipe(task, pipe, handle, 1))
-	    ERROR_RETURN_LOG(int, "Cannot add pipe to the task");
-
-	/* Because we have a signle thread model for each request, it we can simply that the pipe is ready once is gets assigned */
-	if(sched_task_pipe_ready((sched_task_t*)task) == ERROR_CODE(int))
+	if(sched_task_pipe_ready(&entry->task) == ERROR_CODE(int))
 	    ERROR_RETURN_LOG(int, "Cannot set the shadow pipe to ready state");
-
+	
 	int rc;
 	if(ERROR_CODE(int) == (rc = itc_module_is_pipe_cancelled(handle)))
 	    ERROR_RETURN_LOG(int, "Cannot check if the pipe is already cancelled");
 
-	if(rc != 0 && ERROR_CODE(int) == sched_task_input_cancelled((sched_task_t*)task))
+	if(rc != 0 && ERROR_CODE(int) == sched_task_input_cancelled(&entry->task))
 	    ERROR_RETURN_LOG(int, "Cannot notify the cancel state to its owner");
+
+	return 0;
+}
+
+int sched_task_input_pipe(sched_task_context_t* ctx, const sched_service_t* service, sched_task_request_t request,
+                          sched_service_node_id_t node, runtime_api_pipe_id_t pipe,
+                          itc_module_pipe_t* handle, int async)
+{
+	_task_entry_t* task = _task_table_find(ctx, service, request, node);
+	if(NULL == task) task = _task_table_insert(ctx, service, request, node);
+
+
+	if(handle != NULL && ERROR_CODE(int) == _task_add_pipe(task, pipe, handle, 1))
+	    ERROR_RETURN_LOG(int, "Cannot add pipe to the task");
+
+	/* Because we have a signle thread model for each request, it we can simply that the pipe is ready once is gets assigned */
+	if(!async || (async && handle == NULL)) 
+		return _input_ready(task, handle == NULL ? task->task.exec_task->pipes[pipe] : handle);
+	else 
+		LOG_DEBUG("The upstream task is an async task, so we don't notify the ready state for now");
+
+	return 0;
+}
+
+int sched_task_async_completed(sched_task_t* task)
+{
+	/* TODO: this function do not check if the task is an async task, but we need
+	 *       to figure out if we need to check this  */
+	if(NULL == task)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	_task_entry_t* task_internal = (_task_entry_t*)task;
+
+	_async_pending_remove(task->ctx, task_internal);
+	_async_comp_enqueue(task->ctx, task_internal);
 
 	return 0;
 }
@@ -614,7 +705,17 @@ sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx)
 {
 	for(;;)
 	{
-		_task_entry_t* next = _dequeue(ctx);
+		_task_entry_t* next = NULL;
+		/* The first thing is we need to look at the compelted async task list, if there's some task, we can move on */
+		if(NULL != (next = _async_comp_dequeue(ctx)))
+			LOG_DEBUG("Picking up the completed async task from the completion list");
+		else
+		{
+			next = _dequeue(ctx);
+			LOG_DEBUG("Picking up the next runnable sync task to run");
+		}
+
+		/* If still can not find anything, it means we don't have anything can be handled currently */
 		if(NULL == next) return NULL;
 
 		/* Check if this task is cancelled */
@@ -676,6 +777,8 @@ sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx)
 			_get_task_args(next, arg_buffer, sizeof(arg_buffer));
 			LOG_TRACE("task `%s' has been picked up as next step", arg_buffer);
 #endif
+			/* We just return this directly, because even if this is an async task, we need to initialize the pipe,
+			 * so we have to pop this to the stepper */
 			return &next->task;
 		}
 	}
@@ -712,3 +815,20 @@ int sched_task_request_status(const sched_task_context_t* ctx, sched_task_reques
 	return NULL != _request_entry_find(ctx, request);
 }
 
+int sched_task_launch_async(sched_task_t* task)
+{
+	if(NULL == task || !runtime_task_is_async(task->exec_task))
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+	int rc = sched_async_task_post(task->ctx->thread_handle, task);
+	if(ERROR_CODE(int) == rc) 
+		task->exec_task = NULL;
+	if(ERROR_CODE(int) == rc || ERROR_CODE_OT(int) == rc)
+		ERROR_RETURN_LOG(int, "Cannot post the async task to the async queue");
+	if(rc > 0)
+	{
+		LOG_DEBUG("The async task has been sent to the task queue");
+		_async_pending_add(task->ctx, (_task_entry_t*)task);
+	}
+	else LOG_DEBUG("The async exec task has been canceled");
+	return rc;
+}

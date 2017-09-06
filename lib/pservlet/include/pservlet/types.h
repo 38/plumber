@@ -18,9 +18,6 @@ typedef runtime_api_pipe_t pipe_t;
 /** @brief the function address table that provide by the framework */
 typedef runtime_api_address_table_t address_table_t;
 
-/** @brief the type for the task id */
-typedef runtime_api_task_id_t task_id_t;
-
 /** @brief the type for the pipe flags */
 typedef runtime_api_pipe_flags_t pipe_flags_t;
 
@@ -35,6 +32,9 @@ typedef runtime_api_scope_token_data_request_t scope_token_data_req_t;
 
 /** @brief the type for the type inference callback function */
 typedef runtime_api_pipe_type_callback_t pipe_type_callback_t;
+
+/** @brief the type for the async task handle */
+typedef runtime_api_async_handle_t async_handle_t;
 
 /** @brief flag indicates that this is an input pipe */
 #define PIPE_INPUT RUNTIME_API_PIPE_INPUT
@@ -86,6 +86,18 @@ typedef runtime_api_pipe_type_callback_t pipe_type_callback_t;
 
 /** @brief no operation */
 #define PIPE_CNTL_NOP RUNTIME_API_PIPE_CNTL_OPCODE_NOP
+
+/** @brief The opcode used to set the async task to the wait mode */
+#define ASYNC_CNTL_SET_WAIT RUNTIME_API_ASYNC_CNTL_OPCODE_SET_WAIT
+
+/** @brief The opcode used to notify the wait mode async task is completed  */
+#define ASYNC_CNTL_NOTIFY_WAIT RUNTIME_API_ASYNC_CNTL_OPCODE_NOTIFY_WAIT
+
+/** @brief The opocde used to get the status code of an async task */
+#define ASYNC_CNTL_RETCODE RUNTIME_API_ASYNC_CNTL_OPCODE_RETCODE
+
+/** @brief The opcode used to cancel the async exec function */
+#define ASYNC_CNTL_CANCEL RUNTIME_API_ASYNC_CNTL_OPCODE_CANCEL
 
 /**
  * @brief decide if a pipe is a readable pipe

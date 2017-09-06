@@ -17,8 +17,16 @@
 #ifndef __PLUMBER_ITC_EQUEUE_H__
 #define __PLUMBER_ITC_EQUEUE_H__
 
+#include <utils/static_assertion.h>
+
 /**
- * @brief The event in equeue
+ * The previous definitions 
+ **/
+typedef struct _sched_loop_t sched_loop_t;
+typedef struct _sched_task_t sched_task_t;
+
+/**
+ * @brief The IO event in equeue
  * @details In Plumber, an event is defined as "a pair of input and output pipes, which represents
  *         an IO request". An event comes out means we have unconsumed data that needs to be read. <br/>
  *         For example, a client connect the server (at this point, it's not a event), then it send
@@ -33,7 +41,47 @@
 typedef struct {
 	itc_module_pipe_t* in;   /*!< the input pipe handle */
 	itc_module_pipe_t* out;  /*!< the output pipe handle */
-} itc_equeue_event_t;
+} itc_equeue_io_event_t;
+
+/**
+ * @brief    The task event in equeue
+ * @details  This is the event different from the IO event, it's not triggered by the external IO
+ *           event. This types of event is caused by the status change of the task. And it means
+ *           a async task is either succeeded or failed. <br/>
+ *           This type of event should be raised from the async worker.
+ **/
+typedef struct {
+	sched_loop_t*               loop;           /*!< The destination scheduler, this should be the thread context */
+	sched_task_t*               task;           /*!< Which task we are talking aobut */
+	runtime_api_async_handle_t* async_handle;   /*!< The async handle */
+} itc_equeue_task_event_t;
+
+/**
+ * @brief Indicates which type of event we are talking about
+ **/
+typedef enum {
+	ITC_EQUEUE_EVENT_TYPE_IO,          /*!< This is an external IO event */
+	ITC_EQUEUE_EVENT_TYPE_TASK         /*!< This is a task event */
+} itc_equeue_event_type_t;
+
+/**
+ * @brief The data structure for a event in the event queue
+ * @details Although there are a lot of events when the system is running, but there's few of them are 
+ *          important to the task scheduler. Those event are the event can cause a pending task change it
+ *          state to running task. <br/>
+ *          The first type of this event is the IO event, it means we accept an external data since the event
+ *          has been raised. This types of event will create new request in the scheduler, and make the
+ *          input node ready to run. <br/>
+ *          Another form of interesting task is the async task event, it raises whenever the async task worker
+ *          done with the assigned task. This causes some the downstream tasks of the async task ready to run.
+ **/
+typedef struct {
+	itc_equeue_event_type_t  type;    /*!< The type of this event */
+	union{
+		itc_equeue_task_event_t  task;  /*!< The task event data */
+		itc_equeue_io_event_t    io;    /*!< The io event data */
+	};
+}  itc_equeue_event_t;
 
 /**
  * @brief The token used for identify different thread.

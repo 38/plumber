@@ -156,7 +156,7 @@ static pss_value_t _help(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 	pss_value_t ret = {
 		.kind = PSS_VALUE_KIND_UNDEF
 	};
-	printf("plumber %s\n\n", PLUMBER_VERSION);
+	printf("REPL Shell for PScript (Plumber Version %s)\n\n", PLUMBER_VERSION);
 	printf("help()  -> Get this help documentation\n");
 	printf("quit()  -> Quit the interactive client\n");
 	printf("\n");
