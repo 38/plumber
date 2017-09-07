@@ -13,6 +13,7 @@
 #include <error.h>
 
 #include <plumber.h>
+#include <utils/log.h>
 #include <pss.h>
 #include <module.h>
 
@@ -787,6 +788,56 @@ ERR:
 	return ret;
 }
 
+static pss_value_t _pscript_builtin_log_redirect(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
+{
+	(void)vm;
+
+	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR};
+
+	if(argc != 2 && argc != 3) 
+		return ret;
+
+	const char* mode = "w";
+
+	if(argv[0].kind != PSS_VALUE_KIND_REF || PSS_VALUE_REF_TYPE_STRING != pss_value_ref_type(argv[0]))
+		return ret;
+
+	if(argv[1].kind != PSS_VALUE_KIND_REF || PSS_VALUE_REF_TYPE_STRING != pss_value_ref_type(argv[1]))
+		return ret;
+	
+	if(argc == 3 && (argv[2].kind != PSS_VALUE_KIND_REF || PSS_VALUE_REF_TYPE_STRING != pss_value_ref_type(argv[2])))
+		return ret;
+
+	const char* filename = (const char*)pss_value_get_data(argv[1]);
+
+	if(argc == 3)
+		mode = (const char*)pss_value_get_data(argv[2]);
+
+	const char* level = (const char*)pss_value_get_data(argv[0]);
+
+	if(filename == NULL || mode == NULL || level == NULL)
+		return ret;
+
+	int level_num = -1;
+
+	if(strcmp(level, "DEBUG") == 0) level_num = DEBUG;
+	if(strcmp(level, "INFO") == 0) level_num = INFO;
+	if(strcmp(level, "NOTICE") == 0) level_num = NOTICE;
+	if(strcmp(level, "TRACE") == 0) level_num = TRACE;
+	if(strcmp(level, "WARNING") == 0) level_num = WARNING;
+	if(strcmp(level, "ERROR") == 0) level_num = ERROR;
+	if(strcmp(level, "FATAL") == 0) level_num = FATAL;
+
+	if(level_num == -1) return ret;
+
+	if(log_redirect(level_num, filename, mode) == ERROR_CODE(int))
+		return ret;
+
+	ret.kind = PSS_VALUE_KIND_UNDEF;
+
+	return ret;
+}
+
 
 
 static pss_value_t _external_get(const char* name)
@@ -899,6 +950,9 @@ int builtin_init(pss_vm_t* vm)
 
 	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "lsmod", _pscript_builtin_lsmod))
 		ERROR_RETURN_LOG(int, "Cannot reigster builtin function lsmod");
+
+	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "log_redirect", _pscript_builtin_log_redirect))
+		ERROR_RETURN_LOG(int, "Cannot register builtin function log_redirect");
 
 	return 0;
 }
