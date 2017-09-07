@@ -6,6 +6,7 @@
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <utils/log.h>
 #include <error.h>
 #include <module/builtins.h>
@@ -223,6 +224,9 @@ void init_pipe(char* cmd)
 }
 void run_task(uint32_t argc, char const* const* argv)
 {
+	runtime_task_t* async_exec = NULL;
+	runtime_task_t* async_cleanup = NULL;
+
 	sid = runtime_stab_load(argc, argv);
 	if(sid == ERROR_CODE(runtime_stab_entry_t))
 	{
@@ -250,6 +254,23 @@ void run_task(uint32_t argc, char const* const* argv)
 		    task->pipes[pid] = pipe;
 	    }
 
+	if(task->flags & RUNTIME_TASK_FLAG_ACTION_ASYNC)
+	{
+
+		if(NULL == (task->async_handle = sched_async_fake_handle_new()))
+		{
+			LOG_FATAL("Cannot create the fake async handle");
+			exit(1);
+		}
+
+		/* If this is an asnyc task, we need to create all its companions */
+		if(ERROR_CODE(int) == runtime_task_async_companions(task, &async_exec, &async_cleanup))
+		{
+			LOG_FATAL("Cannot create the companion");
+			exit(1);
+		}
+	}
+
 	if(runtime_task_start(task) < 0)
 	{
 		LOG_FATAL("Task terminates with an error code");
@@ -259,6 +280,47 @@ void run_task(uint32_t argc, char const* const* argv)
 	if(runtime_task_free(task) == ERROR_CODE(int))
 	{
 		LOG_FATAL("Cannot cleanup the task");
+		exit(1);
+	}
+
+	task = NULL;
+
+	if(async_exec != NULL && ERROR_CODE(int) == runtime_task_start(async_exec))
+	{
+		LOG_FATAL("Async exec returns an error");
+		exit(1);
+	}
+	
+	if(ERROR_CODE(int) == runtime_task_free(async_exec))
+	{
+		LOG_FATAL("Cannot dispose the async task");
+		exit(1);
+	}
+
+	for(;async_cleanup != NULL;)
+	{
+		int rc = sched_async_fake_handle_completed(async_cleanup->async_handle);
+		if(ERROR_CODE(int) == rc)
+		{
+			LOG_FATAL("Cannot poll the async compeletion state");
+			exit(1);
+		}
+
+		if(rc) break;
+
+		usleep(1000);
+	}
+
+
+	if(async_cleanup != NULL && ERROR_CODE(int) == runtime_task_start(async_cleanup))
+	{
+		LOG_FATAL("Async cleanup returns an error");
+		exit(1);
+	}
+
+	if(ERROR_CODE(int) == runtime_task_free(async_cleanup))
+	{
+		LOG_FATAL("Cannot dispose the async task");
 		exit(1);
 	}
 }

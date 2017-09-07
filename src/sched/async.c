@@ -56,6 +56,11 @@
 #define _HANDLE_MAGIC 0x35fc32ffu
 
 /**
+ * @brief The magic number used for a fake handle, this is used when we testing the async servlet
+ **/
+#define _FAKE_HANDLE_MAGIC 0x42c5ff3cu
+
+/**
  * @brief The async task status
  **/
 typedef enum {
@@ -78,6 +83,15 @@ typedef struct _handle_t {
 	sched_task_t*       sched_task;   /*!< The scheduler task we are working on */
 	runtime_task_t*     exec_task;    /*!< The async_exec task */
 } _handle_t;
+
+/**
+ * @brief The fake handle
+ **/
+typedef struct {
+	uint32_t    magic_num;     /*!< The magic number */
+	uint32_t    completed:1;  /*!< Indicates if this task has been completed */
+} _fake_handle_t;;
+STATIC_ASSERTION_TYPE_COMPATIBLE(_handle_t, magic_num, _fake_handle_t, magic_num);
 
 /**
  * @brief The data structure for a async thread
@@ -700,6 +714,9 @@ int sched_async_handle_dispose(runtime_api_async_handle_t* handle)
 {
 	_handle_t* mem = (_handle_t*)handle;
 
+	if(NULL != mem && mem->magic_num == _FAKE_HANDLE_MAGIC)
+		return sched_async_fake_handle_free(handle); 
+
 	if(NULL == mem || mem->magic_num != _HANDLE_MAGIC) 
 		ERROR_RETURN_LOG(int, "Invalid arguments: Invalid async task handle");
 
@@ -829,9 +846,43 @@ int sched_async_handle_cancel(runtime_api_async_handle_t* handle, int status)
 	return 0;
 }
 
+static int _fake_handle_cntl(_fake_handle_t* handle, uint32_t opcode, va_list ap)
+{
+	switch(opcode)
+	{
+		case RUNTIME_API_ASYNC_CNTL_OPCODE_SET_WAIT:
+		{
+			handle->completed = 0u;
+			return 0;
+		}
+		case RUNTIME_API_ASYNC_CNTL_OPCODE_NOTIFY_WAIT:
+		{
+			handle->completed = 1u;
+			return 0;
+		}
+		case RUNTIME_API_ASYNC_CNTL_OPCODE_RETCODE:
+		{
+			int* buf = va_arg(ap, int*);
+			*buf = 0;
+			return 0;
+		}
+		case RUNTIME_API_ASYNC_CNTL_OPCODE_CANCEL:
+		{
+			return 0;
+		}
+		default:
+			LOG_ERROR("Invalid async_cntl opcode");
+	}
+
+	return ERROR_CODE(int);
+}
+
 int sched_async_handle_cntl(runtime_api_async_handle_t* handle, uint32_t opcode, va_list ap)
 {
 	if(NULL == handle || NULL == ap) ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(((_fake_handle_t*)handle)->magic_num == _FAKE_HANDLE_MAGIC)
+		return _fake_handle_cntl((_fake_handle_t*)handle, opcode, ap);
 
 	switch(opcode)
 	{
@@ -859,4 +910,41 @@ int sched_async_handle_cntl(runtime_api_async_handle_t* handle, uint32_t opcode,
 	}
 
 	return ERROR_CODE(int);
+}
+
+runtime_api_async_handle_t* sched_async_fake_handle_new()
+{
+	_fake_handle_t* ret = (_fake_handle_t*)malloc(sizeof(_fake_handle_t));
+	
+	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the fake async handle");
+
+	ret->magic_num = _FAKE_HANDLE_MAGIC;
+	/* By default it's completed of course, it will set to 0 whenever the wait mode is been select */
+	ret->completed = 1u;  
+
+	return (runtime_api_async_handle_t*)ret;
+}
+
+int sched_async_fake_handle_free(runtime_api_async_handle_t* handle)
+{
+	if(NULL == handle) ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	_fake_handle_t* h = (_fake_handle_t*)handle;
+
+	if(h->magic_num != _FAKE_HANDLE_MAGIC) ERROR_RETURN_LOG(int, "Invalid fake handle");
+
+	free(h);
+
+	return 0;
+}
+
+int sched_async_fake_handle_completed(const runtime_api_async_handle_t* handle)
+{
+	if(NULL == handle) ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	_fake_handle_t* h = (_fake_handle_t*)handle;
+
+	if(h->magic_num != _FAKE_HANDLE_MAGIC) ERROR_RETURN_LOG(int, "Invalid fake handle");
+
+	return h->completed > 0;
 }

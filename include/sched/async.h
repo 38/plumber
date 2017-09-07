@@ -137,4 +137,27 @@ int sched_async_handle_cancel(runtime_api_async_handle_t* handle, int status);
  * @return status code
  **/
 int sched_async_handle_cntl(runtime_api_async_handle_t* handle, uint32_t opcode, va_list ap);
+
+/**
+ * @brief Create a new fake async handle
+ * @note When we call the async servlet from the pstest, it's possible that the servlet calls a async_cntl
+ *       during the time, this actually discard all the request beside the waiting mode related operations
+ * @return The fake handle
+ **/
+runtime_api_async_handle_t* sched_async_fake_handle_new();
+
+/**
+ * @brief Indicates if the fake handle has been compelted
+ * @param handle The handle to dispose
+ * @return result or status code
+ **/
+int sched_async_fake_handle_completed(const runtime_api_async_handle_t* handle);
+
+/**
+ * @brief dispose a fake async handle
+ * @param handle The handle to dispose
+ * @return status code
+ **/
+int sched_async_fake_handle_free(runtime_api_async_handle_t* handle);
+
 #endif /* __SCHED_ASYNC_H__ */
