@@ -18,6 +18,59 @@
 
 extern char const* const* module_paths;
 
+static pss_value_t _pscript_builtin_lsmod(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
+{
+	(void)vm;
+	(void)argc;
+	(void)argv;
+	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR};
+	pss_dict_t* ret_dict = NULL;
+
+	itc_modtab_dir_iter_t it;
+	if(itc_modtab_open_dir("", &it) == ERROR_CODE(int))
+		return ret;
+
+	ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_DICT, NULL);
+
+	if(ret.kind == PSS_VALUE_KIND_ERROR)
+		ERROR_LOG_GOTO(ERR, "Cannot create the result dictionary");
+	
+	if(NULL == (ret_dict = (pss_dict_t*)pss_value_get_data(ret)))
+		ERROR_LOG_GOTO(ERR, "Cannot get the result dictionary object");
+
+	const itc_modtab_instance_t* inst;
+	while(NULL != (inst = itc_modtab_dir_iter_next(&it)))
+	{
+		char key[32];
+		char* val = strdup(inst->path);
+	
+		snprintf(key, sizeof(key), "%u", inst->module_id); 
+		
+		if(NULL == val)
+			ERROR_LOG_GOTO(ITER_ERR, "Cannot duplicate the module path string");
+
+		pss_value_t v_val = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, val);
+
+		if(v_val.kind == PSS_VALUE_KIND_ERROR)
+			ERROR_LOG_GOTO(ITER_ERR, "Cannot create value stirng");
+
+		if(ERROR_CODE(int) == pss_dict_set(ret_dict, key, v_val))
+			ERROR_LOG_GOTO(ITER_ERR, "Cannot put the key to the result dictionary");
+		continue;
+ITER_ERR:
+		pss_value_decref(v_val);
+		goto ERR;
+	}
+
+	return ret;
+ERR:
+	pss_value_decref(ret);
+
+	ret.kind = PSS_VALUE_KIND_ERROR;
+
+	return ret;
+}
+
 static pss_value_t _pscript_builtin_print(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
 	(void)vm;
@@ -843,6 +896,9 @@ int builtin_init(pss_vm_t* vm)
 
 	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "__service_port_type", _pscript_builtin_service_port_type))
 	    ERROR_RETURN_LOG(int, "Cannot register builtin function __service_port_type");
+
+	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "lsmod", _pscript_builtin_lsmod))
+		ERROR_RETURN_LOG(int, "Cannot reigster builtin function lsmod");
 
 	return 0;
 }
