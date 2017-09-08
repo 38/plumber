@@ -87,7 +87,7 @@ static inline _primitive_desc_t _parse_adhoc_type(const char* typename)
 static inline const char* _adhoc_typename(_primitive_desc_t p)
 {
 	static char* result_buf[16] = {}, memory[16][7] = {};
-	static char* float_name[] = {[4]"float", [8]"double"};
+	static char* float_name[] = {[4] = "float", [8] = "double"};
 
 	for(;result_buf[p] == NULL;)
 	    if(_PD_FLOAT(p)) result_buf[p] = float_name[_PD_SIZE(p)];

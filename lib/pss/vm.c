@@ -22,14 +22,14 @@
 #include <pss/vm.h>
 
 static const char* _errstr[] = {
-	[PSS_VM_ERROR_NONE]       "Success",
-	[PSS_VM_ERROR_BYTECODE]   "Invalid bytecode",
-	[PSS_VM_ERROR_TYPE]       "Type error",
-	[PSS_VM_ERROR_INTERNAL]   "Interpreter interal error",
-	[PSS_VM_ERROR_ARITHMETIC] "Arithmetic error",
-	[PSS_VM_ERROR_STACK]      "Stack overflow",
-	[PSS_VM_ERROR_ARGUMENT]   "Argutment error",
-	[PSS_VM_ERROR_MODULE]     "Module cannot be loaded"
+	[PSS_VM_ERROR_NONE]       = "Success",
+	[PSS_VM_ERROR_BYTECODE]   = "Invalid bytecode",
+	[PSS_VM_ERROR_TYPE]       = "Type error",
+	[PSS_VM_ERROR_INTERNAL]   = "Interpreter interal error",
+	[PSS_VM_ERROR_ARITHMETIC] = "Arithmetic error",
+	[PSS_VM_ERROR_STACK]      = "Stack overflow",
+	[PSS_VM_ERROR_ARGUMENT]   = "Argutment error",
+	[PSS_VM_ERROR_MODULE]     = "Module cannot be loaded"
 };
 
 /**

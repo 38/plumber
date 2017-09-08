@@ -221,7 +221,7 @@ int scope_object_init(PyObject* module)
 
 int scope_object_register_type_ops(scope_object_type_t type, scope_object_ops_t ops)
 {
-	if(type < 0 || type >= SCOPE_OBJECT_TYPE_COUNT || ops.create == NULL || ops.dispose == NULL || ops.commit == NULL)
+	if(type >= SCOPE_OBJECT_TYPE_COUNT || ops.create == NULL || ops.dispose == NULL || ops.commit == NULL)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_obj_ops[type] = ops;
@@ -232,7 +232,7 @@ int scope_object_register_type_ops(scope_object_type_t type, scope_object_ops_t 
 const void* scope_object_retrieve(scope_object_type_t type, PyObject* object)
 {
 	_py_object_t* obj = (_py_object_t*)object;
-	if(type < 0 || type >= SCOPE_OBJECT_TYPE_COUNT || NULL == object || _MAGIC != obj->magic)
+	if(type >= SCOPE_OBJECT_TYPE_COUNT || NULL == object || _MAGIC != obj->magic)
 	{
 		PyErr_SetString(PyExc_TypeError, "Invalid arguments");
 		return NULL;

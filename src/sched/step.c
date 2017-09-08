@@ -13,7 +13,7 @@ sched_rscope_t* sched_step_current_scope()
 	return _current_request_scope;
 }
 
-static inline int _run_task_fast(runtime_task_t* task)
+__attribute__((used)) static inline int _run_task_fast(runtime_task_t* task)
 {
 	if(task->flags & RUNTIME_TASK_FLAG_ACTION_ASYNC)
 	    return runtime_task_start_async_cleanup_fast(task);

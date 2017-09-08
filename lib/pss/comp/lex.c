@@ -64,7 +64,7 @@ const char* pss_comp_lex_get_filename(const pss_comp_lex_t* lex)
 {
 	if(NULL == lex) ERROR_PTR_RETURN_LOG_ERRNO("Invalid arguments");
 
-	return lex->filename == NULL ? "<Memory>" : lex->filename;
+	return lex->filename;
 }
 
 
