@@ -29,34 +29,34 @@ static pss_value_t _pscript_builtin_lsmod(pss_vm_t* vm, uint32_t argc, pss_value
 
 	itc_modtab_dir_iter_t it;
 	if(itc_modtab_open_dir("", &it) == ERROR_CODE(int))
-		return ret;
+	    return ret;
 
 	ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_DICT, NULL);
 
 	if(ret.kind == PSS_VALUE_KIND_ERROR)
-		ERROR_LOG_GOTO(ERR, "Cannot create the result dictionary");
-	
+	    ERROR_LOG_GOTO(ERR, "Cannot create the result dictionary");
+
 	if(NULL == (ret_dict = (pss_dict_t*)pss_value_get_data(ret)))
-		ERROR_LOG_GOTO(ERR, "Cannot get the result dictionary object");
+	    ERROR_LOG_GOTO(ERR, "Cannot get the result dictionary object");
 
 	const itc_modtab_instance_t* inst;
 	while(NULL != (inst = itc_modtab_dir_iter_next(&it)))
 	{
 		char key[32];
 		char* val = strdup(inst->path);
-	
-		snprintf(key, sizeof(key), "%u", inst->module_id); 
-		
+
+		snprintf(key, sizeof(key), "%u", inst->module_id);
+
 		if(NULL == val)
-			ERROR_LOG_GOTO(ITER_ERR, "Cannot duplicate the module path string");
+		    ERROR_LOG_GOTO(ITER_ERR, "Cannot duplicate the module path string");
 
 		pss_value_t v_val = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, val);
 
 		if(v_val.kind == PSS_VALUE_KIND_ERROR)
-			ERROR_LOG_GOTO(ITER_ERR, "Cannot create value stirng");
+		    ERROR_LOG_GOTO(ITER_ERR, "Cannot create value stirng");
 
 		if(ERROR_CODE(int) == pss_dict_set(ret_dict, key, v_val))
-			ERROR_LOG_GOTO(ITER_ERR, "Cannot put the key to the result dictionary");
+		    ERROR_LOG_GOTO(ITER_ERR, "Cannot put the key to the result dictionary");
 		continue;
 ITER_ERR:
 		pss_value_decref(v_val);
@@ -794,29 +794,29 @@ static pss_value_t _pscript_builtin_log_redirect(pss_vm_t* vm, uint32_t argc, ps
 
 	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR};
 
-	if(argc != 2 && argc != 3) 
-		return ret;
+	if(argc != 2 && argc != 3)
+	    return ret;
 
 	const char* mode = "w";
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF || PSS_VALUE_REF_TYPE_STRING != pss_value_ref_type(argv[0]))
-		return ret;
+	    return ret;
 
 	if(argv[1].kind != PSS_VALUE_KIND_REF || PSS_VALUE_REF_TYPE_STRING != pss_value_ref_type(argv[1]))
-		return ret;
-	
+	    return ret;
+
 	if(argc == 3 && (argv[2].kind != PSS_VALUE_KIND_REF || PSS_VALUE_REF_TYPE_STRING != pss_value_ref_type(argv[2])))
-		return ret;
+	    return ret;
 
 	const char* filename = (const char*)pss_value_get_data(argv[1]);
 
 	if(argc == 3)
-		mode = (const char*)pss_value_get_data(argv[2]);
+	    mode = (const char*)pss_value_get_data(argv[2]);
 
 	const char* level = (const char*)pss_value_get_data(argv[0]);
 
 	if(filename == NULL || mode == NULL || level == NULL)
-		return ret;
+	    return ret;
 
 	int level_num = -1;
 
@@ -831,7 +831,7 @@ static pss_value_t _pscript_builtin_log_redirect(pss_vm_t* vm, uint32_t argc, ps
 	if(level_num == -1) return ret;
 
 	if(log_redirect(level_num, filename, mode) == ERROR_CODE(int))
-		return ret;
+	    return ret;
 
 	ret.kind = PSS_VALUE_KIND_UNDEF;
 
@@ -949,10 +949,10 @@ int builtin_init(pss_vm_t* vm)
 	    ERROR_RETURN_LOG(int, "Cannot register builtin function __service_port_type");
 
 	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "lsmod", _pscript_builtin_lsmod))
-		ERROR_RETURN_LOG(int, "Cannot reigster builtin function lsmod");
+	    ERROR_RETURN_LOG(int, "Cannot reigster builtin function lsmod");
 
 	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "log_redirect", _pscript_builtin_log_redirect))
-		ERROR_RETURN_LOG(int, "Cannot register builtin function log_redirect");
+	    ERROR_RETURN_LOG(int, "Cannot register builtin function log_redirect");
 
 	return 0;
 }

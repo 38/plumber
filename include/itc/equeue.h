@@ -20,7 +20,7 @@
 #include <utils/static_assertion.h>
 
 /**
- * The previous definitions 
+ * The previous definitions
  **/
 typedef struct _sched_loop_t sched_loop_t;
 typedef struct _sched_task_t sched_task_t;
@@ -66,7 +66,7 @@ typedef enum {
 
 /**
  * @brief The data structure for a event in the event queue
- * @details Although there are a lot of events when the system is running, but there's few of them are 
+ * @details Although there are a lot of events when the system is running, but there's few of them are
  *          important to the task scheduler. Those event are the event can cause a pending task change it
  *          state to running task. <br/>
  *          The first type of this event is the IO event, it means we accept an external data since the event

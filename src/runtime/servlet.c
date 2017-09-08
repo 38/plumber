@@ -354,8 +354,8 @@ runtime_servlet_t* runtime_servlet_new(runtime_servlet_binary_t* binary, uint32_
 	    LOG_WARNING("cannot dispose executed init task for the servlet instance %s, memory leak possible!", binary->name);
 
 	if(ret->async && ret->bin->define->async_setup == NULL)
-		ERROR_LOG_GOTO(ERR, "Invalid servlet, a async servlet without async_setup function defined");
-	
+	    ERROR_LOG_GOTO(ERR, "Invalid servlet, a async servlet without async_setup function defined");
+
 	LOG_INFO("Servlet instance of %s has been created with arguments", binary->name);
 
 	for(i = 0; i < argc; i ++)
@@ -417,7 +417,7 @@ int runtime_servlet_free(runtime_servlet_t* servlet)
 		        free(servlet->argv[i]);
 		free(servlet->argv);
 	}
-	
+
 	if(servlet->task_pool != NULL && mempool_objpool_free(servlet->task_pool) == ERROR_CODE(int))
 	    LOG_WARNING("Cannot dispose the task memory pool");
 
@@ -508,9 +508,9 @@ int runtime_servlet_binary_unload(runtime_servlet_binary_t* binary)
 		rc = ERROR_CODE(int);
 		LOG_ERROR("Can not close the dynamic library: %s", dlerror());
 	}
-	
+
 	if(binary->async_pool != NULL && mempool_objpool_free(binary->async_pool) == ERROR_CODE(int))
-		LOG_WARNING("Cannot dispose the async buffer memory pool");
+	    LOG_WARNING("Cannot dispose the async buffer memory pool");
 
 	/* free the servlet memory */
 	free(binary);

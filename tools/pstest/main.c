@@ -290,7 +290,7 @@ void run_task(uint32_t argc, char const* const* argv)
 		LOG_FATAL("Async exec returns an error");
 		exit(1);
 	}
-	
+
 	if(ERROR_CODE(int) == runtime_task_free(async_exec))
 	{
 		LOG_FATAL("Cannot dispose the async task");

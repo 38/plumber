@@ -258,7 +258,7 @@ STATIC_ASSERTION_EQ_ID(__non_module_related_pop_state__, 0xff, RUNTIME_API_PIPE_
 
 /**
  * @brief Switch the async task to the event mode, which means the async task processor won't
- *        emit the async task completed event until the given async task token has been notified 
+ *        emit the async task completed event until the given async task token has been notified
  *        finished
  * @example   ....
  * 			  async_cntl(ASYNC_CNTL_OPCODE_SET_WAIT, &task_handle);
@@ -270,7 +270,7 @@ STATIC_ASSERTION_EQ_ID(__non_module_related_pop_state__, 0xff, RUNTIME_API_PIPE_
  * 				return 0;
  * 			}
  * @note In this example, we actually makes the async worker thread initialize an IO operation and yeild the async thread. <br/>
- *       When the operation is done, the callback function may or may not be called from the same thread. But if calls the notify 
+ *       When the operation is done, the callback function may or may not be called from the same thread. But if calls the notify
  *       operation, and this will makes the async task change it state from waiting to finished, at this point, the async task
  *       processor will emit the event to the event queue. <br/>
  *       If we are not switching to this mode, the async task event will be emitted right after the async callback function returns. <br/>
@@ -289,7 +289,7 @@ STATIC_ASSERTION_EQ_ID(__non_module_related_pop_state__, 0xff, RUNTIME_API_PIPE_
 /**
  * @brief Gets the return status code of this task
  * @details This is useful when have the cleanup function, because in some case
- *          we need to know if this task is on error or not. 
+ *          we need to know if this task is on error or not.
  *          This function give us a chance to get the return code of the asnyc task
  * @note usage async_cntl(handle, ASYNC_CNTL_OPCODE_RETCODE, &retcode);
  **/
@@ -297,7 +297,7 @@ STATIC_ASSERTION_EQ_ID(__non_module_related_pop_state__, 0xff, RUNTIME_API_PIPE_
 
 /**
  * @brief Cancel the async task, which means we skip the async_exec task and move foward to the async_cleanup directly
- * @detail This is useful when the servlet calls a server and maintains a cache. <br/> 
+ * @detail This is useful when the servlet calls a server and maintains a cache. <br/>
  *         The async_init task can lookup the local cache first to determine if we need to actually make the remote call
  *         Also, we give this operation the ability to set the async operation's status code. Which means if the init task
  *         realize the cache has something wrong with it, it can skip the task and set the async task to error
@@ -618,33 +618,33 @@ typedef struct {
 
 	/**
 	 * @brief The async task control function
-	 * @note This function is the only plumber API can be called from the async processing thread. 
-	 *       And we actually have the limit for this function is we should call this function with task context, 
+	 * @note This function is the only plumber API can be called from the async processing thread.
+	 *       And we actually have the limit for this function is we should call this function with task context,
 	 *       otherwise we should provide the task_handle (The example for this case is the ASYNC_CNTL_OPCODE_NOTIFY_WAIT,
 	 *       which we may not call the function from the thread working on the async task. In this case, we just extract
 	 *       the async context from the handle
-	 * @todo implement this 
+	 * @todo implement this
 	 * @return status code
 	 **/
 	int (*async_cntl)(runtime_api_async_handle_t* async_handle, uint32_t opcode, va_list ap);
 } runtime_api_address_table_t;
 
-/** 
- * @brief the data structure used to define a servlet 
+/**
+ * @brief the data structure used to define a servlet
  * @note  Instead of checking if the callback fuction is defined to determine if this is an async task. We relies on the
- *        return value of the init function. This is because for the language support servlet, we can not tell if it's a 
+ *        return value of the init function. This is because for the language support servlet, we can not tell if it's a
  *        async servlet or not during the compile time. The only way for us to kown this is get the servlet fully initialized<br/>
- *        If the init function returns RUNTIME_API_INIT_RESULT_SYNC and exec function has been defined, all the async_* function 
+ *        If the init function returns RUNTIME_API_INIT_RESULT_SYNC and exec function has been defined, all the async_* function
  *        won't be used any mopre. This case indicates we have a sync servlet. <br/>
  *        If the init function returns RUNTIME_API_INIT_RESULT_ASYNC, asyc_init must be defined
  *        This case indicates we have an async servlet <br/>
- *        The async_exec and async_cleanup function is not necessarily to be defined. Because for some case, we 
+ *        The async_exec and async_cleanup function is not necessarily to be defined. Because for some case, we
  *        actually can have a task initialize a async IO form the async_init and set the async task mode to the wait mode
- *        Then we can have an undefined async_exec function, which means we don't need to do anything other than initializing 
+ *        Then we can have an undefined async_exec function, which means we don't need to do anything other than initializing
  *        the IO. <br/>
  *        If the exec function is not defined and init returns RUNTIME_API_INIT_RESULT_SYNC, this indicates we have an sync servlet
  *        with an empty exec function. This is useful when we only have a shadow output for the servlet, for example, dataflow/dup.
- * @todo  When a servlet is loaded we should 
+ * @todo  When a servlet is loaded we should
  **/
 typedef struct {
 	size_t size;					   /*!< the size of the additional data for this servlet */
@@ -680,8 +680,8 @@ typedef struct {
 	 * @param task This is the handle we used to pass to the async_cntl funciton
 	 * @param data The servlet local context
 	 * @param async_buf The buffer we are going to carry to the async_exec
-	 * @note For the async_exec function, we don't allow the servlet access any servlet context, 
-	 *       because this breaks the thread convention of the worker thread. 
+	 * @note For the async_exec function, we don't allow the servlet access any servlet context,
+	 *       because this breaks the thread convention of the worker thread.
 	 *       This make the async task has to copy all the required data to the async buf, which is
 	 *       complete different memory, and this memory will be the only data the async_exec function
 	 *       can access

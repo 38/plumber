@@ -44,12 +44,12 @@ typedef struct {
 	runtime_task_flags_t  flags;         /*!< The flag of this task */
 	runtime_servlet_t*    servlet;       /*!< The servlet has been activated in this task */
 	size_t                npipes;        /*!< The number of pipes for this task */
-	uint32_t              async_owner:1; /*!< This indicates this task actually owns this async buffer, which means it's this task's responsibility to 
-										  *   dispose the async data buffer. When a async_setup task has been created, it actually holds the buffer ownership
-										  *   for a while, util all it's companions have been created, since then, the async_cleanup task will hold the ownership
-										  *   This means, if we don't have the async_cleanup task created, we need to dispose the async buffer for sure.
-										  *   At this point, we introduced an assumption, once the async_cleanup task is created, it must be disposed later,
-										  *   but this is obviously true, otherwise we should have memory leak issue */
+	uint32_t              async_owner:1; /*!< This indicates this task actually owns this async buffer, which means it's this task's responsibility to
+	                                      *   dispose the async data buffer. When a async_setup task has been created, it actually holds the buffer ownership
+	                                      *   for a while, util all it's companions have been created, since then, the async_cleanup task will hold the ownership
+	                                      *   This means, if we don't have the async_cleanup task created, we need to dispose the async buffer for sure.
+	                                      *   At this point, we introduced an assumption, once the async_cleanup task is created, it must be disposed later,
+	                                      *   but this is obviously true, otherwise we should have memory leak issue */
 	runtime_api_async_handle_t* async_handle; /*!< The async handle for this task */
 	void*                 async_data;    /*!< The async task data buffer */
 	itc_module_pipe_t*    pipes[0];      /*!< The pipe table for this task */

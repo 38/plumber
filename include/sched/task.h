@@ -34,7 +34,7 @@ typedef uint64_t sched_task_request_t;
 typedef struct _sched_task_t sched_task_t;
 
 /**
- * @brief The actual type for a scheduler task 
+ * @brief The actual type for a scheduler task
  **/
 struct _sched_task_t {
 	sched_task_context_t*    ctx;     /*!< The scheduler task context */
@@ -94,7 +94,7 @@ sched_task_request_t sched_task_new_request(sched_task_context_t* ctx, const sch
  *       For the sync task, the logic will be the same. However, for the async one,
  *       we need do the first step before the async_setup task is called and do the second
  *       step when the async_cleanup is completed. <br/>
- *       This function actually handle this, if async = 0, the behavior is the original one, which 
+ *       This function actually handle this, if async = 0, the behavior is the original one, which
  *       do the step 1 and step 2 at the same time.
  *       if the async = 1, and handle is not NULL, we actually do stage 1 <br/>
  *       if the async = 1 and handle is NULL, we do stage 2 <br/>
@@ -120,7 +120,7 @@ int sched_task_input_pipe(sched_task_context_t* ctx, const sched_service_t* serv
 sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx);
 
 /**
- * @brief Notify the task scheduler on the async task compeletion event, this means we should 
+ * @brief Notify the task scheduler on the async task compeletion event, this means we should
  *        move on to the downstream task in this request
  * @param task The async task we want to nofiy
  * @return status code

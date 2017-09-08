@@ -182,37 +182,37 @@ void log_write(int level, const char* file, const char* function, int line, cons
 int log_redirect(int level, const char* dest, const char* mode)
 {
 	if(level > DEBUG || level < 0)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_log_mutex_active = 1;
 
 	BARRIER();
 
-	if(pthread_mutex_lock(&_log_mutex) < 0) 
-		return ERROR_CODE(int);
+	if(pthread_mutex_lock(&_log_mutex) < 0)
+	    return ERROR_CODE(int);
 
 	FILE* fp = dest != NULL ? fopen(dest, mode) : &_fp_off;
 	if(NULL == fp) goto ERR;
 
 	FILE* prev = _log_fp[level];
-	
+
 	int i, using = 0;
 	for(i = 0; i < 8 && prev != NULL; i ++)
-		if(prev == _log_fp[level]) 
-			using ++;
+	    if(prev == _log_fp[level])
+	        using ++;
 	if(using == 1)
-		fclose(prev);
+	    fclose(prev);
 
 	_log_fp[level] = fp;
-	
+
 	snprintf(_log_path[level], sizeof(_log_path[level]), "%s", dest);
 	snprintf(_log_mode[level], sizeof(_log_mode[level]), "%s", mode);
 
 	if(pthread_mutex_unlock(&_log_mutex) < 0)
-		return ERROR_CODE(int);
+	    return ERROR_CODE(int);
 
 	BARRIER();
-	
+
 	_log_mutex_active = 0;
 
 	return 0;
@@ -311,5 +311,5 @@ void log_write_va(int level, const char* file, const char* function, int line, c
 	funlockfile(fp);
 UNLOCK:
 	if(locked && pthread_mutex_unlock(&_log_mutex) < 0)
-		perror("mutex error");
+	    perror("mutex error");
 }
