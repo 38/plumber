@@ -143,6 +143,9 @@ int pss_comp_expr_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 					    break;
 					case PSS_COMP_VALUE_KIND_GLOBAL_DICT:
 					    PSS_COMP_RAISE_SYN(int, comp, "Malformed global accessor");
+					    break;
+					case PSS_COMP_VALUE_KIND_INVALID:
+					    PSS_COMP_RAISE_SYN(int, comp, "Bug: Invalid value kind");
 				}
 
 				if(ERROR_CODE(int) == pss_comp_value_simplify(comp, vs + sp))
@@ -187,6 +190,9 @@ int pss_comp_expr_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 					    break;
 					case PSS_COMP_VALUE_KIND_GLOBAL_DICT:
 					    PSS_COMP_RAISE_SYN(int, comp, "Malformed global accessor");
+					    break;
+					case PSS_COMP_VALUE_KIND_INVALID:
+					    PSS_COMP_RAISE_SYN(int, comp, "Invalid value type");
 				}
 
 				if(ERROR_CODE(int) == pss_comp_value_release(comp, vs + sp - 1))

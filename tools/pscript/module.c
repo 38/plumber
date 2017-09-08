@@ -62,7 +62,7 @@ static inline void _add_module_to_list(pss_bytecode_module_t* m, uint64_t hash[2
 	_modules = module;
 }
 
-static pss_bytecode_module_t* _try_load_module_from_buffer(const char* file, const char* code, uint32_t code_size, uint32_t debug)
+static pss_bytecode_module_t* _try_load_module_from_buffer(const char* file, const char* code, uint32_t code_size, uint32_t debug, uint32_t repl)
 {
 	pss_comp_lex_t* lexer = NULL;
 	pss_bytecode_module_t* module = NULL;
@@ -75,7 +75,8 @@ static pss_bytecode_module_t* _try_load_module_from_buffer(const char* file, con
 	pss_comp_option_t opt = {
 		.lexer = lexer,
 		.module = module,
-		.debug = (debug != 0)
+		.debug = (debug != 0),
+		.repl  = (repl != 0)
 	};
 	if(ERROR_CODE(int) == pss_comp_compile(&opt, &err))
 	    ERROR_LOG_GOTO(_ERR, "Can not compile the source code");
@@ -97,10 +98,10 @@ _ERR:
 	return NULL;
 }
 
-pss_bytecode_module_t* module_from_buffer(const char* code, uint32_t code_size, uint32_t debug)
+pss_bytecode_module_t* module_from_buffer(const char* code, uint32_t code_size, uint32_t debug, uint32_t repl)
 {
 	pss_bytecode_module_t* module = NULL;
-	if(NULL == (module = _try_load_module_from_buffer("<stdin>", code, code_size, debug)))
+	if(NULL == (module = _try_load_module_from_buffer("<stdin>", code, code_size, debug, repl)))
 	    return NULL;
 	uint64_t hash[2] = {0, 0};
 	_add_module_to_list(module, hash);
@@ -144,7 +145,7 @@ int _try_load_module(const char* source_path, const char* compiled_path, int loa
 		else
 		    fp = NULL;
 
-		if(NULL == (module = _try_load_module_from_buffer(source_path, code, (unsigned)(source_sz + 1), (uint32_t)debug)))
+		if(NULL == (module = _try_load_module_from_buffer(source_path, code, (unsigned)(source_sz + 1), (uint32_t)debug, 0)))
 		    goto ERR;
 
 		free(code);

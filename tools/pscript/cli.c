@@ -54,6 +54,13 @@ static char* _cat_lines(_line_list_t *lines)
 	return code;
 }
 
+static inline void _print_bt(pss_vm_backtrace_t* bt)
+{
+	if(NULL == bt) return;
+	_print_bt(bt->next);
+	fprintf(stderr, "%s, line: %u\n", bt->func, bt->line);
+}
+
 /**
  * @brief free the line list
  * @param list The list to dispose
@@ -254,26 +261,43 @@ _ADD_HISTORY:
 
 		add_history(code);
 
+		pss_value_t result = {};
+
 		if(lex_success)
 		{
-			if(NULL == (module = module_from_buffer(code, head->off + head->size, debug))) goto _END_OF_CODE;
+			if(NULL == (module = module_from_buffer(code, head->off + head->size, debug, 1)))
+			    goto _END_OF_CODE;
 
-			int rc = pss_vm_run_module(current_vm, module, NULL);
+
+			int rc = pss_vm_run_module(current_vm, module, &result);
 			LOG_INFO("VM terminated with exit code %d", rc);
+
+			if(result.kind != PSS_VALUE_KIND_UNDEF && result.kind != PSS_VALUE_KIND_ERROR)
+			{
+				char buf[4096];
+				if(ERROR_CODE(size_t) == pss_value_strify_to_buf(result, buf, sizeof(buf)))
+				{
+					LOG_ERROR("Type error: Got invalid value");
+					break;
+				}
+
+				printf("%s\n", buf);
+			}
+
 
 			if(ERROR_CODE(int) == rc)
 			{
 				pss_vm_exception_t* exception = pss_vm_last_exception(current_vm);
-				LOG_ERROR("PSS VM Exception: %s", exception->message);
+				fprintf(stderr, "PSS VM Exception: %s\n\n", exception->message);
 				pss_vm_backtrace_t* backtrace = exception->backtrace;
-				LOG_ERROR("======Stack backtrace begin ========");
-				print_bt(backtrace);
-				LOG_ERROR("======Stack backtrace end   ========");
+				_print_bt(backtrace);
 				pss_vm_exception_free(exception);
 			}
 		}
 
 _END_OF_CODE:
+		if(result.kind != PSS_VALUE_KIND_UNDEF && ERROR_CODE(int) == pss_value_decref(result))
+		    LOG_ERROR("Cannot decref the result value");
 		if(NULL != line) free(line);
 		if(NULL != err)
 		{
@@ -287,5 +311,12 @@ _END_OF_CODE:
 		if(NULL != lexer) pss_comp_lex_free(lexer);
 		_free_line_list(head);
 	}
+
+	if(ERROR_CODE(int) == pss_vm_free(current_vm))
+		ERROR_RETURN_LOG(int, "Cannot free current VM");
+
+	if(ERROR_CODE(int) == module_unload_all())
+		ERROR_RETURN_LOG(int, "Cannot unload modules");
+
 	return 0;
 }

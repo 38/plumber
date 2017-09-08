@@ -18,10 +18,11 @@ typedef struct {
 } pss_comp_value_reg_t;
 
 typedef enum {
-	PSS_COMP_VALUE_KIND_REG,     /*!< The value lives in the register */
-	PSS_COMP_VALUE_KIND_DICT,    /*!< The value lives in the dictionary */
-	PSS_COMP_VALUE_KIND_GLOBAL,  /*!< The value lives in the global storage */
-	PSS_COMP_VALUE_KIND_GLOBAL_DICT  /*!< Use the global as dictionary $global["var"] */
+	PSS_COMP_VALUE_KIND_REG,         /*!< The value lives in the register */
+	PSS_COMP_VALUE_KIND_DICT,        /*!< The value lives in the dictionary */
+	PSS_COMP_VALUE_KIND_GLOBAL,      /*!< The value lives in the global storage */
+	PSS_COMP_VALUE_KIND_GLOBAL_DICT, /*!< Use the global as dictionary $global["var"] */
+	PSS_COMP_VALUE_KIND_INVALID      /*!< This is an invalid value, this is only used when we are in REPL mode */
 } pss_comp_value_kind_t;
 
 /**
