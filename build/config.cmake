@@ -31,7 +31,7 @@ constant(PLUMBER_VERSION "\"0.1.1.${SRC_VERSION}\"")
 
 ##Logging
 constant(LOG_DEFAULT_CONFIG_FILE \"log.cfg\")
-constant(CONFIG_PATH \".\")
+constant(CONFIG_PATH \"${CMAKE_INSTALL_PREFIX}/etc/plumber\")
 
 ##LibPlumber Configurations
 constant(DO_NOT_COMPILE_ITC_MODULE_TEST 0)
