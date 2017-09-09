@@ -10,5 +10,5 @@
 
 #include <pss.h>
 
-int pss_cli_interactive(uint32_t debug);
+int cli_interactive(uint32_t debug);
 #endif

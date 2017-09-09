@@ -125,7 +125,7 @@ int log_init()
 				for(i = 0; i < 8; i ++)
 				    if(_log_fp[i] == unused && i != level)
 				        break;
-				if(i == 8 && unused != stdin && unused != stdout && unused != stderr)
+				if(i == 8 && unused != stdin && unused != stdout && unused != stderr && unused != &_fp_off)
 				    fclose(unused);
 				_log_fp[level] = NULL;
 			}
@@ -150,7 +150,7 @@ int log_init()
 			return ERROR_CODE(int);
 		}
 	}
-	if(NULL != fp) fclose(fp);
+	if(NULL != fp && &_fp_off != fp) fclose(fp);
 
 	return 0;
 }
@@ -161,7 +161,8 @@ int log_finalize()
 	    if(_log_fp[i] != NULL &&
 	       _log_fp[i] != stdin &&
 	       _log_fp[i] != stdout &&
-	       _log_fp[i] != stderr)
+	       _log_fp[i] != stderr &&
+		   _log_fp[i] != &_fp_off)
 	    {
 		    FILE* unused = _log_fp[i];
 		    for(j = 0; j < 8; j ++)
@@ -200,7 +201,7 @@ int log_redirect(int level, const char* dest, const char* mode)
 	for(i = 0; i < 8 && prev != NULL; i ++)
 	    if(prev == _log_fp[level])
 	        using ++;
-	if(using == 1)
+	if(using == 1 && prev != &_fp_off)
 	    fclose(prev);
 
 	_log_fp[level] = fp;
@@ -232,6 +233,9 @@ ERR:
  **/
 static inline int _check_log_file(int level)
 {
+	if(_log_fp[level] == &_fp_off || _log_fp[level] == NULL)
+		return 0;
+
 	int fd = fileno(_log_fp[level]);
 
 	if(-1 == fd) return ERROR_CODE(int);

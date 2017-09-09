@@ -24,7 +24,7 @@ static pss_value_t _pscript_builtin_lsmod(pss_vm_t* vm, uint32_t argc, pss_value
 	(void)vm;
 	(void)argc;
 	(void)argv;
-	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR};
+	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR, .num = PSS_VM_ERROR_ARGUMENT};
 	pss_dict_t* ret_dict = NULL;
 
 	itc_modtab_dir_iter_t it;
@@ -103,6 +103,18 @@ static pss_value_t _pscript_builtin_dict(pss_vm_t* vm, uint32_t argc, pss_value_
 	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR};
 
 	ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_DICT, NULL);
+
+	return ret;
+}
+
+static pss_value_t _pscript_builtin_version(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
+{
+	(void)vm;
+	(void)argc;
+	(void)argv;
+	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR};
+
+	ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, strdup(PLUMBER_VERSION));
 
 	return ret;
 }
@@ -426,7 +438,7 @@ static pss_value_t _pscript_builtin_service_port_type(pss_vm_t* vm, uint32_t arg
 	return result;
 }
 
-static pss_value_t _pscript_builtin_service_ports(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
+static pss_value_t _pscript_builtin_service_node_ports(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
 	(void)vm;
 
@@ -792,7 +804,7 @@ static pss_value_t _pscript_builtin_log_redirect(pss_vm_t* vm, uint32_t argc, ps
 {
 	(void)vm;
 
-	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR};
+	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR, .num = PSS_VM_ERROR_ARGUMENT};
 
 	if(argc != 2 && argc != 3)
 	    return ret;
@@ -892,6 +904,34 @@ static int _external_set(const char* name, pss_value_t data)
 	}
 }
 
+#define _B(f,  p, d)  {.func = _pscript_builtin_##f, .name = #f, .desc = d, .proto = #f p}
+#define _P(f, p, d) {.func = _pscript_builtin_##f, .name = "__"#f, .desc = d, .proto = "__" #f p}
+static struct {
+	pss_value_builtin_t func;
+	const char*         name;
+	const char*         proto;
+	const char*         desc;
+} _builtins[] = {
+	_B(dict,   "()",   "Create a new dictionary"),
+	_B(import, "(name)", "Import the PSS module specified by the name"),
+	_B(insmod, "(init_str)", "Install a module specified by init_str to Plumber runtime system"),
+	_B(len,    "(obj)", "Get the length of the object"),
+	_B(log_redirect, "(level, file [, mode])", "Override the logging redirection, level: the log level we want to redirect, file: the filename, mode: the fopen mode, by default is 'w'"),
+	_B(lsmod, "()", "Get a list of all the installed module installed to the Plumber runtime system"),
+	_B(print,  "(val1, val2, val3, ...)", "Print the values to stdout"),
+	_B(typeof, "(value)", "Get the type of the value"),
+	_B(split, "(str, [sep])", "Split the given string str by seperator sep, if sep is not given, split the string by white space '\" \"'"),
+	_B(version, "()", "Get the version string of current Plumber system"),
+	_P(service_input, "(serv, sid, port)", "Define the input port of the entire service as port port of servlet sid"),
+	_P(service_new, "()", "Create a new Plumber service object"),
+	_P(service_node, "(serv, init_str)", "Create a new node in the given service object serv with servlet init string init_str"),
+	_P(service_node_ports, "(serv, sid)", "Get the list of port descriptor of the servlet specified by sid in service serv"),
+	_P(service_output, "(serv, sid, port)", "Define the output port of the entire service as port port of servlet sid"),
+	_P(service_pipe, "(serv, s_sid, s_port, d_sid, d_port)", "Add a pipe from port s_port of servlet s_sid to port d_port of servlet d_sid"),
+	_P(service_port_type, "(serv, sid, port)", "Get the protocol type name of the port in servlet specified by sid"),
+	_P(service_start, "(serv)", "Start the given service object")
+};
+
 int builtin_init(pss_vm_t* vm)
 {
 
@@ -902,57 +942,59 @@ int builtin_init(pss_vm_t* vm)
 
 	if(ERROR_CODE(int) == pss_vm_set_external_global_callback(vm, ops))
 	    ERROR_RETURN_LOG(int, "Cannot register the external global accessor");
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "print", _pscript_builtin_print))
-	    ERROR_RETURN_LOG(int, "Cannot register the builtin function print");
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "dict", _pscript_builtin_dict))
-	    ERROR_RETURN_LOG(int, "Cannot register the builtin function print");
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "len", _pscript_builtin_len))
-	    ERROR_RETURN_LOG(int, "Cannot register the builtin function len");
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "import", _pscript_builtin_import))
-	    ERROR_RETURN_LOG(int, "Cannot register the builtin function import");
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "insmod", _pscript_builtin_insmod))
-	    ERROR_RETURN_LOG(int, "Cannot register the builtin function insmod");
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "__service_new", _pscript_builtin_service_new))
-	    ERROR_RETURN_LOG(int, "Cannot register the builtin function __service_new");
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "__service_node", _pscript_builtin_service_node))
-	    ERROR_RETURN_LOG(int, "Cannot register builtin function __service_node");
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "__service_node_ports", _pscript_builtin_service_ports))
-	    ERROR_RETURN_LOG(int, "Cannot register builtin function __service_node_ports");
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "__service_pipe", _pscript_builtin_service_pipe))
-	    ERROR_RETURN_LOG(int, "Cannot register builtin function __service_pipe");
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "__service_input", _pscript_builtin_service_input))
-	    ERROR_RETURN_LOG(int, "Cannot register builtin function __service_input");
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "__service_output", _pscript_builtin_service_output))
-	    ERROR_RETURN_LOG(int, "Cannot register builtin function __service_output");
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "typeof", _pscript_builtin_typeof))
-	    ERROR_RETURN_LOG(int, "Cannot register builtin function typeof");
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "split", _pscript_builtin_split))
-	    ERROR_RETURN_LOG(int, "Cannot register builtin function split");
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "__service_start", _pscript_builtin_service_start))
-	    ERROR_RETURN_LOG(int, "Cannot register builtin function __service_start");
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "__service_port_type", _pscript_builtin_service_port_type))
-	    ERROR_RETURN_LOG(int, "Cannot register builtin function __service_port_type");
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "lsmod", _pscript_builtin_lsmod))
-	    ERROR_RETURN_LOG(int, "Cannot reigster builtin function lsmod");
-
-	if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, "log_redirect", _pscript_builtin_log_redirect))
-	    ERROR_RETURN_LOG(int, "Cannot register builtin function log_redirect");
-
+	
+	uint32_t i;
+	for(i = 0; i < sizeof(_builtins) / sizeof(_builtins[0]); i ++)
+		if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, _builtins[i].name, _builtins[i].func))
+			ERROR_RETURN_LOG(int, "Cannot register the builtin function '%s'", _builtins[i].name);
 	return 0;
+}
+
+void builtin_print_doc(FILE* fp, int print_internals, pss_value_builtin_t func)
+{
+	uint32_t i;
+	uint32_t space = 0;
+	for(i = 0; i < sizeof(_builtins) / sizeof(_builtins[0]); i ++)
+	{
+		if(func != NULL && func != _builtins[i].func) continue;
+		if(!print_internals && _builtins[i].name[0] == '_') continue;
+		uint32_t name_len = (uint32_t)(strlen(_builtins[i].proto) + 5);
+		if(name_len > space)
+			space = name_len;
+	}
+	for(i = 0; i < sizeof(_builtins) / sizeof(_builtins[0]); i ++)
+	{
+		if(func != NULL && func != _builtins[i].func) continue;
+		if(!print_internals && _builtins[i].name[0] == '_') continue;
+		fprintf(fp, "    %s", _builtins[i].proto);
+		uint32_t j;
+		for(j = 0; j < space - strlen(_builtins[i].proto) - 4; j ++)
+			fprintf(fp, " ");
+		uint32_t start = space + 3;
+		fprintf(fp, "-> ");
+
+		uint32_t k, pos = start;
+		for(k = 0; _builtins[i].desc[k];)
+		{
+			if(pos > 120)
+			{
+				pos = start;
+				fputc('\n', fp);
+				for(j = 0; j < start; j ++)
+					fputc(' ', fp);
+			}
+
+			if(pos != start) fputc(' ', fp), pos ++;
+
+			for(; _builtins[i].desc[k] != ' ' && _builtins[i].desc[k] != 0; k ++)
+			{
+				fputc(_builtins[i].desc[k], fp);
+				pos ++;
+			}
+
+			for(; _builtins[i].desc[k] == ' '; k ++);
+		}
+		fputc('\n', fp);
+		fputc('\n', fp);
+	}
 }

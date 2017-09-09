@@ -70,7 +70,5 @@ uint32_t pss_dict_size(const pss_dict_t* dict);
  * @return The key value
  **/
 const char* pss_dict_get_key(const pss_dict_t* dict, uint32_t i);
-
-/* TODO: iterator interfaces */
 #endif
 
