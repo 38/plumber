@@ -1,5 +1,5 @@
 #!/bin/zsh
-for ext in {'[ch]pp','[ch]',py,js,cmake,vim,pss,ptype}
+for ext in {'[ch]pp','[ch]',py,js,cmake,vim,pss,ptype,java}
 do
 	if [ ! -z "$(git ls-files '*.'${ext})" ]
 	then
@@ -16,7 +16,8 @@ awk \
 		name["cmake"] = "CMake"
 		name["vim"] = "Vim"
 		name["pss"] = "PScript"
-		name["ptype"] = "TypeDef" 
+		name["ptype"] = "TypeDef"
+		name["java"] = "Java"
 	}
 	{
 		sum += $2; 
