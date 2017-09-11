@@ -26,14 +26,38 @@ typedef enum {
 	_SCHEMA_TYPE_NTYPES          /*!< The number of types */
 } _schema_type_t;
 
+#if 0
+-       _INT    = 1,     /*!< The integer primitive */
+-       _FLOAT  = 2,     /*!< The float  primitive */
+-       _BOOL   = 4,     /*!< The boolean primitive */
+-       _STRING = 8      /*!< The string primitive */
+#endif
+
 /**
  * @brief The data used to describe the data schema
  **/
-typedef enum {
-	_INT    = 1,     /*!< The integer primitive */
-	_FLOAT  = 2,     /*!< The float  primitive */
-	_BOOL   = 4,     /*!< The boolean primitive */
-	_STRING = 8      /*!< The string primitive */
+typedef struct {
+	struct {
+		uint32_t allowed:1;     /*!< If integer is allowed */
+		int32_t  min;          /*!< The min value of this int */
+		int64_t  max;          /*!< The max value of this int */
+	}            int_schema;   /*!< The integer constraints */
+	struct {
+		uint32_t allowed:1;    /*!< If float number is allowed */
+		double   min;          /*!< The lower bound of this float number */
+		double   max;          /*!< The upper bound of this float number */
+	}            float_schema; /*!< The float schema */
+	struct {
+		uint32_t allowed:1;    /*!< If the boolean value is allowed */
+		/* We don't have any additional constraints for boolean, because 
+		 * If we only allow it's true, or false, the field will be meaning 
+		 * less */
+	}            bool_schema;  /*!< The boolean schema */
+	struct {
+		uint32_t allowed:1;    /*!< If string is allowed */
+		size_t   min_len;      /*!< The min length of the string */
+		size_t   max_len;      /*!< The max length of the string */
+	}            string_schema;/*!< The string scehma */
 } _primitive_t;
 
 /**
@@ -141,7 +165,7 @@ static inline jsonschema_t* _primitive_new(const char* desc)
 	static const char _bool[]     = "bool";
 	static const char _nullable[] = "null";
 
-	_primitive_t types = 0;
+	_primitive_t types = {};
 	uint32_t nullable = 0;
 
 	for(;*desc;)
@@ -154,22 +178,22 @@ static inline jsonschema_t* _primitive_new(const char* desc)
 			case 'i':
 			    keyword = _int;
 			    keylen  = sizeof(_int) - 1;
-			    types |= _INT;
+				types.int_schema.allowed = 1;
 			    break;
 			case 'f':
 			    keyword = _float;
 			    keylen  = sizeof(_float) - 1;
-			    types |= _FLOAT;
+				types.float_schema.allowed = 1;
 			    break;
 			case 's':
 			    keyword = _string;
 			    keylen  = sizeof(_string) - 1;
-			    types |= _STRING;
+				types.string_schema.allowed = 1;
 			    break;
 			case 'b':
 			    keyword = _bool;
 			    keylen  = sizeof(_bool) - 1;
-			    types |= _BOOL;
+				types.bool_schema.allowed = 1;
 			    break;
 			case 'n':
 			    keyword = _nullable;
@@ -184,6 +208,8 @@ static inline jsonschema_t* _primitive_new(const char* desc)
 		for(;keyword != NULL && keylen > 0 && *keyword == *desc; keyword ++, keylen--, desc ++);
 
 		if(NULL == keyword || *keyword != 0) ERROR_PTR_RETURN_LOG("Invalid type description");
+
+		/* TODO: parse the additional constraint */
 
 		if(*desc == '|') desc ++;
 	}
@@ -415,19 +441,36 @@ ERR:
  * @param object The data object
  * @return The vlaidation result, or error code
  **/
-static inline int _validate_primitive(_primitive_t data, uint32_t nullable, json_object* object)
+static inline int _validate_primitive(const _primitive_t* data, uint32_t nullable, json_object* object)
 {
 	int type = json_object_get_type(object);
 	switch(type)
 	{
 		case json_type_int:
-		    return (data & _INT) > 0 || (data & _FLOAT) > 0;
+		{
+			int32_t value = json_object_get_int(object);
+			return (data->int_schema.allowed && data->int_schema.min <= value && value <= data->int_schema.max) ||
+				   (data->float_schema.allowed && data->float_schema.min <= value && value <= data->float_schema.max);
+		}
 		case json_type_double:
-		    return (data & _FLOAT) > 0;
+		{
+			double value = json_object_get_double(object);
+			return (data->float_schema.allowed && data->float_schema.min <= value && value <= data->float_schema.max);
+		}
 		case json_type_boolean:
-		    return (data & _BOOL) > 0;
+			return data->bool_schema.allowed;
 		case json_type_string:
-		    return (data & _STRING) > 0;
+		{
+			if(data->string_schema.allowed == 0) return 0;
+			if(data->string_schema.min_len != 0 || data->string_schema.max_len != (size_t)-1)
+			{
+				const char* str = json_object_get_string(object);
+				if(NULL == str) ERROR_RETURN_LOG(int, "Cannot get the string from JSON string object");
+				size_t len = strlen(str);
+				return data->string_schema.min_len <= len && len <= data->string_schema.max_len;
+			}
+			return 1;
+		}
 		case json_type_null:
 		    return nullable > 0;
 		default:
@@ -510,7 +553,7 @@ int jsonschema_validate(const jsonschema_t* schema, json_object* object)
 	switch(schema->type)
 	{
 		case _SCHEMA_TYPE_PRIMITIVE:
-		    return _validate_primitive(schema->primitive[0], schema->nullable, object);
+		    return _validate_primitive(schema->primitive, schema->nullable, object);
 		case _SCHEMA_TYPE_LIST:
 		    return _validate_list(schema->list, schema->nullable, object);
 		case _SCHEMA_TYPE_OBJ:
