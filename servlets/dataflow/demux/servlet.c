@@ -134,19 +134,13 @@ static inline const hashnode_t* _hash_find(const context_t* ctx, const char* str
 
 /**
  * @brief Parse the servlet initialization options
- * @param idx The option index in the option definition array
- * @param params The array of the pointers
- * @param nparams How many parameters for this option
- * @param options The option definition array
- * @param n How many opitions defined in the option definition array
- * @param args The additional arguments
+ * @param data The option data
  * @return status code
  **/
-static int _set_option(uint32_t idx, pstd_option_param_t* params, uint32_t nparams, const pstd_option_t* options, uint32_t n, void* args)
+static int _set_option(pstd_option_data_t data)
 {
-	(void)n;
-	char what = options[idx].short_opt;
-	context_t* ctx = (context_t*)args;
+	char what = data.current_option->short_opt;
+	context_t* ctx = (context_t*)data.cb_data;
 	int expected_mode;
 	const char* field;
 	switch(what)
@@ -156,12 +150,12 @@ static int _set_option(uint32_t idx, pstd_option_param_t* params, uint32_t npara
 		    field = "token";
 		    goto SET_MODE;
 		case 'n':
-		    if(nparams != 2 || params[0].type != PSTD_OPTION_STRING ||
-		       params[1].type != PSTD_OPTION_TYPE_INT)
+		    if(data.param_array_size != 2 || data.param_array[0].type != PSTD_OPTION_STRING ||
+		       data.param_array[1].type != PSTD_OPTION_TYPE_INT)
 		        ERROR_RETURN_LOG(int, "--numeric <field_expr> <num-outputs>");
 		    expected_mode = MODE_NUMERIC;
-		    field = params[0].strval;
-		    ctx->ncond = (uint32_t)params[1].intval;
+		    field = data.param_array[0].strval;
+		    ctx->ncond = (uint32_t)data.param_array[1].intval;
 SET_MODE:
 		    if(ctx->mode != MODE_MATCH)
 		        ERROR_RETURN_LOG(int, "Only one mode specifier can be passed");

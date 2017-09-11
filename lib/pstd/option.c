@@ -264,7 +264,16 @@ START_PARSE:
 			ERROR_RETURN_LOG(uint32_t, "Cannot parse the option argument for %s", this);
 		}
 
-		if(NULL != options[i].handler && ERROR_CODE(int) == options[i].handler(i, buffer->params, buffer->size, options, n, userdata))
+		pstd_option_data_t cb_param = {
+			.option_array      = options,
+			.option_array_size = n,
+			.current_option    = options + i,
+			.param_array       = buffer->params,
+			.param_array_size  = buffer->size,
+			.cb_data           = userdata
+		};
+
+		if(NULL != options[i].handler && ERROR_CODE(int) == options[i].handler(cb_param))
 		{
 			_buffer_free(buffer);
 			ERROR_RETURN_LOG(uint32_t, "The option handler returns an error code");
@@ -285,21 +294,19 @@ START_PARSE:
 	return ret;
 }
 
-int pstd_option_handler_print_help(uint32_t idx, pstd_option_param_t* params, uint32_t nparams, const pstd_option_t* options, uint32_t n, void* userdata)
+int pstd_option_handler_print_help(pstd_option_data_t data)
 {
-	(void)params;
-	(void)nparams;
-	(void)userdata;
-	FILE* fout = (FILE*) options[idx].args;
+	FILE* fout = (FILE*) data.current_option->args;
+	const pstd_option_t* options = data.option_array;
 	size_t max_long_opt_len = 0;
 	uint32_t i;
-	for(i = 0; i < n; i ++)
+	for(i = 0; i < data.option_array_size; i ++)
 	    if(NULL != options[i].long_opt && max_long_opt_len < strlen(options[i].long_opt))
 	        max_long_opt_len = strlen(options[i].long_opt);
 
 	if(NULL == fout) fout = stderr;
 
-	for(i = 0; i < n; i ++)
+	for(i = 0; i < data.option_array_size; i ++)
 	{
 		if(options[i].short_opt != 0)
 		{
