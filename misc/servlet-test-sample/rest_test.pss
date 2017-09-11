@@ -5,7 +5,7 @@ insmod("pssm");
 insmod("simulate input=./rest.in output=./rest.out label=REST");
 
 to_test = {
-	rest := "controller/rest user user:post post:comment";
+	rest := "rest/restcon user user:post post:comment";
 	(request) -> "request" rest {
 		"post" -> (post)
 		"comment" -> (comment);
@@ -18,9 +18,9 @@ in_def = {
 };
 
 out_def = {
-	"post" : "plumber/std_servlet/controller/rest/v0/Command"
-	"comment" : "plumber/std_servlet/controller/rest/v0/Command"
-	"user" : "plumber/std_servlet/controller/rest/v0/Command",
+	"post" : "plumber/std_servlet/rest/restcon/v0/Command"
+	"comment" : "plumber/std_servlet/rest/restcon/v0/Command"
+	"user" : "plumber/std_servlet/rest/restcon/v0/Command",
 };
 
 scheduler.worker.nthreads = 1;
