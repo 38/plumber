@@ -26,9 +26,9 @@ extern "C" {
 #include <pservlet/log.h>
 #include <pservlet/pipe.h>
 #include <pservlet/trap.h>
-#include <pservlet/task.h>
 #include <pservlet/runtime.h>
 #include <pservlet/module.h>
+#include <pservlet/async.h>
 
 	/** @brief the address table that used by table */
 	extern const address_table_t* RUNTIME_ADDRESS_TABLE_SYM;

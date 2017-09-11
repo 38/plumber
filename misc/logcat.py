@@ -73,7 +73,10 @@ class LogFile(object):
                     line = self._fps[i].readline()
                     if line is None or line == "":
                         continue
-                    self._last[i] = LogRecord(line)
+                    try:
+                        self._last[i] = LogRecord(line)
+                    except:
+                        self._last[i] = LogRecord(line)
                     if mind == -1: mind = i
                 else:
                     if mind == -1: mind = i

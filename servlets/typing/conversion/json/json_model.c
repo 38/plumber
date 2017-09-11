@@ -30,10 +30,12 @@ typedef struct {
 
 static inline void _print_libproto_err()
 {
+#ifdef LOG_ERROR_ENABLED
 	const proto_err_t* err = proto_err_stack();
 	static char buf[1024];
 	for(;err;err = err->child)
 	    LOG_ERROR("Libproto: %s", proto_err_str(err, buf, sizeof(buf)));
+#endif
 }
 
 static int _traverse_type(proto_db_field_info_t info, void* data);

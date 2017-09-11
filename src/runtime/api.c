@@ -13,6 +13,8 @@
 #include <runtime/pdt.h>
 #include <runtime/servlet.h>
 #include <runtime/task.h>
+
+#include <sched/async.h>
 /**
  * @brief get the current task
  * @param action the action filter checks what kinds of action we expected, if any type of action
@@ -100,14 +102,6 @@ static int _write_scope_token(runtime_api_pipe_t pipe, runtime_api_scope_token_t
 		return itc_module_pipe_write_scope_token(token, data_req, _get_handle(pid));
 	}
 	else ERROR_RETURN_LOG(int, "Service module reference doesn't support write operation");
-}
-
-static runtime_api_task_id_t _get_tid()
-{
-	runtime_task_t* task = _get_task((runtime_task_flags_t)-1);
-	if(NULL == task) return ERROR_CODE(runtime_api_task_id_t);
-
-	return task->id;
 }
 
 static int _eof(runtime_api_pipe_t pipe)
@@ -227,6 +221,11 @@ static int _set_type_hook(runtime_api_pipe_t pipe, runtime_api_pipe_type_callbac
 	else ERROR_RETURN_LOG(int, "Cannot set up the type callback for a service module function pipe");
 }
 
+static int _async_cntl(runtime_api_async_handle_t* async_handle, uint32_t opcode, va_list ap)
+{
+	return sched_async_handle_cntl(async_handle, opcode, ap);
+}
+
 /**
  * @brief this is the framework address table
  **/
@@ -236,7 +235,6 @@ runtime_api_address_table_t runtime_api_address_table = {
 	.read   = _read,
 	.write = _write,
 	.write_scope_token = _write_scope_token,
-	.get_tid = _get_tid,
 	.trap = NULL,
 	.eof = _eof,
 	.cntl = _cntl,
@@ -244,7 +242,8 @@ runtime_api_address_table_t runtime_api_address_table = {
 	.get_module_func = _get_module_func,
 	.mod_open = _mod_open,
 	.mod_cntl_prefix = _mod_cntl_prefix,
-	.set_type_hook = _set_type_hook
+	.set_type_hook = _set_type_hook,
+	.async_cntl = _async_cntl
 };
 
 

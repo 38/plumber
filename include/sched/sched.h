@@ -17,6 +17,7 @@
 #include <sched/cnode.h>
 #include <sched/prof.h>
 #include <sched/type.h>
+#include <sched/async.h>
 /**
  * @brief intitialize the scheduler part
  * @return status code

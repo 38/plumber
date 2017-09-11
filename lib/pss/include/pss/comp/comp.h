@@ -40,6 +40,8 @@ typedef struct {
 	pss_bytecode_module_t*  module;   /*!< The module we want output the code to */
 	pss_comp_lex_t*         lexer;    /*!< The lexer we are using for the code */
 	uint32_t                debug:1;  /*!< If we need include debug info in the bytecode */
+	uint32_t                repl:1;   /*!< If we should compile this code in REPL mode, which means we should return the result of last
+	                                       expression, if the last statement is an expression statement */
 } pss_comp_option_t;
 
 /**

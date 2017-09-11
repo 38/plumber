@@ -10,6 +10,5 @@
 
 #include <pss.h>
 
-int pss_cli_interactive(uint32_t debug);
-void print_bt(pss_vm_backtrace_t*);
+int cli_interactive(uint32_t debug);
 #endif

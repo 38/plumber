@@ -42,7 +42,7 @@ typedef enum {
 typedef struct {
 	uint32_t       size;      /*!< The size of this schema data */
 	uint32_t       repeat:1;  /*!< Indicates if this list contains a start at the end of the schema defnition,
-							   *   Which means the list pattern repeats */
+	                           *   Which means the list pattern repeats */
 	jsonschema_t** element;   /*!< The actual elements */
 } _list_t;
 
@@ -92,34 +92,34 @@ static inline int _schema_free(jsonschema_t* schema)
 	switch(schema->type)
 	{
 		case _SCHEMA_TYPE_LIST:
-			if(schema->list->element != NULL)
-			{
-				for(i = 0; i < schema->list->size; i ++)
-					if(NULL != schema->list->element[i] && ERROR_CODE(int) == _schema_free(schema->list->element[i]))
-						rc = ERROR_CODE(int);
-				free(schema->list->element);
-			}
-			break;
+		    if(schema->list->element != NULL)
+		    {
+			    for(i = 0; i < schema->list->size; i ++)
+			        if(NULL != schema->list->element[i] && ERROR_CODE(int) == _schema_free(schema->list->element[i]))
+			            rc = ERROR_CODE(int);
+			    free(schema->list->element);
+		    }
+		    break;
 		case _SCHEMA_TYPE_PRIMITIVE:
-			rc = 0;
-			break;
+		    rc = 0;
+		    break;
 		case _SCHEMA_TYPE_OBJ:
-			if(schema->obj->element != NULL)
-			{
-				for(i = 0; i < schema->obj->size; i ++)
-				{
-					_obj_elem_t* elem = schema->obj->element + i;
-					if(NULL != elem->key) free(elem->key);
-					if(ERROR_CODE(int) == _schema_free(elem->val))
-						rc = ERROR_CODE(int);
-				}
-				free(schema->obj->element);
-			}
-			break;
+		    if(schema->obj->element != NULL)
+		    {
+			    for(i = 0; i < schema->obj->size; i ++)
+			    {
+				    _obj_elem_t* elem = schema->obj->element + i;
+				    if(NULL != elem->key) free(elem->key);
+				    if(ERROR_CODE(int) == _schema_free(elem->val))
+				        rc = ERROR_CODE(int);
+			    }
+			    free(schema->obj->element);
+		    }
+		    break;
 		default:
-			rc = ERROR_CODE(int);
-			LOG_ERROR("Invalid schema type");
-			break;
+		    rc = ERROR_CODE(int);
+		    LOG_ERROR("Invalid schema type");
+		    break;
 	}
 	free(schema);
 	return rc;
@@ -127,8 +127,8 @@ static inline int _schema_free(jsonschema_t* schema)
 
 /**
  * @brief Create new primitive schema from the string description
- * @note  The syntax of the type description should be "[type](|[type])*" 
- *        where type can be either int, float, string or bool or null which 
+ * @note  The syntax of the type description should be "[type](|[type])*"
+ *        where type can be either int, float, string or bool or null which
  *        indicates this value is nullable
  * @param desc The description string
  * @return The newly created schema object, NULL on error
@@ -152,37 +152,37 @@ static inline jsonschema_t* _primitive_new(const char* desc)
 		switch(ch)
 		{
 			case 'i':
-				keyword = _int;
-				keylen  = sizeof(_int) - 1;
-				types |= _INT;
-				break;
+			    keyword = _int;
+			    keylen  = sizeof(_int) - 1;
+			    types |= _INT;
+			    break;
 			case 'f':
-				keyword = _float;
-				keylen  = sizeof(_float) - 1;
-				types |= _FLOAT;
-				break;
+			    keyword = _float;
+			    keylen  = sizeof(_float) - 1;
+			    types |= _FLOAT;
+			    break;
 			case 's':
-				keyword = _string;
-				keylen  = sizeof(_string) - 1;
-				types |= _STRING;
-				break;
+			    keyword = _string;
+			    keylen  = sizeof(_string) - 1;
+			    types |= _STRING;
+			    break;
 			case 'b':
-				keyword = _bool;
-				keylen  = sizeof(_bool) - 1;
-				types |= _BOOL;
-				break;
+			    keyword = _bool;
+			    keylen  = sizeof(_bool) - 1;
+			    types |= _BOOL;
+			    break;
 			case 'n':
-				keyword = _nullable;
-				keylen  = sizeof(_nullable) - 1;
-				nullable = 1;
-				break;
+			    keyword = _nullable;
+			    keylen  = sizeof(_nullable) - 1;
+			    nullable = 1;
+			    break;
 			default:
-				/* Simply do nothing */
-				(void)0;
+			    /* Simply do nothing */
+			    (void)0;
 		}
 
 		for(;keyword != NULL && keylen > 0 && *keyword == *desc; keyword ++, keylen--, desc ++);
-		
+
 		if(NULL == keyword || *keyword != 0) ERROR_PTR_RETURN_LOG("Invalid type description");
 
 		if(*desc == '|') desc ++;
@@ -211,7 +211,7 @@ static inline jsonschema_t* _list_new(json_object* object)
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new schema object");
 
 	if(NULL == (ret->list->element = (jsonschema_t**)calloc(sizeof(jsonschema_t*) , len)))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the element array");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the element array");
 
 	ret->type = _SCHEMA_TYPE_LIST;
 	ret->list->size = (uint32_t)len;
@@ -225,7 +225,7 @@ static inline jsonschema_t* _list_new(json_object* object)
 		if(i == len - 1 && json_object_is_type(curobj, json_type_string))
 		{
 			const char* str = json_object_get_string(curobj);
-			if(strcmp(str, "*") == 0) 
+			if(strcmp(str, "*") == 0)
 			{
 				ret->list->size --;
 				ret->list->repeat = 1u;
@@ -233,7 +233,7 @@ static inline jsonschema_t* _list_new(json_object* object)
 			}
 		}
 		if(NULL == (ret->list->element[i] = jsonschema_new(curobj)))
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create the child JSON schmea");
+		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create the child JSON schmea");
 	}
 
 	return ret;
@@ -242,13 +242,13 @@ ERR:
 	{
 		if(ret->list->element != NULL)
 		{
-			if(NULL != ret->list->element) 
+			if(NULL != ret->list->element)
 			{
 				uint32_t i;
 				for(i = 0; i < ret->list->size; i ++)
 				{
 					if(NULL != ret->list->element[i])
-						_schema_free(ret->list->element[i]);
+					    _schema_free(ret->list->element[i]);
 				}
 			}
 			free(ret->list->element);
@@ -274,26 +274,26 @@ static inline jsonschema_t* _obj_new(json_object* obj)
 	{
 		/* Indicates we have an object */
 		if(!json_object_is_type(prop, json_type_string))
-			ERROR_PTR_RETURN_LOG("The JSON property must be a string");
+		    ERROR_PTR_RETURN_LOG("The JSON property must be a string");
 
 		/* Then we need to parse the string */
 		const char* str = json_object_get_string(prop);
-		if(strcmp(str, "nullable") == 0) 
-			nullable = 1;
-		else 
-			ERROR_PTR_RETURN_LOG_ERRNO("Invalid schema property");
+		if(strcmp(str, "nullable") == 0)
+		    nullable = 1;
+		else
+		    ERROR_PTR_RETURN_LOG_ERRNO("Invalid schema property");
 	}
 
 	jsonschema_t* ret = (jsonschema_t*)calloc(sizeof(jsonschema_t) + sizeof(_obj_t), 1);
 	if(NULL == ret)
-		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new JSON schema");
+	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new JSON schema");
 
 	ret->nullable = (nullable > 0);
 
 	size_t len = (size_t)(json_object_object_length(obj) - (int)nullable);
 
 	if(NULL == (ret->obj->element = (_obj_elem_t*)calloc(sizeof(_obj_elem_t), len)))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the member array");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the member array");
 	ret->obj->size = (uint32_t)len;
 	ret->type = _SCHEMA_TYPE_OBJ;
 
@@ -306,10 +306,10 @@ static inline jsonschema_t* _obj_new(json_object* obj)
 		_obj_elem_t* this = ret->obj->element + (cnt ++);
 
 		if(NULL == (this->key = strdup(iter.key)))
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the key name");
+		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the key name");
 
 		if(NULL == (this->val = jsonschema_new(iter.val)))
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create the member schema");
+		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create the member schema");
 	}
 
 	return ret;
@@ -322,9 +322,9 @@ ERR:
 			for(i = 0; i < ret->obj->size; i ++)
 			{
 				if(NULL != ret->obj->element[i].key)
-					free(ret->obj->element[i].key);
+				    free(ret->obj->element[i].key);
 				if(NULL != ret->obj->element[i].val)
-					_schema_free(ret->obj->element[i].val);
+				    _schema_free(ret->obj->element[i].val);
 			}
 			free(ret->obj->element);
 		}
@@ -337,16 +337,16 @@ ERR:
 jsonschema_t* jsonschema_new(json_object* schema_obj)
 {
 	if(NULL == schema_obj)
-		ERROR_PTR_RETURN_LOG("Invalid arguments");
+	    ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	int type = json_object_get_type(schema_obj);
 
 	switch(type)
 	{
 		case json_type_object:
-			return _obj_new(schema_obj);
+		    return _obj_new(schema_obj);
 		case json_type_array:
-			return _list_new(schema_obj);
+		    return _list_new(schema_obj);
 		case json_type_string:
 		{
 			const char* str = json_object_get_string(schema_obj);
@@ -354,14 +354,14 @@ jsonschema_t* jsonschema_new(json_object* schema_obj)
 			return _primitive_new(str);
 		}
 		default:
-			ERROR_PTR_RETURN_LOG("Invalid schema data type");
+		    ERROR_PTR_RETURN_LOG("Invalid schema data type");
 	}
 }
 
 int jsonschema_free(jsonschema_t* schema)
 {
 	if(NULL == schema)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	return _schema_free(schema);
 }
@@ -386,7 +386,7 @@ jsonschema_t* jsonschema_from_file(const char* schema_file)
 
 	struct stat st;
 	if(stat(schema_file, &st) < 0)
-		ERROR_PTR_RETURN_LOG_ERRNO("stat error");
+	    ERROR_PTR_RETURN_LOG_ERRNO("stat error");
 
 	FILE* fp = fopen(schema_file, "r");
 	if(NULL == fp) ERROR_PTR_RETURN_LOG_ERRNO("Cannot open schema file");
@@ -397,7 +397,7 @@ jsonschema_t* jsonschema_from_file(const char* schema_file)
 
 	buffer[sz] = 0;
 	if(1 != fread(buffer, sz, 1, fp))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read data from the schema file");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read data from the schema file");
 
 	ret = jsonschema_from_string(buffer);
 
@@ -421,17 +421,17 @@ static inline int _validate_primitive(_primitive_t data, uint32_t nullable, json
 	switch(type)
 	{
 		case json_type_int:
-			return (data & _INT) > 0 || (data & _FLOAT) > 0;
+		    return (data & _INT) > 0 || (data & _FLOAT) > 0;
 		case json_type_double:
-			return (data & _FLOAT) > 0;
+		    return (data & _FLOAT) > 0;
 		case json_type_boolean:
-			return (data & _BOOL) > 0;
+		    return (data & _BOOL) > 0;
 		case json_type_string:
-			return (data & _STRING) > 0;
+		    return (data & _STRING) > 0;
 		case json_type_null:
-			return nullable > 0;
+		    return nullable > 0;
 		default:
-			return 0;
+		    return 0;
 	}
 }
 
@@ -495,7 +495,7 @@ static inline int _validate_obj(const _obj_t* data, uint32_t nullable, json_obje
 
 		int child_rc = jsonschema_validate(data->element[i].val, this);
 		if(ERROR_CODE(int) == child_rc)
-			ERROR_RETURN_LOG(int, "Child validation failure");
+		    ERROR_RETURN_LOG(int, "Child validation failure");
 
 		if(child_rc == 0) return 0;
 	}
@@ -510,13 +510,13 @@ int jsonschema_validate(const jsonschema_t* schema, json_object* object)
 	switch(schema->type)
 	{
 		case _SCHEMA_TYPE_PRIMITIVE:
-			return _validate_primitive(schema->primitive[0], schema->nullable, object);
+		    return _validate_primitive(schema->primitive[0], schema->nullable, object);
 		case _SCHEMA_TYPE_LIST:
-			return _validate_list(schema->list, schema->nullable, object);
+		    return _validate_list(schema->list, schema->nullable, object);
 		case _SCHEMA_TYPE_OBJ:
-			return _validate_obj(schema->obj, schema->nullable, object);
+		    return _validate_obj(schema->obj, schema->nullable, object);
 		default:
-			ERROR_RETURN_LOG(int, "Code bug: Invalid schema type");
+		    ERROR_RETURN_LOG(int, "Code bug: Invalid schema type");
 	}
 }
 

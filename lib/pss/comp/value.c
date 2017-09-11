@@ -167,7 +167,7 @@ static inline int _parse_function_literal(pss_comp_t* comp, pss_bytecode_segment
 	for(; argc > 0; argc --)
 	    free(argv[argc - 1]);
 
-	if(ERROR_CODE(int) == pss_comp_block_parse(comp, PSS_COMP_LEX_TOKEN_LBRACE, PSS_COMP_LEX_TOKEN_RBRACE))
+	if(ERROR_CODE(int) == pss_comp_block_parse(comp, PSS_COMP_LEX_TOKEN_LBRACE, PSS_COMP_LEX_TOKEN_RBRACE, 0))
 	    ERROR_RETURN_LOG(int, "Cannot parse the function body");
 
 	pss_bytecode_segid_t funcid = pss_comp_close_closure(comp);

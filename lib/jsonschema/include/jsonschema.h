@@ -6,7 +6,7 @@
  * @file jsonschema/include/jsonschema.h
  * @detail The simple JSON schema library. This library uses JSON to describe the JSON schema
  *         The syntax is very easy, for the object, instead of putting the value, we actaully puts
- *         a list of type name to the value. For example. 
+ *         a list of type name to the value. For example.
  *         <code>
  *
  *         {
@@ -27,19 +27,19 @@
  *         		"unit_price": "float"
  *         	  }, "*"]
  *           }
- *         
+ *
  *         </code>
  *         In this case, the address object contains a __schema_property__ field which means we
  *         have some additional directive to this object, in this case, this means the object is nullable.
  *         For the list like examples, if the last element is "*" it means we need to repeat the list containt
  *         And this is called a repeat marker. <br/>
- *         The schema library also support performe a "schema based merge" operation, which means, we can send 
- *         a subset of the object, which indicates the part of the object that needs to be changed. 
+ *         The schema library also support performe a "schema based merge" operation, which means, we can send
+ *         a subset of the object, which indicates the part of the object that needs to be changed.
  *         In this case we handle the list differently. For the list, if we send a list in the diff like:
  *         { "items": [{"code":"123","count"1, "unit_price": 1.0}] }
  *         This means we want to verride the list to the list that contains only one element, rather than
  *         we want to modify the first element in this list.
- *         
+ *
  *         If we want to modify the first element in this list, we should use the different syntax for this purpose:
  *         { "items": {"__deletion__":[], "0":{"code": 123}}}
  *         This means we need to change the object's items[0].code to 123
@@ -56,7 +56,7 @@
 typedef struct _jsonschema_t jsonschema_t;
 
 /**
- * @brief Create a new schema from a given json string 
+ * @brief Create a new schema from a given json string
  * @param schema_obj The schema object
  * @return The newly created schema object
  **/

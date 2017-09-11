@@ -9,8 +9,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <pthread.h>
 
 #include <error.h>
+#include <barrier.h>
 
 #include <limits.h>
 #include <unistd.h>
@@ -27,10 +29,22 @@ static FILE* _log_fp[8] = {};
 
 static FILE _fp_off;
 
+static pthread_mutex_t _log_mutex;
+
+static int _log_mutex_active = 0;
+
+
 int log_init()
 {
 	FILE* default_fp = stderr;
 	const char* conf_path = getenv("LOGCONF");
+
+	if(pthread_mutex_init(&_log_mutex, NULL) < 0)
+	{
+		perror("mutex error");
+		return ERROR_CODE(int);
+	}
+
 	if(NULL == conf_path || 0 == strlen(conf_path))
 	    conf_path = CONFIG_PATH "/" LOG_DEFAULT_CONFIG_FILE;
 	FILE* fp = fopen(conf_path, "r");
@@ -111,7 +125,7 @@ int log_init()
 				for(i = 0; i < 8; i ++)
 				    if(_log_fp[i] == unused && i != level)
 				        break;
-				if(i == 8 && unused != stdin && unused != stdout && unused != stderr)
+				if(i == 8 && unused != stdin && unused != stdout && unused != stderr && unused != &_fp_off)
 				    fclose(unused);
 				_log_fp[level] = NULL;
 			}
@@ -136,7 +150,7 @@ int log_init()
 			return ERROR_CODE(int);
 		}
 	}
-	if(NULL != fp) fclose(fp);
+	if(NULL != fp && &_fp_off != fp) fclose(fp);
 
 	return 0;
 }
@@ -147,7 +161,8 @@ int log_finalize()
 	    if(_log_fp[i] != NULL &&
 	       _log_fp[i] != stdin &&
 	       _log_fp[i] != stdout &&
-	       _log_fp[i] != stderr)
+	       _log_fp[i] != stderr &&
+		   _log_fp[i] != &_fp_off)
 	    {
 		    FILE* unused = _log_fp[i];
 		    for(j = 0; j < 8; j ++)
@@ -165,6 +180,52 @@ void log_write(int level, const char* file, const char* function, int line, cons
 	va_end(ap);
 }
 
+int log_redirect(int level, const char* dest, const char* mode)
+{
+	if(level > DEBUG || level < 0)
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	_log_mutex_active = 1;
+
+	BARRIER();
+
+	if(pthread_mutex_lock(&_log_mutex) < 0)
+	    return ERROR_CODE(int);
+
+	FILE* fp = dest != NULL ? fopen(dest, mode) : &_fp_off;
+	if(NULL == fp) goto ERR;
+
+	FILE* prev = _log_fp[level];
+
+	int i, using = 0;
+	for(i = 0; i < 8 && prev != NULL; i ++)
+	    if(prev == _log_fp[level])
+	        using ++;
+	if(using == 1 && prev != &_fp_off)
+	    fclose(prev);
+
+	_log_fp[level] = fp;
+
+	snprintf(_log_path[level], sizeof(_log_path[level]), "%s", dest);
+	snprintf(_log_mode[level], sizeof(_log_mode[level]), "%s", mode);
+
+	if(pthread_mutex_unlock(&_log_mutex) < 0)
+	    return ERROR_CODE(int);
+
+	BARRIER();
+
+	_log_mutex_active = 0;
+
+	return 0;
+ERR:
+	pthread_mutex_unlock(&_log_mutex);
+
+	BARRIER();
+
+	_log_mutex_active = 0;
+	return ERROR_CODE(int);
+}
+
 /**
  * @brief check if the log file has been deleted
  * @param level the level of the log message
@@ -172,6 +233,9 @@ void log_write(int level, const char* file, const char* function, int line, cons
  **/
 static inline int _check_log_file(int level)
 {
+	if(_log_fp[level] == &_fp_off || _log_fp[level] == NULL)
+		return 0;
+
 	int fd = fileno(_log_fp[level]);
 
 	if(-1 == fd) return ERROR_CODE(int);
@@ -216,12 +280,20 @@ static inline int _is_framework_code(const char* filename)
 
 void log_write_va(int level, const char* file, const char* function, int line, const char* fmt, va_list ap)
 {
-	if(_log_fp[level] == &_fp_off) return;
+	int locked = 0;
+	if(_log_mutex_active && pthread_mutex_lock(&_log_mutex) < 0)
+	{
+		perror("mutex error");
+		return;
+	}
+	else locked = 1;
+
+	if(_log_fp[level] == &_fp_off) goto UNLOCK;
 
 	if(_check_log_file(level) == ERROR_CODE(int))
 	{
 		perror("logging error");
-		return;
+		goto UNLOCK;
 	}
 
 	static const char level_char[] = "FEWNITD";
@@ -241,4 +313,7 @@ void log_write_va(int level, const char* file, const char* function, int line, c
 	fprintf(fp, "\n");
 	fflush(fp);
 	funlockfile(fp);
+UNLOCK:
+	if(locked && pthread_mutex_unlock(&_log_mutex) < 0)
+	    perror("mutex error");
 }

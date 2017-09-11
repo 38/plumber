@@ -28,9 +28,10 @@ pss_bytecode_module_t* module_from_file(const char* name, int load_compiled, int
  * @brief Load a module from the given buffer
  * @param code The buffer contains the code
  * @param code_size The size of the code
+ * @param the REPL mode switch
  * @return The module compiled from the code buffer
  **/
-pss_bytecode_module_t* module_from_buffer(const char* code, uint32_t code_size, uint32_t debug);
+pss_bytecode_module_t* module_from_buffer(const char* code, uint32_t code_size, uint32_t debug, uint32_t repl);
 
 /**
  * @brief Check if the module has been previously loaded

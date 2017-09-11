@@ -28,6 +28,7 @@
 #include <runtime/stab.h>
 
 #include <sched/service.h>
+#include <sched/loop.h>
 #include <sched/rscope.h>
 #include <sched/task.h>
 #include <sched/step.h>

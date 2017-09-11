@@ -106,6 +106,7 @@ int itc_equeue_finalize()
 		LOG_ERROR_ERRNO("Cannot lock the global mutex");
 		rc = ERROR_CODE(int);
 	}
+	/* Before we actually stop, we should dispose all the tasks which is still in the queue */
 	if(_queues != NULL)
 	{
 		size_t i;
@@ -117,18 +118,43 @@ int itc_equeue_finalize()
 				uint64_t j;
 				for(j = queue->front; j != queue->rear; j ++)
 				{
-					itc_module_pipe_t* in = queue->events[j & (queue->size - 1)].in;
-					itc_module_pipe_t* out = queue->events[j & (queue->size - 1)].out;
+					switch(queue->events[j & (queue->size - 1)].type)
+					{
+						case ITC_EQUEUE_EVENT_TYPE_IO:
+						{
+							itc_module_pipe_t* in = queue->events[j & (queue->size - 1)].io.in;
+							itc_module_pipe_t* out = queue->events[j & (queue->size - 1)].io.out;
 
-					if(in != NULL && itc_module_pipe_deallocate(in) == ERROR_CODE(int))
-					{
-						LOG_ERROR("Cannot deallocate the input event pipe");
-						rc = ERROR_CODE(int);
-					}
-					if(out != NULL && itc_module_pipe_deallocate(out) == ERROR_CODE(int))
-					{
-						LOG_ERROR("Cannot deallocate the output event pipe");
-						rc = ERROR_CODE(int);
+							if(in != NULL && itc_module_pipe_deallocate(in) == ERROR_CODE(int))
+							{
+								LOG_ERROR("Cannot deallocate the input event pipe");
+								rc = ERROR_CODE(int);
+							}
+							if(out != NULL && itc_module_pipe_deallocate(out) == ERROR_CODE(int))
+							{
+								LOG_ERROR("Cannot deallocate the output event pipe");
+								rc = ERROR_CODE(int);
+							}
+							break;
+						}
+						case ITC_EQUEUE_EVENT_TYPE_TASK:
+						{
+							itc_equeue_task_event_t* event = &queue->events[j & (queue->size - 1)].task;
+
+							/* We don't call the cleanup task at this point for now.
+							 * TODO: do we need a way to make it properly cleaned up */
+
+							if(event->async_handle != NULL && ERROR_CODE(int) == sched_async_handle_dispose(event->async_handle))
+							{
+								LOG_ERROR("Cannot deallocatet the task handle");
+								rc = ERROR_CODE(int);
+							}
+
+							break;
+						}
+						default:
+						    rc = ERROR_CODE(int);
+						    LOG_ERROR("Invalid type of event");
 					}
 				}
 				if(pthread_mutex_destroy(&queue->mutex) < 0)
@@ -244,8 +270,12 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 	if(token == _SCHED_TOKEN)
 	    ERROR_RETURN_LOG(int, "Cannot call put method from the scheduler thread");
 
-	if(event.in == NULL || event.out == NULL)
-	    ERROR_RETURN_LOG(int, "Invalid event");
+	if(event.type == ITC_EQUEUE_EVENT_TYPE_IO && (event.io.in == NULL || event.io.out == NULL))
+	    ERROR_RETURN_LOG(int, "Invalid IO event");
+	else if(event.type == ITC_EQUEUE_EVENT_TYPE_TASK && (event.task.loop == NULL || event.task.task == NULL))
+	    ERROR_RETURN_LOG(int, "Invalid Task event");
+	else if(event.type != ITC_EQUEUE_EVENT_TYPE_IO && event.type != ITC_EQUEUE_EVENT_TYPE_TASK)
+	    ERROR_RETURN_LOG(int, "Invalid event type");
 
 	_queue_t* queue = *VECTOR_GET(_queue_t*, _queues, token);
 	if(NULL == queue)

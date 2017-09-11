@@ -107,23 +107,6 @@ PyObject* _pyservlet_write(PyObject* self, PyObject* args)
 	return Py_BuildValue("k", (unsigned long)rc);
 }
 
-PyObject* _pyservlet_task_id(PyObject* self, PyObject* args)
-{
-	(void) self;
-	if(!PyArg_ParseTuple(args, ""))
-	{
-		PyErr_SetString(PyExc_TypeError, "Invalid arguments");
-		return NULL;
-	}
-	runtime_api_task_id_t rc = task_id();
-	if(ERROR_CODE(runtime_api_task_id_t) == rc)
-	{
-		PyErr_SetString(PyExc_RuntimeError, "Cannot complete task_id call, see Plumber log for detials");
-		return NULL;
-	}
-	return Py_BuildValue("I", rc);
-}
-
 PyObject* _pyservlet_log(PyObject* self, PyObject* args)
 {
 	(void) self;
@@ -304,8 +287,6 @@ static PyMethodDef methods[] = {
 	{"pipe_clr_flag",  _pyservlet_clr_flag,   METH_VARARGS,     "Clear a flag bit"},
 	{"pipe_push_state",_pyservlet_push_state, METH_VARARGS,     "Push a state to the pipe"},
 	{"pipe_pop_state", _pyservlet_pop_state,  METH_VARARGS,     "Pop the previously pushed state"},
-	/* Task info */
-	{"task_id",        _pyservlet_task_id,    METH_VARARGS,     "Get current task ID"},
 	/* Log utils */
 	{"log",            _pyservlet_log,        METH_VARARGS,     "Write a log to plumber logging system"},
 	/* Version */

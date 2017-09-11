@@ -29,15 +29,17 @@
 
 #define _INST(segment, opcode, args...) (ERROR_CODE(pss_bytecode_addr_t) != pss_bytecode_segment_append_code(segment, PSS_BYTECODE_OPCODE_##opcode, ##args, PSS_BYTECODE_ARG_END))
 
-static inline int _expr_stmt(pss_comp_t* comp)
+static inline int _expr_stmt(pss_comp_t* comp, pss_comp_value_t* valbuf)
 {
 	pss_comp_value_t val = {};
 
 	if(ERROR_CODE(int) == pss_comp_expr_parse(comp, &val))
 	    ERROR_RETURN_LOG(int, "Cannot parse the value");
 
-	if(ERROR_CODE(int) == pss_comp_value_release(comp, &val))
+	if(valbuf == NULL && ERROR_CODE(int) == pss_comp_value_release(comp, &val))
 	    ERROR_RETURN_LOG(int, "Cannot release the value");
+
+	if(valbuf != NULL) *valbuf = val;
 
 	return 0;
 }
@@ -90,7 +92,7 @@ static inline int _if_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 	if(ERROR_CODE(int) == pss_comp_rmtmp(comp, r_target))
 	    ERROR_RETURN_LOG(int, "Cannot release the target register");
 
-	if(ERROR_CODE(int) == pss_comp_stmt_parse(comp))
+	if(ERROR_CODE(int) == pss_comp_stmt_parse(comp, NULL))
 	    ERROR_RETURN_LOG(int, "Cannot parse the then block");
 
 	const pss_comp_lex_token_t* ahead = pss_comp_peek(comp, 0);
@@ -134,7 +136,7 @@ static inline int _if_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 		if(ERROR_CODE(int) == pss_comp_expect_keyword(comp, PSS_COMP_LEX_KEYWORD_ELSE))
 		    ERROR_RETURN_LOG(int, "Unexpected token");
 
-		if(ERROR_CODE(int) == pss_comp_stmt_parse(comp))
+		if(ERROR_CODE(int) == pss_comp_stmt_parse(comp, NULL))
 		    ERROR_RETURN_LOG(int, "Cannot parse the then block");
 	}
 
@@ -192,7 +194,7 @@ static inline int _while_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 	   ERROR_CODE(int) == pss_comp_rmtmp(comp, r_target))
 	    ERROR_RETURN_LOG(int, "Cannot release the unused registers");
 
-	if(ERROR_CODE(int) == pss_comp_stmt_parse(comp))
+	if(ERROR_CODE(int) == pss_comp_stmt_parse(comp, NULL))
 	    ERROR_RETURN_LOG(int, "Cannot parse the loop body");
 
 	if(ERROR_CODE(pss_bytecode_regid_t) == (r_target = pss_comp_mktmp(comp)))
@@ -408,7 +410,7 @@ static inline int _foreach_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 	if(ERROR_CODE(int) == pss_comp_rmtmp(comp, key))
 	    ERROR_RETURN_LOG(int, "Cannot release the key register");
 
-	if(ERROR_CODE(int) == pss_comp_stmt_parse(comp))
+	if(ERROR_CODE(int) == pss_comp_stmt_parse(comp, NULL))
 	    ERROR_RETURN_LOG(int, "Cannot parse the loop body");
 
 	if(ERROR_CODE(pss_bytecode_regid_t) == (r_target = pss_comp_mktmp(comp)))
@@ -531,7 +533,7 @@ static inline int _for_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 		if(ERROR_CODE(int) == _var_decl_stmt(comp, seg))
 		    ERROR_RETURN_LOG(int, "Cannot parse the initializer");
 	}
-	else if(ERROR_CODE(int) == _expr_stmt(comp))
+	else if(ERROR_CODE(int) == _expr_stmt(comp, NULL))
 	    ERROR_RETURN_LOG(int, "Cannot parse the initializer");
 
 	if(ERROR_CODE(int) == pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_SEMICOLON))
@@ -605,7 +607,7 @@ static inline int _for_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 	if(NULL == (ahead[0] = pss_comp_peek(comp, 0)))
 	    ERROR_RETURN_LOG(int, "Cannot peek the token ahead");
 
-	if(ahead[0]->type != PSS_COMP_LEX_TOKEN_RPARENTHESIS && ERROR_CODE(int) == _expr_stmt(comp))
+	if(ahead[0]->type != PSS_COMP_LEX_TOKEN_RPARENTHESIS && ERROR_CODE(int) == _expr_stmt(comp, NULL))
 	    ERROR_RETURN_LOG(int, "Cannot parse the increment expression statment");
 
 	if(ERROR_CODE(int) == pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_RPARENTHESIS))
@@ -630,7 +632,7 @@ static inline int _for_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 	if(ERROR_CODE(int) == pss_bytecode_segment_patch_label(seg, l_body, addr_body))
 	    return pss_comp_raise(comp, "Internal error: Cannot patch the label with address of the for loop body");
 
-	if(ERROR_CODE(int) == pss_comp_stmt_parse(comp))
+	if(ERROR_CODE(int) == pss_comp_stmt_parse(comp, NULL))
 	    ERROR_RETURN_LOG(int, "Cannot parse the for loop body");
 
 	if(ERROR_CODE(pss_bytecode_regid_t) == (r_target = pss_comp_mktmp(comp)))
@@ -660,7 +662,7 @@ static inline int _for_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 	return 0;
 }
 
-int pss_comp_stmt_parse(pss_comp_t* comp)
+int pss_comp_stmt_parse(pss_comp_t* comp, pss_comp_value_t* valbuf)
 {
 	if(NULL == comp) PSS_COMP_RAISE_INT(comp, ARGS);
 
@@ -669,6 +671,8 @@ int pss_comp_stmt_parse(pss_comp_t* comp)
 
 	const pss_comp_lex_token_t* ahead = pss_comp_peek(comp, 0);
 	if(NULL == ahead) ERROR_RETURN_LOG(int, "Cannot peek the token ahead");
+
+	if(NULL != valbuf) valbuf->kind = PSS_COMP_VALUE_KIND_INVALID;
 
 	int rc = 0;
 	switch(ahead->type)
@@ -704,11 +708,11 @@ int pss_comp_stmt_parse(pss_comp_t* comp)
 		    }
 		    break;
 		case PSS_COMP_LEX_TOKEN_LBRACE:
-		    if(ERROR_CODE(int) == pss_comp_block_parse(comp, PSS_COMP_LEX_TOKEN_LBRACE, PSS_COMP_LEX_TOKEN_RBRACE))
+		    if(ERROR_CODE(int) == pss_comp_block_parse(comp, PSS_COMP_LEX_TOKEN_LBRACE, PSS_COMP_LEX_TOKEN_RBRACE, 0))
 		        ERROR_RETURN_LOG(int, "Invalid block statement");
 		    break;
 		default:
-		    if(ERROR_CODE(int) == _expr_stmt(comp))
+		    if(ERROR_CODE(int) == _expr_stmt(comp, valbuf))
 		        ERROR_RETURN_LOG(int, "Invalid expression statement");
 	}
 

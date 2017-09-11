@@ -98,7 +98,7 @@ int _entry_point(int argc, char** argv)
 	itc_module_type_t mod_tcp = itc_modtab_get_module_type_from_path("pipe.tcp.port_8888");
 	itc_module_type_t mem_pipe = itc_modtab_get_module_type_from_path("pipe.mem");
 
-	sched_task_context_t* stc = sched_task_context_new();
+	sched_task_context_t* stc = sched_task_context_new(NULL);
 
 	for(;!_stopped;)
 	{

@@ -13,8 +13,9 @@
  * @param comp The compiler instance
  * @param first_token The expected first token, If there's no leading token, pass PSS_COMP_LEX_TOKEN_NAT
  * @param last_token The last token
+ * @param repl_mode Indicates we need to the result of last statement if it's an expression statement
  * @return status code, if there's an error, the error status will be set
  **/
-int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token, pss_comp_lex_token_type_t last_token);
+int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token, pss_comp_lex_token_type_t last_token, uint32_t repl_mode);
 
 #endif /* __PSS_COMP_BLOCK_H__ */

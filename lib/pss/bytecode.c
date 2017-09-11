@@ -194,7 +194,11 @@ static inline const pss_bytecode_info_t* _opcode_info(pss_bytecode_opcode_t opco
 		        }
 		sorted = 1;
 	}
+#ifdef __clang__
+	if(opcode >= PSS_BYTECODE_OPCODE_COUNT)
+#else
 	if(opcode >= PSS_BYTECODE_OPCODE_COUNT || opcode < 0)
+#endif
 	    ERROR_PTR_RETURN_LOG("Invalid instruction opcode = %x", opcode);
 	return &_bytecode[opcode].info;
 }
@@ -797,7 +801,11 @@ int pss_bytecode_segment_patch_label(pss_bytecode_segment_t* segment, pss_byteco
 
 pss_bytecode_addr_t  pss_bytecode_segment_append_code(pss_bytecode_segment_t* segment, pss_bytecode_opcode_t opcode, ...)
 {
+#ifdef __clang__
+	if(NULL == segment || opcode >= PSS_BYTECODE_OPCODE_COUNT)
+#else
 	if(NULL == segment || opcode < 0 || opcode >= PSS_BYTECODE_OPCODE_COUNT)
+#endif
 	    ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid arguments");
 
 	const pss_bytecode_info_t* info = _opcode_info(opcode);
@@ -855,7 +863,7 @@ pss_bytecode_addr_t  pss_bytecode_segment_append_code(pss_bytecode_segment_t* se
 			{
 				if(n_num + n_label + n_str > 0) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Too many numeric argument");
 				pss_bytecode_label_t label = va_arg(ap, pss_bytecode_label_t);
-				inst->label = (pss_bytecode_numeric_t)label;
+				inst->label = (pss_bytecode_numeric_t)label&0xffffffffu;
 				n_label ++;
 				break;
 			}

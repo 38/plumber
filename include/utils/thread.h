@@ -21,6 +21,7 @@ typedef enum {
 	THREAD_TYPE_EVENT       = 1,   /*!< A event loop thread */
 	THREAD_TYPE_WORKER      = 2,   /*!< A worker thread */
 	THREAD_TYPE_IO          = 4,   /*!< An IO thread */
+	THREAD_TYPE_ASYNC       = 8,   /*!< An async task processing thread */
 	THREAD_TYPE_MAX                /*!< The max bound of the thread type code */
 } thread_type_t;
 

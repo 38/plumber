@@ -220,7 +220,7 @@ static inline int request_test(int seed)
 			if(sched_task_output_pipe(task, result[i].source_pipe_desc, pipes[0]) == ERROR_CODE(int))
 			    goto LERR;
 
-			if(sched_task_input_pipe(stc, task->service, task->request, result[i].destination_node_id, result[i].destination_pipe_desc, pipes[1]) < 0)
+			if(sched_task_input_pipe(stc, task->service, task->request, result[i].destination_node_id, result[i].destination_pipe_desc, pipes[1], 0) < 0)
 			    goto LERR;
 		}
 
@@ -491,7 +491,7 @@ int setup()
 	mod_mem = itc_modtab_get_module_type_from_path("pipe.mem");
 	ASSERT(ERROR_CODE(itc_module_type_t) != mod_mem, CLEANUP_NOP);
 	ASSERT_OK(runtime_servlet_append_search_path(TESTDIR), CLEANUP_NOP);
-	ASSERT_PTR(stc = sched_task_context_new(), CLEANUP_NOP);
+	ASSERT_PTR(stc = sched_task_context_new(NULL), CLEANUP_NOP);
 
 	return 0;
 }

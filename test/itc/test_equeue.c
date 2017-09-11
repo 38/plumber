@@ -95,8 +95,11 @@ void* thread_main(void* d)
 	if(_wait_stage(data, 1) == ERROR_CODE(int)) data->rc = ERROR_CODE(int);
 	LOG_DEBUG("test equeue_put");
 	itc_equeue_event_t event = {
-		.in = (itc_module_pipe_t*) data,
-		.out = (itc_module_pipe_t*) data
+		.type = ITC_EQUEUE_EVENT_TYPE_IO,
+		.io = {
+			.in = (itc_module_pipe_t*) data,
+			.out = (itc_module_pipe_t*) data
+		}
 	};
 	if(itc_equeue_put(token, event) == ERROR_CODE(int))
 	{
@@ -136,8 +139,11 @@ void* thread_main(void* d)
 	for(i = 0; i < 1000; i ++)
 	{
 		itc_equeue_event_t e = {
-			.in = (itc_module_pipe_t*)(data->id * 1000 + i + 1),
-			.out = (itc_module_pipe_t*)(data->id * 1000 + i + 1)
+			.type = ITC_EQUEUE_EVENT_TYPE_IO,
+			.io = {
+				.in = (itc_module_pipe_t*)(data->id * 1000 + i + 1),
+				.out = (itc_module_pipe_t*)(data->id * 1000 + i + 1)
+			}
 		};
 		if(itc_equeue_put(token, e) == ERROR_CODE(int)) data->rc = ERROR_CODE(int);
 	}
@@ -149,8 +155,11 @@ void* thread_main(void* d)
 	for(i = 0; i < 100; i ++)
 	{
 		itc_equeue_event_t e = {
-			.in = (itc_module_pipe_t*)(data->id * 100 + i + 1),
-			.out = (itc_module_pipe_t*)(data->id * 100 + i + 1)
+			.type = ITC_EQUEUE_EVENT_TYPE_IO,
+			.io = {
+				.in = (itc_module_pipe_t*)(data->id * 100 + i + 1),
+				.out = (itc_module_pipe_t*)(data->id * 100 + i + 1)
+			}
 		};
 		usleep((__useconds_t)(rand() % 100));
 		if(itc_equeue_put(token, e) == ERROR_CODE(int)) data->rc = ERROR_CODE(int);
@@ -184,8 +193,8 @@ int test_put()
 	for(i = 0; i < NTHREADS; i ++)
 	{
 		ASSERT_OK(itc_equeue_take(sched_token, &e), CLEANUP_NOP);
-		ASSERT(e.in == e.out, CLEANUP_NOP);
-		long int n = ((thread_data_t*)e.in) - data;
+		ASSERT(e.io.in == e.io.out, CLEANUP_NOP);
+		long int n = ((thread_data_t*)e.io.in) - data;
 		ASSERT(n >= 0 && n < NTHREADS, CLEANUP_NOP);
 		ASSERT(flag[n] == 0, CLEANUP_NOP);
 		flag[n] = 1;
@@ -204,8 +213,8 @@ int test_writer_wait()
 	{
 		ASSERT_OK(itc_equeue_wait(sched_token, NULL), CLEANUP_NOP);
 		ASSERT_OK(itc_equeue_take(sched_token, &e), CLEANUP_NOP);
-		ASSERT(e.in == e.out, CLEANUP_NOP);
-		long int n = ((thread_data_t*)e.in) - data;
+		ASSERT(e.io.in == e.io.out, CLEANUP_NOP);
+		long int n = ((thread_data_t*)e.io.in) - data;
 		ASSERT(n >= 0 && n < NTHREADS, CLEANUP_NOP);
 	}
 
@@ -226,8 +235,8 @@ int full_test()
 		{
 			itc_equeue_event_t e;
 			ASSERT_OK(itc_equeue_take(sched_token, &e), CLEANUP_NOP);
-			uintptr_t j = (uintptr_t)e.in;
-			ASSERT(e.in == e.out, CLEANUP_NOP);
+			uintptr_t j = (uintptr_t)e.io.in;
+			ASSERT(e.io.in == e.io.out, CLEANUP_NOP);
 			ASSERT_OK(F[j - 1], CLEANUP_NOP);
 			F[j - 1] = -1;
 		}
@@ -250,8 +259,8 @@ int random_test()
 		{
 			itc_equeue_event_t e;
 			ASSERT_OK(itc_equeue_take(sched_token, &e), CLEANUP_NOP);
-			uintptr_t j = (uintptr_t)e.in;
-			ASSERT(e.in == e.out, CLEANUP_NOP);
+			uintptr_t j = (uintptr_t)e.io.in;
+			ASSERT(e.io.in == e.io.out, CLEANUP_NOP);
 			ASSERT_OK(F[j - 1], CLEANUP_NOP);
 			F[j - 1] = -1;
 		}

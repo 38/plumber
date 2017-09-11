@@ -107,11 +107,11 @@ int eloop_test()
 
 	ASSERT_OK(itc_equeue_take(token, &e), CLEANUP_NOP);
 
-	ASSERT_PTR(e.in, CLEANUP_NOP);
-	ASSERT_PTR(e.out, CLEANUP_NOP);
+	ASSERT_PTR(e.io.in, CLEANUP_NOP);
+	ASSERT_PTR(e.io.out, CLEANUP_NOP);
 
-	in = e.in;
-	out = e.out;
+	in = e.io.in;
+	out = e.io.out;
 
 	static char buffer[4096];
 

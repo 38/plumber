@@ -31,14 +31,20 @@ typedef uint64_t sched_task_request_t;
 /**
  * @brief the type for a scheduler task
  **/
-typedef struct {
+typedef struct _sched_task_t sched_task_t;
+
+/**
+ * @brief The actual type for a scheduler task
+ **/
+struct _sched_task_t {
 	sched_task_context_t*    ctx;     /*!< The scheduler task context */
 	const sched_service_t*   service; /*!< the service that owns this task */
 	sched_rscope_t*          scope;   /*!< the request local scope for this task */
 	sched_service_node_id_t  node;    /*!< the node id for this task */
 	sched_task_request_t     request; /*!< the request id for this task */
-	runtime_task_t*          exec_task;/*!< the actual runtime task */
-} sched_task_t;
+	runtime_task_t*          exec_task; /*!< the actual runtime task, for an async task, this is the async init task<br/>
+	                                     *   And we are able to get related task based on this */
+};
 
 /**
  * @brief initialize the scheduler task table
@@ -55,9 +61,10 @@ int sched_task_finalize();
 
 /**
  * @brief Initialize a new scheduler task context
+ * @param thread_ctx The thread context that creates this scheduler context
  * @return status code
  **/
-sched_task_context_t* sched_task_context_new();
+sched_task_context_t* sched_task_context_new(sched_loop_t* thread_ctx);
 
 /**
  * @brief Dispose a used scheduler task context
@@ -79,17 +86,30 @@ sched_task_request_t sched_task_new_request(sched_task_context_t* ctx, const sch
  * @brief notify the task table there's a newly create pipe which can connect to the given node, given pipe
  *        if there's no task for this request on this node, create a new task
  *        It will return a ready task if this turns out that one task becomes mature
+ * @note Since now we have the async task, which means we can not mark the downstream task is ready before the async
+ *       task is done. <br/>
+ *       This means, we need to sperate this function into two stage: <br/>
+ *       First, we need to assign the downstream runtime task pipes array <br/>
+ *       Second, we need to notify the downstream task for the pipe ready state <br/>
+ *       For the sync task, the logic will be the same. However, for the async one,
+ *       we need do the first step before the async_setup task is called and do the second
+ *       step when the async_cleanup is completed. <br/>
+ *       This function actually handle this, if async = 0, the behavior is the original one, which
+ *       do the step 1 and step 2 at the same time.
+ *       if the async = 1, and handle is not NULL, we actually do stage 1 <br/>
+ *       if the async = 1 and handle is NULL, we do stage 2 <br/>
  * @param service the target service
  * @param ctx The scheduler task context
  * @param node the target node
  * @param request the request ID
  * @param pipe the target pipe of the node
  * @param handle the pipe handle
+ * @param async if this is an async task, which means we can not set the downstream end of the pipe to ready right away
  * @return status code
  **/
 int sched_task_input_pipe(sched_task_context_t* ctx, const sched_service_t* service, sched_task_request_t request,
                           sched_service_node_id_t node, runtime_api_pipe_id_t pipe,
-                          itc_module_pipe_t* handle);
+                          itc_module_pipe_t* handle, int async);
 
 /**
  * @brief get next runnable task, and remove the task from the list
@@ -98,6 +118,14 @@ int sched_task_input_pipe(sched_task_context_t* ctx, const sched_service_t* serv
  * @return the ready task or NULL when error happens
  **/
 sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx);
+
+/**
+ * @brief Notify the task scheduler on the async task compeletion event, this means we should
+ *        move on to the downstream task in this request
+ * @param task The async task we want to nofiy
+ * @return status code
+ **/
+int sched_task_async_completed(sched_task_t* task);
 
 /**
  * @brief dispose a task that is already launched
@@ -155,5 +183,13 @@ int sched_task_input_cancelled(sched_task_t* task);
  * @return if the scheduler is currently working on this (or in the pending state), or error code
  **/
 int sched_task_request_status(const sched_task_context_t* ctx, sched_task_request_t request);
+
+/**
+ * @brief Launch the async task
+ * @param task The task we need to launch, what it actually did is post the async task
+ *       to the async task queue
+ * @return status code
+ **/
+int sched_task_launch_async(sched_task_t* task);
 
 #endif /* __PLUMBER_SCHED_TASK_H__ */
