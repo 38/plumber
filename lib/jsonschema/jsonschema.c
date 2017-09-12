@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <errno.h>
+#include <limits.h>
 
 #include <json.h>
 #include <error.h>
@@ -44,6 +45,7 @@ typedef struct {
 	}            int_schema;   /*!< The integer constraints */
 	struct {
 		uint32_t allowed:1;    /*!< If float number is allowed */
+		uint32_t unlimited:1;  /*!< If this float number is unlimited */
 		double   min;          /*!< The lower bound of this float number */
 		double   max;          /*!< The upper bound of this float number */
 	}            float_schema; /*!< The float schema */
@@ -149,6 +151,71 @@ static inline int _schema_free(jsonschema_t* schema)
 	return rc;
 }
 
+static long _int_constraint(_primitive_t* types, const char* desc)
+{
+	const char* begin = desc;
+	if(desc[0] != '(')
+	{
+		types->int_schema.max = INT_MAX;
+		types->int_schema.min = INT_MIN;
+		return 0;
+	}
+	for(desc ++; *desc == ' ' || *desc == '\t'; desc ++);
+	types->int_schema.min = (int32_t)strtol(desc, (char**)&desc, 0);
+	for(; *desc == ' ' || *desc == '\t'; desc ++);
+	if(*desc != ',') ERROR_RETURN_LOG(long, "Invalid int constraint");
+	for(desc ++; *desc == ' ' || *desc == '\t'; desc ++);
+	types->int_schema.max = (int32_t)strtol(desc, (char**)&desc, 0);
+	for(; *desc == ' ' || *desc == '\t'; desc ++);
+	if(desc[0] != ')')
+		ERROR_RETURN_LOG(long, "Invalid int constraint");
+
+	return desc + 1 - begin;
+}
+
+static long _float_constraint(_primitive_t* types, const char* desc)
+{
+	const char* begin = desc;
+	if(desc[0] != '(')
+	{
+		types->float_schema.unlimited = 1;
+		return 0;
+	}
+	for(desc ++; *desc == ' ' || *desc == '\t'; desc ++);
+	types->float_schema.min = strtod(desc, (char**)&desc);
+	for(; *desc == ' ' || *desc == '\t'; desc ++);
+	if(*desc != ',') ERROR_RETURN_LOG(long, "Invalid float constraint");
+	for(desc ++; *desc == ' ' || *desc == '\t'; (char**)desc ++);
+	types->float_schema.max = strtod(desc, (char**)&desc);
+	for(; *desc == ' ' || *desc == '\t'; desc ++);
+	if(desc[0] != ')')
+		ERROR_RETURN_LOG(long, "Invalid float constraint");
+
+	return desc + 1 - begin;
+}
+
+static long _string_constraint(_primitive_t* types, const char* desc)
+{
+	const char* begin = desc;
+	if(desc[0] != '(')
+	{
+		types->string_schema.max_len = SIZE_MAX;
+		types->string_schema.min_len = 0;
+		return 0;
+	}
+	for(desc ++; *desc == ' ' || *desc == '\t'; desc ++);
+	types->string_schema.min_len = (size_t)strtoll(desc, (char**)&desc, 0);
+	for(; *desc == ' ' || *desc == '\t'; desc ++);
+	if(*desc != ',') ERROR_RETURN_LOG(int, "Invalid string constraint");
+	for(desc ++; *desc == ' ' || *desc == '\t'; desc ++);
+	types->string_schema.max_len = (size_t)strtoll(desc, (char**)&desc, 0);
+	for(; *desc == ' ' || *desc == '\t'; desc ++);
+	if(desc[0] != ')')
+		ERROR_RETURN_LOG(int, "Invalid string constraint");
+
+	return desc + 1 - begin;
+}
+
 /**
  * @brief Create new primitive schema from the string description
  * @note  The syntax of the type description should be "[type](|[type])*"
@@ -173,22 +240,28 @@ static inline jsonschema_t* _primitive_new(const char* desc)
 		char ch = *desc;
 		const char* keyword = NULL;
 		size_t      keylen = 0;
+
+		long (*parse_constraint)(_primitive_t*, const char*) = NULL;
+
 		switch(ch)
 		{
 			case 'i':
 			    keyword = _int;
 			    keylen  = sizeof(_int) - 1;
 				types.int_schema.allowed = 1;
+				parse_constraint = _int_constraint;
 			    break;
 			case 'f':
 			    keyword = _float;
 			    keylen  = sizeof(_float) - 1;
 				types.float_schema.allowed = 1;
+				parse_constraint = _float_constraint;
 			    break;
 			case 's':
 			    keyword = _string;
 			    keylen  = sizeof(_string) - 1;
 				types.string_schema.allowed = 1;
+				parse_constraint = _string_constraint;
 			    break;
 			case 'b':
 			    keyword = _bool;
@@ -209,7 +282,12 @@ static inline jsonschema_t* _primitive_new(const char* desc)
 
 		if(NULL == keyword || *keyword != 0) ERROR_PTR_RETURN_LOG("Invalid type description");
 
-		/* TODO: parse the additional constraint */
+		long cons_len = 0;
+
+		if(NULL != parse_constraint && ERROR_CODE(int) == (cons_len = parse_constraint(&types, desc)))
+			ERROR_PTR_RETURN_LOG("Invalid type constraint");
+
+		desc += cons_len;
 
 		if(*desc == '|') desc ++;
 	}
@@ -335,7 +413,7 @@ static inline jsonschema_t* _obj_new(json_object* obj)
 		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the key name");
 
 		if(NULL == (this->val = jsonschema_new(iter.val)))
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create the member schema");
+		    ERROR_LOG_GOTO(ERR, "Cannot create the member schema");
 	}
 
 	return ret;
@@ -502,7 +580,11 @@ static inline int _validate_list(const _list_t* data, uint32_t nullable, json_ob
 			json_object* elem_data = json_object_array_get_idx(object, (int)idx);
 			int rc = jsonschema_validate(data->element[i], elem_data);
 			if(ERROR_CODE(int) == rc) return ERROR_CODE(int);
-			if(0 == rc) return 0;
+			if(0 == rc) 
+			{
+				LOG_DEBUG("List item validation failed: %u", i);
+				return 0;
+			}
 		}
 
 		/* It could be zero length */
@@ -540,7 +622,11 @@ static inline int _validate_obj(const _obj_t* data, uint32_t nullable, json_obje
 		if(ERROR_CODE(int) == child_rc)
 		    ERROR_RETURN_LOG(int, "Child validation failure");
 
-		if(child_rc == 0) return 0;
+		if(child_rc == 0) 
+		{
+			LOG_DEBUG("Dictionary validation failed: %s", data->element[i].key);
+			return 0;
+		}
 	}
 
 	return 1;
