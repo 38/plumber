@@ -63,7 +63,8 @@ int test_schema_validate_invalid()
 		"{\"name\": \"plumber\", \"address\":{}, \"items\": [] }",
 		"{\"name\": \"plumber\", \"address\":null, \"items\": [1] }",
 		"{}",
-		"null"
+		"null",
+		"{\"name\": \"plumber\", \"nickname\": null, \"address\":{\"state\":"" \"UT\", \"city\": \"SLC\", \"street\": \"howick\", \"country\":\"US\", \"zipcode\":-123456}, \"items\": [] }"
 	};
 	
 	uint32_t i;
