@@ -422,7 +422,7 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 			    ERROR_RETURN_LOG(int, "Cannot resize the buffer");
 		}
 		data = tl_buf->buf;
-		tl_buf->buf[data_len] = 0;
+		tl_buf->buf[data_len = len] = 0;
 	}
 	else
 	{
