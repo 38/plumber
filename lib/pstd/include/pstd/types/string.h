@@ -19,6 +19,10 @@
 #ifndef __PSTD_TYPES_STRING_H__
 #define __PSTD_TYPES_STRING_H__
 
+#	ifdef __cplusplus
+extern "C" {
+#	endif /* __cplusplus__ */
+
 /**
  * @brief the string buffer type
  **/
@@ -102,5 +106,9 @@ size_t pstd_string_printf(pstd_string_t* str, const char* fmt, ...)
  * @return The number of bytes has been appended to the string object
  **/
 size_t pstd_string_vprintf(pstd_string_t* str, const char* fmt, va_list ap);
+
+#	ifdef __cplusplus
+}
+#	endif /* __cplusplus__ */
 
 #endif /* __PSTD_TYPES_STRING_H__ */

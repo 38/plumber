@@ -12,6 +12,10 @@
 #ifndef __PSTD_TYPE_FILE_H__
 #define __PSTD_TYPE_FILE_H__
 
+#	ifdef __cplusplus
+extern "C" {
+#	endif /* __cplusplus__ */
+
 /**
  * @brief Represent a reference to a file on the file system
  **/
@@ -78,5 +82,9 @@ scope_token_t pstd_file_commit(pstd_file_t* file);
  * @return The file name or NULL on error
  **/
 const char* pstd_file_name(const pstd_file_t* file);
+
+#	ifdef __cplusplus
+}
+#	endif /* __cplusplus__ */
 
 #endif /* __PSTD_TYPE_FILE_H__ */

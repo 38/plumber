@@ -50,6 +50,10 @@
 
 #include <error.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <proto/ref.h>
 #include <proto/type.h>
 #include <proto/err.h>
@@ -67,5 +71,9 @@ int proto_init();
  * @return status code
  **/
 int proto_finalize();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __PROTO_H__ */

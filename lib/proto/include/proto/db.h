@@ -163,10 +163,10 @@ int proto_db_type_traverse(const char* type_name, proto_db_field_callback_t func
 
 /**
  * @brief Check if the type is an adhoc type
- * @param typename The name of the type
+ * @param type_name The name of the type
  * @param info_buf The information buffer, if non-NULL is passed, the type information will be written
  * @return the check result or error code
  **/
-int proto_db_is_adhoc(const char* typename, proto_db_field_info_t* info_buf);
+int proto_db_is_adhoc(const char* type_name, proto_db_field_info_t* info_buf);
 
 #endif /* __PROTO_DB_H_ */
