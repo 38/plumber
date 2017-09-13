@@ -9,6 +9,10 @@
 #ifndef __JSONSCHEMA_LOG_H__
 #define __JSONSCHEMA_LOG_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdarg.h>
 
 /**
@@ -40,5 +44,9 @@ void jsonschema_log_write(int level, const char* file, const char* function, int
 #endif
 
 #include <utils/log_macro.h>
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __JSONSCHEMA_LOG_H__ */

@@ -1,8 +1,5 @@
 find_package(PkgConfig)
-find_file(RAPIDJSON_DIR rapidjson/rapidjson.h)
 if(NOT "${RAPIDJSON_DIR}" STREQUAL "RAPIDJSON_DIR-NOTFOUND")
-	get_filename_component(RAPIDJSON_DIR ${RAPIDJSON_DIR} DIRECTORY)
-	get_filename_component(RAPIDJSON_DIR ${RAPIDJSON_DIR} DIRECTORY)
 	list(APPEND LOCAL_INCLUDE ${RAPIDJSON_DIR})
 	list(APPEND LOCAL_LIBS pstd proto)
 else(NOT "${RAPIDJSON_DIR}" STREQUAL "RAPIDJSON_DIR-NOTFOUND")

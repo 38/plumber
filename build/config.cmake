@@ -111,3 +111,11 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config.h.in"
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/misc/Doxyfile.in"
                "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile")
 
+unset(RAPIDJSON_DIR CACHE)
+find_file(RAPIDJSON_DIR rapidjson/rapidjson.h HINTS ${CMAKE_SOURCE_DIR}/thirdparty)
+if(NOT "${RAPIDJSON_DIR}" STREQUAL "RAPIDJSON_DIR-NOTFOUND")
+	get_filename_component(RAPIDJSON_DIR ${RAPIDJSON_DIR} DIRECTORY)
+	get_filename_component(RAPIDJSON_DIR ${RAPIDJSON_DIR} DIRECTORY)
+	message("Found RapidJSON at ${RAPIDJSON_DIR}")
+endif(NOT "${RAPIDJSON_DIR}" STREQUAL "RAPIDJSON_DIR-NOTFOUND")
+	

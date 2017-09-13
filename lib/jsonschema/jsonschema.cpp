@@ -9,7 +9,6 @@
 #include <errno.h>
 #include <limits.h>
 
-#include <json.h>
 #include <error.h>
 
 #include <utils/static_assertion.h>
@@ -308,9 +307,9 @@ static inline jsonschema_t* _primitive_new(const char* desc)
  * @note  This function assume the object
  * @return the newly created schema
  **/
-static inline jsonschema_t* _list_new(json_object* object)
+static inline jsonschema_t* _list_new(const rapidjson::ConstArray& object)
 {
-	size_t len = (size_t)json_object_array_length(object);
+	size_t len = object.GetSize();
 	jsonschema_t* ret = (jsonschema_t*)calloc(sizeof(jsonschema_t) + sizeof(_list_t), 1);
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new schema object");
 
@@ -389,6 +388,9 @@ static inline jsonschema_t* _obj_new(json_object* obj)
 	}
 
 	jsonschema_t* ret = (jsonschema_t*)calloc(sizeof(jsonschema_t) + sizeof(_obj_t), 1);
+	json_object_iter iter;
+	uint32_t cnt = 0;
+	
 	if(NULL == ret)
 	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new JSON schema");
 
@@ -401,18 +403,16 @@ static inline jsonschema_t* _obj_new(json_object* obj)
 	ret->obj->size = (uint32_t)len;
 	ret->type = _SCHEMA_TYPE_OBJ;
 
-	json_object_iter iter;
-	uint32_t cnt = 0;
 	json_object_object_foreachC(obj, iter)
 	{
 		if(nullable && strcmp(iter.key, _property_key) == 0) continue;
 
-		_obj_elem_t* this = ret->obj->element + (cnt ++);
+		_obj_elem_t* this_elem = ret->obj->element + (cnt ++);
 
-		if(NULL == (this->key = strdup(iter.key)))
+		if(NULL == (this_elem->key = strdup(iter.key)))
 		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the key name");
 
-		if(NULL == (this->val = jsonschema_new(iter.val)))
+		if(NULL == (this_elem->val = jsonschema_new(iter.val)))
 		    ERROR_LOG_GOTO(ERR, "Cannot create the member schema");
 	}
 
@@ -436,80 +436,6 @@ ERR:
 		free(ret);
 	}
 	return NULL;
-}
-
-jsonschema_t* jsonschema_new(json_object* schema_obj)
-{
-	if(NULL == schema_obj)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
-
-	int type = json_object_get_type(schema_obj);
-
-	switch(type)
-	{
-		case json_type_object:
-		    return _obj_new(schema_obj);
-		case json_type_array:
-		    return _list_new(schema_obj);
-		case json_type_string:
-		{
-			const char* str = json_object_get_string(schema_obj);
-			if(NULL == str) ERROR_PTR_RETURN_LOG("Cannot get the underlying string");
-			return _primitive_new(str);
-		}
-		default:
-		    ERROR_PTR_RETURN_LOG("Invalid schema data type");
-	}
-}
-
-int jsonschema_free(jsonschema_t* schema)
-{
-	if(NULL == schema)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
-
-	return _schema_free(schema);
-}
-
-jsonschema_t* jsonschema_from_string(const char* schema_str)
-{
-	if(NULL == schema_str) ERROR_PTR_RETURN_LOG("Invalid arguments");
-
-	json_object* schema = json_tokener_parse(schema_str);
-	if(NULL == schema) ERROR_PTR_RETURN_LOG("Invalid JSON object");
-
-	jsonschema_t* ret = jsonschema_new(schema);
-
-	json_object_put(schema);
-	return ret;
-}
-
-jsonschema_t* jsonschema_from_file(const char* schema_file)
-{
-	jsonschema_t* ret = NULL;
-	if(NULL == schema_file) ERROR_PTR_RETURN_LOG("Invalid arguments");
-
-	struct stat st;
-	if(stat(schema_file, &st) < 0)
-	    ERROR_PTR_RETURN_LOG_ERRNO("stat error");
-
-	FILE* fp = fopen(schema_file, "r");
-	if(NULL == fp) ERROR_PTR_RETURN_LOG_ERRNO("Cannot open schema file");
-
-	size_t sz = (size_t)st.st_size;
-	char* buffer = (char*)malloc(sz + 1);
-	if(NULL == buffer) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the file content");
-
-	buffer[sz] = 0;
-	if(1 != fread(buffer, sz, 1, fp))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read data from the schema file");
-
-	ret = jsonschema_from_string(buffer);
-
-ERR:
-	if(NULL != buffer) free(buffer);
-	if(NULL != fp) fclose(fp);
-
-	return ret;
 }
 
 /**
@@ -613,12 +539,12 @@ static inline int _validate_obj(const _obj_t* data, uint32_t nullable, json_obje
 	uint32_t i;
 	for(i = 0; i < data->size; i ++)
 	{
-		json_object* this;
-		int rc = json_object_object_get_ex(object, data->element[i].key, &this);
+		json_object* this_obj;
+		int rc = json_object_object_get_ex(object, data->element[i].key, &this_obj);
 
-		if(rc == 0) this = NULL;
+		if(rc == 0) this_obj = NULL;
 
-		int child_rc = jsonschema_validate(data->element[i].val, this);
+		int child_rc = jsonschema_validate(data->element[i].val, this_obj);
 		if(ERROR_CODE(int) == child_rc)
 		    ERROR_RETURN_LOG(int, "Child validation failure");
 
@@ -630,6 +556,86 @@ static inline int _validate_obj(const _obj_t* data, uint32_t nullable, json_obje
 	}
 
 	return 1;
+}
+
+static inline jsonschema_t* _jsonschema_new(json_object* schema_obj)
+{
+	if(NULL == schema_obj)
+	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+	int type = json_object_get_type(schema_obj);
+
+	switch(type)
+	{
+		case json_type_object:
+		    return _obj_new(schema_obj);
+		case json_type_array:
+		    return _list_new(schema_obj);
+		case json_type_string:
+		{
+			const char* str = json_object_get_string(schema_obj);
+			if(NULL == str) ERROR_PTR_RETURN_LOG("Cannot get the underlying string");
+			return _primitive_new(str);
+		}
+		default:
+		    ERROR_PTR_RETURN_LOG("Invalid schema data type");
+	}
+}
+
+
+
+/****************** Exported functions ***************************/
+
+extern "C" {
+
+int jsonschema_free(jsonschema_t* schema)
+{
+	if(NULL == schema)
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	return _schema_free(schema);
+}
+
+jsonschema_t* jsonschema_from_string(const char* schema_str)
+{
+	if(NULL == schema_str) ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+	json_object* schema = json_tokener_parse(schema_str);
+	if(NULL == schema) ERROR_PTR_RETURN_LOG("Invalid JSON object");
+
+	jsonschema_t* ret = _jsonschema_new(schema);
+
+	json_object_put(schema);
+	return ret;
+}
+
+jsonschema_t* jsonschema_from_file(const char* schema_file)
+{
+	jsonschema_t* ret = NULL;
+	if(NULL == schema_file) ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+	struct stat st;
+	if(stat(schema_file, &st) < 0)
+	    ERROR_PTR_RETURN_LOG_ERRNO("stat error");
+
+	FILE* fp = fopen(schema_file, "r");
+	if(NULL == fp) ERROR_PTR_RETURN_LOG_ERRNO("Cannot open schema file");
+
+	size_t sz = (size_t)st.st_size;
+	char* buffer = (char*)malloc(sz + 1);
+	if(NULL == buffer) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the file content");
+
+	buffer[sz] = 0;
+	if(1 != fread(buffer, sz, 1, fp))
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read data from the schema file");
+
+	ret = jsonschema_from_string(buffer);
+
+ERR:
+	if(NULL != buffer) free(buffer);
+	if(NULL != fp) fclose(fp);
+
+	return ret;
 }
 
 int jsonschema_validate(const jsonschema_t* schema, json_object* object)
@@ -656,4 +662,5 @@ int jsonchema_update(const jsonschema_t* schema, json_object* target, const json
 	(void)target;
 	(void)patch;
 	return 0;
+}
 }

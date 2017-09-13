@@ -30,4 +30,3 @@ macro(compile_protocol_type_files target_prefix indir)
 		endforeach(prototype ${prototypes})
 	endif(IS_DIRECTORY "${indir}")
 endmacro(compile_protocol_type_files indir outdir)
-

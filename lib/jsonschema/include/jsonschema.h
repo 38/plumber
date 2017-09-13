@@ -50,17 +50,14 @@
 #ifndef __JSONSCHEMA_H__
 #define __JSONSCHEMA_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief The previous decleartion of the JSON schema object
  **/
 typedef struct _jsonschema_t jsonschema_t;
-
-/**
- * @brief Create a new schema from a given json string
- * @param schema_obj The schema object
- * @return The newly created schema object
- **/
-jsonschema_t* jsonschema_new(json_object* schema_obj);
 
 /**
  * @brief Load a JSON schema from a string
@@ -84,12 +81,43 @@ jsonschema_t* jsonschema_from_file(const char* schema_file);
 int jsonschema_free(jsonschema_t* schema);
 
 /**
+ * @brief Validate if a JSON string is a valid form of the given schema
+ * @param schema The schema to validate
+ * @param input The input to validate
+ * @return The validation result or error code
+ **/
+int jsonschema_validate_str(const jsonschema_t* schema, const char* input);
+
+/**
+ * @brief Modify the target string based on the schema, which means only
+ *        the schema defined fields will gets updated. This doesn't requires
+ *        the patch object is a valid instance of the given schema. But all
+ *        the structures that is not belongs to the schema will gets ignored.
+ *        However, if the patch contains a key which will break the schema constrain in
+ *        target object after the change, the update will failed
+ * @param schema The schema definition
+ * @param target The target string
+ * @param patch The patch string
+ * @return the patch result
+ **/
+int jsonchema_update_str(const jsonschema_t* schema, const char* target, const char* patch);
+
+#ifdef __cplusplus
+}
+#endif
+
+/* Whenever the rapidjson library is accessible at this point, we could expose the RapidJSON based interfaces */
+#if defined(__cplusplus) && defined(USE_RAPIDJSON)
+
+#include <rapidjson/document.h>
+
+/**
  * @brief Validate if a JSON object is a valid form of the given schema
  * @param schema The schema to validate
  * @param object The object to validate
  * @return The validation result or error code
  **/
-int jsonschema_validate(const jsonschema_t* schema, json_object* object);
+int jsonschema_validate_obj(const jsonschema_t* schema, const rapidjson::Value& object);
 
 /**
  * @brief Modify the target object based on the schema, which means only
@@ -103,6 +131,8 @@ int jsonschema_validate(const jsonschema_t* schema, json_object* object);
  * @param patch The patch object
  * @return the patch result
  **/
-int jsonchema_update(const jsonschema_t* schema, json_object* target, const json_object* patch);
+int jsonchema_update_obj(const jsonschema_t* schema, rapidjson::Value& target, const rapidjson::Value& patch);
+
+#endif
 
 #endif /* __JSONSCHEMA_H__ */
