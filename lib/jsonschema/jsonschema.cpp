@@ -739,7 +739,7 @@ static int _patch_obj(const _obj_t* schema, rapidjson::Value& target, rapidjson:
 
 	if(override_directly)
 	{
-		patch.EraseMember(patch.FindMember("__complete_type__"));
+		patch.RemoveMember("__complete_type__");
 
 		/* At this point we need to validate the patch is a valid data insnace */
 		int rc = _validate_obj(schema, 0, patch);
@@ -768,6 +768,8 @@ static int _patch_obj(const _obj_t* schema, rapidjson::Value& target, rapidjson:
 		}
 		if(ERROR_CODE(int) == jsonschema_update_obj(schema->element[i].val, target[schema->element[i].key], patch[schema->element[i].key], allocator))
 			ERROR_RETURN_LOG(int, "Cannot update member %s", schema->element[i].key);
+		if(target[schema->element[i].key].IsNull())
+			patch.RemoveMember(schema->element[i].key);
 	}
 
 	return 0;

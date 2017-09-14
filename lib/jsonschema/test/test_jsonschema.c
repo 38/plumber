@@ -103,6 +103,18 @@ int test_schema_update()
 
 	LOG_DEBUG("%s", outbuf);
 
+	sz = jsonschema_update_str(schema, outbuf, 0, "{\"address\": {\"state\":"" \"UT\", \"city\": \"SLC\", \"street\": \"howick\", \"country\":\"US\", \"zipcode\":123456}}", 0, outbuf, sizeof(outbuf));
+	
+	ASSERT_RETOK(size_t, sz, CLEANUP_NOP);
+
+	LOG_DEBUG("%s", outbuf);
+
+	sz = jsonschema_update_str(schema, outbuf, 0, "{\"address\": null}", 0, outbuf, sizeof(outbuf));
+
+	ASSERT_RETOK(size_t, sz, CLEANUP_NOP);
+	
+	LOG_DEBUG("%s", outbuf);
+
 	return 0;
 
 }
