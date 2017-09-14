@@ -30,13 +30,6 @@ typedef enum {
 	_SCHEMA_TYPE_NTYPES          /*!< The number of types */
 } _schema_type_t;
 
-#if 0
--       _INT    = 1,     /*!< The integer primitive */
--       _FLOAT  = 2,     /*!< The float  primitive */
--       _BOOL   = 4,     /*!< The boolean primitive */
--       _STRING = 8      /*!< The string primitive */
-#endif
-
 /**
  * @brief The data used to describe the data schema
  **/
