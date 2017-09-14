@@ -1,7 +1,6 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
-#include <json.h>
 #include <testenv.h>
 #include <jsonschema.h>
 #include <jsonschema/log.h>
@@ -42,14 +41,7 @@ int test_schema_validate_valid()
 	
 	uint32_t i;
 	for(i = 0; i < sizeof(value_text) / sizeof(value_text[0]); i ++)
-	{
-		json_object* obj = json_tokener_parse(value_text[i]);
-		ASSERT_PTR(obj, CLEANUP_NOP);
-
-		ASSERT(1 == jsonschema_validate(schema, obj), CLEANUP_NOP);
-
-		json_object_put(obj);
-	}
+		ASSERT(1 == jsonschema_validate_str(schema, value_text[i], 0), CLEANUP_NOP);
 
 	return 0;
 }
@@ -69,13 +61,7 @@ int test_schema_validate_invalid()
 	
 	uint32_t i;
 	for(i = 0; i < sizeof(value_text) / sizeof(value_text[0]); i ++)
-	{
-		json_object* obj = json_tokener_parse(value_text[i]);
-
-		ASSERT(0 == jsonschema_validate(schema, obj), CLEANUP_NOP);
-
-		json_object_put(obj);
-	}
+		ASSERT(0 == jsonschema_validate_str(schema, value_text[i], 0), CLEANUP_NOP);
 
 	return 0;
 }
@@ -84,6 +70,8 @@ int setup()
 {
 	if(ERROR_CODE(int) == jsonschema_log_set_write_callback(log_write_va))
 		ERROR_RETURN_LOG(int, "Cannot set the log write callback");
+	/* For the libstdc++ emergency_pool, we could call __gnu_cxx::__freeres if possible */
+	expected_memory_leakage();
 	return 0;
 }
 

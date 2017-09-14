@@ -22,6 +22,7 @@ add_custom_target(tags
 	                 ${CMAKE_CURRENT_SOURCE_DIR}/tools/ 
 	                 ${CMAKE_CURRENT_SOURCE_DIR}/lib/ 
 					 ${CMAKE_CURRENT_SOURCE_DIR}/servlets/
+					 ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/
 					 ${CMAKE_CURRENT_BINARY_DIR}/ 
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )

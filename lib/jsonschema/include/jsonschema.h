@@ -84,9 +84,10 @@ int jsonschema_free(jsonschema_t* schema);
  * @brief Validate if a JSON string is a valid form of the given schema
  * @param schema The schema to validate
  * @param input The input to validate
+ * @param size The size of the input, if size is 0, we need to detect the string size
  * @return The validation result or error code
  **/
-int jsonschema_validate_str(const jsonschema_t* schema, const char* input);
+int jsonschema_validate_str(const jsonschema_t* schema, const char* input, size_t size);
 
 /**
  * @brief Modify the target string based on the schema, which means only
@@ -97,10 +98,14 @@ int jsonschema_validate_str(const jsonschema_t* schema, const char* input);
  *        target object after the change, the update will failed
  * @param schema The schema definition
  * @param target The target string
+ * @param target_len The target length, 0 means the function should compute the size
  * @param patch The patch string
- * @return the patch result
+ * @param patch_len The patch len, 0 means the function should compute the size
+ * @param outbuf The output buffer
+ * @param bufsize The buffer size
+ * @return The size of the updated JSON string
  **/
-int jsonchema_update_str(const jsonschema_t* schema, const char* target, const char* patch);
+size_t jsonchema_update_str(const jsonschema_t* schema, const char* target, size_t target_len, const char* patch, size_t patch_len, char* outbuf, size_t bufisze);
 
 #ifdef __cplusplus
 }
@@ -131,7 +136,22 @@ int jsonschema_validate_obj(const jsonschema_t* schema, const rapidjson::Value& 
  * @param patch The patch object
  * @return the patch result
  **/
-int jsonchema_update_obj(const jsonschema_t* schema, rapidjson::Value& target, const rapidjson::Value& patch);
+int jsonschema_update_obj(const jsonschema_t* schema, rapidjson::Document& target, rapidjson::Value& patch);
+
+/**
+ * @brief Modify the target object based on the schema, which means only
+ *        the schema defined fields will gets updated. This doesn't requires
+ *        the patch object is a valid instance of the given schema. But all
+ *        the structures that is not belongs to the schema will gets ignored.
+ *        However, if the patch contains a key which will break the schema constrain in
+ *        target object after the change, the update will failed
+ * @param schema The schema definition
+ * @param target The target object
+ * @param patch The patch object
+ * @param allocator The allocator we should use
+ * @return the patch result
+ **/
+int jsonschema_update_obj(const jsonschema_t* schema, rapidjson::Value& target, rapidjson::Value& patch, rapidjson::Document::AllocatorType& allocator);
 
 #endif
 

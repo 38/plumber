@@ -11,6 +11,10 @@
 
 #include <error.h>
 
+#include <rapidjson/filereadstream.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/memorybuffer.h>
+
 #include <utils/static_assertion.h>
 
 #include <jsonschema.h>
@@ -104,6 +108,12 @@ STATIC_ASSERTION_LAST(jsonschema_t, list);
 STATIC_ASSERTION_SIZE(jsonschema_t, primitive, 0);
 STATIC_ASSERTION_SIZE(jsonschema_t, obj, 0);
 STATIC_ASSERTION_SIZE(jsonschema_t, list, 0);
+
+static char _null_obj_buf[sizeof(rapidjson::Value)];
+static rapidjson::Value& _null_obj = *(new (_null_obj_buf)rapidjson::Value());
+
+/* The previous dedcls */
+static inline jsonschema_t* _jsonschema_new(const rapidjson::Value& schema_obj);
 
 /**
  * @brief Dispose the JSON schema
@@ -307,9 +317,9 @@ static inline jsonschema_t* _primitive_new(const char* desc)
  * @note  This function assume the object
  * @return the newly created schema
  **/
-static inline jsonschema_t* _list_new(const rapidjson::ConstArray& object)
+static inline jsonschema_t* _list_new(const rapidjson::Value::ConstArray& object)
 {
-	size_t len = object.GetSize();
+	size_t len = object.Size();
 	jsonschema_t* ret = (jsonschema_t*)calloc(sizeof(jsonschema_t) + sizeof(_list_t), 1);
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new schema object");
 
@@ -322,20 +332,15 @@ static inline jsonschema_t* _list_new(const rapidjson::ConstArray& object)
 	size_t i;
 	for(i = 0; i < len; i ++)
 	{
-		json_object* curobj = json_object_array_get_idx(object, (int)i);
-		if(NULL == curobj) ERROR_LOG_GOTO(ERR, "Cannot get the object[%zu] from JSON object %p", i, object);
+		const rapidjson::Value& curobj = object[(unsigned)i];
 
-		if(i == len - 1 && json_object_is_type(curobj, json_type_string))
+		if(i == len - 1 && curobj.IsString() && strcmp(curobj.GetString(), "*") == 0)
 		{
-			const char* str = json_object_get_string(curobj);
-			if(strcmp(str, "*") == 0)
-			{
-				ret->list->size --;
-				ret->list->repeat = 1u;
-				continue;
-			}
+			ret->list->size --;
+			ret->list->repeat = 1u;
+			continue;
 		}
-		if(NULL == (ret->list->element[i] = jsonschema_new(curobj)))
+		if(NULL == (ret->list->element[i] = _jsonschema_new(curobj)))
 		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create the child JSON schmea");
 	}
 
@@ -367,28 +372,13 @@ ERR:
  * @note This function handles the key __schema_property__ differently
  * @return The newly created object
  **/
-static inline jsonschema_t* _obj_new(json_object* obj)
+static inline jsonschema_t* _obj_new(const rapidjson::Value::ConstObject& obj)
 {
 	const char* _property_key = "__schema_property__";
 
-	json_object* prop;
-	uint32_t nullable = 0;
-	if(json_object_object_get_ex(obj, _property_key, &prop))
-	{
-		/* Indicates we have an object */
-		if(!json_object_is_type(prop, json_type_string))
-		    ERROR_PTR_RETURN_LOG("The JSON property must be a string");
-
-		/* Then we need to parse the string */
-		const char* str = json_object_get_string(prop);
-		if(strcmp(str, "nullable") == 0)
-		    nullable = 1;
-		else
-		    ERROR_PTR_RETURN_LOG_ERRNO("Invalid schema property");
-	}
-
+	uint32_t nullable = (obj.HasMember(_property_key) && obj[_property_key].IsString() && strcmp(obj[_property_key].GetString(), "nullable") == 0);
+	
 	jsonschema_t* ret = (jsonschema_t*)calloc(sizeof(jsonschema_t) + sizeof(_obj_t), 1);
-	json_object_iter iter;
 	uint32_t cnt = 0;
 	
 	if(NULL == ret)
@@ -396,23 +386,24 @@ static inline jsonschema_t* _obj_new(json_object* obj)
 
 	ret->nullable = (nullable > 0);
 
-	size_t len = (size_t)(json_object_object_length(obj) - (int)nullable);
+	size_t len = obj.MemberCount() - (size_t)nullable;
 
 	if(NULL == (ret->obj->element = (_obj_elem_t*)calloc(sizeof(_obj_elem_t), len)))
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the member array");
 	ret->obj->size = (uint32_t)len;
 	ret->type = _SCHEMA_TYPE_OBJ;
 
-	json_object_object_foreachC(obj, iter)
+	for(rapidjson::Value::ConstObject::MemberIterator it = obj.MemberBegin();
+		it != obj.MemberEnd(); it ++)
 	{
-		if(nullable && strcmp(iter.key, _property_key) == 0) continue;
+		if(nullable && strcmp(it->name.GetString(), _property_key) == 0) continue;
 
 		_obj_elem_t* this_elem = ret->obj->element + (cnt ++);
 
-		if(NULL == (this_elem->key = strdup(iter.key)))
+		if(NULL == (this_elem->key = strdup(it->name.GetString())))
 		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the key name");
 
-		if(NULL == (this_elem->val = jsonschema_new(iter.val)))
+		if(NULL == (this_elem->val = _jsonschema_new(it->value)))
 		    ERROR_LOG_GOTO(ERR, "Cannot create the member schema");
 	}
 
@@ -445,37 +436,39 @@ ERR:
  * @param object The data object
  * @return The vlaidation result, or error code
  **/
-static inline int _validate_primitive(const _primitive_t* data, uint32_t nullable, json_object* object)
+static inline int _validate_primitive(const _primitive_t* data, uint32_t nullable, const rapidjson::Value& object)
 {
-	int type = json_object_get_type(object);
-	switch(type)
+	switch(object.GetType())
 	{
-		case json_type_int:
-		{
-			int32_t value = json_object_get_int(object);
-			return (data->int_schema.allowed && data->int_schema.min <= value && value <= data->int_schema.max) ||
-				   (data->float_schema.allowed && data->float_schema.min <= value && value <= data->float_schema.max);
-		}
-		case json_type_double:
-		{
-			double value = json_object_get_double(object);
-			return (data->float_schema.allowed && data->float_schema.min <= value && value <= data->float_schema.max);
-		}
-		case json_type_boolean:
+		case rapidjson::kNumberType:
+			if(object.IsInt64())
+			{
+				int64_t value = object.GetInt64();
+				return (data->int_schema.allowed && data->int_schema.min <= value && value <= data->int_schema.max) ||
+					   (data->float_schema.allowed && data->float_schema.min <= value && value <= data->float_schema.max);
+			}
+			else if(object.IsDouble())
+			{
+				double value = object.GetDouble();
+				return (data->float_schema.allowed && data->float_schema.min <= value && value <= data->float_schema.max);
+			}
+			else return 0;
+		case rapidjson::kTrueType:
+		case rapidjson::kFalseType:
 			return data->bool_schema.allowed;
-		case json_type_string:
+		case rapidjson::kStringType:
 		{
 			if(data->string_schema.allowed == 0) return 0;
 			if(data->string_schema.min_len != 0 || data->string_schema.max_len != (size_t)-1)
 			{
-				const char* str = json_object_get_string(object);
+				const char* str = object.GetString();
 				if(NULL == str) ERROR_RETURN_LOG(int, "Cannot get the string from JSON string object");
 				size_t len = strlen(str);
 				return data->string_schema.min_len <= len && len <= data->string_schema.max_len;
 			}
 			return 1;
 		}
-		case json_type_null:
+		case rapidjson::kNullType:
 		    return nullable > 0;
 		default:
 		    return 0;
@@ -490,21 +483,23 @@ static inline int _validate_primitive(const _primitive_t* data, uint32_t nullabl
  * @todo currently we don't support nullable list, so we need support that at some point
  * @return status code
  **/
-static inline int _validate_list(const _list_t* data, uint32_t nullable, json_object* object)
+static inline int _validate_list(const _list_t* data, uint32_t nullable, const rapidjson::Value& object)
 {
 	(void)nullable;
-	int is_array = json_object_is_type(object, json_type_array);
-	if(!is_array) return is_array;
+	if(!object.IsArray()) return 0;
+
+	const rapidjson::Value::ConstArray& arr = object.GetArray();
+
 	uint32_t first = 1;
 	uint32_t idx = 0;
-	uint32_t len = (uint32_t)json_object_array_length(object);
+	uint32_t len = arr.Size();
 	for(;first || data->repeat; first = 0)
 	{
 		uint32_t i;
-		for(i = 0; i < data->size && idx < len; i ++, idx ++)
+		for(i = first ? 0 : data->size - 1; i < data->size && idx < len; i ++, idx ++)
 		{
-			json_object* elem_data = json_object_array_get_idx(object, (int)idx);
-			int rc = jsonschema_validate(data->element[i], elem_data);
+			const rapidjson::Value& elem_data = arr[idx];
+			int rc = jsonschema_validate_obj(data->element[i], elem_data);
 			if(ERROR_CODE(int) == rc) return ERROR_CODE(int);
 			if(0 == rc) 
 			{
@@ -530,21 +525,18 @@ static inline int _validate_list(const _list_t* data, uint32_t nullable, json_ob
  * @param object The data object
  * @return status code
  **/
-static inline int _validate_obj(const _obj_t* data, uint32_t nullable, json_object* object)
+static inline int _validate_obj(const _obj_t* data, uint32_t nullable, const rapidjson::Value& object)
 {
-	int type = json_object_get_type(object);
-	if(type == json_type_null && nullable) return 1;
-	if(type != json_type_object) return 0;
+	if(nullable && object.IsNull()) return 1;
+	if(!object.IsObject()) return 0;
 
 	uint32_t i;
 	for(i = 0; i < data->size; i ++)
 	{
-		json_object* this_obj;
-		int rc = json_object_object_get_ex(object, data->element[i].key, &this_obj);
+		const rapidjson::Value& this_obj = object.HasMember(data->element[i].key) ? object[data->element[i].key] : _null_obj;
 
-		if(rc == 0) this_obj = NULL;
+		int child_rc = jsonschema_validate_obj(data->element[i].val, this_obj);
 
-		int child_rc = jsonschema_validate(data->element[i].val, this_obj);
 		if(ERROR_CODE(int) == child_rc)
 		    ERROR_RETURN_LOG(int, "Child validation failure");
 
@@ -558,22 +550,22 @@ static inline int _validate_obj(const _obj_t* data, uint32_t nullable, json_obje
 	return 1;
 }
 
-static inline jsonschema_t* _jsonschema_new(json_object* schema_obj)
+/**
+ * @brief Create a new schema object from the Rapid JSON object
+ * @param schema_obj The schema object
+ * @return The schema object
+ **/
+static jsonschema_t* _jsonschema_new(const rapidjson::Value& schema_obj)
 {
-	if(NULL == schema_obj)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
-
-	int type = json_object_get_type(schema_obj);
-
-	switch(type)
+	switch(schema_obj.GetType())
 	{
-		case json_type_object:
-		    return _obj_new(schema_obj);
-		case json_type_array:
-		    return _list_new(schema_obj);
-		case json_type_string:
+		case rapidjson::kObjectType:
+		    return _obj_new(schema_obj.GetObject());
+		case rapidjson::kArrayType:
+		    return _list_new(schema_obj.GetArray());
+		case rapidjson::kStringType:
 		{
-			const char* str = json_object_get_string(schema_obj);
+			const char* str = schema_obj.GetString();
 			if(NULL == str) ERROR_PTR_RETURN_LOG("Cannot get the underlying string");
 			return _primitive_new(str);
 		}
@@ -582,63 +574,214 @@ static inline jsonschema_t* _jsonschema_new(json_object* schema_obj)
 	}
 }
 
+/**
+ * @brief Patch the target value with the given patch
+ * @param schema Schema
+ * @param nullable If this value is nullable
+ * @param target The target value
+ * @param patch The patched value
+ * @return status code
+ **/
+static int _patch_primitive(const _primitive_t* schema, rapidjson::Value& target, rapidjson::Value& patch)
+{
+	if(1 != _validate_primitive(schema, 0, patch))
+		ERROR_RETURN_LOG(int, "Invalid primitive value");
+	target = patch;
+	return 0;
+}
 
+/**
+ * @brief Patch a given list
+ * @param schema The schema
+ * @param nullable if this is nullable
+ * @param target The target object
+ * @param patch The patch object
+ * @return status code
+ **/
+static int _patch_list(const _list_t* schema, rapidjson::Value& target, rapidjson::Value& patch, rapidjson::Document::AllocatorType& allocator)
+{
+	rapidjson::Value::Array target_arr = target.GetArray();
+	if(patch.IsArray())
+	{
+		/* We need to patch the entire array */
+		target = patch;
+		return 0;
+	}
+	else if(patch.IsObject())
+	{
+		if(patch.HasMember("__deletion__") && patch["__deletion__"].IsArray())
+		{
+			uint64_t need_validate_begin = target_arr.Size();
+			rapidjson::Value::Array del_arr = patch["__deletion__"].GetArray();
+			for(rapidjson::Value::ValueIterator iter = del_arr.Begin();
+				iter != del_arr.End();
+				iter ++)
+			{
+				if(!iter->IsUint64())
+					ERROR_RETURN_LOG(int, "Invalid patch format, deletion array should contains integers");
+				uint64_t idx = iter->GetUint64();
+
+				if(idx >= target_arr.Size())
+					ERROR_RETURN_LOG(int, "Invalid index to remove in an array");
+				target_arr.Erase(target_arr.Begin() + idx);
+
+				if(need_validate_begin > idx) 
+					need_validate_begin = idx;
+				else
+					ERROR_RETURN_LOG(int, "The deletion array should be in desc order");
+			}
+
+			/* After that we need to revaliate some of the change caused by the deletion */
+			uint64_t i;
+			for(i = need_validate_begin; i < schema->size && i < target_arr.Size(); i ++)
+			{
+				int rc = jsonschema_validate_obj(schema->element[i], target_arr[(unsigned)i]);
+				if(ERROR_CODE(int) == rc)
+					ERROR_RETURN_LOG(int, "Cannot validate the array after deletion");
+
+				if(rc == 0) ERROR_RETURN_LOG(int, "List patch breaks the schema");
+			}
+		}
+
+		if(patch.HasMember("__insertion__") && patch["__insertion__"].IsArray())
+		{
+			uint64_t need_validate_begin = target_arr.Size();
+			rapidjson::Value::Array ins_arr = patch["__insertion__"].GetArray();
+			for(rapidjson::Value::ValueIterator iter = ins_arr.Begin();
+				iter != ins_arr.End();
+				iter ++)
+			{
+				if(!iter->IsArray())
+					ERROR_RETURN_LOG(int, "Invalid patch format, an insertion record should be a a list");
+				rapidjson::Value::Array ins_rec = iter->GetArray();
+
+				if(ins_rec.Size() != 2 && !ins_rec[0].IsUint64())
+					ERROR_RETURN_LOG(int, "Invalid patch format, an insertion record should be [idx, value]");
+
+				uint64_t idx = ins_rec[0].GetUint64();
+
+				if(idx > schema->size && !schema->repeat)
+					ERROR_RETURN_LOG(int, "Append an element to an fixed length array");
+
+				if(idx >= schema->size - 1)
+				{
+					/* This means this the a schema should be in the repeated zone, so we validate it at this point */
+					int rc = jsonschema_validate_obj(schema->element[schema->size - 1], target_arr[(unsigned)idx]);
+					if(ERROR_CODE(int) == rc)
+						ERROR_RETURN_LOG(int, "Cannot validate the new elmeent");
+
+					if(0 == rc)
+						ERROR_RETURN_LOG(int, "The insertion operation breaks the schema");
+				}
+
+				rapidjson::Value& val = ins_rec[1];
+
+				target_arr.PushBack(val, allocator);
+
+				val = target_arr[target_arr.Size() - 1];
+
+				for(uint32_t i = target_arr.Size() - 1; i > idx; i --)
+				{
+					target_arr[i] = target_arr[i - 1];
+
+					if(i + 1 >= schema->size) 
+					{
+						/* This means we are moving the affected thing from the non-repeated zone to repeated zone
+						 * So we need validate it */
+						int rc = jsonschema_validate_obj(schema->element[schema->size - 1], target_arr[i]);
+						if(ERROR_CODE(int) == rc)
+							ERROR_RETURN_LOG(int, "Cannot validate the element");
+						if(rc == 0)
+							ERROR_RETURN_LOG(int, "The insertion operation breaks the schema contract");
+					}
+				}
+
+				target_arr[(unsigned)idx] = val;
+
+				if(idx < need_validate_begin)
+					need_validate_begin = idx;
+				else
+					ERROR_RETURN_LOG(int, "The insertion operation array should be in desc order");
+			}
+			
+			/* After that we need to revaliate some of the change caused by the deletion */
+			uint64_t i;
+			for(i = need_validate_begin; i < schema->size && i < target_arr.Size(); i ++)
+			{
+				int rc = jsonschema_validate_obj(schema->element[i], target_arr[(unsigned)i]);
+				if(ERROR_CODE(int) == rc)
+					ERROR_RETURN_LOG(int, "Cannot validate the array after deletion");
+
+				if(rc == 0) ERROR_RETURN_LOG(int, "List patch breaks the schema");
+			}
+		}
+
+		for(rapidjson::Value::MemberIterator iter = patch.MemberBegin();
+			iter != patch.MemberEnd();
+			iter ++)
+		{
+			if(strcmp(iter->name.GetString(), "__deletion__") == 0) continue;
+
+			char* end;
+
+			long long idx = strtoll(iter->name.GetString(), &end, 0);
+			if(*end != 0 || idx < 0 || idx >= target_arr.Size() || (idx > schema->size && !schema->repeat))
+				ERROR_RETURN_LOG(int, "Invalid offset in the array %s", iter->name.GetString());
+
+			if(ERROR_CODE(int) == jsonschema_update_obj(schema->element[idx >= schema->size ? schema->size - 1 : idx], 
+						                                target_arr[(unsigned)idx], 
+														iter->value, allocator))
+				ERROR_RETURN_LOG(int, "Cannot patch the array member");
+
+		}
+	}
+
+	return 0;
+}
+
+static int _patch_obj(const _obj_t* schema, rapidjson::Value& target, rapidjson::Value& patch, rapidjson::Document::AllocatorType& allocator)
+{
+	int override_directly = patch.HasMember("__complete_type__") && patch["__complete_type__"].IsTrue();
+
+	if(override_directly)
+	{
+		patch.EraseMember(patch.FindMember("__complete_type__"));
+
+		/* At this point we need to validate the patch is a valid data insnace */
+		int rc = _validate_obj(schema, 0, patch);
+		if(ERROR_CODE(int) == rc)
+			ERROR_RETURN_LOG(int, "Cannot validate the patch data is well-formed");
+
+		if(rc == 0) 
+			ERROR_RETURN_LOG(int, "The patch breaks the data schema");
+
+		target = patch;
+
+		return 0;
+	}
+
+	/* Now we should follow the schema to make the update */
+	uint32_t i;
+	for(i = 0; i < schema->size; i ++)
+	{
+		if(!patch.HasMember(schema->element[i].key))
+			continue;
+		if(!target.HasMember(schema->element[i].key))
+		{
+			rapidjson::Value null;
+			rapidjson::Value key(schema->element[i].key, (unsigned)strlen(schema->element[i].key), allocator);
+			target.AddMember(key, null, allocator);
+		}
+		if(ERROR_CODE(int) == jsonschema_update_obj(schema->element[i].val, target[schema->element[i].key], patch[schema->element[i].key], allocator))
+			ERROR_RETURN_LOG(int, "Cannot update member %s", schema->element[i].key);
+	}
+
+	return 0;
+}
 
 /****************** Exported functions ***************************/
 
-extern "C" {
-
-int jsonschema_free(jsonschema_t* schema)
-{
-	if(NULL == schema)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
-
-	return _schema_free(schema);
-}
-
-jsonschema_t* jsonschema_from_string(const char* schema_str)
-{
-	if(NULL == schema_str) ERROR_PTR_RETURN_LOG("Invalid arguments");
-
-	json_object* schema = json_tokener_parse(schema_str);
-	if(NULL == schema) ERROR_PTR_RETURN_LOG("Invalid JSON object");
-
-	jsonschema_t* ret = _jsonschema_new(schema);
-
-	json_object_put(schema);
-	return ret;
-}
-
-jsonschema_t* jsonschema_from_file(const char* schema_file)
-{
-	jsonschema_t* ret = NULL;
-	if(NULL == schema_file) ERROR_PTR_RETURN_LOG("Invalid arguments");
-
-	struct stat st;
-	if(stat(schema_file, &st) < 0)
-	    ERROR_PTR_RETURN_LOG_ERRNO("stat error");
-
-	FILE* fp = fopen(schema_file, "r");
-	if(NULL == fp) ERROR_PTR_RETURN_LOG_ERRNO("Cannot open schema file");
-
-	size_t sz = (size_t)st.st_size;
-	char* buffer = (char*)malloc(sz + 1);
-	if(NULL == buffer) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the file content");
-
-	buffer[sz] = 0;
-	if(1 != fread(buffer, sz, 1, fp))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read data from the schema file");
-
-	ret = jsonschema_from_string(buffer);
-
-ERR:
-	if(NULL != buffer) free(buffer);
-	if(NULL != fp) fclose(fp);
-
-	return ret;
-}
-
-int jsonschema_validate(const jsonschema_t* schema, json_object* object)
+int jsonschema_validate_obj(const jsonschema_t* schema, const rapidjson::Value& object)
 {
 	if(NULL == schema) ERROR_RETURN_LOG(int, "Invalid arguments");
 
@@ -655,12 +798,186 @@ int jsonschema_validate(const jsonschema_t* schema, json_object* object)
 	}
 }
 
-int jsonchema_update(const jsonschema_t* schema, json_object* target, const json_object* patch)
+int jsonschema_update_obj(const jsonschema_t* schema, rapidjson::Value& target, rapidjson::Value& patch, rapidjson::Document::AllocatorType& allocator)
 {
-	/* TODO: update this not supported currently */
-	(void)schema;
-	(void)target;
-	(void)patch;
+	if(NULL == schema) ERROR_RETURN_LOG(int, "Invalid argument");
+
+	if(target.IsNull()) 
+	{
+		LOG_DEBUG("This is the empty schema, so we only need to validate the remaining patch");
+		int rc = jsonschema_validate_obj(schema, patch);
+		if(rc == ERROR_CODE(int)) ERROR_RETURN_LOG(int, "Cannot validate the JSON schema");
+
+		if(0 == rc) ERROR_RETURN_LOG(int, "Invalid patch");
+
+		target = patch;
+
+		return 0;
+	}
+	else 
+	{
+		if(schema->nullable && patch.IsNull())
+		{
+			if(target.IsNull()) return 0;
+			rapidjson::Value null;
+			target = null;
+		}
+		else switch(schema->type)
+		{
+			case _SCHEMA_TYPE_PRIMITIVE:
+				return _patch_primitive(schema->primitive, target, patch);
+			case _SCHEMA_TYPE_LIST:
+				return _patch_list(schema->list, target, patch, allocator);
+			case _SCHEMA_TYPE_OBJ:
+				return _patch_obj(schema->obj, target, patch, allocator);
+			default:
+				ERROR_RETURN_LOG(int, "Code bug: Invalid schema type");
+		}
+	}
+
 	return 0;
 }
+
+int jsonschema_update_obj(const jsonschema_t* schema, rapidjson::Document& target, rapidjson::Value& patch)
+{
+	return jsonschema_update_obj(schema, target, patch, target.GetAllocator());
+}
+
+extern "C" int jsonschema_free(jsonschema_t* schema)
+{
+	if(NULL == schema)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	return _schema_free(schema);
+}
+
+extern "C" jsonschema_t* jsonschema_from_string(const char* schema_str)
+{
+	if(NULL == schema_str) ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+	rapidjson::Document document;
+	rapidjson::MemoryStream ms(schema_str, strlen(schema_str));
+
+	if(document.ParseStream(ms).HasParseError())
+		ERROR_PTR_RETURN_LOG("Invalid JSON object");
+
+	jsonschema_t* ret = _jsonschema_new(document);
+	return ret;
+}
+
+extern "C" jsonschema_t* jsonschema_from_file(const char* schema_file)
+{
+	jsonschema_t* ret = NULL;
+	if(NULL == schema_file) ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+	FILE* fp = fopen(schema_file, "r");
+	if(NULL == fp)
+		ERROR_PTR_RETURN_LOG("Cannot open schema file %s", schema_file);
+
+	char buffer[65536];
+
+	rapidjson::FileReadStream frs(fp, buffer, sizeof(buffer));
+	rapidjson::Document document;
+	
+	if(document.ParseStream(frs).HasParseError())
+		ERROR_LOG_GOTO(ERR, "Invalid JSON object");
+
+	ret = jsonschema_from_string(buffer);
+
+ERR:
+	if(NULL != fp) fclose(fp);
+
+	return ret;
+}
+
+extern "C" int jsonschema_validate_str(const jsonschema_t* schema, const char* input, size_t size)
+{
+	if(NULL == schema || NULL == input) ERROR_RETURN_LOG(int, "Invalid arguments");
+	if(size == 0) size = strlen(input);
+	rapidjson::Document document;
+	rapidjson::MemoryStream ms(input, strlen(input));
+
+	if(document.ParseStream(ms).HasParseError())
+		ERROR_RETURN_LOG(int, "Invalid JSON input");
+
+	return jsonschema_validate_obj(schema, document);
+} 
+
+struct _BufferAllocator {
+	static const bool kNeedFree = false;
+
+	_BufferAllocator(void* mem, size_t size)
+	{
+		this->_mem = mem;
+		this->_size = size;
+	}
+
+	_BufferAllocator() 
+	{
+		this->_mem = NULL;
+		this->_size = 0;
+	}
+
+	void* Malloc(size_t size)
+	{
+		(void)size;
+		return this->_mem;
+	}
+
+	void* Realloc(void* originalPtr, size_t originalSize, size_t newSize)
+	{
+		(void)originalPtr;
+		(void)originalSize;
+		if(this->_size != originalSize) ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+		if(newSize > this->_size) ERROR_PTR_RETURN_LOG("Out of memory");
+
+		return this->_mem;
+	}
+
+	static void Free(void* ptr)
+	{
+		(void)ptr;
+	}
+
+private:
+	void*   _mem;
+	size_t  _size;
+};
+
+extern "C" size_t jsonchema_update_str(const jsonschema_t* schema, const char* target, size_t target_len, const char* patch, size_t patch_len, char* outbuf, size_t bufsize)
+{
+	size_t rc = ERROR_CODE(size_t);
+	if(NULL == schema || NULL == patch || NULL == outbuf)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+	
+	rapidjson::MemoryStream patch_ms(patch, patch_len > 0 ? patch_len : strlen(patch));
+	rapidjson::Document patch_doc;
+	if(patch_doc.ParseStream(patch_ms).HasParseError())
+		ERROR_RETURN_LOG(int, "INvalid JSON input");
+
+	rapidjson::Document target_doc;
+	
+	if(NULL != target)
+	{
+		rapidjson::Document target_doc;
+		rapidjson::MemoryStream target_ms(target, target_len > 0 ? target_len : strlen(target));
+		if(target_doc.ParseStream(target_ms).HasParseError())
+			ERROR_RETURN_LOG(int, "Invalid target JSONtext");
+		if(ERROR_CODE(int) == jsonschema_update_obj(schema, target_doc, patch_doc))
+			ERROR_RETURN_LOG(int, "Cannot patch the target JSON object");
+		
+	}
+	else if(ERROR_CODE(int) == jsonschema_update_obj(schema, target_doc, patch_doc))
+		ERROR_RETURN_LOG(int, "Cannot patch the null JSON object");
+	
+	_BufferAllocator allocator(outbuf, bufsize - 1);
+	rapidjson::GenericMemoryBuffer<_BufferAllocator> output_ms(&allocator);
+	rapidjson::Writer<rapidjson::GenericMemoryBuffer<_BufferAllocator> > writer(output_ms);
+
+	target_doc.Accept(writer);
+
+	outbuf[rc = output_ms.GetSize()] = 0;
+
+	return rc;
 }
