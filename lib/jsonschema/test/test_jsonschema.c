@@ -10,7 +10,7 @@ jsonschema_t* schema = NULL;
 int test_schema_compile()
 {
 	const char* schema_text = "{\n"
-	"	\"name\": \"string(6,16)\",\n"
+	"	\"name\": \"string(6,128)\",\n"
 	"	\"nickname\": \"string(6,16)|null\",\n"
 	"	\"address\": {\n"
 	"		\"__schema_property__\": \"nullable\",\n"
@@ -66,6 +66,47 @@ int test_schema_validate_invalid()
 	return 0;
 }
 
+int test_schema_update()
+{
+	const char* original = "{\"name\": \"plumber\", \"items\": [] }";
+	char outbuf[1024];
+
+	const char* patch = "{\"name\": \"plumber service framework\", \"nickname\" : \"plumber\", \"items\": {\"__insertion__\":[[0, {\"code\":\"xxxxx\", \"count\": 1, \"unit_price\": 1e+10}]]}}";
+
+	size_t sz = jsonschema_update_str(schema, original, 0, patch, 0, outbuf, sizeof(outbuf));
+
+	ASSERT_RETOK(size_t, sz, CLEANUP_NOP);
+
+	LOG_DEBUG("%s", outbuf);
+	
+	sz = jsonschema_update_str(schema, outbuf, 0, patch, 0, outbuf, sizeof(outbuf));
+
+	ASSERT_RETOK(size_t, sz, CLEANUP_NOP);
+
+	LOG_DEBUG("%s", outbuf);
+	
+	sz = jsonschema_update_str(schema, outbuf, 0, "{\"items\":{\"__deletion__\":[0], \"0\":{\"unit_price\":1.0}}}", 0, outbuf, sizeof(outbuf));
+	
+	ASSERT_RETOK(size_t, sz, CLEANUP_NOP);
+
+	LOG_DEBUG("%s", outbuf);
+	
+	sz = jsonschema_update_str(schema, outbuf, 0, "{\"items\":[]}", 0, outbuf, sizeof(outbuf));
+	
+	ASSERT_RETOK(size_t, sz, CLEANUP_NOP);
+
+	LOG_DEBUG("%s", outbuf);
+
+	sz = jsonschema_update_str(schema, outbuf, 0, "{\"__complete_type__\":true, \"name\": \"plumber v0.1\", \"nickname\": \"plumber\", \"items\": [] }", 0, outbuf, sizeof(outbuf));
+	
+	ASSERT_RETOK(size_t, sz, CLEANUP_NOP);
+
+	LOG_DEBUG("%s", outbuf);
+
+	return 0;
+
+}
+
 int setup()
 {
 	if(ERROR_CODE(int) == jsonschema_log_set_write_callback(log_write_va))
@@ -84,6 +125,7 @@ int teardown()
 TEST_LIST_BEGIN
 	TEST_CASE(test_schema_compile),
 	TEST_CASE(test_schema_validate_valid),
-	TEST_CASE(test_schema_validate_invalid)
+	TEST_CASE(test_schema_validate_invalid),
+	TEST_CASE(test_schema_update)
 TEST_LIST_END;
 

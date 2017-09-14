@@ -666,7 +666,7 @@ static int _patch_list(const _list_t* schema, rapidjson::Value& target, rapidjso
 				if(idx >= schema->size - 1)
 				{
 					/* This means this the a schema should be in the repeated zone, so we validate it at this point */
-					int rc = jsonschema_validate_obj(schema->element[schema->size - 1], target_arr[(unsigned)idx]);
+					int rc = jsonschema_validate_obj(schema->element[schema->size - 1], ins_rec[1]);
 					if(ERROR_CODE(int) == rc)
 						ERROR_RETURN_LOG(int, "Cannot validate the new elmeent");
 
@@ -698,7 +698,7 @@ static int _patch_list(const _list_t* schema, rapidjson::Value& target, rapidjso
 
 				target_arr[(unsigned)idx] = val;
 
-				if(idx < need_validate_begin)
+				if(idx <= need_validate_begin)
 					need_validate_begin = idx;
 				else
 					ERROR_RETURN_LOG(int, "The insertion operation array should be in desc order");
@@ -721,6 +721,7 @@ static int _patch_list(const _list_t* schema, rapidjson::Value& target, rapidjso
 			iter ++)
 		{
 			if(strcmp(iter->name.GetString(), "__deletion__") == 0) continue;
+			if(strcmp(iter->name.GetString(), "__insertion__") == 0) continue;
 
 			char* end;
 
@@ -928,7 +929,7 @@ struct _BufferAllocator {
 	{
 		(void)originalPtr;
 		(void)originalSize;
-		if(this->_size != originalSize) ERROR_PTR_RETURN_LOG("Invalid arguments");
+		if(this->_size < newSize) ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 		if(newSize > this->_size) ERROR_PTR_RETURN_LOG("Out of memory");
 
@@ -945,7 +946,7 @@ private:
 	size_t  _size;
 };
 
-extern "C" size_t jsonchema_update_str(const jsonschema_t* schema, const char* target, size_t target_len, const char* patch, size_t patch_len, char* outbuf, size_t bufsize)
+extern "C" size_t jsonschema_update_str(const jsonschema_t* schema, const char* target, size_t target_len, const char* patch, size_t patch_len, char* outbuf, size_t bufsize)
 {
 	size_t rc = ERROR_CODE(size_t);
 	if(NULL == schema || NULL == patch || NULL == outbuf)
@@ -960,7 +961,6 @@ extern "C" size_t jsonchema_update_str(const jsonschema_t* schema, const char* t
 	
 	if(NULL != target)
 	{
-		rapidjson::Document target_doc;
 		rapidjson::MemoryStream target_ms(target, target_len > 0 ? target_len : strlen(target));
 		if(target_doc.ParseStream(target_ms).HasParseError())
 			ERROR_RETURN_LOG(int, "Invalid target JSONtext");

@@ -105,7 +105,7 @@ int jsonschema_validate_str(const jsonschema_t* schema, const char* input, size_
  * @param bufsize The buffer size
  * @return The size of the updated JSON string
  **/
-size_t jsonchema_update_str(const jsonschema_t* schema, const char* target, size_t target_len, const char* patch, size_t patch_len, char* outbuf, size_t bufisze);
+size_t jsonschema_update_str(const jsonschema_t* schema, const char* target, size_t target_len, const char* patch, size_t patch_len, char* outbuf, size_t bufisze);
 
 #ifdef __cplusplus
 }
