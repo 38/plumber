@@ -20,6 +20,9 @@
 #include <jsonschema.h>
 #include <jsonschema/log.h>
 
+#pragma GCC diagnostic push 
+#pragma GCC diagnostic ignored "-Warray-bounds"
+
 /**
  * @brief The type of this schema
  **/
@@ -1069,3 +1072,5 @@ extern "C" size_t jsonschema_update_str(const jsonschema_t* schema, const char* 
 
 	return rc;
 }
+
+#pragma GCC diagnostic pop
