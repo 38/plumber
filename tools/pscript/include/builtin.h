@@ -16,7 +16,7 @@
 int builtin_init(pss_vm_t* vm);
 
 /**
- * @brief Print the builtin functions 
+ * @brief Print the builtin functions
  * @param fp The file we want the doc to be print to
  * @param print_internals If we want to print internal functions
  * @param func If the function is given, we only print the doc for that func

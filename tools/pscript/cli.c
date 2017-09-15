@@ -167,10 +167,10 @@ static pss_value_t _help(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 	int print_internal = 0;
 	pss_value_builtin_t func = NULL;
 	if(argc > 0 && argv[0].kind == PSS_VALUE_KIND_NUM && argv[0].num != 0)
-		print_internal = 1;
+	    print_internal = 1;
 
 	if(argc > 0 && argv[0].kind == PSS_VALUE_KIND_BUILTIN)
-		print_internal = 1, func = argv[0].builtin;
+	    print_internal = 1, func = argv[0].builtin;
 
 	builtin_print_doc(stderr, print_internal, func);
 
@@ -324,10 +324,10 @@ _END_OF_CODE:
 	}
 TERMINATE:
 	if(ERROR_CODE(int) == pss_vm_free(current_vm))
-		ERROR_RETURN_LOG(int, "Cannot free current VM");
+	    ERROR_RETURN_LOG(int, "Cannot free current VM");
 
 	if(ERROR_CODE(int) == module_unload_all())
-		ERROR_RETURN_LOG(int, "Cannot unload modules");
+	    ERROR_RETURN_LOG(int, "Cannot unload modules");
 
 	return 0;
 }

@@ -162,7 +162,7 @@ int log_finalize()
 	       _log_fp[i] != stdin &&
 	       _log_fp[i] != stdout &&
 	       _log_fp[i] != stderr &&
-		   _log_fp[i] != &_fp_off)
+	       _log_fp[i] != &_fp_off)
 	    {
 		    FILE* unused = _log_fp[i];
 		    for(j = 0; j < 8; j ++)
@@ -234,7 +234,7 @@ ERR:
 static inline int _check_log_file(int level)
 {
 	if(_log_fp[level] == &_fp_off || _log_fp[level] == NULL)
-		return 0;
+	    return 0;
 
 	int fd = fileno(_log_fp[level]);
 

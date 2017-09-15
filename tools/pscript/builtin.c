@@ -942,11 +942,11 @@ int builtin_init(pss_vm_t* vm)
 
 	if(ERROR_CODE(int) == pss_vm_set_external_global_callback(vm, ops))
 	    ERROR_RETURN_LOG(int, "Cannot register the external global accessor");
-	
+
 	uint32_t i;
 	for(i = 0; i < sizeof(_builtins) / sizeof(_builtins[0]); i ++)
-		if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, _builtins[i].name, _builtins[i].func))
-			ERROR_RETURN_LOG(int, "Cannot register the builtin function '%s'", _builtins[i].name);
+	    if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, _builtins[i].name, _builtins[i].func))
+	        ERROR_RETURN_LOG(int, "Cannot register the builtin function '%s'", _builtins[i].name);
 	return 0;
 }
 
@@ -960,7 +960,7 @@ void builtin_print_doc(FILE* fp, int print_internals, pss_value_builtin_t func)
 		if(!print_internals && _builtins[i].name[0] == '_') continue;
 		uint32_t name_len = (uint32_t)(strlen(_builtins[i].proto) + 5);
 		if(name_len > space)
-			space = name_len;
+		    space = name_len;
 	}
 	for(i = 0; i < sizeof(_builtins) / sizeof(_builtins[0]); i ++)
 	{
@@ -969,7 +969,7 @@ void builtin_print_doc(FILE* fp, int print_internals, pss_value_builtin_t func)
 		fprintf(fp, "    %s", _builtins[i].proto);
 		uint32_t j;
 		for(j = 0; j < space - strlen(_builtins[i].proto) - 4; j ++)
-			fprintf(fp, " ");
+		    fprintf(fp, " ");
 		uint32_t start = space + 3;
 		fprintf(fp, "-> ");
 
@@ -981,7 +981,7 @@ void builtin_print_doc(FILE* fp, int print_internals, pss_value_builtin_t func)
 				pos = start;
 				fputc('\n', fp);
 				for(j = 0; j < start; j ++)
-					fputc(' ', fp);
+				    fputc(' ', fp);
 			}
 
 			if(pos != start) fputc(' ', fp), pos ++;

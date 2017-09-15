@@ -60,17 +60,17 @@ extern "C" {
 #include <proto/db.h>
 #include <proto/cache.h>
 
-/**
- * @brief initialize the libproto
- * @return status code
- **/
-int proto_init();
+	/**
+	* @brief initialize the libproto
+	* @return status code
+	**/
+	int proto_init();
 
-/**
- * @brief finalize the libproto
- * @return status code
- **/
-int proto_finalize();
+	/**
+	* @brief finalize the libproto
+	* @return status code
+	**/
+	int proto_finalize();
 
 #ifdef __cplusplus
 }

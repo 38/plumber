@@ -56,58 +56,58 @@
 extern "C" {
 #endif
 
-/**
- * @brief The previous decleartion of the JSON schema object
- **/
-typedef struct _jsonschema_t jsonschema_t;
+	/**
+	* @brief The previous decleartion of the JSON schema object
+	**/
+	typedef struct _jsonschema_t jsonschema_t;
 
-/**
- * @brief Load a JSON schema from a string
- * @param scehma_str The schema string
- * @return the newly created schema or NULL on error case
- **/
-jsonschema_t* jsonschema_from_string(const char* schema_str);
+	/**
+	* @brief Load a JSON schema from a string
+	* @param scehma_str The schema string
+	* @return the newly created schema or NULL on error case
+	**/
+	jsonschema_t* jsonschema_from_string(const char* schema_str);
 
-/**
- * @brief Load a JSON schema from the schema file
- * @param schema_file the filename of the schema file to load
- * @return The newly created schema object from the file
- **/
-jsonschema_t* jsonschema_from_file(const char* schema_file);
+	/**
+	* @brief Load a JSON schema from the schema file
+	* @param schema_file the filename of the schema file to load
+	* @return The newly created schema object from the file
+	**/
+	jsonschema_t* jsonschema_from_file(const char* schema_file);
 
-/**
- * @brief Dispose a used JSON schema
- * @param schema The json schema to dispose
- * @return status code
- **/
-int jsonschema_free(jsonschema_t* schema);
+	/**
+	* @brief Dispose a used JSON schema
+	* @param schema The json schema to dispose
+	* @return status code
+	**/
+	int jsonschema_free(jsonschema_t* schema);
 
-/**
- * @brief Validate if a JSON string is a valid form of the given schema
- * @param schema The schema to validate
- * @param input The input to validate
- * @param size The size of the input, if size is 0, we need to detect the string size
- * @return The validation result or error code
- **/
-int jsonschema_validate_str(const jsonschema_t* schema, const char* input, size_t size);
+	/**
+	* @brief Validate if a JSON string is a valid form of the given schema
+	* @param schema The schema to validate
+	* @param input The input to validate
+	* @param size The size of the input, if size is 0, we need to detect the string size
+	* @return The validation result or error code
+	**/
+	int jsonschema_validate_str(const jsonschema_t* schema, const char* input, size_t size);
 
-/**
- * @brief Modify the target string based on the schema, which means only
- *        the schema defined fields will gets updated. This doesn't requires
- *        the patch object is a valid instance of the given schema. But all
- *        the structures that is not belongs to the schema will gets ignored.
- *        However, if the patch contains a key which will break the schema constrain in
- *        target object after the change, the update will failed
- * @param schema The schema definition
- * @param target The target string
- * @param target_len The target length, 0 means the function should compute the size
- * @param patch The patch string
- * @param patch_len The patch len, 0 means the function should compute the size
- * @param outbuf The output buffer
- * @param bufsize The buffer size
- * @return The size of the updated JSON string
- **/
-size_t jsonschema_update_str(const jsonschema_t* schema, const char* target, size_t target_len, const char* patch, size_t patch_len, char* outbuf, size_t bufisze);
+	/**
+	* @brief Modify the target string based on the schema, which means only
+	*        the schema defined fields will gets updated. This doesn't requires
+	*        the patch object is a valid instance of the given schema. But all
+	*        the structures that is not belongs to the schema will gets ignored.
+	*        However, if the patch contains a key which will break the schema constrain in
+	*        target object after the change, the update will failed
+	* @param schema The schema definition
+	* @param target The target string
+	* @param target_len The target length, 0 means the function should compute the size
+	* @param patch The patch string
+	* @param patch_len The patch len, 0 means the function should compute the size
+	* @param outbuf The output buffer
+	* @param bufsize The buffer size
+	* @return The size of the updated JSON string
+	**/
+	size_t jsonschema_update_str(const jsonschema_t* schema, const char* target, size_t target_len, const char* patch, size_t patch_len, char* outbuf, size_t bufisze);
 
 #ifdef __cplusplus
 }

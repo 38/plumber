@@ -221,7 +221,7 @@ static inline int _write_name(pstd_string_t* str, pstd_bio_t* bio, const char* f
 	const char* name_repr = stream.GetBuffer();
 	if(NULL == name_repr) ERROR_RETURN_LOG(int, "Cannot get the JSON representation of the pipe name %s", name);
 	if(ERROR_CODE(int) == _write(str, bio, fmt, name_repr))
-		ERROR_RETURN_LOG(int, "Cannot write JSON string to the pipe");
+	    ERROR_RETURN_LOG(int, "Cannot write JSON string to the pipe");
 	return 0;
 }
 
@@ -440,7 +440,7 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 			if(NULL == str || NULL == (data = pstd_string_value(str)))
 			    ERROR_RETURN_LOG(int, "Cannot get the string from the given RLS token");
 			if(ERROR_CODE(size_t) == (data_len = pstd_string_length(str)))
-				ERROR_RETURN_LOG(int, "Cannot get the length of the RLS string");
+			    ERROR_RETURN_LOG(int, "Cannot get the length of the RLS string");
 		}
 	}
 
@@ -476,11 +476,11 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 				    if(sp >= sizeof(stack)) ERROR_RETURN_LOG(int, "Operation stack overflow");
 				    if(cur_obj != NULL)
 				    {
-						stack[sp] = NULL;
-						if(cur_obj->IsObject() && cur_obj->HasMember(op->field))
-							stack[sp] = &(*cur_obj)[op->field];
-						else
-						    LOG_NOTICE("Missing field %s", op->field);
+					    stack[sp] = NULL;
+					    if(cur_obj->IsObject() && cur_obj->HasMember(op->field))
+					        stack[sp] = &(*cur_obj)[op->field];
+					    else
+					        LOG_NOTICE("Missing field %s", op->field);
 				    }
 				    else stack[sp] = NULL;
 				    sp ++;
@@ -489,10 +489,10 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 				    if(sp >= sizeof(stack)) ERROR_RETURN_LOG(int, "Operation stack overflow");
 				    if(cur_obj != NULL)
 				    {
-						if(!cur_obj->IsArray() || op->index >= cur_obj->Size())
+					    if(!cur_obj->IsArray() || op->index >= cur_obj->Size())
 					        LOG_NOTICE("Missing subscript %u", op->index);
-						else 
-							stack[sp] = &(*cur_obj)[op->index];
+					    else
+					        stack[sp] = &(*cur_obj)[op->index];
 				    }
 				    else stack[sp] = NULL;
 				    sp ++;
@@ -508,12 +508,12 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 					    case JSON_MODEL_TYPE_UNSIGNED:
 					    {
 
-							int64_t value = 0;
+						    int64_t value = 0;
 
-							if(!cur_obj->IsInt64())
-								LOG_NOTICE("Missing integer field, using default 0");
-							else
-								value = cur_obj->GetInt64();
+						    if(!cur_obj->IsInt64())
+						        LOG_NOTICE("Missing integer field, using default 0");
+						    else
+						        value = cur_obj->GetInt64();
 
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 #	error("This doesn't work with big endian archtechture")
@@ -529,10 +529,10 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 					    case JSON_MODEL_TYPE_FLOAT:
 					    {
 						    double d_value = 0;
-							if(!cur_obj->IsDouble())
-								LOG_NOTICE("Missing double field, using default 0");
-							else
-								d_value = cur_obj->GetDouble();
+						    if(!cur_obj->IsDouble())
+						        LOG_NOTICE("Missing double field, using default 0");
+						    else
+						        d_value = cur_obj->GetDouble();
 						    float  f_value = (float)d_value;
 						    void* data = op->size == sizeof(double) ? (void*)&d_value : (void*)&f_value;
 						    if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, data, op->size))
@@ -542,10 +542,10 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 					    case JSON_MODEL_TYPE_STRING:
 					    {
 						    const char* str = "(null)";
-							if(!cur_obj->IsString())
-								LOG_NOTICE("Missing string field, using default (null)");
-							else
-								str = cur_obj->GetString();
+						    if(!cur_obj->IsString())
+						        LOG_NOTICE("Missing string field, using default (null)");
+						    else
+						        str = cur_obj->GetString();
 						    if(NULL == str) ERROR_RETURN_LOG(int, "Cannot get the string value");
 						    size_t len = strlen(str);
 						    pstd_string_t* pstd_str = pstd_string_new(len + 1);

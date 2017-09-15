@@ -89,8 +89,8 @@ extern "C++" {
 	template <class Context>
 	static inline servlet_def_t& pservlet_async_define(_M_T(servlet_def_t, init) init,
 	                                                   _M_T(servlet_def_t, async_setup)   async_setup,
-													   _M_T(servlet_def_t, async_exec)    async_exec,
-													   _M_T(servlet_def_t, async_cleanup) async_cleanup,
+	                                                   _M_T(servlet_def_t, async_exec)    async_exec,
+	                                                   _M_T(servlet_def_t, async_cleanup) async_cleanup,
 	                                                   _M_T(servlet_def_t, unload) unload,
 	                                                   const char* desc = "", uint32_t version = 0)
 	{
@@ -116,9 +116,9 @@ extern "C++" {
     }
 
 #		define PSERVLET_ASYNC_EXPORT(context, args...) \
-	extern "C" { \
-		SERVLET_DEF = pservlet_async_define<context>(args);\
-	}
+    extern "C" { \
+	    SERVLET_DEF = pservlet_async_define<context>(args);\
+    }
 #	endif /* __cplusplus */
 
 /**
