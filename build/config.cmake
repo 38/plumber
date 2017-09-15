@@ -101,6 +101,12 @@ constant(LIB_PSS_COMP_MAX_SERVLET 63103)
 ## PScript Configurations
 constant(PSCRIPT_CLI_PROMPT "PSS> ")
 constant(PSCRIPT_CLI_MAX_BRACKET 256)
+
+## LibJSONSchema Configurations
+constant(LIB_JSONSCHEMA_SCHEMA_PROPERTY_KEYNAME "__schema_property__")
+constant(LIB_JSONSCHEMA_PATCH_INSERTION_LIST_KEYNAME "__insertion__")
+constant(LIB_JSONSCHEMA_PATCH_DELETION_LIST_KEYNAME  "__deletion__")
+constant(LIB_JSONSCHEMA_PATCH_COMPLETED_MARKER "__complete_type__")
 ####################################################################################
 
 string(TOUPPER ${SYSNAME} SYSMACRO)

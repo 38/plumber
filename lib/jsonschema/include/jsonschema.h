@@ -50,6 +50,8 @@
 #ifndef __JSONSCHEMA_H__
 #define __JSONSCHEMA_H__
 
+#include <package_config.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -73,7 +73,13 @@ int test_schema_update()
 
 	const char* patch = "{\"name\": \"plumber service framework\", \"nickname\" : \"plumber\", \"items\": {\"__insertion__\":[[0, {\"code\":\"xxxxx\", \"count\": 1, \"unit_price\": 1e+10}]]}}";
 
-	size_t sz = jsonschema_update_str(schema, original, 0, patch, 0, outbuf, sizeof(outbuf));
+	size_t sz = jsonschema_update_str(schema, NULL, 0, original, 0, outbuf, sizeof(outbuf));
+	
+	ASSERT_RETOK(size_t, sz, CLEANUP_NOP);
+
+	LOG_DEBUG("%s", outbuf);
+
+	sz = jsonschema_update_str(schema, original, 0, patch, 0, outbuf, sizeof(outbuf));
 
 	ASSERT_RETOK(size_t, sz, CLEANUP_NOP);
 
@@ -114,6 +120,10 @@ int test_schema_update()
 	ASSERT_RETOK(size_t, sz, CLEANUP_NOP);
 	
 	LOG_DEBUG("%s", outbuf);
+	
+	sz = jsonschema_update_str(schema, outbuf, 0, "{\"name\": null}", 0, outbuf, sizeof(outbuf));
+
+	ASSERT(ERROR_CODE(size_t) == sz, CLEANUP_NOP);
 
 	return 0;
 
