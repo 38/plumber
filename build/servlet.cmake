@@ -25,8 +25,8 @@ foreach(servlet_cmake ${servlet_cmakes})
 			set_source_files_properties(${SOURCE} ${LOCAL_SOURCE} PROPERTIES COMPILE_FLAGS "${CFLAGS} ${LOCAL_CFLAGS} -fPIC")
 			add_library(${servlet_logical_name} SHARED ${SOURCE} ${LOCAL_SOURCE})
 			set_target_properties(${servlet_logical_name} PROPERTIES 
-				                  OUTPUT_NAME ${servlet}
-								  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin/servlet/${NAMESPACE})
+			                      OUTPUT_NAME ${servlet}
+			                      LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin/servlet/${NAMESPACE})
 			target_include_directories(${servlet_logical_name} PUBLIC ${LOCAL_INCLUDE})
 			target_link_libraries(${servlet_logical_name} ${LOCAL_LIBS})
 			if("${INSTALL}" STREQUAL "yes")

@@ -134,7 +134,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 		if(NULL == (res->res_name = strdup(resname)))
 		    ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the resource name");
 
-		if(ERROR_CODE(pipe_t) == (res->output = pipe_define(res->res_name, PIPE_OUTPUT, "plumber/std_servlet/rest/restcon/v0/Command")))
+		if(ERROR_CODE(pipe_t) == (res->output = pipe_define(res->res_name, PIPE_OUTPUT, "plumber/std_servlet/rest/controller/v0/Command")))
 		    ERROR_RETURN_LOG(int, "Cannot define the request pipe");
 
 		if(i == 1 && (_READ_CONST_CHK(resources[i - 1].output, opcode, CREATE) ||
