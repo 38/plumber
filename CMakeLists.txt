@@ -11,6 +11,6 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/build/example.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/build/test.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/build/misc.cmake")
 
-message("--------------------------------------------------------------")
+message("--------------------------------------------------------------------------------")
 message(${CONF})
-message("--------------------------------------------------------------")
+message("--------------------------------------------------------------------------------")

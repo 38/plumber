@@ -3,9 +3,9 @@ find_file(PLUMBER_V8_CONFIG plumber-v8-config
 		  PATHS ${PLUMBER_V8_PREFIX}/bin
 		  NO_DEFAULT_PATH)
 
-if(NOT "${build_javascript}" STREQUAL "yes")
-	set(build_javascript "no")
-endif(NOT "${build_javascript}" STREQUAL "yes")
+if(NOT "${build_language_javascript}" STREQUAL "yes")
+	set(build_language_javascript "no")
+endif(NOT "${build_language_javascript}" STREQUAL "yes")
 
 execute_process(COMMAND ${PLUMBER_V8_CONFIG} --cmake-include-dir
 				OUTPUT_VARIABLE PLUMBER_V8_INCLUDE

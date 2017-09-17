@@ -9,7 +9,7 @@ macro(tablify str wide output)
 endmacro(tablify str wide output)
 
 macro(append_pakage_configure package_name package_type build_flag install_flag)
-	tablify(${package_name} 20 tab_package)
+	tablify(${package_name} 40 tab_package)
 	tablify(${package_type} 16 tab_type)
 	tablify(${build_flag} 12 tab_build)
 	tablify(${install_flag} 12 tab_intall)
