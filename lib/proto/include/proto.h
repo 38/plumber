@@ -50,22 +50,30 @@
 
 #include <error.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <proto/ref.h>
 #include <proto/type.h>
 #include <proto/err.h>
 #include <proto/db.h>
 #include <proto/cache.h>
 
-/**
- * @brief initialize the libproto
- * @return status code
- **/
-int proto_init();
+	/**
+	* @brief initialize the libproto
+	* @return status code
+	**/
+	int proto_init();
 
-/**
- * @brief finalize the libproto
- * @return status code
- **/
-int proto_finalize();
+	/**
+	* @brief finalize the libproto
+	* @return status code
+	**/
+	int proto_finalize();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __PROTO_H__ */

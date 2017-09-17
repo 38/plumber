@@ -57,11 +57,11 @@ STATIC_ASSERTION_SIZE(sched_loop_t, events, 0);
 /**
  * @brief The data structure we used to carry the pending event
  * @detail A pending event is a event that should be sent to specified
- *         scheduler, how ever the scheduler's queue is current full. 
+ *         scheduler, how ever the scheduler's queue is current full.
  *         In this case, we put this task to the pending list and will
  *         check if this can be dispatched later
  * @note The reason why we use list instead of array: It seems this thing
- *       is unlikely to happen. If we keep an array for this purpose we 
+ *       is unlikely to happen. If we keep an array for this purpose we
  *       are wasting a lot of memory for it. So it seems the liked list
  *       is a way to make the queue size on demand. At the same time, we
  *       should have the size limit as well
@@ -172,7 +172,7 @@ static inline int _context_free(sched_loop_t* ctx)
 				break;
 			}
 			default:
-				LOG_WARNING("Invalid event type in the queue, may indicates code bug");
+			    LOG_WARNING("Invalid event type in the queue, may indicates code bug");
 		}
 	}
 
@@ -208,7 +208,7 @@ static inline void* _sched_main(void* data)
 			gettimeofday(&now,NULL);
 			abstime.tv_sec = now.tv_sec+1;
 			abstime.tv_nsec = 0;
-			
+
 			if(pthread_mutex_lock(&context->mutex) < 0) LOG_WARNING_ERRNO("Cannot acquire the scheduler event mutex");
 			while(context->rear == context->front)
 			{
@@ -217,7 +217,7 @@ static inline void* _sched_main(void* data)
 				if(_killed) goto KILLED;
 				abstime.tv_sec ++;
 			}
-			
+
 			if(pthread_mutex_unlock(&context->mutex) < 0) LOG_WARNING_ERRNO("Cannot release the scheduler event mutex");
 		}
 
@@ -247,15 +247,15 @@ static inline void* _sched_main(void* data)
 		switch(current.type)
 		{
 			case ITC_EQUEUE_EVENT_TYPE_IO:
-				if(sched_task_new_request(stc, _service, current.io.in, current.io.out) == ERROR_CODE(sched_task_request_t))
-					LOG_ERROR("Cannot add the incoming request to scheduler");
-				break;
+			    if(sched_task_new_request(stc, _service, current.io.in, current.io.out) == ERROR_CODE(sched_task_request_t))
+			        LOG_ERROR("Cannot add the incoming request to scheduler");
+			    break;
 			case ITC_EQUEUE_EVENT_TYPE_TASK:
-				if(sched_task_async_completed(current.task.task) == ERROR_CODE(int))
-					LOG_ERROR("Cannot notify the scheduler about the task completion");
-				break;
+			    if(sched_task_async_completed(current.task.task) == ERROR_CODE(int))
+			        LOG_ERROR("Cannot notify the scheduler about the task completion");
+			    break;
 			default:
-				LOG_ERROR("Invalid task type");
+			    LOG_ERROR("Invalid task type");
 		}
 
 		while(sched_step_next(stc, _mod_mem) > 0 && !_killed);
@@ -286,9 +286,9 @@ static inline int _dispatcher_main()
 {
 
 	thread_set_name("PbDispatcher");
-	
+
 	if(ERROR_CODE(int) == sched_async_start())
-		ERROR_RETURN_LOG(int, "Cannot start the async task processor");
+	    ERROR_RETURN_LOG(int, "Cannot start the async task processor");
 
 	itc_equeue_token_t sched_token = itc_equeue_scheduler_token();
 
@@ -311,7 +311,7 @@ static inline int _dispatcher_main()
 			next_event = this_event->next;
 			sched_loop_t* target_loop = this_event->event.task.loop;
 			/* If the event queue is current full, we just keep it */
-			if(target_loop->rear - target_loop->front >= target_loop->size) 
+			if(target_loop->rear - target_loop->front >= target_loop->size)
 			{
 				prev_event = this_event;
 				continue;
@@ -326,13 +326,13 @@ static inline int _dispatcher_main()
 			if(needs_notify)
 			{
 				if(pthread_mutex_lock(&target_loop->mutex) < 0)
-					LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
+				    LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
 
 				if(pthread_cond_signal(&target_loop->cond) < 0)
-					LOG_WARNING_ERRNO("Cannot notify new incoming event for the target_loop thread %u", target_loop->thread_id);
+				    LOG_WARNING_ERRNO("Cannot notify new incoming event for the target_loop thread %u", target_loop->thread_id);
 
 				if(pthread_mutex_unlock(&target_loop->mutex) < 0)
-					LOG_WARNING_ERRNO("Cannot release the thread local mutex");
+				    LOG_WARNING_ERRNO("Cannot release the thread local mutex");
 			}
 
 			/* Finally we remove the event from the list */
@@ -370,9 +370,9 @@ static inline int _dispatcher_main()
 		abstime.tv_nsec = 0;
 
 		if(event.type == ITC_EQUEUE_EVENT_TYPE_TASK)
-			scheduler = event.task.loop;
-		else 
-			scheduler = NULL;
+		    scheduler = event.task.loop;
+		else
+		    scheduler = NULL;
 
 		/* The round-robin scheduler try to pick up next worker */
 		for(;;)
@@ -383,12 +383,12 @@ static inline int _dispatcher_main()
 				first = 1;
 				scheduler = round_robin_start;
 				for(;(first || scheduler != round_robin_start) &&
-					 scheduler->rear - scheduler->front >= scheduler->size;
-					 scheduler = scheduler->next == NULL ? _scheds : scheduler->next)
-					first = 0;
+				     scheduler->rear - scheduler->front >= scheduler->size;
+				     scheduler = scheduler->next == NULL ? _scheds : scheduler->next)
+				    first = 0;
 				round_robin_start = scheduler->next == NULL ? _scheds : scheduler->next;
 			}
-			else 
+			else
 			{
 				LOG_DEBUG("The event is assocated with specified scheduler, try to send the event to the given scheduler");
 				if(scheduler->rear - scheduler->front >= scheduler->size && pending_list_size < SCHED_LOOP_MAX_PENDING_TASKS)
@@ -396,7 +396,7 @@ static inline int _dispatcher_main()
 					LOG_DEBUG("The target scheduler is currently busy, add the event to the pending task list and try it later");
 
 					_pending_event_t* pe = (_pending_event_t*)malloc(sizeof(*pe));
-					if(NULL == pe) 
+					if(NULL == pe)
 					{
 						LOG_WARNING_ERRNO("Cannot allocate memory for the pending event, waiting for the scheduler");
 						goto SCHED_WAIT;
@@ -409,7 +409,7 @@ static inline int _dispatcher_main()
 					pending_list_size ++;
 
 					LOG_DEBUG("Added the event to the pending list(new pending list size: %u)", pending_list_size);
-					
+
 					goto NEXT_ITER;
 				}
 
@@ -477,13 +477,13 @@ NEXT_ITER:
 		pending_list = pending_list->next;
 
 		if(this->event.task.async_handle != NULL && ERROR_CODE(int) == sched_async_handle_dispose(this->event.task.async_handle))
-			LOG_WARNING("Cannot dispose the unprocessed async task handle");
+		    LOG_WARNING("Cannot dispose the unprocessed async task handle");
 
 		free(this);
 	}
 
 	if(ERROR_CODE(int) == sched_async_kill())
-		ERROR_RETURN_LOG(int, "Cannot kill the async processor");
+	    ERROR_RETURN_LOG(int, "Cannot kill the async processor");
 
 	LOG_INFO("Dispatcher gets killed");
 

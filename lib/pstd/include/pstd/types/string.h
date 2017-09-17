@@ -19,88 +19,96 @@
 #ifndef __PSTD_TYPES_STRING_H__
 #define __PSTD_TYPES_STRING_H__
 
-/**
- * @brief the string buffer type
- **/
-typedef struct _pstd_string_t pstd_string_t;
+#	ifdef __cplusplus
+extern "C" {
+#	endif /* __cplusplus__ */
 
-/**
- * @brief create a new pstd string buffer
- * @param initcap the initial capacity of the string bufer
- * @return the newly created pstd string buffer, NULL on error case
- **/
-pstd_string_t* pstd_string_new(size_t initcap);
+	/**
+	* @brief the string buffer type
+	**/
+	typedef struct _pstd_string_t pstd_string_t;
 
-/**
- * @brief dispose a used string buffer
- * @param str the used string buffer
- * @return status code
- **/
-int pstd_string_free(pstd_string_t* str);
+	/**
+	* @brief create a new pstd string buffer
+	* @param initcap the initial capacity of the string bufer
+	* @return the newly created pstd string buffer, NULL on error case
+	**/
+	pstd_string_t* pstd_string_new(size_t initcap);
 
-/**
- * @brief get a shared string buffer from the RLS
- * @param token the RLS token
- * @return the target string buffer, NULL on error case
- **/
-const pstd_string_t* pstd_string_from_rls(scope_token_t token);
+	/**
+	* @brief dispose a used string buffer
+	* @param str the used string buffer
+	* @return status code
+	**/
+	int pstd_string_free(pstd_string_t* str);
 
-/**
- * @brief get the underlying string from the string buffer
- * @param str the string buffer
- * @return the underlying string, error NULL on error
- **/
-const char* pstd_string_value(const pstd_string_t* str);
+	/**
+	* @brief get a shared string buffer from the RLS
+	* @param token the RLS token
+	* @return the target string buffer, NULL on error case
+	**/
+	const pstd_string_t* pstd_string_from_rls(scope_token_t token);
 
-/**
- * @brief get the number of bytes has been written to the string buffer
- * @param str the string buffer
- * @return the size of the string buffer or error code
- **/
-size_t pstd_string_length(const pstd_string_t* str);
+	/**
+	* @brief get the underlying string from the string buffer
+	* @param str the string buffer
+	* @return the underlying string, error NULL on error
+	**/
+	const char* pstd_string_value(const pstd_string_t* str);
 
-/**
- * @brief make a writable copy of the given token
- * @param token the token to copy
- * @param token_buf the buffer used to return the token to the writable copy
- * @return the pointer to the writable copy
- * @note this is the function that implmenets the copy-on-write functionality
- **/
-pstd_string_t* pstd_string_copy_rls(scope_token_t token, scope_token_t* token_buf);
+	/**
+	* @brief get the number of bytes has been written to the string buffer
+	* @param str the string buffer
+	* @return the size of the string buffer or error code
+	**/
+	size_t pstd_string_length(const pstd_string_t* str);
 
-/**
- * @brief commit a string buffer to the RLS
- * @param str the string buffer to commit
- * @return the RLS token for the buffer or error code
- **/
-scope_token_t pstd_string_commit(pstd_string_t* str);
+	/**
+	* @brief make a writable copy of the given token
+	* @param token the token to copy
+	* @param token_buf the buffer used to return the token to the writable copy
+	* @return the pointer to the writable copy
+	* @note this is the function that implmenets the copy-on-write functionality
+	**/
+	pstd_string_t* pstd_string_copy_rls(scope_token_t token, scope_token_t* token_buf);
 
-/**
- * @brief write the bytes to the buffer
- * @param str the string buffer
- * @param data the data pointer to write
- * @param size the size of the data section
- * @return the number of bytes has been written, NULL on error case
- **/
-size_t pstd_string_write(pstd_string_t* str, const char* data, size_t size);
+	/**
+	* @brief commit a string buffer to the RLS
+	* @param str the string buffer to commit
+	* @return the RLS token for the buffer or error code
+	**/
+	scope_token_t pstd_string_commit(pstd_string_t* str);
 
-/**
- * @brief print the formated information to the string
- * @param str the string buffer
- * @param fmt the format string
- * @return the number of bytes has been written, NULL on error case
- **/
-size_t pstd_string_printf(pstd_string_t* str, const char* fmt, ...)
-    __attribute__((format (printf, 2, 3)));
+	/**
+	* @brief write the bytes to the buffer
+	* @param str the string buffer
+	* @param data the data pointer to write
+	* @param size the size of the data section
+	* @return the number of bytes has been written, NULL on error case
+	**/
+	size_t pstd_string_write(pstd_string_t* str, const char* data, size_t size);
 
-/**
- * @biref append the formatted string to the string object. This is similar to pstd_string_printf, but it accepts
- *        va_list as additional parameters
- * @param str The string object
- * @param fmt The formatting string
- * @param ap  The additional parameter
- * @return The number of bytes has been appended to the string object
- **/
-size_t pstd_string_vprintf(pstd_string_t* str, const char* fmt, va_list ap);
+	/**
+	* @brief print the formated information to the string
+	* @param str the string buffer
+	* @param fmt the format string
+	* @return the number of bytes has been written, NULL on error case
+	**/
+	size_t pstd_string_printf(pstd_string_t* str, const char* fmt, ...)
+	__attribute__((format (printf, 2, 3)));
+
+	/**
+	* @biref append the formatted string to the string object. This is similar to pstd_string_printf, but it accepts
+	*        va_list as additional parameters
+	* @param str The string object
+	* @param fmt The formatting string
+	* @param ap  The additional parameter
+	* @return The number of bytes has been appended to the string object
+	**/
+	size_t pstd_string_vprintf(pstd_string_t* str, const char* fmt, va_list ap);
+
+#	ifdef __cplusplus
+}
+#	endif /* __cplusplus__ */
 
 #endif /* __PSTD_TYPES_STRING_H__ */

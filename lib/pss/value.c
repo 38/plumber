@@ -165,10 +165,10 @@ size_t pss_value_strify_to_buf(pss_value_t value, char* buf, size_t sz)
 
 pss_value_t pss_value_to_str(pss_value_t value)
 {
+	char* buf = NULL;
 	if(PSS_VALUE_KIND_ERROR == value.kind)
 	    ERROR_LOG_GOTO(ERR, "Invalid arguments");
 
-	char* buf = NULL;
 	const char* str = _value_to_str(value, NULL, 0);
 
 	if(NULL == str) ERROR_LOG_GOTO(ERR, "Cannot stringify the value");

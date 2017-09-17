@@ -77,7 +77,7 @@ static inline _task_entry_t* _async_comp_dequeue(sched_task_context_t* ctx)
 	if(NULL == ctx->async_completed_head) return NULL;
 	_task_entry_t* ret = ctx->async_completed_head;
 	if(NULL == (ctx->async_completed_head = ret->next))
-		ctx->async_completed_tail = NULL;
+	    ctx->async_completed_tail = NULL;
 	return ret;
 }
 
@@ -92,8 +92,8 @@ static inline void _async_pending_add(sched_task_context_t* ctx, _task_entry_t* 
 	task->next = ctx->async_pending;
 	task->prev = NULL;
 
-	if(NULL != ctx->async_pending) 
-		ctx->async_pending->prev = task;
+	if(NULL != ctx->async_pending)
+	    ctx->async_pending->prev = task;
 
 	ctx->async_pending = task;
 }
@@ -571,7 +571,7 @@ static inline int _input_ready(_task_entry_t* entry, itc_module_pipe_t* handle)
 {
 	if(sched_task_pipe_ready(&entry->task) == ERROR_CODE(int))
 	    ERROR_RETURN_LOG(int, "Cannot set the shadow pipe to ready state");
-	
+
 	int rc;
 	if(ERROR_CODE(int) == (rc = itc_module_is_pipe_cancelled(handle)))
 	    ERROR_RETURN_LOG(int, "Cannot check if the pipe is already cancelled");
@@ -594,10 +594,10 @@ int sched_task_input_pipe(sched_task_context_t* ctx, const sched_service_t* serv
 	    ERROR_RETURN_LOG(int, "Cannot add pipe to the task");
 
 	/* Because we have a signle thread model for each request, it we can simply that the pipe is ready once is gets assigned */
-	if(!async || (async && handle == NULL)) 
-		return _input_ready(task, handle == NULL ? task->task.exec_task->pipes[pipe] : handle);
-	else 
-		LOG_DEBUG("The upstream task is an async task, so we don't notify the ready state for now");
+	if(!async || (async && handle == NULL))
+	    return _input_ready(task, handle == NULL ? task->task.exec_task->pipes[pipe] : handle);
+	else
+	    LOG_DEBUG("The upstream task is an async task, so we don't notify the ready state for now");
 
 	return 0;
 }
@@ -607,7 +607,7 @@ int sched_task_async_completed(sched_task_t* task)
 	/* TODO: this function do not check if the task is an async task, but we need
 	 *       to figure out if we need to check this  */
 	if(NULL == task)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_task_entry_t* task_internal = (_task_entry_t*)task;
 
@@ -708,7 +708,7 @@ sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx)
 		_task_entry_t* next = NULL;
 		/* The first thing is we need to look at the compelted async task list, if there's some task, we can move on */
 		if(NULL != (next = _async_comp_dequeue(ctx)))
-			LOG_DEBUG("Picking up the completed async task from the completion list");
+		    LOG_DEBUG("Picking up the completed async task from the completion list");
 		else
 		{
 			next = _dequeue(ctx);
@@ -818,12 +818,12 @@ int sched_task_request_status(const sched_task_context_t* ctx, sched_task_reques
 int sched_task_launch_async(sched_task_t* task)
 {
 	if(NULL == task || !runtime_task_is_async(task->exec_task))
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 	int rc = sched_async_task_post(task->ctx->thread_handle, task);
-	if(ERROR_CODE(int) == rc) 
-		task->exec_task = NULL;
+	if(ERROR_CODE(int) == rc)
+	    task->exec_task = NULL;
 	if(ERROR_CODE(int) == rc || ERROR_CODE_OT(int) == rc)
-		ERROR_RETURN_LOG(int, "Cannot post the async task to the async queue");
+	    ERROR_RETURN_LOG(int, "Cannot post the async task to the async queue");
 	if(rc > 0)
 	{
 		LOG_DEBUG("The async task has been sent to the task queue");

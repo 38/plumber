@@ -33,6 +33,15 @@ int log_init();
  */
 int log_finalize();
 
+/**
+ * @brief redirect the log to the give file
+ * @param level The log level to redirect
+ * @param dest The destination file name, NULL if we want to turn it off
+ * @param mode The mode of the file
+ * @return status code
+ **/
+int log_redirect(int level, const char* dest, const char* mode);
+
 /** @brief	the implementation of write a log
  *  @param	level	the log level
  *  @param	file	the file name of the source code

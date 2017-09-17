@@ -153,8 +153,8 @@ int itc_equeue_finalize()
 							break;
 						}
 						default:
-							rc = ERROR_CODE(int);
-							LOG_ERROR("Invalid type of event");
+						    rc = ERROR_CODE(int);
+						    LOG_ERROR("Invalid type of event");
 					}
 				}
 				if(pthread_mutex_destroy(&queue->mutex) < 0)
@@ -273,9 +273,9 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 	if(event.type == ITC_EQUEUE_EVENT_TYPE_IO && (event.io.in == NULL || event.io.out == NULL))
 	    ERROR_RETURN_LOG(int, "Invalid IO event");
 	else if(event.type == ITC_EQUEUE_EVENT_TYPE_TASK && (event.task.loop == NULL || event.task.task == NULL))
-		ERROR_RETURN_LOG(int, "Invalid Task event");
+	    ERROR_RETURN_LOG(int, "Invalid Task event");
 	else if(event.type != ITC_EQUEUE_EVENT_TYPE_IO && event.type != ITC_EQUEUE_EVENT_TYPE_TASK)
-		ERROR_RETURN_LOG(int, "Invalid event type");
+	    ERROR_RETURN_LOG(int, "Invalid event type");
 
 	_queue_t* queue = *VECTOR_GET(_queue_t*, _queues, token);
 	if(NULL == queue)

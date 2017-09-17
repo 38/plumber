@@ -15,9 +15,20 @@
 #include <pss/comp/lex.h>
 #include <pss/comp/comp.h>
 #include <pss/comp/block.h>
+#include <pss/comp/value.h>
 #include <pss/comp/stmt.h>
 
-int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token, pss_comp_lex_token_type_t last_token)
+#define _S(what) PSS_BYTECODE_ARG_STRING(what)
+
+#define _R(what) PSS_BYTECODE_ARG_REGISTER(what)
+
+#define _N(what) PSS_BYTECODE_ARG_NUMERIC(what)
+
+#define _L(what) PSS_BYTECODE_ARG_LABEL(what)
+
+#define _INST(segment, opcode, args...) (ERROR_CODE(pss_bytecode_addr_t) != pss_bytecode_segment_append_code(segment, PSS_BYTECODE_OPCODE_##opcode, ##args, PSS_BYTECODE_ARG_END))
+
+int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token, pss_comp_lex_token_type_t last_token, uint32_t repl_mode)
 {
 	if(NULL == comp) PSS_COMP_RAISE_INT(comp, ARGS);
 
@@ -28,6 +39,8 @@ int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token
 	    ERROR_RETURN_LOG(int, "Cannot open scope");
 
 	uint32_t last_stmt_line = ERROR_CODE(uint32_t);
+
+	pss_comp_value_t result = {.kind = PSS_COMP_VALUE_KIND_INVALID};
 
 	for(;;)
 	{
@@ -54,12 +67,30 @@ int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token
 			update_last_line = 1;
 		}
 
-		if(ERROR_CODE(int) == pss_comp_stmt_parse(comp))
+		if(result.kind != PSS_COMP_VALUE_KIND_INVALID && ERROR_CODE(int) == pss_comp_value_release(comp, &result))
+		    ERROR_RETURN_LOG(int, "Cannot release the expression result");
+
+		if(ERROR_CODE(int) == pss_comp_stmt_parse(comp, repl_mode?&result:NULL))
 		    ERROR_RETURN_LOG(int, "Cannot parse the next statement");
 
 		if(update_last_line && ERROR_CODE(uint32_t) == (last_stmt_line = pss_comp_last_consumed_line(comp)))
 		    ERROR_RETURN_LOG(int, "Cannot get the line number of the last consumed line");
 
+	}
+
+	if(repl_mode && result.kind != PSS_COMP_VALUE_KIND_INVALID)
+	{
+		pss_bytecode_segment_t* seg = pss_comp_get_code_segment(comp);
+		if(NULL == seg) ERROR_RETURN_LOG(int, "Cannot get current bytecode segment");
+
+		if(ERROR_CODE(int) == pss_comp_value_simplify(comp, &result))
+		    ERROR_RETURN_LOG(int, "Cannot simplify the result value");
+
+		if(!_INST(seg, RETURN, _R(result.regs[0].id)))
+		    PSS_COMP_RAISE_INT(comp, CODE);
+
+		if(ERROR_CODE(int) == pss_comp_value_release(comp, &result))
+		    ERROR_RETURN_LOG(int, "Cannot release the value");
 	}
 
 	if(ERROR_CODE(int) == pss_comp_close_scope(comp))

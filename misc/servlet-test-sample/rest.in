@@ -74,7 +74,7 @@
 .END
 
 # Creates a user under another task
-.TEXT test_case_create_user_under_resource
+.TEXT test_case_ignore_create_user_under_resource
 {
 	"request": {
 		"path": "$wEjMzQTN2cDO5ATYiNGZlBA/user",
@@ -85,7 +85,7 @@
 .END
 
 # Create a post isolated from user
-.TEXT test_case_create_user_isolated
+.TEXT test_case_ignore_create_user_isolated
 {
 	"request": {
 		"path": "/post",
@@ -104,7 +104,7 @@
 }
 .END
 
-.TEXT test_case_invalid_rest_path
+.TEXT test_case_ignore_invalid_rest_path
 {
 	"request": {
 		"path": "../../../../../admin.php"

@@ -75,6 +75,38 @@ extern "C++" {
 
 		return ret;
 	}
+
+	/**
+	 * @brief Because C++ doesn't support C99 externsion, so we have to use this awful way do initialization
+	 * @param Context the context type
+	 * @param desc the description string
+	 * @param version the version code
+	 * @param init the init callback
+	 * @param exec the exec callback
+	 * @param unload the unload callback
+	 * @return the reference to the the constructed servlet definition
+	 **/
+	template <class Context>
+	static inline servlet_def_t& pservlet_async_define(_M_T(servlet_def_t, init) init,
+	                                                   _M_T(servlet_def_t, async_setup)   async_setup,
+	                                                   _M_T(servlet_def_t, async_exec)    async_exec,
+	                                                   _M_T(servlet_def_t, async_cleanup) async_cleanup,
+	                                                   _M_T(servlet_def_t, unload) unload,
+	                                                   const char* desc = "", uint32_t version = 0)
+	{
+		static servlet_def_t ret = {};
+		ret.init = init;
+		ret.unload = unload;
+		ret.async_setup = async_setup;
+		ret.async_exec  = async_exec;
+		ret.async_cleanup = async_cleanup;
+		ret.desc = desc;
+		ret.version = version;
+		ret.size = sizeof(Context);
+
+		return ret;
+	}
+
 }
 #		undef _M_T
 
@@ -82,7 +114,12 @@ extern "C++" {
     extern "C" {\
 	    SERVLET_DEF = pservlet_define<context>(args);\
     }
-#	endif /* __cplusplus__ */
+
+#		define PSERVLET_ASYNC_EXPORT(context, args...) \
+    extern "C" { \
+	    SERVLET_DEF = pservlet_async_define<context>(args);\
+    }
+#	endif /* __cplusplus */
 
 /**
  * @brief the mark the symbol should be used within the servlet

@@ -6,8 +6,6 @@
 #include <string.h>
 #include <errno.h>
 
-#include <json.h>
-
 #include <utils/static_assertion.h>
 
 #include <pstd.h>

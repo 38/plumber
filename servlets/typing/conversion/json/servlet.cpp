@@ -7,7 +7,10 @@
 #include <errno.h>
 #include <inttypes.h>
 
-#include <json.h>
+#include <rapidjson/memorybuffer.h>
+#include <rapidjson/memorystream.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/document.h>
 
 #include <utils/static_assertion.h>
 
@@ -113,7 +116,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	ctx->model = NULL;
 
 	ctx->count = argc - 1;
-	if(NULL == (ctx->typed = calloc(ctx->count, sizeof(ctx->typed[0]))))
+	if(NULL == (ctx->typed = (json_model_t*)calloc(ctx->count, sizeof(ctx->typed[0]))))
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the outputs");
 
 	if(NULL == (ctx->model = pstd_type_model_new()))
@@ -211,23 +214,22 @@ static inline int _write(pstd_string_t* str, pstd_bio_t* bio, const char* fmt, .
 
 static inline int _write_name(pstd_string_t* str, pstd_bio_t* bio, const char* fmt, const char* name)
 {
-	json_object* name_obj = json_object_new_string(name);
-	const char* name_repr = NULL;
-	if(NULL == name_obj) ERROR_LOG_GOTO(ERR, "Cannot create JSON object for the pipe name %s", name);
-	name_repr = json_object_to_json_string(name_obj);
-	if(NULL == name_repr) ERROR_LOG_GOTO(ERR, "Cannot get the JSON representation of the pipe name %s", name);
-	_write(str, bio, fmt, name_repr);
-	json_object_put(name_obj);
+	rapidjson::MemoryBuffer stream;
+	rapidjson::Writer<rapidjson::MemoryBuffer> writer(stream);
+	if(!writer.String(name)) ERROR_RETURN_LOG(int, "Cannot create JSON object for the pipe name %s", name);
+	stream.Put(0);
+	const char* name_repr = stream.GetBuffer();
+	if(NULL == name_repr) ERROR_RETURN_LOG(int, "Cannot get the JSON representation of the pipe name %s", name);
+	if(ERROR_CODE(int) == _write(str, bio, fmt, name_repr))
+	    ERROR_RETURN_LOG(int, "Cannot write JSON string to the pipe");
 	return 0;
-ERR:
-	if(NULL != name_obj) json_object_put(name_obj);
-	return ERROR_CODE(int);
 }
 
 static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
 {
 	pstd_string_t* str = NULL;
 	pstd_bio_t*    bio = NULL;
+	uint32_t i, first = 1;
 
 	if(ctx->raw && NULL == (bio = pstd_bio_new(ctx->json)))
 	    ERROR_LOG_GOTO(ERR, "Cannot create new BIO object on the json pipe");
@@ -237,7 +239,6 @@ static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
 
 	_write(str, bio, "{");
 
-	uint32_t i, first = 1;
 	for(i = 0; i < ctx->count; i ++)
 	{
 		const json_model_t* jm = ctx->typed + i;
@@ -384,11 +385,10 @@ ERR:
 
 static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 {
-	int rc = ERROR_CODE(int);
-
-	json_object* root_obj = NULL;
+	rapidjson::Document document;
 
 	const char* data = NULL;
+	size_t data_len = 0;
 
 	if(ctx->raw)
 	{
@@ -401,35 +401,35 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 		if(NULL != input_label) LOG_INFO("Processing event with label %s", input_label);
 #endif
 		/* If this servlet is in the raw mode, then we need to read it from the pipe directly */
-		tl_buf_t* tl_buf = pstd_thread_local_get(_tl_bufs);
+		tl_buf_t* tl_buf = (tl_buf_t*)pstd_thread_local_get(_tl_bufs);
 		if(NULL == tl_buf)
-		    ERROR_LOG_GOTO(ERR, "Cannot get buffer memory from the thread local");
+		    ERROR_RETURN_LOG(int, "Cannot get buffer memory from the thread local");
 		size_t len = 0;
 		for(;;)
 		{
 			int rc = pipe_eof(ctx->json);
 			if(ERROR_CODE(int) == rc)
-			    ERROR_LOG_GOTO(ERR, "Cannot check if there's more data in the json pipe");
+			    ERROR_RETURN_LOG(int, "Cannot check if there's more data in the json pipe");
 
 			if(rc) break;
 
 			size_t bytes_read = pipe_read(ctx->json, tl_buf->buf, tl_buf->size - len);
 			if(ERROR_CODE(size_t) == bytes_read)
-			    ERROR_LOG_GOTO(ERR, "Cannot read data from buffer");
+			    ERROR_RETURN_LOG(int, "Cannot read data from buffer");
 
 			len += bytes_read;
 			if(len + 1 >= tl_buf->size && ERROR_CODE(int) == _tl_buf_resize(tl_buf))
-			    ERROR_LOG_GOTO(ERR, "Cannot resize the buffer");
+			    ERROR_RETURN_LOG(int, "Cannot resize the buffer");
 		}
 		data = tl_buf->buf;
-		tl_buf->buf[len] = 0;
+		tl_buf->buf[data_len = len] = 0;
 	}
 	else
 	{
 		/* If this data comes from the RLS, we need to read the token */
 		scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->json_acc);
 		if(ERROR_CODE(scope_token_t) == token)
-		    ERROR_LOG_GOTO(ERR, "Cannot read the token from the json pipe");
+		    ERROR_RETURN_LOG(int, "Cannot read the token from the json pipe");
 		if(0 == token)
 		{
 			data = "";
@@ -438,54 +438,61 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 		{
 			const pstd_string_t* str = pstd_string_from_rls(token);
 			if(NULL == str || NULL == (data = pstd_string_value(str)))
-			    ERROR_LOG_GOTO(ERR, "Cannot get the string from the given RLS token");
+			    ERROR_RETURN_LOG(int, "Cannot get the string from the given RLS token");
+			if(ERROR_CODE(size_t) == (data_len = pstd_string_length(str)))
+			    ERROR_RETURN_LOG(int, "Cannot get the length of the RLS string");
 		}
 	}
 
+	if(NULL == data) ERROR_RETURN_LOG(int, "Cannot read data from input pipe");
+
+	rapidjson::MemoryStream ims(data, data_len);
+
 	/* Then we can parse the JSON string */
-	if(NULL == (root_obj = json_tokener_parse(data)))
-	    goto EXIT_NORMALLY;
+	if(document.ParseStream(ims).HasParseError())
+	{
+		LOG_DEBUG("Got Invalid JSON, exiting");
+		return 0;
+	}
 
 	uint32_t i;
 	for(i = 0; i < ctx->count; i ++)
 	{
 		const json_model_t* jmodel = ctx->typed + i;
-		const char* key = jmodel->name;
+		if(!document.HasMember(jmodel->name)) continue;
+		rapidjson::Value& root = document[jmodel->name];
 
-		json_object* out_obj;
-
-		if(FALSE == json_object_object_get_ex(root_obj, key, &out_obj))
-		    continue;
-
-		json_object* stack[1024];
+		rapidjson::Value* stack[1024];
 		uint32_t sp = 1, pc = 0;
-		stack[0] = out_obj;
+		stack[0] = &root;
 		for(pc = 0; pc < jmodel->nops; pc ++)
 		{
-			if(sp == 0) ERROR_LOG_GOTO(ERR, "Invlid stack opeartion");
-			json_object* cur_obj = stack[sp - 1];
+			if(sp == 0) ERROR_RETURN_LOG(int, "Invlid stack opeartion");
+			rapidjson::Value* cur_obj = stack[sp - 1];
 			const json_model_op_t* op = jmodel->ops + pc;
 			switch(op->opcode)
 			{
 				case JSON_MODEL_OPCODE_OPEN:
-				    if(sp >= sizeof(stack)) ERROR_LOG_GOTO(ERR, "Operation stack overflow");
+				    if(sp >= sizeof(stack)) ERROR_RETURN_LOG(int, "Operation stack overflow");
 				    if(cur_obj != NULL)
 				    {
-					    if(FALSE == json_object_object_get_ex(cur_obj, op->field, stack + sp))
-					    {
-						    stack[sp] = NULL;
-						    LOG_NOTICE("Missing field %s", op->field);
-					    }
+					    stack[sp] = NULL;
+					    if(cur_obj->IsObject() && cur_obj->HasMember(op->field))
+					        stack[sp] = &(*cur_obj)[op->field];
+					    else
+					        LOG_NOTICE("Missing field %s", op->field);
 				    }
 				    else stack[sp] = NULL;
 				    sp ++;
 				    break;
 				case JSON_MODEL_OPCODE_OPEN_SUBS:
-				    if(sp >= sizeof(stack)) ERROR_LOG_GOTO(ERR, "Operation stack overflow");
+				    if(sp >= sizeof(stack)) ERROR_RETURN_LOG(int, "Operation stack overflow");
 				    if(cur_obj != NULL)
 				    {
-					    if(NULL == (stack[sp] = json_object_array_get_idx(cur_obj, (int)op->index)))
+					    if(!cur_obj->IsArray() || op->index >= cur_obj->Size())
 					        LOG_NOTICE("Missing subscript %u", op->index);
+					    else
+					        stack[sp] = &(*cur_obj)[op->index];
 				    }
 				    else stack[sp] = NULL;
 				    sp ++;
@@ -500,7 +507,14 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 					    case JSON_MODEL_TYPE_SIGNED:
 					    case JSON_MODEL_TYPE_UNSIGNED:
 					    {
-						    int64_t value = json_object_get_int(cur_obj);
+
+						    int64_t value = 0;
+
+						    if(!cur_obj->IsInt64())
+						        LOG_NOTICE("Missing integer field, using default 0");
+						    else
+						        value = cur_obj->GetInt64();
+
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 #	error("This doesn't work with big endian archtechture")
 #endif
@@ -509,40 +523,48 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 						        value |= (-1ll << (8 * op->size - 1));
 
 						    if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, &value, op->size))
-						        ERROR_LOG_GOTO(ERR, "Cannot write field");
+						        ERROR_RETURN_LOG(int, "Cannot write field");
 						    break;
 					    }
 					    case JSON_MODEL_TYPE_FLOAT:
 					    {
-						    double d_value = json_object_get_double(cur_obj);
+						    double d_value = 0;
+						    if(!cur_obj->IsDouble())
+						        LOG_NOTICE("Missing double field, using default 0");
+						    else
+						        d_value = cur_obj->GetDouble();
 						    float  f_value = (float)d_value;
 						    void* data = op->size == sizeof(double) ? (void*)&d_value : (void*)&f_value;
 						    if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, data, op->size))
-						        ERROR_LOG_GOTO(ERR, "Cannot write field");
+						        ERROR_RETURN_LOG(int, "Cannot write field");
 						    break;
 					    }
 					    case JSON_MODEL_TYPE_STRING:
 					    {
-						    const char* str = json_object_get_string(cur_obj);
-						    if(NULL == str) ERROR_LOG_GOTO(ERR, "Cannot get the string value");
+						    const char* str = "(null)";
+						    if(!cur_obj->IsString())
+						        LOG_NOTICE("Missing string field, using default (null)");
+						    else
+						        str = cur_obj->GetString();
+						    if(NULL == str) ERROR_RETURN_LOG(int, "Cannot get the string value");
 						    size_t len = strlen(str);
 						    pstd_string_t* pstd_str = pstd_string_new(len + 1);
-						    if(NULL == pstd_str) ERROR_LOG_GOTO(ERR, "Cannot allocate new pstd string object");
+						    if(NULL == pstd_str) ERROR_RETURN_LOG(int, "Cannot allocate new pstd string object");
 						    if(ERROR_CODE(size_t) == pstd_string_write(pstd_str, str, len))
 						    {
 							    pstd_string_free(pstd_str);
-							    ERROR_LOG_GOTO(ERR, "Cannot write string to the pstd string object");
+							    ERROR_RETURN_LOG(int, "Cannot write string to the pstd string object");
 						    }
 
 						    scope_token_t token = pstd_string_commit(pstd_str);
 						    if(ERROR_CODE(scope_token_t) == token)
 						    {
 							    pstd_string_free(pstd_str);
-							    ERROR_LOG_GOTO(ERR, "Cannot commit the string to the RLS");
+							    ERROR_RETURN_LOG(int, "Cannot commit the string to the RLS");
 						    }
 						    /* From this point, we lose the ownership of the RLS object */
 						    if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, &token, sizeof(scope_token_t)))
-						        ERROR_LOG_GOTO(ERR, "Cannot write the RLS token to the output pipe");
+						        ERROR_RETURN_LOG(int, "Cannot write the RLS token to the output pipe");
 						    break;
 					    }
 				    }
@@ -550,12 +572,7 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 		}
 	}
 
-EXIT_NORMALLY:
-	rc = 0;
-ERR:
-	if(NULL != root_obj) json_object_put(root_obj);
-
-	return rc;
+	return 0;
 }
 
 static inline int _exec(void* ctxbuf)
@@ -581,11 +598,5 @@ static inline int _exec(void* ctxbuf)
 	return rc;
 }
 
-SERVLET_DEF = {
-	.desc = "Parse the JSON to the given type",
-	.version = 0x0,
-	.size = sizeof(context_t),
-	.init = _init,
-	.unload = _cleanup,
-	.exec   = _exec
-};
+
+PSERVLET_EXPORT(context_t, _init, _exec, _cleanup, "Parse the JSON to expected type", 0);

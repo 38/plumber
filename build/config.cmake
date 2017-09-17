@@ -31,7 +31,7 @@ constant(PLUMBER_VERSION "\"0.1.1.${SRC_VERSION}\"")
 
 ##Logging
 constant(LOG_DEFAULT_CONFIG_FILE \"log.cfg\")
-constant(CONFIG_PATH \".\")
+constant(CONFIG_PATH \"${CMAKE_INSTALL_PREFIX}/etc/plumber\")
 
 ##LibPlumber Configurations
 constant(DO_NOT_COMPILE_ITC_MODULE_TEST 0)
@@ -101,6 +101,12 @@ constant(LIB_PSS_COMP_MAX_SERVLET 63103)
 ## PScript Configurations
 constant(PSCRIPT_CLI_PROMPT "PSS> ")
 constant(PSCRIPT_CLI_MAX_BRACKET 256)
+
+## LibJSONSchema Configurations
+constant(LIB_JSONSCHEMA_SCHEMA_PROPERTY_KEYNAME "__schema_property__")
+constant(LIB_JSONSCHEMA_PATCH_INSERTION_LIST_KEYNAME "__insertion__")
+constant(LIB_JSONSCHEMA_PATCH_DELETION_LIST_KEYNAME  "__deletion__")
+constant(LIB_JSONSCHEMA_PATCH_COMPLETED_MARKER "__complete_type__")
 ####################################################################################
 
 string(TOUPPER ${SYSNAME} SYSMACRO)
@@ -111,3 +117,11 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config.h.in"
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/misc/Doxyfile.in"
                "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile")
 
+unset(RAPIDJSON_DIR CACHE)
+find_file(RAPIDJSON_DIR rapidjson/rapidjson.h HINTS ${CMAKE_SOURCE_DIR}/thirdparty)
+if(NOT "${RAPIDJSON_DIR}" STREQUAL "RAPIDJSON_DIR-NOTFOUND")
+	get_filename_component(RAPIDJSON_DIR ${RAPIDJSON_DIR} DIRECTORY)
+	get_filename_component(RAPIDJSON_DIR ${RAPIDJSON_DIR} DIRECTORY)
+	message("Found RapidJSON at ${RAPIDJSON_DIR}")
+endif(NOT "${RAPIDJSON_DIR}" STREQUAL "RAPIDJSON_DIR-NOTFOUND")
+	

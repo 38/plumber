@@ -1,0 +1,27 @@
+/**
+ * Copyright (C) 2017, Hao Hou
+ **/
+#ifndef __JSONSCHEMA_PACKAGE_CONF_H__
+#define __JSONSCHEMA_PACKAGE_CONF_H__ 
+
+/**
+ * @brief The key name for the schema property metadata
+ **/
+#	define JSONSCHEMA_SCHEMA_PROPERTY_KEYNAME "@LIB_JSONSCHEMA_SCHEMA_PROPERTY_KEYNAME@"
+
+/**
+ * @brief The key name for the patch list insertion list 
+ **/
+#	define JSONSCHEMA_PATCH_INSERTION_LIST_KEYNAME "@LIB_JSONSCHEMA_PATCH_INSERTION_LIST_KEYNAME@"
+
+/**
+ * @brief The key name for the patch list deletion list
+ **/
+#	define JSONSCHEMA_PATCH_DELETION_LIST_KEYNAME "@LIB_JSONSCHEMA_PATCH_DELETION_LIST_KEYNAME@"
+
+/**
+ * @brief The key name for the completed object marker
+ **/
+#	define JSONSCHEMA_PATCH_COMPLETED_MARKER "@LIB_JSONSCHEMA_PATCH_COMPLETED_MARKER@"
+
+#endif /* __JSONSCHEMA_PACKAGE_CONF_H__ */

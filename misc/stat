@@ -1,9 +1,13 @@
 #!/bin/zsh
+function get_file() {
+	ext=$1
+	git ls-files '*.'${ext} | grep -v "^thirdparty/.*"
+}
 for ext in {'[ch]pp','[ch]',py,js,cmake,vim,pss,ptype}
 do
-	if [ ! -z "$(git ls-files '*.'${ext})" ]
+	if [ ! -z "$(get_file ${ext})" ]
 	then
-		wc -l $(git ls-files '*.'${ext}) | tail -n 1 | awk '{print "'${ext}'",$1}'
+		wc -l $(get_file ${ext}) | tail -n 1 | awk '{print "'${ext}'",$1}'
 	fi
 done | \
 awk \

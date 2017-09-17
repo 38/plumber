@@ -24,5 +24,6 @@ out_def = {
 };
 
 scheduler.worker.nthreads = 1;
+scheduler.asnyc.nthreads = 1;
 
 Service.start(Testbed.embed(to_test, in_def, out_def));

@@ -81,7 +81,7 @@ int pss_comp_compile(pss_comp_option_t* option, pss_comp_error_t** error)
 
 	if(ERROR_CODE(int) == pss_comp_open_closure(&compiler, pss_comp_lex_get_filename(compiler.lexer), 0, NULL)) goto ERR;
 
-	if(ERROR_CODE(int) == pss_comp_block_parse(&compiler, PSS_COMP_LEX_TOKEN_NAT, PSS_COMP_LEX_TOKEN_EOF)) goto ERR;
+	if(ERROR_CODE(int) == pss_comp_block_parse(&compiler, PSS_COMP_LEX_TOKEN_NAT, PSS_COMP_LEX_TOKEN_EOF, option->repl)) goto ERR;
 
 	if(ERROR_CODE(pss_bytecode_regid_t) == (entry_point = pss_comp_close_closure(&compiler))) goto ERR;
 

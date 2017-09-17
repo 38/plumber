@@ -54,6 +54,13 @@ static char* _cat_lines(_line_list_t *lines)
 	return code;
 }
 
+static inline void _print_bt(pss_vm_backtrace_t* bt)
+{
+	if(NULL == bt) return;
+	_print_bt(bt->next);
+	fprintf(stderr, "%s, line: %u\n", bt->func, bt->line);
+}
+
 /**
  * @brief free the line list
  * @param list The list to dispose
@@ -151,19 +158,27 @@ static pss_value_t _quit(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 static pss_value_t _help(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
 	(void)vm;
-	(void)argc;
-	(void)argv;
 	pss_value_t ret = {
 		.kind = PSS_VALUE_KIND_UNDEF
 	};
-	printf("REPL Shell for PScript (Plumber Version %s)\n\n", PLUMBER_VERSION);
-	printf("help()  -> Get this help documentation\n");
-	printf("quit()  -> Quit the interactive client\n");
-	printf("\n");
+
+	fprintf(stderr, "\nBuiltin functions:\n\n");
+
+	int print_internal = 0;
+	pss_value_builtin_t func = NULL;
+	if(argc > 0 && argv[0].kind == PSS_VALUE_KIND_NUM && argv[0].num != 0)
+	    print_internal = 1;
+
+	if(argc > 0 && argv[0].kind == PSS_VALUE_KIND_BUILTIN)
+	    print_internal = 1, func = argv[0].builtin;
+
+	builtin_print_doc(stderr, print_internal, func);
+
+	fprintf(stderr, "\n");
 	return ret;
 }
 
-int pss_cli_interactive(uint32_t debug)
+int cli_interactive(uint32_t debug)
 {
 	static const char* source_path = "_";
 	char* line = (char*)NULL;
@@ -193,7 +208,10 @@ int pss_cli_interactive(uint32_t debug)
 	_ADD_BUILTIN_FUNC("help", _help)
 
 #undef _ADD_BUILTIN_FUNC
-	_help(current_vm, 0, NULL);
+	printf("REPL Shell for PScript (Plumber Version %s)\n\n", PLUMBER_VERSION);
+	printf("help()  -> Get the help message\n");
+	printf("quit()  -> Quit the interactive client\n");
+	printf("\n");
 
 	signal(SIGINT, _stop);
 
@@ -204,7 +222,7 @@ int pss_cli_interactive(uint32_t debug)
 		if(NULL == line || line[0] == 0)
 		{
 			if(NULL != line) free(line);
-			else return 0;
+			else goto TERMINATE;
 			continue;
 		}
 
@@ -254,26 +272,43 @@ _ADD_HISTORY:
 
 		add_history(code);
 
+		pss_value_t result = {};
+
 		if(lex_success)
 		{
-			if(NULL == (module = module_from_buffer(code, head->off + head->size, debug))) goto _END_OF_CODE;
+			if(NULL == (module = module_from_buffer(code, head->off + head->size, debug, 1)))
+			    goto _END_OF_CODE;
 
-			int rc = pss_vm_run_module(current_vm, module, NULL);
+
+			int rc = pss_vm_run_module(current_vm, module, &result);
 			LOG_INFO("VM terminated with exit code %d", rc);
+
+			if(result.kind != PSS_VALUE_KIND_UNDEF && result.kind != PSS_VALUE_KIND_ERROR)
+			{
+				char buf[4096];
+				if(ERROR_CODE(size_t) == pss_value_strify_to_buf(result, buf, sizeof(buf)))
+				{
+					LOG_ERROR("Type error: Got invalid value");
+					break;
+				}
+
+				printf("%s\n", buf);
+			}
+
 
 			if(ERROR_CODE(int) == rc)
 			{
 				pss_vm_exception_t* exception = pss_vm_last_exception(current_vm);
-				LOG_ERROR("PSS VM Exception: %s", exception->message);
+				fprintf(stderr, "PSS VM Exception: %s\n\n", exception->message);
 				pss_vm_backtrace_t* backtrace = exception->backtrace;
-				LOG_ERROR("======Stack backtrace begin ========");
-				print_bt(backtrace);
-				LOG_ERROR("======Stack backtrace end   ========");
+				_print_bt(backtrace);
 				pss_vm_exception_free(exception);
 			}
 		}
 
 _END_OF_CODE:
+		if(result.kind != PSS_VALUE_KIND_UNDEF && ERROR_CODE(int) == pss_value_decref(result))
+		    LOG_ERROR("Cannot decref the result value");
 		if(NULL != line) free(line);
 		if(NULL != err)
 		{
@@ -287,5 +322,12 @@ _END_OF_CODE:
 		if(NULL != lexer) pss_comp_lex_free(lexer);
 		_free_line_list(head);
 	}
+TERMINATE:
+	if(ERROR_CODE(int) == pss_vm_free(current_vm))
+	    ERROR_RETURN_LOG(int, "Cannot free current VM");
+
+	if(ERROR_CODE(int) == module_unload_all())
+	    ERROR_RETURN_LOG(int, "Cannot unload modules");
+
 	return 0;
 }

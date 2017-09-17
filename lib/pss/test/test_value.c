@@ -102,7 +102,6 @@ int test_primitive_value()
 
 	value.kind = PSS_VALUE_KIND_UNDEF;
 	strval = pss_value_to_str(value);
-	strval = strval;
 	ASSERT(strval.kind == PSS_VALUE_KIND_REF, CLEANUP_NOP);
 	ASSERT(PSS_VALUE_REF_TYPE_STRING == pss_value_ref_type(strval), CLEANUP_NOP);
 	ASSERT_STREQ((const char*)pss_value_get_data(strval), "undefined", CLEANUP_NOP);
