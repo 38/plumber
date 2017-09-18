@@ -47,4 +47,4 @@ set(PYSERVLET_LIBPATH ${CMAKE_INSTALL_PREFIX}/lib)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/misc/servlet.mk.in" 
                "${CMAKE_CURRENT_BINARY_DIR}/servlet.mk")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/servlet.mk" DESTINATION lib/plumber/)
-
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/misc/servlet.cmake" DESTINATION lib/plumber/cmake/)
