@@ -365,6 +365,16 @@ runtime_servlet_t* runtime_servlet_new(runtime_servlet_binary_t* binary, uint32_
 ERR:
 	if(pdt != NULL) runtime_pdt_free(pdt);
 	if(init_task != NULL) runtime_task_free(init_task);
+
+	if(NULL != binary->define->unload)
+	{
+		runtime_task_t* unload_task = runtime_task_new(ret, RUNTIME_TASK_FLAG_ACTION_UNLOAD);
+		if(NULL == unload_task || ERROR_CODE(int) == runtime_task_start(unload_task))
+			LOG_WARNING("Cannot start the unload task");
+
+		if(NULL != unload_task) runtime_task_free(unload_task);
+	}
+
 	if(ret != NULL) free(ret);
 	if(arguments != NULL)
 	{
