@@ -359,6 +359,8 @@ static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
 			}
 		}
 
+		if(jm->nops == 0) _write(str, bio, "null");
+
 		if(sp == 1) _write(str, bio, stack[0]);
 	}
 	_write(str, bio, "}");

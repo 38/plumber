@@ -34,6 +34,19 @@ typedef struct {
 	size_t               location; /*!< the current location */
 } _stream_t;
 
+pstd_string_t* pstd_string_from_onwership_pointer(char* data, size_t sz)
+{
+	if(NULL == data) ERROR_PTR_RETURN_LOG("Invalid arguments");
+	pstd_string_t* ret = pstd_string_new(0);
+	
+	ret->buffer = data;
+	ret->capacity = sz;
+	ret->length = sz;
+	ret->commited = 0;
+
+	return ret;
+}
+
 pstd_string_t* pstd_string_new(size_t initcap)
 {
 	/* Of course, even if the initcap larger than 128, the default buffer is a waste of memory

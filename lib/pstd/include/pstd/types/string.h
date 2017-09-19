@@ -29,6 +29,16 @@ extern "C" {
 	typedef struct _pstd_string_t pstd_string_t;
 
 	/**
+	 * @brief Create a new pstd string from a ownership pointer
+	 * @note This is used when the data pointer is created externally and we want the RLS 
+	 *       take over the owership of this  pointer
+	 * @param data The data pointer
+	 * @param sz The size of the data section
+	 * @return newly create PSTD String object, NULL on error case
+	 **/
+	pstd_string_t* pstd_string_from_onwership_pointer(char* data, size_t sz);
+
+	/**
 	* @brief create a new pstd string buffer
 	* @param initcap the initial capacity of the string bufer
 	* @return the newly created pstd string buffer, NULL on error case

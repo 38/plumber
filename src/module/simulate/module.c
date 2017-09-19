@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <unistd.h>
 
 #include <error.h>
 #include <utils/log.h>
@@ -314,6 +315,8 @@ static int _init(void* __restrict ctxbuf, uint32_t argc, char const* __restrict 
 	LOG_DEBUG("Event Simulation Module has been initialized, input = %s, output = %s", input_name, output_name);
 
 	ctx->next_event = ctx->event_list_head;
+
+	setpgrp();
 
 	return 0;
 ERR:
