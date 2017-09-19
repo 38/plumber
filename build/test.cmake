@@ -58,7 +58,7 @@ if(NOT "${build_testenv}" STREQUAL "no")
 						        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TEST_DIR}/${test_dir})
 		add_test(${test_dir}_${test_name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TEST_DIR}/${test_dir}/${test_name_full})
 		set_tests_properties(${test_dir}_${test_name} PROPERTIES ENVIRONMENT "OBJDIR=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-		set_tests_properties(${test_dir}_${test_name} PROPERTIES TIMEOUT 30)
+		set_tests_properties(${test_dir}_${test_name} PROPERTIES TIMEOUT 300)
 	endforeach(test ${shell_tests})
 
 	add_custom_target(install_testing_ptypes ALL DEPENDS protoman)
