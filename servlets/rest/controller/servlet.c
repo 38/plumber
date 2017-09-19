@@ -156,7 +156,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 		if(ERROR_CODE(pstd_type_accessor_t) == (res->content_acc =pstd_type_model_get_accessor(ctx->model, res->output, "content.token")))
 		    ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.param", ctx->resources[i - 1].res_name);
 		if(ERROR_CODE(pstd_type_accessor_t) == (res->pathsfx_acc = pstd_type_model_get_accessor(ctx->model, res->output, "path.token")))
-			ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.path", ctx->resources[i - 1].res_name);
+		    ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.path", ctx->resources[i - 1].res_name);
 	}
 
 	qsort(ctx->resources, ctx->count, sizeof(resource_ctx_t), _cmp);
@@ -403,14 +403,14 @@ static int _exec(void* ctxbuf)
 	{
 		size_t len;
 		pstd_string_t* path_sfx = pstd_string_new(len = strlen(path));
-		if(NULL == path_sfx) ERROR_LOG_GOTO(EXIT, "Cannot create new PSTD string object for the suffix of the path"); 
+		if(NULL == path_sfx) ERROR_LOG_GOTO(EXIT, "Cannot create new PSTD string object for the suffix of the path");
 		if(ERROR_CODE(size_t) == pstd_string_write(path_sfx,  path, len))
-			ERROR_LOG_GOTO(PATH_SUFIX_ERR, "Cannot write the path suffix to the PSTD string object");
+		    ERROR_LOG_GOTO(PATH_SUFIX_ERR, "Cannot write the path suffix to the PSTD string object");
 		scope_token_t scope = pstd_string_commit(path_sfx);
 		if(ERROR_CODE(scope_token_t) == scope)
-			ERROR_LOG_GOTO(PATH_SUFIX_ERR, "Cannot commit the PSTD string object to RLS");
+		    ERROR_LOG_GOTO(PATH_SUFIX_ERR, "Cannot commit the PSTD string object to RLS");
 		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, res_ctx->pathsfx_acc, scope))
-			ERROR_LOG_GOTO(EXIT, "Cannot write the scope token to pipe");
+		    ERROR_LOG_GOTO(EXIT, "Cannot write the scope token to pipe");
 		goto PATH_SUFIX_SUCC;
 PATH_SUFIX_ERR:
 		pstd_string_free(path_sfx);

@@ -30,7 +30,7 @@ extern "C" {
 
 	/**
 	 * @brief Create a new pstd string from a ownership pointer
-	 * @note This is used when the data pointer is created externally and we want the RLS 
+	 * @note This is used when the data pointer is created externally and we want the RLS
 	 *       take over the owership of this  pointer
 	 * @param data The data pointer
 	 * @param sz The size of the data section

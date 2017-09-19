@@ -353,7 +353,7 @@ runtime_servlet_t* runtime_servlet_new(runtime_servlet_binary_t* binary, uint32_
 	if(runtime_task_free(init_task) == ERROR_CODE(int))
 	    LOG_WARNING("cannot dispose executed init task for the servlet instance %s, memory leak possible!", binary->name);
 	else
-		init_task = NULL;
+	    init_task = NULL;
 
 	if(ret->async && ret->bin->define->async_setup == NULL)
 	    ERROR_LOG_GOTO(ERR, "Invalid servlet, a async servlet without async_setup function defined");
@@ -372,7 +372,7 @@ ERR:
 	{
 		runtime_task_t* unload_task = runtime_task_new(ret, RUNTIME_TASK_FLAG_ACTION_UNLOAD);
 		if(NULL == unload_task || ERROR_CODE(int) == runtime_task_start(unload_task))
-			LOG_WARNING("Cannot start the unload task");
+		    LOG_WARNING("Cannot start the unload task");
 
 		if(NULL != unload_task) runtime_task_free(unload_task);
 	}
