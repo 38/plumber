@@ -820,7 +820,7 @@ int sched_task_launch_async(sched_task_t* task)
 	if(NULL == task || !runtime_task_is_async(task->exec_task))
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
 	int rc = sched_async_task_post(task->ctx->thread_handle, task);
-	if(ERROR_CODE(int) == rc)
+	if(ERROR_CODE_OT(int) == rc)
 	    task->exec_task = NULL;
 	if(ERROR_CODE(int) == rc || ERROR_CODE_OT(int) == rc)
 	    ERROR_RETURN_LOG(int, "Cannot post the async task to the async queue");

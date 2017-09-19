@@ -77,7 +77,8 @@ int sched_async_kill();
  *        will be assigned to task->exec_task. <br/>
  *        Once the woker thread gets notified from the event queue about async task completion, it can call task->exec_task
  *        to finalize the cleanup async operation.
- * @return status code, it's possible that the task->exec_task has been disposed completely, in this case ERROR_CODE_OT is returned
+ * @return status code, it's possible that the task->exec_task has been replaced by another task (cleanup task)
+ *         However, the function guarantee that task->exec_task is stil valid.
  **/
 int sched_async_task_post(sched_loop_t* loop, sched_task_t* task);
 

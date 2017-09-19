@@ -583,7 +583,6 @@ int sched_async_kill()
 int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 {
 	int normal_rc = 1;
-	int error_code = ERROR_CODE(int);
 	/* First, let's verify this task is a valid async init task */
 	if(NULL == loop || NULL == task)
 	    ERROR_RETURN_LOG(int, "Invalid argumetns");
@@ -597,6 +596,7 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	/* Then let's construct the handle */
 	runtime_task_t *async_exec = NULL;
 	runtime_task_t *async_cleanup = NULL;
+	runtime_task_t *async_setup = NULL;
 	_handle_t* handle = mempool_objpool_alloc(_ctx.q_pool);
 
 	if(NULL == handle)
@@ -623,10 +623,12 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	if(ERROR_CODE(int) == runtime_task_async_companions(task->exec_task, &async_exec, &async_cleanup))
 	    ERROR_LOG_GOTO(ERR, "Cannot Create the companion of the task");
 
-	if(ERROR_CODE(int) == runtime_task_free(task->exec_task))
+	async_setup = task->exec_task;
+	task->exec_task = async_cleanup;
+
+	if(ERROR_CODE(int) == runtime_task_free(async_setup))
 	    ERROR_LOG_GOTO(ERR, "Cannot dispose the async setup task");
 
-	task->exec_task = async_cleanup;
 	handle->exec_task = async_exec;
 
 	if(handle->state == _STATE_CANCELED)
@@ -683,13 +685,6 @@ RET:
 
 	return normal_rc;
 ERR:
-	if(task->exec_task != NULL && task->exec_task != async_cleanup)
-	{
-		if(ERROR_CODE(int) != runtime_task_free(task->exec_task))
-		    error_code = ERROR_CODE_OT(int);
-	}
-
-	if(task->exec_task == NULL) error_code = ERROR_CODE_OT(int);
 
 	if(async_exec != NULL)
 	    runtime_task_free(async_exec);
@@ -699,15 +694,12 @@ ERR:
 		handle->status_code = ERROR_CODE(int);
 		if(ERROR_CODE(int) == runtime_task_start(async_cleanup))
 		    LOG_WARNING("The async cleanup task returns an error code");
-
-		if(ERROR_CODE(int) != runtime_task_free(async_cleanup))
-		    error_code = ERROR_CODE_OT(int);
 	}
 
 	if(NULL != handle)
 	    mempool_objpool_dealloc(_ctx.q_pool, handle);
 
-	return error_code;
+	return ERROR_CODE(int);
 }
 
 int sched_async_handle_dispose(runtime_api_async_handle_t* handle)
