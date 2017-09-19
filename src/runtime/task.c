@@ -263,7 +263,7 @@ int runtime_task_start_async_setup_fast(runtime_task_t* task)
 	task->flags |= RUNTIME_TASK_FLAG_ACTION_INVOKED;
 
 	_current_task = task;
-	
+
 	LOG_TRACE("%s is started", _get_task_full_name(task, buf, sizeof(buf)));
 
 	return task->servlet->bin->define->async_setup(task->async_handle, task->async_data, task->servlet->data);
@@ -275,9 +275,9 @@ int runtime_task_start_async_cleanup_fast(runtime_task_t* task)
 	char buf[4096];
 #endif
 	task->flags |= RUNTIME_TASK_FLAG_ACTION_INVOKED;
-	
+
 	_current_task = task;
-	
+
 	LOG_TRACE("%s is started", _get_task_full_name(task, buf, sizeof(buf)));
 
 	return task->servlet->bin->define->async_cleanup(task->async_handle, task->async_data, task->servlet->data);

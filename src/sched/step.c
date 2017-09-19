@@ -175,9 +175,9 @@ START_OVER:
 	{
 		/* In this case, we cannot start the async task, so we need notify the downstream right now */
 		for(i = 0; i < size; i ++)
-			sched_task_input_pipe(stc, task->service, task->request, result[i].destination_node_id, result[i].destination_pipe_desc, NULL, 1);
+		    sched_task_input_pipe(stc, task->service, task->request, result[i].destination_node_id, result[i].destination_pipe_desc, NULL, 1);
 
-	    ERROR_LOG_GOTO(TASK_FAILED, "Cannot launch the async task");
+		ERROR_LOG_GOTO(TASK_FAILED, "Cannot launch the async task");
 	}
 	else
 	{
