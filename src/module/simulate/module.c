@@ -12,6 +12,7 @@
 #include <signal.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <time.h>
 
 #include <error.h>
 #include <utils/log.h>
@@ -41,8 +42,10 @@ typedef struct {
 	_event_t*      next_event;       /*!< The next event we want to raise */
 	char*          label;            /*!< The label for this module instance */
 	char*          outfile;          /*!< The file we want to dump the output to */
+	uint32_t       events_per_sec;   /*!< The rate of how many events will be poped up per seconds */
 	uint32_t       remaining;        /*!< How many events is currently not closed */
 	uint32_t       terminate:1;      /*!< Indicates this event is actuall terminate the platform */
+	uint64_t       last_event_ts;    /*!< The timestamp of the last event */
 } _module_context_t;
 
 /**
@@ -387,6 +390,21 @@ static int _accept(void* __restrict ctxbuf, const void* __restrict args, void* _
 		return ERROR_CODE(int);
 	}
 
+	/* If we have finite events per second rate, we need to wait */
+	if(ctx->events_per_sec != 0)
+	{
+		struct timespec time;
+		clock_gettime(CLOCK_REALTIME, &time);
+
+		uint64_t ts = ((uint64_t)time.tv_sec * 1000000000ull) + (uint64_t)time.tv_nsec;
+		uint64_t interval = 1000000000ull / ctx->events_per_sec;
+		uint64_t time_to_sleep = (ctx->last_event_ts + interval <= ts) ? 0 : ctx->last_event_ts + interval - ts;
+
+		usleep((unsigned)time_to_sleep / 1000);
+
+		ctx->last_event_ts = ts;
+	}
+
 	_handle_t* in = (_handle_t*)inbuf;
 	_handle_t* out = (_handle_t*)outbuf;
 
@@ -527,6 +545,17 @@ static int  _cntl(void* __restrict context, void* __restrict pipe, uint32_t opco
 	}
 }
 
+static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_value_t value)
+{
+	_module_context_t* context = (_module_context_t*)ctx;
+	if(value.type == ITC_MODULE_PROPERTY_TYPE_INT)
+	{
+		if(strcmp(sym, "events_per_sec") == 0) context->events_per_sec = (uint32_t)value.num;
+		else return 0;
+	}
+	return 0;
+}
+
 itc_module_t module_simulate_module_def = {
 	.mod_prefix   = "pipe.simulate",
 	.context_size = sizeof(_module_context_t),
@@ -541,5 +570,6 @@ itc_module_t module_simulate_module_def = {
 	.fork            = _fork,
 	.has_unread_data = _has_unread_data,
 	.get_flags       = _get_flags,
+	.set_property    = _set_prop,
 	.cntl            = _cntl
 };
