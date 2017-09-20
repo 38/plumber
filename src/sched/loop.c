@@ -424,7 +424,7 @@ static inline int _dispatcher_main()
 				    first = 0;
 				round_robin_start = scheduler->next == NULL ? _scheds : scheduler->next;
 			}
-			else
+			else if(event.type == ITC_EQUEUE_EVENT_TYPE_TASK)
 			{
 				LOG_DEBUG("The event is assocated with specified scheduler, try to send the event to the given scheduler");
 				if(scheduler->rear - scheduler->front >= scheduler->size && pending_list.size < SCHED_LOOP_MAX_PENDING_TASKS)

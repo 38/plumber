@@ -551,6 +551,7 @@ int sched_async_kill()
 	if(ERROR_CODE(int) == mempool_objpool_free(_ctx.q_pool))
 	    rc = ERROR_CODE(int);
 
+	_ctx.q_pool = NULL;
 	_ctx.q_data = NULL;
 	_ctx.q_front = _ctx.q_rear = 0;
 
@@ -703,6 +704,7 @@ ERR:
 
 int sched_async_handle_dispose(runtime_api_async_handle_t* handle)
 {
+	if(_ctx.q_pool == NULL) return 0;
 	_handle_t* mem = (_handle_t*)handle;
 
 	if(NULL != mem && mem->magic_num == _FAKE_HANDLE_MAGIC)
