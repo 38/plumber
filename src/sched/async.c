@@ -306,7 +306,7 @@ static void* _async_processor_main(void* data)
 
 	_thread_data_t* thread_data = (_thread_data_t*)data;
 
-	itc_equeue_token_t token = itc_equeue_module_token(ITC_MODULE_EVENT_QUEUE_SIZE);
+	itc_equeue_token_t token = itc_equeue_module_token(ITC_MODULE_EVENT_QUEUE_SIZE, ITC_EQUEUE_EVENT_TYPE_TASK);
 
 	if(ERROR_CODE(itc_equeue_token_t) == token)
 	    ERROR_PTR_RETURN_LOG("Cannot get the enent queue token for the async processing thread");
