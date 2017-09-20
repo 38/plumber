@@ -192,4 +192,11 @@ int sched_task_request_status(const sched_task_context_t* ctx, sched_task_reques
  **/
 int sched_task_launch_async(sched_task_t* task);
 
+/**
+ * @brief Get the number of running requests
+ * @param ctx The context
+ * @return status code
+ **/
+uint32_t sched_task_num_concurrent_requests(const sched_task_context_t* ctx);
+
 #endif /* __PLUMBER_SCHED_TASK_H__ */

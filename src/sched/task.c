@@ -38,15 +38,16 @@ typedef struct _request_entry_t {
  * @brief The context used by a task table
  **/
 struct _sched_task_context_t {
-	sched_loop_t*         thread_handle;  /*!< The thread handle which creates this scheduler task context */
-	_task_entry_t**       task_table;     /*!< The hash table used to organize tasks */
-	_request_entry_t**    request_table;  /*!< The requet information table, maps the request id to the request entry */
-	_task_entry_t*        queue_head;     /*!< The ready queue head */
-	_task_entry_t*        queue_tail;     /*!< The ready queue tail */
-	_task_entry_t*        async_pending;  /*!< The pending async task list */
+	sched_loop_t*         thread_handle;        /*!< The thread handle which creates this scheduler task context */
+	_task_entry_t**       task_table;           /*!< The hash table used to organize tasks */
+	_request_entry_t**    request_table;        /*!< The requet information table, maps the request id to the request entry */
+	_task_entry_t*        queue_head;           /*!< The ready queue head */
+	_task_entry_t*        queue_tail;           /*!< The ready queue tail */
+	_task_entry_t*        async_pending;        /*!< The pending async task list */
 	_task_entry_t*        async_completed_head; /*!< The head of completed async task queue */
 	_task_entry_t*        async_completed_tail; /*!< The tail of completed async task queue */
-	uint32_t              queue_size;     /*!< The size of the queue */
+	uint32_t              queue_size;           /*!< The size of the queue */
+	uint32_t              num_reqs;             /*!< The number of request is going on */
 };
 
 /** @brief the memory pool used for the task entry */
@@ -209,6 +210,7 @@ static inline _request_entry_t* _request_entry_insert(sched_task_context_t* ctx,
 	_request_entry_t* ret = _request_entry_new(request);
 	if(NULL == ret) ERROR_PTR_RETURN_LOG("Canont create new request node for the request");
 
+	ctx->num_reqs ++;
 	ret->next = ctx->request_table[slot];
 	return ctx->request_table[slot] = ret;
 }
@@ -240,6 +242,7 @@ static inline int _request_entry_delete(sched_task_context_t* ctx, sched_task_re
 	if(ERROR_CODE(int) == _request_entry_free(to_delete))
 	    ERROR_RETURN_LOG(int, "Cannot dispose the request entry");
 
+	ctx->num_reqs --;
 	return 1;
 }
 
@@ -364,6 +367,8 @@ sched_task_context_t* sched_task_context_new(sched_loop_t* thread_ctx)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the request hash table");
 
 	ret->thread_handle = thread_ctx;
+
+	ret->num_reqs = 0;
 
 	return ret;
 
@@ -832,4 +837,10 @@ int sched_task_launch_async(sched_task_t* task)
 	}
 	else LOG_DEBUG("The async exec task has been canceled");
 	return rc;
+}
+
+uint32_t sched_task_num_concurrent_requests(const sched_task_context_t* ctx)
+{
+	if(NULL == ctx) ERROR_RETURN_LOG(uint32_t, "Invalid argumenets");
+	return ctx->num_reqs;
 }

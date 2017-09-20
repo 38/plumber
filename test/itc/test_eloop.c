@@ -90,6 +90,9 @@ int eloop_test()
 		pause();
 		exit(1);
 	}
+	
+	itc_equeue_event_mask_t mask = ITC_EQUEUE_EVENT_MASK_NONE;
+	ITC_EQUEUE_EVENT_MASK_ADD(mask, ITC_EQUEUE_EVENT_TYPE_IO);
 
 	itc_equeue_token_t token = itc_equeue_scheduler_token();
 
@@ -101,11 +104,11 @@ int eloop_test()
 
 	kill(pid, SIGUSR1);
 
-	ASSERT_OK(itc_equeue_wait(token, NULL), CLEANUP_NOP);
+	ASSERT_OK(itc_equeue_wait(token, mask, NULL), CLEANUP_NOP);
 
 	itc_equeue_event_t e;
 
-	ASSERT_OK(itc_equeue_take(token, &e), CLEANUP_NOP);
+	ASSERT_OK(itc_equeue_take(token, mask, &e), CLEANUP_NOP);
 
 	ASSERT_PTR(e.io.in, CLEANUP_NOP);
 	ASSERT_PTR(e.io.out, CLEANUP_NOP);
