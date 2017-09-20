@@ -330,6 +330,8 @@ static inline void* _sched_main(void* data)
 				do {
 					old = _n_request_saturated;
 				} while(!__sync_bool_compare_and_swap(&_n_request_saturated, old, old - 1));
+
+				itc_equeue_wait_abort();
 			}
 		}
 	}
@@ -439,12 +441,17 @@ static inline int _dispatcher_main()
 
 		BARRIER();
 
+		int wait_rc;
 		/* After we process the pending list, then we can go ahead */
-		if(itc_equeue_wait_ex(sched_token, mask, &_killed, &ir) == ERROR_CODE(int))
+		if((wait_rc = itc_equeue_wait_ex(sched_token, mask, &_killed, &ir)) == ERROR_CODE(int))
 		{
 			LOG_WARNING("Cannot wait for the the event queue gets ready");
 			continue;
 		}
+
+		/* In this case it means the saturation condition may changed, so we need to start over */
+		if(wait_rc == 1)
+			continue;
 
 		BARRIER();
 

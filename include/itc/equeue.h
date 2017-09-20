@@ -216,4 +216,10 @@ int itc_equeue_wait_ex(itc_equeue_token_t token, itc_equeue_event_mask_t type_ma
  **/
 int itc_equeue_wait_interrupt();
 
+/**
+ * @brief abort a wait process
+ * @return status code
+ **/
+int itc_equeue_wait_abort();
+
 #endif /*__PLUMBER_QUEUE_H__ */

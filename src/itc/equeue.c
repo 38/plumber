@@ -433,6 +433,8 @@ int itc_equeue_wait(itc_equeue_token_t token, itc_equeue_event_mask_t mask, cons
 	return itc_equeue_wait_ex(token, mask, killed, NULL);
 }
 
+static int _aborted = 0;
+
 int itc_equeue_wait_ex(itc_equeue_token_t token, itc_equeue_event_mask_t mask, const int* killed, itc_equeue_wait_interrupt_t* interrupt)
 {
 	if(token != _SCHED_TOKEN) ERROR_RETURN_LOG(int, "Cannot call this function from the event thread");
@@ -448,8 +450,10 @@ int itc_equeue_wait_ex(itc_equeue_token_t token, itc_equeue_event_mask_t mask, c
 	gettimeofday(&now,NULL);
 	abstime.tv_sec = now.tv_sec+1;
 	abstime.tv_nsec = 0;
+	
+	int rc = 0;
 
-	while((killed == NULL || *killed == 0))
+	while((killed == NULL || *killed == 0) || _aborted == 0)
 	{
 		uint32_t i;
 		for(i = 0; i < ITC_EQUEUE_EVENT_TYPE_COUNT && (_nenvents[i] == 0 || !ITC_EQUEUE_EVENT_MASK_ALLOWS(mask, i)); i ++);
@@ -463,23 +467,41 @@ int itc_equeue_wait_ex(itc_equeue_token_t token, itc_equeue_event_mask_t mask, c
 		gettimeofday(&now,NULL);
 		abstime.tv_sec = now.tv_sec + 1;
 	}
+	rc = _aborted;
+	_aborted = 0;
 	if(pthread_mutex_unlock(&_take_mutex) < 0)
 	    LOG_WARNING_ERRNO("cannot release the reader mutex");
 
 	if(killed != NULL && *killed)
 	{
 		LOG_TRACE("Kill message recieved");
-		return 0;
+		return rc;
 	}
 
 	LOG_DEBUG("The thread waked up because there are currently %zu events in the queue", _nenvents[ITC_EQUEUE_EVENT_TYPE_COUNT]);
-	return 0;
+	return rc;
 }
 
 int itc_equeue_wait_interrupt()
 {
 	if(pthread_mutex_lock(&_take_mutex) < 0)
 	    LOG_WARNING_ERRNO("cannot acquire the reader mutex");
+	
+	if(pthread_cond_signal(&_take_cond) < 0)
+	    LOG_WARNING_ERRNO("cannot send signal to the scheduler thread");
+	
+	if(pthread_mutex_unlock(&_take_mutex) < 0)
+	    LOG_WARNING_ERRNO("cannot release the reader mutex");
+
+	return 0;
+}
+
+int itc_equeue_wait_abort()
+{
+	if(pthread_mutex_lock(&_take_mutex) < 0)
+	    LOG_WARNING_ERRNO("cannot acquire the reader mutex");
+
+	_aborted = 1;
 	
 	if(pthread_cond_signal(&_take_cond) < 0)
 	    LOG_WARNING_ERRNO("cannot send signal to the scheduler thread");
