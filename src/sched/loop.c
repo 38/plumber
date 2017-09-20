@@ -72,14 +72,27 @@ typedef struct _pending_event_t {
 } _pending_event_t;
 
 /**
+ * @brief The bundle for a pending list
+ **/
+typedef struct {
+	uint32_t size;  /*!< The size of the pending list */
+	_pending_event_t* list; /*!< The actual list */
+} _pending_list_t;
+
+/**
  * @brief the scheduler list
  **/
 static sched_loop_t* _scheds = NULL;
 
 /**
- * @brief indicate if the dispatcher is waiting
+ * @brief indicate if the dispatcher is waiting for scheduler gets  ready
  **/
 static uint32_t _dispatcher_waiting = 0;
+
+/**
+ * @brief Indicates if the  dispatcher is waiting for events 
+ **/
+static uint32_t _dispatcher_waiting_event = 0;
 
 /**
  * @brief the mutex used by the dispatcher
@@ -232,6 +245,9 @@ static inline void* _sched_main(void* data)
 
 		BARRIER();
 
+		if(_dispatcher_waiting_event && ERROR_CODE(int) == itc_equeue_wait_interrupt())
+			LOG_WARNING("Cannot invoke the wait interrupt callback");
+
 		if(_dispatcher_waiting)
 		{
 			if(pthread_mutex_lock(&_dispatcher_mutex) < 0)
@@ -282,6 +298,52 @@ static inline int _start_loop(sched_loop_t* ctx)
 	return 0;
 }
 
+static int _resolve_pending_list(void* pl)
+{
+	_pending_list_t* pending_list = (_pending_list_t*)pl;
+	/* Before we do anything let's check the pending list first */
+	_pending_event_t* next_event, *prev_event = NULL;
+	for(next_event = pending_list->list; next_event != NULL;)
+	{
+		_pending_event_t* this_event = next_event;
+		next_event = this_event->next;
+		sched_loop_t* target_loop = this_event->event.task.loop;
+		/* If the event queue is current full, we just keep it */
+		if(target_loop->rear - target_loop->front >= target_loop->size)
+		{
+			prev_event = this_event;
+			continue;
+		}
+
+		target_loop->events[target_loop->rear  & (target_loop->size - 1)] = this_event->event;
+
+		uint32_t needs_notify = (target_loop->rear == target_loop->front);
+		BARRIER();
+		arch_atomic_sw_increment_u32(&target_loop->rear);
+		BARRIER();
+		if(needs_notify)
+		{
+			if(pthread_mutex_lock(&target_loop->mutex) < 0)
+				LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
+
+			if(pthread_cond_signal(&target_loop->cond) < 0)
+				LOG_WARNING_ERRNO("Cannot notify new incoming event for the target_loop thread %u", target_loop->thread_id);
+
+			if(pthread_mutex_unlock(&target_loop->mutex) < 0)
+				LOG_WARNING_ERRNO("Cannot release the thread local mutex");
+		}
+
+		/* Finally we remove the event from the list */
+		if(NULL != prev_event) prev_event->next = next_event;
+		else pending_list->list = next_event;
+
+		free(this_event);
+		pending_list->size --;
+	}
+
+	return 0;
+}
+
 static inline int _dispatcher_main()
 {
 
@@ -298,57 +360,31 @@ static inline int _dispatcher_main()
 
 	LOG_DEBUG("Dispatcher: loop started");
 
-	_pending_event_t* pending_list = NULL;
-	uint32_t pending_list_size = 0;
+	//_pending_event_t* pending_list = NULL;
+	//uint32_t pending_list_size = 0;
+	_pending_list_t pending_list = {};
 
 	for(;!_killed;)
 	{
-		/* Before we do anything let's check the pending list first */
-		_pending_event_t* next_event, *prev_event = NULL;
-		for(next_event = pending_list; next_event != NULL;)
-		{
-			_pending_event_t* this_event = next_event;
-			next_event = this_event->next;
-			sched_loop_t* target_loop = this_event->event.task.loop;
-			/* If the event queue is current full, we just keep it */
-			if(target_loop->rear - target_loop->front >= target_loop->size)
-			{
-				prev_event = this_event;
-				continue;
-			}
+		itc_equeue_wait_interrupt_t ir = {
+			.func = _resolve_pending_list,
+			.data = &pending_list
+		};
 
-			target_loop->events[target_loop->rear  & (target_loop->size - 1)] = this_event->event;
+		_dispatcher_waiting_event = 1;
 
-			uint32_t needs_notify = (target_loop->rear == target_loop->front);
-			BARRIER();
-			arch_atomic_sw_increment_u32(&target_loop->rear);
-			BARRIER();
-			if(needs_notify)
-			{
-				if(pthread_mutex_lock(&target_loop->mutex) < 0)
-				    LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
-
-				if(pthread_cond_signal(&target_loop->cond) < 0)
-				    LOG_WARNING_ERRNO("Cannot notify new incoming event for the target_loop thread %u", target_loop->thread_id);
-
-				if(pthread_mutex_unlock(&target_loop->mutex) < 0)
-				    LOG_WARNING_ERRNO("Cannot release the thread local mutex");
-			}
-
-			/* Finally we remove the event from the list */
-			if(NULL != prev_event) prev_event->next = next_event;
-			else pending_list = next_event;
-
-			free(this_event);
-			pending_list_size --;
-		}
+		BARRIER();
 
 		/* After we process the pending list, then we can go ahead */
-		if(itc_equeue_wait(sched_token, &_killed) == ERROR_CODE(int))
+		if(itc_equeue_wait_ex(sched_token, &_killed, &ir) == ERROR_CODE(int))
 		{
 			LOG_WARNING("Cannot wait for the the event queue gets ready");
 			continue;
 		}
+
+		BARRIER();
+
+		_dispatcher_waiting_event = 0;
 
 		if(_killed) break;
 
@@ -391,7 +427,7 @@ static inline int _dispatcher_main()
 			else
 			{
 				LOG_DEBUG("The event is assocated with specified scheduler, try to send the event to the given scheduler");
-				if(scheduler->rear - scheduler->front >= scheduler->size && pending_list_size < SCHED_LOOP_MAX_PENDING_TASKS)
+				if(scheduler->rear - scheduler->front >= scheduler->size && pending_list.size < SCHED_LOOP_MAX_PENDING_TASKS)
 				{
 					LOG_DEBUG("The target scheduler is currently busy, add the event to the pending task list and try it later");
 
@@ -402,13 +438,13 @@ static inline int _dispatcher_main()
 						goto SCHED_WAIT;
 					}
 
-					pe->next = pending_list;
+					pe->next = pending_list.list;
 					pe->event = event;
-					pending_list = pe;
+					pending_list.list = pe;
 
-					pending_list_size ++;
+					pending_list.size ++;
 
-					LOG_DEBUG("Added the event to the pending list(new pending list size: %u)", pending_list_size);
+					LOG_DEBUG("Added the event to the pending list(new pending list size: %u)", pending_list.size);
 
 					goto NEXT_ITER;
 				}
@@ -471,10 +507,10 @@ NEXT_ITER:
 	}
 
 	/* Let's cleanup all the unprocessed pending event at this point */
-	for(;pending_list != NULL;)
+	for(;pending_list.list != NULL;)
 	{
-		_pending_event_t* this = pending_list;
-		pending_list = pending_list->next;
+		_pending_event_t* this = pending_list.list;
+		pending_list.list = pending_list.list->next;
 
 		if(this->event.task.async_handle != NULL && ERROR_CODE(int) == sched_async_handle_dispose(this->event.task.async_handle))
 		    LOG_WARNING("Cannot dispose the unprocessed async task handle");

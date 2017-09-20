@@ -648,17 +648,15 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	if(pthread_mutex_lock(&_ctx.q_mutex) < 0)
 	    ERROR_RETURN_LOG(int, "Cannot acquire the queue mutex");
 
-	struct timespec abstime;
-	struct timeval now;
-	gettimeofday(&now,NULL);
-	abstime.tv_sec = now.tv_sec+1;
-	abstime.tv_nsec = 0;
-
-	while(_ctx.q_rear - _ctx.q_front >= _ctx.q_cap && !_ctx.killed)
+	/* At this point, we need avoid the dead lock, because the worst case, we have async processing thread waiting for
+	 * the event queue, and the disptacher wait for the worker thread, worker thread wait for another async task at 
+	 * this point, in this case, we should make them fail directly */
+	if(_ctx.q_rear - _ctx.q_front >= _ctx.q_cap)
 	{
-		if(pthread_cond_timedwait(&_ctx.q_cond, &_ctx.q_mutex, &abstime) < 0 && errno != ETIMEDOUT && errno != EINTR)
-		    ERROR_RETURN_LOG(int, "Cannot wait for the writer condition variable");
-		abstime.tv_sec ++;
+		LOG_WARNING("Async task queue is full, discarding the task");
+		if(pthread_mutex_unlock(&_ctx.q_mutex) < 0)
+			ERROR_RETURN_LOG(int, "Cannot reliease the queue mutex");
+		goto ERR;
 	}
 
 	if(_ctx.killed)
@@ -682,6 +680,7 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 RET:
 	if(pthread_mutex_unlock(&_ctx.q_mutex) < 0)
 	    ERROR_RETURN_LOG(int, "Cannot reliease the queue mutex");
+
 
 	return normal_rc;
 ERR:

@@ -96,6 +96,7 @@ static inline void _async_pending_add(sched_task_context_t* ctx, _task_entry_t* 
 	    ctx->async_pending->prev = task;
 
 	ctx->async_pending = task;
+
 }
 
 /**

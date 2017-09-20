@@ -84,6 +84,14 @@ typedef struct {
 }  itc_equeue_event_t;
 
 /**
+ * @brief The wait interruption callback
+ **/
+typedef struct {
+	int (*func)(void* data);    /*!< The actual function should be called */
+	void* data;                 /*!< The additional data */
+} itc_equeue_wait_interrupt_t;
+
+/**
  * @brief The token used for identify different thread.
  * @details Because the event queue are shared by multiple threads, so we should use something to
  *         identify which thread is accessing the event queue. <br/>
@@ -158,5 +166,24 @@ int itc_equeue_empty(itc_equeue_token_t token);
  * @return status code
  **/
 int itc_equeue_wait(itc_equeue_token_t token, const int* killed);
+
+/**
+ * @brief Block execution until the equeue is not empty
+ * @note Unlike the normal version, this function allows caller pass in a
+ *       callback function and this callback function will be called when
+ *       somebody elses calls itc_equeue_wait_interrupt, the function will
+ *       call the given callback (if it's not NULL) and then go back to waiting mode
+ * @param token The token
+ * @param killed If thread gets killed
+ * @param interrupt The interrupt callback
+ * @return status code
+ **/
+int itc_equeue_wait_ex(itc_equeue_token_t token, const int* killed, itc_equeue_wait_interrupt_t* interrupt);
+
+/**
+ * @brief Interrupt the wait execution and make interrupt callback runs
+ * @return status code
+ **/
+int itc_equeue_wait_interrupt();
 
 #endif /*__PLUMBER_QUEUE_H__ */

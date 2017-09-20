@@ -400,6 +400,11 @@ int itc_equeue_empty(itc_equeue_token_t token)
 
 int itc_equeue_wait(itc_equeue_token_t token, const int* killed)
 {
+	return itc_equeue_wait_ex(token, killed, NULL);
+}
+
+int itc_equeue_wait_ex(itc_equeue_token_t token, const int* killed, itc_equeue_wait_interrupt_t* interrupt)
+{
 	if(token != _SCHED_TOKEN) ERROR_RETURN_LOG(int, "Cannot call this function from the event thread");
 
 	LOG_DEBUG("The thread is going to be blocked until the queue have at least one event");
@@ -416,7 +421,10 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed)
 	{
 		if(pthread_cond_timedwait(&_take_cond, &_take_mutex, &abstime) < 0 && errno != EINTR && errno != ETIMEDOUT)
 		    ERROR_RETURN_LOG_ERRNO(int, "Cannot wait for the reader condition variable");
-		abstime.tv_sec ++;
+		if(interrupt != NULL && ERROR_CODE(int) == interrupt->func(interrupt->data))
+			LOG_WARNING("The equeue wait interrupt callback returns an error");
+		gettimeofday(&now,NULL);
+		abstime.tv_sec = now.tv_sec + 1;
 	}
 	if(pthread_mutex_unlock(&_take_mutex) < 0)
 	    LOG_WARNING_ERRNO("cannot release the reader mutex");
@@ -428,5 +436,19 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed)
 	}
 
 	LOG_DEBUG("The thread waked up because there are currently %zu events in the queue", _nenvents);
+	return 0;
+}
+
+int itc_equeue_wait_interrupt()
+{
+	if(pthread_mutex_lock(&_take_mutex) < 0)
+	    LOG_WARNING_ERRNO("cannot acquire the reader mutex");
+	
+	if(pthread_cond_signal(&_take_cond) < 0)
+	    LOG_WARNING_ERRNO("cannot send signal to the scheduler thread");
+	
+	if(pthread_mutex_unlock(&_take_mutex) < 0)
+	    LOG_WARNING_ERRNO("cannot release the reader mutex");
+
 	return 0;
 }
