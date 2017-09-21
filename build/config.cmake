@@ -18,6 +18,8 @@ execute_process(COMMAND ${GIT_EXECUTABLE} "diff" "--stat"
 				OUTPUT_VARIABLE SRC_CHANGED
 				OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+string(TIMESTAMP BUILD_TIME)
+
 if(NOT "${SRC_CHANGED}" STREQUAL "")
 	set(SRC_VERSION "${SRC_VERSION}.dirty")
 else(NOT "${SRC_CHANGED}" STREQUAL "")
@@ -25,9 +27,10 @@ else(NOT "${SRC_CHANGED}" STREQUAL "")
 endif(NOT "${SRC_CHANGED}" STREQUAL "")
 
 
+
 #################################Constants##########################################
 ##General Config
-constant(PLUMBER_VERSION "\"0.1.1.${SRC_VERSION}\"")
+constant(PLUMBER_VERSION "\"0.1.1.${SRC_VERSION} ${BUILD_TIME}\"")
 
 ##Logging
 constant(LOG_DEFAULT_CONFIG_FILE \"log.cfg\")

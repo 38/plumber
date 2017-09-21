@@ -400,9 +400,11 @@ static int _accept(void* __restrict ctxbuf, const void* __restrict args, void* _
 		uint64_t interval = 1000000000ull / ctx->events_per_sec;
 		uint64_t time_to_sleep = (ctx->last_event_ts + interval <= ts) ? 0 : ctx->last_event_ts + interval - ts;
 
-		usleep((unsigned)time_to_sleep / 1000);
+		if(time_to_sleep > 0) 
+			usleep((unsigned)time_to_sleep / 1000);
 
-		ctx->last_event_ts = ts;
+		if(ctx->last_event_ts == 0) ctx->last_event_ts = ts;
+		else ctx->last_event_ts += interval;
 	}
 
 	_handle_t* in = (_handle_t*)inbuf;
