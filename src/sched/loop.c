@@ -122,6 +122,23 @@ static itc_equeue_event_mask_t _last_mask;
  **/
 static itc_module_type_t _mod_mem = ERROR_CODE(itc_module_type_t);
 
+/**
+ * @brief decide if the scheduler is saturated 
+ * @param scheduler The scheduler to check
+ * @return the result
+ **/
+static inline int _scheduler_saturated(sched_loop_t* scheduler)
+{
+	uint32_t pending_reqs = scheduler->pending_reqs_id_end - scheduler->pending_reqs_id_begin;
+	uint32_t running_reqs = scheduler->num_running_reqs;
+	return pending_reqs + running_reqs >= _max_worker_concurrency;
+}
+
+/**
+ * @brief Create a new scheduler context
+ * @param tid The thread id
+ * @return the newly created scheduler context 
+ **/
 static inline sched_loop_t* _context_new(uint32_t tid)
 {
 	LOG_DEBUG("Creating thread context for scheduler #%d", tid);
@@ -149,7 +166,11 @@ MUTEX_ERR:
 	return NULL;
 }
 
-
+/**
+ * @brief Dispose the scheduler context
+ * @param ctx The context
+ * @return status code
+ **/
 static inline int _context_free(sched_loop_t* ctx)
 {
 	int rc = 0;
@@ -207,6 +228,11 @@ static inline int _context_free(sched_loop_t* ctx)
 	return rc;
 }
 
+/**
+ * @brief The scheduler main function
+ * @param data The scheduler context
+ * @return The exit code
+ **/
 static inline void* _sched_main(void* data)
 {
 	thread_set_name("PbWorker");
@@ -258,7 +284,12 @@ static inline void* _sched_main(void* data)
 
 		BARRIER();
 
-		if(_dispatcher_waiting_event && ERROR_CODE(int) == itc_equeue_wait_interrupt())
+		/* At this point, we have at least one empty slot for the next event, so we need to 
+		 * check if the dispatcher is waiting for event, then we need to activate the pending
+		 * task resolve callback when the scheduler queue is previously full */
+		if(_dispatcher_waiting_event && 
+		   (context->rear - context->front == context->size - 1) && 
+		   ERROR_CODE(int) == itc_equeue_wait_interrupt())
 			LOG_WARNING("Cannot invoke the wait interrupt callback");
 
 		if(_dispatcher_waiting)
@@ -315,7 +346,13 @@ static inline void* _sched_main(void* data)
 
 		arch_atomic_sw_assignment_u32(&context->num_running_reqs, concurrency);
 
-		if(_dispatcher_waiting_event && ERROR_CODE(int) == itc_equeue_wait_interrupt())
+		/* At this point, it's possible that the number of current concurrent request decreases
+		 * In this case, we need check if the dispatcher still blocks the IO event, if this is 
+		 * the case, we need to make the dispatcher re-evalute what kinds of event we should accept */
+		if(_dispatcher_waiting_event && 
+		   !ITC_EQUEUE_EVENT_MASK_ALLOWS(_last_mask, ITC_EQUEUE_EVENT_TYPE_IO) && 
+		   !_scheduler_saturated(context) && 
+		   ERROR_CODE(int) == itc_equeue_wait_interrupt())
 			LOG_ERROR("Cannot interrupt the equeue");
 	}
 
@@ -332,24 +369,17 @@ KILLED:
 	return NULL;
 }
 
+/**
+ * @brief Start the scheduler loop
+ * @param ctx The context
+ * @return status 
+ **/
 static inline int _start_loop(sched_loop_t* ctx)
 {
 	if(NULL == (ctx->thread = thread_new(_sched_main, ctx, THREAD_TYPE_WORKER)))
 	    ERROR_RETURN_LOG(int, "Cannot start new scheduler thread");
 
 	return 0;
-}
-
-/**
- * @brief decide if the scheduler is saturated 
- * @param scheduler The scheduler to check
- * @return the result
- **/
-static inline int _scheduler_saturated(sched_loop_t* scheduler)
-{
-	uint32_t pending_reqs = scheduler->pending_reqs_id_end - scheduler->pending_reqs_id_begin;
-	uint32_t running_reqs = scheduler->num_running_reqs;
-	return pending_reqs + running_reqs >= _max_worker_concurrency;
 }
 
 /**
@@ -420,6 +450,10 @@ static itc_equeue_event_mask_t _interrupt_handler(void* pl)
 	return ret;
 }
 
+/**
+ * @brief The dispatcher main function
+ * @return status code
+ **/
 static inline int _dispatcher_main()
 {
 
