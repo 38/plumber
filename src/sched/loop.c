@@ -308,14 +308,15 @@ static inline void* _sched_main(void* data)
 		{
 			case ITC_EQUEUE_EVENT_TYPE_IO:
 
-				arch_atomic_sw_increment_u32(&context->pending_reqs_id_begin);
-
 				/* At this point, we actually predict the change of the running request,
 				 * otherwise, it's possible that the dispatcher don't know the request is
-				 * starting */
+				 * starting, so we need to increment the number of running requests first
+				 * and then actually mark the event has been poped out. */
 				arch_atomic_sw_increment_u32(&context->num_running_reqs);
 
 				BARRIER();
+
+				arch_atomic_sw_increment_u32(&context->pending_reqs_id_begin);
 
 			    if(sched_task_new_request(stc, _service, current.io.in, current.io.out) == ERROR_CODE(sched_task_request_t))
 			        LOG_ERROR("Cannot add the incoming request to scheduler");
