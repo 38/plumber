@@ -104,7 +104,7 @@ int eloop_test()
 
 	kill(pid, SIGUSR1);
 
-	ASSERT_OK(itc_equeue_wait(token, mask, NULL), CLEANUP_NOP);
+	ASSERT_OK(itc_equeue_wait(token, NULL, NULL), CLEANUP_NOP);
 
 	itc_equeue_event_t e;
 

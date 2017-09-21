@@ -428,18 +428,9 @@ int itc_equeue_empty(itc_equeue_token_t token)
 	return _nenvents[ITC_EQUEUE_EVENT_TYPE_COUNT] == 0;
 }
 
-int itc_equeue_wait(itc_equeue_token_t token, itc_equeue_event_mask_t mask, const int* killed)
-{
-	return itc_equeue_wait_ex(token, mask, killed, NULL);
-}
-
-static int _aborted = 0;
-
-int itc_equeue_wait_ex(itc_equeue_token_t token, itc_equeue_event_mask_t mask, const int* killed, itc_equeue_wait_interrupt_t* interrupt)
+int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait_interrupt_t* interrupt)
 {
 	if(token != _SCHED_TOKEN) ERROR_RETURN_LOG(int, "Cannot call this function from the event thread");
-
-	if(mask == ITC_EQUEUE_EVENT_MASK_NONE) ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	LOG_DEBUG("The thread is going to be blocked until the queue have at least one event");
 
@@ -450,58 +441,43 @@ int itc_equeue_wait_ex(itc_equeue_token_t token, itc_equeue_event_mask_t mask, c
 	gettimeofday(&now,NULL);
 	abstime.tv_sec = now.tv_sec+1;
 	abstime.tv_nsec = 0;
-	
-	int rc = 0;
 
-	while((killed == NULL || *killed == 0) || _aborted == 0)
+	itc_equeue_event_mask_t mask = (1u << ITC_EQUEUE_EVENT_TYPE_COUNT) - 1;
+	
+	while(killed == NULL || *killed == 0)
 	{
 		uint32_t i;
+		
+		if(interrupt != NULL && ITC_EQUEUE_EVENT_MASK_NONE == (mask = interrupt->func(interrupt->data)))
+			ERROR_RETURN_LOG(int, "The equeue wait interrupt callback returns an error");
+
 		for(i = 0; i < ITC_EQUEUE_EVENT_TYPE_COUNT && (_nenvents[i] == 0 || !ITC_EQUEUE_EVENT_MASK_ALLOWS(mask, i)); i ++);
 
 		if(i != ITC_EQUEUE_EVENT_TYPE_COUNT) break;
 
 		if(pthread_cond_timedwait(&_take_cond, &_take_mutex, &abstime) < 0 && errno != EINTR && errno != ETIMEDOUT)
 		    ERROR_RETURN_LOG_ERRNO(int, "Cannot wait for the reader condition variable");
-		if(interrupt != NULL && ERROR_CODE(int) == interrupt->func(interrupt->data))
-			LOG_WARNING("The equeue wait interrupt callback returns an error");
+
 		gettimeofday(&now,NULL);
 		abstime.tv_sec = now.tv_sec + 1;
 	}
-	rc = _aborted;
-	_aborted = 0;
 	if(pthread_mutex_unlock(&_take_mutex) < 0)
 	    LOG_WARNING_ERRNO("cannot release the reader mutex");
 
 	if(killed != NULL && *killed)
 	{
 		LOG_TRACE("Kill message recieved");
-		return rc;
+		return 0;
 	}
 
 	LOG_DEBUG("The thread waked up because there are currently %zu events in the queue", _nenvents[ITC_EQUEUE_EVENT_TYPE_COUNT]);
-	return rc;
+	return 0;
 }
 
 int itc_equeue_wait_interrupt()
 {
 	if(pthread_mutex_lock(&_take_mutex) < 0)
 	    LOG_WARNING_ERRNO("cannot acquire the reader mutex");
-	
-	if(pthread_cond_signal(&_take_cond) < 0)
-	    LOG_WARNING_ERRNO("cannot send signal to the scheduler thread");
-	
-	if(pthread_mutex_unlock(&_take_mutex) < 0)
-	    LOG_WARNING_ERRNO("cannot release the reader mutex");
-
-	return 0;
-}
-
-int itc_equeue_wait_abort()
-{
-	if(pthread_mutex_lock(&_take_mutex) < 0)
-	    LOG_WARNING_ERRNO("cannot acquire the reader mutex");
-
-	_aborted = 1;
 	
 	if(pthread_cond_signal(&_take_cond) < 0)
 	    LOG_WARNING_ERRNO("cannot send signal to the scheduler thread");

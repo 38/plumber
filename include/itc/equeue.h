@@ -79,9 +79,11 @@ typedef uint32_t itc_equeue_event_mask_t;
  * @brief Add a event to the event mask
  * @param mask The mask variable 
  * @param event The event expression
- * @return The new mask
+ * @return nothing
  **/
-#define  ITC_EQUEUE_EVENT_MASK_ADD(mask, event) ((mask) |= (1u << event))
+#define  ITC_EQUEUE_EVENT_MASK_ADD(mask, event) do {\
+	((mask) |= (1u << event));\
+} while(0)
 
 /**
  * @brief If the event mask accepts the specified event
@@ -114,8 +116,13 @@ typedef struct {
  * @brief The wait interruption callback
  **/
 typedef struct {
-	int (*func)(void* data);    /*!< The actual function should be called */
-	void* data;                 /*!< The additional data */
+	/**
+	 * @brief The actuall callback function we should all
+	 * @param data the additoinal data to this function
+	 * @return The new event mask we should use since then
+	 **/
+	itc_equeue_event_mask_t (*func)(void* data);
+	void*                   data;                 /*!< The additional data */
 } itc_equeue_wait_interrupt_t;
 
 /**
@@ -189,14 +196,6 @@ int itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t type_mask,
 int itc_equeue_empty(itc_equeue_token_t token);
 
 /**
- * @brief block execution until the equeue is not empty
- * @param token the treahd token
- * @param killed the flag indicates if the loop gets killed
- * @return status code
- **/
-int itc_equeue_wait(itc_equeue_token_t token, itc_equeue_event_mask_t mask, const int* killed);
-
-/**
  * @brief Block execution until the equeue is not empty
  * @note Unlike the normal version, this function allows caller pass in a
  *       callback function and this callback function will be called when
@@ -208,18 +207,12 @@ int itc_equeue_wait(itc_equeue_token_t token, itc_equeue_event_mask_t mask, cons
  * @param interrupt The interrupt callback
  * @return status code
  **/
-int itc_equeue_wait_ex(itc_equeue_token_t token, itc_equeue_event_mask_t type_mask, const int* killed, itc_equeue_wait_interrupt_t* interrupt);
+int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait_interrupt_t* interrupt);
 
 /**
  * @brief Interrupt the wait execution and make interrupt callback runs
  * @return status code
  **/
 int itc_equeue_wait_interrupt();
-
-/**
- * @brief abort a wait process
- * @return status code
- **/
-int itc_equeue_wait_abort();
 
 #endif /*__PLUMBER_QUEUE_H__ */

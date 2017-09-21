@@ -215,7 +215,7 @@ int test_writer_wait()
 	{
 		itc_equeue_event_mask_t mask = ITC_EQUEUE_EVENT_MASK_NONE;
 		ITC_EQUEUE_EVENT_MASK_ADD(mask, ITC_EQUEUE_EVENT_TYPE_IO);
-		ASSERT_OK(itc_equeue_wait(sched_token, mask, NULL), CLEANUP_NOP);
+		ASSERT_OK(itc_equeue_wait(sched_token, NULL, NULL), CLEANUP_NOP);
 		ASSERT_OK(itc_equeue_take(sched_token, mask, &e), CLEANUP_NOP);
 		ASSERT(e.io.in == e.io.out, CLEANUP_NOP);
 		long int n = ((thread_data_t*)e.io.in) - data;
@@ -236,7 +236,7 @@ int full_test()
 	ITC_EQUEUE_EVENT_MASK_ADD(mask, ITC_EQUEUE_EVENT_TYPE_IO);
 	for(i = 0; i < 1000 * NTHREADS;)
 	{
-		ASSERT_OK(itc_equeue_wait(sched_token, mask, NULL), CLEANUP_NOP);
+		ASSERT_OK(itc_equeue_wait(sched_token, NULL, NULL), CLEANUP_NOP);
 		for(;!itc_equeue_empty(sched_token); i ++)
 		{
 			itc_equeue_event_t e;
@@ -262,7 +262,7 @@ int random_test()
 	ITC_EQUEUE_EVENT_MASK_ADD(mask, ITC_EQUEUE_EVENT_TYPE_IO);
 	for(i = 0; i < 100 * NTHREADS;)
 	{
-		ASSERT_OK(itc_equeue_wait(sched_token, mask, NULL), CLEANUP_NOP);
+		ASSERT_OK(itc_equeue_wait(sched_token, NULL, NULL), CLEANUP_NOP);
 		for(;!itc_equeue_empty(sched_token); i ++)
 		{
 			itc_equeue_event_t e;
