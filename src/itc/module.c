@@ -245,6 +245,11 @@ int itc_module_finalize()
 	return 0;
 }
 
+int itc_module_pipe_is_input(const itc_module_pipe_t* pipe)
+{
+	if(NULL == pipe) ERROR_RETURN_LOG(int, "Invalid arguments");
+	return pipe->stat.type == _PSTAT_TYPE_INPUT;
+}
 
 int itc_module_pipe_allocate(itc_module_type_t type, uint32_t hint,
                              const itc_module_pipe_param_t param,
@@ -813,7 +818,8 @@ int itc_module_pipe_eof(itc_module_pipe_t* handle)
 {
 	if(NULL == handle) return 1;
 
-	if(handle->stat.type != _PSTAT_TYPE_INPUT) ERROR_RETURN_LOG(int, "Invalid arguments: wrong pipe direction");
+	if(handle->stat.type != _PSTAT_TYPE_INPUT) 
+		ERROR_RETURN_LOG(int, "Invalid arguments: wrong pipe direction");
 
 	/* For a disabled downstream, even if the task gets a chance to run, we still need to pretent there's no data at all */
 	if(handle->pipe_flags & RUNTIME_API_PIPE_DISABLED) return 1;

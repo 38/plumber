@@ -61,8 +61,37 @@ typedef struct {
  **/
 typedef enum {
 	ITC_EQUEUE_EVENT_TYPE_IO,          /*!< This is an external IO event */
-	ITC_EQUEUE_EVENT_TYPE_TASK         /*!< This is a task event */
+	ITC_EQUEUE_EVENT_TYPE_TASK,        /*!< This is a task event */
+	ITC_EQUEUE_EVENT_TYPE_COUNT        /*!< The number of event types */
 } itc_equeue_event_type_t;
+
+/**
+ * @brief The mask used to describe which type of event we are looking for
+ **/
+typedef uint32_t itc_equeue_event_mask_t;
+
+/**
+ * @brief The event mask do not select any kinds of event
+ **/
+#define ITC_EQUEUE_EVENT_MASK_NONE ((itc_equeue_event_mask_t)0)
+
+/**
+ * @brief Add a event to the event mask
+ * @param mask The mask variable 
+ * @param event The event expression
+ * @return nothing
+ **/
+#define  ITC_EQUEUE_EVENT_MASK_ADD(mask, event) do {\
+	((mask) |= (1u << event));\
+} while(0)
+
+/**
+ * @brief If the event mask accepts the specified event
+ * @param mask The mask to check
+ * @param event The event 
+ * @return if the mask allows this type of event
+ **/
+#define ITC_EQUEUE_EVENT_MASK_ALLOWS(mask, event) (0 != ((mask) & (1u << event)))
 
 /**
  * @brief The data structure for a event in the event queue
@@ -87,8 +116,13 @@ typedef struct {
  * @brief The wait interruption callback
  **/
 typedef struct {
-	int (*func)(void* data);    /*!< The actual function should be called */
-	void* data;                 /*!< The additional data */
+	/**
+	 * @brief The actuall callback function we should all
+	 * @param data the additoinal data to this function
+	 * @return The new event mask we should use since then
+	 **/
+	itc_equeue_event_mask_t (*func)(void* data);
+	void*                   data;                 /*!< The additional data */
 } itc_equeue_wait_interrupt_t;
 
 /**
@@ -118,9 +152,10 @@ int itc_equeue_finalize();
  * @brief create new module thread token, this is used for event loop to get a new
  *        event queue token
  * @param size the size of the queue for this type, how many entries is allowed at most in the queue
+ * @param type The type of this event queue
  * @return the queue token, or error code
  **/
-itc_equeue_token_t itc_equeue_module_token(uint32_t size);
+itc_equeue_token_t itc_equeue_module_token(uint32_t size, itc_equeue_event_type_t type);
 
 /**
  * @brief create new scheduler/dispatcher thread token
@@ -145,9 +180,10 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event);
  *       next event avaiable
  * @param token the thread token
  * @param buffer the buffer used to return the result
+ * @param type_mask Indicates which type of event we are looking for 
  * @return status code
  **/
-int itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_t* buffer);
+int itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t type_mask, itc_equeue_event_t* buffer);
 
 /**
  * @brief check if the equeue is empty
@@ -160,25 +196,18 @@ int itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_t* buffer);
 int itc_equeue_empty(itc_equeue_token_t token);
 
 /**
- * @brief block execution until the equeue is not empty
- * @param token the treahd token
- * @param killed the flag indicates if the loop gets killed
- * @return status code
- **/
-int itc_equeue_wait(itc_equeue_token_t token, const int* killed);
-
-/**
  * @brief Block execution until the equeue is not empty
  * @note Unlike the normal version, this function allows caller pass in a
  *       callback function and this callback function will be called when
  *       somebody elses calls itc_equeue_wait_interrupt, the function will
  *       call the given callback (if it's not NULL) and then go back to waiting mode
  * @param token The token
+ * @param type_mask Indicates which type of event we are looking for 
  * @param killed If thread gets killed
  * @param interrupt The interrupt callback
  * @return status code
  **/
-int itc_equeue_wait_ex(itc_equeue_token_t token, const int* killed, itc_equeue_wait_interrupt_t* interrupt);
+int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait_interrupt_t* interrupt);
 
 /**
  * @brief Interrupt the wait execution and make interrupt callback runs

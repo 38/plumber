@@ -125,6 +125,7 @@ static struct {
 	uint32_t             q_mutex_init:1;  /*!< If queue mutex has been initalized */
 	uint32_t             al_mutex_init:1; /*!< If the waiting list mutex has been initialized */
 	uint32_t             q_cond_init:1;   /*!< If the queue condvar has been initialized */
+	volatile uint32_t    num_ready;       /*!< The number of threads that gets ready */
 
 	/*********** The queue related data ***************/
 	uint32_t             q_cap;    /*!< The capacity of the queue */
@@ -306,10 +307,15 @@ static void* _async_processor_main(void* data)
 
 	_thread_data_t* thread_data = (_thread_data_t*)data;
 
-	itc_equeue_token_t token = itc_equeue_module_token(ITC_MODULE_EVENT_QUEUE_SIZE);
+	itc_equeue_token_t token = itc_equeue_module_token(ITC_MODULE_EVENT_QUEUE_SIZE, ITC_EQUEUE_EVENT_TYPE_TASK);
 
 	if(ERROR_CODE(itc_equeue_token_t) == token)
 	    ERROR_PTR_RETURN_LOG("Cannot get the enent queue token for the async processing thread");
+
+	uint32_t old;
+	do {
+		old = _ctx.num_ready;
+	}while(!__sync_bool_compare_and_swap(&_ctx.num_ready, old, old + 1));
 
 	for(;!_ctx.killed;)
 	{
@@ -427,6 +433,8 @@ int sched_async_start()
 	if(_ctx.init)
 	    ERROR_RETURN_LOG(int, "Cannot initialize the async task queue twice");
 
+	_ctx.num_ready = 0;
+
 	/* First thing, let's initialze the queue */
 	_ctx.q_front = _ctx.q_rear = 0;
 
@@ -473,6 +481,9 @@ int sched_async_start()
 	for(i = 0; i < _ctx.nthreads; i ++)
 	    if(NULL == (_ctx.thread_data[i].thread = thread_new(_async_processor_main, _ctx.thread_data + i, THREAD_TYPE_ASYNC)))
 	        ERROR_LOG_GOTO(ERR, "Cannot start the new thread for the Async Task Processor");
+
+	/* After that we need wait until everyone gets ready */
+	while(_ctx.num_ready != _ctx.nthreads);
 
 	/* Finally, we  should set the initialization flag */
 	_ctx.init = 1;

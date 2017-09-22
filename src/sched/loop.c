@@ -39,7 +39,7 @@ static uint32_t _queue_size = SCHED_LOOP_EVENT_QUEUE_SIZE;
  * @brief a scheduler loop context
  **/
 struct _sched_loop_t {
-	sched_loop_t* next;         /*!< the next thread in the loop linked list */
+	sched_loop_t* next;              /*!< the next thread in the loop linked list */
 	int       started;               /*!< if the loop has started */
 	thread_t* thread;                /*!< the thread object */
 	uint32_t  thread_id;             /*!< the thread id */
@@ -48,6 +48,9 @@ struct _sched_loop_t {
 	uint32_t  size;                  /*!< the size of the queue */
 	pthread_mutex_t mutex;           /*!< the mutex used with the cond */
 	pthread_cond_t  cond;            /*!< the cond var that is used for the loop wait for new event */
+	uint32_t   num_running_reqs;     /*!< How many requests are currently running by this worker */
+	uint32_t   pending_reqs_id_begin;/*!< The begining ID of the pending request */
+	uint32_t   pending_reqs_id_end;  /*!< The ending ID of the pending request */
 	uintptr_t __padding__[0];
 	itc_equeue_event_t events[0];    /*!< the actual event queue */
 };
@@ -105,14 +108,41 @@ static pthread_mutex_t _dispatcher_mutex;
 static pthread_cond_t _dispatcher_cond;
 
 /**
+ * @brief The maximum number of request for a request can handle at the same time
+ **/
+static uint32_t _max_worker_concurrency = 256;
+
+/**
+ * @brief The last mask we used for the equeue wait
+ **/
+static itc_equeue_event_mask_t _last_mask;
+
+/**
  * @brief the module type for the mem pipe module
  **/
 static itc_module_type_t _mod_mem = ERROR_CODE(itc_module_type_t);
 
+/**
+ * @brief decide if the scheduler is saturated 
+ * @param scheduler The scheduler to check
+ * @return the result
+ **/
+static inline int _scheduler_saturated(sched_loop_t* scheduler)
+{
+	uint32_t pending_reqs = scheduler->pending_reqs_id_end - scheduler->pending_reqs_id_begin;
+	uint32_t running_reqs = scheduler->num_running_reqs;
+	return pending_reqs + running_reqs >= _max_worker_concurrency;
+}
+
+/**
+ * @brief Create a new scheduler context
+ * @param tid The thread id
+ * @return the newly created scheduler context 
+ **/
 static inline sched_loop_t* _context_new(uint32_t tid)
 {
 	LOG_DEBUG("Creating thread context for scheduler #%d", tid);
-	sched_loop_t* ret = (sched_loop_t*)malloc(sizeof(sched_loop_t) + sizeof(itc_equeue_event_t) * _queue_size);
+	sched_loop_t* ret = (sched_loop_t*)calloc(1, sizeof(sched_loop_t) + sizeof(itc_equeue_event_t) * _queue_size);
 
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the shceduler thread context");
 	ret->started = 0;
@@ -136,7 +166,11 @@ MUTEX_ERR:
 	return NULL;
 }
 
-
+/**
+ * @brief Dispose the scheduler context
+ * @param ctx The context
+ * @return status code
+ **/
 static inline int _context_free(sched_loop_t* ctx)
 {
 	int rc = 0;
@@ -194,6 +228,11 @@ static inline int _context_free(sched_loop_t* ctx)
 	return rc;
 }
 
+/**
+ * @brief The scheduler main function
+ * @param data The scheduler context
+ * @return The exit code
+ **/
 static inline void* _sched_main(void* data)
 {
 	thread_set_name("PbWorker");
@@ -245,7 +284,12 @@ static inline void* _sched_main(void* data)
 
 		BARRIER();
 
-		if(_dispatcher_waiting_event && ERROR_CODE(int) == itc_equeue_wait_interrupt())
+		/* At this point, we have at least one empty slot for the next event, so we need to 
+		 * check if the dispatcher is waiting for event, then we need to activate the pending
+		 * task resolve callback when the scheduler queue is previously full */
+		if(_dispatcher_waiting_event && 
+		   (context->rear - context->front == context->size - 1) && 
+		   ERROR_CODE(int) == itc_equeue_wait_interrupt())
 			LOG_WARNING("Cannot invoke the wait interrupt callback");
 
 		if(_dispatcher_waiting)
@@ -263,8 +307,30 @@ static inline void* _sched_main(void* data)
 		switch(current.type)
 		{
 			case ITC_EQUEUE_EVENT_TYPE_IO:
+
+				/* At this point, we actually predict the change of the running request,
+				 * otherwise, it's possible that the dispatcher don't know the request is
+				 * starting, so we need to increment the number of running requests first
+				 * and then actually mark the event has been poped out. */
+				arch_atomic_sw_increment_u32(&context->num_running_reqs);
+
+				BARRIER();
+
+				arch_atomic_sw_increment_u32(&context->pending_reqs_id_begin);
+
+
 			    if(sched_task_new_request(stc, _service, current.io.in, current.io.out) == ERROR_CODE(sched_task_request_t))
 			        LOG_ERROR("Cannot add the incoming request to scheduler");
+
+				uint32_t concurrency = sched_task_num_concurrent_requests(stc);
+				if(ERROR_CODE(uint32_t) == concurrency)
+				{
+					LOG_WARNING("Cannot get the size of concurrent tasks");
+					break;
+				}
+
+				/* Finally we update the number of running request to the actual value */
+				arch_atomic_sw_assignment_u32(&context->num_running_reqs, concurrency);
 			    break;
 			case ITC_EQUEUE_EVENT_TYPE_TASK:
 			    if(sched_task_async_completed(current.task.task) == ERROR_CODE(int))
@@ -275,6 +341,32 @@ static inline void* _sched_main(void* data)
 		}
 
 		while(sched_step_next(stc, _mod_mem) > 0 && !_killed);
+		
+		uint32_t concurrency = sched_task_num_concurrent_requests(stc);
+		arch_atomic_sw_assignment_u32(&context->num_running_reqs, concurrency);
+
+		BARRIER();
+
+		/* At this point, it's possible that the number of current concurrent request decreases
+		 * In this case, we need check if the dispatcher still blocks the IO event, if this is 
+		 * the case, we need to make the dispatcher re-evalute what kinds of event we should accept */
+		if(_dispatcher_waiting_event && 
+		   !ITC_EQUEUE_EVENT_MASK_ALLOWS(_last_mask, ITC_EQUEUE_EVENT_TYPE_IO) && 
+		   !_scheduler_saturated(context) && 
+		   ERROR_CODE(int) == itc_equeue_wait_interrupt())
+			LOG_ERROR("Cannot interrupt the equeue");
+		
+		if(_dispatcher_waiting)
+		{
+			if(pthread_mutex_lock(&_dispatcher_mutex) < 0)
+			    LOG_WARNING_ERRNO("Cannot lock the dispatcher mutex");
+
+			if(pthread_cond_signal(&_dispatcher_cond) < 0)
+			    LOG_WARNING_ERRNO("Cannot notify the dispatcher for the avaliable space");
+
+			if(pthread_mutex_unlock(&_dispatcher_mutex) < 0)
+			    LOG_WARNING_ERRNO("Cannot unlock the dispatcher mutex");
+		}
 	}
 
 KILLED:
@@ -290,6 +382,11 @@ KILLED:
 	return NULL;
 }
 
+/**
+ * @brief Start the scheduler loop
+ * @param ctx The context
+ * @return status 
+ **/
 static inline int _start_loop(sched_loop_t* ctx)
 {
 	if(NULL == (ctx->thread = thread_new(_sched_main, ctx, THREAD_TYPE_WORKER)))
@@ -298,8 +395,15 @@ static inline int _start_loop(sched_loop_t* ctx)
 	return 0;
 }
 
-static int _resolve_pending_list(void* pl)
+/**
+ * @brief The callback function used when the equeue wait function interrupts
+ * @param pl The pending list 
+ **/
+static itc_equeue_event_mask_t _interrupt_handler(void* pl)
 {
+	/* Step1: try to resolve the pending list first */
+	itc_equeue_event_mask_t ret = ITC_EQUEUE_EVENT_MASK_NONE;
+
 	_pending_list_t* pending_list = (_pending_list_t*)pl;
 	/* Before we do anything let's check the pending list first */
 	_pending_event_t* next_event, *prev_event = NULL;
@@ -307,15 +411,24 @@ static int _resolve_pending_list(void* pl)
 	{
 		_pending_event_t* this_event = next_event;
 		next_event = this_event->next;
-		sched_loop_t* target_loop = this_event->event.task.loop;
+		sched_loop_t* target_loop = this_event->event.type == ITC_EQUEUE_EVENT_TYPE_TASK ? this_event->event.task.loop : NULL;
+
+		if(target_loop == NULL)
+		{
+			for(target_loop = _scheds; target_loop != NULL && _scheduler_saturated(target_loop); target_loop = target_loop->next);
+		}
+
 		/* If the event queue is current full, we just keep it */
-		if(target_loop->rear - target_loop->front >= target_loop->size)
+		if(target_loop == NULL || target_loop->rear - target_loop->front >= target_loop->size)
 		{
 			prev_event = this_event;
 			continue;
 		}
 
 		target_loop->events[target_loop->rear  & (target_loop->size - 1)] = this_event->event;
+
+		if(this_event->event.type == ITC_EQUEUE_EVENT_TYPE_IO)
+			arch_atomic_sw_increment_u32(&target_loop->pending_reqs_id_end);
 
 		uint32_t needs_notify = (target_loop->rear == target_loop->front);
 		BARRIER();
@@ -341,9 +454,28 @@ static int _resolve_pending_list(void* pl)
 		pending_list->size --;
 	}
 
-	return 0;
+	/* Step2: We should decide the event mask for the next wait iteration */
+	if(_scheds != NULL)
+	{
+		ITC_EQUEUE_EVENT_MASK_ADD(ret, ITC_EQUEUE_EVENT_TYPE_TASK);
+		sched_loop_t* sched;
+		for(sched = _scheds; sched != NULL; sched = sched->next)
+			if(!_scheduler_saturated(sched))
+			{
+				LOG_DEBUG("The worker thread is not saturated, allow the IO event");
+				ITC_EQUEUE_EVENT_MASK_ADD(ret, ITC_EQUEUE_EVENT_TYPE_IO);
+				break;
+			}
+	}
+
+	_last_mask = ret;
+	return ret;
 }
 
+/**
+ * @brief The dispatcher main function
+ * @return status code
+ **/
 static inline int _dispatcher_main()
 {
 
@@ -360,23 +492,22 @@ static inline int _dispatcher_main()
 
 	LOG_DEBUG("Dispatcher: loop started");
 
-	//_pending_event_t* pending_list = NULL;
-	//uint32_t pending_list_size = 0;
 	_pending_list_t pending_list = {};
 
 	for(;!_killed;)
 	{
 		itc_equeue_wait_interrupt_t ir = {
-			.func = _resolve_pending_list,
+			.func = _interrupt_handler,
 			.data = &pending_list
 		};
 
+		/* We only need to notify the equeue when we still have pending event to dispatch */
 		_dispatcher_waiting_event = 1;
 
 		BARRIER();
 
 		/* After we process the pending list, then we can go ahead */
-		if(itc_equeue_wait_ex(sched_token, &_killed, &ir) == ERROR_CODE(int))
+		if(itc_equeue_wait(sched_token, &_killed, &ir) == ERROR_CODE(int))
 		{
 			LOG_WARNING("Cannot wait for the the event queue gets ready");
 			continue;
@@ -390,7 +521,7 @@ static inline int _dispatcher_main()
 
 		itc_equeue_event_t event;
 
-		if(itc_equeue_take(sched_token, &event) == ERROR_CODE(int))
+		if(itc_equeue_take(sched_token, _last_mask, &event) == ERROR_CODE(int))
 		{
 			LOG_ERROR("Cannot take next event from the event queue");
 			continue;
@@ -419,47 +550,50 @@ static inline int _dispatcher_main()
 				first = 1;
 				scheduler = round_robin_start;
 				for(;(first || scheduler != round_robin_start) &&
-				     scheduler->rear - scheduler->front >= scheduler->size;
+				     (scheduler->rear - scheduler->front >= scheduler->size ||
+					 _scheduler_saturated(scheduler));
 				     scheduler = scheduler->next == NULL ? _scheds : scheduler->next)
 				    first = 0;
 				round_robin_start = scheduler->next == NULL ? _scheds : scheduler->next;
 			}
-			else if(event.type == ITC_EQUEUE_EVENT_TYPE_TASK)
+
+			if((scheduler->rear - scheduler->front >= scheduler->size || 
+				(event.type == ITC_EQUEUE_EVENT_TYPE_IO && _scheduler_saturated(scheduler)))
+			    && pending_list.size < SCHED_LOOP_MAX_PENDING_TASKS)
 			{
-				LOG_DEBUG("The event is assocated with specified scheduler, try to send the event to the given scheduler");
-				if(scheduler->rear - scheduler->front >= scheduler->size && pending_list.size < SCHED_LOOP_MAX_PENDING_TASKS)
+				LOG_DEBUG("The target scheduler is currently busy, add the event to the pending task list and try it later");
+
+				_pending_event_t* pe = (_pending_event_t*)malloc(sizeof(*pe));
+				if(NULL == pe)
 				{
-					LOG_DEBUG("The target scheduler is currently busy, add the event to the pending task list and try it later");
-
-					_pending_event_t* pe = (_pending_event_t*)malloc(sizeof(*pe));
-					if(NULL == pe)
-					{
-						LOG_WARNING_ERRNO("Cannot allocate memory for the pending event, waiting for the scheduler");
-						goto SCHED_WAIT;
-					}
-
-					pe->next = pending_list.list;
-					pe->event = event;
-					pending_list.list = pe;
-
-					pending_list.size ++;
-
-					LOG_DEBUG("Added the event to the pending list(new pending list size: %u)", pending_list.size);
-
-					goto NEXT_ITER;
+					LOG_WARNING_ERRNO("Cannot allocate memory for the pending event, waiting for the scheduler");
+					goto SCHED_WAIT;
 				}
 
-				LOG_DEBUG("Sending the event to the scheduler");
+				pe->next = pending_list.list;
+				pe->event = event;
+				pending_list.list = pe;
+
+				pending_list.size ++;
+
+				LOG_DEBUG("Added the event to the pending list(new pending list size: %u)", pending_list.size);
+
+				goto NEXT_ITER;
 			}
 
+			LOG_DEBUG("Sending the event to the scheduler");
+
 SCHED_WAIT:
-			if(scheduler->rear - scheduler->front >= scheduler->size)
 			{
 				int need_lock = !_dispatcher_waiting;
 				arch_atomic_sw_assignment_u32(&_dispatcher_waiting, 1);
 				if(need_lock && pthread_mutex_lock(&_dispatcher_mutex) < 0)
 				    LOG_WARNING_ERRNO("Cannot acquire the dispatcher mutex");
+			}
 
+			if(scheduler->rear - scheduler->front >= scheduler->size || 
+			   (event.type == ITC_EQUEUE_EVENT_TYPE_IO && _scheduler_saturated(scheduler)))
+			{
 				if(pthread_cond_timedwait(&_dispatcher_cond, &_dispatcher_mutex, &abstime) < 0 && errno != ETIMEDOUT && errno != EINTR)
 				    LOG_WARNING_ERRNO("Cannot complete pthread_cond_timewait");
 
@@ -487,6 +621,10 @@ EXIT_LOOP:
 
 		uint32_t p = scheduler->rear & (scheduler->size - 1);
 		scheduler->events[p] = event;
+
+		if(event.type == ITC_EQUEUE_EVENT_TYPE_IO)
+			arch_atomic_sw_increment_u32(&scheduler->pending_reqs_id_end);
+
 		BARRIER();
 		int needs_notify = (scheduler->front == scheduler->rear);
 		arch_atomic_sw_increment_u32(&scheduler->rear);
@@ -531,7 +669,7 @@ int sched_loop_start(const sched_service_t* service)
 
 	int rc = 0;
 	LOG_INFO("Staring the scheduler loop with %d threads", _nthreads);
-
+	
 	if(_mod_mem == ERROR_CODE(itc_module_type_t))
 	{
 		LOG_DEBUG("Unspecified ITC communication pipe type, use pipe.mem as default");
@@ -556,6 +694,7 @@ int sched_loop_start(const sched_service_t* service)
 
 	if(pthread_cond_init(&_dispatcher_cond, NULL) < 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot init the dispatcher condvar");
+
 
 	for(ptr = _scheds; ptr != NULL; ptr = ptr->next)
 	    if(_start_loop(ptr) == ERROR_CODE(int))
@@ -667,6 +806,11 @@ static inline int _set_prop(const char* symbol, lang_prop_value_t value, const v
 
 		if(inst->module->allocate == NULL) ERROR_RETURN_LOG(int, "Invalid module type: ITC communication module should have accept function");
 		LOG_DEBUG("Default ITC communication pipe has been set to %s", value.str);
+	}
+	else if(strcmp(symbol, "max_concurrency") == 0)
+	{
+		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
+		_max_worker_concurrency = (uint32_t)value.num;
 	}
 	else
 	{

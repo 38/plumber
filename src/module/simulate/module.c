@@ -416,7 +416,7 @@ static int _accept(void* __restrict ctxbuf, const void* __restrict args, void* _
 	in->event = out->event = ctx->next_event;
 	in->offset = out->offset = 0;
 
-	LOG_NOTICE("Event %s has been poped up to the application", ctx->next_event->label);
+	LOG_INFO("Event %s has been poped up to the application", ctx->next_event->label);
 
 	ctx->next_event = ctx->next_event->next;
 

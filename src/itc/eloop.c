@@ -64,7 +64,7 @@ static inline void* _module_event_loop_main(void* data)
 
 	LOG_INFO("Starting event loop for module #%u", _self->module_type);
 
-	itc_equeue_token_t token = itc_equeue_module_token(ITC_MODULE_EVENT_QUEUE_SIZE);
+	itc_equeue_token_t token = itc_equeue_module_token(ITC_MODULE_EVENT_QUEUE_SIZE, ITC_EQUEUE_EVENT_TYPE_IO);
 
 	if(ERROR_CODE(itc_equeue_token_t) == token)
 	    ERROR_PTR_RETURN_LOG("Cannot allocate token from the event queue from module #%"PRIu32, _self->module_type);
