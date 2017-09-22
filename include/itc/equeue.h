@@ -77,7 +77,7 @@ typedef uint32_t itc_equeue_event_mask_t;
 
 /**
  * @brief Add a event to the event mask
- * @param mask The mask variable 
+ * @param mask The mask variable
  * @param event The event expression
  * @return nothing
  **/
@@ -88,7 +88,7 @@ typedef uint32_t itc_equeue_event_mask_t;
 /**
  * @brief If the event mask accepts the specified event
  * @param mask The mask to check
- * @param event The event 
+ * @param event The event
  * @return if the mask allows this type of event
  **/
 #define ITC_EQUEUE_EVENT_MASK_ALLOWS(mask, event) (0 != ((mask) & (1u << event)))
@@ -180,7 +180,7 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event);
  *       next event avaiable
  * @param token the thread token
  * @param buffer the buffer used to return the result
- * @param type_mask Indicates which type of event we are looking for 
+ * @param type_mask Indicates which type of event we are looking for
  * @return status code
  **/
 int itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t type_mask, itc_equeue_event_t* buffer);
@@ -202,7 +202,7 @@ int itc_equeue_empty(itc_equeue_token_t token);
  *       somebody elses calls itc_equeue_wait_interrupt, the function will
  *       call the given callback (if it's not NULL) and then go back to waiting mode
  * @param token The token
- * @param type_mask Indicates which type of event we are looking for 
+ * @param type_mask Indicates which type of event we are looking for
  * @param killed If thread gets killed
  * @param interrupt The interrupt callback
  * @return status code

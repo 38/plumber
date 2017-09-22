@@ -661,13 +661,13 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	    ERROR_RETURN_LOG(int, "Cannot acquire the queue mutex");
 
 	/* At this point, we need avoid the dead lock, because the worst case, we have async processing thread waiting for
-	 * the event queue, and the disptacher wait for the worker thread, worker thread wait for another async task at 
+	 * the event queue, and the disptacher wait for the worker thread, worker thread wait for another async task at
 	 * this point, in this case, we should make them fail directly */
 	if(_ctx.q_rear - _ctx.q_front >= _ctx.q_cap)
 	{
 		LOG_WARNING("Async task queue is full, discarding the task");
 		if(pthread_mutex_unlock(&_ctx.q_mutex) < 0)
-			ERROR_RETURN_LOG(int, "Cannot reliease the queue mutex");
+		    ERROR_RETURN_LOG(int, "Cannot reliease the queue mutex");
 		goto ERR;
 	}
 

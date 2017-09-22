@@ -818,8 +818,8 @@ int itc_module_pipe_eof(itc_module_pipe_t* handle)
 {
 	if(NULL == handle) return 1;
 
-	if(handle->stat.type != _PSTAT_TYPE_INPUT) 
-		ERROR_RETURN_LOG(int, "Invalid arguments: wrong pipe direction");
+	if(handle->stat.type != _PSTAT_TYPE_INPUT)
+	    ERROR_RETURN_LOG(int, "Invalid arguments: wrong pipe direction");
 
 	/* For a disabled downstream, even if the task gets a chance to run, we still need to pretent there's no data at all */
 	if(handle->pipe_flags & RUNTIME_API_PIPE_DISABLED) return 1;

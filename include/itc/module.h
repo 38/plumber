@@ -74,7 +74,7 @@ int itc_module_finalize();
 
 /**
  * @brief Check if the pipe is the input side
- * @param pipe The pipe 
+ * @param pipe The pipe
  * @return result or error code
  **/
 int itc_module_pipe_is_input(const itc_module_pipe_t* pipe);

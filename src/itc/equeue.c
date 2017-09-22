@@ -35,8 +35,8 @@ static int _sched_token_called;
  * @brief the queue for the single thread
  **/
 typedef struct {
-	itc_equeue_event_type_t type;        /*!< The event type in this queue (See the notes, although the event mask can 
-										  *   describe multiple types, but we only allow 1 type set here) */
+	itc_equeue_event_type_t type;        /*!< The event type in this queue (See the notes, although the event mask can
+	                                      *   describe multiple types, but we only allow 1 type set here) */
 	pthread_mutex_t   mutex;             /*!< the local mutex */
 	pthread_cond_t    put_cond;          /*!< the cond variable for equeue_put */
 	uint32_t          size;              /*!< the size of the queue */
@@ -290,7 +290,7 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 	    ERROR_RETURN_LOG(int, "Cannot get the queue for token %u", token);
 
 	if(queue->type != event.type)
-		ERROR_RETURN_LOG(int, "Invalid event type, the queue do not accept specified event type");
+	    ERROR_RETURN_LOG(int, "Invalid event type, the queue do not accept specified event type");
 
 	LOG_DEBUG("token %u: wait for the queue have space for the new event", token);
 
@@ -349,7 +349,7 @@ int itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t mask, itc_
 {
 	size_t i;
 	_queue_t* queue = NULL;
-	
+
 	if(NULL == buffer) ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(token != _SCHED_TOKEN) ERROR_RETURN_LOG(int, "Cannot call the take method from event thread");
@@ -406,8 +406,8 @@ int itc_equeue_empty(itc_equeue_token_t token)
 	{
 		_queue_t* queue = *VECTOR_GET(_queue_t*, _queues, i);
 		if(NULL == queue) ERROR_RETURN_LOG(int, "Cannot get the token local queue %zu", i);
-		if(queue->rear != queue->front) 
-			return 0;
+		if(queue->rear != queue->front)
+		    return 0;
 	}
 	return 1;
 
@@ -428,21 +428,21 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
 	abstime.tv_nsec = 0;
 
 	itc_equeue_event_mask_t mask = (1u << ITC_EQUEUE_EVENT_TYPE_COUNT) - 1;
-	
+
 	while(killed == NULL || *killed == 0)
 	{
 		size_t i;
-		
+
 		if(interrupt != NULL && ITC_EQUEUE_EVENT_MASK_NONE == (mask = interrupt->func(interrupt->data)))
-			ERROR_RETURN_LOG(int, "The equeue wait interrupt callback returns an error");
+		    ERROR_RETURN_LOG(int, "The equeue wait interrupt callback returns an error");
 
 		for(i = 0; i < vector_length(_queues); i ++)
 		{
 			_queue_t* queue = *VECTOR_GET(_queue_t*, _queues, i);
-			if(NULL == queue) 
-				LOG_WARNING("Cannot get the queue for token %zu", i);
+			if(NULL == queue)
+			    LOG_WARNING("Cannot get the queue for token %zu", i);
 			else if(ITC_EQUEUE_EVENT_MASK_ALLOWS(mask, queue->type) && queue->rear != queue->front)
-				break;
+			    break;
 		}
 
 		if(i != vector_length(_queues)) break;
@@ -469,10 +469,10 @@ int itc_equeue_wait_interrupt()
 {
 	if(pthread_mutex_lock(&_take_mutex) < 0)
 	    LOG_WARNING_ERRNO("cannot acquire the reader mutex");
-	
+
 	if(pthread_cond_signal(&_take_cond) < 0)
 	    LOG_WARNING_ERRNO("cannot send signal to the scheduler thread");
-	
+
 	if(pthread_mutex_unlock(&_take_mutex) < 0)
 	    LOG_WARNING_ERRNO("cannot release the reader mutex");
 

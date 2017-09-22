@@ -90,7 +90,7 @@ int eloop_test()
 		pause();
 		exit(1);
 	}
-	
+
 	itc_equeue_event_mask_t mask = ITC_EQUEUE_EVENT_MASK_NONE;
 	ITC_EQUEUE_EVENT_MASK_ADD(mask, ITC_EQUEUE_EVENT_TYPE_IO);
 
