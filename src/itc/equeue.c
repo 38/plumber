@@ -52,12 +52,6 @@ STATIC_ASSERTION_SIZE(_queue_t, events, 0);
 static vector_t* _queues;
 
 /**
- * @brief how many events in the queues in total, _nevents[ITC_EQUEUE_EVENT_TYPE_COUNT] is the 
- *        total number of events in the queue
- **/
-static size_t _nevents[ITC_EQUEUE_EVENT_TYPE_COUNT + 1];
-
-/**
  * @brief The mutex used for the disptacher to take an item from the queue
  **/
 static pthread_mutex_t _take_mutex;
@@ -341,8 +335,6 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 	if(pthread_mutex_lock(&_take_mutex) < 0)
 	    LOG_WARNING_ERRNO("cannot acquire the reader mutex");
 
-	_nevents[event.type] ++;
-	_nevents[ITC_EQUEUE_EVENT_TYPE_COUNT] ++;
 	if(pthread_cond_signal(&_take_cond) < 0)
 	    LOG_WARNING_ERRNO("cannot send signal to the scheduler thread");
 
@@ -360,20 +352,7 @@ int itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t mask, itc_
 	
 	if(NULL == buffer) ERROR_RETURN_LOG(int, "Invalid arguments");
 
-#ifndef FULL_OPTIMIZATION
 	if(token != _SCHED_TOKEN) ERROR_RETURN_LOG(int, "Cannot call the take method from event thread");
-	if(_nevents[ITC_EQUEUE_EVENT_TYPE_COUNT] == 0) ERROR_RETURN_LOG(int, "The queue is empty");
-
-	for(i = 0; 
-	    i < ITC_EQUEUE_EVENT_TYPE_COUNT && 
-		(_nevents[i] == 0 || !ITC_EQUEUE_EVENT_MASK_ALLOWS(mask, i)); 
-		i ++);
-	if(i == ITC_EQUEUE_EVENT_TYPE_COUNT) ERROR_RETURN_LOG(int, "The queue do not have specified type of event");
-#else
-	(void)token;
-#endif
-
-	LOG_DEBUG("Event queue size = %zu", _nevents[ITC_EQUEUE_EVENT_TYPE_COUNT]);
 
 	/* Find the first queue that is not empty */
 	for(i = 0; i < vector_length(_queues); i ++)
@@ -394,7 +373,7 @@ int itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t mask, itc_
 	}
 
 	if(i == vector_length(_queues))
-	    ERROR_RETURN_LOG(int, "Cannot find the event but the event count is %zu", _nevents[ITC_EQUEUE_EVENT_TYPE_COUNT]);
+	    ERROR_RETURN_LOG(int, "Cannot find the event mask = %x", mask);
 	else LOG_DEBUG("Found events in queue #%zu, take the first one", i);
 
 	*buffer = queue->events[queue->front & (queue->size - 1)];
@@ -413,13 +392,8 @@ int itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t mask, itc_
 	if(pthread_mutex_lock(&_take_mutex) < 0)
 	    LOG_WARNING_ERRNO("cannot acquire the reader mutex");
 
-	_nevents[buffer->type] --;
-	_nevents[ITC_EQUEUE_EVENT_TYPE_COUNT] --;
-
 	if(pthread_mutex_unlock(&_take_mutex) < 0)
 	    LOG_WARNING_ERRNO("cannot release the reader mutex");
-
-	LOG_DEBUG("updated the event queue length to %zu", _nevents[ITC_EQUEUE_EVENT_TYPE_COUNT]);
 
 	return 0;
 }
@@ -427,7 +401,16 @@ int itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t mask, itc_
 int itc_equeue_empty(itc_equeue_token_t token)
 {
 	if(token != _SCHED_TOKEN) ERROR_RETURN_LOG(int, "Cannot call this function from the event thread");
-	return _nevents[ITC_EQUEUE_EVENT_TYPE_COUNT] == 0;
+	size_t i;
+	for(i = 0; i < vector_length(_queues); i ++)
+	{
+		_queue_t* queue = *VECTOR_GET(_queue_t*, _queues, i);
+		if(NULL == queue) ERROR_RETURN_LOG(int, "Cannot get the token local queue %zu", i);
+		if(queue->rear != queue->front) 
+			return 0;
+	}
+	return 1;
+
 }
 
 int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait_interrupt_t* interrupt)
@@ -448,14 +431,21 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
 	
 	while(killed == NULL || *killed == 0)
 	{
-		uint32_t i;
+		size_t i;
 		
 		if(interrupt != NULL && ITC_EQUEUE_EVENT_MASK_NONE == (mask = interrupt->func(interrupt->data)))
 			ERROR_RETURN_LOG(int, "The equeue wait interrupt callback returns an error");
 
-		for(i = 0; i < ITC_EQUEUE_EVENT_TYPE_COUNT && (_nevents[i] == 0 || !ITC_EQUEUE_EVENT_MASK_ALLOWS(mask, i)); i ++);
+		for(i = 0; i < vector_length(_queues); i ++)
+		{
+			_queue_t* queue = *VECTOR_GET(_queue_t*, _queues, i);
+			if(NULL == queue) 
+				LOG_WARNING("Cannot get the queue for token %zu", i);
+			else if(ITC_EQUEUE_EVENT_MASK_ALLOWS(mask, queue->type) && queue->rear != queue->front)
+				break;
+		}
 
-		if(i != ITC_EQUEUE_EVENT_TYPE_COUNT) break;
+		if(i != vector_length(_queues)) break;
 
 		if(pthread_cond_timedwait(&_take_cond, &_take_mutex, &abstime) < 0 && errno != EINTR && errno != ETIMEDOUT)
 		    ERROR_RETURN_LOG_ERRNO(int, "Cannot wait for the reader condition variable");
@@ -472,7 +462,6 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
 		return 0;
 	}
 
-	LOG_DEBUG("The thread waked up because there are currently %zu events in the queue", _nevents[ITC_EQUEUE_EVENT_TYPE_COUNT]);
 	return 0;
 }
 
