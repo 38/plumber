@@ -73,6 +73,13 @@ int itc_module_init();
 int itc_module_finalize();
 
 /**
+ * @brief Check if the pipe is the input side
+ * @param pipe The pipe 
+ * @return result or error code
+ **/
+int itc_module_pipe_is_input(const itc_module_pipe_t* pipe);
+
+/**
  * @brief allocate a new pipe
  * @param type the type of this pipe
  * @param hint the hint number, this is originally desgined for the module code

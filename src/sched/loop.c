@@ -318,6 +318,7 @@ static inline void* _sched_main(void* data)
 
 				arch_atomic_sw_increment_u32(&context->pending_reqs_id_begin);
 
+
 			    if(sched_task_new_request(stc, _service, current.io.in, current.io.out) == ERROR_CODE(sched_task_request_t))
 			        LOG_ERROR("Cannot add the incoming request to scheduler");
 
@@ -354,6 +355,18 @@ static inline void* _sched_main(void* data)
 		   !_scheduler_saturated(context) && 
 		   ERROR_CODE(int) == itc_equeue_wait_interrupt())
 			LOG_ERROR("Cannot interrupt the equeue");
+		
+		if(_dispatcher_waiting)
+		{
+			if(pthread_mutex_lock(&_dispatcher_mutex) < 0)
+			    LOG_WARNING_ERRNO("Cannot lock the dispatcher mutex");
+
+			if(pthread_cond_signal(&_dispatcher_cond) < 0)
+			    LOG_WARNING_ERRNO("Cannot notify the dispatcher for the avaliable space");
+
+			if(pthread_mutex_unlock(&_dispatcher_mutex) < 0)
+			    LOG_WARNING_ERRNO("Cannot unlock the dispatcher mutex");
+		}
 	}
 
 KILLED:
@@ -398,15 +411,24 @@ static itc_equeue_event_mask_t _interrupt_handler(void* pl)
 	{
 		_pending_event_t* this_event = next_event;
 		next_event = this_event->next;
-		sched_loop_t* target_loop = this_event->event.task.loop;
+		sched_loop_t* target_loop = this_event->event.type == ITC_EQUEUE_EVENT_TYPE_TASK ? this_event->event.task.loop : NULL;
+
+		if(target_loop == NULL)
+		{
+			for(target_loop = _scheds; target_loop != NULL && _scheduler_saturated(target_loop); target_loop = target_loop->next);
+		}
+
 		/* If the event queue is current full, we just keep it */
-		if(target_loop->rear - target_loop->front >= target_loop->size)
+		if(target_loop == NULL || target_loop->rear - target_loop->front >= target_loop->size)
 		{
 			prev_event = this_event;
 			continue;
 		}
 
 		target_loop->events[target_loop->rear  & (target_loop->size - 1)] = this_event->event;
+
+		if(this_event->event.type == ITC_EQUEUE_EVENT_TYPE_IO)
+			arch_atomic_sw_increment_u32(&target_loop->pending_reqs_id_end);
 
 		uint32_t needs_notify = (target_loop->rear == target_loop->front);
 		BARRIER();
@@ -534,43 +556,44 @@ static inline int _dispatcher_main()
 				    first = 0;
 				round_robin_start = scheduler->next == NULL ? _scheds : scheduler->next;
 			}
-			else if(event.type == ITC_EQUEUE_EVENT_TYPE_TASK)
+
+			if((scheduler->rear - scheduler->front >= scheduler->size || 
+				(event.type == ITC_EQUEUE_EVENT_TYPE_IO && _scheduler_saturated(scheduler)))
+			    && pending_list.size < SCHED_LOOP_MAX_PENDING_TASKS)
 			{
-				LOG_DEBUG("The event is assocated with specified scheduler, try to send the event to the given scheduler");
-				if(scheduler->rear - scheduler->front >= scheduler->size && pending_list.size < SCHED_LOOP_MAX_PENDING_TASKS)
+				LOG_DEBUG("The target scheduler is currently busy, add the event to the pending task list and try it later");
+
+				_pending_event_t* pe = (_pending_event_t*)malloc(sizeof(*pe));
+				if(NULL == pe)
 				{
-					LOG_DEBUG("The target scheduler is currently busy, add the event to the pending task list and try it later");
-
-					_pending_event_t* pe = (_pending_event_t*)malloc(sizeof(*pe));
-					if(NULL == pe)
-					{
-						LOG_WARNING_ERRNO("Cannot allocate memory for the pending event, waiting for the scheduler");
-						goto SCHED_WAIT;
-					}
-
-					pe->next = pending_list.list;
-					pe->event = event;
-					pending_list.list = pe;
-
-					pending_list.size ++;
-
-					LOG_DEBUG("Added the event to the pending list(new pending list size: %u)", pending_list.size);
-
-					goto NEXT_ITER;
+					LOG_WARNING_ERRNO("Cannot allocate memory for the pending event, waiting for the scheduler");
+					goto SCHED_WAIT;
 				}
 
-				LOG_DEBUG("Sending the event to the scheduler");
+				pe->next = pending_list.list;
+				pe->event = event;
+				pending_list.list = pe;
+
+				pending_list.size ++;
+
+				LOG_DEBUG("Added the event to the pending list(new pending list size: %u)", pending_list.size);
+
+				goto NEXT_ITER;
 			}
 
+			LOG_DEBUG("Sending the event to the scheduler");
+
 SCHED_WAIT:
-			if(scheduler->rear - scheduler->front >= scheduler->size && 
-			   (event.type != ITC_EQUEUE_EVENT_TYPE_IO || !_scheduler_saturated(scheduler)))
 			{
 				int need_lock = !_dispatcher_waiting;
 				arch_atomic_sw_assignment_u32(&_dispatcher_waiting, 1);
 				if(need_lock && pthread_mutex_lock(&_dispatcher_mutex) < 0)
 				    LOG_WARNING_ERRNO("Cannot acquire the dispatcher mutex");
+			}
 
+			if(scheduler->rear - scheduler->front >= scheduler->size || 
+			   (event.type == ITC_EQUEUE_EVENT_TYPE_IO && _scheduler_saturated(scheduler)))
+			{
 				if(pthread_cond_timedwait(&_dispatcher_cond, &_dispatcher_mutex, &abstime) < 0 && errno != ETIMEDOUT && errno != EINTR)
 				    LOG_WARNING_ERRNO("Cannot complete pthread_cond_timewait");
 
