@@ -369,6 +369,8 @@ int itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t mask, itc_
 		(_nevents[i] == 0 || !ITC_EQUEUE_EVENT_MASK_ALLOWS(mask, i)); 
 		i ++);
 	if(i == ITC_EQUEUE_EVENT_TYPE_COUNT) ERROR_RETURN_LOG(int, "The queue do not have specified type of event");
+#else
+	(void)token;
 #endif
 
 	LOG_DEBUG("Event queue size = %zu", _nevents[ITC_EQUEUE_EVENT_TYPE_COUNT]);
