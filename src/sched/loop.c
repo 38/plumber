@@ -342,10 +342,9 @@ static inline void* _sched_main(void* data)
 		while(sched_step_next(stc, _mod_mem) > 0 && !_killed);
 		
 		uint32_t concurrency = sched_task_num_concurrent_requests(stc);
+		arch_atomic_sw_assignment_u32(&context->num_running_reqs, concurrency);
 
 		BARRIER();
-
-		arch_atomic_sw_assignment_u32(&context->num_running_reqs, concurrency);
 
 		/* At this point, it's possible that the number of current concurrent request decreases
 		 * In this case, we need check if the dispatcher still blocks the IO event, if this is 
