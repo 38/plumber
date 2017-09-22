@@ -125,7 +125,7 @@ static struct {
 	uint32_t             q_mutex_init:1;  /*!< If queue mutex has been initalized */
 	uint32_t             al_mutex_init:1; /*!< If the waiting list mutex has been initialized */
 	uint32_t             q_cond_init:1;   /*!< If the queue condvar has been initialized */
-	uint32_t             num_ready;       /*!< The number of threads that gets ready */
+	volatile uint32_t    num_ready;       /*!< The number of threads that gets ready */
 
 	/*********** The queue related data ***************/
 	uint32_t             q_cap;    /*!< The capacity of the queue */

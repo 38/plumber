@@ -550,8 +550,8 @@ static inline int _dispatcher_main()
 				first = 1;
 				scheduler = round_robin_start;
 				for(;(first || scheduler != round_robin_start) &&
-				     scheduler->rear - scheduler->front >= scheduler->size &&
-					 !_scheduler_saturated(scheduler);
+				     (scheduler->rear - scheduler->front >= scheduler->size ||
+					 _scheduler_saturated(scheduler));
 				     scheduler = scheduler->next == NULL ? _scheds : scheduler->next)
 				    first = 0;
 				round_robin_start = scheduler->next == NULL ? _scheds : scheduler->next;
