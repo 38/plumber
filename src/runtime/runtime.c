@@ -9,7 +9,8 @@
 #include <utils/init.h>
 INIT_VEC(modules) = {
 	INIT_MODULE(runtime_stab),
-	INIT_MODULE(runtime_servlet)
+	INIT_MODULE(runtime_servlet),
+	INIT_MODULE(runtime_task)
 };
 
 int runtime_init()

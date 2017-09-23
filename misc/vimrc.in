@@ -20,7 +20,7 @@ function! GetCurrentTestCase(source)
 	let relative = split(substitute(a:source, "@CMAKE_CURRENT_SOURCE_DIR@" . "/", "", ""), "/")
 	if l:relative[0] == "test"
 		"This is a core test
-		return "bin/test" . l:relative[1] . "/" . substitute(l:relative[2], "test_", l:relative[1])
+		return "bin/test/" . l:relative[1] . "/" . substitute(l:relative[2], "test_", l:relative[1]."_", "")
 	else 
 		if l:relative[0] == "lib"
 			"This is a package test
