@@ -994,29 +994,6 @@ static int _eom(void* __restrict ctx, void* __restrict pipe, const char* buffer,
 }
 
 /**
- * @brief the callback function to get the property
- * @param ctx the mdoule context
- * @param sym the symbol name
- * @param type the data type
- * @param data the buffer used to return data
- * @return status code
- **/
-static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* sym)
-{
-	itc_module_property_value_t ret = {
-		.type = ITC_MODULE_PROPERTY_TYPE_NONE
-	};
-	_module_context_t* context = (_module_context_t*)ctx;
-	if(strcmp(sym, "async_write") == 0)
-	{
-		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
-		ret.num = context->async_write;
-		return ret;
-	}
-	return ret;
-}
-
-/**
  * @brief add a new certification to the certification chain
  * @param ctx the ssl context
  * @param filename the certification file
@@ -1178,6 +1155,59 @@ static inline int _setup_alpn_support(_module_context_t* context, const char* or
 	LOG_DEBUG("TLS ALPN is enabled");
 
 	return 1;
+}
+
+/**
+ * @brief the callback function to get the property
+ * @param ctx the mdoule context
+ * @param sym the symbol name
+ * @param type the data type
+ * @param data the buffer used to return data
+ * @return status code
+ **/
+static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* sym)
+{
+	itc_module_property_value_t ret = {
+		.type = ITC_MODULE_PROPERTY_TYPE_NONE
+	};
+	_module_context_t* context = (_module_context_t*)ctx;
+	if(strcmp(sym, "async_write") == 0)
+	{
+		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
+		ret.num = context->async_write;
+	}
+	else if(strcmp(sym, "ssl2") == 0)
+	{
+		long options = SSL_CTX_get_options(context->ssl_context);
+		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
+		ret.num = !(options & SSL_OP_NO_SSLv2);
+	}
+	else if(strcmp(sym, "ssl3") == 0)
+	{
+		long options = SSL_CTX_get_options(context->ssl_context);
+		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
+		ret.num = !(options & SSL_OP_NO_SSLv3);
+	}
+	else if(strcmp(sym, "tls1") == 0)
+	{
+		long options = SSL_CTX_get_options(context->ssl_context);
+		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
+		ret.num = !(options & SSL_OP_NO_TLSv1);
+	}
+	else if(strcmp(sym, "tls1_1") == 0)
+	{
+		long options = SSL_CTX_get_options(context->ssl_context);
+		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
+		ret.num = !(options & SSL_OP_NO_TLSv1_1);
+	}
+	else if(strcmp(sym, "tls1_2") == 0)
+	{
+		long options = SSL_CTX_get_options(context->ssl_context);
+		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
+		ret.num = !(options & SSL_OP_NO_TLSv1_2);
+	}
+	/* TODO: support others */
+	return ret;
 }
 
 /**

@@ -149,48 +149,6 @@ static struct {
 } _ctx;
 
 /**
- * @brief setup the async task processor properties
- * @param symbol The symbol of the property
- * @param value The value to set
- * @param data The data
- * @return status code
- **/
-static inline int _set_prop(const char* symbol, lang_prop_value_t value, const void* data)
-{
-	(void)data;
-	if(strcmp(symbol, "nthreads") == 0)
-	{
-		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
-		_ctx.nthreads = (uint32_t)value.num;
-		LOG_DEBUG("Setting the number of async processing thread to %u", _ctx.nthreads);
-	}
-	else if(strcmp(symbol, "queue_size") == 0)
-	{
-		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
-		uint32_t desired = (uint32_t)value.num;
-		uint32_t actual = 1;
-		for(;desired > 1; desired >>= 1, actual <<= 1);
-		if((uint32_t)value.num > actual) actual <<= 1;
-		if((uint32_t)value.num != actual)
-		    LOG_WARNING("Adjusted the desired async processor queue size from %u to %u", (uint32_t)value.num, actual);
-		LOG_DEBUG("Setting the async processor queue size to %u", actual);
-		_ctx.q_cap = actual;
-	}
-	else if(strcmp(symbol, "wait_list_size") == 0)
-	{
-		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
-		_ctx.al_cap = (uint32_t)value.num;
-	}
-	else
-	{
-		LOG_WARNING("Invalid property scheduler.async.%s", symbol);
-		return 0;
-	}
-
-	return 1;
-}
-
-/**
  * @brief post a task completion event to the event qeueue
  * @param token The event queue token we used to post the task
  * @param handle The handle we want to pose
@@ -407,6 +365,79 @@ UNLOCK:
 	return thread_data;
 }
 
+/**
+ * @brief setup the async task processor properties
+ * @param symbol The symbol of the property
+ * @param value The value to set
+ * @param data The data
+ * @return status code
+ **/
+static inline int _set_prop(const char* symbol, lang_prop_value_t value, const void* data)
+{
+	(void)data;
+	if(strcmp(symbol, "nthreads") == 0)
+	{
+		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
+		_ctx.nthreads = (uint32_t)value.num;
+		LOG_DEBUG("Setting the number of async processing thread to %u", _ctx.nthreads);
+	}
+	else if(strcmp(symbol, "queue_size") == 0)
+	{
+		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
+		uint32_t desired = (uint32_t)value.num;
+		uint32_t actual = 1;
+		for(;desired > 1; desired >>= 1, actual <<= 1);
+		if((uint32_t)value.num > actual) actual <<= 1;
+		if((uint32_t)value.num != actual)
+		    LOG_WARNING("Adjusted the desired async processor queue size from %u to %u", (uint32_t)value.num, actual);
+		LOG_DEBUG("Setting the async processor queue size to %u", actual);
+		_ctx.q_cap = actual;
+	}
+	else if(strcmp(symbol, "wait_list_size") == 0)
+	{
+		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
+		_ctx.al_cap = (uint32_t)value.num;
+	}
+	else
+	{
+		LOG_TRACE("Invalid property scheduler.async.%s", symbol);
+		return 0;
+	}
+
+	return 1;
+}
+
+/**
+ * @brief get the property of the async task processor
+ * @param sym The symbol to get
+ * @param param The param
+ * @return the result
+ **/
+static lang_prop_value_t _get_prop(const char* symbol, const void* param)
+{
+	(void)param;
+	lang_prop_value_t ret = {
+		.type = LANG_PROP_TYPE_NONE
+	};
+	if(strcmp(symbol, "nthreads") == 0)
+	{
+		ret.type = LANG_PROP_TYPE_INTEGER;
+		ret.num = _ctx.nthreads;
+	}
+	else if(strcmp(symbol, "queue_size") == 0)
+	{
+		ret.type = LANG_PROP_TYPE_INTEGER;
+		ret.num = _ctx.q_cap;
+	}
+	else if(strcmp(symbol, "wait_list_size") == 0)
+	{
+		ret.type = LANG_PROP_TYPE_INTEGER;
+		ret.num = _ctx.al_cap;
+	}
+
+	return ret;
+}
+
 int sched_async_init()
 {
 	_ctx.q_cap = 65536;
@@ -414,7 +445,7 @@ int sched_async_init()
 	_ctx.al_cap = 65536;
 	lang_prop_callback_t cb = {
 		.param         = NULL,
-		.get           = NULL,
+		.get           = _get_prop,
 		.set           = _set_prop,
 		.symbol_prefix = "scheduler.async"
 	};

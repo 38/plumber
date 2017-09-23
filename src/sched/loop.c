@@ -821,11 +821,60 @@ static inline int _set_prop(const char* symbol, lang_prop_value_t value, const v
 	return 1;
 }
 
+/**
+ * @brief get the property of the worker thread
+ * @param sym The symbol to get
+ * @param param The param
+ * @return the result
+ **/
+static lang_prop_value_t _get_prop(const char* symbol, const void* param)
+{
+	(void)param;
+	lang_prop_value_t ret = {
+		.type = LANG_PROP_TYPE_NONE
+	};
+	if(strcmp(symbol, "nthreads") == 0)
+	{
+		ret.type = LANG_PROP_TYPE_INTEGER;
+		ret.num = _nthreads;
+	}
+	else if(strcmp(symbol, "queue_size") == 0)
+	{
+		ret.type = LANG_PROP_TYPE_INTEGER;
+		ret.num = _queue_size;
+	}
+	else if(strcmp(symbol, "default_itc_pipe") == 0)
+	{
+		ret.type = LANG_PROP_TYPE_STRING;
+		const itc_modtab_instance_t* mi = itc_modtab_get_from_module_type(_mod_mem);
+		if(NULL == mi) 
+		{
+			LOG_WARNING("Cannot get the default ITC pipe module");
+			ret.type = LANG_PROP_TYPE_NONE;
+			return ret;
+		}
+
+		if(NULL == (ret.str = strdup(mi->path)))
+		{
+			LOG_WARNING_ERRNO("Cannot allocate memory for the path string");
+			ret.type = LANG_PROP_TYPE_ERROR;
+			return ret;
+		}
+	}
+	else if(strcmp(symbol, "max_concurrency") == 0)
+	{
+		ret.type = LANG_PROP_TYPE_INTEGER;
+		ret.num = _max_worker_concurrency;
+	}
+
+	return ret;
+}
+
 int sched_loop_init()
 {
 	lang_prop_callback_t cb = {
 		.param = NULL,
-		.get   = NULL,
+		.get   = _get_prop,
 		.set   = _set_prop,
 		.symbol_prefix = "scheduler.worker"
 	};

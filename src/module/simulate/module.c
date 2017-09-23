@@ -558,6 +558,22 @@ static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_
 	return 0;
 }
 
+itc_module_property_value_t _get_prop(void* __restrict ctx, const char * symbol)
+{
+	_module_context_t* context = (_module_context_t*)ctx;
+	itc_module_property_value_t ret = {
+		.type = ITC_MODULE_PROPERTY_TYPE_NONE
+	};
+
+	if(strcmp(symbol, "events_per_sec") == 0)
+	{
+		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
+		ret.num = context->events_per_sec;
+	}
+
+	return ret;
+}
+
 itc_module_t module_simulate_module_def = {
 	.mod_prefix   = "pipe.simulate",
 	.context_size = sizeof(_module_context_t),
@@ -573,5 +589,6 @@ itc_module_t module_simulate_module_def = {
 	.has_unread_data = _has_unread_data,
 	.get_flags       = _get_flags,
 	.set_property    = _set_prop,
+	.get_property    = _get_prop,
 	.cntl            = _cntl
 };
