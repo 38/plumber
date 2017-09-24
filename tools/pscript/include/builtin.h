@@ -24,4 +24,10 @@ int builtin_init(pss_vm_t* vm);
  **/
 void builtin_print_doc(FILE* fp, int print_internals, pss_value_builtin_t func);
 
+/**
+ * @brief Indicates if we currently have serivce running
+ * @return result
+ **/
+int builtin_service_running();
+
 #endif

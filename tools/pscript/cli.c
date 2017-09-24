@@ -141,21 +141,10 @@ static int _scan_brackets(pss_comp_lex_t* lexer)
 	return b_index;
 }
 
-
-void cli_service_started()
-{
-	_service_started = 1;
-}
-
-void cli_service_stopped()
-{
-	_service_started = 0;
-}
-
 static void _stop(int signo)
 {
 	(void)signo;
-	if(_service_started)
+	if(builtin_service_running())
 	{
 		LOG_DEBUG("SIGINT Caught!");
 		_interrupt = 1;
@@ -244,7 +233,7 @@ int cli_interactive(uint32_t debug)
 	_ADD_BUILTIN_FUNC("help", _help)
 
 #undef _ADD_BUILTIN_FUNC
-	printf("REPL Shell for PScript (Plumber Version %s)\n\n", PLUMBER_VERSION);
+	printf("\nREPL Shell for Plumber Service Script\n\nPlumber Version [%s]\n\n", PLUMBER_VERSION);
 	printf("help()  -> Get the help message\n");
 	printf("quit()  -> Quit the interactive client\n");
 	printf("\n");
@@ -258,6 +247,8 @@ int cli_interactive(uint32_t debug)
 
 	while(!_interrupt)
 	{
+		_free_line_list(head);
+		head = NULL;
 		_readline = 1;
 		BARRIER();
 		line = readline(PSCRIPT_CLI_PROMPT);
@@ -310,7 +301,9 @@ int cli_interactive(uint32_t debug)
 				break;
 			}
 
+			_readline = 1;
 			line = readline(".... ");
+			_readline = 0;
 		}
 _ADD_HISTORY:
 		if(NULL == (code = _cat_lines(head))) goto _END_OF_CODE;
@@ -327,7 +320,7 @@ _ADD_HISTORY:
 			_vm_running = 1;
 
 			int rc = pss_vm_run_module(current_vm, module, &result);
-			LOG_INFO("VM terminated with exit code %d", rc);
+			LOG_DEBUG("VM terminated with exit code %d", rc);
 
 			_vm_running = 0;
 
@@ -340,16 +333,17 @@ _ADD_HISTORY:
 					break;
 				}
 
-				printf("%s\n", buf);
+				printf("\033[36m%s\033[0m\n", buf);
 			}
 
 
 			if(ERROR_CODE(int) == rc)
 			{
 				pss_vm_exception_t* exception = pss_vm_last_exception(current_vm);
-				fprintf(stderr, "PSS VM Exception: %s\n\n", exception->message);
+				fprintf(stderr, "\n\033[31mPSS VM Exception: %s\n\n", exception->message);
 				pss_vm_backtrace_t* backtrace = exception->backtrace;
 				_print_bt(backtrace);
+				fprintf(stderr, "\033[0m\n");
 				pss_vm_exception_free(exception);
 			}
 		}
@@ -369,6 +363,7 @@ _END_OF_CODE:
 		if(NULL != code) free(code);
 		if(NULL != lexer) pss_comp_lex_free(lexer);
 		_free_line_list(head);
+		head = NULL;
 	}
 TERMINATE:
 	if(ERROR_CODE(int) == pss_vm_free(current_vm))

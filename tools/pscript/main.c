@@ -153,7 +153,10 @@ static void _stop(int signo)
 	(void)signo;
 
 	LOG_DEBUG("SIGINT Caught!");
-	sched_loop_kill(0);
+	if(builtin_service_running())
+		sched_loop_kill(0);
+	else if(current_vm != NULL && ERROR_CODE(int) == pss_vm_kill(current_vm))
+		LOG_ERROR("Cannot kill current VM");
 }
 
 pss_value_t make_argv(int argc, char** argv)

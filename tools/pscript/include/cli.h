@@ -16,16 +16,4 @@
  * @return status code
  **/
 int cli_interactive(uint32_t debug);
-
-/**
- * @brief Notify that the service has been started
- * @return nothing
- **/
-void cli_service_started();
-
-/**
- * @brief Notify that the service has been stopped
- * @return nothing
- **/
-void cli_service_stopped();
 #endif

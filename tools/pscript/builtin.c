@@ -20,6 +20,8 @@
 
 extern char const* const* module_paths;
 
+static int _service_running;
+
 static pss_value_t _pscript_builtin_lsmod(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
 	(void)vm;
@@ -656,16 +658,16 @@ static pss_value_t _pscript_builtin_service_start(pss_vm_t* vm, uint32_t argc, p
 	pss_exotic_t* obj = (pss_exotic_t*)pss_value_get_data(argv[0]);
 	lang_service_t* serv = (lang_service_t*)pss_exotic_get_data(obj, LANG_SERVICE_TYPE_MAGIC);
 
-	cli_service_started();
+	_service_running = 1;
 
 	if(ERROR_CODE(int) == lang_service_start(serv))
 	{
 		ret.num = PSS_VM_ERROR_SERVICE;
-		cli_service_stopped();
+		_service_running = 0;
 		return ret;
 	}
 
-	cli_service_stopped();
+	_service_running = 0;
 	ret.kind = PSS_VALUE_KIND_UNDEF;
 
 	return ret;
@@ -1046,4 +1048,9 @@ void builtin_print_doc(FILE* fp, int print_internals, pss_value_builtin_t func)
 		fputc('\n', fp);
 		fputc('\n', fp);
 	}
+}
+
+int builtin_service_running()
+{
+	return _service_running != 0;
 }

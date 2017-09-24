@@ -59,11 +59,11 @@ typedef struct _stack_t {
  * @brief The actual data structure for a PSS Virtual Machine
  **/
 struct _pss_vm_t {
-	pss_vm_error_t error;       /*!< The error code if the VM is entering an error state */
-	uint32_t       level;       /*!< The stack level */
-	uint32_t       killed;      /*!< If this VM gets killed */
-	_stack_t*      stack;       /*!< The stack we are using */
-	pss_dict_t*    global;      /*!< The global variable table */
+	pss_vm_error_t error;                               /*!< The error code if the VM is entering an error state */
+	uint32_t       level;                               /*!< The stack level */
+	uint32_t       killed:1;                            /*!< If this VM gets killed */
+	_stack_t*      stack;                               /*!< The stack we are using */
+	pss_dict_t*    global;                              /*!< The global variable table */
 	pss_vm_external_global_ops_t external_global_hook;  /*!< The external global hook */
 };
 
@@ -511,7 +511,8 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 			    return 0;
 		}
 	}
-	else
+	else if(NULL != _value_get_ref_data(vm, left, PSS_VALUE_REF_TYPE_STRING, 0) ||
+			NULL != _value_get_ref_data(vm, right, PSS_VALUE_REF_TYPE_STRING, 0))
 	{
 		char leftbuf[4096];
 		char rightbuf[4096];
@@ -566,6 +567,11 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 			    vm->error = PSS_VM_ERROR_BYTECODE;
 			    return 0;
 		}
+	}
+	else
+	{
+		vm->error = PSS_VM_ERROR_TYPE;
+		return 0;
 	}
 
 	if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[2], result))
