@@ -34,7 +34,9 @@ static const char* _errstr[] = {
 	[PSS_VM_ERROR_FAILED]     = "Failed to compelete requested operation",
 	[PSS_VM_ERROR_ADD_NODE]   = "Failed to add servlet node",
 	[PSS_VM_ERROR_PIPE]       = "Failed to add pipe between servlets",
-	[PSS_VM_ERROR_SERVICE]    = "Cannot start the service"
+	[PSS_VM_ERROR_SERVICE]    = "Cannot start the service",
+	[PSS_VM_ERROR_UNDEF]      = "Invalid operation on undefined value",
+	[PSS_VM_ERROR_NONFUNC]    = "Invalid invocation to non-function value"
 };
 
 /**
@@ -59,6 +61,7 @@ typedef struct _stack_t {
 struct _pss_vm_t {
 	pss_vm_error_t error;       /*!< The error code if the VM is entering an error state */
 	uint32_t       level;       /*!< The stack level */
+	uint32_t       killed;      /*!< If this VM gets killed */
 	_stack_t*      stack;       /*!< The stack we are using */
 	pss_dict_t*    global;      /*!< The global variable table */
 	pss_vm_external_global_ops_t external_global_hook;  /*!< The external global hook */
@@ -172,7 +175,7 @@ static inline int _is_value_kind(pss_vm_t* vm, pss_value_t value, pss_value_kind
 	if(vm->error != PSS_VM_ERROR_NONE) return 0;
 	if(value.kind != kind)
 	{
-		if(raise) vm->error = PSS_VM_ERROR_TYPE;
+		if(raise) vm->error = (value.kind != PSS_VALUE_KIND_UNDEF ? PSS_VM_ERROR_TYPE : PSS_VM_ERROR_UNDEF);
 		return 0;
 	}
 
@@ -194,7 +197,7 @@ static inline void* _value_get_ref_data(pss_vm_t* vm, pss_value_t value, pss_val
 
 	if(type != pss_value_ref_type(value))
 	{
-		if(raise) vm->error = PSS_VM_ERROR_TYPE;
+		if(raise) vm->error = type == PSS_VALUE_REF_TYPE_CLOSURE ? PSS_VM_ERROR_NONFUNC : PSS_VM_ERROR_TYPE;
 		return NULL;
 	}
 
@@ -471,7 +474,7 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 		    result.num = !(lundef && rundef);
 		else
 		{
-			vm->error = PSS_VM_ERROR_TYPE;
+			vm->error = PSS_VM_ERROR_UNDEF;
 			return 0;
 		}
 	}
@@ -793,7 +796,7 @@ static inline pss_bytecode_regid_t _exec(pss_vm_t* vm)
 
 	if(vm->level > PSS_VM_STACK_LIMIT) vm->error = PSS_VM_ERROR_STACK;
 
-	while(vm->stack != NULL && PSS_VM_ERROR_NONE == vm->error && retreg == ERROR_CODE(pss_bytecode_regid_t))
+	while(vm->stack != NULL && !vm->killed && PSS_VM_ERROR_NONE == vm->error && retreg == ERROR_CODE(pss_bytecode_regid_t))
 	{
 		pss_bytecode_instruction_t inst;
 		if(ERROR_CODE(int) == pss_bytecode_segment_get_inst(top->code, top->ip, &inst))
@@ -884,7 +887,25 @@ static inline pss_bytecode_regid_t _exec(pss_vm_t* vm)
 	}
 	vm->level --;
 
+	if(vm->killed && retreg == ERROR_CODE(pss_bytecode_regid_t))
+	{
+		pss_value_t undef = {};
+		if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, 0, undef))
+			LOG_ERROR("Cannot set the stack frame");
+		else
+			retreg = 0;
+	}
+
+	if(vm->level == 0) vm->killed = 0;
+
 	return retreg;
+}
+
+int pss_vm_kill(pss_vm_t* vm)
+{
+	if(vm == NULL) ERROR_RETURN_LOG(int, "Invalid arguments");
+	vm->killed = 1;
+	return 0;
 }
 
 pss_vm_t* pss_vm_new()

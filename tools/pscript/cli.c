@@ -26,6 +26,8 @@ static int _readline = 0;
 
 static int _service_started = 0;
 
+static int _vm_running = 0;
+
 static sigjmp_buf _restart;
 
 typedef struct _line_list_t {
@@ -163,6 +165,12 @@ static void _stop(int signo)
 	{
 		rl_set_signals();
 		siglongjmp(_restart, 1);
+	}
+	else if(_vm_running)
+	{
+		if(ERROR_CODE(int) == pss_vm_kill(current_vm))
+			LOG_ERROR("Cannot kill the VM");
+		fprintf(stderr, "Keyboard Interrupted\n");
 	}
 }
 
@@ -316,9 +324,12 @@ _ADD_HISTORY:
 			if(NULL == (module = module_from_buffer(code, head->off + head->size, debug, 1)))
 			    goto _END_OF_CODE;
 
+			_vm_running = 1;
 
 			int rc = pss_vm_run_module(current_vm, module, &result);
 			LOG_INFO("VM terminated with exit code %d", rc);
+
+			_vm_running = 0;
 
 			if(result.kind != PSS_VALUE_KIND_UNDEF && result.kind != PSS_VALUE_KIND_ERROR)
 			{

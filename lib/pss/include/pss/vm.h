@@ -29,7 +29,9 @@ typedef enum {
 	PSS_VM_ERROR_FAILED,     /*!< The requested operation failed */
 	PSS_VM_ERROR_ADD_NODE,   /*!< Cannot add node to the service graph */
 	PSS_VM_ERROR_PIPE,       /*!< We cannot add pipe connecting two servlet */
-	PSS_VM_ERROR_SERVICE     /*!< Cannot start the service */
+	PSS_VM_ERROR_SERVICE,    /*!< Cannot start the service */
+	PSS_VM_ERROR_UNDEF,      /*!< Operating an undefined value */
+	PSS_VM_ERROR_NONFUNC     /*!< Calling a non-function */
 } pss_vm_error_t;
 
 /**

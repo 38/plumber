@@ -25,6 +25,7 @@ static size_t _src_root_length = sizeof(_src_root);
 
 static char _log_path[8][PATH_MAX] = {};
 static char _log_mode[8][16] = {};
+static int _log_stderr[8] = {};
 static FILE* _log_fp[8] = {};
 
 static FILE _fp_off;
@@ -56,11 +57,12 @@ int log_init()
 		static char type[1024];
 		static char path[1024];
 		static char mode[1024];
+		int screen_print = 0;
 		for(;NULL != fgets(buf, sizeof(buf), fp);)
 		{
 			char* begin = NULL;
 			char* end = NULL;
-			char* p;
+			char* p, *q;
 			for(p = buf; *p; p ++)
 			{
 				if(*p != '\t' &&
@@ -83,6 +85,10 @@ int log_init()
 				mode[0] = 'w';
 				mode[1] = '0';
 			}
+
+			for(p = q = mode; *p; *(p++) = *(q++))
+				if(*p == 'e') screen_print = 1, p ++;
+
 			int level;
 #define     _STR_TO_ID(name) else if(strcmp(type, #name) == 0) level = name
 			if(0);
@@ -132,6 +138,7 @@ int log_init()
 			_log_fp[level] = outfile;
 			snprintf(_log_path[level], sizeof(_log_path[0]), "%s", path);
 			snprintf(_log_mode[level], sizeof(_log_mode[0]), "%s", mode);
+			_log_stderr[level] = screen_print;
 		}
 		if(_log_fp[7] != NULL) default_fp = _log_fp[7];
 	}
@@ -307,12 +314,26 @@ void log_write_va(int level, const char* file, const char* function, int line, c
 	clock_gettime(CLOCK_REALTIME, &time);
 
 	double ts = (double)time.tv_sec + (double)time.tv_nsec / 1e+9;
+
+	if(fp != stderr && _log_stderr[level])
+	{
+		va_list ap_copy;
+		va_copy(ap_copy, ap);
+		flockfile(stderr);
+		fprintf(stderr,"%c[%16.6lf|%s@%s:%d] ", level_char[level], ts, function, file, line);
+		vfprintf(stderr, fmt, ap_copy);
+		fprintf(stderr, "\n");
+		fflush(stderr);
+		funlockfile(stderr);
+	}
+
 	flockfile(fp);
 	fprintf(fp,"%c[%16.6lf|%s@%s:%d] ", level_char[level], ts, function, file, line);
 	vfprintf(fp, fmt, ap);
 	fprintf(fp, "\n");
 	fflush(fp);
 	funlockfile(fp);
+
 UNLOCK:
 	if(locked && pthread_mutex_unlock(&_log_mutex) < 0)
 	    perror("mutex error");

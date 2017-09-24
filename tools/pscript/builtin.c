@@ -85,7 +85,7 @@ static pss_value_t _pscript_builtin_print(pss_vm_t* vm, uint32_t argc, pss_value
 	uint32_t i;
 	for(i = 0; i < argc; i ++)
 	{
-		char buf[4096];
+		static char buf[40960];
 		if(ERROR_CODE(size_t) == pss_value_strify_to_buf(argv[i], buf, sizeof(buf)))
 		{
 			LOG_ERROR("Type error: Got invalid value");
@@ -294,7 +294,7 @@ static pss_value_t _pscript_builtin_insmod(pss_vm_t* vm, uint32_t argc, pss_valu
 
 	ret.num = PSS_VM_ERROR_MODULE;
 	binary = itc_binary_search_module(module_argv[0]);
-	if(NULL == binary) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find the module binary named %s", module_argv[0]);
+	if(NULL == binary) ERROR_LOG_GOTO(ERR, "Cannot find the module binary named %s", module_argv[0]);
 
 	LOG_DEBUG("Found module binary @%p", binary);
 
@@ -870,6 +870,35 @@ static pss_value_t _pscript_builtin_log_redirect(pss_vm_t* vm, uint32_t argc, ps
 }
 
 
+static pss_value_t _pscript_builtin_exit(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
+{
+	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR, .num = PSS_VM_ERROR_ARGUMENT};
+
+	if(argc > 1) return ret;
+
+	int rc = 0;
+	if(argc == 1) 
+	{
+		if(argv[0].kind != PSS_VALUE_KIND_NUM) 
+			return ret;
+		rc = (int)argv[0].num;
+	}
+
+	extern int exit_code;
+	exit_code = rc;
+
+	if(ERROR_CODE(int) == pss_vm_kill(vm))
+	{
+		LOG_ERROR("Cannot kill the VM execution");
+		ret.num = PSS_VM_ERROR_INTERNAL;
+		return ret;
+	}
+
+	ret.kind = PSS_VALUE_KIND_UNDEF;
+	return ret;
+}
+
+
 
 static pss_value_t _external_get(const char* name)
 {
@@ -931,6 +960,7 @@ static struct {
 	const char*         proto;
 	const char*         desc;
 } _builtins[] = {
+	_B(exit,   "([code])", "Exit with the given exit code or 0 (For REPL mode, this function only set the exit code, but won't actually exit the REPL shell)"),
 	_B(dict,   "()",   "Create a new dictionary"),
 	_B(import, "(name)", "Import the PSS module specified by the name"),
 	_B(insmod, "(init_str)", "Install a module specified by init_str to Plumber runtime system"),

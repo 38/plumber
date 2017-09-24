@@ -37,6 +37,8 @@ uint32_t      debug = 1;
 int           log_level = 4;
 const char*   compiled_output = NULL;
 
+int           exit_code = 0;
+
 
 #define _MESSAGE(fmt, args...) fprintf(stderr, fmt"\n", ##args)
 void display_help()
@@ -423,6 +425,8 @@ int _program(int argc, char** argv)
 	    rc = cli_interactive(debug);
 	else
 	    rc = run_user_script(argv[begin], argc - begin, argv + begin);
+
+	if(rc == 0) rc = exit_code;
 
 
 	if(pss_finalize() == ERROR_CODE(int))

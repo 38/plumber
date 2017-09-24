@@ -184,5 +184,11 @@ int pss_value_ref_set_type_ops(pss_value_ref_type_t type, pss_value_ref_ops_t op
  **/
 void* pss_value_get_data(pss_value_t value);
 
+/**
+ * @brief Kill current execution 
+ * @param target vm
+ * @return status code
+ **/
+int pss_vm_kill(pss_vm_t* vm);
 
 #endif
