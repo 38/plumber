@@ -16,6 +16,7 @@
 #include <utils/log.h>
 #include <pss.h>
 #include <module.h>
+#include <cli.h>
 
 extern char const* const* module_paths;
 
@@ -644,12 +645,16 @@ static pss_value_t _pscript_builtin_service_start(pss_vm_t* vm, uint32_t argc, p
 	pss_exotic_t* obj = (pss_exotic_t*)pss_value_get_data(argv[0]);
 	lang_service_t* serv = (lang_service_t*)pss_exotic_get_data(obj, LANG_SERVICE_TYPE_MAGIC);
 
+	cli_service_started();
+
 	if(ERROR_CODE(int) == lang_service_start(serv))
 	{
 		ret.num = PSS_VM_ERROR_INTERNAL;
+		cli_service_stopped();
 		return ret;
 	}
 
+	cli_service_stopped();
 	ret.kind = PSS_VALUE_KIND_UNDEF;
 
 	return ret;

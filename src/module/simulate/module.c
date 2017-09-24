@@ -570,6 +570,23 @@ itc_module_property_value_t _get_prop(void* __restrict ctx, const char * symbol)
 		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
 		ret.num = context->events_per_sec;
 	}
+	else if(strcmp(symbol, "nevents") == 0)
+	{
+		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
+		ret.num = 0;
+		_event_t* event;
+		for(event = context->event_list_head; event != NULL; event = event->next, ret.num ++);
+	}
+	else if(strcmp(symbol, "output") == 0)
+	{
+		ret.type = ITC_MODULE_PROPERTY_TYPE_STRING;
+		if(NULL == (ret.str = strdup(context->outfile)))
+		{
+			ret.type = ITC_MODULE_PROPERTY_TYPE_ERROR;
+			LOG_ERROR_ERRNO("Cannot duplicate the output filename");
+			return ret;
+		}
+	}
 
 	return ret;
 }

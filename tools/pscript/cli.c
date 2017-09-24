@@ -6,6 +6,7 @@
 #include <signal.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <setjmp.h>
 
 #include <pss.h>
 #include <plumber.h>
@@ -15,10 +16,17 @@
 #include <builtin.h>
 #include <cli.h>
 #include <module.h>
+#include <barrier.h>
 
 extern pss_vm_t* current_vm;
 
 static int _interrupt = 0;
+
+static int _readline = 0;
+
+static int _service_started = 0;
+
+static sigjmp_buf _restart;
 
 typedef struct _line_list_t {
 	char *line;
@@ -131,12 +139,31 @@ static int _scan_brackets(pss_comp_lex_t* lexer)
 	return b_index;
 }
 
+
+void cli_service_started()
+{
+	_service_started = 1;
+}
+
+void cli_service_stopped()
+{
+	_service_started = 0;
+}
+
 static void _stop(int signo)
 {
 	(void)signo;
-	LOG_DEBUG("SIGINT Caught!");
-	_interrupt = 1;
-	sched_loop_kill(1);
+	if(_service_started)
+	{
+		LOG_DEBUG("SIGINT Caught!");
+		_interrupt = 1;
+		sched_loop_kill(1);
+	}
+	else if(_readline)
+	{
+		rl_set_signals();
+		siglongjmp(_restart, 1);
+	}
 }
 
 static pss_value_t _quit(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
@@ -150,6 +177,7 @@ static pss_value_t _quit(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 
 	ret.kind = PSS_VALUE_KIND_UNDEF;
 
+	_service_started = 1;
 	_stop(0);
 
 	return ret;
@@ -215,9 +243,18 @@ int cli_interactive(uint32_t debug)
 
 	signal(SIGINT, _stop);
 
+	if(sigsetjmp(_restart, 1))
+	{
+		puts("");
+	}
+
 	while(!_interrupt)
 	{
+		_readline = 1;
+		BARRIER();
 		line = readline(PSCRIPT_CLI_PROMPT);
+		BARRIER();
+		_readline = 0;
 		// ignore empty line
 		if(NULL == line || line[0] == 0)
 		{
