@@ -511,8 +511,7 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 			    return 0;
 		}
 	}
-	else if(NULL != _value_get_ref_data(vm, left, PSS_VALUE_REF_TYPE_STRING, 0) ||
-			NULL != _value_get_ref_data(vm, right, PSS_VALUE_REF_TYPE_STRING, 0))
+	else 
 	{
 		char leftbuf[4096];
 		char rightbuf[4096];
@@ -567,11 +566,6 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 			    vm->error = PSS_VM_ERROR_BYTECODE;
 			    return 0;
 		}
-	}
-	else
-	{
-		vm->error = PSS_VM_ERROR_TYPE;
-		return 0;
 	}
 
 	if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[2], result))
