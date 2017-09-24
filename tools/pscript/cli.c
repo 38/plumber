@@ -210,7 +210,7 @@ int cli_interactive(uint32_t debug)
 	pss_comp_lex_t* lexer = NULL;
 	pss_bytecode_module_t* module = NULL;
 	pss_comp_error_t* err = NULL;
-	_line_list_t *head = NULL;
+	static _line_list_t *head = NULL;
 	char *code;
 	uint32_t lex_success;
 
