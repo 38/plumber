@@ -25,15 +25,20 @@ static pss_value_t _pscript_builtin_lsmod(pss_vm_t* vm, uint32_t argc, pss_value
 	(void)vm;
 	(void)argc;
 	(void)argv;
-	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR, .num = PSS_VM_ERROR_ARGUMENT};
+	pss_value_t ret = {
+		.kind = PSS_VALUE_KIND_ERROR, 
+		.num = PSS_VM_ERROR_ARGUMENT
+	};
+
 	pss_dict_t* ret_dict = NULL;
+	
+	ret.num = PSS_VM_ERROR_INTERNAL;
 
 	itc_modtab_dir_iter_t it;
 	if(itc_modtab_open_dir("", &it) == ERROR_CODE(int))
 	    return ret;
 
 	ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_DICT, NULL);
-
 	if(ret.kind == PSS_VALUE_KIND_ERROR)
 	    ERROR_LOG_GOTO(ERR, "Cannot create the result dictionary");
 
@@ -85,6 +90,7 @@ static pss_value_t _pscript_builtin_print(pss_vm_t* vm, uint32_t argc, pss_value
 		{
 			LOG_ERROR("Type error: Got invalid value");
 			ret.kind = PSS_VALUE_KIND_ERROR;
+			ret.num = PSS_VM_ERROR_INTERNAL;
 			break;
 		}
 
@@ -192,12 +198,14 @@ static pss_value_t _pscript_builtin_import(pss_vm_t* vm, uint32_t argc, pss_valu
 		if(NULL == module)
 		{
 			LOG_ERROR("Module error: Cannot load the required module named %s", name);
+			ret.num = PSS_VM_ERROR_IMPORT;
 			return ret;
 		}
 
 		if(ERROR_CODE(int) == pss_vm_run_module(vm, module, NULL))
 		{
 			LOG_ERROR("Module error: The module returns with an error code");
+			ret.num = PSS_VM_ERROR_IMPORT;
 			return ret;
 		}
 	}
@@ -225,7 +233,7 @@ static pss_value_t _pscript_builtin_insmod(pss_vm_t* vm, uint32_t argc, pss_valu
 	if(argv[0].kind != PSS_VALUE_KIND_REF || pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING)
 	{
 		ret.kind = PSS_VALUE_KIND_ERROR;
-		ret.num  = PSS_VM_ERROR_TYPE;
+		ret.num  = PSS_VM_ERROR_ARGUMENT;
 		LOG_ERROR("Type error: String argument expected in the insmod builtin");
 		return ret;
 	}
@@ -284,12 +292,13 @@ static pss_value_t _pscript_builtin_insmod(pss_vm_t* vm, uint32_t argc, pss_valu
 		}
 	}
 
-
+	ret.num = PSS_VM_ERROR_MODULE;
 	binary = itc_binary_search_module(module_argv[0]);
 	if(NULL == binary) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find the module binary named %s", module_argv[0]);
 
 	LOG_DEBUG("Found module binary @%p", binary);
 
+	ret.num = PSS_VM_ERROR_MODULE;
 	if(ERROR_CODE(int) == itc_modtab_insmod(binary, module_argc - 1, (char const* const*) module_argv + 1))
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot instantiate the mdoule binary using param");
 
@@ -298,7 +307,6 @@ static pss_value_t _pscript_builtin_insmod(pss_vm_t* vm, uint32_t argc, pss_valu
 	goto CLEANUP;
 ERR:
 	ret.kind = PSS_VALUE_KIND_ERROR;
-	ret.num  = PSS_VM_ERROR_INTERNAL;
 CLEANUP:
 
 	if(NULL != module_argv)
@@ -372,15 +380,18 @@ static pss_value_t _pscript_builtin_service_node(pss_vm_t* vm, uint32_t argc, ps
 	   pss_value_ref_type(argv[1]) != PSS_VALUE_REF_TYPE_STRING)
 	    return ret;
 
+	ret.num = PSS_VM_ERROR_INTERNAL;
 	pss_exotic_t* obj = (pss_exotic_t*)pss_value_get_data(argv[0]);
 	lang_service_t* serv = (lang_service_t*)pss_exotic_get_data(obj, LANG_SERVICE_TYPE_MAGIC);
 	if(NULL == serv) return ret;
 
+	ret.num = PSS_VM_ERROR_INTERNAL;
 	const char* init_args = (const char*)pss_value_get_data(argv[1]);
 	if(NULL == init_args) return ret;
+
 	int64_t rc;
 	if(ERROR_CODE(int64_t) == (rc = lang_service_add_node(serv, init_args)))
-	    ret.num = PSS_VM_ERROR_INTERNAL;
+	    ret.num = PSS_VM_ERROR_ADD_NODE;
 	else
 	{
 		ret.kind = PSS_VALUE_KIND_NUM;
@@ -563,7 +574,7 @@ static pss_value_t _pscript_builtin_service_pipe(pss_vm_t* vm, uint32_t argc, ps
 
 	if(ERROR_CODE(int) == lang_service_add_edge(serv, argv[1].num, src_port, argv[3].num, dst_port))
 	{
-		ret.num = PSS_VM_ERROR_INTERNAL;
+		ret.num = PSS_VM_ERROR_PIPE;
 		return ret;
 	}
 
@@ -605,7 +616,7 @@ static pss_value_t _set_input_or_output(uint32_t argc, pss_value_t* argv, int in
 
 	if(ERROR_CODE(int) == rc)
 	{
-		ret.num = PSS_VM_ERROR_INTERNAL;
+		ret.num = PSS_VM_ERROR_PIPE;
 		return ret;
 	}
 
@@ -649,7 +660,7 @@ static pss_value_t _pscript_builtin_service_start(pss_vm_t* vm, uint32_t argc, p
 
 	if(ERROR_CODE(int) == lang_service_start(serv))
 	{
-		ret.num = PSS_VM_ERROR_INTERNAL;
+		ret.num = PSS_VM_ERROR_SERVICE;
 		cli_service_stopped();
 		return ret;
 	}
@@ -848,7 +859,10 @@ static pss_value_t _pscript_builtin_log_redirect(pss_vm_t* vm, uint32_t argc, ps
 	if(level_num == -1) return ret;
 
 	if(log_redirect(level_num, filename, mode) == ERROR_CODE(int))
+	{
+		ret.num = PSS_VM_ERROR_FAILED;
 	    return ret;
+	}
 
 	ret.kind = PSS_VALUE_KIND_UNDEF;
 
@@ -880,7 +894,7 @@ static pss_value_t _external_get(const char* name)
 		    return ret;
 		default:
 		    ret.kind = PSS_VALUE_KIND_ERROR;
-		    ret.num  = PSS_VM_ERROR_INTERNAL;
+		    ret.num  = PSS_VM_ERROR_FAILED;
 	}
 
 	return ret;

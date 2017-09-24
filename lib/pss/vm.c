@@ -29,7 +29,12 @@ static const char* _errstr[] = {
 	[PSS_VM_ERROR_ARITHMETIC] = "Arithmetic error",
 	[PSS_VM_ERROR_STACK]      = "Stack overflow",
 	[PSS_VM_ERROR_ARGUMENT]   = "Argutment error",
-	[PSS_VM_ERROR_MODULE]     = "Module cannot be loaded"
+	[PSS_VM_ERROR_MODULE]     = "Module cannot be loaded",
+	[PSS_VM_ERROR_IMPORT]     = "Import error",
+	[PSS_VM_ERROR_FAILED]     = "Failed to compelete requested operation",
+	[PSS_VM_ERROR_ADD_NODE]   = "Failed to add servlet node",
+	[PSS_VM_ERROR_PIPE]       = "Failed to add pipe between servlets",
+	[PSS_VM_ERROR_SERVICE]    = "Cannot start the service"
 };
 
 /**

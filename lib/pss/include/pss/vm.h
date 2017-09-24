@@ -24,7 +24,12 @@ typedef enum {
 	PSS_VM_ERROR_ARITHMETIC, /*!< The arithmetic error */
 	PSS_VM_ERROR_STACK,      /*!< The stack overflow exception */
 	PSS_VM_ERROR_ARGUMENT,   /*!< The argument error */
-	PSS_VM_ERROR_MODULE      /*!< We can not find the required module */
+	PSS_VM_ERROR_MODULE,     /*!< We can not find the required module */
+	PSS_VM_ERROR_IMPORT,     /*!< We failed import a script */
+	PSS_VM_ERROR_FAILED,     /*!< The requested operation failed */
+	PSS_VM_ERROR_ADD_NODE,   /*!< Cannot add node to the service graph */
+	PSS_VM_ERROR_PIPE,       /*!< We cannot add pipe connecting two servlet */
+	PSS_VM_ERROR_SERVICE     /*!< Cannot start the service */
 } pss_vm_error_t;
 
 /**
