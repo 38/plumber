@@ -31,7 +31,8 @@ typedef enum {
 	PSS_VM_ERROR_PIPE,       /*!< We cannot add pipe connecting two servlet */
 	PSS_VM_ERROR_SERVICE,    /*!< Cannot start the service */
 	PSS_VM_ERROR_UNDEF,      /*!< Operating an undefined value */
-	PSS_VM_ERROR_NONFUNC     /*!< Calling a non-function */
+	PSS_VM_ERROR_NONFUNC,    /*!< Calling a non-function */
+	PSS_VM_ERROR_SECONDARY   /*!< The secondary error, which means this is caused by other failure */
 } pss_vm_error_t;
 
 /**

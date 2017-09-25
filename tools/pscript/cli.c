@@ -175,6 +175,8 @@ static pss_value_t _quit(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 	ret.kind = PSS_VALUE_KIND_UNDEF;
 
 	_service_started = 1;
+	_vm_running = 0;
+	_interrupt = 1;
 	_stop(0);
 
 	return ret;

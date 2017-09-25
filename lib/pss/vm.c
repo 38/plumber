@@ -36,7 +36,8 @@ static const char* _errstr[] = {
 	[PSS_VM_ERROR_PIPE]       = "Failed to add pipe between servlets",
 	[PSS_VM_ERROR_SERVICE]    = "Cannot start the service",
 	[PSS_VM_ERROR_UNDEF]      = "Invalid operation on undefined value",
-	[PSS_VM_ERROR_NONFUNC]    = "Invalid invocation to non-function value"
+	[PSS_VM_ERROR_NONFUNC]    = "Invalid invocation to non-function value",
+	[PSS_VM_ERROR_SECONDARY]  = "Secondary error"
 };
 
 /**
@@ -468,6 +469,7 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 
 	if(lundef || rundef)
 	{
+		result.kind = PSS_VALUE_KIND_NUM;
 		if(inst->opcode == PSS_BYTECODE_OPCODE_EQ)
 		    result.num = (lundef && rundef);
 		else if(inst->opcode == PSS_BYTECODE_OPCODE_NE)
@@ -478,8 +480,7 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 			return 0;
 		}
 	}
-
-	if(_is_value_kind(vm, left, PSS_VALUE_KIND_NUM, 0) &&
+	else if(_is_value_kind(vm, left, PSS_VALUE_KIND_NUM, 0) &&
 	   _is_value_kind(vm, right, PSS_VALUE_KIND_NUM, 0))
 	{
 		result.kind = PSS_VALUE_KIND_NUM;
@@ -717,7 +718,8 @@ static inline int _exec_builtin(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 	pss_value_t result = func.builtin(vm, argc, argv);
 	if(result.kind == PSS_VALUE_KIND_ERROR)
 	{
-		vm->error = (pss_vm_error_t)result.num;
+		if(vm->error == PSS_VM_ERROR_NONE || (pss_vm_error_t)result.num != PSS_VM_ERROR_SECONDARY)
+			vm->error = (pss_vm_error_t)result.num;
 		LOG_ERROR("The builtin function returns an error");
 		return 0;
 	}
