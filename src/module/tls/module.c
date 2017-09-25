@@ -1206,7 +1206,7 @@ static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* s
 		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
 		ret.num = !(options & SSL_OP_NO_TLSv1_2);
 	}
-	/* TODO: support others */
+	/* Other options should be the write-only options */
 	return ret;
 }
 

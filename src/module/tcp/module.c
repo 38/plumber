@@ -1246,6 +1246,11 @@ static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* s
 	if(strcmp(sym, "port") == 0) return _make_num(context->pool_conf.port);
 	else if(strcmp(sym, "ttl") == 0) return _make_num(context->pool_conf.ttl);
 	else if(strcmp(sym, "size") == 0) return _make_num(context->pool_conf.size);
+	else if(strcmp(sym, "event_size") == 0) return _make_num((long long)context->pool_conf.event_size);
+	else if(strcmp(sym, "event_timeout") == 0) return _make_num(context->pool_conf.min_timeout);
+	else if(strcmp(sym, "backlog") == 0) return _make_num(context->pool_conf.tcp_backlog);
+	else if(strcmp(sym, "ipv6") == 0) return _make_num(context->pool_conf.ipv6);
+	else if(strcmp(sym, "reuseaddr") == 0) return _make_num((long long)context->pool_conf.reuseaddr);
 	else if(strcmp(sym, "bindaddr") == 0) //*(const char**)data = context->pool_conf.bind_addr;
 	{
 		size_t len;
