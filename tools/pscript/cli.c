@@ -158,7 +158,7 @@ static void _stop(int signo)
 	else if(_vm_running)
 	{
 		if(ERROR_CODE(int) == pss_vm_kill(current_vm))
-			LOG_ERROR("Cannot kill the VM");
+		    LOG_ERROR("Cannot kill the VM");
 		fprintf(stderr, "Keyboard Interrupted\n");
 	}
 }

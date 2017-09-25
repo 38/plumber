@@ -462,14 +462,14 @@ static itc_equeue_event_mask_t _interrupt_handler(void* pl)
 		for(sched = _scheds; sched != NULL; sched = sched->next)
 		    if(!_scheduler_saturated(sched))
 		    {
-			    if(!ITC_EQUEUE_EVENT_MASK_ALLOWS(_last_mask, ITC_EQUEUE_EVENT_TYPE_IO)) 
-					LOG_DEBUG("The worker thread is not saturated, allow the IO event");
+			    if(!ITC_EQUEUE_EVENT_MASK_ALLOWS(_last_mask, ITC_EQUEUE_EVENT_TYPE_IO))
+			        LOG_DEBUG("The worker thread is not saturated, allow the IO event");
 			    ITC_EQUEUE_EVENT_MASK_ADD(ret, ITC_EQUEUE_EVENT_TYPE_IO);
 			    break;
 		    }
 		if(ITC_EQUEUE_EVENT_MASK_ALLOWS(_last_mask, ITC_EQUEUE_EVENT_TYPE_IO) &&
 		   !ITC_EQUEUE_EVENT_MASK_ALLOWS(ret, ITC_EQUEUE_EVENT_TYPE_IO))
-			LOG_DEBUG("All worker threads are saturated, stop accepting IO events");
+		    LOG_DEBUG("All worker threads are saturated, stop accepting IO events");
 	}
 
 	_last_mask = ret;
@@ -851,7 +851,7 @@ static lang_prop_value_t _get_prop(const char* symbol, const void* param)
 	{
 		ret.type = LANG_PROP_TYPE_STRING;
 		const itc_modtab_instance_t* mi = itc_modtab_get_from_module_type(_mod_mem);
-		if(NULL == mi) 
+		if(NULL == mi)
 		{
 			LOG_WARNING("Cannot get the default ITC pipe module");
 			ret.type = LANG_PROP_TYPE_NONE;

@@ -28,12 +28,12 @@ static pss_value_t _pscript_builtin_lsmod(pss_vm_t* vm, uint32_t argc, pss_value
 	(void)argc;
 	(void)argv;
 	pss_value_t ret = {
-		.kind = PSS_VALUE_KIND_ERROR, 
+		.kind = PSS_VALUE_KIND_ERROR,
 		.num = PSS_VM_ERROR_ARGUMENT
 	};
 
 	pss_dict_t* ret_dict = NULL;
-	
+
 	ret.num = PSS_VM_ERROR_INTERNAL;
 
 	itc_modtab_dir_iter_t it;
@@ -863,7 +863,7 @@ static pss_value_t _pscript_builtin_log_redirect(pss_vm_t* vm, uint32_t argc, ps
 	if(log_redirect(level_num, filename, mode) == ERROR_CODE(int))
 	{
 		ret.num = PSS_VM_ERROR_FAILED;
-	    return ret;
+		return ret;
 	}
 
 	ret.kind = PSS_VALUE_KIND_UNDEF;
@@ -879,10 +879,10 @@ static pss_value_t _pscript_builtin_exit(pss_vm_t* vm, uint32_t argc, pss_value_
 	if(argc > 1) return ret;
 
 	int rc = 0;
-	if(argc == 1) 
+	if(argc == 1)
 	{
-		if(argv[0].kind != PSS_VALUE_KIND_NUM) 
-			return ret;
+		if(argv[0].kind != PSS_VALUE_KIND_NUM)
+		    return ret;
 		rc = (int)argv[0].num;
 	}
 

@@ -513,7 +513,7 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 		}
 	}
 	else if(NULL != _value_get_ref_data(vm, left, PSS_VALUE_REF_TYPE_STRING, 0) ||
-			NULL != _value_get_ref_data(vm, right, PSS_VALUE_REF_TYPE_STRING, 0))
+	        NULL != _value_get_ref_data(vm, right, PSS_VALUE_REF_TYPE_STRING, 0))
 	{
 		char leftbuf[4096];
 		char rightbuf[4096];
@@ -719,7 +719,7 @@ static inline int _exec_builtin(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 	if(result.kind == PSS_VALUE_KIND_ERROR)
 	{
 		if(vm->error == PSS_VM_ERROR_NONE || (pss_vm_error_t)result.num != PSS_VM_ERROR_SECONDARY)
-			vm->error = (pss_vm_error_t)result.num;
+		    vm->error = (pss_vm_error_t)result.num;
 		LOG_ERROR("The builtin function returns an error");
 		return 0;
 	}
@@ -899,9 +899,9 @@ static inline pss_bytecode_regid_t _exec(pss_vm_t* vm)
 	{
 		pss_value_t undef = {};
 		if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, 0, undef))
-			LOG_ERROR("Cannot set the stack frame");
+		    LOG_ERROR("Cannot set the stack frame");
 		else
-			retreg = 0;
+		    retreg = 0;
 	}
 
 	if(vm->level == 0) vm->killed = 0;
