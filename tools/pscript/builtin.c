@@ -207,7 +207,7 @@ static pss_value_t _pscript_builtin_import(pss_vm_t* vm, uint32_t argc, pss_valu
 		if(ERROR_CODE(int) == pss_vm_run_module(vm, module, NULL))
 		{
 			LOG_ERROR("Module error: The module returns with an error code");
-			ret.num = PSS_VM_ERROR_IMPORT;
+			ret.num = PSS_VM_ERROR_SECONDARY;
 			return ret;
 		}
 	}
