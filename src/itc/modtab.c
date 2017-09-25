@@ -169,7 +169,7 @@ static inline itc_modtab_instance_t* _mod_load(const itc_module_t* module, uint3
 		if(NULL == (ret->handle_pool = mempool_objpool_new((uint32_t)(_header_size + module->handle_size))))
 		    ERROR_LOG_GOTO(ERR, "Cannot create the memory pool for the module pipe handle");
 
-		/* For the event loop thread, we actually creates the module pipe handle frequently, but it will be 
+		/* For the event loop thread, we actually creates the module pipe handle frequently, but it will be
 		 * passed to the dispatcher thread, so we want the allocation unit to be large, and allow more items
 		 * cached in the TLP */
 		mempool_objpool_tlp_policy_t event_loop_policy = {
