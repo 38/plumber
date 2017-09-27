@@ -27,7 +27,7 @@ macro(AddServlet servlet files)
 	set(MAKEFILE ${CMAKE_CURRENT_BINARY_DIR}/${SERVLET_OUTPUT_DIR}/${SERVLET_NAME}/build.mk)
 
 	set(PLUMBER_INCLUDES)
-	set(PLUMBER_LIBS -L${PLUMBER_PREFIX})
+	set(PLUMBER_LIBS -L${PLUMBER_PREFIX}/lib)
 	foreach(lib ${${servlet}_PLUMBER_LIBS})
 		set(PLUMBER_INCLUDES "${PLUMBER_INCLUDES} -I${PLUMBER_PREFIX}/include/${lib}")
 		set(PLUMBER_LIBS "${PLUMBER_LIBS} -l${lib}")
