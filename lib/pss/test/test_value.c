@@ -2,6 +2,7 @@
  * Copyright (C) 2017, Feng Liu
  **/
 #include <testenv.h>
+#include <stdio.h>
 #include <pss/log.h>
 #include <pss/bytecode.h>
 #include <pss/value.h>

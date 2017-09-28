@@ -999,38 +999,52 @@ const char* pss_bytecode_segment_inst_str(const pss_bytecode_segment_t* segment,
 	return buf;
 }
 
-int pss_bytecode_segment_logdump(const pss_bytecode_segment_t* segment)
+int pss_bytecode_segment_logdump(const pss_bytecode_segment_t* segment, FILE* file)
 {
 	if(NULL == segment)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
-#ifdef LOG_INFO_ENABLED
 	char buf[1024] = {0};
 
 	uint32_t i, start = 0;
 	for(i = 0; i < segment->argument_table->header.size; i ++)
 	    start += (uint32_t)snprintf(buf + start, sizeof(buf) > start ? sizeof(buf) - start : 0, i ? " R%"PRIu16 : "R%"PRIu16, segment->argument_table->regid[i]);
-	LOG_INFO("+Segment(%s)", buf);
+
+	if(file == NULL)
+		LOG_INFO("+Segment(%s)", buf);
+	else
+		fprintf(file, "+Segment(%s)\n", buf);
 
 	for(i = 0; i < segment->code_table->header.size; i ++)
-	    LOG_INFO("++0x%.6x %s", i, pss_bytecode_segment_inst_str(segment, i, buf, sizeof(buf)));
-#endif
-
+		if(file == NULL)
+	    	LOG_INFO("| 0x%.6x %s", i, pss_bytecode_segment_inst_str(segment, i, buf, sizeof(buf)));
+		else
+	    	fprintf(file,"| 0x%.6x %s\n", i, pss_bytecode_segment_inst_str(segment, i, buf, sizeof(buf)));
 	return 0;
 }
 
-int pss_bytecode_module_logdump(const pss_bytecode_module_t* module)
+int pss_bytecode_module_logdump(const pss_bytecode_module_t* module, FILE* file)
 {
 	if(NULL == module)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
-#ifdef LOG_INFO_ENABLED
-	LOG_INFO("Entry Point: %u", module->header.entry_point);
+
+	if(NULL != file)
+		fprintf(file, "Entry Point: %u\n", module->header.entry_point);
+	else
+		LOG_INFO("Entry Point: %u", module->header.entry_point);
 
 	uint32_t i;
 	for(i = 0; i < module->header.nseg; i ++)
-	    pss_bytecode_segment_logdump(module->segs[i]);
+	{
+		if(NULL != file) 
+			fprintf(file, "Segment #%u\n", i);
+		else 
+			LOG_INFO("Segment #%u", i);
 
-#endif
+		if(ERROR_CODE(int) == pss_bytecode_segment_logdump(module->segs[i], file))
+			ERROR_RETURN_LOG(int, "Cannot dump segment");
+	}
+
 	return 0;
 }

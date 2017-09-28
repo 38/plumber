@@ -2,6 +2,7 @@
  * Copyright (C) 2017, Hao Hou
  **/
 #include <testenv.h>
+#include <stdio.h>
 #include <pss.h>
 
 pss_value_t run_module(pss_bytecode_module_t* module)
@@ -38,7 +39,7 @@ int test_primitive()
 
 	ASSERT_OK(pss_comp_compile(&opt, &error), CLEANUP_NOP);
 
-	ASSERT_OK(pss_bytecode_module_logdump(opt.module), CLEANUP_NOP);
+	ASSERT_OK(pss_bytecode_module_logdump(opt.module, NULL), CLEANUP_NOP);
 
 	ASSERT_OK(pss_comp_lex_free(lex), CLEANUP_NOP);
 
@@ -70,7 +71,7 @@ int test_gcd()
 
 	ASSERT_OK(pss_comp_compile(&opt, &error), CLEANUP_NOP);
 
-	ASSERT_OK(pss_bytecode_module_logdump(opt.module), CLEANUP_NOP);
+	ASSERT_OK(pss_bytecode_module_logdump(opt.module, NULL), CLEANUP_NOP);
 
 	ASSERT_OK(pss_comp_lex_free(lex), CLEANUP_NOP);
 
@@ -111,7 +112,7 @@ int high_order()
 
 	ASSERT_OK(pss_comp_compile(&opt, &error), CLEANUP_NOP);
 
-	ASSERT_OK(pss_bytecode_module_logdump(opt.module), CLEANUP_NOP);
+	ASSERT_OK(pss_bytecode_module_logdump(opt.module, NULL), CLEANUP_NOP);
 
 	ASSERT_OK(pss_comp_lex_free(lex), CLEANUP_NOP);
 

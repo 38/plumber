@@ -3,6 +3,7 @@
  **/
 #include <stdint.h>
 #include <error.h>
+#include <stdio.h>
 #include <pss.h>
 
 int pss_init()

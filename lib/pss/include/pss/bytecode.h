@@ -415,14 +415,18 @@ const char* pss_bytecode_segment_inst_str(const pss_bytecode_segment_t* segment,
 /**
  * @brief Dump the content of the code segment to log
  * @note  This will procedure info level log
+ * @param segment The segment to dump
+ * @param file An optional file poiner, if given dump to file instead of log
  * @return status code
  **/
-int pss_bytecode_segment_logdump(const pss_bytecode_segment_t* segment);
+int pss_bytecode_segment_logdump(const pss_bytecode_segment_t* segment, FILE* file);
 
 /**
  * @brief Dump the content of module to log
  * @note This will produce info level log
+ * @param file An optional file poiner, if given dump to file instead of log
+ * @param module The module to dump
  * @return status code
  **/
-int pss_bytecode_module_logdump(const pss_bytecode_module_t* module);
+int pss_bytecode_module_logdump(const pss_bytecode_module_t* module, FILE* file);
 #endif /* __PSS_BYTECODE_H__ */

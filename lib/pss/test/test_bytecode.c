@@ -2,6 +2,7 @@
  * Copyright (C) 2017, Hao Hou
  **/
 #include <testenv.h>
+#include <stdio.h>
 #include <pss/log.h>
 #include <pss/bytecode.h>
 
@@ -94,7 +95,7 @@ int code_generation_test()
 
 	ASSERT_OK(pss_bytecode_module_dump(module, TESTDIR"/test_code.psm"), CLEANUP_NOP);
 
-	ASSERT_OK(pss_bytecode_module_logdump(module), CLEANUP_NOP);
+	ASSERT_OK(pss_bytecode_module_logdump(module, NULL), CLEANUP_NOP);
 	ASSERT_OK(pss_bytecode_module_free(module), CLEANUP_NOP);
 	return 0;
 }
@@ -133,7 +134,7 @@ int module_load_test()
 
 	ASSERT(NULL == pss_bytecode_module_get_seg(module, 128), CLEANUP_NOP);
 
-	ASSERT_OK(pss_bytecode_module_logdump(module), CLEANUP_NOP);
+	ASSERT_OK(pss_bytecode_module_logdump(module, NULL), CLEANUP_NOP);
 	ASSERT_OK(pss_bytecode_module_free(module), CLEANUP_NOP);
 	return 0;
 }

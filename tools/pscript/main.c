@@ -275,7 +275,7 @@ int run_user_script(const char* name, int argc, char** argv)
 	}
 	else if(disassemble)
 	{
-		rc = pss_bytecode_module_logdump(module);
+		rc = pss_bytecode_module_logdump(module, stdout);
 	}
 
 	if(ERROR_CODE(int) == module_unload_all())

@@ -2,6 +2,7 @@
  * Copyright (C) 2017, Hao Hou
  **/
 #include <testenv.h>
+#include <stdio.h>
 #include <pss.h>
 
 #define OPCODE(x) PSS_BYTECODE_OPCODE_##x
@@ -74,7 +75,7 @@ int test_extension()
 	CODE(entry, GLOBAL_SET,  REG(4),                       REG(0));
 	CODE(entry, RETURN,      REG(5));
 
-	pss_bytecode_module_logdump(module);
+	pss_bytecode_module_logdump(module, NULL);
 
 	pss_vm_t* vm = pss_vm_new();
 	ASSERT_PTR(vm, CLEANUP_NOP);
@@ -145,7 +146,7 @@ int test_gcd()
 	CODE(foo,   RETURN,       REG(3));
 	ASSERT_OK(pss_bytecode_segment_patch_label(foo, lret, _last_addr), CLEANUP_NOP);
 
-	pss_bytecode_module_logdump(module);
+	pss_bytecode_module_logdump(module, NULL);
 
 	pss_vm_t* vm = pss_vm_new();
 	ASSERT_PTR(vm, CLEANUP_NOP);
@@ -185,7 +186,7 @@ int test_generic_add()
 	CODE(entry, ADD,           REG(0),          REG(123),   REG(0));
 	CODE(entry, RETURN,        REG(0));
 
-	pss_bytecode_module_logdump(module);
+	pss_bytecode_module_logdump(module, NULL);
 
 	pss_vm_t* vm = pss_vm_new();
 	ASSERT_PTR(vm, CLEANUP_NOP);
@@ -244,7 +245,7 @@ int test_func_as_param()
 	CODE(goo,   ADD,         REG(2),       REG(2),    REG(3));
 	CODE(goo,   RETURN,      REG(3));
 
-	pss_bytecode_module_logdump(module);
+	pss_bytecode_module_logdump(module, NULL);
 
 	pss_vm_t* vm = pss_vm_new();
 	ASSERT_PTR(vm, CLEANUP_NOP);
@@ -289,7 +290,7 @@ int test_ucombinator()
 	CODE(ucom, CALL,          REG(0),       REG(2));
 	CODE(ucom, RETURN,        REG(2));
 
-	pss_bytecode_module_logdump(module);
+	pss_bytecode_module_logdump(module, NULL);
 
 	pss_vm_t* vm = pss_vm_new();
 	ASSERT_PTR(vm, CLEANUP_NOP);
@@ -356,7 +357,7 @@ int test_currying()
 	CODE(koo, ADD,           REG(3),         REG(2),   REG(3));
 	CODE(koo, RETURN,        REG(3));
 
-	pss_bytecode_module_logdump(module);
+	pss_bytecode_module_logdump(module, NULL);
 
 	pss_vm_t* vm = pss_vm_new();
 
@@ -395,7 +396,7 @@ int test_first_class_func()
 	CODE(entry, RETURN,      REG(0));
 
 
-	pss_bytecode_module_logdump(module);
+	pss_bytecode_module_logdump(module, NULL);
 
 	pss_vm_t* vm = pss_vm_new();
 
