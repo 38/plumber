@@ -25,7 +25,7 @@ there.
 
 You can also try the file server example with docker
 
-	docker run --rm -t -i haohou/plumber-fileserver-example
+	docker run --rm -t -i --network=host haohou/plumber-fileserver-example
 
 
 # What is Plumber
