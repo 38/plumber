@@ -27,13 +27,13 @@ Thanks to the container techenoloy, you can explorer the Plumber environment wit
 - You can also try the file server example with docker and open [http://localhost:8080/](http://localhost:8080/) in browser
 
 ```
-	docker run --rm -t -i --network=host haohou/plumber-fileserver-example
+docker run --rm -t -i --network=host haohou/plumber-fileserver-example
 ```
 
 - To play with the precompiled Plumber interactive REPL shell use command
 
 ```
-	docker run --rm -t -i haohou/plumber-minimal -c pscript
+docker run --rm -t -i haohou/plumber-minimal -c pscript
 ```
 
 ## Try Plumber with the example sandbox
