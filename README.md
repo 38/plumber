@@ -9,6 +9,15 @@ Plumber [![Build Status](http://plumberserver.com:8123/job/Plumber/badge/icon)](
 - [Introduction to Plumber (Slides)](http://plumberserver.com/slides/index.html?slideshow=plumber-intro)
 - [Explaination for the Plumber Based Static Content Server](http://plumberserver.com/fileserver_example/explained_fileserver_pss.html)
 
+# What is Plumber
+
+Plumber is a runtime environment which makes nanoservice feasible,
+it is a infrastructure based on the concept of "pipe". It provides a runtime environment 
+for pipe based, asynchronized, ultra lightweight micro-service we called servlet and a high-level domain specific 
+language to describe the high-level software architecture. The Plumber framework has multiple language bindings,
+and user should be able to develop each part of their software in the language that fits the task most. Currently
+we support C, C++, Javascript and Python, and new language support is coming.
+
 # Try Plumber
 
 ## Docker
@@ -17,11 +26,15 @@ Thanks to the container techenoloy, you can explorer the Plumber environment wit
 
 - You can also try the file server example with docker and open [http://localhost:8080/](http://localhost:8080/) in browser
 
+```
 	docker run --rm -t -i --network=host haohou/plumber-fileserver-example
+```
 
 - To play with the precompiled Plumber interactive REPL shell use command
 
+```
 	docker run --rm -t -i haohou/plumber-minimal -c pscript
+```
 
 ## Try Plumber with the example sandbox
 
@@ -37,15 +50,6 @@ After you get the code, use
 
 To initialize the Plumber isolated environment. Then you can go to src/ directory, compile and run the examples 
 there. 
-
-# What is Plumber
-
-Plumber is a runtime environment which makes nanoservice feasible,
-it is a infrastructure based on the concept of "pipe". It provides a runtime environment 
-for pipe based, asynchronized, ultra lightweight micro-service we called servlet and a high-level domain specific 
-language to describe the high-level software architecture. The Plumber framework has multiple language bindings,
-and user should be able to develop each part of their software in the language that fits the task most. Currently
-we support C, C++, Javascript and Python, and new language support is coming.
 
 # General Idea of Plumber
 Unlike traditional service framework, which modelling the component as a request-response based "service", 
