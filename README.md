@@ -23,6 +23,10 @@ After you get the code, use
 To initialize the Plumber isolated environment. Then you can go to src/ directory, compile and run the examples 
 there. 
 
+You can also try the file server example with docker
+
+	docker run --rm -t -i haohou/plumber-fileserver-example
+
 
 # What is Plumber
 
