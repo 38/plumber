@@ -10,6 +10,21 @@ Plumber [![Build Status](http://plumberserver.com:8123/job/Plumber/badge/icon)](
 - [Explaination for the Plumber Based Static Content Server](http://plumberserver.com/fileserver_example/explained_fileserver_pss.html)
 
 # Try Plumber
+
+## Docker
+
+Thanks to the container techenoloy, you can explorer the Plumber environment without installing any dependencies
+
+- You can also try the file server example with docker and open [http://localhost:8080/](http://localhost:8080/) in browser
+
+	docker run --rm -t -i --network=host haohou/plumber-fileserver-example
+
+- To play with the precompiled Plumber interactive REPL shell use command
+
+	docker run --rm -t -i haohou/plumber-minimal -c pscript
+
+## Try Plumber with the example sandbox
+
 Currently we have a automated tool to build an isolated sandbox environment. To get the sandbox environment, 
 using the following command
 
@@ -23,14 +38,10 @@ After you get the code, use
 To initialize the Plumber isolated environment. Then you can go to src/ directory, compile and run the examples 
 there. 
 
-You can also try the file server example with docker
-
-	docker run --rm -t -i --network=host haohou/plumber-fileserver-example
-
-
 # What is Plumber
 
-Plumber is a software infrastructure based on the concept of "pipe". It provides a runtime environment 
+Plumber is a runtime environment which makes nanoservice feasible,
+it is a infrastructure based on the concept of "pipe". It provides a runtime environment 
 for pipe based, asynchronized, ultra lightweight micro-service we called servlet and a high-level domain specific 
 language to describe the high-level software architecture. The Plumber framework has multiple language bindings,
 and user should be able to develop each part of their software in the language that fits the task most. Currently
@@ -39,28 +50,27 @@ we support C, C++, Javascript and Python, and new language support is coming.
 # General Idea of Plumber
 Unlike traditional service framework, which modelling the component as a request-response based "service", 
 by which means for each request, the caller is responsible for handling the response. Plumber use an innovative
-model which is called pipe. Each component do not need to return any value to the caller, but provide the result 
+pipelining model. Each component do not need to return any value to the caller, but provide the result 
 to its downstream component via a mechanism called "pipe".
 
-The pipe API provides good abstraction for the communication between different servlets. The details about inter-servlet
+The pipe API provides good abstraction for the communication between different servlets. The details about inter-component
 communication are transparent to servlet using pipe API. And a pipe can be either in the same machine or cross the machine
 boarder or even a load balancer. The goal of Plumber software infrastructure is the software shouldn't aware if itself is
 running on a single machine or a large cluster.
 
 The servlet is a small piece of code runs under the Plumber runtime environment. 
-It's an ultra ligthweight service, by which means multiple servlet can share a same worker thread and occupy minmum
-amount of resources. The isolation provided by the traditional micro-service architecture still applies, each servlet only
-have data dependency with servlet. The programming model of a servlet is quite simple, it takes one or more input, and produces 
-one or more output. For each time the exec function is called, the servlet reads data from input pipes and produces result and
-write it to output. Plumber has a few APIs provided to servlet. Each servlet is a really strighforward program, which reads from 
-the input pipes and writes the result ot the output pipes. The Plumber runtime environment provides a simple UNIX-like abstraction 
-API for pipe manipulations. And the details of the network and inter-servlet communication are completely hidden by the environment. 
+It's an ultra ligthweight nanoservice, by which means multiple servlet can share a same worker thread and occupy minmum
+amount of resources. The isolation provided by the traditional micro-service architecture still applies, between servlets it only
+has data dependencies and the servlet has to access data via the pipe APIs. The programming model of a servlet is quite simple, 
+it takes one or more input, and produces one or more output. For each time the exec function is called, the servlet reads data 
+from input pipes and produces result and write it to output. Plumber has a few APIs provided to servlet. Each servlet is a really 
+strighforward program, which reads from the input pipes and writes the result ot the output pipes. The Plumber runtime environment 
+provides a simple UNIX-like abstraction API for pipe manipulations. And the details of the network and inter-servlet communication 
+are completely hidden by the environment. 
 
-For each servlet it should have a initialization function, a finalization function and a execuate function (which is similar to a 
-main function to a normal program).
-
-Plumber provides servlet a flexible protocol system and protocol management tools. All the pipes are strong typed and the Plumber
-runtime will be able to discover the incompatible protocols, etc. 
+Plumber has a centralized protocol database which manages all the communication protocols between different components, the pipes
+are optional structured and strong typed. The mechanism of the protocol database also makes the upstream and downstream *always*
+compatibile. 
 
 # How to compile?
 To compile this project you need CMake 2.6 or later. 
@@ -84,7 +94,7 @@ To compile this project with default configuration.
 
 ## For javascript support:
 You need the plumberv8 project built and installed in your computer and configure Plumber with the following 
-configure parameter
+configure parameter, to build plumberv8, look at the repository page at [https://github.com/38/plumberv8](https://github.com/38/plumberv8)
 
 	cmake -DPLUMBER_V8_PREFIX=<your-plumber-v8-install-prefix> -Dbuild_javascript=yes .
 
@@ -92,6 +102,7 @@ configure parameter
 To build you own user-space program, you need to compile your code with libpservlet which is a part of this repository. The libpservlet provides your code some functions.
 
 	#include <pservlet.h>
+	// The context of the servlet
 	typedef struct {
 		pipe_t input, output;
 	} context_t;
@@ -154,20 +165,24 @@ To load the servlet.
 
 For javascript, we need to use the servlet called javascript.
 
-# Build a service
-## Alternatively, Using the Plumber Service Script 
-For example a simple static file server can be described by the following script
+# PSS Language: Plumber Service Script
+The PSS language is the scripting language used to define the software layout from high level, it actaully defines the
+application you want to build with Plumber. It combines all the components with the pipe using the language. Also it's 
+a javascript-like, turing completed scripting language in which software is a first-class-citizen. Which means you will
+be able to create an software generator with the PSS language!
 
-	include "config.pss"
+- The simple example of how to create a static content server with plumber
+
+	import("service");
 	//define the file server
 	fileserver = {
 		/* Define the servlet node */
-		parse_req := "getpath" @[color = green];
+		parse_req := "getpath";
 		dup_path  := "dup 2";
 		mime_type := "mime mime.types";
 		read_file := "read doc/doxygen/html";
 		error     := "cat 2";
-		gen_res   := "response" @[color = green];
+		gen_res   := "response";
 		/* Define the pipes */	
 		() -> "request" parse_req "path" -> "in" dup_path {
 				"out0" -> "path" mime_type "mime" -> "mime";
@@ -182,10 +197,7 @@ For example a simple static file server can be described by the following script
 			read_file "error" -> "in1";
 		} error "out" -> "error" gen_res;
 	};
-	/* Optional: dump the visualization graph */
-	visualize fileserver >>> "/dev/stdout";
-	/* then start the file server */
-	start fileserver
+	Service.start(fileserver);
 
 # Profiling
 The service infrastructure provide two ways for profiling, one is use the Plumber built-in servlet profiler, 
