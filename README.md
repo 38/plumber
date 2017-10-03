@@ -33,7 +33,7 @@ docker run --rm -t -i --network=host haohou/plumber-fileserver-example --port=80
 - To make the static content server serves the content you provided using command
 
 ```
-docker run --rm -ti --volume /path/to/your/content:/path/to/you/content  haohou/plumber-fileserver-example --root=/path/to/your/content [--port=<port>]
+docker run --rm -ti -v <path-to-serve>:/www haohou/plumber-fileserver-example --root=/www
 ```
 
 - To play with the precompiled Plumber interactive REPL shell use command
