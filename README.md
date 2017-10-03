@@ -27,7 +27,13 @@ Thanks to the container techenoloy, you can explorer the Plumber environment wit
 - You can also try the file server example with docker and open [http://localhost:8080/](http://localhost:8080/) in browser
 
 ```
-docker run --rm -t -i --network=host haohou/plumber-fileserver-example
+docker run --rm -t -i --network=host haohou/plumber-fileserver-example --port=8080
+```
+
+- To make the static content server serves the content you provided using command
+
+```
+docker run --rm -ti --volume /path/to/your/content:/path/to/you/content  haohou/plumber-fileserver-example --root=/path/to/your/content [--port=<port>]
 ```
 
 - To play with the precompiled Plumber interactive REPL shell use command
@@ -177,6 +183,7 @@ be able to create an software generator with the PSS language!
 
 - The simple example of how to create a static content server with plumber
 
+```
 	import("service");
 	//define the file server
 	fileserver = {
@@ -202,6 +209,7 @@ be able to create an software generator with the PSS language!
 		} error "out" -> "error" gen_res;
 	};
 	Service.start(fileserver);
+```
 
 # Profiling
 The service infrastructure provide two ways for profiling, one is use the Plumber built-in servlet profiler, 
