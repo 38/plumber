@@ -359,13 +359,13 @@ static inline pstd_fcache_file_t* _create_uncached_file(FILE* fp, const struct s
 	if(ret->size > _max_cache_size())
 	{
 		int fd = fileno(fp);
-		if(fd < 0) ERROR_PTR_RETURN_LOG_ERRNO(int, "Cannot get the FD for the file pointer");
+		if(fd < 0) ERROR_PTR_RETURN_LOG_ERRNO("Cannot get the FD for the file pointer");
 
 		int flags = fcntl(fd, F_GETFL);
-		if(flags == -1) ERROR_PTR_RETURN_LOG_ERRNO(int, "Cannot get the FD flags");
+		if(flags == -1) ERROR_PTR_RETURN_LOG_ERRNO("Cannot get the FD flags");
 
 		if(-1 == fcntl(fd, F_SETFL, flags | O_NONBLOCK))
-			ERROR_PTR_RETURN_LOG_ERRNO(int, "Cannot set the FD to nonblocking mode");
+			ERROR_PTR_RETURN_LOG_ERRNO("Cannot set the FD to nonblocking mode");
 	}
 
 	LOG_DEBUG("Load file from disk");
