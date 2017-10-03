@@ -9,6 +9,7 @@
 #include <time.h>
 #include <inttypes.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 #include <error.h>
 
@@ -354,6 +355,18 @@ static inline pstd_fcache_file_t* _create_uncached_file(FILE* fp, const struct s
 	ret->file = fp;
 	ret->size = (size_t)stat->st_size;
 	ret->offset = 0;
+
+	if(ret->size > _max_cache_size())
+	{
+		int fd = fileno(fp);
+		if(fd < 0) ERROR_PTR_RETURN_LOG_ERRNO(int, "Cannot get the FD for the file pointer");
+
+		int flags = fcntl(fd, F_GETFL);
+		if(flags == -1) ERROR_PTR_RETURN_LOG_ERRNO(int, "Cannot get the FD flags");
+
+		if(-1 == fcntl(fd, F_SETFL, flags | O_NONBLOCK))
+			ERROR_PTR_RETURN_LOG_ERRNO(int, "Cannot set the FD to nonblocking mode");
+	}
 
 	LOG_DEBUG("Load file from disk");
 
