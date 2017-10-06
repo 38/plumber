@@ -39,7 +39,7 @@ typedef struct {
  *       then set the killed  flags. <br/>
  *       So if the signal is external source, we are fine, because no killed bit is set
  */
-#define _SIGTHREADKILL (SIGRTMIN + 1)
+#define _SIGTHREADKILL SIGUSR1
 
 uint32_t _thread_count;
 
@@ -107,6 +107,8 @@ static inline void* _module_event_loop_main(void* data)
 static inline void _on_thread_killed(int signo)
 {
 	(void)signo;
+
+	if(_self == NULL) return;
 
 	LOG_INFO("Stopping Event Loop for module %u", _self->module_type);
 
@@ -237,7 +239,7 @@ int itc_eloop_finalize()
 static inline void _update_accept_param(uint32_t i, itc_module_pipe_param_t param)
 {
 	/**
-	 * The dual buffer solution isn't a really solution, think about the following condition:
+	 * The dual buffer isn't a solution at all, think about the following condition:
 	 *        EventLoop                  |             Scheduler
 	 *                                   |       write to param[1], param[0] is valid
 	 * reg <- _thread_data[i].valid(0)   |
