@@ -525,7 +525,7 @@ static inline int _connection_activate(module_tcp_pool_t* pool, uint32_t idx)
 	}
 
 	/** Remove it from the poll_obj's list, so that it won't trigger poll awake since then */
-	if(ERROR_CODE(int) == os_event_poll_del(pool->poll_obj, pool->conn_info.conn[idx].fd))
+	if(ERROR_CODE(int) == os_event_poll_del(pool->poll_obj, pool->conn_info.conn[idx].fd, 1))
 		ERROR_RETURN_LOG(int, "Cannot remove the connection object %"PRIu32" from the poll object list", pool->conn_info.conn[idx].id);
 
 	/* Remove it from the inactive heap */
@@ -807,10 +807,9 @@ static inline int _queue_message_exec(module_tcp_pool_t* pool, time_t now)
 {
 
 	LOG_DEBUG("Performing queue message operations");
-	uint64_t next;
 
-	ssize_t rc = read(pool->event_fd, &next, sizeof(next));
-	if(rc < 0) ERROR_RETURN_LOG_ERRNO(int, "Cannot read event fd");
+	if(ERROR_CODE(int) == os_event_user_event_consume(pool->event_fd))
+		ERROR_RETURN_LOG(int, "Cannot consume user event");
 
 	uint32_t limit = pool->conn_info.q_rear;
 	BARRIER();

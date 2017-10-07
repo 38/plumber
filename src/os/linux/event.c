@@ -21,9 +21,9 @@
  * @brief The actual data structure of the poll object
  **/
 struct _os_event_poll_t {
-	int           epoll_fd;        /*!< The actual epoll FD */
+	int                  epoll_fd;        /*!< The actual epoll FD */
 	struct epoll_event*  event_buf;       /*!< The last event buffer */
-	size_t        event_buf_size;  /*!< The event buffer size */
+	size_t               event_buf_size;  /*!< The event buffer size */
 };
 
 os_event_poll_t* os_event_poll_new()
@@ -108,8 +108,9 @@ ERR:
 	return ERROR_CODE(int);
 }
 
-int os_event_poll_del(os_event_poll_t* poll, int fd)
+int os_event_poll_del(os_event_poll_t* poll, int fd, int read)
 {
+	(void)read;
 	if(NULL == poll || fd < 0) ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(epoll_ctl(poll->epoll_fd, EPOLL_CTL_DEL, fd, NULL) < 0)
@@ -150,6 +151,15 @@ void* os_event_poll_take_result(os_event_poll_t* poll, size_t idx)
 		return NULL;
 
 	return poll->event_buf[idx].data.ptr;
+}
+
+int os_event_user_event_consume(int fd)
+{
+	uint64_t next;
+	ssize_t rc = read(fd, &next, sizeof(next));
+	if(rc < 0) ERROR_RETURN_LOG_ERRNO(int, "Cannot read event fd");
+
+	return 0;
 }
 
 #endif /*__LINUX__ */

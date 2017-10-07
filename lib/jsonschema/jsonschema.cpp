@@ -1041,12 +1041,12 @@ extern "C" size_t jsonschema_update_str(const jsonschema_t* schema, const char* 
 {
 	size_t rc = ERROR_CODE(size_t);
 	if(NULL == schema || NULL == patch || NULL == outbuf)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 	rapidjson::MemoryStream patch_ms(patch, patch_len > 0 ? patch_len : strlen(patch));
 	rapidjson::Document patch_doc;
 	if(patch_doc.ParseStream(patch_ms).HasParseError())
-	    ERROR_RETURN_LOG(int, "INvalid JSON input");
+	    ERROR_RETURN_LOG(size_t, "Invalid JSON input");
 
 	rapidjson::Document target_doc;
 
@@ -1054,13 +1054,13 @@ extern "C" size_t jsonschema_update_str(const jsonschema_t* schema, const char* 
 	{
 		rapidjson::MemoryStream target_ms(target, target_len > 0 ? target_len : strlen(target));
 		if(target_doc.ParseStream(target_ms).HasParseError())
-		    ERROR_RETURN_LOG(int, "Invalid target JSONtext");
+		    ERROR_RETURN_LOG(size_t, "Invalid target JSONtext");
 		if(ERROR_CODE(int) == jsonschema_update_obj(schema, target_doc, patch_doc))
-		    ERROR_RETURN_LOG(int, "Cannot patch the target JSON object");
+		    ERROR_RETURN_LOG(size_t, "Cannot patch the target JSON object");
 
 	}
 	else if(ERROR_CODE(int) == jsonschema_update_obj(schema, target_doc, patch_doc))
-	    ERROR_RETURN_LOG(int, "Cannot patch the null JSON object");
+	    ERROR_RETURN_LOG(size_t, "Cannot patch the null JSON object");
 
 	_BufferAllocator allocator(outbuf, bufsize - 1);
 	rapidjson::GenericMemoryBuffer<_BufferAllocator> output_ms(&allocator);

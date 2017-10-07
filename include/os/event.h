@@ -80,9 +80,11 @@ int os_event_poll_add(os_event_poll_t* poll, os_event_desc_t* desc);
  * @brief remove the event from the poll object
  * @param poll the target poll
  * @param fd The FD returned from the add (For the kernel event, it should be the target event, for user event, it should be os_event_poll_add return value)
+ * @param read indicates if this is a read FD, otherwise it's a write FD
+ * @note The read param is not actually used by Linux epoll, but this hint is ncessary for the KQueue
  * @return status code
  **/
-int os_event_poll_del(os_event_poll_t* poll, int fd);
+int os_event_poll_del(os_event_poll_t* poll, int fd, int read);
 
 /**
  * @brief Wait for the event defined in the poll object
@@ -104,5 +106,12 @@ int os_event_poll_wait(os_event_poll_t* poll, size_t max_events, int timeout);
  * @return The event data pointer
  **/
 void* os_event_poll_take_result(os_event_poll_t* poll, size_t idx);
+
+/**
+ * @brief Consume a user space event
+ * @param fd The user event FD to consume
+ * @return status code
+ **/
+int os_event_user_event_consume(int fd);
 
 #endif /* __OS_EVENT_H__ */

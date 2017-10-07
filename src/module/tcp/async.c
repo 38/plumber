@@ -488,7 +488,7 @@ static inline int _async_obj_add_poll(module_tcp_async_loop_t* loop, _async_obj_
  **/
 static inline int _async_obj_del_poll(module_tcp_async_loop_t* loop, _async_obj_t* async)
 {
-	if(ERROR_CODE(int) == os_event_poll_del(loop->poll, async->fd))
+	if(ERROR_CODE(int) == os_event_poll_del(loop->poll, async->fd, 0))
 		ERROR_RETURN_LOG(int, "Cannot delete the async object from the poll wait list");
 	return 0;
 }
@@ -667,9 +667,8 @@ static inline int _process_async_objs(module_tcp_async_loop_t* loop)
 }
 static inline int _process_queue_message(module_tcp_async_loop_t* loop)
 {
-	uint64_t next;
-	ssize_t rc = read(loop->event_fd, &next, sizeof(next));
-	if(rc < 0) ERROR_RETURN_LOG_ERRNO(int, "Cannot read event fd");
+	if(ERROR_CODE(int) == os_event_user_event_consume(loop->event_fd))
+		ERROR_RETURN_LOG(int, "Cannot consume user event");
 
 	LOG_DEBUG("New incoming queue message");
 	if(pthread_mutex_lock(&loop->q_mutex) < 0)

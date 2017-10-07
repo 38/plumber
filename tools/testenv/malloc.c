@@ -204,6 +204,8 @@ void __print_memory_leakage()
 }
 void expected_memory_leakage()
 {
+#ifdef __LINUX__
 	_num_expected_memory_leakage ++;
+#endif
 }
 
