@@ -2,10 +2,14 @@
  * Copyright (C) 2017, Hao Hou
  **/
 #include <constants.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <testenv.h>
 #include <module/tcp/async.h>
 #include <pthread.h>
+#ifdef __LINUX__
 #include <sys/eventfd.h>
+#endif
 #include <unistd.h>
 #include <errno.h>
 /**
@@ -13,6 +17,9 @@
  **/
 typedef struct {
 	int efd;            /*!< the event fd */
+#ifndef __LINUX__ 
+	int pipe[2];         /*!< The EFD pipes */
+#endif
 	int busy;           /*!< if this socket is currently busy */
 	int block;          /*!< indicates if the write should block the async thread */
 	int mocked_err;     /*!< force the write function return an mocked error */
@@ -60,7 +67,12 @@ void _set_connction_busy(uint32_t cid, int busy)
 	else
 	{
 		conn[cid].busy = 0;
+#ifdef __LINUX__
 		eventfd_write(conn[cid].efd, 1);
+#else
+		uint64_t val = 1;
+		write(conn[cid].pipe[1], &val, sizeof(val));
+#endif
 	}
 }
 
@@ -556,7 +568,12 @@ int setup()
 	unsigned i;
 	for(i = 0; i < sizeof(conn) / sizeof(*conn); i ++)
 	{
+#ifdef __LINUX__
 		ASSERT((conn[i].efd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC)) >= 0, CLEANUP_NOP);
+#else
+		ASSERT(pipe(conn[i].pipe) >= 0, CLEANUP_NOP);
+		conn[i].efd = conn[i].pipe[0];
+#endif
 		conn[i].busy = 1;
 		conn[i].block = 1;
 		ASSERT_OK(pthread_mutex_init(&conn[i].mutex, NULL), CLEANUP_NOP);
@@ -573,7 +590,12 @@ int teardown()
 	unsigned i;
 	for(i = 0; i < sizeof(conn) / sizeof(*conn); i ++)
 	{
+#ifdef __LINUX__
 		ASSERT_OK(close(conn[i].efd), CLEANUP_NOP);
+#else
+		ASSERT_OK(close(conn[i].pipe[0], CLEANUP_NOP));
+		ASSERT_OK(close(conn[i].pipe[1], CLEANUP_NOP));
+#endif
 		ASSERT_OK(pthread_mutex_destroy(&conn[i].mutex), CLEANUP_NOP);
 		ASSERT_OK(pthread_cond_destroy(&conn[i].cond), CLEANUP_NOP);
 	}
