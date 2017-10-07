@@ -9,11 +9,7 @@
 #   define __@SYSMACRO@__
 #endif
 
-#ifdef __LINUX__
-#include <linux/limits.h>
-#else
-#	error("Type of operating system is not supported");
-#endif
+#include <os/const.h>
 
 /**
  * @brief the initial size used when the name reference object load

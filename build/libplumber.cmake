@@ -4,7 +4,7 @@ file(GLOB_RECURSE src_files "${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE_DIR}/*.c")
 
 if("${MODULE_TLS_ENABLED}" EQUAL "1")
 	find_package(OpenSSL)
-	set(OPENSSL_INCLUDE_DIR "-I{OPENSSL_INCLUDE_DIR}")
+	set(OPENSSL_INCLUDE_DIR "-I${OPENSSL_INCLUDE_DIR}")
 else("${MODULE_TLS_ENABLED}" EQUAL "1")
 	message("Notice: TLS support is disabled")
 	set(OPENSSL_INCLUDE_DIR )
