@@ -8,7 +8,10 @@
 #include <signal.h>
 #include <unistd.h>
 #include <pthread.h>
+
+#ifdef __LINUX__
 #include <sys/prctl.h>
+#endif
 
 #include <arch/arch.h>
 
@@ -470,7 +473,11 @@ int thread_free(thread_t* thread, void** ret)
 
 void thread_set_name(const char* name)
 {
+#ifdef __LINUX__
 	prctl(PR_SET_NAME, name, 0, 0, 0);
+#else
+	(void)name;
+#endif
 }
 
 #ifndef STACK_SIZE
