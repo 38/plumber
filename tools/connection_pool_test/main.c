@@ -6,6 +6,8 @@
  * @brief the connection pool testing program
  * @file connection_pool_test/main.c
  **/
+#include <constants.h>
+#ifdef __LINUX__
 #include <inttypes.h>
 #include <time.h>
 #include <plumber.h>
@@ -301,3 +303,9 @@ int main()
 	log_finalize();
 	return 0;
 }
+#else
+int main() 
+{
+    return 0;
+}
+#endif

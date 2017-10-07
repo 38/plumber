@@ -161,7 +161,7 @@ void* thread_main(void* d)
 				.out = (itc_module_pipe_t*)(data->id * 100 + i + 1)
 			}
 		};
-		usleep((__useconds_t)(rand() % 100));
+		usleep((useconds_t)(rand() % 100));
 		if(itc_equeue_put(token, e) == ERROR_CODE(int)) data->rc = ERROR_CODE(int);
 	}
 

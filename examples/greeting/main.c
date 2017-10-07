@@ -1,6 +1,7 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
+#include <pthread.h>
 #include <plumber.h>
 #include <utils/log.h>
 #include <module/builtins.h>

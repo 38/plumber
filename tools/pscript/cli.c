@@ -8,6 +8,8 @@
 #include <readline/history.h>
 #include <setjmp.h>
 
+#include <constants.h>
+
 #include <pss.h>
 #include <plumber.h>
 
@@ -152,7 +154,9 @@ static void _stop(int signo)
 	}
 	else if(_readline)
 	{
+#ifndef __DARWIN__
 		rl_set_signals();
+#endif
 		siglongjmp(_restart, 1);
 	}
 	else if(_vm_running)

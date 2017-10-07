@@ -1,6 +1,7 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
+#include <pthread.h>
 #include <testenv.h>
 #include <utils/thread.h>
 #define N 128

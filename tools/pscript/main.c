@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <getopt.h>
 #include <dirent.h>
+#include <pthread.h>
 
 #include <constants.h>
 #include <utils/string.h>

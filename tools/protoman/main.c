@@ -1,7 +1,7 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
-
+#include <constants.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>

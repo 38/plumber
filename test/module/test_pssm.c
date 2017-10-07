@@ -1,6 +1,7 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
+#include <constants.h>
 #include <testenv.h>
 #include <pthread.h>
 #include <module/builtins.h>
@@ -48,6 +49,7 @@ void* test_thread(void* data)
 
 int test_thread_local()
 {
+#ifdef __LINUX__
 	thread_t* thread[32];
 	int i;
 	for(i = 0; i < 32; i ++)
@@ -65,6 +67,7 @@ int test_thread_local()
 	}
 
 	ASSERT(count == 32, CLEANUP_NOP);
+#endif
 	return 0;
 }
 
