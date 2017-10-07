@@ -17,7 +17,14 @@
 #include <utils/mempool/page.h>
 #include <utils/log.h>
 
+#include <constants.h>
+
+#ifdef __LINUX__
 extern void  __libc_free(void* ptr);
+#	define __free__ __libc_free
+#else
+#	define __free__ free
+#endif
 /**
  * @brief represents a unused page
  **/
@@ -80,7 +87,7 @@ int mempool_page_finalize()
 	{
 		tmp = _free_list;
 		_free_list = _free_list->next;
-		__libc_free(tmp);
+		__free__(tmp);
 	}
 
 	_thread_page_pool_t* curpool;
@@ -93,7 +100,7 @@ int mempool_page_finalize()
 		{
 			curpage = curpool->page_list_begin;
 			curpool->page_list_begin = curpool->page_list_begin->next;
-			__libc_free(curpage);
+			__free__(curpage);
 		}
 		free(curpool);
 	}
@@ -168,7 +175,7 @@ int _global_dealloc(_page_t* begin, _page_t* end, size_t n)
 		LOG_DEBUG("The number of free pages is larger than the free page limit, free the page directly");
 		_page_t* tmp = begin;
 		begin = begin->next;
-		__libc_free(tmp);
+		__free__(tmp);
 		n--;
 	}
 
