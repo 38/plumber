@@ -33,7 +33,6 @@
 #include <module/tls/api.h>
 #include <module/tls/dra.h>
 
-#ifndef __DARWIN__
 /**
  * @brief The supported ALPN protocol names, it should be the NULL terminated strings
  **/
@@ -56,7 +55,6 @@ STATIC_ASSERTION_SIZE(_alpn_protocol_t, length, 1);
 STATIC_ASSERTION_SIZE(_alpn_protocol_t, name, 0);
 STATIC_ASSERTION_LAST(_alpn_protocol_t, name);
 STATIC_ASSERTION_FOLLOWS(_alpn_protocol_t, length, name);
-#endif
 
 /**
  * @brief the type describes the direction of the handle
@@ -115,9 +113,7 @@ typedef struct {
 struct _module_context_t{
 	SSL_CTX*                       ssl_context;   /*!< the SSL Context */
 	union {
-#ifndef __DARWIN__
 		_alpn_protocol_t*          alpn_protos;   /*!< The list of ALPN protocols */
-#endif
 		uint8_t*                   alpn_data;     /*!< The ALPN protocol data */
 	};
 	itc_module_type_t              transport_mod; /*!< the transportation layer module type */
@@ -327,10 +323,8 @@ static int _init(void* __restrict ctx, uint32_t argc, char const* __restrict con
 		ERROR_RETURN_LOG(int, "Cannot create memory pool for the TLS context");
 	}
 
-#ifndef __DARWIN__
 
 	context->alpn_protos = NULL;
-#endif
 
 	LOG_TRACE("TLS context has been initialized!");
 
@@ -348,11 +342,9 @@ static int _cleanup(void* __restrict ctx)
 	_module_context_t* context = (_module_context_t*)ctx;
 
 	SSL_CTX_free(context->ssl_context);
-#ifndef __DARWIN__
 
 	if(NULL !=  context->alpn_protos)
 	    free(context->alpn_protos);
-#endif
 
 	if(ERROR_CODE(int) == mempool_objpool_free(context->tls_pool))
 	{
@@ -1037,7 +1029,6 @@ RET:
 	return ret;
 }
 
-#ifndef __DARWIN__
 
 /**
  * @brief Get the next ALPN protocol in the ALPN protocol list format
@@ -1167,7 +1158,6 @@ static inline int _setup_alpn_support(_module_context_t* context, const char* or
 
 	return 1;
 }
-#endif
 
 /**
  * @brief the callback function to get the property
@@ -1337,7 +1327,6 @@ DHPARAM_ERR:
 
 			return 1;
 		}
-#ifndef __DARWIN__
 		_SYMBOL(_IS("alpn_protos"))
 		{
 			const char* origin_list = value.str;
@@ -1345,7 +1334,6 @@ DHPARAM_ERR:
 			    return ERROR_CODE(int);
 			return 1;
 		}
-#endif
 		else return 0;
 	}
 	else return 0;
@@ -1381,7 +1369,6 @@ static int  _cntl(void* __restrict context, void* __restrict pipe, uint32_t opco
 			}
 			break;
 		}
-#ifndef __DARWIN__
 		case MODULE_TLS_CNTL_ALPNPROTO:
 		{
 			char*  buf = va_arg(va_args, char*);
@@ -1404,7 +1391,6 @@ static int  _cntl(void* __restrict context, void* __restrict pipe, uint32_t opco
 
 			break;
 		}
-#endif
 		default:
 		    ERROR_RETURN_LOG(int, "Invalid opcode");
 	}

@@ -3,7 +3,6 @@
  **/
 #include <constants.h>
 #include <testenv.h>
-#ifdef __LINUX__ 
 #include <module/tcp/async.h>
 #include <pthread.h>
 #include <sys/eventfd.h>
@@ -589,10 +588,3 @@ TEST_LIST_BEGIN
     TEST_CASE(parallel_write),
     TEST_CASE(cleanup_loop)
 TEST_LIST_END;
-#else
-DEFAULT_TEARDOWN;
-DEFAULT_SETUP;
-TEST_LIST_BEGIN
-    {NULL, NULL}
-TEST_LIST_END;
-#endif

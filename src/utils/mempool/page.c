@@ -19,7 +19,7 @@
 
 #include <constants.h>
 
-#ifdef __LINUX__
+#ifdef __GLIBC__
 extern void  __libc_free(void* ptr);
 #	define __free__ __libc_free
 #else

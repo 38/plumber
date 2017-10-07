@@ -14,4 +14,6 @@
 /** @brief the suffix for the servlet filename */
 #define RUNTIME_SERVLET_FILENAME_SUFFIX ".dylib"
 
+#define rl_set_signals(...)
+
 #endif

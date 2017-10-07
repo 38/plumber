@@ -3,7 +3,6 @@
  **/
 #include <constants.h>
 #include <pservlet.h>
-#ifdef __LINUX__
 #include <error.h>
 #include <string.h>
 
@@ -90,6 +89,3 @@ SERVLET_DEF = {
 	.exec = _exec,
 	.unload = _unload
 };
-#else
-SERVLET_DEF = {};
-#endif
