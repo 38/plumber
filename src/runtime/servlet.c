@@ -9,7 +9,10 @@
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef __LINUX__
 #include <link.h>
+#endif
 
 #include <error.h>
 
@@ -491,7 +494,7 @@ runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const ch
 	ret->async_pool = NULL;
 
 
-#ifdef LOG_NOTICE_ENABLED
+#if defined(LOG_NOTICE_ENABLED) && defined(__LINUX__)
 	const struct link_map* linkmap = (const struct link_map*)dl_handler;
 	LOG_NOTICE("Servlet address map: %s => [%p]", path, (void*)linkmap->l_addr);
 #endif
