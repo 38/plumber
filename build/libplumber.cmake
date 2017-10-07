@@ -30,6 +30,7 @@ macro(install_plumber_headers prefix)
 		"${CMAKE_CURRENT_SOURCE_DIR}/${INCLUDE_DIR}/utils/static_assertion.h"
 		"${CMAKE_CURRENT_SOURCE_DIR}/${INCLUDE_DIR}/constants.h"
 		"${CMAKE_CURRENT_SOURCE_DIR}/${INCLUDE_DIR}/utils/log_macro.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/${INCLUDE_DIR}/os/*const.h"
 		"${CMAKE_CURRENT_SOURCE_DIR}/${INCLUDE_DIR}/error.h")
 	foreach(header ${api_headers})
 		get_filename_component(target_dir ${header} DIRECTORY)

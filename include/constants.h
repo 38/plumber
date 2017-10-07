@@ -10,11 +10,7 @@
 #define __PLUMBER_CONSTANTS_H__
 #include <config.h>
 
-#ifdef __LINUX__
-#	include <linux/limits.h>
-#else
-#	error("unsupported system type")
-#endif
+#include <os/const.h>
 
 #define __CONSTANTS_XSTR__(s) __CONSTANTS_STR__(s)
 #define __CONSTANTS_STR__(s) #s

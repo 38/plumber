@@ -7,6 +7,7 @@
 #include <inttypes.h>
 #include <unistd.h>
 #include <errno.h>
+#include <pthread.h>
 
 #include <constants.h>
 #include <error.h>

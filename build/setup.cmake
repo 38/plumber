@@ -1,8 +1,8 @@
 #Set up basic cmake variables
 if(APPLE)
-	set(SYSNAME "OS_X")
+    set(SYSNAME "DARWIN")
 elseif(WIN32)
-	set(SYSNAME WIN32)
+	set(SYSNAME "WIN32")
 else(APPLE)
 	set(SYSNAME ${CMAKE_SYSTEM_NAME})
 endif(APPLE)
