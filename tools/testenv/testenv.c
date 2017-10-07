@@ -55,7 +55,7 @@ static inline int _load_default_module(uint16_t port)
 	args[0] = buf;
 	if(itc_modtab_insmod(&module_tcp_module_def, 1, args) == ERROR_CODE(int))
 	    rc = ERROR_CODE(int);
-
+    
 	if(itc_modtab_insmod(&module_mem_module_def, 0, NULL) == ERROR_CODE(int))
 	    rc = ERROR_CODE(int);
 
@@ -81,6 +81,7 @@ int testmain()
 		goto ERR;
 	}
 
+
 	if(ERROR_CODE(int) == proto_cache_set_root(TEST_PROTODB_ROOT))
 	    goto ERR;
 
@@ -88,6 +89,7 @@ int testmain()
 	{
 		goto ERR;
 	}
+
 	/* by default we should disable the mempool otherwise the memory leak detection won't work */
 	if(mempool_objpool_disabled(1) < 0 || setup() < 0)
 	{

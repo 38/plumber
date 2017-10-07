@@ -808,7 +808,7 @@ static inline int _queue_message_exec(module_tcp_pool_t* pool, time_t now)
 
 	LOG_DEBUG("Performing queue message operations");
 
-	if(ERROR_CODE(int) == os_event_user_event_consume(pool->event_fd))
+	if(ERROR_CODE(int) == os_event_user_event_consume(pool->poll_obj, pool->event_fd))
 		ERROR_RETURN_LOG(int, "Cannot consume user event");
 
 	uint32_t limit = pool->conn_info.q_rear;

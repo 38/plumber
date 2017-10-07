@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
@@ -126,6 +127,8 @@ int os_event_poll_add(os_event_poll_t* poll, os_event_desc_t* desc)
 			arr = (_posix_pipe_t*)realloc(poll->uenv_pipes, sizeof(_posix_pipe_t) * (poll->nuenv + 1));
 		if(NULL == arr)
 			ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the new user event");
+        else
+            poll->uenv_pipes = arr;
 
 		poll->uenv_pipes[poll->nuenv].in = pipe_fd[0];
 		poll->uenv_pipes[poll->nuenv].out = pipe_fd[1];
@@ -147,7 +150,10 @@ int os_event_poll_add(os_event_poll_t* poll, os_event_desc_t* desc)
 			flags = EVFILT_READ;
 		else
 			flags = EVFILT_WRITE;
+
+        ret = fd;
 	}
+
 
 	struct kevent event;
 
@@ -201,14 +207,16 @@ int os_event_poll_wait(os_event_poll_t* poll, size_t max_events, int timeout)
 	}
 
 	struct timespec ts = {
-		.tv_nsec = timeout * 1000000l
+        .tv_sec  = timeout / 1000,
+		.tv_nsec = (timeout % 1000) * 1000000
 	};
 
 	int rc;
 
-	if((rc = kevent(poll->kqueue_fd, NULL, 0, poll->kevent_el, (int)poll->el_size, &ts)) < 0)
+	if((rc = kevent(poll->kqueue_fd, NULL, 0, poll->kevent_el, (int)poll->el_size, timeout >= 0 ? &ts: NULL)) < 0)
 	{
-		if(errno == EINTR) return 0;
+		if(errno == EINTR) 
+            return 0;
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot complete kevent call");
 	}
 
@@ -223,8 +231,15 @@ void* os_event_poll_take_result(os_event_poll_t* poll, size_t idx)
 	return poll->kevent_el[idx].udata;
 }
 
-int os_event_user_event_consume(int fd)
+int os_event_user_event_consume(os_event_poll_t* poll, int fd)
 {
+	size_t i;
+	for(i = 0; i < poll->nuenv && poll->uenv_pipes[i].out != fd ; i ++)
+        continue;
+
+    if(i == poll->nuenv) ERROR_RETURN_LOG(int, "Invalid arguments: FD %d is not a user event FD", fd);
+    fd = poll->uenv_pipes[i].in;
+
 	for(;;)
 	{
 		uint64_t buf;
@@ -233,7 +248,7 @@ int os_event_user_event_consume(int fd)
 		{
 			if(errno == EWOULDBLOCK || errno == EAGAIN)
 				break;
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot consume the user event");
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot consume the user event %d", fd);
 		}
 	}
 

@@ -667,7 +667,7 @@ static inline int _process_async_objs(module_tcp_async_loop_t* loop)
 }
 static inline int _process_queue_message(module_tcp_async_loop_t* loop)
 {
-	if(ERROR_CODE(int) == os_event_user_event_consume(loop->event_fd))
+	if(ERROR_CODE(int) == os_event_user_event_consume(loop->poll, loop->event_fd))
 		ERROR_RETURN_LOG(int, "Cannot consume user event");
 
 	LOG_DEBUG("New incoming queue message");

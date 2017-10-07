@@ -110,8 +110,9 @@ void* os_event_poll_take_result(os_event_poll_t* poll, size_t idx);
 /**
  * @brief Consume a user space event
  * @param fd The user event FD to consume
+ * @parap poll The poll object owns this event
  * @return status code
  **/
-int os_event_user_event_consume(int fd);
+int os_event_user_event_consume(os_event_poll_t* poll, int fd);
 
 #endif /* __OS_EVENT_H__ */

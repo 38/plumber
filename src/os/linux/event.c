@@ -153,8 +153,9 @@ void* os_event_poll_take_result(os_event_poll_t* poll, size_t idx)
 	return poll->event_buf[idx].data.ptr;
 }
 
-int os_event_user_event_consume(int fd)
+int os_event_user_event_consume(os_event_poll_t* poll, int fd)
 {
+	(void)poll;
 	uint64_t next;
 	ssize_t rc = read(fd, &next, sizeof(next));
 	if(rc < 0) ERROR_RETURN_LOG_ERRNO(int, "Cannot read event fd");

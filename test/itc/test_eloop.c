@@ -22,7 +22,6 @@ static const char request[] =  "GET / HTTP/1.1\r\n"
                                "\r\n";
 int do_request()
 {
-
 	int sock = socket(AF_INET, SOCK_STREAM, 0);
 	struct sockaddr_in addr;
 	if(sock == -1)
@@ -85,8 +84,11 @@ int eloop_test()
 
 	if(pid == 0)
 	{
+#ifndef __DARWIN__
+        /* TODO: figure out why OSX fails if we finalize libplumber */
 		plumber_finalize();
-		signal(SIGUSR1, sighand);
+#endif
+		signal(SIGUSR2, sighand);
 		pause();
 		exit(1);
 	}
@@ -102,7 +104,7 @@ int eloop_test()
 
 	usleep(10000);
 
-	kill(pid, SIGUSR1);
+	kill(pid, SIGUSR2);
 
 	ASSERT_OK(itc_equeue_wait(token, NULL, NULL), CLEANUP_NOP);
 

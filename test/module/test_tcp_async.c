@@ -2,7 +2,7 @@
  * Copyright (C) 2017, Hao Hou
  **/
 #include <constants.h>
-#include <stdint.h>
+#include <time.h>
 #include <stdlib.h>
 #include <testenv.h>
 #include <module/tcp/async.h>
@@ -593,8 +593,8 @@ int teardown()
 #ifdef __LINUX__
 		ASSERT_OK(close(conn[i].efd), CLEANUP_NOP);
 #else
-		ASSERT_OK(close(conn[i].pipe[0], CLEANUP_NOP));
-		ASSERT_OK(close(conn[i].pipe[1], CLEANUP_NOP));
+		ASSERT_OK(close(conn[i].pipe[0]), CLEANUP_NOP);
+		ASSERT_OK(close(conn[i].pipe[1]), CLEANUP_NOP);
 #endif
 		ASSERT_OK(pthread_mutex_destroy(&conn[i].mutex), CLEANUP_NOP);
 		ASSERT_OK(pthread_cond_destroy(&conn[i].cond), CLEANUP_NOP);
