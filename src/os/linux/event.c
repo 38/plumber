@@ -129,6 +129,7 @@ int os_event_poll_wait(os_event_poll_t* poll, size_t max_events, int timeout)
 		poll->event_buf_size = 0;
 		if(NULL == (poll->event_buf = (struct epoll_event*)calloc(max_events, sizeof(struct epoll_event))))
 			ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate the event buffer");
+		poll->event_buf_size = max_events;
 	}
 
 	int ret = epoll_wait(poll->epoll_fd, poll->event_buf, (int)max_events, timeout);

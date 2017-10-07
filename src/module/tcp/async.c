@@ -8,8 +8,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
-#include <sys/epoll.h>
-#include <sys/eventfd.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <pthread.h>
@@ -22,6 +20,7 @@
 #include <utils/static_assertion.h>
 #include <module/tcp/async.h>
 #include <utils/mempool/page.h>
+#include <os/os.h>
 
 /**
  * @brief the state of an async object
@@ -146,10 +145,9 @@ struct _module_tcp_async_loop_t {
 	uint32_t     limits[_NUM_OF_STATES]; /*!< the array manipuates the end indices of each state */
 
 	/* File descriptors */
-	int          epoll_fd;     /*!< the epoll fd for this async loop */
+	os_event_poll_t* poll;      /*!< The poll object */
 	int          event_fd;     /*!< the event fd used to notify events */
 	uint32_t     max_events;   /*!< the size of event buffer */
-	struct epoll_event* events; /*!< the event buffer */
 
 	/* Thread */
 	thread_t*    loop;         /*!< the thread object for this loop */
@@ -458,39 +456,40 @@ static inline _async_obj_state_t _io_ops(module_tcp_async_loop_t* loop, _async_o
 	return _ST_READY;
 }
 /**
- * @brief add the async object to the epoll's wait list
+ * @brief add the async object to the poll object's wait list
  * @param loop the async loop
  * @param async the async object to add
  * @return status code
  **/
-static inline int _async_obj_add_epoll(module_tcp_async_loop_t* loop, _async_obj_t* async)
+static inline int _async_obj_add_poll(module_tcp_async_loop_t* loop, _async_obj_t* async)
 {
-	struct epoll_event event;
-	if(loop->write == NULL)
-	    event.events = EPOLLOUT | EPOLLET;
-	else
-	    event.events = EPOLLIN | EPOLLET;  /* in mocked version we actually use an event fd to trigger the aweak */
+	os_event_desc_t event = {
+		.type = OS_EVENT_TYPE_KERNEL,
+		.kernel = {
+			.event = loop->write == NULL ? OS_EVENT_KERNEL_EVENT_OUT : 
+				                           OS_EVENT_KERNEL_EVENT_IN,
+			.fd    = async->fd,
+			.data  = async
+		}
+	};
+	if(ERROR_CODE(int) == os_event_poll_add(loop->poll, &event))
+		ERROR_RETURN_LOG(int, "Cannot add the async object to the poll wait list");
 
-	event.data.ptr = async;
-
-	if(epoll_ctl(loop->epoll_fd, EPOLL_CTL_ADD, async->fd, &event) < 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot add the async object to the epoll wait list");
-
-	LOG_DEBUG("Connection object %"PRIu32" has been added to the epoll wait list", _async_obj_conn_id(loop, async));
+	LOG_DEBUG("Connection object %"PRIu32" has been added to the poll wait list", _async_obj_conn_id(loop, async));
 
 	return 0;
 }
 
 /**
- * @brief remove the async object from the epoll's wait list
+ * @brief remove the async object from the poll's wait list
  * @param loop the async loop
  * @param async the async object
  * @return status code
  **/
-static inline int _async_obj_del_epoll(module_tcp_async_loop_t* loop, _async_obj_t* async)
+static inline int _async_obj_del_poll(module_tcp_async_loop_t* loop, _async_obj_t* async)
 {
-	if(epoll_ctl(loop->epoll_fd, EPOLL_CTL_DEL, async->fd, NULL) < 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot delete the async object from the epoll wait list");
+	if(ERROR_CODE(int) == os_event_poll_del(loop->poll, async->fd))
+		ERROR_RETURN_LOG(int, "Cannot delete the async object from the poll wait list");
 	return 0;
 }
 
@@ -556,7 +555,7 @@ static inline int _process_async_objs(module_tcp_async_loop_t* loop)
 		if(next_st > _ST_READY) i --;
 
 		/* If the new state incidates the connection is not ready, add it to the wait list */
-		if(next_st == _ST_WAIT_CONN && _async_obj_add_epoll(loop, this) == ERROR_CODE(int))
+		if(next_st == _ST_WAIT_CONN && _async_obj_add_poll(loop, this) == ERROR_CODE(int))
 		    LOG_WARNING("cannot add the async object to the waiting list");
 	}
 
@@ -669,7 +668,7 @@ static inline int _process_async_objs(module_tcp_async_loop_t* loop)
 static inline int _process_queue_message(module_tcp_async_loop_t* loop)
 {
 	uint64_t next;
-	int rc = eventfd_read(loop->event_fd, &next);
+	ssize_t rc = read(loop->event_fd, &next, sizeof(next));
 	if(rc < 0) ERROR_RETURN_LOG_ERRNO(int, "Cannot read event fd");
 
 	LOG_DEBUG("New incoming queue message");
@@ -754,7 +753,7 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 
 	int timeout = -1;
 
-	/* Check if we have something to write, we do not want the epoll block us */
+	/* Check if we have something to write, we do not want the poll block us */
 	if(_get_num_async_in_state(loop, _ST_READY) > 0)
 	    timeout = 0;
 	else if(_get_num_async_in_state(loop, _ST_WAIT_CONN) > 0)
@@ -768,8 +767,8 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 		    timeout = 0;
 	}
 
-	LOG_DEBUG("async IO loop is performing epoll, timeout: %d ms", timeout);
-	int result = epoll_wait(loop->epoll_fd, loop->events, (int)loop->max_events, timeout);
+	LOG_DEBUG("async IO loop is performing poll, timeout: %d ms", timeout);
+	int result = os_event_poll_wait(loop->poll, loop->max_events, timeout);
 
 	if(loop->killed)
 	{
@@ -777,17 +776,15 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 		return 0;
 	}
 
-	if(result == -1)
-	{
-		if(errno != EINTR)
-		    ERROR_RETURN_LOG_ERRNO(int, "Cannot finish epoll");
-	}
+	if(result == ERROR_CODE(int))
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot finish poll");
 	else
 	{
 		int i;
 		for(i = 0; i < result; i ++)
 		{
-			if(&loop->event_fd == loop->events[i].data.ptr)
+			void* data = os_event_poll_take_result(loop->poll, (size_t)i);
+			if(&loop->event_fd == data)
 			{
 				if(_process_queue_message(loop) == ERROR_CODE(int))
 				    LOG_ERROR("Cannot process the queue message");
@@ -795,9 +792,9 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 			else
 			{
 				/* we have the connection object in ready state */
-				_async_obj_t* async = (_async_obj_t*)loop->events[i].data.ptr;
+				_async_obj_t* async = (_async_obj_t*)data;
 
-				if(NULL == async) ERROR_RETURN_LOG(int, "unexpected epoll_event data field, code bug!");
+				if(NULL == async) ERROR_RETURN_LOG(int, "unexpected poll_event data field, code bug!");
 
 				LOG_DEBUG("Connection object %"PRIu32" is ready for write", _async_obj_conn_id(loop, async));
 
@@ -808,8 +805,8 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 					if(_async_obj_set_state(loop, async, _ST_READY) == ERROR_CODE(int))
 					    ERROR_RETURN_LOG(int, "Cannot set the state of the async object to _ST_READY");
 
-					if(_async_obj_del_epoll(loop, async) == ERROR_CODE(int))
-					    ERROR_RETURN_LOG(int, "Cannot remove the async object from epoll");
+					if(_async_obj_del_poll(loop, async) == ERROR_CODE(int))
+					    ERROR_RETURN_LOG(int, "Cannot remove the async object from poll");
 
 					LOG_DEBUG("Connection object %"PRIu32" has been set to state _ST_READY", _async_obj_conn_id(loop, async));
 				}
@@ -831,9 +828,9 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 			continue;
 		}
 
-		if(_async_obj_del_epoll(loop, async) == ERROR_CODE(int))
+		if(_async_obj_del_poll(loop, async) == ERROR_CODE(int))
 		{
-			LOG_WARNING("Cannot remove the async object from epoll");
+			LOG_WARNING("Cannot remove the async object from poll");
 			continue;
 		}
 
@@ -891,9 +888,6 @@ module_tcp_async_loop_t* module_tcp_async_loop_new(uint32_t pool_size, uint32_t 
 	if(NULL == (ret->st_list = (uint32_t*)malloc(sizeof(uint32_t) * ret->capacity)))
 	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot allocate memory for the state list");
 
-	if(NULL == (ret->events = (struct epoll_event*)malloc(sizeof(struct epoll_event) * event_size)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot allocate memory to the event buffer");
-
 	tmp = pool_size * _NUM_CONN_MSG_TYPS + 1;
 	size = 1;
 	for(;tmp > 1; tmp >>= 1,size <<= 1);
@@ -904,11 +898,8 @@ module_tcp_async_loop_t* module_tcp_async_loop_new(uint32_t pool_size, uint32_t 
 	if(NULL == (ret->queue = (_message_t*)malloc(sizeof(_message_t) * size)))
 	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot allocate memory for the message queue");
 
-	if((ret->epoll_fd = epoll_create1(0)) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot create epoll object");
-
-	if((ret->event_fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC)) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot create event fd");
+	if((ret->poll = os_event_poll_new()) == NULL)
+	    ERROR_LOG_GOTO(ERR, "cannot create poll object");
 
 	if(pthread_mutex_init(&ret->q_mutex, NULL) < 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot initialize the queue mutex");
@@ -922,15 +913,15 @@ module_tcp_async_loop_t* module_tcp_async_loop_new(uint32_t pool_size, uint32_t 
 	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot initialize the startup cond var");
 	ret->i_s_cond = 1;
 
-	/* add the eventfd to the epoll wait list */
-	struct epoll_event event = {
-		.events = EPOLLIN | EPOLLET
+	os_event_desc_t event = {
+		.type = OS_EVENT_TYPE_USER,
+		.user = {
+			.data = &ret->event_fd
+		}
 	};
 
-	event.data.ptr = &ret->event_fd;
-
-	if(epoll_ctl(ret->epoll_fd, EPOLL_CTL_ADD, ret->event_fd, &event) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot add the event fd to the epoll wait list");
+	if(ERROR_CODE(int) == (ret->event_fd = os_event_poll_add(ret->poll, &event)))
+		ERROR_LOG_GOTO(ERR, "Cnnot add the user event to poll wait list");
 
 	/* Finally, start the loop */
 	if(NULL == (ret->loop = thread_new(_async_main, ret, THREAD_TYPE_IO)))
@@ -952,9 +943,8 @@ ERR:
 	{
 		if(ret->objects != NULL) free(ret->objects);
 		if(ret->st_list != NULL) free(ret->st_list);
-		if(ret->events != NULL) free(ret->events);
 		if(ret->queue != NULL) free(ret->queue);
-		if(ret->epoll_fd > 0) close(ret->epoll_fd);
+		if(ret->poll != NULL) os_event_poll_free(ret->poll);
 		if(ret->event_fd > 0) close(ret->event_fd);
 
 		if(ret->i_q_mutex) pthread_mutex_destroy(&ret->q_mutex);
@@ -1010,7 +1000,8 @@ static inline int _post_message(module_tcp_async_loop_t* loop, _message_type_t t
 	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot release the global queue mutex");
 
 
-	if(eventfd_write(loop->event_fd, 1) == 0)
+	uint64_t val = 1;
+	if(write(loop->event_fd, &val, sizeof(uint64_t)) > 0)
 	    return 0;
 	else
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot write to the event fd");
@@ -1118,10 +1109,10 @@ int module_tcp_async_loop_free(module_tcp_async_loop_t* loop)
 
 	if(NULL != loop->objects) free(loop->objects);
 	if(NULL != loop->st_list) free(loop->st_list);
-	if(NULL != loop->events)  free(loop->events);
 	if(NULL != loop->queue) free(loop->queue);
+	if(NULL != loop->poll && ERROR_CODE(int) == os_event_poll_free(loop->poll))
+		rc = ERROR_CODE(int);
 
-	if(loop->epoll_fd >= 0) close(loop->epoll_fd);
 	if(loop->event_fd >= 0) close(loop->event_fd);
 	if(loop->i_q_mutex && pthread_mutex_destroy(&loop->q_mutex) < 0)
 	{
