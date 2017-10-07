@@ -5,6 +5,7 @@
  * @brief The operating system related functions
  * @file os/os.h
  **/
+#include <constants.h>
 #ifndef __OS_H__
 #define __OS_H__
 #if !defined(__LINUX__) && \

@@ -6,6 +6,7 @@
  * @file os/constant.h
  **/
 #ifndef __OS_CONSTANT_H__
+#include <constants.h>
 #include <os/linux/const.h>
 #include <os/darwin/const.h>
 #endif 

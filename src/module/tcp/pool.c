@@ -5,8 +5,6 @@
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/epoll.h>
-#include <sys/eventfd.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
@@ -22,6 +20,7 @@
 #include <utils/bitmask.h>
 #include <error.h>
 #include <arch/arch.h>
+#include <os/os.h>
 
 /**
  * @brief the message in the message queue
@@ -81,14 +80,13 @@ typedef struct {
  * @brief represents a pool instance
  **/
 struct _module_tcp_pool_t{
-	int                         epoll_fd;    /*!< the epoll fd */
+	os_event_poll_t*            poll_obj;    /*!< The poll object */
 	int                         socket_fd;   /*!< the listening fd */
 	int                         event_fd;    /*!< the event fd for the release queue */
 	module_tcp_pool_configure_t conf;        /*!< the module confiuration */
 	_conn_info_t                conn_info;   /*!< the connection info object */
 	struct sockaddr_in          saddr;       /*!< The socket addr */
 	struct sockaddr_in6         saddr6;      /*!< The ipv6 socket addr */
-	struct epoll_event*         events;      /*!< the event array */
 	int                         loop_killed; /*!< indicates if the loop is gets killed */
 	char                        addr_str_buf[INET6_ADDRSTRLEN];/*!< the buffer used to convert the network address to string */
 };
@@ -238,29 +236,32 @@ module_tcp_pool_t* module_tcp_pool_new()
 	if(NULL == ret)
 	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the connection pool object");
 
-	ret->epoll_fd = ret->event_fd = ERROR_CODE(int);
+	ret->poll_obj = NULL;
+	ret->event_fd = ERROR_CODE(int);
 
-	/* Create the read epoll */
-	ret->epoll_fd = epoll_create1(0);
-	if(ret->epoll_fd < 0) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create epoll object");
+	/* Create the poll object  */
+	if(NULL == (ret->poll_obj = os_event_poll_new()))
+		ERROR_LOG_GOTO(ERR, "Cannot create poll object");
 
 	/* Create the event fd used for the message queue */
-	ret->event_fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-	if(ret->event_fd < 0) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create eventfd object");
-
-	/* Register the event fd to the read epoll */
-	struct epoll_event event = {
-		.events = EPOLLIN | EPOLLET
+	os_event_desc_t desc = {
+		.type = OS_EVENT_TYPE_USER,
+		.user = {
+			.data = &ret->event_fd
+		}
 	};
 
-	event.data.ptr = &ret->event_fd;
-	if(epoll_ctl(ret->epoll_fd, EPOLL_CTL_ADD, ret->event_fd, &event) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot register the event FD to epoll watch list");
+	if(ERROR_CODE(int) == (ret->event_fd = os_event_poll_add(ret->poll_obj, &desc)))
+		ERROR_LOG_GOTO(ERR, "Cannot create user space event");
 
 	return ret;
+
 ERR:
-	if(ret->epoll_fd >= 0) close(ret->epoll_fd);
+	if(NULL != ret->poll_obj) os_event_poll_free(ret->poll_obj);
 	if(ret->event_fd >= 0) close(ret->event_fd);
+	ret->poll_obj = NULL;
+
+	free(ret);
 
 	return NULL;
 }
@@ -273,11 +274,10 @@ int module_tcp_pool_free(module_tcp_pool_t* pool)
 
 	if(pool->socket_fd >= 0) close(pool->socket_fd);
 
-	if(pool->epoll_fd >= 0) close(pool->epoll_fd);
-
 	if(pool->event_fd >= 0) close(pool->event_fd);
 
-	if(pool->events != NULL) free(pool->events);
+	if(NULL != pool->poll_obj && ERROR_CODE(int) == os_event_poll_free(pool->poll_obj))
+		rc = ERROR_CODE(int);
 
 	free(pool);
 
@@ -332,12 +332,17 @@ static inline int _init_socket(module_tcp_pool_t* pool)
 	if(listen(pool->socket_fd, pool->conf.tcp_backlog) < 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot listen TCP port %"PRIu16, pool->conf.port);
 
-	struct epoll_event event = {
-		.events = EPOLLIN | EPOLLET
+	os_event_desc_t event = {
+		.type = OS_EVENT_TYPE_KERNEL,
+		.kernel = {
+			.fd = pool->socket_fd,
+			.event = OS_EVENT_KERNEL_EVENT_CONNECT,
+			.data = NULL
+		}
 	};
 
-	if(epoll_ctl(pool->epoll_fd, EPOLL_CTL_ADD, pool->socket_fd, &event) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot add socket FD to the epoll watch list");
+	if(ERROR_CODE(int) == os_event_poll_add(pool->poll_obj, &event))
+		ERROR_LOG_GOTO(ERR, "Cannot add socket FD to the poll list");
 
 	LOG_DEBUG("TCP Socket has been initialized on %s:%"PRIu16, pool->conf.bind_addr, pool->conf.port);
 	return 0;
@@ -365,12 +370,8 @@ int module_tcp_pool_configure(module_tcp_pool_t* pool, const module_tcp_pool_con
 
 	if(_init_conn_info(pool, pool->conf.size) == ERROR_CODE(int)) goto ERR;
 
-
-	if(NULL == (pool->events = (struct epoll_event*)calloc(pool->conf.event_size, sizeof(struct epoll_event))))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the event array");
 	return 0;
 ERR:
-	if(pool->events != NULL) free(pool->events), pool->events = NULL;
 	_finalize_conn_info(pool);
 	return ERROR_CODE(int);
 }
@@ -523,9 +524,9 @@ static inline int _connection_activate(module_tcp_pool_t* pool, uint32_t idx)
 		ERROR_RETURN_LOG(int, "Invalid argument connection object index %"PRIu32" is out of the heap_limit", idx);
 	}
 
-	/** Remove it from the epoll's list, so that it won't trigger epoll awake since then */
-	if(epoll_ctl(pool->epoll_fd, EPOLL_CTL_DEL, pool->conn_info.conn[idx].fd, NULL) < 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot remove the connection object %"PRIu32" from the epoll listening list", pool->conn_info.conn[idx].id);
+	/** Remove it from the poll_obj's list, so that it won't trigger poll awake since then */
+	if(ERROR_CODE(int) == os_event_poll_del(pool->poll_obj, pool->conn_info.conn[idx].fd))
+		ERROR_RETURN_LOG(int, "Cannot remove the connection object %"PRIu32" from the poll object list", pool->conn_info.conn[idx].id);
 
 	/* Remove it from the inactive heap */
 	_swap(pool, idx, --pool->conn_info.heap_limit);
@@ -595,17 +596,18 @@ static inline int _connection_deactivate(module_tcp_pool_t* pool, uint32_t idx, 
 	_conn_info.conn[idx].data = NULL;
 #endif
 
-	struct epoll_event event = {
-		.events = EPOLLIN | EPOLLET
+	os_event_desc_t event = {
+		.type = OS_EVENT_TYPE_KERNEL,
+		.kernel = {
+			.event = OS_EVENT_KERNEL_EVENT_IN,
+			.fd   = pool->conn_info.conn[idx].fd,
+			.data = pool->conn_info.index + pool->conn_info.conn[idx].id
+		}
 	};
 
-	/* The data is actually the integer that indicates where the connection object that is
-	 * releated to this fd located in the conn array */
-	event.data.ptr = pool->conn_info.index + pool->conn_info.conn[idx].id;
-
-	if(epoll_ctl(pool->epoll_fd, EPOLL_CTL_ADD, pool->conn_info.conn[idx].fd, &event) < 0)
+	if(ERROR_CODE(int) == os_event_poll_add(pool->poll_obj, &event))
 	{
-		LOG_ERROR("Cannot add the connection to deactive list");
+		LOG_ERROR("Cannot add the connection to the poll list");
 		rc = ERROR_CODE(int);
 	}
 
@@ -698,19 +700,24 @@ static inline int _accpet_request(module_tcp_pool_t* pool, time_t now)
 		pool->conn_info.wait_limit ++;
 
 		/* The new incoming request should not be in waiting list, because it may connect but no data
-		 * The sane way to handle this is adding it to heap and let next epoll wake it up */
+		 * The sane way to handle this is adding it to heap and let next poll wake it up */
 		_swap(pool, pool->conn_info.wait_limit - 1, pool->conn_info.wait_start ++);
 		_swap(pool, pool->conn_info.active_limit - 1, pool->conn_info.active_start ++);
 		_decrease(pool, pool->conn_info.heap_limit - 1);
 
-		/* Because it should be in the heap, so add it to epoll queue */
-		struct epoll_event event = {
-			.events = EPOLLIN | EPOLLET
+		/* Because it should be in the heap, so add it to poll queue */
+		os_event_desc_t event = {
+			.type = OS_EVENT_TYPE_KERNEL,
+			.kernel = {
+				.fd = data_fd,
+				.event = OS_EVENT_KERNEL_EVENT_IN,
+				.data = pool->conn_info.index + id
+			}
 		};
-		event.data.ptr = pool->conn_info.index + id;
-		if(epoll_ctl(pool->epoll_fd, EPOLL_CTL_ADD, data_fd, &event) < 0)
+
+		if(ERROR_CODE(int) == os_event_poll_add(pool->poll_obj, &event))
 		{
-			LOG_ERROR_ERRNO("could not register the new connection to the event list");
+			LOG_ERROR("Could not register the new connection to the event list");
 			continue;
 		}
 
@@ -802,7 +809,7 @@ static inline int _queue_message_exec(module_tcp_pool_t* pool, time_t now)
 	LOG_DEBUG("Performing queue message operations");
 	uint64_t next;
 
-	int rc = eventfd_read(pool->event_fd, &next);
+	ssize_t rc = read(pool->event_fd, &next, sizeof(next));
 	if(rc < 0) ERROR_RETURN_LOG_ERRNO(int, "Cannot read event fd");
 
 	uint32_t limit = pool->conn_info.q_rear;
@@ -829,7 +836,7 @@ static inline int _queue_message_exec(module_tcp_pool_t* pool, time_t now)
  **/
 static inline int _poll_event(module_tcp_pool_t* pool)
 {
-	/* Determine the max time for this epoll call to wait */
+	/* Determine the max time for this poll call to wait */
 	time_t   now = time(NULL);
 	time_t   time_to_sleep = 0;
 	if(pool->conn_info.heap_limit > 0)
@@ -847,19 +854,18 @@ static inline int _poll_event(module_tcp_pool_t* pool)
 	else
 	    LOG_DEBUG("waiting for socket event");
 
-	int result = epoll_wait(pool->epoll_fd, pool->events, (int)pool->conf.event_size, timeout);
+	int result = os_event_poll_wait(pool->poll_obj, pool->conf.event_size, timeout);
 
-	if(result == -1)
-	{
-		if(errno != EINTR)
-		    ERROR_RETURN_LOG_ERRNO(int, "Cannot finish epoll");
-	}
+	if(result == ERROR_CODE(int))
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot poll event");
 	else
 	{
 		for(i = 0; i < result; i ++)
 		{
+			void* data = os_event_poll_take_result(pool->poll_obj, (size_t)i);
+
 			/* If the fd indicates we have queue message is pending */
-			if(&pool->event_fd == pool->events[i].data.ptr)
+			if(&pool->event_fd == data) 
 			{
 				if(_queue_message_exec(pool, now) == ERROR_CODE(int))
 				{
@@ -868,9 +874,9 @@ static inline int _poll_event(module_tcp_pool_t* pool)
 				}
 			}
 			/* If this is a connection FD */
-			else if(NULL != pool->events[i].data.ptr)
+			else if(NULL != data)
 			{
-				uint32_t idx = *(uint32_t*)pool->events[i].data.ptr;
+				uint32_t idx = *(uint32_t*)data;
 				if(_connection_activate(pool, idx) < 0)
 				{
 					LOG_WARNING("cannot activate the connection");
@@ -1002,7 +1008,8 @@ int module_tcp_pool_connection_release(module_tcp_pool_t* pool, uint32_t id, voi
 	if(pthread_mutex_unlock(&pool->conn_info.q_mutex) < 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot release the global message queue mutex");
 
-	if(eventfd_write(pool->event_fd, 1) == 0)
+	uint64_t val = 1;
+	if(write(pool->event_fd, &val, sizeof(val)) > 0)
 	{
 		LOG_DEBUG("connection release queue message posted");
 		return 0;

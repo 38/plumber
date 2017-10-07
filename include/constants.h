@@ -8,6 +8,7 @@
  **/
 #ifndef __PLUMBER_CONSTANTS_H__
 #define __PLUMBER_CONSTANTS_H__
+
 #include <config.h>
 
 #include <os/const.h>
