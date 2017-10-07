@@ -1,6 +1,8 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
+#include <constants.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>

@@ -3,6 +3,7 @@
  **/
 
 #include <plumber.h>
+#include <pthread.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
