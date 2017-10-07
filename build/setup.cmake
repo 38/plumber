@@ -1,6 +1,7 @@
 #Set up basic cmake variables
 if(APPLE)
     set(SYSNAME "DARWIN")
+    set(CMAKE_MACOSX_RPATH TRUE)
 elseif(WIN32)
 	set(SYSNAME "WIN32")
 else(APPLE)
