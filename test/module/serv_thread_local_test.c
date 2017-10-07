@@ -2,6 +2,7 @@
  * Copyright (C) 2017, Hao Hou
  **/
 #include <constants.h>
+#include <stdlib.h>
 #include <pservlet.h>
 #include <error.h>
 #include <string.h>
@@ -55,7 +56,7 @@ static int _init(uint32_t argc, char const* const* argv, void* data)
 	ASSERT_RETOK(pipe_t, ctx->get = module_require_function("plumber.std", "thread_local_get"), CLEANUP_NOP);
 	ASSERT_RETOK(pipe_t, ctx->free = module_require_function("plumber.std", "thread_local_free"), CLEANUP_NOP);
 
-	extern int32_t* thread_local_test_buffer;
+	int32_t* thread_local_test_buffer = (int32_t*)atoll(argv[1]);
 
 	ASSERT_OK(pipe_cntl(ctx->new, PIPE_CNTL_INVOKE, _alloc, _dealloc, thread_local_test_buffer, &ctx->local), CLEANUP_NOP);
 
