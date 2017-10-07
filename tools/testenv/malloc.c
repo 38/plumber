@@ -9,6 +9,10 @@
 #include <execinfo.h>
 
 #include <pthread.h>
+
+#include <constants.h>
+
+#ifdef __LINUX__
 #define BLOCK_MAGIC_NUMBER  0x4c56f6bcu
 #define _CALLER (__builtin_extract_return_addr(__builtin_return_address(0)))
 extern void* __libc_malloc(size_t size);
@@ -162,9 +166,11 @@ void* realloc(void* ptr, size_t new_size)
 	return _block_list_append(new_block, caller);
 }
 
+#endif
 
 int __check_memory_allocation()
 {
+#ifdef __LINUX__
 	memory_block_t* ptr;
 	for(ptr = __block_list_head; ptr; _num_expected_memory_leakage--, ptr = ptr->next)
 	{
@@ -175,10 +181,14 @@ int __check_memory_allocation()
 	}
 
 	return (__malloc_status != 0 || (ptr != NULL && _num_expected_memory_leakage == 0)) ? -1 : 0;
+#else
+	return 0;
+#endif
 }
 
 void __print_memory_leakage()
 {
+#ifdef __LINUX__
 	memory_block_t* ptr;
 	for(ptr = __block_list_head; ptr; ptr = ptr->next)
 	{
@@ -188,6 +198,9 @@ void __print_memory_leakage()
 	}
 
 	pthread_mutex_destroy(&_mutex);
+#else
+	return;
+#endif
 }
 void expected_memory_leakage()
 {
