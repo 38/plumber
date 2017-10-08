@@ -301,6 +301,7 @@ sched_service_buffer_t* sched_service_buffer_new()
 	ret->output_node = ERROR_CODE(sched_service_node_id_t);
 	ret->input_pipe = ERROR_CODE(runtime_api_pipe_id_t);
 	ret->output_pipe = ERROR_CODE(runtime_api_pipe_id_t);
+	ret->reuse_servlet = 0;
 
 	return ret;
 ERR:
