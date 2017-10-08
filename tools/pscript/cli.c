@@ -207,6 +207,79 @@ static pss_value_t _help(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 	return ret;
 }
 
+int cli_eval(const char* code, uint32_t debug)
+{
+	int rc = 1;
+
+	pss_bytecode_module_t* module = NULL;
+	pss_comp_error_t* err = NULL;
+	pss_value_t result = {};
+	
+	current_vm = pss_vm_new();
+	if(NULL == current_vm || ERROR_CODE(int) == builtin_init(current_vm))
+	{
+		if(current_vm != NULL) pss_vm_free(current_vm);
+		LOG_ERROR("Cannot create PSS Virtual Machine");
+		return 1;
+	}
+
+	if(NULL == (module = module_from_buffer(code, (uint32_t)strlen(code), debug, 1)))
+		ERROR_LOG_GOTO(ERR, "Cannot parse code");
+
+	_vm_running = 1;
+
+	rc = pss_vm_run_module(current_vm, module, &result);
+	LOG_DEBUG("VM terminated with exit code %d", rc);
+
+	_vm_running = 0;
+
+	if(result.kind != PSS_VALUE_KIND_UNDEF && result.kind != PSS_VALUE_KIND_ERROR)
+	{
+		char buf[4096];
+		if(ERROR_CODE(size_t) == pss_value_strify_to_buf(result, buf, sizeof(buf)))
+			ERROR_LOG_GOTO(ERR, "Type error: Got invalid vlaue");
+		
+		printf("%s\n", buf);
+	}
+
+
+	if(ERROR_CODE(int) == rc)
+	{
+		pss_vm_exception_t* exception = pss_vm_last_exception(current_vm);
+		fprintf(stderr, "PSS VM Exception: %s\n\n", exception->message);
+		pss_vm_backtrace_t* backtrace = exception->backtrace;
+		_print_bt(backtrace);
+		fprintf(stderr, "\n");
+		pss_vm_exception_free(exception);
+		goto ERR;
+	}
+
+	if(result.kind != PSS_VALUE_KIND_UNDEF && ERROR_CODE(int) == pss_value_decref(result))
+		ERROR_LOG_GOTO(ERR, "Cannot decref the result value");
+	
+	if(NULL != err)
+	{
+		const pss_comp_error_t* this;
+		for(this = err; NULL != this; this = this->next)
+			fprintf(stderr, "%u:%u:error: %s\n", this->line + 1,
+					this->column + 1, this->message);
+		pss_comp_free_error(err);
+		goto ERR;
+	}
+
+	rc = 0;
+
+ERR:
+	
+	if(ERROR_CODE(int) == pss_vm_free(current_vm))
+	    ERROR_RETURN_LOG(int, "Cannot free current VM");
+
+	if(ERROR_CODE(int) == module_unload_all())
+	    ERROR_RETURN_LOG(int, "Cannot unload modules");
+
+	return rc;
+}
+
 int cli_interactive(uint32_t debug)
 {
 	static const char* source_path = "_";
@@ -233,8 +306,8 @@ int cli_interactive(uint32_t debug)
 		return 1; \
 	}
 
-	_ADD_BUILTIN_FUNC("quit", _quit)
-	_ADD_BUILTIN_FUNC("help", _help)
+	_ADD_BUILTIN_FUNC("quit", _quit);
+	_ADD_BUILTIN_FUNC("help", _help);
 
 #undef _ADD_BUILTIN_FUNC
 	printf("\nREPL Shell for Plumber Service Script\n\nPlumber Version [%s]\n\n", PLUMBER_VERSION);

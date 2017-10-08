@@ -38,6 +38,8 @@ uint32_t      debug = 1;
 int           log_level = 4;
 const char*   compiled_output = NULL;
 
+const char*   eval_str = NULL;
+
 int           exit_code = 0;
 
 
@@ -55,6 +57,7 @@ void display_help()
 	_MESSAGE("  -d  --disassemble   Disassemble the given module");
 	_MESSAGE("  -S  --servlet-dir   Set the servlet search directory");
 	_MESSAGE("  -L  --log-level     Set the log level");
+	_MESSAGE("  -e  --eval          Evalute the string and exit");
 	_MESSAGE("  -v  --version       Show version information");
 }
 
@@ -88,6 +91,7 @@ int parse_args(int argc, char** argv)
 		{"no-debug-info", no_argument,      0,  'n'},
 		{"log-level",   required_argument,  0,  'L'},
 		{"version",     no_argument,        0,  'v'},
+		{"eval",        required_argument,  0,  'e'},
 		{NULL,          0,                  0,   0}
 	};
 
@@ -100,7 +104,7 @@ int parse_args(int argc, char** argv)
 	module_paths[1] = "/";
 
 	int opt_idx, c;
-	for(;(c = getopt_long(argc, argv, "hvNM:S:r:co:dBnL:", _options, &opt_idx)) >= 0;)
+	for(;(c = getopt_long(argc, argv, "hvNM:S:r:co:dBnL:e:", _options, &opt_idx)) >= 0;)
 	{
 		switch(c)
 		{
@@ -139,6 +143,9 @@ int parse_args(int argc, char** argv)
 			case 'L':
 			    log_level = atoi(optarg);
 			    break;
+			case 'e':
+				eval_str = optarg;
+				break;
 			default:
 			    display_help();
 			    properly_exit(1);
@@ -425,6 +432,8 @@ int _program(int argc, char** argv)
 	int rc = 0;
 	if(build_mod)
 	    rc = build_system_module();
+	else if(eval_str != NULL)
+		rc = cli_eval(eval_str, debug);
 	else if(argc - begin == 0)
 	    rc = cli_interactive(debug);
 	else

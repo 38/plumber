@@ -16,4 +16,12 @@
  * @return status code
  **/
 int cli_interactive(uint32_t debug);
+
+/**
+ * @brief Evaluate a code fagment and exit
+ * @param code The code termiates with 0
+ * @param debug If we want debug info in the bytecode
+ * @return status code
+ **/
+int cli_eval(const char* code, uint32_t debug);
 #endif
