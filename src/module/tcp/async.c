@@ -488,7 +488,7 @@ static inline int _async_obj_add_poll(module_tcp_async_loop_t* loop, _async_obj_
  **/
 static inline int _async_obj_del_poll(module_tcp_async_loop_t* loop, _async_obj_t* async)
 {
-	if(ERROR_CODE(int) == os_event_poll_del(loop->poll, async->fd, 0))
+	if(ERROR_CODE(int) == os_event_poll_del(loop->poll, async->fd, loop->write == NULL ? 0 : 1))
 		ERROR_RETURN_LOG(int, "Cannot delete the async object from the poll wait list");
 	return 0;
 }

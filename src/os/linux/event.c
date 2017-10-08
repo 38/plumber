@@ -47,19 +47,28 @@ ERR:
 
 int os_event_poll_free(os_event_poll_t* poll)
 {
+	int rc = 0;
 	if(NULL == poll) ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	/* In this case any event buf do not occupies the ownership of the data pointer,
 	 * so we can dipose the event buffer directly */
 	if(NULL != poll->event_buf) free(poll->event_buf);
+
+	if(close(poll->epoll_fd) < 0)
+	{
+		LOG_ERROR_ERRNO("Cannot close the epoll FD %d", poll->epoll_fd);
+		rc = ERROR_CODE(int);
+	}
+
 	free(poll);
 
-	return 0;
+	return rc;
 }
 
 int os_event_poll_add(os_event_poll_t* poll, os_event_desc_t* desc)
 {
-	if(NULL == poll) ERROR_RETURN_LOG(int, "Invalid arguments");
+	if(NULL == poll || NULL == desc) 
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	int fd = -1;
 	unsigned epoll_flags = 0;
