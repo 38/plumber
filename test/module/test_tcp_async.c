@@ -571,7 +571,9 @@ int setup()
 #ifdef __LINUX__
 		ASSERT((conn[i].efd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC)) >= 0, CLEANUP_NOP);
 #else
-		ASSERT(pipe(conn[i].pipe) >= 0, CLEANUP_NOP);
+        int rc = pipe(conn[i].pipe);
+        LOG_ERROR_ERRNO("pipe");
+		ASSERT(rc >= 0, CLEANUP_NOP);
 		conn[i].efd = conn[i].pipe[0];
 #endif
 		conn[i].busy = 1;

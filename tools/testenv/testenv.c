@@ -23,7 +23,7 @@ extern test_case_t test_list[];
 int setup();
 int teardown();
 
-#if FULL_OPTIMIZATION
+#if defined(FULL_OPTIMIZATION) && !defined(__DARWIN__)
 void* mempool_objpool_alloc(mempool_objpool_t* pool)
 {
 	return mempool_objpool_alloc_checked(pool);

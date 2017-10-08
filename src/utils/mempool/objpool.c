@@ -375,7 +375,8 @@ RET:
 	    ERROR_RETURN_LOG_ERRNO(uint32_t, "Cannot release the pool mutex");
 	return ret;
 }
-#ifdef FULL_OPTIMIZATION
+/* Since OSX do not support this trick, we must disable this on darwin */
+#if defined(FULL_OPTIMIZATION) && !defined(__DARWIN__) 
 __attribute__((weak, alias("_mempool_objpool_alloc_no_check")))
 void* mempool_objpool_alloc(mempool_objpool_t* pool);
 #endif
@@ -413,7 +414,8 @@ void* _mempool_objpool_alloc_no_check(mempool_objpool_t* pool)
 
 	return ret;
 }
-#ifdef FULL_OPTIMIZATION
+/* Since OSX do not support this trick, we must disable this on darwin */
+#if defined(FULL_OPTIMIZATION) && !defined(__DARWIN__) 
 void* mempool_objpool_alloc_checked(mempool_objpool_t* pool)
 #else
 void* mempool_objpool_alloc(mempool_objpool_t* pool)
@@ -469,7 +471,8 @@ __attribute__((noinline)) static int _do_global_dealloc(mempool_objpool_t* pool,
 
 	return 0;
 }
-#ifdef FULL_OPTIMIZATION
+/* Since OSX do not support this trick, we must disable this on darwin */
+#if defined(FULL_OPTIMIZATION) && !defined(__DARWIN__) 
 __attribute__((weak, alias("_mempool_objpool_dealloc_no_check")))
 int mempool_objpool_dealloc(mempool_objpool_t* pool, void* mem);
 #endif
@@ -504,7 +507,8 @@ int _mempool_objpool_dealloc_no_check(mempool_objpool_t* pool, void* mem)
 	return 0;
 }
 
-#ifdef FULL_OPTIMIZATION
+/* Since OSX do not support this trick, we must disable this on darwin */
+#if defined(FULL_OPTIMIZATION) && !defined(__DARWIN__) 
 int mempool_objpool_dealloc_checked(mempool_objpool_t* pool, void* mem)
 #else
 int mempool_objpool_dealloc(mempool_objpool_t* pool, void* mem)
