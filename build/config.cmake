@@ -30,7 +30,7 @@ endif(NOT "${SRC_CHANGED}" STREQUAL "")
 
 #################################Constants##########################################
 ##General Config
-constant(PLUMBER_VERSION "\"0.1.1.${SRC_VERSION} ${BUILD_TIME}\"")
+constant(PLUMBER_VERSION "\"0.1.1.${SRC_VERSION} ${BUILD_TIME} ${SYSNAME}\"")
 
 ##Logging
 constant(LOG_DEFAULT_CONFIG_FILE \"log.cfg\")
