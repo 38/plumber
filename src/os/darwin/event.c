@@ -81,7 +81,7 @@ int os_event_poll_free(os_event_poll_t* poll)
 
 	if(close(poll->kqueue_fd) < 0)
 	{
-		LOG_ERROR_ERRNO("Cannot close the kqueue fd %d", i);
+		LOG_ERROR_ERRNO("Cannot close the kqueue fd %d", poll->kqueue_fd);
 		rc = ERROR_CODE(int);
 	}
 
