@@ -8,7 +8,7 @@
 #ifndef __OS_EVENT_H__
 
 /**
- * @brief The type of the event 
+ * @brief The type of the event
  **/
 typedef enum {
 	OS_EVENT_TYPE_KERNEL,    /*!< The event comes from kernel, typically FD events */
@@ -22,7 +22,7 @@ typedef enum {
 } os_event_kernel_type_t;
 
 /**
- * @brief The data structure used to describe a kernel event 
+ * @brief The data structure used to describe a kernel event
  **/
 typedef struct {
 	int                     fd;    /*!< The target file descriptor */
@@ -38,7 +38,7 @@ typedef struct {
 } os_event_user_event_desc_t;
 
 /**
- * @brief The event descriptor 
+ * @brief The event descriptor
  **/
 typedef struct {
 	os_event_type_t type;   /*!< The desired event type */
@@ -54,7 +54,7 @@ typedef struct {
 typedef struct _os_event_poll_t os_event_poll_t;
 
 /**
- * @brief Create a new event poll object 
+ * @brief Create a new event poll object
  * @return the newly created OS poll event or NULL on error
  **/
 os_event_poll_t* os_event_poll_new();

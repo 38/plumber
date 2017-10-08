@@ -673,9 +673,9 @@ static int  _read_to_buffer(_handle_t* handle)
 			else
 			{
 				if(errno != ECONNRESET)
-					LOG_ERROR_ERRNO("Socket error");
+				    LOG_ERROR_ERRNO("Socket error");
 				else
-					LOG_TRACE_ERRNO("Socket error");
+				    LOG_TRACE_ERRNO("Socket error");
 				return ERROR_CODE(int);
 			}
 		}

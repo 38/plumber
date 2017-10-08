@@ -17,7 +17,7 @@
  **/
 typedef struct {
 	int efd;            /*!< the event fd */
-#ifndef __LINUX__ 
+#ifndef __LINUX__
 	int pipe[2];         /*!< The EFD pipes */
 #endif
 	int busy;           /*!< if this socket is currently busy */

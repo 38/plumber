@@ -241,7 +241,7 @@ module_tcp_pool_t* module_tcp_pool_new()
 
 	/* Create the poll object  */
 	if(NULL == (ret->poll_obj = os_event_poll_new()))
-		ERROR_LOG_GOTO(ERR, "Cannot create poll object");
+	    ERROR_LOG_GOTO(ERR, "Cannot create poll object");
 
 	/* Create the event fd used for the message queue */
 	os_event_desc_t desc = {
@@ -252,7 +252,7 @@ module_tcp_pool_t* module_tcp_pool_new()
 	};
 
 	if(ERROR_CODE(int) == (ret->event_fd = os_event_poll_add(ret->poll_obj, &desc)))
-		ERROR_LOG_GOTO(ERR, "Cannot create user space event");
+	    ERROR_LOG_GOTO(ERR, "Cannot create user space event");
 
 	return ret;
 
@@ -277,7 +277,7 @@ int module_tcp_pool_free(module_tcp_pool_t* pool)
 	if(pool->event_fd >= 0) close(pool->event_fd);
 
 	if(NULL != pool->poll_obj && ERROR_CODE(int) == os_event_poll_free(pool->poll_obj))
-		rc = ERROR_CODE(int);
+	    rc = ERROR_CODE(int);
 
 	free(pool);
 
@@ -342,7 +342,7 @@ static inline int _init_socket(module_tcp_pool_t* pool)
 	};
 
 	if(ERROR_CODE(int) == os_event_poll_add(pool->poll_obj, &event))
-		ERROR_LOG_GOTO(ERR, "Cannot add socket FD to the poll list");
+	    ERROR_LOG_GOTO(ERR, "Cannot add socket FD to the poll list");
 
 	LOG_DEBUG("TCP Socket has been initialized on %s:%"PRIu16, pool->conf.bind_addr, pool->conf.port);
 	return 0;
@@ -526,7 +526,7 @@ static inline int _connection_activate(module_tcp_pool_t* pool, uint32_t idx)
 
 	/** Remove it from the poll_obj's list, so that it won't trigger poll awake since then */
 	if(ERROR_CODE(int) == os_event_poll_del(pool->poll_obj, pool->conn_info.conn[idx].fd, 1))
-		ERROR_RETURN_LOG(int, "Cannot remove the connection object %"PRIu32" from the poll object list", pool->conn_info.conn[idx].id);
+	    ERROR_RETURN_LOG(int, "Cannot remove the connection object %"PRIu32" from the poll object list", pool->conn_info.conn[idx].id);
 
 	/* Remove it from the inactive heap */
 	_swap(pool, idx, --pool->conn_info.heap_limit);
@@ -809,7 +809,7 @@ static inline int _queue_message_exec(module_tcp_pool_t* pool, time_t now)
 	LOG_DEBUG("Performing queue message operations");
 
 	if(ERROR_CODE(int) == os_event_user_event_consume(pool->poll_obj, pool->event_fd))
-		ERROR_RETURN_LOG(int, "Cannot consume user event");
+	    ERROR_RETURN_LOG(int, "Cannot consume user event");
 
 	uint32_t limit = pool->conn_info.q_rear;
 	BARRIER();
@@ -856,7 +856,7 @@ static inline int _poll_event(module_tcp_pool_t* pool)
 	int result = os_event_poll_wait(pool->poll_obj, pool->conf.event_size, timeout);
 
 	if(result == ERROR_CODE(int))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot poll event");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot poll event");
 	else
 	{
 		for(i = 0; i < result; i ++)
@@ -864,7 +864,7 @@ static inline int _poll_event(module_tcp_pool_t* pool)
 			void* data = os_event_poll_take_result(pool->poll_obj, (size_t)i);
 
 			/* If the fd indicates we have queue message is pending */
-			if(&pool->event_fd == data) 
+			if(&pool->event_fd == data)
 			{
 				if(_queue_message_exec(pool, now) == ERROR_CODE(int))
 				{

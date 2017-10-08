@@ -20,7 +20,7 @@
 #include <utils/log.h>
 
 /**
- * @brief The abstraction of the POSIX pipe 
+ * @brief The abstraction of the POSIX pipe
  **/
 typedef struct {
 	int in;                     /*!< The input side of the pipe */
@@ -43,7 +43,7 @@ os_event_poll_t* os_event_poll_new()
 	os_event_poll_t* ret = (os_event_poll_t*)malloc(sizeof(*ret));
 
 	if(NULL == ret)
-		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new poll object");
+	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new poll object");
 
 	ret->kevent_el = NULL;
 	ret->el_size = 0;
@@ -51,7 +51,7 @@ os_event_poll_t* os_event_poll_new()
 	ret->nuenv = 0;
 
 	if((ret->kqueue_fd = kqueue()) < 0)
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create KQueue FD for the poll object");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create KQueue FD for the poll object");
 
 	return ret;
 ERR:
@@ -71,11 +71,11 @@ int os_event_poll_free(os_event_poll_t* poll)
 	{
 		size_t i;
 		for(i = 0; i < poll->nuenv; i ++)
-			if(close(poll->uenv_pipes[i].in) < 0)
-			{
-				LOG_ERROR_ERRNO("Cannot close the event pipe fd %d", poll->uenv_pipes[i].in);
-				rc = ERROR_CODE(int);
-			}
+		    if(close(poll->uenv_pipes[i].in) < 0)
+		    {
+			    LOG_ERROR_ERRNO("Cannot close the event pipe fd %d", poll->uenv_pipes[i].in);
+			    rc = ERROR_CODE(int);
+		    }
 		free(poll->uenv_pipes);
 	}
 
@@ -91,26 +91,26 @@ int os_event_poll_free(os_event_poll_t* poll)
 
 static int _pipe2(int pipefd[2], int flags)
 {
-    if(pipe(pipefd) < 0) 
-    {
-        pipefd[0] = -1;
-        pipefd[1] = -1;
-        ERROR_RETURN_LOG_ERRNO(int, "Cannot create pipe");
-    }
+	if(pipe(pipefd) < 0)
+	{
+		pipefd[0] = -1;
+		pipefd[1] = -1;
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot create pipe");
+	}
 
-    int origin_fl = fcntl(pipefd[0], F_GETFL);
-    if(origin_fl < 0) 
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot get the orignal file flag");
-    if(fcntl(pipefd[0], F_SETFL, flags | origin_fl) < 0)
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the pipe flag");
-    
-    origin_fl = fcntl(pipefd[1], F_GETFL);
-    if(origin_fl < 0)
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot get the orignal file flag");
-    if(fcntl(pipefd[1], F_SETFL, flags | origin_fl) < 0)
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the pipe flag");
+	int origin_fl = fcntl(pipefd[0], F_GETFL);
+	if(origin_fl < 0)
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot get the orignal file flag");
+	if(fcntl(pipefd[0], F_SETFL, flags | origin_fl) < 0)
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the pipe flag");
 
-    return 0;
+	origin_fl = fcntl(pipefd[1], F_GETFL);
+	if(origin_fl < 0)
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot get the orignal file flag");
+	if(fcntl(pipefd[1], F_SETFL, flags | origin_fl) < 0)
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the pipe flag");
+
+	return 0;
 ERR:
 	close(pipefd[0]);
 	close(pipefd[1]);
@@ -133,19 +133,19 @@ int os_event_poll_add(os_event_poll_t* poll, os_event_desc_t* desc)
 		/* We actually use pipe simulates the eventfd */
 		int pipe_fd[2];
 		if(_pipe2(pipe_fd, O_CLOEXEC | O_NONBLOCK) == ERROR_CODE(int))
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot create pipe for the user event");
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot create pipe for the user event");
 
 		_posix_pipe_t* arr = NULL;
-		
+
 		if(NULL == poll->uenv_pipes)
-			arr = (_posix_pipe_t*)malloc(sizeof(_posix_pipe_t));
+		    arr = (_posix_pipe_t*)malloc(sizeof(_posix_pipe_t));
 		else
-			arr = (_posix_pipe_t*)realloc(poll->uenv_pipes, sizeof(_posix_pipe_t) * (poll->nuenv + 1));
+		    arr = (_posix_pipe_t*)realloc(poll->uenv_pipes, sizeof(_posix_pipe_t) * (poll->nuenv + 1));
 
 		if(NULL == arr)
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the new user event");
-        else
-            poll->uenv_pipes = arr;
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the new user event");
+		else
+		    poll->uenv_pipes = arr;
 
 		poll->uenv_pipes[poll->nuenv].in = pipe_fd[0];
 		poll->uenv_pipes[poll->nuenv].out = pipe_fd[1];
@@ -164,11 +164,11 @@ int os_event_poll_add(os_event_poll_t* poll, os_event_desc_t* desc)
 
 		if(desc->kernel.event == OS_EVENT_KERNEL_EVENT_IN ||
 		   desc->kernel.event == OS_EVENT_KERNEL_EVENT_CONNECT)
-			flags = EVFILT_READ;
+		    flags = EVFILT_READ;
 		else
-			flags = EVFILT_WRITE;
+		    flags = EVFILT_WRITE;
 
-        ret = fd;
+		ret = fd;
 	}
 
 
@@ -178,7 +178,7 @@ int os_event_poll_add(os_event_poll_t* poll, os_event_desc_t* desc)
 
 		EV_SET(&event, fd, flags, EV_ADD, 0, 0, data);
 		if(kevent(poll->kqueue_fd, &event, 1, NULL, 0, NULL) < 0)
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot add target FD to the event queue");
+		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot add target FD to the event queue");
 	}
 	else LOG_ERROR("Invalid event type");
 
@@ -211,7 +211,7 @@ int os_event_poll_del(os_event_poll_t* poll, int fd, int read)
 	EV_SET(&event, fd, flags, EV_DELETE, 0, 0, NULL);
 
 	if(kevent(poll->kqueue_fd, &event, 1, NULL, 0, NULL) < 0)
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot remove target FD to the KQqueue");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot remove target FD to the KQqueue");
 
 	return 0;
 }
@@ -219,19 +219,19 @@ int os_event_poll_del(os_event_poll_t* poll, int fd, int read)
 int os_event_poll_wait(os_event_poll_t* poll, size_t max_events, int timeout)
 {
 	if(NULL == poll || max_events == 0)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(max_events > poll->el_size)
 	{
 		if(NULL != poll->kevent_el) free(poll->kevent_el);
 		poll->el_size = 0;
 		if(NULL == (poll->kevent_el = (struct kevent*)calloc(max_events, sizeof(struct kevent))))
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate the event buffer");
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate the event buffer");
 		poll->el_size = max_events;
 	}
 
 	struct timespec ts = {
-        .tv_sec  = timeout / 1000,
+		.tv_sec  = timeout / 1000,
 		.tv_nsec = (timeout % 1000) * 1000000
 	};
 
@@ -239,8 +239,8 @@ int os_event_poll_wait(os_event_poll_t* poll, size_t max_events, int timeout)
 
 	if((rc = kevent(poll->kqueue_fd, NULL, 0, poll->kevent_el, (int)poll->el_size, timeout >= 0 ? &ts: NULL)) < 0)
 	{
-		if(errno == EINTR) 
-            return 0;
+		if(errno == EINTR)
+		    return 0;
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot complete kevent call");
 	}
 
@@ -250,7 +250,7 @@ int os_event_poll_wait(os_event_poll_t* poll, size_t max_events, int timeout)
 void* os_event_poll_take_result(os_event_poll_t* poll, size_t idx)
 {
 	if(NULL == poll || idx > poll->el_size)
-		return NULL;
+	    return NULL;
 
 	return poll->kevent_el[idx].udata;
 }
@@ -259,10 +259,10 @@ int os_event_user_event_consume(os_event_poll_t* poll, int fd)
 {
 	size_t i;
 	for(i = 0; i < poll->nuenv && poll->uenv_pipes[i].out != fd ; i ++)
-        continue;
+	    continue;
 
-    if(i == poll->nuenv) ERROR_RETURN_LOG(int, "Invalid arguments: FD %d is not a user event FD", fd);
-    fd = poll->uenv_pipes[i].in;
+	if(i == poll->nuenv) ERROR_RETURN_LOG(int, "Invalid arguments: FD %d is not a user event FD", fd);
+	fd = poll->uenv_pipes[i].in;
 
 	for(;;)
 	{
@@ -271,7 +271,7 @@ int os_event_user_event_consume(os_event_poll_t* poll, int fd)
 		if(rc < 0)
 		{
 			if(errno == EWOULDBLOCK || errno == EAGAIN)
-				break;
+			    break;
 			ERROR_RETURN_LOG_ERRNO(int, "Cannot consume the user event %d", fd);
 		}
 	}

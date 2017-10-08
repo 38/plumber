@@ -85,7 +85,7 @@ int eloop_test()
 	if(pid == 0)
 	{
 #ifndef __DARWIN__
-        /* TODO: figure out why OSX fails if we finalize libplumber */
+		/* TODO: figure out why OSX fails if we finalize libplumber */
 		plumber_finalize();
 #endif
 		signal(SIGUSR2, sighand);

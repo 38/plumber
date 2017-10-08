@@ -466,14 +466,14 @@ static inline int _async_obj_add_poll(module_tcp_async_loop_t* loop, _async_obj_
 	os_event_desc_t event = {
 		.type = OS_EVENT_TYPE_KERNEL,
 		.kernel = {
-			.event = loop->write == NULL ? OS_EVENT_KERNEL_EVENT_OUT : 
-				                           OS_EVENT_KERNEL_EVENT_IN,
+			.event = loop->write == NULL ? OS_EVENT_KERNEL_EVENT_OUT :
+			                               OS_EVENT_KERNEL_EVENT_IN,
 			.fd    = async->fd,
 			.data  = async
 		}
 	};
 	if(ERROR_CODE(int) == os_event_poll_add(loop->poll, &event))
-		ERROR_RETURN_LOG(int, "Cannot add the async object to the poll wait list");
+	    ERROR_RETURN_LOG(int, "Cannot add the async object to the poll wait list");
 
 	LOG_DEBUG("Connection object %"PRIu32" has been added to the poll wait list", _async_obj_conn_id(loop, async));
 
@@ -489,7 +489,7 @@ static inline int _async_obj_add_poll(module_tcp_async_loop_t* loop, _async_obj_
 static inline int _async_obj_del_poll(module_tcp_async_loop_t* loop, _async_obj_t* async)
 {
 	if(ERROR_CODE(int) == os_event_poll_del(loop->poll, async->fd, loop->write == NULL ? 0 : 1))
-		ERROR_RETURN_LOG(int, "Cannot delete the async object from the poll wait list");
+	    ERROR_RETURN_LOG(int, "Cannot delete the async object from the poll wait list");
 	return 0;
 }
 
@@ -668,7 +668,7 @@ static inline int _process_async_objs(module_tcp_async_loop_t* loop)
 static inline int _process_queue_message(module_tcp_async_loop_t* loop)
 {
 	if(ERROR_CODE(int) == os_event_user_event_consume(loop->poll, loop->event_fd))
-		ERROR_RETURN_LOG(int, "Cannot consume user event");
+	    ERROR_RETURN_LOG(int, "Cannot consume user event");
 
 	LOG_DEBUG("New incoming queue message");
 	if(pthread_mutex_lock(&loop->q_mutex) < 0)
@@ -776,7 +776,7 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 	}
 
 	if(result == ERROR_CODE(int))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot finish poll");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot finish poll");
 	else
 	{
 		int i;
@@ -920,7 +920,7 @@ module_tcp_async_loop_t* module_tcp_async_loop_new(uint32_t pool_size, uint32_t 
 	};
 
 	if(ERROR_CODE(int) == (ret->event_fd = os_event_poll_add(ret->poll, &event)))
-		ERROR_LOG_GOTO(ERR, "Cnnot add the user event to poll wait list");
+	    ERROR_LOG_GOTO(ERR, "Cnnot add the user event to poll wait list");
 
 	/* Finally, start the loop */
 	if(NULL == (ret->loop = thread_new(_async_main, ret, THREAD_TYPE_IO)))
@@ -1110,7 +1110,7 @@ int module_tcp_async_loop_free(module_tcp_async_loop_t* loop)
 	if(NULL != loop->st_list) free(loop->st_list);
 	if(NULL != loop->queue) free(loop->queue);
 	if(NULL != loop->poll && ERROR_CODE(int) == os_event_poll_free(loop->poll))
-		rc = ERROR_CODE(int);
+	    rc = ERROR_CODE(int);
 
 	if(loop->event_fd >= 0) close(loop->event_fd);
 	if(loop->i_q_mutex && pthread_mutex_destroy(&loop->q_mutex) < 0)

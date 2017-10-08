@@ -55,7 +55,7 @@ static inline int _load_default_module(uint16_t port)
 	args[0] = buf;
 	if(itc_modtab_insmod(&module_tcp_module_def, 1, args) == ERROR_CODE(int))
 	    rc = ERROR_CODE(int);
-    
+
 	if(itc_modtab_insmod(&module_mem_module_def, 0, NULL) == ERROR_CODE(int))
 	    rc = ERROR_CODE(int);
 

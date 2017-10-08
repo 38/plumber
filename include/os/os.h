@@ -9,7 +9,7 @@
 #ifndef __OS_H__
 #define __OS_H__
 #if !defined(__LINUX__) && \
-	!defined(__DARWIN__)
+    !defined(__DARWIN__)
 #	error("Unsupported operating sytsem type")
 #endif
 #include <os/const.h>
