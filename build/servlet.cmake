@@ -44,12 +44,12 @@ endforeach(servlet_cmake ${servlet_cmakes})
 set(PYSERVLET_INCLUDE ${CMAKE_INSTALL_PREFIX}/include/pservlet)
 set(PYSERVLET_LIBPATH ${CMAKE_INSTALL_PREFIX}/lib)
 
-if("${SYSNAME}" STREQUAL "DARWIN")
+if("${SYSNAME}" STREQUAL "Darwin")
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/misc/servlet.mk.darwin.in" 
                    "${CMAKE_CURRENT_BINARY_DIR}/servlet.mk")
-else("${SYSNAME}" STREQUAL "DARWIN")
+else("${SYSNAME}" STREQUAL "Darwin")
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/misc/servlet.mk.in" 
                    "${CMAKE_CURRENT_BINARY_DIR}/servlet.mk")
-endif("${SYSNAME}" STREQUAL "DARWIN")
+endif("${SYSNAME}" STREQUAL "Darwin")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/servlet.mk" DESTINATION lib/plumber/)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/misc/servlet.cmake" DESTINATION lib/plumber/cmake/)
