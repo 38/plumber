@@ -73,7 +73,7 @@ int os_event_poll_free(os_event_poll_t* poll)
 		for(i = 0; i < poll->nuenv; i ++)
 			if(close(poll->uenv_pipes[i].in) < 0)
 			{
-				LOG_ERROR_ERRNO("Cannot close the event pipe fd %d", i);
+				LOG_ERROR_ERRNO("Cannot close the event pipe fd %d", poll->uenv_pipes[i].in);
 				rc = ERROR_CODE(int);
 			}
 		free(poll->uenv_pipes);
@@ -112,8 +112,10 @@ static int _pipe2(int pipefd[2], int flags)
 
     return 0;
 ERR:
-	fclose(pipefd[0]);
-	fclose(pipefd[1]);
+	close(pipefd[0]);
+	close(pipefd[1]);
+	pipefd[0] = -1;
+	pipefd[1] = -1;
 	return ERROR_CODE(int);
 }
 
