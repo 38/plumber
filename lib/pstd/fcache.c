@@ -491,7 +491,10 @@ int pstd_fcache_stat(const char* filename, struct stat* buf)
 	    return 0;
 
 	if(stat(filename, buf) < 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Canot get the stat info of the file %s", filename);
+	{
+		LOG_TRACE_ERRNO(int, "Cannot get the stat info of the file %s", filename);
+		return ERROR_CODE(int);
+	}
 
 	return 0;
 }
