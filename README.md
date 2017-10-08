@@ -49,6 +49,22 @@ using the following command
 
 	git clone --recursive https://github.com/38/plumber_examples.git
 
+The minimal required dependencies are 
+
+	- Python 2 (Python 2.7 Recommended)
+	- CMake 2.6 or later (CMake 3+ Recommended)
+	- libreadline 
+	- GCC and G++ (GCC-5 Recommended)
+	- GNU Make
+
+for Ubuntu users, use command
+
+	sudo apt-get install python-2.7 cmake libreadline-dev gcc g++ pkg-config make
+
+for MacOS users, use command
+
+	sudo brew install cmake openssl@1.0 ossp-uuid pkg-config  pkgconfig   readline
+
 After you get the code, use 
 
 	cd plumber_examples
@@ -56,6 +72,14 @@ After you get the code, use
 
 To initialize the Plumber isolated environment. Then you can go to src/ directory, compile and run the examples 
 there. 
+
+To start the static content server based on the Plumber framework
+
+	cd src/fileserver
+	make
+	./fileserver.pss
+
+After the server starts, you will be able to access [http://localhost:8080/](http://localhost:8080)
 
 # General Idea of Plumber
 Unlike traditional service framework, which modelling the component as a request-response based "service", 
