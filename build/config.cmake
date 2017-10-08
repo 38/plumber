@@ -26,8 +26,6 @@ else(NOT "${SRC_CHANGED}" STREQUAL "")
 	set(SRC_VERSION "${SRC_VERSION}")
 endif(NOT "${SRC_CHANGED}" STREQUAL "")
 
-
-
 #################################Constants##########################################
 ##General Config
 constant(PLUMBER_VERSION "\"0.1.1.${SRC_VERSION} ${BUILD_TIME} ${SYSNAME}\"")
@@ -36,11 +34,18 @@ constant(PLUMBER_VERSION "\"0.1.1.${SRC_VERSION} ${BUILD_TIME} ${SYSNAME}\"")
 constant(LOG_DEFAULT_CONFIG_FILE \"log.cfg\")
 constant(CONFIG_PATH \"${CMAKE_INSTALL_PREFIX}/etc/plumber\")
 
-##LibPlumber Configurations
-constant(DO_NOT_COMPILE_ITC_MODULE_TEST 0)
-
 ##OpenSSL
 constant(MODULE_TLS_ENABLED 1)
+if("${MODULE_TLS_ENABLED}" EQUAL "1")
+	find_package(OpenSSL)
+	if(NOT ("${OPENSSL_FOUND}" STREQUAL "TRUE" AND "${OPENSSL_VERSION}" MATCHES "^1\\.0\\..*$"))
+		message("OpenSSL (version <1.1.0) not found, disable the TLS support")
+		set(MODULE_TLS_ENABLED "0")
+	endif(NOT ("${OPENSSL_FOUND}" STREQUAL "TRUE" AND "${OPENSSL_VERSION}" MATCHES "^1\\.0\\..*$"))
+endif("${MODULE_TLS_ENABLED}" EQUAL "1")
+
+##LibPlumber Configurations
+constant(DO_NOT_COMPILE_ITC_MODULE_TEST 0)
 
 constant(RUNTIME_SERVLET_DEFINE_SYM __servdef__)
 constant(RUNTIME_ADDRESS_TABLE_SYM __plumber_address_table)
