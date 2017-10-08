@@ -10,7 +10,7 @@ add_custom_target(docs
 
 add_custom_target(distclean
 	COMMAND make clean
-	COMMAND rm -rf CMakeFiles CMakeCache.txt Testing doc/doxygen cmake_install.cmake CTestTestfile.cmake Makefile tags bin config.h cmake_uninstall.cmake install_manifest.txt servlet.mk
+	COMMAND rm -rf CMakeFiles CMakeCache.txt Testing doc/doxygen cmake_install.cmake CTestTestfile.cmake Makefile tags bin config.h cmake_uninstall.cmake install_manifest.txt servlet.mk CMakeDoxygenDefaults.cmake CMakeDoxygenfile.in
 	COMMAND rm -rf tools/*/package_config.h lib/*/package_config.h install-prototype.sh
 	COMMAND rm -rf ${CMAKE_CURRENT_SOURCE_DIR}/vimrc
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}

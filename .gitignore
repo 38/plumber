@@ -37,6 +37,8 @@ cmake_uninstall.cmake
 Makefile
 install_manifest.txt
 Testing/*
+CMakeDoxyfile.in
+CMakeDoxygenDefaults.cmake
 
 #config header
 config.h
