@@ -5,6 +5,7 @@ import re
 import os
 import time
 import traceback
+import shutil
 #if [ "`${OBJDIR}/pscript ${OBJDIR}/test/lang/basic_program_1.in`" = "hello world" ]
 #then
 #	echo "Passed"
@@ -55,12 +56,15 @@ def run_test_script(filename):
     if not name: return (name, False, 0)
     print >>sys.stderr, "I\tLaunching test case %s"%name
     start_time = time.time()
-    proc = subprocess.Popen(["valgrind", 
-                             "--errors-for-leak-kinds=definite,reachable", 
-                             "--leak-check=full", 
-                             "--error-exitcode=1", 
-                             pscript_binary, 
-                             filename], stdout=subprocess.PIPE)
+    try:
+        proc = subprocess.Popen(["valgrind", 
+                                 "--errors-for-leak-kinds=definite,reachable", 
+                                 "--leak-check=full", 
+                                 "--error-exitcode=1", 
+                                 pscript_binary, 
+                                 filename], stdout=subprocess.PIPE)
+    except:
+        proc = subprocess.Popen([pscript_binary, filename], stdout=subprocess.PIPE)
     for lineno, expected_line in enumerate(expected):
         line = proc.stdout.readline()
         if not line or line.strip() != expected_line:

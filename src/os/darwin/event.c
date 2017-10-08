@@ -132,7 +132,7 @@ int os_event_poll_add(os_event_poll_t* poll, os_event_desc_t* desc)
 	{
 		/* We actually use pipe simulates the eventfd */
 		int pipe_fd[2];
-		if(_pipe2(pipe_fd, O_CLOEXEC) == ERROR_CODE(int))
+		if(_pipe2(pipe_fd, O_CLOEXEC | O_NONBLOCK) == ERROR_CODE(int))
 			ERROR_RETURN_LOG_ERRNO(int, "Cannot create pipe for the user event");
 
 		_posix_pipe_t* arr = NULL;

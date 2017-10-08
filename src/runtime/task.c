@@ -163,6 +163,9 @@ int runtime_task_free(runtime_task_t* task)
  * @return The result string or NULL on error case
  * @note If the buffer is not large enough the name will be truncated autoamtically
  **/
+#if __clang__
+__attribute__((used))
+#endif
 static inline const char* _get_task_full_name(const runtime_task_t* task, char* buf, size_t size)
 {
 	const char* task_type = NULL;
