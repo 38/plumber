@@ -214,7 +214,7 @@ int cli_eval(const char* code, uint32_t debug)
 	pss_bytecode_module_t* module = NULL;
 	pss_comp_error_t* err = NULL;
 	pss_value_t result = {};
-	
+
 	current_vm = pss_vm_new();
 	if(NULL == current_vm || ERROR_CODE(int) == builtin_init(current_vm))
 	{
@@ -224,7 +224,7 @@ int cli_eval(const char* code, uint32_t debug)
 	}
 
 	if(NULL == (module = module_from_buffer(code, (uint32_t)strlen(code), debug, 1)))
-		ERROR_LOG_GOTO(ERR, "Cannot parse code");
+	    ERROR_LOG_GOTO(ERR, "Cannot parse code");
 
 	_vm_running = 1;
 
@@ -237,8 +237,8 @@ int cli_eval(const char* code, uint32_t debug)
 	{
 		char buf[4096];
 		if(ERROR_CODE(size_t) == pss_value_strify_to_buf(result, buf, sizeof(buf)))
-			ERROR_LOG_GOTO(ERR, "Type error: Got invalid vlaue");
-		
+		    ERROR_LOG_GOTO(ERR, "Type error: Got invalid vlaue");
+
 		printf("%s\n", buf);
 	}
 
@@ -255,14 +255,14 @@ int cli_eval(const char* code, uint32_t debug)
 	}
 
 	if(result.kind != PSS_VALUE_KIND_UNDEF && ERROR_CODE(int) == pss_value_decref(result))
-		ERROR_LOG_GOTO(ERR, "Cannot decref the result value");
-	
+	    ERROR_LOG_GOTO(ERR, "Cannot decref the result value");
+
 	if(NULL != err)
 	{
 		const pss_comp_error_t* this;
 		for(this = err; NULL != this; this = this->next)
-			fprintf(stderr, "%u:%u:error: %s\n", this->line + 1,
-					this->column + 1, this->message);
+		    fprintf(stderr, "%u:%u:error: %s\n", this->line + 1,
+		            this->column + 1, this->message);
 		pss_comp_free_error(err);
 		goto ERR;
 	}
@@ -270,7 +270,7 @@ int cli_eval(const char* code, uint32_t debug)
 	rc = 0;
 
 ERR:
-	
+
 	if(ERROR_CODE(int) == pss_vm_free(current_vm))
 	    ERROR_RETURN_LOG(int, "Cannot free current VM");
 

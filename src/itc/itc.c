@@ -11,7 +11,8 @@ INIT_VEC(modules) = {
 	INIT_MODULE(itc_modtab),
 	INIT_MODULE(itc_module),
 	INIT_MODULE(itc_equeue),
-	INIT_MODULE(itc_eloop)
+	INIT_MODULE(itc_eloop),
+	INIT_MODULE(itc_binary)
 };
 
 int itc_init()

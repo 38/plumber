@@ -144,8 +144,8 @@ int parse_args(int argc, char** argv)
 			    log_level = atoi(optarg);
 			    break;
 			case 'e':
-				eval_str = optarg;
-				break;
+			    eval_str = optarg;
+			    break;
 			default:
 			    display_help();
 			    properly_exit(1);
@@ -433,7 +433,7 @@ int _program(int argc, char** argv)
 	if(build_mod)
 	    rc = build_system_module();
 	else if(eval_str != NULL)
-		rc = cli_eval(eval_str, debug);
+	    rc = cli_eval(eval_str, debug);
 	else if(argc - begin == 0)
 	    rc = cli_interactive(debug);
 	else

@@ -20,7 +20,7 @@ int itc_binary_init();
  * @brief the finalization function for this file
  * @return status code
  **/
-int tic_binary_finalize();
+int itc_binary_finalize();
 
 /**
  * @brief search the module binary by its name
