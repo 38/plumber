@@ -335,6 +335,7 @@ int thread_run_test_main(thread_test_main_t func)
 	    ret->stack = (thread_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(thread_stack_t));
 
 	ret->stack->thread = NULL;
+	ret->stack->type = THREAD_TYPE_GENERIC;
 
 	pthread_attr_t attr;
 	void* rc;
