@@ -20,7 +20,7 @@ we support C, C++, Javascript and Python, and new language support is coming.
 
 # Try Plumber
 
-## Docker
+## Docker (Linux)
 
 Thanks to the container techenoloy, you can explorer the Plumber environment without installing any dependencies
 
@@ -42,7 +42,7 @@ docker run --rm -ti -v <path-to-serve>:/www haohou/plumber-fileserver-example --
 docker run --rm -t -i haohou/plumber-minimal -c pscript
 ```
 
-## Try Plumber with the example sandbox
+## Try Plumber with the example sandbox (Linux/MacOS/Windows WSL)
 
 Currently we have a automated tool to build an isolated sandbox environment. To get the sandbox environment, 
 using the following command
