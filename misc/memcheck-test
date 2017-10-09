@@ -1,0 +1,2 @@
+#!/bin/bash
+cd $1 && find bin/test -perm 775 -and -not -name '*.so' -and -type f -exec echo EXECUTABLE:{} \; -exec valgrind --child-silent-after-fork=yes {} \; |& grep "ERROR SUMMARY\|EXECUTABLE"
