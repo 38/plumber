@@ -86,16 +86,16 @@ struct _itc_module_pipe_t {
 	size_t                     actual_header_size;     /*!< The actual header size */
 	struct _itc_module_pipe_t* companion_next;         /*!< a companion is the loop linked list for all the pipes that shares resources */
 	struct _itc_module_pipe_t* companion_prev;         /*!< same as companion_next but is the reverse pointer */
-	uintpad_t                  __padding__[0];
-	uint8_t                    __pipe_flag_padding__[sizeof(uintpad_t) >= sizeof(runtime_api_pipe_flags_t) ? sizeof(uintpad_t) - sizeof(runtime_api_pipe_flags_t) : 0];
+	uintpad_t                  __padding_pipe__[0];
 	runtime_api_pipe_flags_t   pipe_flags;             /*!< the PDT flags used to create this pipe */
+	uintpad_t                  __padding__[0];
 	char                       data[0];                /*!< data */
 };
 STATIC_ASSERTION_TYPE_COMPATIBLE(itc_module_pipe_t, owner, itc_module_pipe_ownership_t, owner);
 STATIC_ASSERTION_LAST(itc_module_pipe_t, data);
 STATIC_ASSERTION_SIZE(itc_module_pipe_t, data, 0);
 /* We assume that the previous padding unit is the pipe flags */
-STATIC_ASSERTION_EQ_ID(itc_pipe_flags_position, offsetof(itc_module_pipe_t, pipe_flags), offsetof(itc_module_pipe_t, data) - sizeof(uintptr_t));
+STATIC_ASSERTION_EQ_ID(itc_pipe_flags_position, offsetof(itc_module_pipe_t, pipe_flags), offsetof(itc_module_pipe_t, data) - sizeof(uintpad_t));
 
 /**
  * @brief the data buffer used for the data we need to silently dropped

@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <utils/static_assertion.h>
 #include <runtime/api.h>
+#include <constants.h>
 
 #ifndef __PLUMBER_ITC_MODULE_TYPES_H__
 #define __PLUMBER_ITC_MODULE_TYPES_H__
@@ -467,7 +468,7 @@ typedef struct {
  **/
 static inline runtime_api_pipe_flags_t itc_module_get_handle_flags(const void* handle)
 {
-	return *(runtime_api_pipe_flags_t*)((uintptr_t*)handle - 1);
+	return *(runtime_api_pipe_flags_t*)((uintpad_t*)handle - 1);
 }
 
 #endif /* __PLUMBER_ITC_MODULE_TYPES_H__ */
