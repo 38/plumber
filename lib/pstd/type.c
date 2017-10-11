@@ -95,7 +95,7 @@ typedef struct __attribute__((packed)) {
 struct _pstd_type_instance_t {
 	uint32_t                    heapmem:1;   /*!< Indicates if this instance uses the heap memory */
 	const pstd_type_model_t*    model;       /*!< The underlying type model */
-	uintptr_t __padding__[0];
+	uintpad_t __padding__[0];
 	char                        buffer[0];   /*!< The actual buffer memory */
 };
 

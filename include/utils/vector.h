@@ -17,7 +17,7 @@ typedef struct {
 	size_t _elem_size; /*!< the element size */
 	size_t _cap;       /*!< the capacity in number of elements */
 	size_t _length;	  /*!< the number of elements in the vector */
-	uintptr_t __padding__[0];
+	uintpad_t __padding__[0];
 	char _data[0];	  /*!< the actual data */
 } vector_t;
 

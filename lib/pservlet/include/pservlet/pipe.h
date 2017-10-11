@@ -17,7 +17,7 @@
 
 typedef struct {
 	uint32_t size;
-	uintptr_t __padding__[0];
+	uintpad_t __padding__[0];
 	pipe_t pipes[0];
 } pipe_array_t;
 STATIC_ASSERTION_SIZE(pipe_array_t, pipes, 0);

@@ -21,7 +21,7 @@ struct _pstd_file_t {
 	uint32_t    committed:1;     /*!< if the object has been committed */
 	uint32_t    stat_ready:1;    /*!< if we already get the stat of the file */
 	struct stat stat;            /*!< the cached stat information */
-	uintptr_t  __padding__[0];
+	uintpad_t  __padding__[0];
 	char       _def_buf[128];   /*!< the default filename buf */
 };
 

@@ -54,7 +54,7 @@ typedef struct {
 	void*                           user_space_data;        /*!< the user space data attached to this connection pool object */
 	uint32_t                        user_state_pending:1;   /*!< indicates if we have user space data pending to push */
 	itc_module_state_dispose_func_t disp;                   /*!< the dispose function for the case the connection object must be killed */
-	uintptr_t __padding__[0];
+	uintpad_t __padding__[0];
 	char                            buffer[0];              /*!< the read buffer */
 } _state_t;
 STATIC_ASSERTION_SIZE(_state_t, buffer, 0);

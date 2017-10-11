@@ -62,7 +62,15 @@ if("${OPTLEVEL}" GREATER "3")
 	message("FYI: you are configuring the project into a full optimization mode, which will enable some unsafe optimization")
 endif("${OPTLEVEL}" GREATER "3")
 
-set(CFLAGS "$ENV{CFLAGS} -O${OPTLEVEL} ${OPT_CFLAGS} -Wconversion -Wextra -Wall -Werror -g")
+## Basic constant
+if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "armv7l")
+	set(PADDING_INT_TYPE uint64_t)
+	set(ARCH_CFLAGS "-D__arm32__")
+else("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "armv7l")
+	set(PADDING_INT_TYPE uintptr_t)
+endif("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "armv7l")
+
+set(CFLAGS "$ENV{CFLAGS} -O${OPTLEVEL} ${OPT_CFLAGS} ${ARCH_CFLAGS} -Wconversion -Wextra -Wall -Werror -g")
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/${INCLUDE_DIR}" 
 	                "${CMAKE_CURRENT_BINARY_DIR}")

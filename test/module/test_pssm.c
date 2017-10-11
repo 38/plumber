@@ -96,7 +96,7 @@ int setup()
 
 	{
 		static char buffer_addr[32];
-		snprintf(buffer_addr, sizeof(buffer_addr), "%lld", (long long)__buffer);
+		snprintf(buffer_addr, sizeof(buffer_addr), "%lld", (long long)(uintptr_t)__buffer);
 		char const* argv[] = {"serv_thread_local_test", buffer_addr};
 		ASSERT_RETOK(runtime_stab_entry_t, thread_local_test_sid = runtime_stab_load(2, argv), CLEANUP_NOP);
 		expected_memory_leakage();

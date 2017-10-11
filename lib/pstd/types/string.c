@@ -21,7 +21,7 @@ struct _pstd_string_t {
 	size_t capacity;          /*!< the capacity of the string buffer */
 	size_t length;            /*!< the length of the string */
 	uint32_t commited:1;      /*!< if this string has been commited */
-	uintptr_t __padding__;
+	uintpad_t __padding__;
 	char     _def_buf[128];   /*!< the default initial buffer */
 };
 STATIC_ASSERTION_LAST(pstd_string_t, _def_buf);

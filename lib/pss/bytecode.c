@@ -122,7 +122,7 @@ typedef  struct {
 typedef struct {
 	_table_header_t header;   /*!< The header of the table */
 	uint32_t      capacity;   /*!< The capacity of the string table */
-	uintptr_t __padding__[0];
+	uintpad_t __padding__[0];
 	union {
 		char*                 string[0];     /*!< The string array */
 		pss_bytecode_regid_t  regid[0];      /*!< The register ID array */

@@ -102,7 +102,7 @@ typedef int (*thread_pset_deallocate_t)(void* mem, const void* data);
 typedef struct _thread_pointer_array_t {
 	struct _thread_pointer_array_t* unused; /*!< currently unused pointer array */
 	uint32_t size;                          /*!< the size of the pointer */
-	uintptr_t __padding__[0];
+	uintpad_t __padding__[0];
 	void*    ptr[0];                        /*!< the actual pointers for each thread */
 } thread_pointer_array_t;
 STATIC_ASSERTION_LAST(thread_pointer_array_t, ptr);
@@ -129,7 +129,7 @@ typedef struct {
 	uint32_t  id;              /*!< The thread id */
 	thread_type_t type;        /*!< the type of this thread */
 	thread_t* thread;          /*!< The thread object */
-	uintptr_t  __padding__[0];
+	uintpad_t  __padding__[0];
 	char base[0];             /*!< The base address of the stack */
 } thread_stack_t;
 #endif

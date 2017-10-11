@@ -56,7 +56,7 @@ static int _init(uint32_t argc, char const* const* argv, void* data)
 	ASSERT_RETOK(pipe_t, ctx->get = module_require_function("plumber.std", "thread_local_get"), CLEANUP_NOP);
 	ASSERT_RETOK(pipe_t, ctx->free = module_require_function("plumber.std", "thread_local_free"), CLEANUP_NOP);
 
-	int32_t* thread_local_test_buffer = (int32_t*)atoll(argv[1]);
+	int32_t* thread_local_test_buffer = (int32_t*)(uintptr_t)atoll(argv[1]);
 
 	ASSERT_OK(pipe_cntl(ctx->new, PIPE_CNTL_INVOKE, _alloc, _dealloc, thread_local_test_buffer, &ctx->local), CLEANUP_NOP);
 

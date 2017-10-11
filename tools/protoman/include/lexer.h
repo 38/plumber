@@ -42,7 +42,7 @@ typedef struct {
 	uint32_t           line;     /*!< the line number for this token */
 	uint32_t           column;   /*!< the column number for this token */
 	proto_type_atomic_metadata_t metadata; /*!< The type metadata carried by this lexer token */
-	uintptr_t __padding__[0];
+	uintpad_t __padding__[0];
 	union {
 		int64_t  number;        /*!< the number value */
 		double   floatpoint;    /*!< The float point number */

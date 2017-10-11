@@ -42,7 +42,7 @@ typedef struct {
 	uint32_t          size;              /*!< the size of the queue */
 	uint32_t          front;             /*!< the next avaliable location to write, only module thread with that token can access this */
 	uint32_t          rear;              /*!< the next avaliable lication to read, only module thread with schudler token can access this */
-	uintptr_t         __padding__[0];
+	uintpad_t         __padding__[0];
 	itc_equeue_event_t events[0];        /*!< the event list */
 } _queue_t;
 

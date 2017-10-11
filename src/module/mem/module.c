@@ -34,7 +34,7 @@ typedef enum {
 typedef struct _buffer_page_t {
 	struct _buffer_page_t* next;  /*!< the next page in the mem buffer */
 	uint32_t size;                /*!< the actual data size in this page */
-	uintptr_t __padding__[0];
+	uintpad_t __padding__[0];
 	char   data[0];               /*!< the data section */
 } _buffer_page_t;
 STATIC_ASSERTION_LAST(_buffer_page_t, data);

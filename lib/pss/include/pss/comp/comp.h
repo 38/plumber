@@ -52,7 +52,7 @@ typedef struct _pss_comp_error_t {
 	uint32_t    line;                 /*!< The line number */
 	uint32_t    column;               /*!< The column number */
 	struct _pss_comp_error_t* next;   /*!< The next compile error */
-	uintptr_t   __padding__[0];
+	uintpad_t   __padding__[0];
 	char        message[0];           /*!< The actual error message */
 } pss_comp_error_t;
 STATIC_ASSERTION_LAST(pss_comp_error_t, message);

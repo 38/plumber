@@ -59,7 +59,7 @@ typedef struct {
 typedef struct {
 	uint32_t                    output_cancelled:1;/*!<indicates if the output of the entire service graph will be cancelled */
 	uint32_t                    count;             /*!< the number of the edges */
-	uintptr_t                   __padding__[0];
+	uintpad_t                   __padding__[0];
 	sched_cnode_edge_dest_t     dest[0];           /*!< the actual destination list */
 } sched_cnode_boundary_t;
 STATIC_ASSERTION_LAST(sched_cnode_boundary_t, dest);
@@ -70,7 +70,7 @@ STATIC_ASSERTION_SIZE(sched_cnode_boundary_t, dest, 0);
  **/
 struct _sched_cnode_info_t {
 	const sched_service_t*  service;       /*!< the service has been analyzed */
-	uintptr_t               __padding__[0];
+	uintpad_t               __padding__[0];
 	sched_cnode_boundary_t* boundary[0];   /*!< the critical node boundaries */
 };
 STATIC_ASSERTION_LAST(sched_cnode_info_t, boundary);

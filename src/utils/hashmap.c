@@ -21,7 +21,7 @@ typedef struct _node_t {
 	size_t   key_size;   /*!< the size of the key */
 	size_t   val_size;   /*!< the size of the value */
 	struct _node_t* next;/*!< the linked list pointer in the slot */
-	uintptr_t __padding__[0];
+	uintpad_t __padding__[0];
 	char     data[0];    /*!< the actual data section */
 } _node_t;
 STATIC_ASSERTION_LAST(_node_t, data);
@@ -33,7 +33,7 @@ STATIC_ASSERTION_SIZE(_node_t, data, 0);
 struct _hashmap_t {
 	size_t    num_slots; /*!< the number of slots */
 	mempool_oneway_t* pool; /*!< the memory pool */
-	uintptr_t __padding__[0];
+	uintpad_t __padding__[0];
 	_node_t*  slots[0]; /*!< the number of slots */
 };
 STATIC_ASSERTION_LAST(hashmap_t, slots);

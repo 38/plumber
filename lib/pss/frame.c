@@ -20,7 +20,7 @@
 typedef struct _node_t {
 	uint32_t                 refcnt;      /*!< The reference counter for this node */
 	pss_value_t              value;       /*!< The value data */
-	uintptr_t                __padding__[0];
+	uintpad_t                __padding__[0];
 	struct {
 		struct _node_t*      left;         /*!< The left child */
 		struct _node_t*      right;        /*!< The right child */

@@ -1074,7 +1074,7 @@ static inline int _alpn_select_protocol(SSL* ssl, const unsigned char** out, uns
 	for(;NULL != server_proto; server_proto = _get_next_protocol(server_proto))
 	    for(client_proto = client_proto_list;
 	        client_proto != NULL &&
-	        (client_proto->name + client_proto->length) - in <= inlen;
+	        (unsigned int)((client_proto->name + client_proto->length) - in) <= inlen;
 	        client_proto = _get_next_protocol(client_proto))
 	        if(_alpn_protocol_cmp(server_proto->begin, client_proto->begin) == 0)
 	        {

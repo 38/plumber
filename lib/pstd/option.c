@@ -21,7 +21,7 @@
 typedef struct {
 	uint32_t capacity;
 	uint32_t size;
-	uintptr_t __padding__[0];
+	uintpad_t __padding__[0];
 	pstd_option_param_t params[0];
 } _buffer_t;
 STATIC_ASSERTION_SIZE(_buffer_t, params, 0);

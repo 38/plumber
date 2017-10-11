@@ -51,7 +51,7 @@ struct _sched_loop_t {
 	uint32_t   num_running_reqs;     /*!< How many requests are currently running by this worker */
 	uint32_t   pending_reqs_id_begin;/*!< The begining ID of the pending request */
 	uint32_t   pending_reqs_id_end;  /*!< The ending ID of the pending request */
-	uintptr_t __padding__[0];
+	uintpad_t __padding__[0];
 	itc_equeue_event_t events[0];    /*!< the actual event queue */
 };
 STATIC_ASSERTION_LAST(sched_loop_t, events);

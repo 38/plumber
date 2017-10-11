@@ -40,7 +40,7 @@
  **/
 typedef struct {
 	uint32_t size;            /*!< the size of the memory chunck, this is important, because this indicates which memory pool object should we use */
-	uintptr_t __padding__[0];
+	uintpad_t __padding__[0];
 	char     mem[0];          /*!< the actual start point of the memory chunck */
 } _memory_chunck_t;
 STATIC_ASSERTION_LAST(_memory_chunck_t, mem);

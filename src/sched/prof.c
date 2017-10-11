@@ -46,7 +46,7 @@ typedef struct {
 typedef struct {
 	sched_service_node_id_t cur_node; /*!< the current node that is being measured */
 	struct timespec start_time;       /*!< the timestamp when the timer started */
-	uintptr_t __padding__[0];
+	uintpad_t __padding__[0];
 	_accu_t  data[0];                 /*!< the actual array */
 } _prof_array_t;
 STATIC_ASSERTION_SIZE(_prof_array_t, data, 0);

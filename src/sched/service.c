@@ -50,7 +50,7 @@ typedef struct {
 	size_t*  pipe_header_size;                  /*!< the size of pipe header */
 	runtime_task_flags_t flags;                 /*!< the additional task flags */
 	sched_service_pipe_descriptor_t* outgoing;  /*!< outgoing list */
-	uintptr_t __padding__[0];
+	uintpad_t __padding__[0];
 	sched_service_pipe_descriptor_t incoming[0];/*!< the incoming list */
 } _node_t;
 STATIC_ASSERTION_SIZE(_node_t, incoming, 0);
@@ -70,7 +70,7 @@ struct _sched_service_t {
 	sched_cnode_info_t*   c_nodes;        /*!< the critical node */
 	size_t node_count;                    /*!< how many nodes in this service */
 	sched_prof_t*         profiler;       /*!< the profiler for this service */
-	uintptr_t __padding__[0];
+	uintpad_t __padding__[0];
 	_node_t*  nodes[0];                   /*!< the node list */
 };
 

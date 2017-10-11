@@ -21,7 +21,7 @@ typedef struct _mem_node_t {
 	size_t size; /*!< size of the current node */
 	size_t usedsize; /*!< size that already allocated */
 	struct _mem_node_t* next;
-	uintptr_t __padding__[0];
+	uintpad_t __padding__[0];
 	char data[0]; /*!< data section */
 }_mem_node_t;
 STATIC_ASSERTION_LAST(_mem_node_t, data);

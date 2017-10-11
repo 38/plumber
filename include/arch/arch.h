@@ -10,5 +10,6 @@
 
 #include <arch/x64.h>
 #include <arch/x86.h>
+#include <arch/arm32.h>
 
 #endif /*__PLUMBER_ARCH_ARCH_H__*/

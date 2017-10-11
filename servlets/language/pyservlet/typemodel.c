@@ -197,10 +197,10 @@ static PyObject* _type_instance_read_int(PyObject* _self, PyObject* args)
 		    break;
 		case 4:
 		    if(is_signed) retval = *typed_buf.i32;
-		    else retval = *typed_buf.u32;
+		    else retval = (long)*typed_buf.u32;
 		    break;
 		case 8:
-		    if(is_signed) retval = *typed_buf.i64;
+		    if(is_signed) retval = (long)*typed_buf.i64;
 		    else
 		        return Py_BuildValue("K", *typed_buf.u64);
 		    break;
