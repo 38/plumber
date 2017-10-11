@@ -134,7 +134,7 @@ int parse_args(int argc, char** argv, program_option_t* out)
 	out->db_root = NULL;
 	out->target = NULL;
 	out->show_base_type = 0;
-	out->padding_size = sizeof(uintptr_t);
+	out->padding_size = sizeof(uintpad_t);
 
 	static int seen_opts[128] = {};
 
@@ -654,7 +654,7 @@ int do_syntax(const program_option_t* option)
 
 		compiler_options_t opt = {
 			.lexer = lexer,
-			.padding_size = sizeof(uintptr_t)
+			.padding_size = sizeof(uintpad_t)
 		};
 
 		if(NULL == (result = compiler_compile(opt)))
