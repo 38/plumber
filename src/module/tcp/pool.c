@@ -83,6 +83,9 @@ struct _module_tcp_pool_t{
 	os_event_poll_t*            poll_obj;    /*!< The poll object */
 	int                         socket_fd;   /*!< the listening fd */
 	int                         event_fd;    /*!< the event fd for the release queue */
+	pthread_mutex_t             master_mutex;/*!< This mutex is used when the pool gets configured. It make sure that the master pool gets configured before slaves */
+	pthread_cond_t              master_cond; /*!< Used with master_mutex for event loop synchronization */
+	module_tcp_pool_t*          master;      /*!< The master pool is the onwer of the socket, NULL if this pool is the master */
 	module_tcp_pool_configure_t conf;        /*!< the module confiuration */
 	_conn_info_t                conn_info;   /*!< the connection info object */
 	struct sockaddr_in          saddr;       /*!< The socket addr */
@@ -231,10 +234,19 @@ static inline int _set_nonblock(int fd)
 
 module_tcp_pool_t* module_tcp_pool_new()
 {
+	int mutex_created = 0, cond_created = 0;
 	module_tcp_pool_t* ret = (module_tcp_pool_t*)calloc(1, sizeof(module_tcp_pool_t));
 
 	if(NULL == ret)
 	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the connection pool object");
+
+	if(pthread_mutex_init(&ret->master_mutex, NULL) < 0)
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the master mutex");
+	else mutex_created = 1;
+
+	if(pthread_cond_init(&ret->master_cond, NULL) < 0)
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the master condvar");
+	else cond_created = 1;
 
 	ret->poll_obj = NULL;
 	ret->event_fd = ERROR_CODE(int);
@@ -257,6 +269,8 @@ module_tcp_pool_t* module_tcp_pool_new()
 	return ret;
 
 ERR:
+	if(mutex_created) pthread_mutex_destroy(&ret->master_mutex);
+	if(cond_created) pthread_cond_destroy(&ret->master_cond);
 	if(NULL != ret->poll_obj) os_event_poll_free(ret->poll_obj);
 	if(ret->event_fd >= 0) close(ret->event_fd);
 	ret->poll_obj = NULL;
@@ -264,6 +278,17 @@ ERR:
 	free(ret);
 
 	return NULL;
+}
+
+module_tcp_pool_t* module_tcp_pool_fork(module_tcp_pool_t* pool)
+{
+	if(NULL == pool) ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+	module_tcp_pool_t* ret = module_tcp_pool_new();
+
+	ret->master = pool;
+
+	return ret;
 }
 
 int module_tcp_pool_free(module_tcp_pool_t* pool)
@@ -279,6 +304,14 @@ int module_tcp_pool_free(module_tcp_pool_t* pool)
 	if(NULL != pool->poll_obj && ERROR_CODE(int) == os_event_poll_free(pool->poll_obj))
 	    rc = ERROR_CODE(int);
 
+	if(pool->master == NULL)
+	{
+		if(pthread_mutex_destroy(&pool->master_mutex) < 0)
+			rc = ERROR_CODE(int);
+		if(pthread_cond_destroy(&pool->master_cond) < 0)
+			rc = ERROR_CODE(int);
+	}
+
 	free(pool);
 
 	return rc;
@@ -291,46 +324,56 @@ int module_tcp_pool_free(module_tcp_pool_t* pool)
  **/
 static inline int _init_socket(module_tcp_pool_t* pool)
 {
-	struct sockaddr* sockaddr;
-	socklen_t sockaddr_size;
-	if(!pool->conf.ipv6)
+	if(pool->master == NULL)
 	{
-		if((pool->socket_fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create socket for TCP pipe module");
+		struct sockaddr* sockaddr;
+		socklen_t sockaddr_size;
+		if(!pool->conf.ipv6)
+		{
+			if((pool->socket_fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create socket for TCP pipe module");
 
-		pool->saddr.sin_family = AF_INET;
-		pool->saddr.sin_addr.s_addr = inet_addr(pool->conf.bind_addr);
-		pool->saddr.sin_port = htons(pool->conf.port);
-		sockaddr = (struct sockaddr*)&pool->saddr;
-		sockaddr_size = sizeof(struct sockaddr_in);
+			pool->saddr.sin_family = AF_INET;
+			pool->saddr.sin_addr.s_addr = inet_addr(pool->conf.bind_addr);
+			pool->saddr.sin_port = htons(pool->conf.port);
+			sockaddr = (struct sockaddr*)&pool->saddr;
+			sockaddr_size = sizeof(struct sockaddr_in);
+		}
+		else
+		{
+			if(strcmp(pool->conf.bind_addr, "0.0.0.0") == 0)
+				pool->conf.bind_addr = "::";
+
+			if((pool->socket_fd = socket(PF_INET6, SOCK_STREAM, IPPROTO_TCP)) < 0)
+				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create socket for TCP pipe module");
+			pool->saddr6.sin6_family = AF_INET6;
+			pool->saddr6.sin6_port   = htons(pool->conf.port);
+			if(inet_pton(AF_INET6, pool->conf.bind_addr, &pool->saddr6.sin6_addr) < 0)
+				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot parse the ipv6 address %s", pool->conf.bind_addr);
+			sockaddr = (struct sockaddr*)&pool->saddr6;
+			sockaddr_size = sizeof(struct sockaddr_in6);
+		}
+
+		if(pool->conf.reuseaddr &&
+		   setsockopt(pool->socket_fd, SOL_SOCKET, SO_REUSEADDR, (char*)&pool->conf.reuseaddr, sizeof(pool->conf.reuseaddr)) < 0)
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the reuseaddr option");
+
+		if(_set_nonblock(pool->socket_fd) == ERROR_CODE(int))
+			ERROR_LOG_GOTO(ERR, "Cannot set the socket FD to non-blocking mode");
+
+		if(bind(pool->socket_fd, sockaddr, sockaddr_size) < 0)
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot bind address");
+
+		if(listen(pool->socket_fd, pool->conf.tcp_backlog) < 0)
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot listen TCP port %"PRIu16, pool->conf.port);
 	}
-	else
+	else 
 	{
-		if(strcmp(pool->conf.bind_addr, "0.0.0.0") == 0)
-		    pool->conf.bind_addr = "::";
-
-		if((pool->socket_fd = socket(PF_INET6, SOCK_STREAM, IPPROTO_TCP)) < 0)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create socket for TCP pipe module");
-		pool->saddr6.sin6_family = AF_INET6;
-		pool->saddr6.sin6_port   = htons(pool->conf.port);
-		if(inet_pton(AF_INET6, pool->conf.bind_addr, &pool->saddr6.sin6_addr) < 0)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot parse the ipv6 address %s", pool->conf.bind_addr);
-		sockaddr = (struct sockaddr*)&pool->saddr6;
-		sockaddr_size = sizeof(struct sockaddr_in6);
+		if(pool->master->conf.ipv6)
+			pool->saddr6 = pool->master->saddr6;
+		else
+			pool->saddr = pool->master->saddr;
 	}
-
-	if(pool->conf.reuseaddr &&
-	   setsockopt(pool->socket_fd, SOL_SOCKET, SO_REUSEADDR, (char*)&pool->conf.reuseaddr, sizeof(pool->conf.reuseaddr)) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the reuseaddr option");
-
-	if(_set_nonblock(pool->socket_fd) == ERROR_CODE(int))
-	    ERROR_LOG_GOTO(ERR, "Cannot set the socket FD to non-blocking mode");
-
-	if(bind(pool->socket_fd, sockaddr, sockaddr_size) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot bind address");
-
-	if(listen(pool->socket_fd, pool->conf.tcp_backlog) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot listen TCP port %"PRIu16, pool->conf.port);
 
 	os_event_desc_t event = {
 		.type = OS_EVENT_TYPE_KERNEL,
@@ -348,12 +391,13 @@ static inline int _init_socket(module_tcp_pool_t* pool)
 	return 0;
 ERR:
 	if(pool->socket_fd >= 0) close(pool->socket_fd);
+	pool->socket_fd = ERROR_CODE(int);
 	return ERROR_CODE(int);
 }
 
 int module_tcp_pool_configure(module_tcp_pool_t* pool, const module_tcp_pool_configure_t* conf)
 {
-	if(NULL == pool || NULL == conf)
+	if(NULL == pool || (NULL == conf && pool->master == NULL))
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	pool->loop_killed = 0;
@@ -366,7 +410,55 @@ int module_tcp_pool_configure(module_tcp_pool_t* pool, const module_tcp_pool_con
 
 	pool->conf = *conf;
 
-	if(_init_socket(pool) == ERROR_CODE(int)) goto ERR;
+	if(pool->master == NULL) 
+	{
+		if(pthread_mutex_lock(&pool->master_mutex) < 0)
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot acquire the master mutex for the master connection pool");
+
+		if(_init_socket(pool) == ERROR_CODE(int)) goto MASTER_ERR;
+
+		if(pool->master == NULL)
+		{
+			LOG_DEBUG("Notifying the slaves");
+			if(pthread_cond_broadcast(&pool->master_cond) < 0)
+				ERROR_LOG_ERRNO_GOTO(MASTER_ERR, "Cannot broadcast the master connected signal");
+		}
+
+		if(pthread_mutex_unlock(&pool->master_mutex) < 0)
+			LOG_WARNING_ERRNO("Cannot reloase the master mutex");
+
+		goto CONT;
+MASTER_ERR:
+		pthread_mutex_unlock(&pool->master_mutex);
+		goto ERR;
+	}
+	else
+	{
+		LOG_DEBUG("Waiting for the master pool gets ready");
+		if(pthread_mutex_lock(&pool->master->master_mutex) < 0)
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot acquire the master mutex for the slave connection pool");
+
+		int cond_rc = 0;
+		while(pool->master->socket_fd <= 0 && (cond_rc = pthread_cond_wait(&pool->master->master_cond, &pool->master->master_mutex)) < 0);
+
+		if(cond_rc < 0) ERROR_LOG_ERRNO_GOTO(SLAVE_ERR, "Cannot wait for the master");
+
+
+		if(pthread_mutex_unlock(&pool->master->master_mutex) < 0)
+			LOG_WARNING_ERRNO("Cannot reloase the master mutex");
+		
+		LOG_DEBUG("The master connection pool gets ready");
+
+		if(_init_socket(pool) == ERROR_CODE(int)) goto ERR;
+
+		goto CONT;
+
+SLAVE_ERR:
+		pthread_mutex_unlock(&pool->master->master_mutex);
+		goto ERR;
+	}
+
+CONT:
 
 	if(_init_conn_info(pool, pool->conf.size) == ERROR_CODE(int)) goto ERR;
 

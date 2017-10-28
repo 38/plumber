@@ -73,6 +73,15 @@ typedef struct {
 module_tcp_pool_t* module_tcp_pool_new();
 
 /**
+ * @brief Fork an existing TCP pool. 
+ * @details This will create another connection pool listening to the same TCP port.
+ *          This is used when the event loop becomes a bottelneck, thus we want to 
+ *          use multiple event loop for the same socket FD
+ * @return the newly created connection pool object, or NULL on error
+ **/
+module_tcp_pool_t* module_tcp_pool_fork(module_tcp_pool_t* pool);
+
+/**
  * @brief dispose the used TCP connection pool
  * @param pool the connection pool to dispose
  * @return status code
