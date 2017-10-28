@@ -85,6 +85,7 @@ struct _module_tcp_pool_t{
 	int                         event_fd;    /*!< the event fd for the release queue */
 	pthread_mutex_t             master_mutex;/*!< This mutex is used when the pool gets configured. It make sure that the master pool gets configured before slaves */
 	pthread_cond_t              master_cond; /*!< Used with master_mutex for event loop synchronization */
+	int                         num_slaves;  /*!< How many slave module it have, master pool only */
 	module_tcp_pool_t*          master;      /*!< The master pool is the onwer of the socket, NULL if this pool is the master */
 	module_tcp_pool_configure_t conf;        /*!< the module confiuration */
 	_conn_info_t                conn_info;   /*!< the connection info object */
@@ -288,6 +289,8 @@ module_tcp_pool_t* module_tcp_pool_fork(module_tcp_pool_t* pool)
 
 	ret->master = pool;
 
+	ret->master->num_slaves ++;
+
 	return ret;
 }
 
@@ -315,6 +318,12 @@ int module_tcp_pool_free(module_tcp_pool_t* pool)
 	free(pool);
 
 	return rc;
+}
+
+int module_tcp_pool_num_slaves(const module_tcp_pool_t* pool)
+{
+	if(NULL == pool) ERROR_RETURN_LOG(int, "Invalid arguments");
+	return pool->num_slaves;
 }
 
 /**
@@ -408,10 +417,10 @@ int module_tcp_pool_configure(module_tcp_pool_t* pool, const module_tcp_pool_con
 	if(NULL == conf)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	pool->conf = *conf;
 
 	if(pool->master == NULL) 
 	{
+		pool->conf = *conf;
 		if(pthread_mutex_lock(&pool->master_mutex) < 0)
 			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot acquire the master mutex for the master connection pool");
 
@@ -448,6 +457,8 @@ MASTER_ERR:
 			LOG_WARNING_ERRNO("Cannot reloase the master mutex");
 		
 		LOG_DEBUG("The master connection pool gets ready");
+		
+		pool->conf = pool->master->conf;
 
 		if(_init_socket(pool) == ERROR_CODE(int)) goto ERR;
 
