@@ -1319,6 +1319,13 @@ static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* s
 
 		return ret;
 	}
+	else if(strcmp(sym, "nthreads") == 0)
+	{
+		if(context->port_id == 0) 
+			return _make_num((long long)module_tcp_pool_num_slaves(context->conn_pool));
+		else
+			return _make_num((long long)0);
+	}
 
 	return ret;
 }
