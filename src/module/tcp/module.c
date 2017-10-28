@@ -20,7 +20,11 @@
 #include <utils/static_assertion.h>
 #include <utils/mempool/objpool.h>
 #include <utils/mempool/page.h>
+
 #include <itc/module_types.h>
+#include <itc/module.h>
+#include <itc/modtab.h>
+
 #include <module/tcp/module.h>
 #include <module/tcp/pool.h>
 #include <module/tcp/async.h>
@@ -126,6 +130,7 @@ typedef struct {
 	int                         pool_initialized;     /*!< indicates if the pool has been initialized */
 	int                         sync_write_attempt;   /*!< If do a synchronized write attempt before initialize a async operation */
 	int                         slave_mode;           /*!< The slave working mode, which means the module should not start the event loop */
+	int                         port_id;              /*!< The id used to identify the TCP module instance that listen to the same port */
 	uint32_t                    async_buf_size;       /*!< The size of the async write buffer */
 	module_tcp_pool_t*          conn_pool;            /*!< The TCP connection pool object */
 	module_tcp_async_loop_t*    async_loop;           /*!< The async loop for this TCP module instance */
@@ -525,8 +530,11 @@ static inline int _init_connection_pool(_module_context_t* __restrict context)
 	return 0;
 }
 
-static inline int _module_context_init(_module_context_t* ctx)
+static inline int _module_context_init(_module_context_t* ctx, _module_context_t* master)
 {
+	if(master != NULL &&  master->port_id != 0)
+		ERROR_RETURN_LOG(int, "Invalid arguments: Trying start multithreaded eventloop on a slave?");
+
 	if(_instance_count == 0)
 	{
 		if(NULL == (_async_handle_pool = mempool_objpool_new(sizeof(_async_handle_t))))
@@ -549,8 +557,23 @@ static inline int _module_context_init(_module_context_t* ctx)
 
 	ctx->async_loop = NULL;
 
-	if(NULL == (ctx->conn_pool = module_tcp_pool_new()))
-	    ERROR_RETURN_LOG(int, "Cannot create TCP connection pool");
+	if(NULL == master)
+	{
+		if(NULL == (ctx->conn_pool = module_tcp_pool_new()))
+			ERROR_RETURN_LOG(int, "Cannot create TCP connection pool");
+		ctx->port_id = 0;
+	}
+	else 
+	{
+		if(ERROR_CODE(int) == (ctx->port_id = module_tcp_pool_num_slaves(master->conn_pool)))
+			ERROR_RETURN_LOG(int, "Cannot get new port ID");
+
+		ctx->port_id ++;
+
+		if(NULL == (ctx->conn_pool = module_tcp_pool_fork(master->conn_pool)))
+			ERROR_RETURN_LOG(int, "Cannot fork TCP connection pool");
+
+	}
 
 	_instance_count ++;
 	return 0;
@@ -584,13 +607,38 @@ static int _init(void* __restrict ctx, uint32_t argc, char const* __restrict con
 		}
 	}
 
+	_module_context_t* master = NULL;
+
 	if(argc - i == 1)
 	{
-		uint16_t port = (uint16_t)atoi(argv[i]); /* The first argument */
-		context->pool_conf.port = port;
+		if(argv[i][0] < '0' || argv[i][0] > '9')
+		{
+			uint32_t j;
+			for(j = 0; module_tcp_module_def.mod_prefix[j] && module_tcp_module_def.mod_prefix[j] == argv[i][j]; j ++);
+			if(module_tcp_module_def.mod_prefix[j] != 0 || argv[i][j] != '.')
+				ERROR_RETURN_LOG(int, "Invalid arguments: Not a TCP module: %s", argv[i]);
+			
+			/* We need to share the port */
+			itc_module_type_t master_type = itc_modtab_get_module_type_from_path(argv[i]);
+
+			if(ERROR_CODE(itc_module_type_t) == master_type) 
+				ERROR_RETURN_LOG(int, "Invalid arguments: TCP module %s not exists", argv[i]);
+
+			const itc_modtab_instance_t* master_mod_inst = itc_modtab_get_from_module_type(master_type);
+			if(NULL == master_mod_inst)
+				ERROR_RETURN_LOG(int, "Cannnot get the master type %u", master_type);
+
+			master = (_module_context_t*)master_mod_inst->context;
+		}
+		else
+		{
+			/* This is the master event loop */
+			uint16_t port = (uint16_t)atoi(argv[i]); /* The first argument */
+			context->pool_conf.port = port;
+		}
 	}
 
-	if(ERROR_CODE(int) == _module_context_init(context))
+	if(ERROR_CODE(int) == _module_context_init(context, master))
 	    ERROR_RETURN_LOG(int, "Cannot initialize the TCP module context");
 
 	return 0;
