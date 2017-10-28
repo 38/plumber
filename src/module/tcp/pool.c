@@ -300,7 +300,7 @@ int module_tcp_pool_free(module_tcp_pool_t* pool)
 
 	int rc = _finalize_conn_info(pool);
 
-	if(pool->socket_fd >= 0) close(pool->socket_fd);
+	if(pool->socket_fd >= 0 && pool->master == NULL) close(pool->socket_fd);
 
 	if(pool->event_fd >= 0) close(pool->event_fd);
 
@@ -382,6 +382,7 @@ static inline int _init_socket(module_tcp_pool_t* pool)
 			pool->saddr6 = pool->master->saddr6;
 		else
 			pool->saddr = pool->master->saddr;
+		pool->socket_fd = pool->master->socket_fd;
 	}
 
 	os_event_desc_t event = {
@@ -399,7 +400,7 @@ static inline int _init_socket(module_tcp_pool_t* pool)
 	LOG_DEBUG("TCP Socket has been initialized on %s:%"PRIu16, pool->conf.bind_addr, pool->conf.port);
 	return 0;
 ERR:
-	if(pool->socket_fd >= 0) close(pool->socket_fd);
+	if(pool->socket_fd >= 0 && pool->master == NULL) close(pool->socket_fd);
 	pool->socket_fd = ERROR_CODE(int);
 	return ERROR_CODE(int);
 }

@@ -573,6 +573,8 @@ static inline int _module_context_init(_module_context_t* ctx, _module_context_t
 		if(NULL == (ctx->conn_pool = module_tcp_pool_fork(master->conn_pool)))
 			ERROR_RETURN_LOG(int, "Cannot fork TCP connection pool");
 
+		ctx->pool_conf.port = master->pool_conf.port;
+
 	}
 
 	_instance_count ++;
@@ -1372,7 +1374,10 @@ int module_tcp_module_set_port(void* ctx, uint16_t port)
 static const char* _get_path(void* __restrict ctx, char* buf, size_t sz)
 {
 	_module_context_t* context = (_module_context_t*)ctx;
-	snprintf(buf, sz, "port_%u", context->pool_conf.port);
+	if(context->port_id == 0)
+		snprintf(buf, sz, "port_%u", context->pool_conf.port);
+	else
+		snprintf(buf, sz, "port_%u$%d", context->pool_conf.port, context->port_id);
 	return buf;
 }
 
