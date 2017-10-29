@@ -533,7 +533,7 @@ static inline int _init_connection_pool(_module_context_t* __restrict context)
 static inline int _module_context_init(_module_context_t* ctx, _module_context_t* master)
 {
 	if(master != NULL &&  master->port_id != 0)
-		ERROR_RETURN_LOG(int, "Invalid arguments: Trying start multithreaded eventloop on a slave?");
+		ERROR_RETURN_LOG(int, "Invalid arguments: Trying start multithreaded event loop on a forked module?");
 
 	if(_instance_count == 0)
 	{
@@ -565,7 +565,7 @@ static inline int _module_context_init(_module_context_t* ctx, _module_context_t
 	}
 	else 
 	{
-		if(ERROR_CODE(int) == (ctx->port_id = module_tcp_pool_num_slaves(master->conn_pool)))
+		if(ERROR_CODE(int) == (ctx->port_id = module_tcp_pool_num_forks(master->conn_pool)))
 			ERROR_RETURN_LOG(int, "Cannot get new port ID");
 
 		ctx->port_id ++;
@@ -1322,7 +1322,7 @@ static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* s
 	else if(strcmp(sym, "nthreads") == 0)
 	{
 		if(context->port_id == 0) 
-			return _make_num((long long)module_tcp_pool_num_slaves(context->conn_pool));
+			return _make_num((long long)module_tcp_pool_num_forks(context->conn_pool));
 		else
 			return _make_num((long long)0);
 	}

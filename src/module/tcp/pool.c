@@ -83,9 +83,9 @@ struct _module_tcp_pool_t{
 	os_event_poll_t*            poll_obj;    /*!< The poll object */
 	int                         socket_fd;   /*!< the listening fd */
 	int                         event_fd;    /*!< the event fd for the release queue */
-	pthread_mutex_t             master_mutex;/*!< This mutex is used when the pool gets configured. It make sure that the master pool gets configured before slaves */
+	pthread_mutex_t             master_mutex;/*!< This mutex is used when the pool gets configured. It make sure that the master pool gets configured before forks */
 	pthread_cond_t              master_cond; /*!< Used with master_mutex for event loop synchronization */
-	int                         num_slaves;  /*!< How many slave module it have, master pool only */
+	int                         num_forks;  /*!< How many forks module it have, master pool only */
 	module_tcp_pool_t*          master;      /*!< The master pool is the onwer of the socket, NULL if this pool is the master */
 	module_tcp_pool_configure_t conf;        /*!< the module confiuration */
 	_conn_info_t                conn_info;   /*!< the connection info object */
@@ -289,7 +289,7 @@ module_tcp_pool_t* module_tcp_pool_fork(module_tcp_pool_t* pool)
 
 	ret->master = pool;
 
-	ret->master->num_slaves ++;
+	ret->master->num_forks ++;
 
 	return ret;
 }
@@ -320,10 +320,10 @@ int module_tcp_pool_free(module_tcp_pool_t* pool)
 	return rc;
 }
 
-int module_tcp_pool_num_slaves(const module_tcp_pool_t* pool)
+int module_tcp_pool_num_forks(const module_tcp_pool_t* pool)
 {
 	if(NULL == pool) ERROR_RETURN_LOG(int, "Invalid arguments");
-	return pool->num_slaves;
+	return pool->num_forks;
 }
 
 /**
@@ -429,7 +429,7 @@ int module_tcp_pool_configure(module_tcp_pool_t* pool, const module_tcp_pool_con
 
 		if(pool->master == NULL)
 		{
-			LOG_DEBUG("Notifying the slaves");
+			LOG_DEBUG("Notifying the forks");
 			if(pthread_cond_broadcast(&pool->master_cond) < 0)
 				ERROR_LOG_ERRNO_GOTO(MASTER_ERR, "Cannot broadcast the master connected signal");
 		}
@@ -446,7 +446,7 @@ MASTER_ERR:
 	{
 		LOG_DEBUG("Waiting for the master pool gets ready");
 		if(pthread_mutex_lock(&pool->master->master_mutex) < 0)
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot acquire the master mutex for the slave connection pool");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot acquire the master mutex for the forked connection pool");
 
 		int cond_rc = 0;
 		while(pool->master->socket_fd <= 0 && (cond_rc = pthread_cond_wait(&pool->master->master_cond, &pool->master->master_mutex)) < 0);

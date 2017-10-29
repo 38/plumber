@@ -82,11 +82,11 @@ module_tcp_pool_t* module_tcp_pool_new();
 module_tcp_pool_t* module_tcp_pool_fork(module_tcp_pool_t* pool);
 
 /**
- * @brief Get how many slaves has been created under this master pool, 0 if the pool itself is a slave
+ * @brief Get how many forks has been created under this master pool, 0 if the pool itself is a forked pool
  * @param pool The pool to examine
- * @return The number of slaves or error code
+ * @return The number of forks or error code
  **/
-int module_tcp_pool_num_slaves(const module_tcp_pool_t* pool);
+int module_tcp_pool_num_forks(const module_tcp_pool_t* pool);
 
 /**
  * @brief dispose the used TCP connection pool
