@@ -244,11 +244,11 @@ static inline module_tcp_pool_t* _pool_new(int master)
 	if(master)
 	{
 		if(pthread_mutex_init(&ret->master_mutex, NULL) < 0)
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the master mutex");
+		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the master mutex");
 		else mutex_created = 1;
 
 		if(pthread_cond_init(&ret->master_cond, NULL) < 0)
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the master condvar");
+		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the master condvar");
 		else cond_created = 1;
 	}
 
@@ -318,9 +318,9 @@ int module_tcp_pool_free(module_tcp_pool_t* pool)
 	if(pool->master == NULL)
 	{
 		if(pthread_mutex_destroy(&pool->master_mutex) < 0)
-			rc = ERROR_CODE(int);
+		    rc = ERROR_CODE(int);
 		if(pthread_cond_destroy(&pool->master_cond) < 0)
-			rc = ERROR_CODE(int);
+		    rc = ERROR_CODE(int);
 	}
 
 	free(pool);
@@ -348,7 +348,7 @@ static inline int _init_socket(module_tcp_pool_t* pool)
 		if(!pool->conf.ipv6)
 		{
 			if((pool->socket_fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create socket for TCP pipe module");
+			    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create socket for TCP pipe module");
 
 			pool->saddr.sin_family = AF_INET;
 			pool->saddr.sin_addr.s_addr = inet_addr(pool->conf.bind_addr);
@@ -359,37 +359,37 @@ static inline int _init_socket(module_tcp_pool_t* pool)
 		else
 		{
 			if(strcmp(pool->conf.bind_addr, "0.0.0.0") == 0)
-				pool->conf.bind_addr = "::";
+			    pool->conf.bind_addr = "::";
 
 			if((pool->socket_fd = socket(PF_INET6, SOCK_STREAM, IPPROTO_TCP)) < 0)
-				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create socket for TCP pipe module");
+			    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create socket for TCP pipe module");
 			pool->saddr6.sin6_family = AF_INET6;
 			pool->saddr6.sin6_port   = htons(pool->conf.port);
 			if(inet_pton(AF_INET6, pool->conf.bind_addr, &pool->saddr6.sin6_addr) < 0)
-				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot parse the ipv6 address %s", pool->conf.bind_addr);
+			    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot parse the ipv6 address %s", pool->conf.bind_addr);
 			sockaddr = (struct sockaddr*)&pool->saddr6;
 			sockaddr_size = sizeof(struct sockaddr_in6);
 		}
 
 		if(pool->conf.reuseaddr &&
 		   setsockopt(pool->socket_fd, SOL_SOCKET, SO_REUSEADDR, (char*)&pool->conf.reuseaddr, sizeof(pool->conf.reuseaddr)) < 0)
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the reuseaddr option");
+		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the reuseaddr option");
 
 		if(_set_nonblock(pool->socket_fd) == ERROR_CODE(int))
-			ERROR_LOG_GOTO(ERR, "Cannot set the socket FD to non-blocking mode");
+		    ERROR_LOG_GOTO(ERR, "Cannot set the socket FD to non-blocking mode");
 
 		if(bind(pool->socket_fd, sockaddr, sockaddr_size) < 0)
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot bind address");
+		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot bind address");
 
 		if(listen(pool->socket_fd, pool->conf.tcp_backlog) < 0)
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot listen TCP port %"PRIu16, pool->conf.port);
+		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot listen TCP port %"PRIu16, pool->conf.port);
 	}
-	else 
+	else
 	{
 		if(pool->master->conf.ipv6)
-			pool->saddr6 = pool->master->saddr6;
+		    pool->saddr6 = pool->master->saddr6;
 		else
-			pool->saddr = pool->master->saddr;
+		    pool->saddr = pool->master->saddr;
 		pool->socket_fd = pool->master->socket_fd;
 	}
 
@@ -427,11 +427,11 @@ int module_tcp_pool_configure(module_tcp_pool_t* pool, const module_tcp_pool_con
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 
-	if(pool->master == NULL) 
+	if(pool->master == NULL)
 	{
 		pool->conf = *conf;
 		if(pthread_mutex_lock(&pool->master_mutex) < 0)
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot acquire the master mutex for the master connection pool");
+		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot acquire the master mutex for the master connection pool");
 
 		if(_init_socket(pool) == ERROR_CODE(int)) goto MASTER_ERR;
 
@@ -439,11 +439,11 @@ int module_tcp_pool_configure(module_tcp_pool_t* pool, const module_tcp_pool_con
 		{
 			LOG_DEBUG("Notifying the forks");
 			if(pthread_cond_broadcast(&pool->master_cond) < 0)
-				ERROR_LOG_ERRNO_GOTO(MASTER_ERR, "Cannot broadcast the master connected signal");
+			    ERROR_LOG_ERRNO_GOTO(MASTER_ERR, "Cannot broadcast the master connected signal");
 		}
 
 		if(pthread_mutex_unlock(&pool->master_mutex) < 0)
-			LOG_WARNING_ERRNO("Cannot reloase the master mutex");
+		    LOG_WARNING_ERRNO("Cannot reloase the master mutex");
 
 		goto CONT;
 MASTER_ERR:
@@ -454,7 +454,7 @@ MASTER_ERR:
 	{
 		LOG_DEBUG("Waiting for the master pool gets ready");
 		if(pthread_mutex_lock(&pool->master->master_mutex) < 0)
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot acquire the master mutex for the forked connection pool");
+		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot acquire the master mutex for the forked connection pool");
 
 		int cond_rc = 0;
 		while(pool->master->socket_fd <= 0 && (cond_rc = pthread_cond_wait(&pool->master->master_cond, &pool->master->master_mutex)) < 0);
@@ -463,10 +463,10 @@ MASTER_ERR:
 
 
 		if(pthread_mutex_unlock(&pool->master->master_mutex) < 0)
-			LOG_WARNING_ERRNO("Cannot reloase the master mutex");
-		
+		    LOG_WARNING_ERRNO("Cannot reloase the master mutex");
+
 		LOG_DEBUG("The master connection pool gets ready");
-		
+
 		pool->conf = pool->master->conf;
 
 		if(_init_socket(pool) == ERROR_CODE(int)) goto ERR;

@@ -533,7 +533,7 @@ static inline int _init_connection_pool(_module_context_t* __restrict context)
 static inline int _module_context_init(_module_context_t* ctx, _module_context_t* master)
 {
 	if(master != NULL &&  master->fork_id != 0)
-		ERROR_RETURN_LOG(int, "Invalid arguments: Trying start multithreaded event loop on a forked module?");
+	    ERROR_RETURN_LOG(int, "Invalid arguments: Trying start multithreaded event loop on a forked module?");
 
 	if(_instance_count == 0)
 	{
@@ -560,18 +560,18 @@ static inline int _module_context_init(_module_context_t* ctx, _module_context_t
 	if(NULL == master)
 	{
 		if(NULL == (ctx->conn_pool = module_tcp_pool_new()))
-			ERROR_RETURN_LOG(int, "Cannot create TCP connection pool");
+		    ERROR_RETURN_LOG(int, "Cannot create TCP connection pool");
 		ctx->fork_id = 0;
 	}
-	else 
+	else
 	{
 		if(ERROR_CODE(int) == (ctx->fork_id = module_tcp_pool_num_forks(master->conn_pool)))
-			ERROR_RETURN_LOG(int, "Cannot get new port ID");
+		    ERROR_RETURN_LOG(int, "Cannot get new port ID");
 
 		ctx->fork_id ++;
 
 		if(NULL == (ctx->conn_pool = module_tcp_pool_fork(master->conn_pool)))
-			ERROR_RETURN_LOG(int, "Cannot fork TCP connection pool");
+		    ERROR_RETURN_LOG(int, "Cannot fork TCP connection pool");
 
 		ctx->pool_conf.port = master->pool_conf.port;
 
@@ -618,17 +618,17 @@ static int _init(void* __restrict ctx, uint32_t argc, char const* __restrict con
 			uint32_t j;
 			for(j = 0; module_tcp_module_def.mod_prefix[j] && module_tcp_module_def.mod_prefix[j] == argv[i][j]; j ++);
 			if(module_tcp_module_def.mod_prefix[j] != 0 || argv[i][j] != '.')
-				ERROR_RETURN_LOG(int, "Invalid arguments: Not a TCP module: %s", argv[i]);
-			
+			    ERROR_RETURN_LOG(int, "Invalid arguments: Not a TCP module: %s", argv[i]);
+
 			/* We need to share the port */
 			itc_module_type_t master_type = itc_modtab_get_module_type_from_path(argv[i]);
 
-			if(ERROR_CODE(itc_module_type_t) == master_type) 
-				ERROR_RETURN_LOG(int, "Invalid arguments: TCP module %s not exists", argv[i]);
+			if(ERROR_CODE(itc_module_type_t) == master_type)
+			    ERROR_RETURN_LOG(int, "Invalid arguments: TCP module %s not exists", argv[i]);
 
 			const itc_modtab_instance_t* master_mod_inst = itc_modtab_get_from_module_type(master_type);
 			if(NULL == master_mod_inst)
-				ERROR_RETURN_LOG(int, "Cannnot get the master type %u", master_type);
+			    ERROR_RETURN_LOG(int, "Cannnot get the master type %u", master_type);
 
 			master = (_module_context_t*)master_mod_inst->context;
 		}
@@ -1299,7 +1299,7 @@ static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* s
 
 	/* Also, any forked event loop do not have permission to access any of the config */
 	if(context->fork_id != 0)
-		return ret;
+	    return ret;
 
 	if(strcmp(sym, "port") == 0) return _make_num(context->pool_conf.port);
 	else if(strcmp(sym, "ttl") == 0) return _make_num(context->pool_conf.ttl);
@@ -1325,7 +1325,7 @@ static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* s
 		return ret;
 	}
 	else if(strcmp(sym, "nforks") == 0)
-		return _make_num((long long)module_tcp_pool_num_forks(context->conn_pool));
+	    return _make_num((long long)module_tcp_pool_num_forks(context->conn_pool));
 
 	return ret;
 }
@@ -1384,9 +1384,9 @@ static const char* _get_path(void* __restrict ctx, char* buf, size_t sz)
 {
 	_module_context_t* context = (_module_context_t*)ctx;
 	if(context->fork_id == 0)
-		snprintf(buf, sz, "port_%u", context->pool_conf.port);
+	    snprintf(buf, sz, "port_%u", context->pool_conf.port);
 	else
-		snprintf(buf, sz, "port_%u$%d", context->pool_conf.port, context->fork_id);
+	    snprintf(buf, sz, "port_%u$%d", context->pool_conf.port, context->fork_id);
 	return buf;
 }
 
