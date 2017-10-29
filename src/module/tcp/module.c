@@ -130,7 +130,7 @@ typedef struct {
 	int                         pool_initialized;     /*!< indicates if the pool has been initialized */
 	int                         sync_write_attempt;   /*!< If do a synchronized write attempt before initialize a async operation */
 	int                         slave_mode;           /*!< The slave working mode, which means the module should not start the event loop */
-	int                         port_id;              /*!< The id used to identify the TCP module instance that listen to the same port */
+	int                         fork_id;              /*!< The id used to identify the TCP module instance that listen to the same port */
 	uint32_t                    async_buf_size;       /*!< The size of the async write buffer */
 	module_tcp_pool_t*          conn_pool;            /*!< The TCP connection pool object */
 	module_tcp_async_loop_t*    async_loop;           /*!< The async loop for this TCP module instance */
@@ -532,7 +532,7 @@ static inline int _init_connection_pool(_module_context_t* __restrict context)
 
 static inline int _module_context_init(_module_context_t* ctx, _module_context_t* master)
 {
-	if(master != NULL &&  master->port_id != 0)
+	if(master != NULL &&  master->fork_id != 0)
 		ERROR_RETURN_LOG(int, "Invalid arguments: Trying start multithreaded event loop on a forked module?");
 
 	if(_instance_count == 0)
@@ -561,14 +561,14 @@ static inline int _module_context_init(_module_context_t* ctx, _module_context_t
 	{
 		if(NULL == (ctx->conn_pool = module_tcp_pool_new()))
 			ERROR_RETURN_LOG(int, "Cannot create TCP connection pool");
-		ctx->port_id = 0;
+		ctx->fork_id = 0;
 	}
 	else 
 	{
-		if(ERROR_CODE(int) == (ctx->port_id = module_tcp_pool_num_forks(master->conn_pool)))
+		if(ERROR_CODE(int) == (ctx->fork_id = module_tcp_pool_num_forks(master->conn_pool)))
 			ERROR_RETURN_LOG(int, "Cannot get new port ID");
 
-		ctx->port_id ++;
+		ctx->fork_id ++;
 
 		if(NULL == (ctx->conn_pool = module_tcp_pool_fork(master->conn_pool)))
 			ERROR_RETURN_LOG(int, "Cannot fork TCP connection pool");
@@ -1319,9 +1319,9 @@ static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* s
 
 		return ret;
 	}
-	else if(strcmp(sym, "nthreads") == 0)
+	else if(strcmp(sym, "nforks") == 0)
 	{
-		if(context->port_id == 0) 
+		if(context->fork_id == 0) 
 			return _make_num((long long)module_tcp_pool_num_forks(context->conn_pool));
 		else
 			return _make_num((long long)0);
@@ -1381,10 +1381,10 @@ int module_tcp_module_set_port(void* ctx, uint16_t port)
 static const char* _get_path(void* __restrict ctx, char* buf, size_t sz)
 {
 	_module_context_t* context = (_module_context_t*)ctx;
-	if(context->port_id == 0)
+	if(context->fork_id == 0)
 		snprintf(buf, sz, "port_%u", context->pool_conf.port);
 	else
-		snprintf(buf, sz, "port_%u$%d", context->pool_conf.port, context->port_id);
+		snprintf(buf, sz, "port_%u$%d", context->pool_conf.port, context->fork_id);
 	return buf;
 }
 
