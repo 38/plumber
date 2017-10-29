@@ -233,7 +233,7 @@ static inline int _set_nonblock(int fd)
 	return 0;
 }
 
-module_tcp_pool_t* module_tcp_pool_new()
+static inline module_tcp_pool_t* _pool_new(int master)
 {
 	int mutex_created = 0, cond_created = 0;
 	module_tcp_pool_t* ret = (module_tcp_pool_t*)calloc(1, sizeof(module_tcp_pool_t));
@@ -241,13 +241,16 @@ module_tcp_pool_t* module_tcp_pool_new()
 	if(NULL == ret)
 	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the connection pool object");
 
-	if(pthread_mutex_init(&ret->master_mutex, NULL) < 0)
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the master mutex");
-	else mutex_created = 1;
+	if(master)
+	{
+		if(pthread_mutex_init(&ret->master_mutex, NULL) < 0)
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the master mutex");
+		else mutex_created = 1;
 
-	if(pthread_cond_init(&ret->master_cond, NULL) < 0)
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the master condvar");
-	else cond_created = 1;
+		if(pthread_cond_init(&ret->master_cond, NULL) < 0)
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the master condvar");
+		else cond_created = 1;
+	}
 
 	ret->poll_obj = NULL;
 	ret->event_fd = ERROR_CODE(int);
@@ -281,11 +284,16 @@ ERR:
 	return NULL;
 }
 
+module_tcp_pool_t* module_tcp_pool_new()
+{
+	return _pool_new(1);
+}
+
 module_tcp_pool_t* module_tcp_pool_fork(module_tcp_pool_t* pool)
 {
 	if(NULL == pool) ERROR_PTR_RETURN_LOG("Invalid arguments");
 
-	module_tcp_pool_t* ret = module_tcp_pool_new();
+	module_tcp_pool_t* ret = _pool_new(0);
 
 	ret->master = pool;
 
