@@ -1296,6 +1296,11 @@ static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* s
 	};
 	_module_context_t* context = (_module_context_t*)ctx;
 
+
+	/* Also, any forked event loop do not have permission to access any of the config */
+	if(context->fork_id != 0)
+		return ret;
+
 	if(strcmp(sym, "port") == 0) return _make_num(context->pool_conf.port);
 	else if(strcmp(sym, "ttl") == 0) return _make_num(context->pool_conf.ttl);
 	else if(strcmp(sym, "size") == 0) return _make_num(context->pool_conf.size);
@@ -1320,12 +1325,7 @@ static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* s
 		return ret;
 	}
 	else if(strcmp(sym, "nforks") == 0)
-	{
-		if(context->fork_id == 0) 
-			return _make_num((long long)module_tcp_pool_num_forks(context->conn_pool));
-		else
-			return _make_num((long long)0);
-	}
+		return _make_num((long long)module_tcp_pool_num_forks(context->conn_pool));
 
 	return ret;
 }
@@ -1336,10 +1336,12 @@ static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_
 
 	/* TODO: this is weird, because it sounds like different module actually shares the same configuration */
 	static char bindaddr_buffer[128];
+	/* For a forked module, we don't allow any property change */
+	if(context->fork_id != 0) return 0;
 	if(value.type == ITC_MODULE_PROPERTY_TYPE_INT)
 	{
-		if(strcmp(sym, "port") == 0) context->pool_conf.port = (uint16_t)value.num;
-		else if(strcmp(sym, "ttl") == 0) context->pool_conf.ttl = (time_t)value.num;
+		/*if(strcmp(sym, "port") == 0) context->pool_conf.port = (uint16_t)value.num;
+		else */if(strcmp(sym, "ttl") == 0) context->pool_conf.ttl = (time_t)value.num;
 		else if(strcmp(sym, "size") == 0) context->pool_conf.size = (uint32_t)value.num;
 		else if(strcmp(sym, "event_size") == 0) context->pool_conf.event_size = (uint32_t)value.num;
 		else if(strcmp(sym, "event_timeout") == 0) context->pool_conf.min_timeout = (time_t)value.num;
