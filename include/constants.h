@@ -6,6 +6,9 @@
  * @file constants.h
  *  @brief this file constains constants
  **/
+
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+
 #ifndef __PLUMBER_CONSTANTS_H__
 #define __PLUMBER_CONSTANTS_H__
 

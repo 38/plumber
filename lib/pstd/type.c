@@ -517,7 +517,10 @@ pstd_type_instance_t* pstd_type_instance_new(const pstd_type_model_t* model, voi
 	runtime_api_pipe_id_t i;
 	for(i = 0; i < model->pipe_max; i ++)
 	    if(model->type_info[i].used_size > 0)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
 	        *(size_t*)(ret->buffer + model->type_info[i].buf_begin) = 0;
+#pragma GCC diagnostic pop
 
 	return ret;
 }

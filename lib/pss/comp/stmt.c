@@ -8,6 +8,7 @@
 #include <errno.h>
 
 #include <error.h>
+#include <constants.h>
 
 #include <pss/log.h>
 #include <pss/bytecode.h>
