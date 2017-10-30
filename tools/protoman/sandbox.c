@@ -312,7 +312,7 @@ static inline int _virtual_remove_type(sandbox_t* sandbox, const char* typename)
 	uint32_t i;
 	for(i = 0; NULL != rdeps[i]; i ++)
 	{
-		int created = 0;
+		int created;
 		_op_t* operation = _get_secondary_node(sandbox, rdeps[i], &created);
 		if(NULL == operation)
 		    ERROR_LOG_GOTO(ERR, "Cannot get the secondary operation node for type %s", rdeps[i]);

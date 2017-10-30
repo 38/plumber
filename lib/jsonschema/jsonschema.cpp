@@ -10,7 +10,6 @@
 #include <limits.h>
 
 #include <error.h>
-#include <constants.h>
 
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/writer.h>
