@@ -684,6 +684,9 @@ int sched_loop_start(const sched_service_t* service)
 
 	if(NULL != _scheds) ERROR_RETURN_LOG_ERRNO(int, "Cannot call the sched loop function twice");
 
+	if(ERROR_CODE(int) == sched_daemon_daemonize())
+		ERROR_RETURN_LOG(int, "Cannot make the application a daemon");
+
 	uint32_t i;
 	sched_loop_t* ptr = NULL;
 

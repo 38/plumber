@@ -128,6 +128,34 @@ static pss_value_t _pscript_builtin_version(pss_vm_t* vm, uint32_t argc, pss_val
 	return ret;
 }
 
+static pss_value_t _pscript_builtin_getcwd(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
+{
+	(void)vm;
+	(void)argc;
+	(void)argv;
+	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR};
+
+	char* buf = (char*)malloc(PATH_MAX);
+	if(NULL == buf) 
+	{
+		ret.num = PSS_VM_ERROR_INTERNAL;
+		LOG_ERROR_ERRNO("Cannot allocate memory for the CWD");
+	}
+	else
+	{
+		if(NULL == getcwd(buf, PATH_MAX))
+		{
+			ret.num =PSS_VM_ERROR_INTERNAL;
+			LOG_ERROR_ERRNO("Cannot get current working directory");
+			free(buf);
+			return ret;
+		}
+		ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, buf);
+	}
+
+	return ret;
+}
+
 static pss_value_t _pscript_builtin_len(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
 	(void)vm;
@@ -964,6 +992,7 @@ static struct {
 } _builtins[] = {
 	_B(exit,   "([code])", "Exit with the given exit code or 0 (For REPL mode, this function only set the exit code, but won't actually exit the REPL shell)"),
 	_B(dict,   "()",   "Create a new dictionary"),
+	_B(getcwd, "()", "Get the current working directory"),
 	_B(import, "(name)", "Import the PSS module specified by the name"),
 	_B(insmod, "(init_str)", "Install a module specified by init_str to Plumber runtime system"),
 	_B(len,    "(obj)", "Get the length of the object"),

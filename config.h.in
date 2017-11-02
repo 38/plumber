@@ -141,13 +141,16 @@
 /**
  * @brief The prefix of the daemon files 
  **/
-#	define SCHED_DAEMON_FILE_PREFIX @SCHED_DAEMON_SOCKET_PREFIX@
+#	define SCHED_DAEMON_FILE_PREFIX @SCHED_DAEMON_FILE_PREFIX@
 
 /**
  * @brief The suffix of the daemon controlling socket
  **/
 #	define SCHED_DAEMON_SOCKET_SUFFIX @SCHED_DAEMON_SOCKET_SUFFIX@
-
+/*
+ * @brief The suffix of the daemon lock file
+ **/
+#	define SCHED_DAEMON_LOCK_SUFFIX @SCHED_DAEMON_LOCK_SUFFIX@
 /**
  * @brief The suffix of the daemon pid file
  **/
