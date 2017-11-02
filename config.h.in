@@ -133,6 +133,26 @@
 /** @brief the maximum size of the concrete type */
 #	define  SCHED_TYPE_MAX @SCHED_TYPE_MAX@
 
+/**
+ * @brief The maximum length (including the trailing \0) of the deamon identifier
+ **/
+#	define SCHED_DAEMON_MAX_ID_LEN @SCHED_DAEMON_MAX_ID_LEN@
+
+/**
+ * @brief The prefix of the daemon files 
+ **/
+#	define SCHED_DAEMON_FILE_PREFIX @SCHED_DAEMON_SOCKET_PREFIX@
+
+/**
+ * @brief The suffix of the daemon controlling socket
+ **/
+#	define SCHED_DAEMON_SOCKET_SUFFIX @SCHED_DAEMON_SOCKET_SUFFIX@
+
+/**
+ * @brief The suffix of the daemon pid file
+ **/
+#	define SCHED_DAEMON_PID_SUFFIX @SCHED_DAEMON_PID_SUFFIX@
+
 /** @brief the protodb root used for the test cases */
 #	define TEST_PROTODB_ROOT "@TESTING_PROTODB_ROOT@"
 

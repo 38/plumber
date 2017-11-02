@@ -14,7 +14,8 @@ INIT_VEC(modules) = {
 	INIT_MODULE(sched_loop),
 	INIT_MODULE(sched_prof),
 	INIT_MODULE(sched_rscope),
-	INIT_MODULE(sched_async)
+	INIT_MODULE(sched_async),
+	INIT_MODULE(sched_daemon)
 };
 
 int sched_init()
