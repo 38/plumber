@@ -251,7 +251,7 @@ static void _sighup_handle(int sigid)
 ERR:
 	status = -1;
 	if(write(client_fd, &status, sizeof(status)))
-		ERROR_LOG_GOTO(ERR, "Cannot send the failure status code to client");
+		LOG_ERROR_ERRNO("Cannot send the failure status code to client");
 	close(client_fd);
 	if(NULL != cmd) free(cmd);
 
