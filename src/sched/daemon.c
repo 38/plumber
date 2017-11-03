@@ -476,9 +476,13 @@ ERR:
 
 static inline int _simple_daemon_command(const char* daemon_name, _daemon_op_t op)
 {
-	int pid;
-	if(NULL == daemon_name || 1 != _is_running_daemon(daemon_name, SCHED_DAEMON_LOCK_SUFFIX, &pid))
+	int pid, is_daemon;
+	if(NULL == daemon_name || ERROR_CODE(int) == (is_daemon = _is_running_daemon(daemon_name, SCHED_DAEMON_LOCK_SUFFIX, &pid)))
 		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(!is_daemon)
+		ERROR_RETURN_LOG(int, "Cannot find daemon named %s", daemon_name);
+
 	int conn_fd;
 	if(ERROR_CODE(int) == (conn_fd = _connect_control_sock(daemon_name)))
 		ERROR_LOG_GOTO(ERR, "Cannot connect the control socket");
