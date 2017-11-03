@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <grp.h>
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sys/stat.h>
@@ -90,6 +91,12 @@ __thread int _is_dispatcher = 0;
 static const char _lock_suffix[] = SCHED_DAEMON_LOCK_SUFFIX;
 
 /**
+ * @brief The default group who has the access permission to this daemon
+ * @note If the GID is error code, use the default group of current user instead
+ **/
+static uint32_t _admin_gid = ERROR_CODE(uint32_t);
+
+/**
  * @brief Check if the given name is a running daemon
  * @param lockfile The name of the lock file
  * @param suffix The suffix we should append after this lockfile
@@ -163,6 +170,16 @@ static inline int _set_prop(const char* symbol, lang_prop_value_t value, const v
 		if(value.type != LANG_PROP_TYPE_STRING) ERROR_RETURN_LOG(int, "Type mismatch");
 		snprintf(_id, sizeof(_id), "%s", value.str);
 	}
+	else if(strcmp(symbol, "admin_group") == 0)
+	{
+		if(value.type != LANG_PROP_TYPE_STRING) ERROR_RETURN_LOG(int, "Type mismatch");
+		struct group* g_info = getgrnam(value.str);
+
+		if(NULL == g_info)
+			ERROR_RETURN_LOG_ERRNO(int, "Group %s not found", value.str);
+
+		_admin_gid = g_info->gr_gid;
+	}
 	else return 0;
 	return 1;
 }
@@ -183,6 +200,25 @@ static lang_prop_value_t _get_prop(const char* symbol, const void* param)
 			ret.type = LANG_PROP_TYPE_ERROR;
 			return ret;
 		}
+	}
+	else if(strcmp(symbol, "admin_group") == 0)
+	{
+		uint32_t gid = _admin_gid == ERROR_CODE(uint32_t) ? getgid() : _admin_gid;
+		struct group* g_info = getgrgid(gid);
+		ret.type = LANG_PROP_TYPE_ERROR;
+		if(NULL == g_info)
+		{
+			LOG_ERROR_ERRNO("Cannot get infor for GID %u", gid);
+			return ret;
+		}
+
+		if(NULL == (ret.str = strdup(g_info->gr_name)))
+		{
+			LOG_ERROR_ERRNO("Cannot allocate memory for the groupname");
+			return ret;
+		}
+
+		ret.type = LANG_PROP_TYPE_STRING;
 	}
 
 	return ret;
@@ -317,8 +353,9 @@ int sched_daemon_daemonize()
 	snprintf(lock_path, sizeof(lock_path), "%s/%s/%s%s", INSTALL_PREFIX, SCHED_DAEMON_FILE_PREFIX, _id, SCHED_DAEMON_LOCK_SUFFIX);
 	snprintf(sock_path, sizeof(sock_path), "%s/%s/%s%s", INSTALL_PREFIX, SCHED_DAEMON_FILE_PREFIX, _id, SCHED_DAEMON_SOCKET_SUFFIX);
 
-	if((_lock_fd = open(lock_path, O_RDWR | O_CREAT, 0600)) < 0)
+	if((_lock_fd = open(lock_path, O_RDWR | O_CREAT, 0640)) < 0)
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot create the lock file %s", lock_path);
+
 
 	if(lseek(_lock_fd, 0, SEEK_SET) < 0)
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot reset the file location to the begining");
@@ -391,6 +428,15 @@ int sched_daemon_daemonize()
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the control socket to nonblocking");
 	
 	umask(0);
+
+	if(_admin_gid != ERROR_CODE(uint32_t))
+	{
+		if(fchown(_lock_fd, (uint32_t)-1, _admin_gid) < 0)
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot change the group of lock fd to the admin group");
+
+		if(chown(sock_path, (uint32_t)-1, _admin_gid) < 0)
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot change the group of control socket to the admin group");
+	}
 
 	_is_dispatcher = 1;
 
