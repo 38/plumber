@@ -401,6 +401,15 @@ static inline int _start_loop(sched_loop_t* ctx)
  **/
 static itc_equeue_event_mask_t _interrupt_handler(void* pl)
 {
+	/* Step0: We also needs to monitor the daemon command socket */
+	static int counter = 0;
+	if(counter ++ == 5)
+	{
+		counter  = 0;
+		if(ERROR_CODE(int) == sched_daemon_read_control_sock())
+			LOG_ERROR("Cannot read the control socket");
+	}
+
 	/* Step1: try to resolve the pending list first */
 	itc_equeue_event_mask_t ret = ITC_EQUEUE_EVENT_MASK_NONE;
 

@@ -64,4 +64,11 @@ int sched_daemon_ping(const char* daemon_name);
  **/
 int sched_daemon_stop(const char* daemon_name);
 
+/**
+ * @brief Read the control socket
+ * @note This function should be called from the daemon side
+ * @return status code
+ **/
+int sched_daemon_read_control_sock();
+
 #endif /* __SCHED_DAEMON_H__ */
