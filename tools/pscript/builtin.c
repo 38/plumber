@@ -34,16 +34,16 @@ static pss_value_t _pscript_builtin_lsdaemon(pss_vm_t* vm, uint32_t argc, pss_va
 		.kind = PSS_VALUE_KIND_ERROR,
 		.num = PSS_VM_ERROR_ARGUMENT
 	};
-	
+
 
 	ret.num = PSS_VM_ERROR_INTERNAL;
 	sched_daemon_iter_t* iter = sched_daemon_list_begin();
-	if(NULL == iter) 
+	if(NULL == iter)
 	{
 		LOG_ERROR("Cannot get the iterator for the list");
 		return ret;
 	}
-	
+
 	pss_dict_t* ret_dict = NULL;
 	ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_DICT, NULL);
 
@@ -61,15 +61,15 @@ static pss_value_t _pscript_builtin_lsdaemon(pss_vm_t* vm, uint32_t argc, pss_va
 		char key[32];
 		snprintf(key, sizeof(key), "%d", pid);
 		pss_value_t val = {};
-		
+
 		val = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, name);
 		if(val.kind == PSS_VALUE_KIND_ERROR)
-			ERROR_LOG_GOTO(LIST_APPEND_ERR, "Cannot create new string value for the daemon name");
+		    ERROR_LOG_GOTO(LIST_APPEND_ERR, "Cannot create new string value for the daemon name");
 		else
-			name = NULL;
+		    name = NULL;
 
 		if(ERROR_CODE(int) == pss_dict_set(ret_dict, key, val))
-			ERROR_LOG_ERRNO_GOTO(LIST_APPEND_ERR, "Cannot append the value to the result dictionary");
+		    ERROR_LOG_ERRNO_GOTO(LIST_APPEND_ERR, "Cannot append the value to the result dictionary");
 		continue;
 LIST_APPEND_ERR:
 		if(NULL != name) free(name);
@@ -78,7 +78,7 @@ LIST_APPEND_ERR:
 	}
 
 	if(rc == ERROR_CODE(int))
-		ERROR_LOG_GOTO(ERR, "Cannot traverse the daemon list");
+	    ERROR_LOG_GOTO(ERR, "Cannot traverse the daemon list");
 
 	return ret;
 ERR:
@@ -202,7 +202,7 @@ static pss_value_t _pscript_builtin_getcwd(pss_vm_t* vm, uint32_t argc, pss_valu
 	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR};
 
 	char* buf = (char*)malloc(PATH_MAX);
-	if(NULL == buf) 
+	if(NULL == buf)
 	{
 		ret.num = PSS_VM_ERROR_INTERNAL;
 		LOG_ERROR_ERRNO("Cannot allocate memory for the CWD");
@@ -776,13 +776,13 @@ static pss_value_t _pscript_builtin_daemon_stop(pss_vm_t* vm, uint32_t argc, pss
 	};
 
 	if(argc != 1)
-		return ret;
+	    return ret;
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF)
-		return ret;
+	    return ret;
 
 	if(pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING)
-		return ret;
+	    return ret;
 
 	const char* daemon = (const char*)pss_value_get_data(argv[0]);
 	if(sched_daemon_stop(daemon) == ERROR_CODE(int))
@@ -804,13 +804,13 @@ static pss_value_t _pscript_builtin_daemon_ping(pss_vm_t* vm, uint32_t argc, pss
 	};
 
 	if(argc != 1)
-		return ret;
+	    return ret;
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF)
-		return ret;
+	    return ret;
 
 	if(pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING)
-		return ret;
+	    return ret;
 
 	const char* daemon = (const char*)pss_value_get_data(argv[0]);
 

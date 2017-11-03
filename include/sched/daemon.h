@@ -32,7 +32,7 @@ int sched_daemon_finalize();
  * @return status code
  **/
 int sched_daemon_daemonize();
- 
+
 /**
  * @brief Start enumerate the daemon list
  * @return The newly created daemon info object, NULL on error
