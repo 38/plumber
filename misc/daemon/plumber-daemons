@@ -1,4 +1,4 @@
-#!env pscript
+#!/usr/bin/env pscript
 import("daemon");
 var daemon_list = Daemon.list();
 for(var pid in daemon_list)

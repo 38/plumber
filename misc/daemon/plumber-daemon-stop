@@ -1,4 +1,4 @@
-#!env pscript
+#!/usr/bin/env pscript
 import("daemon");
 if(len(argv) == 1)
 {

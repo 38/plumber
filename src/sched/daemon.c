@@ -80,9 +80,9 @@ static int _sock_fd = -1;
 static int _lock_fd = -1;
 
 /**
- * @brief The major PID 
+ * @brief If this thread is the dispatcher thread
  **/
-static pid_t _major_pid = -1;
+__thread int _is_dispatcher = 0;
 
 /**
  * @brief The lock suffix
@@ -100,21 +100,25 @@ static inline int _is_running_daemon(const char* lockfile, const char* suffix, i
 	int rc = ERROR_CODE(int);
 	char pathbuf[PATH_MAX];
 	size_t sz = (size_t)snprintf(pathbuf, sizeof(pathbuf), "%s/%s/%s%s", INSTALL_PREFIX, SCHED_DAEMON_FILE_PREFIX, lockfile, suffix);
-	if(sz > sizeof(pathbuf) - 1) sz = sizeof(pathbuf) - 1;
+	if(sz > sizeof(pathbuf) - 1)
+		return 0;
 	
-	
+
+	/* Since we have the terminating \0, thus the last letter is at position -2*/
 	const char* p = _lock_suffix + sizeof(_lock_suffix) - 2;
 
 	/* If the full path is shorter than the lock suffix, this must be a non-lock file name */
 	if(sz < sizeof(_lock_suffix) - 1)
 		return 0;
 
+	/* Then we match the lock suffix */
 	const char* q = pathbuf + sz - 1;
 	for(;p >= _lock_suffix && *p == *q; p--, q--);
 
 	/* If the suffix doesn't match, then this is not a lock file */
 	if(p >= _lock_suffix) return 0;
 
+	/* Open the file */
 	int fd = open(pathbuf, O_RDONLY);
 	if(fd < 0)
 	{
@@ -210,7 +214,7 @@ static _daemon_cmd_t* _read_cmd(int fd)
 static void _sighup_handle(int sigid)
 {
 	(void)sigid;
-	if(getpid() != _major_pid) return;
+	if(!_is_dispatcher) return;
 
 	struct sockaddr_un caddr = {};
 	int client_fd;
@@ -305,6 +309,7 @@ int sched_daemon_finalize()
 
 int sched_daemon_daemonize()
 {
+	int null_fd = -1;
 	if(_id[0] == 0) return 0;
 
 	char lock_path[PATH_MAX];
@@ -330,8 +335,6 @@ int sched_daemon_daemonize()
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot fork the PSS process");
 	if(pid > 0) exit(EXIT_SUCCESS);
 	
-	umask(0);
-
 	sid = setsid();
 	if(sid < 0)
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the new SID for the child process");
@@ -339,18 +342,35 @@ int sched_daemon_daemonize()
 	if(chdir("/") < 0)
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot change current working directory to root");
 
-	close(STDIN_FILENO);
-	close(STDOUT_FILENO);
-	close(STDERR_FILENO);
+	null_fd = open("/dev/null", O_RDWR);
+
+	if(null_fd < 0) 
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open /dev/null");
+
+	if(dup2(null_fd, STDIN_FILENO) < 0)
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the null fd to STDIN");
+
+	if(dup2(null_fd, STDOUT_FILENO) < 0)
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the null fd to STDOUT");
+
+	if(dup2(null_fd, STDERR_FILENO) < 0)
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicae the null fd to STDERR");
+
+	close(null_fd);
+	null_fd = -1;
 
 	char pidbuf[32];
-	int nbytes = snprintf(pidbuf, sizeof(pidbuf), "%d", _major_pid = getpid());
+	int self_pid;
+	int nbytes = snprintf(pidbuf, sizeof(pidbuf), "%d", self_pid = getpid());
 
 	if(write(_lock_fd, pidbuf, (size_t)nbytes) < 0)
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot write master PID to the lock file");
 
+	/* At this time, we want the scoket accessible to the group and the user, but not anyone else */
+	umask(0117);
+
 	/* Then we should create the control socket */
-	if((_sock_fd = socket(AF_UNIX, SOCK_STREAM, 0)))
+	if((_sock_fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create control socket");
 
 	struct sockaddr_un saddr = {};
@@ -363,21 +383,25 @@ int sched_daemon_daemonize()
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot listen to the control socket");
 	
 	int flags = fcntl(_sock_fd, F_GETFL, 0);
-	if(-1 == flags)
+	if(flags < 0)
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot get the flag for control socket");
 
 	flags |= O_NONBLOCK;
-	if(-1 == fcntl(_sock_fd, F_SETFL, flags)) 
+	if(fcntl(_sock_fd, F_SETFL, flags) < 0) 
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the control socket to nonblocking");
+	
+	umask(0);
+
+	_is_dispatcher = 1;
 
 	if(signal(SIGHUP, _sighup_handle) == SIG_ERR)
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set SIGHUP handler for daemon communication");
 
-	LOG_NOTICE("Plumber daemon %s started PID:%d lockfile:%s sockfile:%s", _id, _major_pid, lock_path, sock_path);
+	LOG_NOTICE("Plumber daemon %s started PID:%d lockfile:%s sockfile:%s", _id, self_pid, lock_path, sock_path);
 
 	return 0;
 ERR:
-	if(_lock_fd > 0) 
+	if(_lock_fd >= 0) 
 	{
 		flock(_lock_fd, LOCK_UN | LOCK_NB);
 		close(_lock_fd);
@@ -385,12 +409,15 @@ ERR:
 		_lock_fd = -1;
 	}
 
-	if(_sock_fd > 0)
+	if(_sock_fd >= 0)
 	{
 		close(_sock_fd);
 		unlink(sock_path);
 		_sock_fd = -1;
 	}
+
+	if(null_fd >= 0)
+		close(null_fd);
 
 	return ERROR_CODE(int);
 }
