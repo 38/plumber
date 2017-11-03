@@ -1,0 +1,24 @@
+/**
+ * Copyright (C) 2017, Hao Hou
+ * The deamon utils
+ **/
+
+Daemon.list = function() {
+	return lsdaemon();
+}
+
+Daemon.stop = function Daemon.stop(id) {
+	return __daemon_stop(id);
+}
+
+Daemon.pid = function Daemon.pid(name) {
+	var daemon_list = Daemon.list();
+	for(var pid in daemon_list)
+		if(daemon_list[pid] == name) 
+			return pid;
+	return undefined;
+}
+
+Daemon.ping = function Daemon.ping(name) {
+	return __daemon_ping(name);
+}
