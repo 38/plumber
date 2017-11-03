@@ -10,7 +10,7 @@ for(var i = 1; i < len(argv); i ++)
 	var daemon = argv[i];
 	if(Daemon.ping(daemon))
 	{
-		Daemon.stop(daemon);
 		print("Stopping daemon ", daemon);
+		Daemon.stop(daemon);
 	}
 }

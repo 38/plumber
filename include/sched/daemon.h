@@ -8,6 +8,9 @@
 #ifndef __SCHED_DAEMON_H__
 #define __SCHED_DAEMON_H__
 
+/**
+ * @brief The iterator used to traverse the running daemon liist
+ **/
 typedef struct _sched_daemon_iter_t sched_daemon_iter_t;
 
 /**
@@ -29,13 +32,6 @@ int sched_daemon_finalize();
  * @return status code
  **/
 int sched_daemon_daemonize();
-
-/**
- * @brief The stop the daemon with deamon name
- * @param daemon_name The name of the Deamon
- * @return status code
- **/
-int sched_daemon_stop(const char* daemon_name);
  
 /**
  * @brief Start enumerate the daemon list
@@ -60,5 +56,12 @@ int sched_daemon_list_next(sched_daemon_iter_t* iter, char** name, int* pid);
  * @return ping result 1 for Ok, otherwise 0
  **/
 int sched_daemon_ping(const char* daemon_name);
+
+/**
+ * @brief The stop the daemon with deamon name
+ * @param daemon_name The name of the Deamon
+ * @return status code
+ **/
+int sched_daemon_stop(const char* daemon_name);
 
 #endif /* __SCHED_DAEMON_H__ */

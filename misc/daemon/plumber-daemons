@@ -1,6 +1,8 @@
 #!env pscript
 import("daemon");
-var daemon_list = Daemon.list() 
+var daemon_list = Daemon.list();
 for(var pid in daemon_list)
+{
 	print(pid,"\t", daemon_list[pid])
+}
 
