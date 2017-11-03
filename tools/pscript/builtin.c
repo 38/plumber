@@ -6,8 +6,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/stat.h>
+#include <dirent.h>
 #include <errno.h>
+#include <sys/stat.h>
+#include <sys/fcntl.h>
+#include <sys/file.h>
 
 #include <constants.h>
 #include <error.h>
@@ -21,6 +24,118 @@
 extern char const* const* module_paths;
 
 static int _service_running;
+
+static pss_value_t _pscript_builtin_lsdaemon(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
+{
+	(void)vm;
+	(void)argc;
+	(void)argv;
+	pss_value_t ret = {
+		.kind = PSS_VALUE_KIND_ERROR,
+		.num = PSS_VM_ERROR_ARGUMENT
+	};
+	
+	pss_dict_t* ret_dict = NULL;
+
+	ret.num = PSS_VM_ERROR_INTERNAL;
+
+	const char* pid_dir = INSTALL_PREFIX "/" SCHED_DAEMON_FILE_PREFIX;
+
+	DIR* dir = opendir(pid_dir);
+	if(NULL == dir) 
+		ERROR_LOG_GOTO(ERR, "Cannot open the Plumber deamon directory");
+
+	struct dirent entry, *result;
+	int rc;
+
+	static const char lock_suffix[] = SCHED_DAEMON_LOCK_SUFFIX;
+	
+	ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_DICT, NULL);
+	if(ret.kind == PSS_VALUE_KIND_ERROR)
+	    ERROR_LOG_GOTO(ERR, "Cannot create the result dictionary");
+
+	if(NULL == (ret_dict = (pss_dict_t*)pss_value_get_data(ret)))
+	    ERROR_LOG_GOTO(ERR, "Cannot get the result dictionary object");
+
+
+	while((rc = readdir_r(dir, &entry, &result)) >= 0 && result != NULL)
+	{
+		const char* p = lock_suffix + sizeof(lock_suffix) - 2;
+		size_t sz = strlen(entry.d_name);
+		if(sz < sizeof(lock_suffix) - 1) continue;
+		const char* q = entry.d_name + sz - 1;
+
+		for(;p >= lock_suffix && *p == *q; p--, q--);
+
+		if(p < lock_suffix)
+		{
+			/* This is a lock file, so we test if the lock is actually hold by other process */
+			char pathbuf[PATH_MAX];
+			snprintf(pathbuf, sizeof(pathbuf), "%s/%s/%s", INSTALL_PREFIX, SCHED_DAEMON_FILE_PREFIX, entry.d_name);
+			int fd = open(pathbuf, O_RDONLY);
+			if(fd < 0) 
+			{
+				LOG_WARNING_ERRNO("Cannot open the pid file");
+				continue;
+			}
+			errno = 0;
+			if(flock(fd, LOCK_EX | LOCK_NB) < 0)
+			{
+				if(errno == EWOULDBLOCK)
+				{
+					/* This lock has been hold by another process, thus this is a running daemon */
+					char* daemon_id = (char*)malloc((size_t)(q - entry.d_name + 2));
+					pss_value_t val = {};
+					if(daemon_id == NULL)
+						ERROR_LOG_ERRNO_GOTO(LIST_APPEND_ERR, "Cannot allocate memory for the daemon");
+					memcpy(daemon_id, entry.d_name, (size_t)(q - entry.d_name + 1));
+					daemon_id[q - entry.d_name + 1] = 0;
+
+					val = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, daemon_id);
+					if(val.kind == PSS_VALUE_KIND_ERROR)
+						ERROR_LOG_GOTO(LIST_APPEND_ERR, "Cannot create new string value for the daemon name");
+					else
+						daemon_id = NULL;
+
+					char key[32];
+					ssize_t sz;
+					if((sz = read(fd, key, sizeof(key))) < 0)
+						ERROR_LOG_ERRNO_GOTO(LIST_APPEND_ERR, "Cannot read the lock file %s", pathbuf);
+					key[sz] = 0;
+
+					if(ERROR_CODE(int) == pss_dict_set(ret_dict, key, val))
+						ERROR_LOG_ERRNO_GOTO(LIST_APPEND_ERR, "Cannot append the value to the result dictionary");
+					goto CONT;
+LIST_APPEND_ERR:
+					if(NULL != daemon_id) free(daemon_id);
+					pss_value_decref(val); 
+					goto LOCK_FILE_ERR;
+				}
+				else ERROR_LOG_ERRNO_GOTO(LOCK_FILE_ERR, "Cannot lock the daemon lock file %s", pathbuf);
+			}
+			else if(flock(fd, LOCK_UN | LOCK_NB) < 0)
+				LOG_WARNING_ERRNO("Cannot release the lock %s", pathbuf);
+CONT:
+			close(fd);
+			continue;
+LOCK_FILE_ERR:
+			close(fd);
+			goto ERR;
+		}
+
+	}
+
+	if(closedir(dir) < 0)
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot close the directory");
+
+	return ret;
+ERR:
+	if(NULL != dir) closedir(dir);
+	pss_value_decref(ret);
+	ret.kind = PSS_VALUE_KIND_ERROR;
+	ret.num = PSS_VM_ERROR_INTERNAL;
+	return ret;
+}
 
 static pss_value_t _pscript_builtin_lsmod(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
@@ -997,6 +1112,7 @@ static struct {
 	_B(insmod, "(init_str)", "Install a module specified by init_str to Plumber runtime system"),
 	_B(len,    "(obj)", "Get the length of the object"),
 	_B(log_redirect, "(level, file [, mode])", "Override the logging redirection, level: the log level we want to redirect, file: the filename, mode: the fopen mode, by default is 'w'"),
+	_B(lsdaemon, "()", "List all the running Plumber daemons"),
 	_B(lsmod, "()", "Get a list of all the installed module installed to the Plumber runtime system"),
 	_B(print,  "(val1 [, ...])", "Print the values to stdout"),
 	_B(typeof, "(value)", "Get the type of the value"),
