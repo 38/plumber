@@ -3,13 +3,31 @@ function get_file() {
 	ext=$1
 	git ls-files '*.'${ext} | grep -v "^thirdparty/.*"
 }
-for ext in {'[ch]pp','[ch]',py,js,cmake,vim,pss,ptype}
-do
-	if [ ! -z "$(get_file ${ext})" ]
-	then
-		wc -l $(get_file ${ext}) | tail -n 1 | awk '{print "'${ext}'",$1}'
-	fi
-done | \
+{
+	for ext in {'[ch]pp','[ch]',py,js,cmake,vim,pss,ptype}
+	do
+		if [ ! -z "$(get_file ${ext})" ]
+		then
+			wc -l $(get_file ${ext}) | tail -n 1 | awk '{print "'${ext}'",$1}'
+		fi
+	done 
+	for file in $(git ls-files misc/script/)
+	do
+		ftype=""
+		if [ ! -z "$(head -n1 ${file} | grep "pscript")" ]
+		then
+			ftype="pss"
+		fi
+		if [ ! -z "$(head -n1 ${file} | grep "python")" ]
+		then
+			ftype="py"
+		fi
+		if [ ! -z "${ftype}" ]
+		then
+			echo "${ftype} $(wc -l ${file} | tail -n 1 | awk '{print $1}')"
+		fi
+	done
+}| \
 awk \
 '
 	BEGIN {
@@ -24,7 +42,7 @@ awk \
 	}
 	{
 		sum += $2; 
-		lang[$1] = $2
+		lang[$1] += $2
 	} 
 	END {
 		for(i in lang) 
