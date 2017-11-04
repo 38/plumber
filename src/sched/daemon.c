@@ -1,6 +1,13 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/file.h>
+#include <sys/stat.h>
+#include <sys/fcntl.h>
+#include <sys/un.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -10,12 +17,6 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <grp.h>
-#include <sys/types.h>
-#include <sys/file.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <sys/fcntl.h>
-#include <sys/un.h>
 #include <signal.h>
 
 #include <error.h>
@@ -251,13 +252,18 @@ int sched_daemon_read_control_sock()
 {
 	if(_sock_fd < 0 || !_is_dispatcher) return 0;
 
+	LOG_DEBUG("Trying to read the control socket");
+
 	struct sockaddr_un caddr = {};
 	int client_fd;
 	socklen_t slen = sizeof(caddr);
 	if((client_fd = accept(_sock_fd, (struct sockaddr*)&caddr, &slen)) < 0)
 	{
 		if(errno == EWOULDBLOCK || errno == EAGAIN)
-		    return 0;
+		{
+			LOG_DEBUG("Control socket gets nothing");
+			return 0;
+		}
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot accept command from the control socket");
 	}
 
@@ -272,12 +278,14 @@ int sched_daemon_read_control_sock()
 	switch(cmd->opcode)
 	{
 		case _DAEMON_STOP:
+		    LOG_NOTICE("Got DAEMON_STOP command");
 		    if(kill(0, SIGINT) < 0)
 		        ERROR_LOG_ERRNO_GOTO(ERR, "Cannot send stop signal to deamon");
 		    if(write(client_fd, &status, sizeof(status)) < 0)
 		        ERROR_LOG_ERRNO_GOTO(ERR, "Cannot send the operation result to client");
 		    break;
 		case _DAEMON_PING:
+		    LOG_NOTICE("Got DAEMON_PING Command");
 		    if(write(client_fd, &status, sizeof(status)) < 0)
 		        ERROR_LOG_ERRNO_GOTO(ERR, "Cannot send the operation result ot client");
 		    break;
@@ -285,10 +293,15 @@ int sched_daemon_read_control_sock()
 		    ERROR_LOG_GOTO(ERR, "Invalid opcode");
 	}
 
+	LOG_DEBUG("Command has been processed successfully");
+
 	free(cmd);
 	close(client_fd);
 	return 0;
 ERR:
+
+	LOG_DEBUG("Command cannot be processed");
+
 	status = -1;
 	if(write(client_fd, &status, sizeof(status)))
 	    LOG_ERROR_ERRNO("Cannot send the failure status code to client");
