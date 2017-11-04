@@ -247,7 +247,7 @@ static _daemon_cmd_t* _read_cmd(int fd)
 	return ret;
 }
 
-int sched_daemon_read_control_sock() 
+int sched_daemon_read_control_sock()
 {
 	if(_sock_fd < 0 || !_is_dispatcher) return 0;
 
@@ -257,7 +257,7 @@ int sched_daemon_read_control_sock()
 	if((client_fd = accept(_sock_fd, (struct sockaddr*)&caddr, &slen)) < 0)
 	{
 		if(errno == EWOULDBLOCK || errno == EAGAIN)
-			return 0;
+		    return 0;
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot accept command from the control socket");
 	}
 
@@ -302,7 +302,7 @@ static void _sighup_handle(int sigid)
 {
 	(void)sigid;
 	if(ERROR_CODE(int) == sched_daemon_read_control_sock())
-		LOG_WARNING("Could not execute command");
+	    LOG_WARNING("Could not execute command");
 }
 
 int sched_daemon_init()
@@ -568,7 +568,7 @@ static inline int _simple_daemon_command(const char* daemon_name, _daemon_op_t o
 	    ERROR_LOG_GOTO(ERR, "Cannot connect the control socket");
 
 	if(kill(pid, SIGHUP) < 0)
-		LOG_WARNING_ERRNO("Cannot send signal to the daemon");
+	    LOG_WARNING_ERRNO("Cannot send signal to the daemon");
 
 	_daemon_cmd_t cmd = {
 		.opcode = op

@@ -407,7 +407,7 @@ static itc_equeue_event_mask_t _interrupt_handler(void* pl)
 	{
 		counter  = 0;
 		if(ERROR_CODE(int) == sched_daemon_read_control_sock())
-			LOG_ERROR("Cannot read the control socket");
+		    LOG_ERROR("Cannot read the control socket");
 	}
 
 	/* Step1: try to resolve the pending list first */

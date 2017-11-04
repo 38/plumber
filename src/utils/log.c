@@ -273,7 +273,7 @@ static inline int _check_log_file(int level)
 		if(NULL == (_log_fp[level] = fopen(_log_path[level], _log_mode[level])))
 		{
 			_log_fp[level] = &_fp_off;
-		    return ERROR_CODE(int);
+			return ERROR_CODE(int);
 		}
 
 		int i;
