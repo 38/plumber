@@ -145,7 +145,7 @@ int log_init()
 			}
 			_log_fp[level] = outfile;
 
-			snprintf(_log_path[level], sizeof(_log_path[0]), "%s%s%s", path[0] == '/' ? cwd : "", path[0] == '/' ? "/": "", path);
+			snprintf(_log_path[level], sizeof(_log_path[0]), "%s%s%s", path[0] != '/' ? cwd : "", path[0] != '/' ? "/": "", path);
 			snprintf(_log_mode[level], sizeof(_log_mode[0]), "%s", mode);
 			_log_stderr[level] = screen_print;
 		}
