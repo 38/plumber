@@ -10,14 +10,14 @@
 #include <stdlib.h>
 #include <time.h>
 #include <pthread.h>
-
-#include <error.h>
-#include <barrier.h>
-
 #include <limits.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#include <error.h>
+#include <barrier.h>
+
 
 __attribute__((used)) /* make sure clang won't complain about unused variables */
 static char _src_root[] = __PLUMBER_SOURCE_ROOT__;
@@ -39,6 +39,14 @@ int log_init()
 {
 	FILE* default_fp = stderr;
 	const char* conf_path = getenv("LOGCONF");
+	char cwd[PATH_MAX];
+
+
+	if(NULL == getcwd(cwd, sizeof(cwd)))
+	{
+		perror("Could not get CWD");
+		return ERROR_CODE(int);
+	}
 
 	if(pthread_mutex_init(&_log_mutex, NULL) < 0)
 	{
@@ -53,10 +61,10 @@ int log_init()
 	_log_fp[7] = stderr;
 	if(NULL != fp)
 	{
-		static char buf[1024];
-		static char type[1024];
-		static char path[1024];
-		static char mode[1024];
+		static char buf[PATH_MAX];
+		static char type[128];
+		static char path[PATH_MAX];
+		static char mode[32];
 		int screen_print = 0;
 		for(;NULL != fgets(buf, sizeof(buf), fp);)
 		{
@@ -136,7 +144,8 @@ int log_init()
 				_log_fp[level] = NULL;
 			}
 			_log_fp[level] = outfile;
-			snprintf(_log_path[level], sizeof(_log_path[0]), "%s", path);
+
+			snprintf(_log_path[level], sizeof(_log_path[0]), "%s%s%s", path[0] == '/' ? cwd : "", path[0] == '/' ? "/": "", path);
 			snprintf(_log_mode[level], sizeof(_log_mode[0]), "%s", mode);
 			_log_stderr[level] = screen_print;
 		}
@@ -262,7 +271,10 @@ static inline int _check_log_file(int level)
 		FILE* prev = _log_fp[level];
 		fclose(_log_fp[level]);
 		if(NULL == (_log_fp[level] = fopen(_log_path[level], _log_mode[level])))
+		{
+			_log_fp[level] = &_fp_off;
 		    return ERROR_CODE(int);
+		}
 
 		int i;
 		for(i = 0; i < 8; i ++)
