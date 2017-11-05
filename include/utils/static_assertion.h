@@ -36,6 +36,11 @@
  **/
 #define STATIC_ASSERTION_EQ_ID(id,lhs,rhs) struct __const_checker_eq_##id { int test[(((lhs) == (rhs)) - 1) * (1 - ((rhs) == (lhs)))];}
 
+/**
+ * @brief Assert that the compile time constant lhs is less or equal to the compile time constant rhs
+ **/
+#define STATIC_ASSERTION_LE_ID(id, lhs, rhs) struct __const_checker_le_##id { int test[(((lhs) <= ((rhs)) - 1)]; }
+
 /** @brief this macro is used to check if the size of the variable is expected */
 #define STATIC_ASSERTION_VAR_SIZE(id, val) STATIC_ASSERTION_EQ_ID(_size_##id, val, sizeof(id))
 

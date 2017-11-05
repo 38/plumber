@@ -11,6 +11,17 @@
 #define __PLUMBER_RUNTIME_STAB_H__
 
 /**
+ * @ brief Dispose the unused namespace, this is used when we do non-stopping deployment
+ **/
+#define RUNTIME_STAB_DISPOSE_FLAG_UNUSED 0
+
+/**
+ * @brief  Dispose all namespace, this is used when the service is exiting
+ **/
+#define RUNTIME_STAB_DISPOSE_FLAG_ALL 1
+
+
+/**
  * @brief the data type for a servlet table entry
  **/
 typedef uint32_t runtime_stab_entry_t;
@@ -132,8 +143,9 @@ char const* const* runtime_stab_get_init_arg(runtime_stab_entry_t sid, uint32_t*
 
 /**
  * @brief dispose all the servlet intances in the stab
+ * @param flags either RUNTIME_STAB_DISPOSE_FLAG_UNUSED or RUNTIME_STAB_DISPOSE_FLAG_ALL
  * @return status code
  **/
-int runtime_stab_dispose_instances();
+int runtime_stab_dispose_instances(int flags);
 
 #endif /* __PLUMBER_RUNTIME_SERVLET_TAB_H__ */
