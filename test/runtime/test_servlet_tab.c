@@ -11,7 +11,7 @@ int test_load_servlet()
 
 	const char* argv[] = {"serv_loader_test"};
 
-	ASSERT_RETOK(runtime_stab_entry_t, id = runtime_stab_load(1, argv), CLEANUP_NOP);
+	ASSERT_RETOK(runtime_stab_entry_t, id = runtime_stab_load(1, argv, NULL), CLEANUP_NOP);
 	expected_memory_leakage();
 
 	LOG_DEBUG("Servlet reference id = %u", id);
@@ -23,14 +23,14 @@ int test_servlet_not_found()
 {
 	const char* argv[] = {"__servlet_not_exist__"};
 
-	ASSERT(runtime_stab_load(1, argv) == ERROR_CODE(runtime_stab_entry_t), CLEANUP_NOP);
+	ASSERT(runtime_stab_load(1, argv, NULL) == ERROR_CODE(runtime_stab_entry_t), CLEANUP_NOP);
 
 	return 0;
 }
 
 int test_servlet_invalid_args()
 {
-	ASSERT(runtime_stab_load(0, NULL) == ERROR_CODE(runtime_stab_entry_t), CLEANUP_NOP);
+	ASSERT(runtime_stab_load(0, NULL, NULL) == ERROR_CODE(runtime_stab_entry_t), CLEANUP_NOP);
 
 	return 0;
 }

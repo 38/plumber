@@ -27,7 +27,7 @@ static inline runtime_stab_entry_t _load(const char* type)
 		    type ++;
 	}
 
-	return runtime_stab_load(nargs, args);
+	return runtime_stab_load(nargs, args, NULL);
 }
 #define MKBUF \
         sched_service_buffer_t* sbuf = sched_service_buffer_new();\

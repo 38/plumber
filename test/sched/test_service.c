@@ -226,9 +226,9 @@ int setup()
 
 	ASSERT_OK(runtime_servlet_append_search_path(TESTDIR), CLEANUP_NOP);
 	expected_memory_leakage();
-	ASSERT_RETOK(runtime_stab_entry_t, servA = runtime_stab_load(2, argv_A), CLEANUP_NOP);
+	ASSERT_RETOK(runtime_stab_entry_t, servA = runtime_stab_load(2, argv_A, NULL), CLEANUP_NOP);
 	expected_memory_leakage();
-	ASSERT_RETOK(runtime_stab_entry_t, servB = runtime_stab_load(2, argv_B), CLEANUP_NOP);
+	ASSERT_RETOK(runtime_stab_entry_t, servB = runtime_stab_load(2, argv_B, NULL), CLEANUP_NOP);
 	return 0;
 }
 

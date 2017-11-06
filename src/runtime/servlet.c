@@ -44,7 +44,8 @@ static vector_t* _search_paths;
  **/
 static inline const char * _search_for_binary(const char* binary)
 {
-	static char buffer[PATH_MAX + 1];
+	char buffer[PATH_MAX + 1];
+	static char ret[PATH_MAX + 1];
 	size_t i;
 
 	for(i = 0; i < vector_length(_search_paths); i ++)
@@ -84,8 +85,10 @@ static inline const char * _search_for_binary(const char* binary)
 
 			if(access(buffer, F_OK) == 0)
 			{
-				LOG_DEBUG("Found shared object %s", buffer);
-				return buffer;
+				if(NULL == realpath(buffer, ret))
+					ERROR_PTR_RETURN_LOG_ERRNO("Cannot resolve the absolute path");
+				LOG_DEBUG("Found shared object %s", ret);
+				return ret;
 			}
 		}
 	}
@@ -452,7 +455,6 @@ runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const ch
 	runtime_api_servlet_def_t* def = NULL;
 	runtime_servlet_binary_t* ret = NULL;
 	runtime_api_address_table_t** addrtab = NULL;
-	string_buffer_t strbuf;
 
 	if(NULL == path) ERROR_LOG_GOTO(ERR, "Invalid arguments");
 
@@ -538,18 +540,17 @@ NS1_SUCCESS:
 	/* Here gives us an chance to support multiple version of APIs */
 	*addrtab = &runtime_api_address_table;
 
-	ret = (runtime_servlet_binary_t*)malloc(sizeof(runtime_servlet_binary_t));
+	ret = (runtime_servlet_binary_t*)calloc(sizeof(runtime_servlet_binary_t), 1);
 	if(NULL == ret) ERROR_LOG_ERRNO_GOTO(ERR, "Failed to allocate memory for the servlet binary %s", name);
 
 	ret->define = def;
 	ret->dl_handler = dl_handler;
 
-	string_buffer_open(ret->name, sizeof(ret->name), &strbuf);
-	string_buffer_append(name, &strbuf);
-	string_buffer_close(&strbuf);
+	if(NULL == (ret->name = strdup(name)))
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot copy the servlet binary name");
 
-	ret->async_pool = NULL;
-
+	if(NULL == (ret->path = strdup(path)))
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot copy the servlet binary path");
 
 #if defined(LOG_NOTICE_ENABLED) && defined(__LINUX__)
 	const struct link_map* linkmap = (const struct link_map*)dl_handler;
@@ -563,6 +564,8 @@ NS1_SUCCESS:
 
 ERR:
 	if(dl_handler != NULL) dlclose(dl_handler);
+	if(NULL != ret->name) free(ret->name);
+	if(NULL != ret->path) free(ret->path);
 	if(ret != NULL) free(ret);
 	return NULL;
 }
@@ -583,6 +586,10 @@ int runtime_servlet_binary_unload(runtime_servlet_binary_t* binary)
 
 	if(binary->async_pool != NULL && mempool_objpool_free(binary->async_pool) == ERROR_CODE(int))
 	    LOG_WARNING("Cannot dispose the async buffer memory pool");
+
+	if(binary->name != NULL) free(binary->name);
+
+	if(binary->path != NULL) free(binary->path);
 
 	/* free the servlet memory */
 	free(binary);

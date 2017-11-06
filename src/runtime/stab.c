@@ -162,7 +162,7 @@ int runtime_stab_revert_current_namespace()
 	return 0;
 }
 
-runtime_stab_entry_t runtime_stab_load(uint32_t argc, char const * const * argv)
+runtime_stab_entry_t runtime_stab_load(uint32_t argc, char const * const * argv, const char* path)
 {
 	if(argc < 1 || argv == NULL || argv[0] == NULL) ERROR_RETURN_LOG(runtime_stab_entry_t, "Invalid arguments");
 
@@ -194,7 +194,7 @@ runtime_stab_entry_t runtime_stab_load(uint32_t argc, char const * const * argv)
 	if(i == nentry)
 	{
 		LOG_DEBUG("Could not find the servlet binary %s from the servlet binary table, try to load from disk", name);
-		const char* path = runtime_servlet_find_binary(name);
+		path = path == NULL ? runtime_servlet_find_binary(name) : path;
 		if(NULL == path) ERROR_RETURN_LOG(runtime_stab_entry_t, "Could not find any binary for servlet %s", name);
 
 		LOG_DEBUG("Found servlet binary %s matches name %s", path, name);
@@ -320,6 +320,14 @@ char const* const* runtime_stab_get_init_arg(runtime_stab_entry_t sid, uint32_t*
 
 	*argc = servlet->argc;
 	return (char const* const*)servlet->argv;
+}
+
+const char* runtime_stab_get_binary_path(runtime_stab_entry_t sid)
+{
+	const runtime_servlet_t* servlet = _get_servlet(sid);
+	if(NULL == servlet) return NULL;
+
+	return servlet->bin->path;
 }
 
 int runtime_stab_set_owner(runtime_stab_entry_t sid, const void* owner, int reuse_servlet)

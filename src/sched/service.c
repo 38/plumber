@@ -823,3 +823,16 @@ const char* sched_service_get_pipe_type_expr(const sched_service_t* service, sch
 
 	return runtime_pdt_type_expr(pipe_table, pid);
 }
+
+sched_service_t* sched_service_from_fd(int fd)
+{
+	(void)fd;
+	return NULL;
+}
+
+int sched_service_dump_fd(const sched_service_t* service, int fd)
+{
+	(void)service;
+	(void)fd;
+	return 0;
+}

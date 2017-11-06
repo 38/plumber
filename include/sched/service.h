@@ -90,6 +90,24 @@ int sched_service_buffer_add_pipe(sched_service_buffer_t* buffer, sched_service_
 int sched_service_buffer_free(sched_service_buffer_t* buffer);
 
 /**
+ * @brief Construct a service from the given file descriptor
+ * @note This function is used when we are deploying a new version of service. And the daemon
+ *       can read the service definition from the control socket fd
+ * @param fd The fd to read
+ * @return The newly created service or error code
+ **/
+sched_service_t* sched_service_from_fd(int fd);
+
+/**
+ * @brief Dump the service to the given fd
+ * @note This function will produce the data format that sched_service_from_fd can understand
+ * @param service The service to dump
+ * @param fd The target fd
+ * @return status code
+ **/
+int sched_service_dump_fd(const sched_service_t* service, int fd);
+
+/**
  * @brief construct a service def from the buffer
  * @param buffer the scheduler buffer used to create the service def
  * @return the newly created service def, NULL if error happens

@@ -65,8 +65,8 @@ int _entry_point(int argc, char** argv)
 	_load_default_module(8888);
 
 	runtime_servlet_append_search_path(".");
-	runtime_stab_entry_t reqparse =  runtime_stab_load(1, reqparse_arg);
-	runtime_stab_entry_t resgen =  runtime_stab_load(1, resgen_arg);
+	runtime_stab_entry_t reqparse =  runtime_stab_load(1, reqparse_arg, NULL);
+	runtime_stab_entry_t resgen =  runtime_stab_load(1, resgen_arg, NULL);
 
 	sched_service_buffer_t* buffer = sched_service_buffer_new();
 

@@ -51,9 +51,10 @@ const void* runtime_stab_get_owner(runtime_stab_entry_t sid);
 /** @brief load a servlet instance by the given condition
  *  @param argc the number of argument
  *  @param argv the argument list
+ *  @param path The recommended binary path, NULL if the caller have no idea about what binary should be used
  *	@return the servlet id, <0 when error
  **/
-runtime_stab_entry_t runtime_stab_load(uint32_t argc, char const * const * argv);
+runtime_stab_entry_t runtime_stab_load(uint32_t argc, char const * const * argv, const char* path);
 
 
 /** @brief Create a task that is to run a servlet
@@ -129,6 +130,13 @@ uint32_t runtime_stab_get_version(runtime_stab_entry_t sid);
  * @return NULL on error, otherwise the pointer to the arguments
  **/
 char const* const* runtime_stab_get_init_arg(runtime_stab_entry_t sid, uint32_t* argc);
+
+/**
+ * @brief Get the actual servlet binary on the disk
+ * @param sid The servlet id
+ * @return The actual binary path or error code
+ **/
+const char* runtime_stab_get_binary_path(runtime_stab_entry_t sid);
 
 /**
  * @brief dispose all the servlet intances in the stab

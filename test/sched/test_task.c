@@ -34,8 +34,8 @@ int load_servlet()
 	for(i = 0; i < 10; i ++)
 	{
 		snprintf(argstr, sizeof(argstr), "%d", args[i]);
-		ASSERT_RETOK(runtime_stab_entry_t, servletA[i] = runtime_stab_load(2, aa), CLEANUP_NOP);
-		ASSERT_RETOK(runtime_stab_entry_t, servletB[i] = runtime_stab_load(2, ab), CLEANUP_NOP);
+		ASSERT_RETOK(runtime_stab_entry_t, servletA[i] = runtime_stab_load(2, aa, NULL), CLEANUP_NOP);
+		ASSERT_RETOK(runtime_stab_entry_t, servletB[i] = runtime_stab_load(2, ab, NULL), CLEANUP_NOP);
 		if(i == 0)
 		{
 			ASSERT_RETOK(runtime_api_pipe_id_t, A_in = runtime_stab_get_pipe(servletA[i], "stdin"), CLEANUP_NOP);
@@ -307,7 +307,7 @@ int pipe_disable()
 		char ids[2] = #id;\
 		char buf[2] = #size;\
 		const char* args[] = {"serv_"#name, ids, buf};\
-		ASSERT_RETOK(runtime_stab_entry_t, servlet[k] = runtime_stab_load(3, args), goto ERR);\
+		ASSERT_RETOK(runtime_stab_entry_t, servlet[k] = runtime_stab_load(3, args, NULL), goto ERR);\
 		ASSERT_RETOK(sched_service_node_id_t, node[k] = sched_service_buffer_add_node(buffer, servlet[k]), goto ERR);\
 	}while(0)
 
@@ -413,7 +413,7 @@ int task_cancel()
 		char ids[2] = {(char)('0' + i), 0};
 		char buf[2] = {(char)('0' + layout[i]), 0};
 		const char* args[] = {"serv_tchelper", ids, buf};
-		ASSERT_RETOK(runtime_stab_entry_t, servlet[i] = runtime_stab_load(3, args), goto ERR);
+		ASSERT_RETOK(runtime_stab_entry_t, servlet[i] = runtime_stab_load(3, args, NULL), goto ERR);
 	}
 
 	for(i = 0; i < 8; i ++)

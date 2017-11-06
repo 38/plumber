@@ -127,7 +127,7 @@ int64_t lang_service_add_node(lang_service_t* service, const char* init_args)
 		}
 	}
 
-	runtime_stab_entry_t sid = runtime_stab_load(argc, argv);
+	runtime_stab_entry_t sid = runtime_stab_load(argc, argv, NULL);
 	if(ERROR_CODE(runtime_stab_entry_t) == sid)
 	    ERROR_RETURN_LOG(int64_t, "Cannot not load servlet with init args: %s", init_args);
 

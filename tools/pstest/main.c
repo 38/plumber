@@ -117,7 +117,7 @@ static inline const char* _flagstr(runtime_api_pipe_flags_t flags)
 }
 void show_pipes(uint32_t argc, char const* const* argv)
 {
-	runtime_stab_entry_t sid = runtime_stab_load(argc, argv);
+	runtime_stab_entry_t sid = runtime_stab_load(argc, argv, NULL);
 
 	if(ERROR_CODE(runtime_stab_entry_t) == sid)
 	{
@@ -228,7 +228,7 @@ void run_task(uint32_t argc, char const* const* argv)
 	runtime_task_t* async_exec = NULL;
 	runtime_task_t* async_cleanup = NULL;
 
-	sid = runtime_stab_load(argc, argv);
+	sid = runtime_stab_load(argc, argv, NULL);
 	if(sid == ERROR_CODE(runtime_stab_entry_t))
 	{
 		LOG_FATAL("Cannot load servlet");

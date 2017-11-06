@@ -71,7 +71,7 @@ int test_pipe_open()
 
 	char const* argv[] = {"serv_api_test"};
 
-	ASSERT_RETOK(runtime_stab_entry_t, sid = runtime_stab_load(1, argv), CLEANUP_NOP);
+	ASSERT_RETOK(runtime_stab_entry_t, sid = runtime_stab_load(1, argv, NULL), CLEANUP_NOP);
 	expected_memory_leakage();
 
 	ASSERT(pipe_open_n > 0, CLEANUP_NOP);
