@@ -27,11 +27,7 @@ static struct {
 	vector_t* b_table;   /*!< The binary table */
 	vector_t* i_table;   /*!< The instance table */
 }
-#if NSD_SUPPORT
 _namespace[2];
-#else
-_namespace[1];
-#endif /* NSD_SUPPORT */
 
 /**
  * @brief The current NSID
@@ -43,6 +39,8 @@ static uint32_t _current_nsid = 0;
 #define _NUM_NS (sizeof(_namespace) / sizeof(_namespace[0]))
 
 #define _NSID(x) ((x & _NS_MASK) > 0)
+
+static int _first_load = 1;
 /**
  * @brief Get the servlet from the SID
  * @param sid The servlet ID
@@ -59,6 +57,7 @@ static inline runtime_servlet_t* _get_servlet(runtime_stab_entry_t sid)
 		ERROR_PTR_RETURN_LOG("Invalid servlet ID: namespace not exist");
 
 	vector_t* i_table = _namespace[nsid].i_table;
+	sid &= ~_NS_MASK;
 
 	runtime_servlet_t* servlet = *VECTOR_GET_CONST(runtime_servlet_t*, i_table, sid);
 
@@ -146,11 +145,21 @@ int runtime_stab_dispose_all_namespaces()
 
 int runtime_stab_dispose_unused_namespace()
 {
-	if(_NUM_NS < 2) return 0;
-
 	unsigned nsid = (unsigned)(_NUM_NS - 1u - _current_nsid);
 
 	return _dispose_namespace(nsid);
+}
+
+int runtime_stab_revert_current_namespace()
+{
+	unsigned nsid = (unsigned)(_NUM_NS - 1u - _current_nsid);
+	if(_namespace[nsid].b_table == NULL || _namespace[nsid].i_table == NULL)
+		ERROR_RETURN_LOG(int, "Cannot revert current namespace because the unused one is disposed");
+
+	if(ERROR_CODE(int) == _dispose_namespace(_current_nsid))
+		ERROR_RETURN_LOG(int, "Cannot dispose current namespace");
+	_current_nsid = nsid;
+	return 0;
 }
 
 runtime_stab_entry_t runtime_stab_load(uint32_t argc, char const * const * argv)
@@ -190,7 +199,7 @@ runtime_stab_entry_t runtime_stab_load(uint32_t argc, char const * const * argv)
 
 		LOG_DEBUG("Found servlet binary %s matches name %s", path, name);
 
-		binary = runtime_servlet_binary_load(path, name, nsid ? RUNTIME_SERVLET_NAMESPACE_1 : RUNTIME_SERVLET_NAMESPACE_0);
+		binary = runtime_servlet_binary_load(path, name, _first_load);
 
 		if(NULL == binary) ERROR_RETURN_LOG(runtime_stab_entry_t, "Could not load binary %s", path);
 
@@ -355,5 +364,11 @@ int runtime_stab_switch_namespace()
 
 	_current_nsid = new_nsid;
 
-	return _init_namespace(new_nsid);
+	if(ERROR_CODE(int) == _init_namespace(new_nsid))
+		return ERROR_CODE(int);
+
+	_first_load = 0;
+	return 0;
 }
+
+

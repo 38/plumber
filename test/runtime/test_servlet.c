@@ -36,7 +36,7 @@ int test_load_servlet()
 	const char* path = runtime_servlet_find_binary ("serv_loader_test");
 	LOG_DEBUG("Binary path: %s", path);
 	ASSERT_PTR(path, CLEANUP_NOP);
-	ASSERT_PTR(_test_binary = runtime_servlet_binary_load(path, "serv_loader_test", RUNTIME_SERVLET_NAMESPACE_0), CLEANUP_NOP);
+	ASSERT_PTR(_test_binary = runtime_servlet_binary_load(path, "serv_loader_test", 1), CLEANUP_NOP);
 	ASSERT_PTR(_test_servlet = runtime_servlet_new(_test_binary, 1, argv), CLEANUP_NOP);
 	expected_memory_leakage(); /* Because a GLIBC bug, we are expecting a memory leak here */
 	return 0;

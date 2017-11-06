@@ -1,11 +1,6 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
-
-#ifdef NSD_SUPPORT
-#	define _GNU_SOURCE
-#endif /* NSD_SUPPORT */
-
 #include <constants.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -13,6 +8,8 @@
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <stdio.h>
 
 #ifdef __LINUX__
 #include <link.h>
@@ -449,7 +446,7 @@ int runtime_servlet_free(runtime_servlet_t* servlet)
 	return rc;
 }
 
-runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const char* name, runtime_servlet_namespace_t namespace)
+runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const char* name, int first_run)
 {
 	void* dl_handler = NULL;
 	runtime_api_servlet_def_t* def = NULL;
@@ -458,29 +455,64 @@ runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const ch
 	string_buffer_t strbuf;
 
 	if(NULL == path) ERROR_LOG_GOTO(ERR, "Invalid arguments");
-#ifdef NSD_SUPPORT
-	static Lmid_t _linkmap[2] = {LM_ID_BASE, LM_ID_NEWLM};
-	if(namespace == RUNTIME_SERVLET_NAMESPACE_0)
-		LOG_DEBUG("Adding servlet binary to link namespace 0");
-	else if(namespace == RUNTIME_SERVLET_NAMESPACE_1)
-		LOG_DEBUG("Adding servlet binary to link namespace 1");
-	else ERROR_PTR_RETURN_LOG("Invalid namespace %d", namespace);
-	Lmid_t lmid = _linkmap[namespace];
 
-	dl_handler = dlmopen(lmid, path, RTLD_LAZY | RTLD_LOCAL);
-
-	if(dl_handler != NULL && lmid == LM_ID_NEWLM && dlinfo(dl_handler, RTLD_DI_LMID, &_linkmap[1]) < 0)
+	if(first_run)
 	{
-		LOG_ERROR("Cannot get the linkmap ID, dlerror: %s", dlerror());
-		dlclose(dl_handler);
-		dl_handler = NULL;
+		LOG_DEBUG("Adding servlet binary to link namespace 0");
+		dl_handler = dlopen(path, RTLD_LOCAL | RTLD_LAZY);
+		first_run = 0;
 	}
+	else
+	{
+		LOG_DEBUG("Adding servlet binary to link namespace 1");
+		char temp[PATH_MAX];
+		snprintf(temp, sizeof(temp), "%s%s.XXXXXX", RUNTIME_SERVLET_NS1_PREFIX, name);
+		int fd = -1, sofd = -1;
+		if((sofd = open(path, O_RDONLY)) < 0)
+			ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot open the servlet binary file: %s", path);
+		if((fd = mkstemp(temp)) < 0)
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create temp file for the servlet in namespace 1");
+		else LOG_DEBUG("Creating copy of namespace 1 servlet at %s", temp);
 
-	LOG_DEBUG("LMID[%d]=%d", namespace, (int)_linkmap[namespace]);
-#else
-	(void)namespace;
-	dl_handler = dlopen(path, RTLD_LAZY | RTLD_LOCAL);
-#endif
+		char buf[4096];
+		for(;;)
+		{
+			ssize_t rc = read(sofd, buf, sizeof(buf));
+			if(rc < 0)
+				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read data from the servlet binary");
+			if(rc == 0) break;
+			while(rc > 0)
+			{
+				ssize_t wrc = write(fd, buf, (size_t)rc);
+				if(wrc == 0) 
+					ERROR_LOG_GOTO(ERR, "Cannot write bytes to the tempfile");
+				if(wrc < 0)
+				{
+					if(errno == EINTR) continue;
+					ERROR_LOG_ERRNO_GOTO(ERR, "Write error");
+				}
+				rc -= wrc;
+			}
+		}
+
+		if(close(fd) < 0)
+			ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot close the temp file FD");
+		else fd = -1;
+
+		dl_handler = dlopen(temp, RTLD_LOCAL | RTLD_LAZY);
+		if(unlink(temp) < 0)
+			ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot delete the tempfile");
+
+		goto NS1_SUCCESS;
+NS1_ERR:
+		if(dl_handler != NULL) dlclose(dl_handler);
+		if(fd >= 0) close(fd);
+		if(sofd >= 0) close(sofd);
+		unlink(temp);
+		return NULL;
+NS1_SUCCESS:
+		(void)0;
+	}
 
 	if(NULL == dl_handler)
 	    ERROR_LOG_GOTO(ERR, "Cannot open shared object %s: %s", path, dlerror());

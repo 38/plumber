@@ -36,6 +36,9 @@
 /** @brief the initial size of the slot servlet table */
 #	define RUNTIME_SERVLET_TAB_INIT_SIZE @RUNTIME_SERVLET_TAB_INIT_SIZE@
 
+/** @brief The tempfile template for the namespace 1 */
+#	define RUNTIME_SERVLET_NS1_PREFIX @RUNTIME_SERVLET_NS1_PREFIX@
+
 /** @brief the maximum servlet name length */
 #	define RUNTIME_SERVLET_NAME_LEN @RUNTIME_SERVLET_NAME_LEN@
 

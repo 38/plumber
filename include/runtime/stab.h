@@ -151,4 +151,11 @@ int runtime_stab_dispose_unused_namespace();
  **/
 int runtime_stab_switch_namespace();
 
+/**
+ * @brief Revert the effect of switching namespace, this is used when the non-stopping deploment
+ *        is failed, then we need to dispose the current namespace and switch back to the previous one
+ *  @return status code
+ **/
+int runtime_stab_revert_current_namespace();
+
 #endif /* __PLUMBER_RUNTIME_SERVLET_TAB_H__ */
