@@ -20,40 +20,22 @@
 
 #include <error.h>
 
-static struct {
-	vector_t* bin;     /*!< The binary vector */
-	vector_t* inst;    /*!< The instance vector */
-#ifdef NSD_SUPPORT
-	Lmid_t    linkmap; /*!< The linkmap for current namespace */
-} _namespace[2];
-#else
-} _namespace[1];
-#endif /* NSD_SUPPORT */
-
-#ifdef NSD_SUPPORT
 /**
- * @brief The current namespace in use 
+ * @brief the servlet binary table
  **/
-static int _current = 0;
-#else /* NSD_SUPPORT */
-static const int _current = 0;
-#endif /* NSD_SUPPORT */
+static vector_t* _btable = NULL;
 
-#define _N_NAMESPACE (sizeof(_namesapce) / sizeof(*_namesapce))
-
-#define _CNS (_current)
-
-#define _UNS (_N_NAMESPACE - 1 - _current)
-
-/* We should make sure there are at most 2 namespaces */
-STATIC_ASSERTION_LE_ID(namespace_size_limit, _N_NAMESPACE, 2);
+/**
+ * @brief the servlet instance table
+ **/
+static vector_t* _stable = NULL;
 
 static inline runtime_servlet_t* _get_servlet(runtime_stab_entry_t sid)
 {
-	if(sid == ERROR_CODE(runtime_stab_entry_t) || (size_t)sid >= vector_length(_STABLE))
+	if(sid == ERROR_CODE(runtime_stab_entry_t) || (size_t)sid >= vector_length(_stable))
 	    ERROR_PTR_RETURN_LOG("Invalid arguments");
 
-	runtime_servlet_t* servlet = *VECTOR_GET_CONST(runtime_servlet_t*, _STABLE, sid);
+	runtime_servlet_t* servlet = *VECTOR_GET_CONST(runtime_servlet_t*, _stable, sid);
 
 	if(NULL == servlet)
 	    ERROR_PTR_RETURN_LOG("Cannot read the servlet table");
@@ -61,86 +43,48 @@ static inline runtime_servlet_t* _get_servlet(runtime_stab_entry_t sid)
 	return servlet;
 }
 
-static inline int _stab_init_namespace(int ns)
-{
-	if(_namespace[ns].bin != NULL || _namespace[ns].inst != NULL)
-		ERROR_RETURN_LOG(int, "Could not initialize the namespace %d: the namespace is already initailized", ns);
-
-	if(NULL == (_namespace[ns].bin = vector_new(sizeof(runtime_servlet_t*), RUNTIME_SERVLET_TAB_INIT_SIZE)))
-		ERROR_RETURN_LOG(int, "Cannot create the servlet binary vector: NS=%d", ns);
-
-	if(NULL == (_namespace[ns].inst = vector_new(sizeof(runtime_servlet_binary_t*), RUNTIME_SERVLET_TAB_INIT_SIZE)))
-		ERROR_LOG_GOTO(ERR, "Cannot create the servlet instance vector: NS=%d", ns);
-
-	LOG_TRACE("Servlet namespace %d has been initialized", ns);
-
-	return 0;
-ERR:
-	if(NULL != _namespace[ns].bin) vector_free(_namespace[ns].bin);
-	if(NULL != _namespace[ns].inst) vector_free(_namespace[ns].inst);
-
-	return ERROR_CODE(int);
-}
-
-static inline int _stab_dispose_namespace(int ns)
-{
-	int rc = 0;
-	uint32_t i;
-	if(_namespace[ns].inst != NULL)
-	{
-		for(i = 0; i < vector_length(_namespace[ns].inst); i ++)
-		    if(ERROR_CODE(int) == runtime_servlet_free(*VECTOR_GET_CONST(runtime_servlet_t*, _namespace[ns].inst, i)))
-		        rc = ERROR_CODE(int);
-		if(vector_free(_namespace[ns].inst) == ERROR_CODE(int)) 
-			rc = ERROR_CODE(int);
-	}
-	if(_namespace[ns].bin != NULL) 
-	{
-		for(i = 0; i < vector_length(_namespace[ns].bin); i ++)
-		    if(runtime_servlet_binary_unload(*VECTOR_GET_CONST(runtime_servlet_binary_t*, _namespace[ns].bin, i)) == ERROR_CODE(int))
-				rc = ERROR_CODE(int);
-		if(vector_free(_namespace[ns].bin) == ERROR_CODE(int))
-			rc = ERROR_CODE(int);
-	}
-
-	return rc;
-}
-
 int runtime_stab_init()
 {
-	_current = 0;
-#if NSD_SUPPORT
-	_namespace[0].linkmap = LM_ID_BASE;
-	_namespace[1].linkmap = ERROR_CODE(Lmid_t);
-#endif /* NSD_SUPPORT */
-	return 0;
-}
+	_stable = vector_new(sizeof(runtime_servlet_t*), RUNTIME_SERVLET_TAB_INIT_SIZE);
+	if(NULL == _stable)
+	    ERROR_RETURN_LOG(int, "Cannot create the servlet instance list");
 
-int runtime_stab_dispose_instances(int flags)
+	_btable = vector_new(sizeof(runtime_servlet_binary_t*), RUNTIME_SERVLET_TAB_INIT_SIZE);
+	if(NULL == _btable)
+	    ERROR_LOG_GOTO(ERR, "Cannot create the servlet binary list");
+	return 0;
+ERR:
+	if(_stable != NULL) vector_free(_stable);
+	if(_btable != NULL) vector_free(_btable);
+	return ERROR_CODE(int);
+}
+int runtime_stab_dispose_instances()
 {
 	int rc = 0;
-	if(flags == RUNTIME_STAB_DISPOSE_FLAG_UNUSED || flags == RUNTIME_STAB_DISPOSE_FLAG_ALL)
+	unsigned i;
+	if(NULL != _stable)
 	{
-		/* Dispose the unused one */
-		if(ERROR_CODE(int) == _stab_dispose_namespace(_UNS))
-		{
-			LOG_ERROR("Cannot dispose the unused namespace");
-			rc = ERROR_CODE(int);
-		}
+		for(i = 0; i < vector_length(_stable); i ++)
+		    if(ERROR_CODE(int) == runtime_servlet_free(*VECTOR_GET_CONST(runtime_servlet_t*, _stable, i)))
+		        rc = ERROR_CODE(int);
+		if(vector_free(_stable) < 0) rc = ERROR_CODE(int);
 	}
-	if(flags == RUNTIME_STAB_DISPOSE_FLAG_ALL)
-	{
-		/* Dispose the using one */
-		if(ERROR_CODE(int) == _stab_dispose_namespace(_CNS))
-		{
-			LOG_ERROR("Cannot dispose the currently used namespace");
-			rc = ERROR_CODE(int);
-		}
-	}
+
 	return rc;
 }
 int runtime_stab_finalize()
 {
+	int rc = 0;
+	unsigned i;
+
+	if(NULL != _btable)
+	{
+		for(i = 0; i < vector_length(_btable); i ++)
+		    runtime_servlet_binary_unload(*VECTOR_GET_CONST(runtime_servlet_binary_t*, _btable, i));
+
+		if(vector_free(_btable) < 0) rc = ERROR_CODE(int);
+	}
+
 	return rc;
 }
 
@@ -152,11 +96,11 @@ runtime_stab_entry_t runtime_stab_load(uint32_t argc, char const * const * argv)
 
 	unsigned i;
 	runtime_servlet_binary_t* binary = NULL;
-	size_t nentry = vector_length(_namespace[_CNS].bin);
+	size_t nentry = vector_length(_btable);
 
 	for(i = 0; i < nentry; i ++)
 	{
-		binary = *VECTOR_GET_CONST(runtime_servlet_binary_t*, _namespace[_CNS], i);
+		binary = *VECTOR_GET_CONST(runtime_servlet_binary_t*, _btable, i);
 		if(strcmp(binary->name, name) == 0)
 		{
 			LOG_DEBUG("Servlet binary %s has been previous loaded", name);

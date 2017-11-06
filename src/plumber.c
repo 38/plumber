@@ -48,7 +48,7 @@ int plumber_finalize()
 	if(ERROR_CODE(int) == itc_modtab_on_exit())
 	    rc = ERROR_CODE(int);
 
-	if(ERROR_CODE(int) == runtime_stab_dispose_instances(RUNTIME_STAB_DISPOSE_FLAG_ALL))
+	if(ERROR_CODE(int) == runtime_stab_dispose_instances())
 	    rc = ERROR_CODE(int);
 
 	if(ERROR_CODE(int) == INIT_DO_FINALIZATION(modules))
