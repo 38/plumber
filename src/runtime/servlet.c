@@ -2,6 +2,10 @@
  * Copyright (C) 2017, Hao Hou
  **/
 
+#ifdef NSD_SUPPORT
+#	define _GNU_SOURCE
+#endif /* NSD_SUPPORT */
+
 #include <constants.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -445,7 +449,7 @@ int runtime_servlet_free(runtime_servlet_t* servlet)
 	return rc;
 }
 
-runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const char* name)
+runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const char* name, runtime_servlet_namespace_t namespace)
 {
 	void* dl_handler = NULL;
 	runtime_api_servlet_def_t* def = NULL;
@@ -454,8 +458,29 @@ runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const ch
 	string_buffer_t strbuf;
 
 	if(NULL == path) ERROR_LOG_GOTO(ERR, "Invalid arguments");
+#ifdef NSD_SUPPORT
+	static Lmid_t _linkmap[2] = {LM_ID_BASE, LM_ID_NEWLM};
+	if(namespace == RUNTIME_SERVLET_NAMESPACE_0)
+		LOG_DEBUG("Adding servlet binary to link namespace 0");
+	else if(namespace == RUNTIME_SERVLET_NAMESPACE_1)
+		LOG_DEBUG("Adding servlet binary to link namespace 1");
+	else ERROR_PTR_RETURN_LOG("Invalid namespace %d", namespace);
+	Lmid_t lmid = _linkmap[namespace];
 
+	dl_handler = dlmopen(lmid, path, RTLD_LAZY | RTLD_LOCAL);
+
+	if(dl_handler != NULL && lmid == LM_ID_NEWLM && dlinfo(dl_handler, RTLD_DI_LMID, &_linkmap[1]) < 0)
+	{
+		LOG_ERROR("Cannot get the linkmap ID, dlerror: %s", dlerror());
+		dlclose(dl_handler);
+		dl_handler = NULL;
+	}
+
+	LOG_DEBUG("Current LMID=%d", (int)_linkmap[namespace]);
+#else
+	(void)namespace;
 	dl_handler = dlopen(path, RTLD_LAZY | RTLD_LOCAL);
+#endif
 
 	if(NULL == dl_handler)
 	    ERROR_LOG_GOTO(ERR, "Cannot open shared object %s: %s", path, dlerror());

@@ -16,6 +16,23 @@
 #ifndef __PLUMBER_RUNTIME_SERVLET_H__
 #define __PLUMBER_RUNTIME_SERVLET_H__
 /**
+ * @brief The servlet binary namespace
+ * @details We should have this namespace mechanism, since if we load the shared object 
+ *          in the linker namespace, the dynamic linker won't refresh the symbol until we 
+ *          close the old one. However, in the non-stopping deployment case, we should keep
+ *          the both version of servlet binary until the new service graph has been initialized
+ *          completely and the old service graph is not processing any request. Thus we introduce
+ *          this mechanism.
+ * @note Since for some dynamic linker which doesn't support linker namespace, we can not do this
+ *       Thus we could make this a turnable feature in the code. If the Non-Stopping-Deployment has
+ *       been turned off, we could ignore this param
+ **/
+typedef enum {
+	RUNTIME_SERVLET_NAMESPACE_0,   /*!< The number 0 servlet namespace */
+	RUNTIME_SERVLET_NAMESPACE_1    /*!< The number 1 servlet namespace */
+} runtime_servlet_namespace_t;
+
+/**
  * @brief the binary interface for a servlet
  **/
 typedef struct {
@@ -105,9 +122,10 @@ const char* runtime_servlet_find_binary(const char* servlet);
  * @brief load servlet from given binary
  * @param path the path to the servlet
  * @param name the name of the servlet (name is a identifier that can be used in the service description script)
+ * @param name_space The servlet namespace
  * @return the pointer to the loaded servlet, NULL on error
  **/
-runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const char* name);
+runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const char* name, runtime_servlet_namespace_t name_sapce);
 
 
 /**

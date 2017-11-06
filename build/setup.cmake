@@ -94,3 +94,16 @@ endif(NOT "$ENV{EXEC_LIBS}" STREQUAL "")
 set(CMAKE_LINK_DEPENDS_NO_SHARED true)
 
 set(TESTING_PROTODB_ROOT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TEST_DIR}/protodb.root)
+
+if("${NSD_SUPPORT}" STREQUAL "")
+	if("${SYSNAME}" STREQUAL "Linux")
+		set(NSD_SUPPORT "yes")
+	else("${SYSNAME}" STREQUAL "Linux")
+		set(NSD_SUPPORT "no")
+	endif("${SYSNAME}" STREQUAL "Linux")
+endif("${NSD_SUPPORT}" STREQUAL "")
+
+if("${NSD_SUPPORT}" STREQUAL "yes")
+	set(CFLAGS "${CFLAGS} -DNSD_SUPPORT")
+endif("${NSD_SUPPORT}" STREQUAL "yes")
+

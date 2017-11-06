@@ -117,7 +117,8 @@ runtime_stab_entry_t runtime_stab_load(uint32_t argc, char const * const * argv)
 
 		LOG_DEBUG("Found servlet binary %s matches name %s", path, name);
 
-		binary = runtime_servlet_binary_load(path, name);
+		/* TODO: use the namespace */
+		binary = runtime_servlet_binary_load(path, name, RUNTIME_SERVLET_NAMESPACE_0);
 
 		if(NULL == binary) ERROR_RETURN_LOG(runtime_stab_entry_t, "Could not load binary %s", path);
 

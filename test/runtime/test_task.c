@@ -47,7 +47,7 @@ int test_get_current_task()
 
 	ASSERT_PTR(path, CLEANUP_NOP);
 
-	ASSERT_PTR(binary = runtime_servlet_binary_load(path, "task_test"), CLEANUP_NOP);
+	ASSERT_PTR(binary = runtime_servlet_binary_load(path, "task_test", RUNTIME_SERVLET_NAMESPACE_0), CLEANUP_NOP);
 	expected_memory_leakage();
 
 	ASSERT_PTR(servlet = runtime_servlet_new(binary, 1, argv), CLEANUP_NOP);
