@@ -134,6 +134,21 @@ char const* const* runtime_stab_get_init_arg(runtime_stab_entry_t sid, uint32_t*
  * @brief dispose all the servlet intances in the stab
  * @return status code
  **/
-int runtime_stab_dispose_instances();
+int runtime_stab_dispose_all_namespaces();
+
+/**
+ * @brief Dispose the unused namespace 
+ * @return status code
+ **/
+int runtime_stab_dispose_unused_namespace();
+
+/**
+ * @brief Switch to another namespace
+ * @note This requires another namespace must be empty, otherwise it should returns
+ *       an error. This means we only allows at most one non-stopping deployment
+ *       undergoing at the same time
+ * @return status code
+ **/
+int runtime_stab_switch_namespace();
 
 #endif /* __PLUMBER_RUNTIME_SERVLET_TAB_H__ */

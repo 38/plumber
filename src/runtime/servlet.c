@@ -476,7 +476,7 @@ runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const ch
 		dl_handler = NULL;
 	}
 
-	LOG_DEBUG("Current LMID=%d", (int)_linkmap[namespace]);
+	LOG_DEBUG("LMID[%d]=%d", namespace, (int)_linkmap[namespace]);
 #else
 	(void)namespace;
 	dl_handler = dlopen(path, RTLD_LAZY | RTLD_LOCAL);
