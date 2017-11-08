@@ -965,6 +965,8 @@ sched_service_t* sched_service_from_fd(int fd)
 	else
 		LOG_INFO("Output port: %s", output_port);
 
+	runtime_stab_entry_t servlet_ids[header.node_count];
+
 	/* First, load the nodes for the service */
 	for(i = 0; i < header.node_count; i ++)
 	{
@@ -987,7 +989,7 @@ sched_service_t* sched_service_from_fd(int fd)
 				ERROR_LOG_GOTO(NODE_ERR, "Cannot read argument content from the fd");	
 		}
 
-		runtime_stab_entry_t sid = runtime_stab_load(argc, (char const* const*)argv, binary);
+		runtime_stab_entry_t sid = servlet_ids[i] = runtime_stab_load(argc, (char const* const*)argv, binary);
 
 #if defined(LOG_ERROR_ENABLED)
 		char arg[1024];
@@ -1021,7 +1023,7 @@ sched_service_t* sched_service_from_fd(int fd)
 
 		error = 0;
 NODE_ERR:
-		for(j = 0; i < argc; j ++)
+		for(j = 0; j < argc; j ++)
 			if(argv[j] != NULL) free(argv[j]);
 		if(NULL != binary) free(binary);
 		if(NULL != argv) free(argv);
@@ -1029,7 +1031,7 @@ NODE_ERR:
 	}
 
 	/* Second, we need to setup the input and output ports */
-	runtime_api_pipe_id_t input_pid = runtime_stab_get_pipe(header.input_node, input_port);
+	runtime_api_pipe_id_t input_pid = runtime_stab_get_pipe(servlet_ids[header.input_node], input_port);
 	if(ERROR_CODE(runtime_api_pipe_id_t) == input_pid)
 		ERROR_LOG_GOTO(ERR, "Cannot get the pipe port id for the input port: <NID=%u, Name=%s>", header.input_node, input_port);
 	else
@@ -1039,7 +1041,7 @@ NODE_ERR:
 		input_port = NULL;
 	}
 
-	runtime_api_pipe_id_t output_pid = runtime_stab_get_pipe(header.output_node, output_port);
+	runtime_api_pipe_id_t output_pid = runtime_stab_get_pipe(servlet_ids[header.output_node], output_port);
 	if(ERROR_CODE(runtime_api_pipe_id_t) == output_pid)
 		ERROR_LOG_GOTO(ERR, "Cannot get the pipe port id for the output port: <NID=%u, Name=%s>", header.output_node, output_port);
 	else
@@ -1065,10 +1067,10 @@ NODE_ERR:
 		if(ERROR_CODE(int) == _fd_io(fd, nids, sizeof(nids), _READ))
 			ERROR_LOG_GOTO(ERR, "Cannot read the NIDs from FD");
 
-		if(NULL != (from_port = _read_string(fd)))
+		if(NULL == (from_port = _read_string(fd)))
 			ERROR_LOG_GOTO(ERR, "Cannot read the from port from FD");
 
-		if(ERROR_CODE(runtime_api_pipe_id_t) == (from_pid = runtime_stab_get_pipe(nids[0], from_port)))
+		if(ERROR_CODE(runtime_api_pipe_id_t) == (from_pid = runtime_stab_get_pipe(servlet_ids[nids[0]], from_port)))
 			ERROR_LOG_GOTO(EDGE_ERR, "Cannot get the PID for the pipe: <NID=%u, Name=%s>", nids[0], from_port);
 		else
 		{
@@ -1076,10 +1078,10 @@ NODE_ERR:
 			from_port = NULL;
 		}
 
-		if(NULL != (to_port = _read_string(fd)))
+		if(NULL == (to_port = _read_string(fd)))
 			ERROR_LOG_GOTO(EDGE_ERR, "Cannot read the to port from FD");
 
-		if(ERROR_CODE(runtime_api_pipe_id_t) == (to_pid = runtime_stab_get_pipe(nids[1], to_port)))
+		if(ERROR_CODE(runtime_api_pipe_id_t) == (to_pid = runtime_stab_get_pipe(servlet_ids[nids[1]], to_port)))
 			ERROR_LOG_GOTO(EDGE_ERR, "Cannot get the PID for the pipe: <NID=%u, Name=%s>", nids[1], to_port);
 		else
 		{
@@ -1138,10 +1140,10 @@ int sched_service_dump_fd(const sched_service_t* service, int fd)
 	for(i = 0; i < header.node_count; i ++)
 		header.edge_count += service->nodes[i]->incoming_count;
 
-	const runtime_pdt_t* input_pdt = runtime_stab_get_pdt(service->input_node);
+	const runtime_pdt_t* input_pdt = runtime_stab_get_pdt(service->nodes[service->input_node]->servlet_id);
 	if(NULL == input_pdt) ERROR_RETURN_LOG(int, "Cannot get the PDT for the input node");
 
-	const runtime_pdt_t* output_pdt = runtime_stab_get_pdt(service->output_node);
+	const runtime_pdt_t* output_pdt = runtime_stab_get_pdt(service->nodes[service->output_node]->servlet_id);
 	if(NULL == output_pdt) ERROR_RETURN_LOG(int, "Cannot get the PDT for the output node");
 
 	const char* input_port = runtime_pdt_get_name(input_pdt, service->input_pipe);
@@ -1200,11 +1202,11 @@ int sched_service_dump_fd(const sched_service_t* service, int fd)
 		{
 			sched_service_pipe_descriptor_t pipeline = service->nodes[i]->incoming[j];
 
-			const runtime_pdt_t* src_pdt = runtime_stab_get_pdt(pipeline.source_node_id);
+			const runtime_pdt_t* src_pdt = runtime_stab_get_pdt(service->nodes[pipeline.source_node_id]->servlet_id);
 			if(NULL == src_pdt) 
 				ERROR_RETURN_LOG(int, "Cannot get the source PDT");
 
-			const runtime_pdt_t* dst_pdt = runtime_stab_get_pdt(pipeline.destination_node_id);
+			const runtime_pdt_t* dst_pdt = runtime_stab_get_pdt(service->nodes[pipeline.destination_node_id]->servlet_id);
 			if(NULL == dst_pdt)
 				ERROR_RETURN_LOG(int, "Cannot get the source or destination PDT");
 
