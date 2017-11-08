@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #include <error.h>
 #include <itc/module_types.h>
@@ -61,6 +62,9 @@ STATIC_ASSERTION_SIZE(_node_t, outgoing_count, sizeof(runtime_api_pipe_id_t));
 
 /**
  * @brief the defination for the service
+ * @note The type of nodes array is not a mistake. Since _node_t is variant length data structure
+ *       We can not allocate all the memory needed by nodes in the begining. That is why we use _node_t*
+ *       rather than _node_t for the node array
  **/
 struct _sched_service_t {
 	sched_service_node_id_t input_node;   /*!< the entry point of this service */
@@ -824,15 +828,208 @@ const char* sched_service_get_pipe_type_expr(const sched_service_t* service, sch
 	return runtime_pdt_type_expr(pipe_table, pid);
 }
 
+
+/****************** The Dump/Load Features ***********************************/
+
+/**
+ * @brief The header of the dumpped servicec
+ **/
+typedef struct __attribute__((packed)) {
+	uint32_t node_count;   /*!< The number of nodes in the service */
+	uint32_t edge_count;   /*!< The number of edges in the service */
+	uint32_t input_node;   /*!< The input node id */
+	uint32_t output_node;  /*!< The output node id */
+} _dump_header_t;
+
+/**
+ * @brief A dumpped string
+ **/
+typedef struct __attribute__((packed)) {
+	size_t length;   /*!< The length of the string */
+	char data[0];    /*!< The actual data section of the string */ 
+} _dump_string_t;
+
+typedef enum {
+	_READ,
+	_WRITE
+} _fd_io_type_t;
+
+/**
+ * @brief Perform An IO operation on given FD, because the read/write syscall actually not 
+ *        guareentee the full data segment has been read/write completely, thus we should have a
+ *        wrapper for this
+ * @param fd The file descriptor
+ * @param buf The buffer
+ * @param size The size of the data 
+ * @param func The actual IO function
+ * @return status code
+ **/
+static inline int _fd_io(int fd, void* buf, size_t size, _fd_io_type_t type)
+{
+	ssize_t bytes_to_io = (ssize_t)size, rc;
+	for(;bytes_to_io > 0; bytes_to_io -= rc, buf = ((uint8_t*)buf) + rc)
+		if((rc = type == _READ ? read(fd, buf, (size_t)bytes_to_io) : 
+					             write(fd, buf, (size_t)bytes_to_io)) <= 0)
+		{
+			if(rc == 0)
+				ERROR_RETURN_LOG(int, "Malformed data structure");
+			else if(errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN)
+				rc = 0;
+			else 
+				ERROR_RETURN_LOG_ERRNO(int, "Cannot perfome IO operation on FD %d", fd);
+		}
+	return 0;
+}
+
+/**
+ * @brief Dump string to the FD
+ * @param fd The file descriptor
+ * @param string  The actual  string 
+ **/
+static inline int _dump_string(int fd, const char* string)
+{
+	_dump_string_t data = {
+		.length = strlen(string)
+	};
+
+	if(ERROR_CODE(int) == _fd_io(fd, &data, sizeof(data), _WRITE))
+		ERROR_RETURN_LOG(int, "Cannot write the string header");
+
+	if(ERROR_CODE(int) == _fd_io(fd, (void*)string, data.length, _WRITE))
+		ERROR_RETURN_LOG(int, "Cannot write the string content");
+	return 0;
+}
+#if 0
+/**
+ * @brief Read a string the file descriptor
+ * @param fd THe file descriptor
+ * @return The newly allocated memory which contains the string, caller should free it 
+ **/
+static char* _read_string(int fd)
+{
+	_dump_string_t header;
+	if(ERROR_CODE(int) == _fd_io(fd, &header, sizeof(header), _READ))
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot read the string header");
+
+	char* ret = (char*)malloc(header.length + 1);
+	if(NULL == ret)
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for string");
+
+	ret[header.length] = 0;
+	if(ERROR_CODE(int) == _fd_io(fd, ret, header.length, _READ))
+		ERROR_LOG_GOTO(ERR, "Cannot read the string conetnt");
+
+	return ret;
+ERR:
+	if(NULL != ret) free(ret);
+	return NULL;
+}
+#endif
+
+/**
+ * @detail Actual data layout:
+ *           +---------------------------------------------------------+
+ *           |  Dump Header |  Node definitions  |   Pipe definitions  |
+ *           +---------------------------------------------------------+
+ *         Node definitoin:
+ *           +---------------------------------------------------------+
+ *           |  Node Path String | argc(uint32_t) |  Node Arg Strings  |
+ *           ----------------------------------------------------------+
+ *         Pipe definition:
+ *           +--------------------------------------------------------------------------+
+ *           |  Source Node Id | Destination Node Id | Source Port Name | Dest Port Name|
+ *           +--------------------------------------------------------------------------+
+ **/
 sched_service_t* sched_service_from_fd(int fd)
 {
 	(void)fd;
+
 	return NULL;
 }
 
 int sched_service_dump_fd(const sched_service_t* service, int fd)
 {
-	(void)service;
-	(void)fd;
+	if(NULL == service || fd < 0)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	_dump_header_t header = {
+		.node_count = (uint32_t)service->node_count,
+		.edge_count = 0, 
+		.input_node = service->input_node,
+		.output_node = service->output_node
+	};
+
+	/* Then we need to compute the total number of header */
+	uint32_t i;
+	for(i = 0; i < header.node_count; i ++)
+		header.edge_count += service->nodes[i]->incoming_count;
+
+	LOG_DEBUG("Dump header: <Node_Count=%u, Edge_Count=%u, Input_Node=%u, Output_Node=%u>", 
+			  header.node_count, header.edge_count, header.input_node, header.output_node);
+
+	/* Then we dump the header first */
+	if(ERROR_CODE(int) == _fd_io(fd, &header, sizeof(header), _WRITE))
+		ERROR_RETURN_LOG(int, "Cannot write the service header to FD");
+
+	/* Dump the node definition */
+	for(i = 0; i < header.node_count; i ++)
+	{
+		uint32_t argc;
+		char const* const* argv;
+		if(NULL == (argv = sched_service_get_node_args(service, i, &argc)))
+			ERROR_RETURN_LOG(int, "Cannot get the initialization arguments for the servlet");
+
+		if(ERROR_CODE(int) == _fd_io(fd, &argc, sizeof(argc), _WRITE))
+			ERROR_RETURN_LOG(int, "Cannot write the argument count to fd for servlet %u", i);
+
+		uint32_t j;
+		for(j = 0; j < argc; j ++)
+		{
+			if(ERROR_CODE(int) == _dump_string(fd, argv[j]))
+				ERROR_RETURN_LOG(int, "Cannot write the servlet argument string to the FD servlet id %u", i);
+		}
+	}
+
+	/* Finally we dump the edge definitons */
+	for(i = 0 ; i < header.node_count; i ++)
+	{
+		uint32_t j;
+		for(j = 0; j < service->nodes[i]->incoming_count; j ++)
+		{
+			sched_service_pipe_descriptor_t pipeline = service->nodes[i]->incoming[j];
+
+			const runtime_pdt_t* src_pdt = runtime_stab_get_pdt(pipeline.source_node_id);
+			if(NULL == src_pdt) 
+				ERROR_RETURN_LOG(int, "Cannot get the source PDT");
+
+			const runtime_pdt_t* dst_pdt = runtime_stab_get_pdt(pipeline.destination_node_id);
+			if(NULL == dst_pdt)
+				ERROR_RETURN_LOG(int, "Cannot get the source or destination PDT");
+
+			const char* src_port = runtime_pdt_get_name(src_pdt, pipeline.source_pipe_desc);
+			if(NULL == src_port)
+				ERROR_RETURN_LOG(int, "Cannot get the source port name");
+
+			const char* dst_port = runtime_pdt_get_name(dst_pdt, pipeline.destination_pipe_desc);
+			if(NULL == dst_port)
+				ERROR_RETURN_LOG(int, "Cannot get the destination port name");
+
+			LOG_DEBUG("Adding edge defitiontion to dump: <source: %u:%s, destionation: %u:%s>", 
+					  pipeline.source_node_id, src_port, 
+					  pipeline.destination_node_id, dst_port);
+
+			uint32_t nids[2] = { [0] = (uint32_t)pipeline.source_node_id, 
+				                 [1] = (uint32_t)pipeline.destination_node_id};
+
+			if(ERROR_CODE(int) == _fd_io(fd, nids, sizeof(nids), _WRITE))
+				ERROR_RETURN_LOG(int, "Cannot write node IDs to the FD");
+
+			if(ERROR_CODE(int) == _dump_string(fd, src_port))
+				ERROR_RETURN_LOG(int, "Cannot dump the source port name to the FD");
+
+			if(ERROR_CODE(int) == _dump_string(fd, dst_port))
+				ERROR_RETURN_LOG(int, "Cannot dump the destionation port name to FD");
+		}
+	}
 	return 0;
 }
