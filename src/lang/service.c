@@ -24,6 +24,7 @@
 
 #include <sched/service.h>
 #include <sched/loop.h>
+#include <sched/daemon.h>
 
 #include <lang/service.h>
 
@@ -333,3 +334,24 @@ int lang_service_start(lang_service_t* service)
 
 	return 0;
 }
+
+int lang_service_reload(const char* daemon, lang_service_t* service)
+{
+	if(NULL == daemon || NULL == service)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(service->is_buffer)
+	{
+		sched_service_t* service_obj = sched_service_from_buffer(service->buffer);
+		if(NULL == service_obj)
+			ERROR_RETURN_LOG(int, "Cannot build the servicec object from the service buffer");
+		if(ERROR_CODE(int) == sched_service_buffer_free(service->buffer))
+			LOG_WARNING("Cannodispose the used service buffer");
+
+		service->is_buffer = 0;
+		service->object = service_obj;
+	}
+
+	return sched_daemon_reload(daemon, service->object);
+}
+

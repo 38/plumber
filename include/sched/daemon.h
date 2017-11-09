@@ -71,4 +71,12 @@ int sched_daemon_stop(const char* daemon_name);
  **/
 int sched_daemon_read_control_sock();
 
+/**
+ * @brief Reload the daemon with the given service object
+ * @param daemon_name The name of the daemon
+ * @param service The service object
+ * @return status code
+ **/
+int sched_daemon_reload(const char* daemon_name, const sched_service_t* service);
+
 #endif /* __SCHED_DAEMON_H__ */

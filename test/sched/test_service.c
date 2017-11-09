@@ -104,7 +104,7 @@ int serialize_service()
 	sched_service_t* another = NULL;
 	ASSERT_PTR(another = sched_service_from_fd(pipe_fds[0]), CLEANUP_NOP);
 
-	ASSERT_OK(sched_service_free(another):, CLEANUP_NOP);
+	ASSERT_OK(sched_service_free(another), CLEANUP_NOP);
 	//ASSERT_OK(runtime_stab_revert_current_namespace(), CLEANUP_NOP);
 	
 	ASSERT_OK(sched_service_free(service), CLEANUP_NOP);

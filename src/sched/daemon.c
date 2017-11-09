@@ -24,9 +24,19 @@
 
 #include <utils/log.h>
 #include <utils/static_assertion.h>
+#include <utils/thread.h>
 
+#include <itc/module_types.h>
+#include <itc/module.h>
+
+#include <runtime/api.h>
+#include <runtime/pdt.h>
+#include <runtime/servlet.h>
+#include <runtime/task.h>
+#include <runtime/stab.h>
 #include <lang/prop.h>
 
+#include <sched/service.h>
 #include <sched/daemon.h>
 
 /**
@@ -43,6 +53,7 @@ struct _sched_daemon_iter_t {
 typedef enum {
 	_DAEMON_PING,    /*!< Ping a daemon */
 	_DAEMON_STOP,    /*!< Stop current daemon */
+	_DAEMON_RELOAD,  /*!< Reload current daemon */
 	_DAEMON_OP_COUNT /*!< The number of deamon operations */
 } _daemon_op_t;
 
@@ -51,7 +62,8 @@ typedef enum {
  **/
 static const size_t _daemon_op_data_size[_DAEMON_OP_COUNT] = {
 	[_DAEMON_STOP] = 0,
-	[_DAEMON_PING] = 0
+	[_DAEMON_PING] = 0,
+	[_DAEMON_RELOAD] = 0
 };
 
 
@@ -248,6 +260,44 @@ static _daemon_cmd_t* _read_cmd(int fd)
 	return ret;
 }
 
+static void* _reload_main(void* param)
+{
+	int status = 0;
+	int fd = *(int*)param;
+
+	int switched_namespace = 0;
+
+	if(ERROR_CODE(int) == runtime_stab_switch_namespace())
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot switch the servlet table namespace");
+
+	switched_namespace = 1;
+
+	sched_service_t* new_service = sched_service_from_fd(fd);
+	if(NULL == new_service) 
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot load new service from the control socket");
+
+	/* TODO: send the new service to the scheduler */
+
+	/* TODO: replace the following code */
+	sched_service_free(new_service);
+	runtime_stab_revert_current_namespace();
+
+
+	LOG_NOTICE("Service graph has been successfully reloaded");
+	if(write(fd, &status, sizeof(status)) < 0)
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot send the operation result ot client");
+	close(fd);
+	return NULL;
+ERR:
+	if(switched_namespace)
+		runtime_stab_revert_current_namespace();
+	status = -1;
+	if(write(fd, &status, sizeof(status)))
+	    LOG_ERROR_ERRNO("Cannot send the failure status code to client");
+	close(fd);
+	return NULL;
+}
+
 int sched_daemon_read_control_sock()
 {
 	if(_sock_fd < 0 || !_is_dispatcher) return 0;
@@ -274,6 +324,8 @@ int sched_daemon_read_control_sock()
 	    ERROR_LOG_GOTO(ERR, "Cannot read the command socket");
 
 	int status = 0;
+	static thread_t* reload_thread = NULL;
+	static int input_fd = -1;
 
 	switch(cmd->opcode)
 	{
@@ -289,14 +341,25 @@ int sched_daemon_read_control_sock()
 		    if(write(client_fd, &status, sizeof(status)) < 0)
 		        ERROR_LOG_ERRNO_GOTO(ERR, "Cannot send the operation result ot client");
 		    break;
+		case _DAEMON_RELOAD:
+			LOG_NOTICE("Not DAEMON_RELOAD Command");
+			if(NULL != reload_thread && ERROR_CODE(int) == thread_free(reload_thread, NULL))
+				ERROR_LOG_GOTO(ERR, "Cannot dispose the previously used reload thread");
+			input_fd = client_fd;
+			if(NULL == (reload_thread = thread_new(_reload_main, &input_fd, THREAD_TYPE_GENERIC)))
+				ERROR_LOG_GOTO(ERR, "Cannot create reload thread");
+			LOG_NOTICE("Starting reload process");
+			goto RET;
 		default:
 		    ERROR_LOG_GOTO(ERR, "Invalid opcode");
 	}
 
 	LOG_DEBUG("Command has been processed successfully");
 
-	free(cmd);
 	close(client_fd);
+
+RET:
+	free(cmd);
 	return 0;
 ERR:
 
@@ -567,7 +630,7 @@ ERR:
 	return ERROR_CODE(int);
 }
 
-static inline int _simple_daemon_command(const char* daemon_name, _daemon_op_t op)
+static inline int _simple_daemon_command(const char* daemon_name, _daemon_op_t op, int wait_response)
 {
 	int pid, is_daemon;
 	if(NULL == daemon_name || ERROR_CODE(int) == (is_daemon = _is_running_daemon(daemon_name, SCHED_DAEMON_LOCK_SUFFIX, &pid)))
@@ -590,15 +653,18 @@ static inline int _simple_daemon_command(const char* daemon_name, _daemon_op_t o
 	if(write(conn_fd, &cmd, sizeof(cmd)) < 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot write the command to the command socket connection");
 
-	int status;
-	if(read(conn_fd, &status, sizeof(status)) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the response from the socket connection");
+	if(wait_response)
+	{
+		int status;
+		if(read(conn_fd, &status, sizeof(status)) < 0)
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the response from the socket connection");
 
-	if(status == -1)
-	    ERROR_LOG_GOTO(ERR, "The daemon returns an error");
+		if(status < 0)
+			ERROR_LOG_GOTO(ERR, "The daemon returns an error");
 
-	close(conn_fd);
-	return 0;
+		close(conn_fd);
+	}
+	return wait_response ? 0 : conn_fd;
 ERR:
 
 	close(conn_fd);
@@ -607,13 +673,35 @@ ERR:
 
 int sched_daemon_stop(const char* daemon_name)
 {
-	return _simple_daemon_command(daemon_name, _DAEMON_STOP);
+	return _simple_daemon_command(daemon_name, _DAEMON_STOP, 1);
 }
 
 int sched_daemon_ping(const char* daemon_name)
 {
-	if(ERROR_CODE(int) == _simple_daemon_command(daemon_name, _DAEMON_PING))
+	if(ERROR_CODE(int) == _simple_daemon_command(daemon_name, _DAEMON_PING, 1))
 	    return 0;
 	return 1;
+}
+
+int sched_daemon_reload(const char* daemon_name, const sched_service_t* service)
+{
+	int fd = _simple_daemon_command(daemon_name, _DAEMON_RELOAD, 0);
+	if(ERROR_CODE(int) == fd) 
+		return ERROR_CODE(int);
+
+	if(ERROR_CODE(int) == sched_service_dump_fd(service, fd))
+		ERROR_LOG_GOTO(ERR, "Cannot dump the service to the control socket");
+
+	int status;
+	if(read(fd, &status, sizeof(status)) < 0)
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the response from the socket connection");
+
+	if(status < 0)
+		ERROR_LOG_GOTO(ERR,  "The daemon returns an error");
+
+	return 0;
+ERR:
+	close(fd);
+	return ERROR_CODE(int);
 }
 

@@ -90,4 +90,12 @@ const char* lang_service_get_type(lang_service_t* service, int64_t nid, const ch
  **/
 int lang_service_start(lang_service_t* service);
 
+/**
+ * @brief Reload the service
+ * @param daemon The daemon name
+ * @parma service The service 
+ * @return status code
+ **/
+int lang_service_reload(const char* daemon, lang_service_t* service);
+
 #endif

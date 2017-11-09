@@ -824,6 +824,39 @@ static pss_value_t _pscript_builtin_daemon_ping(pss_vm_t* vm, uint32_t argc, pss
 	return ret;
 }
 
+static pss_value_t _pscript_builtin_daemon_reload(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
+{
+	(void)vm;
+	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR, .num = PSS_VM_ERROR_ARGUMENT};
+
+	if(argc != 2) return ret;
+
+	if(argv[0].kind != PSS_VALUE_KIND_REF || pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING)
+		return ret;
+
+	if(argv[1].kind != PSS_VALUE_KIND_REF || pss_value_ref_type(argv[1]) != PSS_VALUE_REF_TYPE_EXOTIC)
+		return ret;
+	
+	pss_exotic_t* obj = (pss_exotic_t*)pss_value_get_data(argv[1]);
+	lang_service_t* serv = (lang_service_t*)pss_exotic_get_data(obj, LANG_SERVICE_TYPE_MAGIC);
+
+	if(NULL == serv) 
+	{
+		ret.num = PSS_VM_ERROR_INTERNAL;
+		return ret;
+	}
+
+	const char* daemon = (const char*)pss_value_get_data(argv[0]);
+	ret.num = PSS_VM_ERROR_INTERNAL;
+
+	if(lang_service_reload(daemon, serv) ==  ERROR_CODE(int))
+		LOG_ERROR("Cannot reload the daemon");
+	else
+		ret.kind = PSS_VALUE_KIND_UNDEF;
+
+	return ret;
+}
+
 static pss_value_t _pscript_builtin_typeof(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
 	(void)vm;
@@ -1127,6 +1160,7 @@ static struct {
 	_B(split, "(str [, sep])", "Split the given string str by seperator sep, if sep is not given, split the string by white space '\" \"'"),
 	_B(version, "()", "Get the version string of current Plumber system"),
 	_P(daemon_ping, "(daemon_ping)", "Ping a daemon, test if the daemon is responding"),
+	_P(daemon_reload, "(daemon, service)", "Reload the daemon with the graph"),
 	_P(daemon_stop, "(daemon_id)", "Stop the daemon with the given name"),
 	_P(service_input, "(serv, sid, port)", "Define the input port of the entire service as port port of servlet sid"),
 	_P(service_new, "()", "Create a new Plumber service object"),

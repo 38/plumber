@@ -468,7 +468,10 @@ runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const ch
 	{
 		LOG_DEBUG("Adding servlet binary to link namespace 1");
 		char temp[PATH_MAX];
+		char* p;
 		snprintf(temp, sizeof(temp), "%s%s.XXXXXX", RUNTIME_SERVLET_NS1_PREFIX, name);
+		for(p = temp + strlen(RUNTIME_SERVLET_NS1_PREFIX); *p; p ++)
+			if(*p == '/') *p = '_';
 		int fd = -1, sofd = -1;
 		if((sofd = open(path, O_RDONLY)) < 0)
 			ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot open the servlet binary file: %s", path);
@@ -564,9 +567,12 @@ NS1_SUCCESS:
 
 ERR:
 	if(dl_handler != NULL) dlclose(dl_handler);
-	if(NULL != ret->name) free(ret->name);
-	if(NULL != ret->path) free(ret->path);
-	if(ret != NULL) free(ret);
+	if(ret != NULL)
+	{
+		if(NULL != ret->name) free(ret->name);
+		if(NULL != ret->path) free(ret->path);
+		free(ret);
+	}
 	return NULL;
 }
 
