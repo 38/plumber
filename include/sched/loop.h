@@ -15,7 +15,7 @@ typedef struct _sched_loop_t sched_loop_t;
  * @param service the service to run
  * @return status code
  **/
-int sched_loop_start(const sched_service_t* service);
+int sched_loop_start(sched_service_t** service);
 
 /**
  * @brief kill the scheduler loop
@@ -51,5 +51,18 @@ int sched_loop_init();
  **/
 int sched_loop_finalize();
 
+/**
+ * @brief deploy a new service object and replace the current one
+ * @note This function must be called from the deployment thread, which should be a singleton
+ * @param service The service to deploy
+ * @return status code
+ **/
+int sched_loop_deploy_service_object(sched_service_t* service);
 
+/**
+ * @brief Check if the deployment is completed
+ * @note This function must be called from the deployment thread
+ * @return If the deployment is completed, or error code
+ **/
+int sched_loop_deploy_completed();
 #endif /* __PLUMBER_SCHED_LOOP_H__ */

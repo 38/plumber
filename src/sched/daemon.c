@@ -37,6 +37,7 @@
 #include <lang/prop.h>
 
 #include <sched/service.h>
+#include <sched/loop.h>
 #include <sched/daemon.h>
 
 /**
@@ -268,10 +269,18 @@ static _daemon_cmd_t* _read_cmd(int fd)
 
 static void* _reload_main(void* param)
 {
+	static int running = 0;
 	int status = 0;
 	int fd = *(int*)param;
-
 	int switched_namespace = 0;
+
+	int started = 0;
+
+	if(running || !__sync_bool_compare_and_swap(&running, 0, 1))
+		ERROR_LOG_ERRNO_GOTO(ERR, "Another deployment process is undergoing");
+
+	started = 1;
+
 
 	if(ERROR_CODE(int) == runtime_stab_switch_namespace())
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot switch the servlet table namespace");
@@ -282,17 +291,20 @@ static void* _reload_main(void* param)
 	if(NULL == new_service) 
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot load new service from the control socket");
 
-	/* TODO: send the new service to the scheduler */
+	if(ERROR_CODE(int) == sched_loop_deploy_service_object(new_service))
+		ERROR_LOG_GOTO(ERR, "Cannot deploy the new service object to the scheduler");
 
-	/* TODO: replace the following code */
-	sched_service_free(new_service);
-	runtime_stab_revert_current_namespace();
+	while(sched_loop_deploy_completed())
+		usleep(10000);
 
+	if(ERROR_CODE(int) == runtime_stab_dispose_unused_namespace())
+		ERROR_LOG_GOTO(ERR, "Cannot dispose the previous namespace");
 
 	LOG_NOTICE("Service graph has been successfully reloaded");
 	if(write(fd, &status, sizeof(status)) < 0)
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot send the operation result ot client");
 	close(fd);
+	running = 0;
 	return NULL;
 ERR:
 	if(switched_namespace)
@@ -301,6 +313,7 @@ ERR:
 	if(write(fd, &status, sizeof(status)))
 	    LOG_ERROR_ERRNO("Cannot send the failure status code to client");
 	close(fd);
+	if(started) running = 0;
 	return NULL;
 }
 

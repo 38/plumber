@@ -18,7 +18,17 @@
 /**
  * @brief the service for the loop
  **/
-static const sched_service_t* _service;
+static sched_service_t* _service;
+
+/**
+ * @brief The service that is being deployed
+ **/
+static sched_service_t* _deploying_service;
+
+/**
+ * @brief How many threads has been sucessfuly deployed
+ **/
+static uint32_t _deployed_count;
 
 /**
  * @brief indicates if all the loop gets killed
@@ -250,6 +260,9 @@ static inline void* _sched_main(void* data)
 
 	LOG_DEBUG("Scheduler %u: loop started", context->thread_id);
 
+	const sched_service_t* current_service = _service;
+
+	uint32_t old_service_refcnt = 0;
 
 	for(;!_killed;)
 	{
@@ -262,8 +275,18 @@ static inline void* _sched_main(void* data)
 			abstime.tv_nsec = 0;
 
 			if(pthread_mutex_lock(&context->mutex) < 0) LOG_WARNING_ERRNO("Cannot acquire the scheduler event mutex");
-			while(context->rear == context->front)
+			for(;;)
 			{
+				if(_deploying_service != NULL && current_service != _deploying_service)
+				{
+					LOG_DEBUG("Switching the service graph from %p to %p", _service, current_service);
+					current_service = _deploying_service;
+					if(ERROR_CODE(uint32_t) == (old_service_refcnt = sched_task_num_concurrent_requests(stc)))
+						LOG_ERROR("Cannot get the number of old service refcount");
+					else
+						LOG_DEBUG("Num of request that using old service graph: %u", old_service_refcnt);
+				}
+				if(context->rear != context->front) break;
 				if(pthread_cond_timedwait(&context->cond, &context->mutex, &abstime) < 0 && errno != ETIMEDOUT && errno != EINTR)
 				    LOG_WARNING_ERRNO("Cannot finish pthread_cond_timedwait");
 				if(_killed) goto KILLED;
@@ -304,6 +327,8 @@ static inline void* _sched_main(void* data)
 			    LOG_WARNING_ERRNO("Cannot unlock the dispatcher mutex");
 		}
 
+		int old_service = 0;
+
 		switch(current.type)
 		{
 			case ITC_EQUEUE_EVENT_TYPE_IO:
@@ -319,7 +344,7 @@ static inline void* _sched_main(void* data)
 			    arch_atomic_sw_increment_u32(&context->pending_reqs_id_begin);
 
 
-			    if(sched_task_new_request(stc, _service, current.io.in, current.io.out) == ERROR_CODE(sched_task_request_t))
+			    if(sched_task_new_request(stc, current_service, current.io.in, current.io.out) == ERROR_CODE(sched_task_request_t))
 			        LOG_ERROR("Cannot add the incoming request to scheduler");
 
 			    uint32_t concurrency = sched_task_num_concurrent_requests(stc);
@@ -333,12 +358,16 @@ static inline void* _sched_main(void* data)
 			    arch_atomic_sw_assignment_u32(&context->num_running_reqs, concurrency);
 			    break;
 			case ITC_EQUEUE_EVENT_TYPE_TASK:
+				if(old_service_refcnt > 0 && current.task.task->service != current_service)
+					old_service = 1;
 			    if(sched_task_async_completed(current.task.task) == ERROR_CODE(int))
 			        LOG_ERROR("Cannot notify the scheduler about the task completion");
 			    break;
 			default:
 			    LOG_ERROR("Invalid task type");
 		}
+
+		uint32_t prev_concurrency = old_service ? sched_task_num_concurrent_requests(stc) : 0;
 
 		while(sched_step_next(stc, _mod_mem) > 0 && !_killed);
 
@@ -366,6 +395,19 @@ static inline void* _sched_main(void* data)
 
 			if(pthread_mutex_unlock(&_dispatcher_mutex) < 0)
 			    LOG_WARNING_ERRNO("Cannot unlock the dispatcher mutex");
+		}
+
+		if(old_service && concurrency < prev_concurrency)
+		{
+			LOG_DEBUG("An old service request has completed");
+			if(0 == --old_service_refcnt)
+			{
+				uint32_t current;
+				do {
+					current = _deployed_count;
+				} while(!__sync_bool_compare_and_swap(&_deployed_count, current, current + 1));
+				LOG_NOTICE("Old service request has been completely processed, notifying the deployed state: Deployed Count = %u", current + 1);
+			}
 		}
 	}
 
@@ -677,7 +719,7 @@ NEXT_ITER:
 	return 0;
 }
 
-int sched_loop_start(const sched_service_t* service)
+int sched_loop_start(sched_service_t** service)
 {
 
 	int rc = 0;
@@ -703,7 +745,8 @@ int sched_loop_start(const sched_service_t* service)
 	    if(NULL == _context_new(i))
 	        ERROR_LOG_GOTO(CLEANUP_CTX, "Cannot create context for scheduler thread %u", i);
 
-	_service = service;
+	_service = *service;
+	_deploying_service = NULL;
 
 	if(pthread_mutex_init(&_dispatcher_mutex, NULL) < 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot init the dispatcher mutex");
@@ -718,11 +761,11 @@ int sched_loop_start(const sched_service_t* service)
 	    else
 	        LOG_INFO("Scheduler thread %d is started", ptr->thread_id);
 
-	const sched_service_pipe_descriptor_t* sdesc = sched_service_to_pipe_desc(service);
+	const sched_service_pipe_descriptor_t* sdesc = sched_service_to_pipe_desc(*service);
 
 	itc_module_pipe_param_t request_param = {
-		.input_flags = sched_service_get_pipe_flags(service, sdesc->source_node_id, sdesc->source_pipe_desc),
-		.output_flags = sched_service_get_pipe_flags(service, sdesc->destination_node_id, sdesc->destination_pipe_desc),
+		.input_flags = sched_service_get_pipe_flags(*service, sdesc->source_node_id, sdesc->source_pipe_desc),
+		.output_flags = sched_service_get_pipe_flags(*service, sdesc->destination_node_id, sdesc->destination_pipe_desc),
 		.input_header = 0,  /* For now all the event pipes are untyped */
 		.output_header = 0, /* The same */
 		.args = NULL
@@ -756,6 +799,19 @@ CLEANUP_CTX:
 			rc = ERROR_CODE(int);
 		}
 	}
+
+	/* Finally, we could copy the current service back to the caller, since the original
+	 * service might be disposed before this */
+	if(_service != NULL)
+		*service = _service;
+
+	/* At the same time, if there's a deplying service, dispose it */
+	if(ERROR_CODE(int) == sched_service_free(_deploying_service))
+	{
+		LOG_ERROR("Cannot dispose the deploying service");
+		rc = ERROR_CODE(int);
+	}
+
 	return rc;
 }
 
@@ -903,5 +959,41 @@ int sched_loop_init()
 
 int sched_loop_finalize()
 {
+	return 0;
+}
+
+int sched_loop_deploy_service_object(sched_service_t* service)
+{
+	if(NULL == service) ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(NULL != _deploying_service) ERROR_RETURN_LOG(int, "Another service is deploying");
+
+	_deploying_service = service;
+
+	return 0;
+}
+
+int sched_loop_deploy_completed()
+{
+	if(NULL == _deploying_service) 
+		return 1;
+
+	if(_deployed_count == _nthreads)
+	{
+		LOG_NOTICE("Deployment of new service graph is completed, cleaning up the old service");
+		sched_service_t* old_service =  _service;
+		BARRIER();
+		_service = _deploying_service;
+		BARRIER();
+		_deploying_service = NULL;
+		
+		if(ERROR_CODE(int) == sched_service_free(old_service))
+			LOG_WARNING("Cannot dispose the old service");
+
+		_deployed_count = 0;
+
+		return 1;
+	}
+
 	return 0;
 }

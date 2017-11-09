@@ -329,7 +329,7 @@ int lang_service_start(lang_service_t* service)
 		service->object = service_obj;
 	}
 
-	if(ERROR_CODE(int) == sched_loop_start(service->object))
+	if(ERROR_CODE(int) == sched_loop_start(&service->object))
 	    ERROR_RETURN_LOG(int, "Cannot start the service");
 
 	return 0;
