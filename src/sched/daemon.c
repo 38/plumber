@@ -108,6 +108,12 @@ static const char _lock_suffix[] = SCHED_DAEMON_LOCK_SUFFIX;
  * @note If the GID is error code, use the default group of current user instead
  **/
 static uint32_t _admin_gid = ERROR_CODE(uint32_t);
+	
+
+/**
+ * @brief The thread object for the reload thread
+ **/
+static thread_t* _reload_thread = NULL;
 
 /**
  * @brief Check if the given name is a running daemon
@@ -324,7 +330,6 @@ int sched_daemon_read_control_sock()
 	    ERROR_LOG_GOTO(ERR, "Cannot read the command socket");
 
 	int status = 0;
-	static thread_t* reload_thread = NULL;
 	static int input_fd = -1;
 
 	switch(cmd->opcode)
@@ -343,10 +348,10 @@ int sched_daemon_read_control_sock()
 		    break;
 		case _DAEMON_RELOAD:
 			LOG_NOTICE("Not DAEMON_RELOAD Command");
-			if(NULL != reload_thread && ERROR_CODE(int) == thread_free(reload_thread, NULL))
+			if(NULL != _reload_thread && ERROR_CODE(int) == thread_free(_reload_thread, NULL))
 				ERROR_LOG_GOTO(ERR, "Cannot dispose the previously used reload thread");
 			input_fd = client_fd;
-			if(NULL == (reload_thread = thread_new(_reload_main, &input_fd, THREAD_TYPE_GENERIC)))
+			if(NULL == (_reload_thread = thread_new(_reload_main, &input_fd, THREAD_TYPE_GENERIC)))
 				ERROR_LOG_GOTO(ERR, "Cannot create reload thread");
 			LOG_NOTICE("Starting reload process");
 			goto RET;
@@ -422,6 +427,9 @@ int sched_daemon_finalize()
 		if(unlink(lock_path) < 0)
 		    rc= ERROR_CODE(int);
 	}
+
+	if(NULL != _reload_thread && ERROR_CODE(int) == thread_free(_reload_thread, NULL))
+		rc = ERROR_CODE(int);
 
 	return rc;
 }
