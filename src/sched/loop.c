@@ -285,6 +285,16 @@ static inline void* _sched_main(void* data)
 						LOG_ERROR("Cannot get the number of old service refcount");
 					else
 						LOG_DEBUG("Num of request that using old service graph: %u", old_service_refcnt);
+
+					if(old_service_refcnt == 0)
+					{
+						LOG_DEBUG("The old service isn't in use, mark the deployment as finished");
+						uint32_t current;
+						do {
+							current = _deployed_count;
+						} while(!__sync_bool_compare_and_swap(&_deployed_count, current, current + 1));
+						LOG_NOTICE("Deployment process compelted for scheduler #%u", context->thread_id);
+					}
 				}
 				if(context->rear != context->front) break;
 				if(pthread_cond_timedwait(&context->cond, &context->mutex, &abstime) < 0 && errno != ETIMEDOUT && errno != EINTR)
@@ -406,7 +416,7 @@ static inline void* _sched_main(void* data)
 				do {
 					current = _deployed_count;
 				} while(!__sync_bool_compare_and_swap(&_deployed_count, current, current + 1));
-				LOG_NOTICE("Old service request has been completely processed, notifying the deployed state: Deployed Count = %u", current + 1);
+				LOG_NOTICE("Deplyoment process has been sucessfully compeleted for scheduler #%u", context->thread_id);
 			}
 		}
 	}

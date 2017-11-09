@@ -3,6 +3,8 @@
  * The deamon utils
  **/
 
+import("service");
+
 Daemon.list = function() {
 	return lsdaemon();
 }
@@ -21,4 +23,8 @@ Daemon.pid = function Daemon.pid(name) {
 
 Daemon.ping = function Daemon.ping(name) {
 	return __daemon_ping(name);
+}
+
+Daemon.reload = function Daemon.reload(name, graph) {
+	return __daemon_reload(name, Service.build(graph));
 }
