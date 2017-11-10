@@ -346,7 +346,7 @@ int lang_service_reload(const char* daemon, lang_service_t* service)
 		if(NULL == service_obj)
 			ERROR_RETURN_LOG(int, "Cannot build the servicec object from the service buffer");
 		if(ERROR_CODE(int) == sched_service_buffer_free(service->buffer))
-			LOG_WARNING("Cannodispose the used service buffer");
+			LOG_WARNING("Cannot dispose the used service buffer");
 
 		service->is_buffer = 0;
 		service->object = service_obj;

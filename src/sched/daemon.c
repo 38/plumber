@@ -297,7 +297,7 @@ static void* _reload_main(void* param)
 	while(!sched_loop_deploy_completed())
 	{
 		LOG_DEBUG("Deployment is in process, wait 100ms");
-		usleep(10000);
+		usleep(100000);
 	}
 
 	if(ERROR_CODE(int) == runtime_stab_dispose_unused_namespace())

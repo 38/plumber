@@ -476,7 +476,7 @@ runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const ch
 		if((sofd = open(path, O_RDONLY)) < 0)
 			ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot open the servlet binary file: %s", path);
 		if((fd = mkstemp(temp)) < 0)
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create temp file for the servlet in namespace 1");
+			ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot create temp file for the servlet in namespace 1");
 		else LOG_DEBUG("Creating copy of namespace 1 servlet at %s", temp);
 
 		char buf[4096];
@@ -484,21 +484,24 @@ runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const ch
 		{
 			ssize_t rc = read(sofd, buf, sizeof(buf));
 			if(rc < 0)
-				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read data from the servlet binary");
+				ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot read data from the servlet binary");
 			if(rc == 0) break;
 			while(rc > 0)
 			{
 				ssize_t wrc = write(fd, buf, (size_t)rc);
 				if(wrc == 0) 
-					ERROR_LOG_GOTO(ERR, "Cannot write bytes to the tempfile");
+					ERROR_LOG_GOTO(NS1_ERR, "Cannot write bytes to the tempfile");
 				if(wrc < 0)
 				{
 					if(errno == EINTR) continue;
-					ERROR_LOG_ERRNO_GOTO(ERR, "Write error");
+					ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Write error");
 				}
 				rc -= wrc;
 			}
 		}
+
+		if(close(sofd) < 0)
+			ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannnott close the orignal FD");
 
 		if(close(fd) < 0)
 			ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot close the temp file FD");

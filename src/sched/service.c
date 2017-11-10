@@ -872,7 +872,7 @@ static inline int _fd_io(int fd, void* buf, size_t size, _fd_io_type_t type)
 					             write(fd, buf, (size_t)bytes_to_io)) <= 0)
 		{
 			if(rc == 0)
-				ERROR_RETURN_LOG(int, "Malformed data structure");
+				ERROR_RETURN_LOG(int, type == _READ ? "Malformed data in FD" : "FD is closed");
 			else if(errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN)
 				rc = 0;
 			else 
