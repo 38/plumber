@@ -94,9 +94,9 @@ int log_init()
 				mode[1] = '0';
 			}
 
-			for(p = q = mode; *p; *(p++) = *(q++))
+			for(p = q = mode; *p; *(q++) = *(p++))
 			    if(*p == 'e') screen_print = 1, p ++;
-			*p = 0;
+			*q = 0;
 
 			int level;
 #define     _STR_TO_ID(name) else if(strcmp(type, #name) == 0) level = name
