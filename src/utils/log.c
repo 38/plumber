@@ -96,7 +96,6 @@ int log_init()
 
 			for(p = q = mode; *p; *(q++) = *(p++))
 			    if(*p == 'e') screen_print = 1, p ++;
-			*q = 0;
 
 			int level;
 #define     _STR_TO_ID(name) else if(strcmp(type, #name) == 0) level = name
