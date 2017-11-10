@@ -54,7 +54,7 @@ static inline runtime_servlet_t* _get_servlet(runtime_stab_entry_t sid)
 	uint32_t nsid = (sid & _NS_MASK) > 0;
 
 	if(nsid >= _NUM_NS || _namespace[nsid].i_table == NULL)
-		ERROR_PTR_RETURN_LOG("Invalid servlet ID: namespace not exist");
+	    ERROR_PTR_RETURN_LOG("Invalid servlet ID: namespace not exist");
 
 	vector_t* i_table = _namespace[nsid].i_table;
 	sid &= ~_NS_MASK;
@@ -81,20 +81,20 @@ int _dispose_namespace(unsigned nsid)
 	if(NULL != i_table)
 	{
 		for(i = 0; i < vector_length(i_table); i ++)
-			if(ERROR_CODE(int) == runtime_servlet_free(*VECTOR_GET_CONST(runtime_servlet_t*, i_table, i)))
-				rc = ERROR_CODE(int);
-		if(vector_free(i_table) == ERROR_CODE(int)) 
-			rc = ERROR_CODE(int);
+		    if(ERROR_CODE(int) == runtime_servlet_free(*VECTOR_GET_CONST(runtime_servlet_t*, i_table, i)))
+		        rc = ERROR_CODE(int);
+		if(vector_free(i_table) == ERROR_CODE(int))
+		    rc = ERROR_CODE(int);
 	}
 
 	if(NULL != b_table)
 	{
 		for(i = 0; i < vector_length(b_table); i ++)
-			if(runtime_servlet_binary_unload(*VECTOR_GET_CONST(runtime_servlet_binary_t*, b_table, i)) == ERROR_CODE(int))
-				rc = ERROR_CODE(int);
+		    if(runtime_servlet_binary_unload(*VECTOR_GET_CONST(runtime_servlet_binary_t*, b_table, i)) == ERROR_CODE(int))
+		        rc = ERROR_CODE(int);
 
 		if(vector_free(b_table) == ERROR_CODE(int))
-			rc = ERROR_CODE(int);
+		    rc = ERROR_CODE(int);
 	}
 
 	_namespace[nsid].b_table = NULL;
@@ -109,14 +109,14 @@ static int _init_namespace(unsigned nsid)
 	    ERROR_RETURN_LOG(int, "Cannot create the servlet instance list");
 
 	if(NULL == (_namespace[nsid].b_table = vector_new(sizeof(runtime_servlet_binary_t*), RUNTIME_SERVLET_TAB_INIT_SIZE)))
-		ERROR_LOG_GOTO(ERR, "Cannot create the servlet binary list");
+	    ERROR_LOG_GOTO(ERR, "Cannot create the servlet binary list");
 
 	return 0;
 ERR:
-	if(_namespace[nsid].i_table == NULL) 
-		vector_free(_namespace[nsid].i_table);
-	if(_namespace[nsid].b_table == NULL) 
-		vector_free(_namespace[nsid].b_table);
+	if(_namespace[nsid].i_table == NULL)
+	    vector_free(_namespace[nsid].i_table);
+	if(_namespace[nsid].b_table == NULL)
+	    vector_free(_namespace[nsid].b_table);
 	return ERROR_CODE(int);
 }
 
@@ -135,10 +135,10 @@ int runtime_stab_dispose_all_namespaces()
 {
 	int rc = 0;
 	if(ERROR_CODE(int) == _dispose_namespace(0))
-		rc = ERROR_CODE(int);
+	    rc = ERROR_CODE(int);
 
 	if(_NUM_NS > 1 && ERROR_CODE(int) == _dispose_namespace(1))
-		rc = ERROR_CODE(int);
+	    rc = ERROR_CODE(int);
 
 	return rc;
 }
@@ -154,10 +154,10 @@ int runtime_stab_revert_current_namespace()
 {
 	unsigned nsid = (unsigned)(_NUM_NS - 1u - _current_nsid);
 	if(_namespace[nsid].b_table == NULL || _namespace[nsid].i_table == NULL)
-		ERROR_RETURN_LOG(int, "Cannot revert current namespace because the unused one is disposed");
+	    ERROR_RETURN_LOG(int, "Cannot revert current namespace because the unused one is disposed");
 
 	if(ERROR_CODE(int) == _dispose_namespace(_current_nsid))
-		ERROR_RETURN_LOG(int, "Cannot dispose current namespace");
+	    ERROR_RETURN_LOG(int, "Cannot dispose current namespace");
 	_current_nsid = nsid;
 	return 0;
 }
@@ -176,7 +176,7 @@ runtime_stab_entry_t runtime_stab_load(uint32_t argc, char const * const * argv,
 	vector_t* i_table = _namespace[nsid].i_table;
 
 	if(NULL == i_table || NULL == b_table)
-		ERROR_RETURN_LOG(runtime_stab_entry_t, "The namespace %u haven't been fully initialized", nsid);
+	    ERROR_RETURN_LOG(runtime_stab_entry_t, "The namespace %u haven't been fully initialized", nsid);
 
 	size_t nentry = vector_length(b_table);
 
@@ -204,7 +204,7 @@ runtime_stab_entry_t runtime_stab_load(uint32_t argc, char const * const * argv,
 		if(NULL == binary) ERROR_RETURN_LOG(runtime_stab_entry_t, "Could not load binary %s", path);
 
 		if(NULL == (b_table = vector_append(b_table, &binary)))
-			ERROR_RETURN_LOG(runtime_stab_entry_t, "Could not append the newly loaded binary to the binary table");
+		    ERROR_RETURN_LOG(runtime_stab_entry_t, "Could not append the newly loaded binary to the binary table");
 		else  _namespace[nsid].b_table = b_table;
 	}
 
@@ -368,12 +368,12 @@ int runtime_stab_switch_namespace()
 	unsigned new_nsid = (unsigned)(_NUM_NS - 1 - _current_nsid);
 
 	if(NULL != _namespace[new_nsid].b_table || NULL != _namespace[new_nsid].i_table)
-		ERROR_RETURN_LOG(int, "The namespace haven't been released");
+	    ERROR_RETURN_LOG(int, "The namespace haven't been released");
 
 	_current_nsid = new_nsid;
 
 	if(ERROR_CODE(int) == _init_namespace(new_nsid))
-		return ERROR_CODE(int);
+	    return ERROR_CODE(int);
 
 	_first_load = 0;
 	return 0;

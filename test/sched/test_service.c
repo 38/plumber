@@ -100,13 +100,13 @@ int serialize_service()
 	ASSERT_OK(sched_service_dump_fd(service, pipe_fds[1]), CLEANUP_NOP);
 
 	//ASSERT_OK(runtime_stab_switch_namespace(), CLEANUP_NOP);
-	
+
 	sched_service_t* another = NULL;
 	ASSERT_PTR(another = sched_service_from_fd(pipe_fds[0]), CLEANUP_NOP);
 
 	ASSERT_OK(sched_service_free(another), CLEANUP_NOP);
 	//ASSERT_OK(runtime_stab_revert_current_namespace(), CLEANUP_NOP);
-	
+
 	ASSERT_OK(sched_service_free(service), CLEANUP_NOP);
 
 	close(pipe_fds[0]);
@@ -265,7 +265,7 @@ int teardown()
 TEST_LIST_BEGIN
     TEST_CASE(service_buffer),
     TEST_CASE(build_service),
-	TEST_CASE(serialize_service),
+    TEST_CASE(serialize_service),
     TEST_CASE(service_validation_invalid_input),
     TEST_CASE(service_validation_circular_dep),
     TEST_CASE(service_getters)

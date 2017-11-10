@@ -846,7 +846,7 @@ typedef struct __attribute__((packed)) {
  **/
 typedef struct __attribute__((packed)) {
 	size_t length;   /*!< The length of the string */
-	char data[0];    /*!< The actual data section of the string */ 
+	char data[0];    /*!< The actual data section of the string */
 } _dump_string_t;
 
 typedef enum {
@@ -855,12 +855,12 @@ typedef enum {
 } _fd_io_type_t;
 
 /**
- * @brief Perform An IO operation on given FD, because the read/write syscall actually not 
+ * @brief Perform An IO operation on given FD, because the read/write syscall actually not
  *        guareentee the full data segment has been read/write completely, thus we should have a
  *        wrapper for this
  * @param fd The file descriptor
  * @param buf The buffer
- * @param size The size of the data 
+ * @param size The size of the data
  * @param func The actual IO function
  * @return status code
  **/
@@ -868,23 +868,23 @@ static inline int _fd_io(int fd, void* buf, size_t size, _fd_io_type_t type)
 {
 	ssize_t bytes_to_io = (ssize_t)size, rc;
 	for(;bytes_to_io > 0; bytes_to_io -= rc, buf = ((uint8_t*)buf) + rc)
-		if((rc = type == _READ ? read(fd, buf, (size_t)bytes_to_io) : 
-					             write(fd, buf, (size_t)bytes_to_io)) <= 0)
-		{
-			if(rc == 0)
-				ERROR_RETURN_LOG(int, type == _READ ? "Malformed data in FD" : "FD is closed");
-			else if(errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN)
-				rc = 0;
-			else 
-				ERROR_RETURN_LOG_ERRNO(int, "Cannot perfome IO operation on FD %d", fd);
-		}
+	    if((rc = type == _READ ? read(fd, buf, (size_t)bytes_to_io) :
+	                             write(fd, buf, (size_t)bytes_to_io)) <= 0)
+	    {
+		    if(rc == 0)
+		        ERROR_RETURN_LOG(int, type == _READ ? "Malformed data in FD" : "FD is closed");
+		    else if(errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN)
+		        rc = 0;
+		    else
+		        ERROR_RETURN_LOG_ERRNO(int, "Cannot perfome IO operation on FD %d", fd);
+	    }
 	return 0;
 }
 
 /**
  * @brief Dump string to the FD
  * @param fd The file descriptor
- * @param string  The actual  string 
+ * @param string  The actual  string
  **/
 static inline int _dump_string(int fd, const char* string)
 {
@@ -893,31 +893,31 @@ static inline int _dump_string(int fd, const char* string)
 	};
 
 	if(ERROR_CODE(int) == _fd_io(fd, &data, sizeof(data), _WRITE))
-		ERROR_RETURN_LOG(int, "Cannot write the string header");
+	    ERROR_RETURN_LOG(int, "Cannot write the string header");
 
 	if(ERROR_CODE(int) == _fd_io(fd, (void*)string, data.length, _WRITE))
-		ERROR_RETURN_LOG(int, "Cannot write the string content");
+	    ERROR_RETURN_LOG(int, "Cannot write the string content");
 	return 0;
 }
 
 /**
  * @brief Read a string the file descriptor
  * @param fd THe file descriptor
- * @return The newly allocated memory which contains the string, caller should free it 
+ * @return The newly allocated memory which contains the string, caller should free it
  **/
 static char* _read_string(int fd)
 {
 	_dump_string_t header;
 	if(ERROR_CODE(int) == _fd_io(fd, &header, sizeof(header), _READ))
-		ERROR_PTR_RETURN_LOG_ERRNO("Cannot read the string header");
+	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot read the string header");
 
 	char* ret = (char*)malloc(header.length + 1);
 	if(NULL == ret)
-		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for string");
+	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for string");
 
 	ret[header.length] = 0;
 	if(ERROR_CODE(int) == _fd_io(fd, ret, header.length, _READ))
-		ERROR_LOG_GOTO(ERR, "Cannot read the string conetnt");
+	    ERROR_LOG_GOTO(ERR, "Cannot read the string conetnt");
 
 	return ret;
 ERR:
@@ -946,24 +946,24 @@ sched_service_t* sched_service_from_fd(int fd)
 
 	_dump_header_t header;
 	if(ERROR_CODE(int) == _fd_io(fd, &header, sizeof(header), _READ))
-		ERROR_PTR_RETURN_LOG("Cannot read the service header from FD");
+	    ERROR_PTR_RETURN_LOG("Cannot read the service header from FD");
 
 	uint32_t i,j, argc = 0;
 	char** argv = NULL;
 	sched_service_buffer_t* buffer = sched_service_buffer_new();
 	char* input_port = NULL, *output_port = NULL;
-	if(NULL == buffer) 
-		ERROR_PTR_RETURN_LOG("Cannot create service buffer to reconstruct the service");
+	if(NULL == buffer)
+	    ERROR_PTR_RETURN_LOG("Cannot create service buffer to reconstruct the service");
 
 	if(NULL == (input_port = _read_string(fd)))
-		ERROR_PTR_RETURN_LOG("Cannot read the input port name from FD");
-	else 
-		LOG_INFO("Input port: %s", input_port);
+	    ERROR_PTR_RETURN_LOG("Cannot read the input port name from FD");
+	else
+	    LOG_INFO("Input port: %s", input_port);
 
 	if(NULL == (output_port = _read_string(fd)))
-		ERROR_PTR_RETURN_LOG("Cannot read the output port name from FD");
+	    ERROR_PTR_RETURN_LOG("Cannot read the output port name from FD");
 	else
-		LOG_INFO("Output port: %s", output_port);
+	    LOG_INFO("Output port: %s", output_port);
 
 	runtime_stab_entry_t servlet_ids[header.node_count];
 
@@ -975,18 +975,18 @@ sched_service_t* sched_service_from_fd(int fd)
 		argv = NULL;
 		char* binary = _read_string(fd);
 		if(NULL == binary)
-			ERROR_LOG_GOTO(NODE_ERR, "Cannot read binary path from the fd");
+		    ERROR_LOG_GOTO(NODE_ERR, "Cannot read binary path from the fd");
 
 		if(ERROR_CODE(int) == _fd_io(fd, &argc, sizeof(argc), _READ))
-			ERROR_LOG_GOTO(NODE_ERR, "Cannot read the number of arguments");
+		    ERROR_LOG_GOTO(NODE_ERR, "Cannot read the number of arguments");
 
 		if(NULL == (argv = (char**)calloc(sizeof(char*), argc)))
-			ERROR_LOG_ERRNO_GOTO(NODE_ERR, "Cannot allocate memory for the argc array");
+		    ERROR_LOG_ERRNO_GOTO(NODE_ERR, "Cannot allocate memory for the argc array");
 
 		for(j = 0; j < argc; j ++)
 		{
 			if(NULL == (argv[j] = _read_string(fd)))
-				ERROR_LOG_GOTO(NODE_ERR, "Cannot read argument content from the fd");	
+			    ERROR_LOG_GOTO(NODE_ERR, "Cannot read argument content from the fd");
 		}
 
 		runtime_stab_entry_t sid = servlet_ids[i] = runtime_stab_load(argc, (char const* const*)argv, binary);
@@ -1000,31 +1000,31 @@ sched_service_t* sched_service_from_fd(int fd)
 		{
 			string_buffer_append(argv[k], &sbuf);
 			if(k != argc - 1)
-				string_buffer_append(" ", &sbuf);
+			    string_buffer_append(" ", &sbuf);
 		}
 		string_buffer_close(&sbuf);
 #endif
 
-		if(ERROR_CODE(runtime_stab_entry_t) == sid) 
+		if(ERROR_CODE(runtime_stab_entry_t) == sid)
 		{
 			ERROR_LOG_GOTO(NODE_ERR, "Cannot load servlet [binary = %s, arg = %s]", binary, arg);
 		}
-		else 
-			LOG_INFO("Servlet [Binary = %s, Arg = %s] has been loaded as servlet %u", binary, arg, sid);
+		else
+		    LOG_INFO("Servlet [Binary = %s, Arg = %s] has been loaded as servlet %u", binary, arg, sid);
 
 		sched_service_node_id_t nid = sched_service_buffer_add_node(buffer, sid);
 		if(ERROR_CODE(sched_service_node_id_t) == nid)
-			ERROR_LOG_GOTO(NODE_ERR, "Cannot add servlet [SID = %u, Arg = %s, Binary = %s]", sid, arg, binary);
+		    ERROR_LOG_GOTO(NODE_ERR, "Cannot add servlet [SID = %u, Arg = %s, Binary = %s]", sid, arg, binary);
 		else
-			LOG_INFO("Service node has been added [NID = %u, SID = %u, Arg = %s, Binary = %s]", nid, sid, arg, binary);
+		    LOG_INFO("Service node has been added [NID = %u, SID = %u, Arg = %s, Binary = %s]", nid, sid, arg, binary);
 
 		if(nid != i)
-			ERROR_LOG_GOTO(NODE_ERR, "Unexpected node id (Excepted: %u, Actually: %u)", sid, nid);
+		    ERROR_LOG_GOTO(NODE_ERR, "Unexpected node id (Excepted: %u, Actually: %u)", sid, nid);
 
 		error = 0;
 NODE_ERR:
 		for(j = 0; j < argc; j ++)
-			if(argv[j] != NULL) free(argv[j]);
+		    if(argv[j] != NULL) free(argv[j]);
 		if(NULL != binary) free(binary);
 		if(NULL != argv) free(argv);
 		if(error) goto ERR;
@@ -1033,7 +1033,7 @@ NODE_ERR:
 	/* Second, we need to setup the input and output ports */
 	runtime_api_pipe_id_t input_pid = runtime_stab_get_pipe(servlet_ids[header.input_node], input_port);
 	if(ERROR_CODE(runtime_api_pipe_id_t) == input_pid)
-		ERROR_LOG_GOTO(ERR, "Cannot get the pipe port id for the input port: <NID=%u, Name=%s>", header.input_node, input_port);
+	    ERROR_LOG_GOTO(ERR, "Cannot get the pipe port id for the input port: <NID=%u, Name=%s>", header.input_node, input_port);
 	else
 	{
 		LOG_DEBUG("Input port ID: <NID=%u, PID=%u>", header.input_node, input_pid);
@@ -1043,7 +1043,7 @@ NODE_ERR:
 
 	runtime_api_pipe_id_t output_pid = runtime_stab_get_pipe(servlet_ids[header.output_node], output_port);
 	if(ERROR_CODE(runtime_api_pipe_id_t) == output_pid)
-		ERROR_LOG_GOTO(ERR, "Cannot get the pipe port id for the output port: <NID=%u, Name=%s>", header.output_node, output_port);
+	    ERROR_LOG_GOTO(ERR, "Cannot get the pipe port id for the output port: <NID=%u, Name=%s>", header.output_node, output_port);
 	else
 	{
 		LOG_DEBUG("Output port ID: <NID%u, PID=%u>", header.output_node, output_pid);
@@ -1052,10 +1052,10 @@ NODE_ERR:
 	}
 
 	if(ERROR_CODE(int) == sched_service_buffer_set_input(buffer, header.input_node, input_pid))
-		ERROR_LOG_GOTO(ERR, "Cannot set the input port");
+	    ERROR_LOG_GOTO(ERR, "Cannot set the input port");
 
 	if(ERROR_CODE(int) == sched_service_buffer_set_output(buffer, header.output_node, output_pid))
-		ERROR_LOG_GOTO(ERR, "Cannot set the output port");
+	    ERROR_LOG_GOTO(ERR, "Cannot set the output port");
 
 	/* Finally, do the interconnections */
 	for(i = 0; i < header.edge_count; i ++)
@@ -1065,13 +1065,13 @@ NODE_ERR:
 		runtime_api_pipe_id_t from_pid, to_pid;
 
 		if(ERROR_CODE(int) == _fd_io(fd, nids, sizeof(nids), _READ))
-			ERROR_LOG_GOTO(ERR, "Cannot read the NIDs from FD");
+		    ERROR_LOG_GOTO(ERR, "Cannot read the NIDs from FD");
 
 		if(NULL == (from_port = _read_string(fd)))
-			ERROR_LOG_GOTO(ERR, "Cannot read the from port from FD");
+		    ERROR_LOG_GOTO(ERR, "Cannot read the from port from FD");
 
 		if(ERROR_CODE(runtime_api_pipe_id_t) == (from_pid = runtime_stab_get_pipe(servlet_ids[nids[0]], from_port)))
-			ERROR_LOG_GOTO(EDGE_ERR, "Cannot get the PID for the pipe: <NID=%u, Name=%s>", nids[0], from_port);
+		    ERROR_LOG_GOTO(EDGE_ERR, "Cannot get the PID for the pipe: <NID=%u, Name=%s>", nids[0], from_port);
 		else
 		{
 			free(from_port);
@@ -1079,10 +1079,10 @@ NODE_ERR:
 		}
 
 		if(NULL == (to_port = _read_string(fd)))
-			ERROR_LOG_GOTO(EDGE_ERR, "Cannot read the to port from FD");
+		    ERROR_LOG_GOTO(EDGE_ERR, "Cannot read the to port from FD");
 
 		if(ERROR_CODE(runtime_api_pipe_id_t) == (to_pid = runtime_stab_get_pipe(servlet_ids[nids[1]], to_port)))
-			ERROR_LOG_GOTO(EDGE_ERR, "Cannot get the PID for the pipe: <NID=%u, Name=%s>", nids[1], to_port);
+		    ERROR_LOG_GOTO(EDGE_ERR, "Cannot get the PID for the pipe: <NID=%u, Name=%s>", nids[1], to_port);
 		else
 		{
 			free(to_port);
@@ -1097,9 +1097,9 @@ NODE_ERR:
 		};
 
 		if(ERROR_CODE(int) == sched_service_buffer_add_pipe(buffer, pipeline))
-			ERROR_LOG_GOTO(EDGE_ERR, "Cannot add pipe to the service buffer: <NID=%u,PID=%u> -> <NID=%u,PID=%u>", nids[0], from_pid, nids[1], to_pid);
+		    ERROR_LOG_GOTO(EDGE_ERR, "Cannot add pipe to the service buffer: <NID=%u,PID=%u> -> <NID=%u,PID=%u>", nids[0], from_pid, nids[1], to_pid);
 		else
-			LOG_DEBUG("Add new pipe to service buffer: <NID=%u,PID=%u> -> <NID=%u,PID=%u>", nids[0], from_pid, nids[1], to_pid);
+		    LOG_DEBUG("Add new pipe to service buffer: <NID=%u,PID=%u> -> <NID=%u,PID=%u>", nids[0], from_pid, nids[1], to_pid);
 		continue;
 EDGE_ERR:
 		if(NULL != from_port) free(from_port);
@@ -1110,10 +1110,10 @@ EDGE_ERR:
 	/* The last step, we could build the service based on the buffer */
 
 	if(NULL == (ret = sched_service_from_buffer(buffer)))
-		ERROR_LOG_GOTO(ERR, "Cannot build service from the service buffer");
+	    ERROR_LOG_GOTO(ERR, "Cannot build service from the service buffer");
 
 	if(ERROR_CODE(int) == sched_service_buffer_free(buffer))
-		LOG_WARNING("Cannot dispose the used service buffer");
+	    LOG_WARNING("Cannot dispose the used service buffer");
 
 	return ret;
 ERR:
@@ -1126,11 +1126,11 @@ ERR:
 int sched_service_dump_fd(const sched_service_t* service, int fd)
 {
 	if(NULL == service || fd < 0)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_dump_header_t header = {
 		.node_count = (uint32_t)service->node_count,
-		.edge_count = 0, 
+		.edge_count = 0,
 		.input_node = service->input_node,
 		.output_node = service->output_node
 	};
@@ -1138,7 +1138,7 @@ int sched_service_dump_fd(const sched_service_t* service, int fd)
 	/* Then we need to compute the total number of header */
 	uint32_t i;
 	for(i = 0; i < header.node_count; i ++)
-		header.edge_count += service->nodes[i]->incoming_count;
+	    header.edge_count += service->nodes[i]->incoming_count;
 
 	const runtime_pdt_t* input_pdt = runtime_stab_get_pdt(service->nodes[service->input_node]->servlet_id);
 	if(NULL == input_pdt) ERROR_RETURN_LOG(int, "Cannot get the PDT for the input node");
@@ -1152,18 +1152,18 @@ int sched_service_dump_fd(const sched_service_t* service, int fd)
 	const char* output_port = runtime_pdt_get_name(output_pdt, service->output_pipe);
 	if(NULL == output_port) ERROR_RETURN_LOG(int, "Cannot get the output port name");
 
-	LOG_DEBUG("Dump header: <Node_Count=%u, Edge_Count=%u, Input_Node=%u, Output_Node=%u, Input_Port=%s, Output_Port=%s>", 
-			  header.node_count, header.edge_count, header.input_node, header.output_node, input_port, output_port);
+	LOG_DEBUG("Dump header: <Node_Count=%u, Edge_Count=%u, Input_Node=%u, Output_Node=%u, Input_Port=%s, Output_Port=%s>",
+	          header.node_count, header.edge_count, header.input_node, header.output_node, input_port, output_port);
 
 	/* Then we dump the header first */
 	if(ERROR_CODE(int) == _fd_io(fd, &header, sizeof(header), _WRITE))
-		ERROR_RETURN_LOG(int, "Cannot write the service header to FD");
+	    ERROR_RETURN_LOG(int, "Cannot write the service header to FD");
 
 	if(ERROR_CODE(int) == _dump_string(fd, input_port))
-		ERROR_RETURN_LOG(int, "Cannot write the input port name to FD");
+	    ERROR_RETURN_LOG(int, "Cannot write the input port name to FD");
 
 	if(ERROR_CODE(int) == _dump_string(fd, output_port))
-		ERROR_RETURN_LOG(int, "Cannot write the output port name to FD");
+	    ERROR_RETURN_LOG(int, "Cannot write the output port name to FD");
 
 	/* Dump the node definition */
 	for(i = 0; i < header.node_count; i ++)
@@ -1173,24 +1173,24 @@ int sched_service_dump_fd(const sched_service_t* service, int fd)
 
 		const  char* binary_path = runtime_stab_get_binary_path(service->nodes[i]->servlet_id);
 		if(NULL == binary_path)
-			ERROR_RETURN_LOG(int, "Cannot get the binary path of the servlet (ID=%u)", service->nodes[i]->servlet_id);
+		    ERROR_RETURN_LOG(int, "Cannot get the binary path of the servlet (ID=%u)", service->nodes[i]->servlet_id);
 
 		if(ERROR_CODE(int) == _dump_string(fd, binary_path))
-			ERROR_RETURN_LOG(int, "Cannot dump the servlet binary to the FD");
+		    ERROR_RETURN_LOG(int, "Cannot dump the servlet binary to the FD");
 		else
-			LOG_DEBUG("Servlet Binary Path = %u", servlet->nodes[i]->servlet_id);
+		    LOG_DEBUG("Servlet Binary Path = %u", servlet->nodes[i]->servlet_id);
 
 		if(NULL == (argv = sched_service_get_node_args(service, i, &argc)))
-			ERROR_RETURN_LOG(int, "Cannot get the initialization arguments for the servlet");
+		    ERROR_RETURN_LOG(int, "Cannot get the initialization arguments for the servlet");
 
 		if(ERROR_CODE(int) == _fd_io(fd, &argc, sizeof(argc), _WRITE))
-			ERROR_RETURN_LOG(int, "Cannot write the argument count to fd for servlet %u", i);
+		    ERROR_RETURN_LOG(int, "Cannot write the argument count to fd for servlet %u", i);
 
 		uint32_t j;
 		for(j = 0; j < argc; j ++)
 		{
 			if(ERROR_CODE(int) == _dump_string(fd, argv[j]))
-				ERROR_RETURN_LOG(int, "Cannot write the servlet argument string to the FD servlet id %u", i);
+			    ERROR_RETURN_LOG(int, "Cannot write the servlet argument string to the FD servlet id %u", i);
 		}
 	}
 
@@ -1203,36 +1203,36 @@ int sched_service_dump_fd(const sched_service_t* service, int fd)
 			sched_service_pipe_descriptor_t pipeline = service->nodes[i]->incoming[j];
 
 			const runtime_pdt_t* src_pdt = runtime_stab_get_pdt(service->nodes[pipeline.source_node_id]->servlet_id);
-			if(NULL == src_pdt) 
-				ERROR_RETURN_LOG(int, "Cannot get the source PDT");
+			if(NULL == src_pdt)
+			    ERROR_RETURN_LOG(int, "Cannot get the source PDT");
 
 			const runtime_pdt_t* dst_pdt = runtime_stab_get_pdt(service->nodes[pipeline.destination_node_id]->servlet_id);
 			if(NULL == dst_pdt)
-				ERROR_RETURN_LOG(int, "Cannot get the source or destination PDT");
+			    ERROR_RETURN_LOG(int, "Cannot get the source or destination PDT");
 
 			const char* src_port = runtime_pdt_get_name(src_pdt, pipeline.source_pipe_desc);
 			if(NULL == src_port)
-				ERROR_RETURN_LOG(int, "Cannot get the source port name");
+			    ERROR_RETURN_LOG(int, "Cannot get the source port name");
 
 			const char* dst_port = runtime_pdt_get_name(dst_pdt, pipeline.destination_pipe_desc);
 			if(NULL == dst_port)
-				ERROR_RETURN_LOG(int, "Cannot get the destination port name");
+			    ERROR_RETURN_LOG(int, "Cannot get the destination port name");
 
-			LOG_DEBUG("Adding edge defitiontion to dump: <source: %u:%s, destionation: %u:%s>", 
-					  pipeline.source_node_id, src_port, 
-					  pipeline.destination_node_id, dst_port);
+			LOG_DEBUG("Adding edge defitiontion to dump: <source: %u:%s, destionation: %u:%s>",
+			          pipeline.source_node_id, src_port,
+			          pipeline.destination_node_id, dst_port);
 
-			uint32_t nids[2] = { [0] = (uint32_t)pipeline.source_node_id, 
+			uint32_t nids[2] = { [0] = (uint32_t)pipeline.source_node_id,
 				                 [1] = (uint32_t)pipeline.destination_node_id};
 
 			if(ERROR_CODE(int) == _fd_io(fd, nids, sizeof(nids), _WRITE))
-				ERROR_RETURN_LOG(int, "Cannot write node IDs to the FD");
+			    ERROR_RETURN_LOG(int, "Cannot write node IDs to the FD");
 
 			if(ERROR_CODE(int) == _dump_string(fd, src_port))
-				ERROR_RETURN_LOG(int, "Cannot dump the source port name to the FD");
+			    ERROR_RETURN_LOG(int, "Cannot dump the source port name to the FD");
 
 			if(ERROR_CODE(int) == _dump_string(fd, dst_port))
-				ERROR_RETURN_LOG(int, "Cannot dump the destionation port name to FD");
+			    ERROR_RETURN_LOG(int, "Cannot dump the destionation port name to FD");
 		}
 	}
 	return 0;

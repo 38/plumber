@@ -86,7 +86,7 @@ static inline const char * _search_for_binary(const char* binary)
 			if(access(buffer, F_OK) == 0)
 			{
 				if(NULL == realpath(buffer, ret))
-					ERROR_PTR_RETURN_LOG_ERRNO("Cannot resolve the absolute path");
+				    ERROR_PTR_RETURN_LOG_ERRNO("Cannot resolve the absolute path");
 				LOG_DEBUG("Found shared object %s", ret);
 				return ret;
 			}
@@ -470,12 +470,12 @@ runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const ch
 		char* p;
 		snprintf(temp, sizeof(temp), "%s%s.XXXXXX", RUNTIME_SERVLET_NS1_PREFIX, name);
 		for(p = temp + strlen(RUNTIME_SERVLET_NS1_PREFIX); *p; p ++)
-			if(*p == '/') *p = '_';
+		    if(*p == '/') *p = '_';
 		int fd = -1, sofd = -1;
 		if((sofd = open(path, O_RDONLY)) < 0)
-			ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot open the servlet binary file: %s", path);
+		    ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot open the servlet binary file: %s", path);
 		if((fd = mkstemp(temp)) < 0)
-			ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot create temp file for the servlet in namespace 1");
+		    ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot create temp file for the servlet in namespace 1");
 		else LOG_DEBUG("Creating copy of namespace 1 servlet at %s", temp);
 
 		char buf[4096];
@@ -483,13 +483,13 @@ runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const ch
 		{
 			ssize_t rc = read(sofd, buf, sizeof(buf));
 			if(rc < 0)
-				ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot read data from the servlet binary");
+			    ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot read data from the servlet binary");
 			if(rc == 0) break;
 			while(rc > 0)
 			{
 				ssize_t wrc = write(fd, buf, (size_t)rc);
-				if(wrc == 0) 
-					ERROR_LOG_GOTO(NS1_ERR, "Cannot write bytes to the tempfile");
+				if(wrc == 0)
+				    ERROR_LOG_GOTO(NS1_ERR, "Cannot write bytes to the tempfile");
 				if(wrc < 0)
 				{
 					if(errno == EINTR) continue;
@@ -500,15 +500,15 @@ runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const ch
 		}
 
 		if(close(sofd) < 0)
-			ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannnott close the orignal FD");
+		    ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannnott close the orignal FD");
 
 		if(close(fd) < 0)
-			ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot close the temp file FD");
+		    ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot close the temp file FD");
 		else fd = -1;
 
 		dl_handler = dlopen(temp, RTLD_LOCAL | RTLD_LAZY);
 		if(unlink(temp) < 0)
-			ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot delete the tempfile");
+		    ERROR_LOG_ERRNO_GOTO(NS1_ERR, "Cannot delete the tempfile");
 
 		goto NS1_SUCCESS;
 NS1_ERR:
@@ -552,10 +552,10 @@ NS1_SUCCESS:
 	ret->dl_handler = dl_handler;
 
 	if(NULL == (ret->name = strdup(name)))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot copy the servlet binary name");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot copy the servlet binary name");
 
 	if(NULL == (ret->path = strdup(path)))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot copy the servlet binary path");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot copy the servlet binary path");
 
 #if defined(LOG_NOTICE_ENABLED) && defined(__LINUX__)
 	const struct link_map* linkmap = (const struct link_map*)dl_handler;

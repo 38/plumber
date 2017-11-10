@@ -282,9 +282,9 @@ static inline void* _sched_main(void* data)
 					LOG_DEBUG("Switching the service graph from %p to %p", _service, current_service);
 					current_service = _deploying_service;
 					if(ERROR_CODE(uint32_t) == (old_service_refcnt = sched_task_num_concurrent_requests(stc)))
-						LOG_ERROR("Cannot get the number of old service refcount");
+					    LOG_ERROR("Cannot get the number of old service refcount");
 					else
-						LOG_DEBUG("Num of request that using old service graph: %u", old_service_refcnt);
+					    LOG_DEBUG("Num of request that using old service graph: %u", old_service_refcnt);
 
 					if(old_service_refcnt == 0)
 					{
@@ -368,8 +368,8 @@ static inline void* _sched_main(void* data)
 			    arch_atomic_sw_assignment_u32(&context->num_running_reqs, concurrency);
 			    break;
 			case ITC_EQUEUE_EVENT_TYPE_TASK:
-				if(old_service_refcnt > 0 && current.task.task->service != current_service)
-					old_service = 1;
+			    if(old_service_refcnt > 0 && current.task.task->service != current_service)
+			        old_service = 1;
 			    if(sched_task_async_completed(current.task.task) == ERROR_CODE(int))
 			        LOG_ERROR("Cannot notify the scheduler about the task completion");
 			    break;
@@ -813,7 +813,7 @@ CLEANUP_CTX:
 	/* Finally, we could copy the current service back to the caller, since the original
 	 * service might be disposed before this */
 	if(_service != NULL)
-		*service = _service;
+	    *service = _service;
 
 	/* At the same time, if there's a deplying service, dispose it */
 	if(ERROR_CODE(int) == sched_service_free(_deploying_service))
@@ -985,8 +985,8 @@ int sched_loop_deploy_service_object(sched_service_t* service)
 
 int sched_loop_deploy_completed()
 {
-	if(NULL == _deploying_service) 
-		return 1;
+	if(NULL == _deploying_service)
+	    return 1;
 
 	if(_deployed_count == _nthreads)
 	{
@@ -996,9 +996,9 @@ int sched_loop_deploy_completed()
 		_service = _deploying_service;
 		BARRIER();
 		_deploying_service = NULL;
-		
+
 		if(ERROR_CODE(int) == sched_service_free(old_service))
-			LOG_WARNING("Cannot dispose the old service");
+		    LOG_WARNING("Cannot dispose the old service");
 
 		_deployed_count = 0;
 

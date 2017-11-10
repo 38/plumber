@@ -832,15 +832,15 @@ static pss_value_t _pscript_builtin_daemon_reload(pss_vm_t* vm, uint32_t argc, p
 	if(argc != 2) return ret;
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF || pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING)
-		return ret;
+	    return ret;
 
 	if(argv[1].kind != PSS_VALUE_KIND_REF || pss_value_ref_type(argv[1]) != PSS_VALUE_REF_TYPE_EXOTIC)
-		return ret;
-	
+	    return ret;
+
 	pss_exotic_t* obj = (pss_exotic_t*)pss_value_get_data(argv[1]);
 	lang_service_t* serv = (lang_service_t*)pss_exotic_get_data(obj, LANG_SERVICE_TYPE_MAGIC);
 
-	if(NULL == serv) 
+	if(NULL == serv)
 	{
 		ret.num = PSS_VM_ERROR_INTERNAL;
 		return ret;
@@ -850,9 +850,9 @@ static pss_value_t _pscript_builtin_daemon_reload(pss_vm_t* vm, uint32_t argc, p
 	ret.num = PSS_VM_ERROR_INTERNAL;
 
 	if(lang_service_reload(daemon, serv) ==  ERROR_CODE(int))
-		LOG_ERROR("Cannot reload the daemon");
+	    LOG_ERROR("Cannot reload the daemon");
 	else
-		ret.kind = PSS_VALUE_KIND_UNDEF;
+	    ret.kind = PSS_VALUE_KIND_UNDEF;
 
 	return ret;
 }

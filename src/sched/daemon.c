@@ -109,7 +109,7 @@ static const char _lock_suffix[] = SCHED_DAEMON_LOCK_SUFFIX;
  * @note If the GID is error code, use the default group of current user instead
  **/
 static uint32_t _admin_gid = ERROR_CODE(uint32_t);
-	
+
 
 /**
  * @brief The thread object for the reload thread
@@ -277,22 +277,22 @@ static void* _reload_main(void* param)
 	int started = 0;
 
 	if(running || !__sync_bool_compare_and_swap(&running, 0, 1))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Another deployment process is undergoing");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Another deployment process is undergoing");
 
 	started = 1;
 
 
 	if(ERROR_CODE(int) == runtime_stab_switch_namespace())
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot switch the servlet table namespace");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot switch the servlet table namespace");
 
 	switched_namespace = 1;
 
 	sched_service_t* new_service = sched_service_from_fd(fd);
-	if(NULL == new_service) 
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot load new service from the control socket");
+	if(NULL == new_service)
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot load new service from the control socket");
 
 	if(ERROR_CODE(int) == sched_loop_deploy_service_object(new_service))
-		ERROR_LOG_GOTO(ERR, "Cannot deploy the new service object to the scheduler");
+	    ERROR_LOG_GOTO(ERR, "Cannot deploy the new service object to the scheduler");
 
 	while(!sched_loop_deploy_completed())
 	{
@@ -301,17 +301,17 @@ static void* _reload_main(void* param)
 	}
 
 	if(ERROR_CODE(int) == runtime_stab_dispose_unused_namespace())
-		ERROR_LOG_GOTO(ERR, "Cannot dispose the previous namespace");
+	    ERROR_LOG_GOTO(ERR, "Cannot dispose the previous namespace");
 
 	LOG_NOTICE("Service graph has been successfully reloaded");
 	if(write(fd, &status, sizeof(status)) < 0)
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot send the operation result ot client");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot send the operation result ot client");
 	close(fd);
 	running = 0;
 	return NULL;
 ERR:
 	if(switched_namespace)
-		runtime_stab_revert_current_namespace();
+	    runtime_stab_revert_current_namespace();
 	status = -1;
 	if(write(fd, &status, sizeof(status)))
 	    LOG_ERROR_ERRNO("Cannot send the failure status code to client");
@@ -363,14 +363,14 @@ int sched_daemon_read_control_sock()
 		        ERROR_LOG_ERRNO_GOTO(ERR, "Cannot send the operation result ot client");
 		    break;
 		case _DAEMON_RELOAD:
-			LOG_NOTICE("Not DAEMON_RELOAD Command");
-			if(NULL != _reload_thread && ERROR_CODE(int) == thread_free(_reload_thread, NULL))
-				ERROR_LOG_GOTO(ERR, "Cannot dispose the previously used reload thread");
-			input_fd = client_fd;
-			if(NULL == (_reload_thread = thread_new(_reload_main, &input_fd, THREAD_TYPE_GENERIC)))
-				ERROR_LOG_GOTO(ERR, "Cannot create reload thread");
-			LOG_NOTICE("Starting reload process");
-			goto RET;
+		    LOG_NOTICE("Not DAEMON_RELOAD Command");
+		    if(NULL != _reload_thread && ERROR_CODE(int) == thread_free(_reload_thread, NULL))
+		        ERROR_LOG_GOTO(ERR, "Cannot dispose the previously used reload thread");
+		    input_fd = client_fd;
+		    if(NULL == (_reload_thread = thread_new(_reload_main, &input_fd, THREAD_TYPE_GENERIC)))
+		        ERROR_LOG_GOTO(ERR, "Cannot create reload thread");
+		    LOG_NOTICE("Starting reload process");
+		    goto RET;
 		default:
 		    ERROR_LOG_GOTO(ERR, "Invalid opcode");
 	}
@@ -445,7 +445,7 @@ int sched_daemon_finalize()
 	}
 
 	if(NULL != _reload_thread && ERROR_CODE(int) == thread_free(_reload_thread, NULL))
-		rc = ERROR_CODE(int);
+	    rc = ERROR_CODE(int);
 
 	return rc;
 }
@@ -681,10 +681,10 @@ static inline int _simple_daemon_command(const char* daemon_name, _daemon_op_t o
 	{
 		int status;
 		if(read(conn_fd, &status, sizeof(status)) < 0)
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the response from the socket connection");
+		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the response from the socket connection");
 
 		if(status < 0)
-			ERROR_LOG_GOTO(ERR, "The daemon returns an error");
+		    ERROR_LOG_GOTO(ERR, "The daemon returns an error");
 
 		close(conn_fd);
 	}
@@ -710,18 +710,18 @@ int sched_daemon_ping(const char* daemon_name)
 int sched_daemon_reload(const char* daemon_name, const sched_service_t* service)
 {
 	int fd = _simple_daemon_command(daemon_name, _DAEMON_RELOAD, 0);
-	if(ERROR_CODE(int) == fd) 
-		return ERROR_CODE(int);
+	if(ERROR_CODE(int) == fd)
+	    return ERROR_CODE(int);
 
 	if(ERROR_CODE(int) == sched_service_dump_fd(service, fd))
-		ERROR_LOG_GOTO(ERR, "Cannot dump the service to the control socket");
+	    ERROR_LOG_GOTO(ERR, "Cannot dump the service to the control socket");
 
 	int status;
 	if(read(fd, &status, sizeof(status)) < 0)
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the response from the socket connection");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the response from the socket connection");
 
 	if(status < 0)
-		ERROR_LOG_GOTO(ERR,  "The daemon returns an error");
+	    ERROR_LOG_GOTO(ERR,  "The daemon returns an error");
 
 	return 0;
 ERR:

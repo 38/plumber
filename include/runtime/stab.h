@@ -145,7 +145,7 @@ const char* runtime_stab_get_binary_path(runtime_stab_entry_t sid);
 int runtime_stab_dispose_all_namespaces();
 
 /**
- * @brief Dispose the unused namespace 
+ * @brief Dispose the unused namespace
  * @return status code
  **/
 int runtime_stab_dispose_unused_namespace();
