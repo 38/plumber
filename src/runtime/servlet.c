@@ -466,7 +466,6 @@ runtime_servlet_binary_t* runtime_servlet_binary_load(const char* path, const ch
 	}
 	else
 	{
-		LOG_DEBUG("Adding servlet binary to link namespace 1");
 		char temp[PATH_MAX];
 		char* p;
 		snprintf(temp, sizeof(temp), "%s%s.XXXXXX", RUNTIME_SERVLET_NS1_PREFIX, name);
