@@ -1178,7 +1178,7 @@ int sched_service_dump_fd(const sched_service_t* service, int fd)
 		if(ERROR_CODE(int) == _dump_string(fd, binary_path))
 		    ERROR_RETURN_LOG(int, "Cannot dump the servlet binary to the FD");
 		else
-		    LOG_DEBUG("Servlet Binary Path = %u", servlet->nodes[i]->servlet_id);
+		    LOG_DEBUG("Servlet Binary Path = %u", service->nodes[i]->servlet_id);
 
 		if(NULL == (argv = sched_service_get_node_args(service, i, &argc)))
 		    ERROR_RETURN_LOG(int, "Cannot get the initialization arguments for the servlet");

@@ -816,7 +816,7 @@ CLEANUP_CTX:
 	    *service = _service;
 
 	/* At the same time, if there's a deplying service, dispose it */
-	if(ERROR_CODE(int) == sched_service_free(_deploying_service))
+	if(_deploying_service != NULL && ERROR_CODE(int) == sched_service_free(_deploying_service))
 	{
 		LOG_ERROR("Cannot dispose the deploying service");
 		rc = ERROR_CODE(int);
