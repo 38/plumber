@@ -22,13 +22,13 @@ typedef int (*proto_cache_node_data_dispose_func_t)(void* data);
  * @brief initialize the cache
  * @return status code
  **/
-int proto_cache_init();
+int proto_cache_init(void);
 
 /**
  * @brief finalize the the cache
  * @return status code
  **/
-int proto_cache_finalize();
+int proto_cache_finalize(void);
 
 /**
  * @brief get the full type name for the given type name
@@ -125,12 +125,12 @@ void proto_cache_sandbox_mode(int mode);
  * @note this function won't perform the sandbox changes and can not be used in sandbox mode
  * @return status code
  **/
-int proto_cache_flush();
+int proto_cache_flush(void);
 
 /**
  * @brief get current root of the db
  * @return the root, NULL on error case
  **/
-const char* proto_cache_get_root();
+const char* proto_cache_get_root(void);
 
 #endif /* __PROTO_CACHE_H__ */

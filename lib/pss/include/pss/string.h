@@ -12,13 +12,13 @@
  * @brief Initialize the runtime value operations
  * @return status code
  **/
-int pss_string_init();
+int pss_string_init(void);
 
 /**
  * @biref Cleanup
  * @return status code
  **/
-int pss_string_finalize();
+int pss_string_finalize(void);
 
 /**
  * @brief Concatenate two string

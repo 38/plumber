@@ -12,6 +12,6 @@
  * @brief Intiailize the module that contains all the builtin functions
  * @return The newly created python module object or NULL on error
  **/
-PyObject* builtin_init_module();
+PyObject* builtin_init_module(void);
 
 #endif

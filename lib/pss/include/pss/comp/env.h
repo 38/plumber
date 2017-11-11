@@ -19,7 +19,7 @@ typedef struct _pss_comp_env_t pss_comp_env_t;
  * @brief Create a new runtime environment abstraction
  * @return The newly created env
  **/
-pss_comp_env_t* pss_comp_env_new();
+pss_comp_env_t* pss_comp_env_new(void);
 
 /**
  * @brief Dispose a used env

@@ -53,13 +53,13 @@ typedef int (*proto_db_field_callback_t)(proto_db_field_info_t info, void* data)
  *       the finailize function should be called in the cleanup callback to avoid memory leak.
  * @return status code
  **/
-int proto_db_init();
+int proto_db_init(void);
 
 /**
  * @brief dispose a used protocol database context
  * @return status code
  **/
-int proto_db_finalize();
+int proto_db_finalize(void);
 
 /**
  * @brief query a type from given type name

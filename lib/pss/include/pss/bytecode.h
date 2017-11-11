@@ -262,7 +262,7 @@ typedef struct _pss_bytecode_module_t pss_bytecode_module_t;
  * @brief Create a empty bytecode table
  * @return the newly created bytecode module, NULL on error case
  **/
-pss_bytecode_module_t* pss_bytecode_module_new();
+pss_bytecode_module_t* pss_bytecode_module_new(void);
 
 /**
  * @brief Load a bytecode table from disk

@@ -64,13 +64,13 @@ extern "C" {
 	* @brief initialize the libproto
 	* @return status code
 	**/
-	int proto_init();
+	int proto_init(void);
 
 	/**
 	* @brief finalize the libproto
 	* @return status code
 	**/
-	int proto_finalize();
+	int proto_finalize(void);
 
 #ifdef __cplusplus
 }

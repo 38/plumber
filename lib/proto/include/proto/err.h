@@ -57,7 +57,7 @@ typedef struct _proto_err_t {
  * @brief get the protocol error stack
  * @return the protocol error stack, NULL if no error set
  **/
-const proto_err_t* proto_err_stack();
+const proto_err_t* proto_err_stack(void);
 
 /**
  * @brief clear the protocol error stack
@@ -65,7 +65,7 @@ const proto_err_t* proto_err_stack();
  *       at the time exit
  * @return void
  **/
-void proto_err_clear();
+void proto_err_clear(void);
 
 /**
  * @brief raise a new error

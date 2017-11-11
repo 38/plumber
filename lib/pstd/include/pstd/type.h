@@ -37,7 +37,7 @@ typedef int (*pstd_type_assertion_t)(pipe_t pipe, const char* type, const void* 
  * @brief Create a new pipe type model object
  * @return the newly create pipe, NULL on error  case
  **/
-pstd_type_model_t* pstd_type_model_new();
+pstd_type_model_t* pstd_type_model_new(void);
 
 /**
  * @brief Dispose an used type model

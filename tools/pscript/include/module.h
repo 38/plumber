@@ -44,6 +44,6 @@ int module_is_loaded(const char* name);
  * @brief Unload all modules that has been loaded
  * @return status code
  **/
-int module_unload_all();
+int module_unload_all(void);
 
 #endif

@@ -34,12 +34,12 @@
  * @brief Initialize the PSS interpreter libray
  * @return status code
  **/
-int pss_init();
+int pss_init(void);
 
 /**
  * @brief Finalize the PSS interpreter libray
  * @return status code
  **/
-int pss_finalize();
+int pss_finalize(void);
 
 #endif /* __PSS_PSS_H__ */

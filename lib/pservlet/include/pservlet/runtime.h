@@ -11,5 +11,5 @@
  * @brief get the plumber version number
  * @return the plumber version number string, NULL incidates an error
  **/
-const char* runtime_version();
+const char* runtime_version(void);
 #endif /* __PSERVLET_PLUMBER_H__ */

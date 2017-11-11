@@ -20,7 +20,7 @@
  * @brief the function pointer to a test case
  * @return < 0 if test case fails
  **/
-typedef int (*test_case_func_t)();
+typedef int (*test_case_func_t)(void);
 /**
  * @brief the data structure for a test case
  **/
@@ -106,7 +106,7 @@ typedef struct {
 **/
 #ifdef ALLOW_IGNORE_MEMORY_LEAK
 #   define IGNORE_MEMORY_LEAK() do{\
-	void __disable_memory_check();\
+	extern void __disable_memory_check(void);\
 	__disable_memory_check();\
 } while(0)
 #else /* ALLOW_IGNORE_MEMORY_LEAK */
@@ -117,6 +117,6 @@ typedef struct {
 * @brief because some library has unfixed bug, so we need add some exemption on this case
 * @return nothing
 **/
-void expected_memory_leakage();
+void expected_memory_leakage(void);
 
 #endif

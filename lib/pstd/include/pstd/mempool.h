@@ -26,7 +26,7 @@ int pstd_mempool_free(void* mem);
  * @brief allocate an entire page from the memory pool
  * @return the page allocated or NULL on error case
  **/
-void* pstd_mempool_page_alloc();
+void* pstd_mempool_page_alloc(void);
 
 /**
  * @brief deallocate the entire page which is allocated by pstd_mempool_page_alloc

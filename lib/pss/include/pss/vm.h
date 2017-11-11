@@ -77,7 +77,7 @@ typedef struct {
  * @brief Create a new PSS virtual machine
  * @return The newly created PSS virtual machine
  **/
-pss_vm_t* pss_vm_new();
+pss_vm_t* pss_vm_new(void);
 
 /**
  * @brief Set the callback function that handles the external globals

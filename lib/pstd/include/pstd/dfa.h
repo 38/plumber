@@ -31,7 +31,7 @@ typedef struct {
 	 * @brief Create a new DFA state
 	 * @return The state has been created or NULL on error
 	 **/
-	void* (*create_state)();
+	void* (*create_state)(void);
 
 	/**
 	 * @brief Dispose a used DFA state

@@ -31,13 +31,13 @@ typedef struct {
  * @brief Initialize the callbacks for the exotic objects
  * @return status code
  **/
-int pss_exotic_init();
+int pss_exotic_init(void);
 
 /**
  * @brief FInalize the type callbacks
  * @return status code
  **/
-int pss_exotic_finalize();
+int pss_exotic_finalize(void);
 
 /**
  * @brief Get the actual data from the exotic object

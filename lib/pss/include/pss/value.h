@@ -106,7 +106,7 @@ struct _pss_value_t {
  * @brief Create a new error value
  * @return The value indicates error
  **/
-static inline pss_value_t pss_value_err()
+static inline pss_value_t pss_value_err(void)
 {
 	pss_value_t ret = {
 		.kind = PSS_VALUE_KIND_ERROR

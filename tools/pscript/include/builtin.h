@@ -28,6 +28,6 @@ void builtin_print_doc(FILE* fp, int print_internals, pss_value_builtin_t func);
  * @brief Indicates if we currently have serivce running
  * @return result
  **/
-int builtin_service_running();
+int builtin_service_running(void);
 
 #endif

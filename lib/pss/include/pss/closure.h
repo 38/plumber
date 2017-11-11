@@ -13,13 +13,13 @@ typedef struct _pss_closure_t pss_closure_t;
  * @brief The function used to initialize the global variables used by closure
  * @return status code
  **/
-int pss_closure_init();
+int pss_closure_init(void);
 
 /**
  * @brief The module cleanup function
  * @return status code
  **/
-int pss_closure_finalize();
+int pss_closure_finalize(void);
 
 /**
  * @brief The data strcture we used to create a new closure, this

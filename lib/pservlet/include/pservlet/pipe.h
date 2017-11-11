@@ -160,7 +160,7 @@ int pipe_set_type_callback(pipe_t pipe, pipe_type_callback_t callback, void* dat
  * @note you can not use a instant number, because the macro actually use the macro name as a part of the getter function name
  **/
 #define PIPE_DEFINE_MOD_OPCODE_GETTER(path, opcode) \
-    static inline uint32_t _pipe_get_module_specified_opcode_##opcode()\
+    static inline uint32_t _pipe_get_module_specified_opcode_##opcode(void)\
     {\
 	    static uint32_t ret = ERROR_CODE(uint32_t);\
 	    if(ret == ERROR_CODE(uint32_t))\

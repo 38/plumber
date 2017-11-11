@@ -18,19 +18,19 @@ typedef struct _pss_dict_t pss_dict_t;
  * @brief Register the type operations to the VM sytstem
  * @return status code
  **/
-int pss_dict_init();
+int pss_dict_init(void);
 
 /**
  * @brief Reserved for some cleanup work
  * @return status code
  **/
-int pss_dict_finalize();
+int pss_dict_finalize(void);
 
 /**
  * @brief Create a new dictionary
  * @return The newly created global storage
  **/
-pss_dict_t* pss_dict_new();
+pss_dict_t* pss_dict_new(void);
 
 /**
  * @brief Dispose a used ditionary
