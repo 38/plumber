@@ -14,13 +14,13 @@
  * @brief the initialization function for this file
  * @return status code
  **/
-int itc_binary_init();
+int itc_binary_init(void);
 
 /**
  * @brief the finalization function for this file
  * @return status code
  **/
-int itc_binary_finalize();
+int itc_binary_finalize(void);
 
 /**
  * @brief search the module binary by its name

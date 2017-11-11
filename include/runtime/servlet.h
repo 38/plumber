@@ -63,13 +63,13 @@ typedef void (*runtime_servlet_trap_func_t)(int trap_id);
  * @brief initlaize this file
  * @return status code
  **/
-int runtime_servlet_init();
+int runtime_servlet_init(void);
 
 /**
  * @brief finalize this file
  * @return status code
  **/
-int runtime_servlet_finalize();
+int runtime_servlet_finalize(void);
 
 /**
  * @brief append the search path for a servlet
@@ -82,19 +82,19 @@ int runtime_servlet_append_search_path(const char* path);
  * @brief clear the search path
  * @return < 0 when error
  **/
-int runtime_servlet_clear_search_path();
+int runtime_servlet_clear_search_path(void);
 
 /**
  * @brief get the number of search paths
  * @return the search path, < 0 when error
  **/
-size_t runtime_servlet_num_search_path();
+size_t runtime_servlet_num_search_path(void);
 
 /**
  * @brief get the search path array
  * @return the pointer to the search path array, NULL when error
  **/
-const char * const * runtime_servlet_search_paths();
+const char * const * runtime_servlet_search_paths(void);
 
 /**
  * @brief find a matched binary in the search path

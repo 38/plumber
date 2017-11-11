@@ -52,12 +52,12 @@ size_t module_tls_dra_write_buffer(module_tls_dra_param_t param, const char* dat
  * @brief initialize the static variables in the DRA write callback object
  * @return status code
  **/
-int module_tls_dra_init();
+int module_tls_dra_init(void);
 
 /**
  * @brief finalize the static variable in the DRA write callback object
  * @return status code
  **/
-int module_tls_dra_finalize();
+int module_tls_dra_finalize(void);
 
 #endif /* __PLUMBER_MODULE_TLS_DRA_H__ */

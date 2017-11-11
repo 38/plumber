@@ -264,7 +264,7 @@ STATIC_ASSERTION_EQ_ID(__non_module_related_pop_state__, 0xff, RUNTIME_API_PIPE_
  * 			  async_cntl(ASYNC_CNTL_OPCODE_SET_WAIT, &task_handle);
  * 			  // Here we initialize a async IO and set a callback function on_finished
  * 			  return 0;
- * 			onfinished() {
+ * 			onfinished(void) {
  * 				// Post process the IO
  * 				async_cntl(ASYNC_CNTL_OPCODE_NOTIFY_WAIT, task_handle, status_code);
  * 				return 0;
@@ -614,7 +614,7 @@ typedef struct {
 	 * @brief get the plumber version number
 	 * @return the plumber version number string, NULL on error
 	 **/
-	const char* (*version)();
+	const char* (*version)(void);
 
 	/**
 	 * @brief The async task control function

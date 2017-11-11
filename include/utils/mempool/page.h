@@ -13,19 +13,19 @@
  * @brief initialize the page allocator
  * @return the status code
  **/
-int mempool_page_init();
+int mempool_page_init(void);
 
 /**
  * @brief finalize the page allocator
  * @return the status code
  **/
-int mempool_page_finalize();
+int mempool_page_finalize(void);
 
 /**
  * @brief allocate a signle page
  * @return the allocated page or error code
  **/
-void* mempool_page_alloc();
+void* mempool_page_alloc(void);
 
 /**
  * @brief dealloc a signle page

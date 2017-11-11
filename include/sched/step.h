@@ -28,6 +28,6 @@ int sched_step_next(sched_task_context_t* stc, itc_module_type_t type);
  * @brief get the current request scope object
  * @return the current request local scope, NULL if the program stack is outside of a task or error case
  **/
-sched_rscope_t* sched_step_current_scope();
+sched_rscope_t* sched_step_current_scope(void);
 
 #endif /* __PLUMBER_SCHED_DRIVER_H__ */

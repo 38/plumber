@@ -29,19 +29,19 @@ extern "C" {
 	* @brief global intialization
 	* @return status code
 	**/
-	int plumber_init();
+	int plumber_init(void);
 
 	/**
 	* @brief global finalization
 	* @return status code
 	**/
-	int plumber_finalize();
+	int plumber_finalize(void);
 
 	/**
 	* @brief get the version of libplumber
 	* @return the version string
 	**/
-	const char* plumber_version();
+	const char* plumber_version(void);
 
 #	ifdef __cplusplus__
 }

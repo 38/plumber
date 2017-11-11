@@ -24,5 +24,5 @@ int module_test_set_request(const void* data, size_t count);
  * @brief get the mocked response
  * @return the result data, NULL if error
  **/
-const void* module_test_get_response();
+const void* module_test_get_response(void);
 #endif /* __MODULE_TEST_MODULE_H__ */

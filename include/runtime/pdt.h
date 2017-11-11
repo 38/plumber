@@ -22,7 +22,7 @@ typedef struct _runtime_pdt_t runtime_pdt_t;
  * @brief create a new PD table
  * @return the pipe name table been created, NULL on error
  **/
-runtime_pdt_t* runtime_pdt_new();
+runtime_pdt_t* runtime_pdt_new(void);
 
 /**
  * @brief free the used PDT table

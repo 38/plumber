@@ -52,7 +52,7 @@ typedef struct {
  * @brief the get the bio method data structure for the BIO
  * @return the bio method object
  **/
-BIO_METHOD* module_tls_bio_method();
+BIO_METHOD* module_tls_bio_method(void);
 
 /**
  * @brief Create a new BIO wrapper for the pipe

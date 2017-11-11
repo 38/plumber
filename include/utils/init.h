@@ -16,8 +16,8 @@
  *  @note both init function and finalize function do not take any param and return < 0 only on error
  **/
 typedef struct {
-	int (*init)();      /*!< the function used for initialization */
-	int (*finalize)();  /*!< the function used for finalization */
+	int (*init)(void);      /*!< the function used for initialization */
+	int (*finalize)(void);  /*!< the function used for finalization */
 } init_vec_entry_t;
 
 

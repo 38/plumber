@@ -54,7 +54,7 @@ static inline const sched_service_pipe_descriptor_t* sched_service_to_pipe_desc(
  * @brief create a new service buffer
  * @return the newly created buffer or NULL if error happens
  **/
-sched_service_buffer_t* sched_service_buffer_new();
+sched_service_buffer_t* sched_service_buffer_new(void);
 
 /**
  * @brief make the service buffer allows us reuse the servlet instane

@@ -28,13 +28,13 @@ typedef struct _sched_prof_t sched_prof_t;
  * @brief the global initialization for the profiler
  * @return status code
  **/
-int sched_prof_init();
+int sched_prof_init(void);
 
 /**
  * @brief the global finalization for the profiler
  * @return status code
  **/
-int sched_prof_finalize();
+int sched_prof_finalize(void);
 
 /**
  * @brief create a new profiler for the given service

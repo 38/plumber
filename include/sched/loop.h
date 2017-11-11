@@ -43,13 +43,13 @@ int sched_loop_set_queue_size(uint32_t size);
  * @brief initialize this file
  * @return status code
  **/
-int sched_loop_init();
+int sched_loop_init(void);
 
 /**
  * @brief finalize this file
  * @return status code
  **/
-int sched_loop_finalize();
+int sched_loop_finalize(void);
 
 /**
  * @brief deploy a new service object and replace the current one
@@ -64,5 +64,5 @@ int sched_loop_deploy_service_object(sched_service_t* service);
  * @note This function must be called from the deployment thread
  * @return If the deployment is completed, or error code
  **/
-int sched_loop_deploy_completed();
+int sched_loop_deploy_completed(void);
 #endif /* __PLUMBER_SCHED_LOOP_H__ */

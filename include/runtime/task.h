@@ -62,13 +62,13 @@ STATIC_ASSERTION_SIZE(runtime_task_t, pipes, 0);
  * @brief initialization of this file
  * @return <0 when error
  **/
-int runtime_task_init();
+int runtime_task_init(void);
 
 /**
  * @brief finalization of this file
  * @return <0 when error
  **/
-int runtime_task_finalize();
+int runtime_task_finalize(void);
 
 /**
  * @brief free a used task
@@ -155,6 +155,6 @@ int runtime_task_start_async_cleanup_fast(runtime_task_t* task);
  * @brief get current task
  * @return the task object of current task, NULL if there's an error
  **/
-runtime_task_t* runtime_task_current();
+runtime_task_t* runtime_task_current(void);
 
 #endif /* __PLUMBER_RUNTIME_TASK_H__ */

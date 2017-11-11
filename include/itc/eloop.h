@@ -17,13 +17,13 @@ extern __thread uint32_t itc_eloop_thread_killed;
  * @brief initialize the Event loop subsystem
  * @return status code
  **/
-int itc_eloop_init();
+int itc_eloop_init(void);
 
 /**
  * @brief finalize the event loop subsystem
  * @return status code
  **/
-int itc_eloop_finalize();
+int itc_eloop_finalize(void);
 
 /**
  * @brief Start the event loops for all event accepting module instances <br/>
@@ -31,7 +31,7 @@ int itc_eloop_finalize();
  *         and start isolate event loops for each module isntances.
  * @return status code
  **/
-int itc_eloop_start();
+int itc_eloop_start(void);
 
 /**
  * @brief set the accept param for a module instance

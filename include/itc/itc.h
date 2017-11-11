@@ -30,12 +30,12 @@
  * @brief initialize the inter-task communication subsystem
  * @return status code
  **/
-int itc_init();
+int itc_init(void);
 
 /**
  * @brief finalize the inter-task communication subsystem
  * @return status code
  **/
-int itc_finalize();
+int itc_finalize(void);
 
 #endif /* __PLUMBER_ITC_H__ */

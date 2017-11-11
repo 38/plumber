@@ -60,13 +60,13 @@ typedef struct {
  * @brief initialize the module addressing table subsystem
  * @return status code
  **/
-int itc_modtab_init();
+int itc_modtab_init(void);
 
 /**
  * @brief finalize the module addressing table subsystem
  * @return status code
  **/
-int itc_modtab_finalize();
+int itc_modtab_finalize(void);
 
 /**
  * @brief The function that is used to set the size of the header of each pipe handle <br/>
@@ -161,6 +161,6 @@ itc_module_type_t itc_modtab_get_module_type_from_path(const char* path);
  *         cleanup code have a chance to do the normal things.
  * @return status code
  **/
-int itc_modtab_on_exit();
+int itc_modtab_on_exit(void);
 
 #endif /** __PLUMBER_ITC_MODTAB_H__ */

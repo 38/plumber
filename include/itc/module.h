@@ -64,13 +64,13 @@ typedef struct {
  * @brief intialize the pipe module subsystem
  * @return status code
  **/
-int itc_module_init();
+int itc_module_init(void);
 
 /**
  * @brief finalize the pipe module subsystem
  * @return status code
  **/
-int itc_module_finalize();
+int itc_module_finalize(void);
 
 /**
  * @brief Check if the pipe is the input side
@@ -230,7 +230,7 @@ int itc_module_pipe_cntl(itc_module_pipe_t* handle, uint32_t opcode, va_list ap)
  * @note this function allocates new memory for result, the caller have to free the array after use
  * @return the array to the list, NULL indicates error
  **/
-itc_module_type_t* itc_module_get_event_accepting_modules();
+itc_module_type_t* itc_module_get_event_accepting_modules(void);
 
 /**
  * @brief called when the event loop get killed, this function will invoke the module's

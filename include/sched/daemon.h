@@ -17,13 +17,13 @@ typedef struct _sched_daemon_iter_t sched_daemon_iter_t;
  * @brief intitialize the daemon support
  * @return status code
  **/
-int sched_daemon_init();
+int sched_daemon_init(void);
 
 /**
  * @brief finalizate the daemon support
  * @return status code
  **/
-int sched_daemon_finalize();
+int sched_daemon_finalize(void);
 
 /**
  * @brief Make current application a daemon, it will do the normal daemonize,
@@ -31,13 +31,13 @@ int sched_daemon_finalize();
  *        then this function does nothing
  * @return status code
  **/
-int sched_daemon_daemonize();
+int sched_daemon_daemonize(void);
 
 /**
  * @brief Start enumerate the daemon list
  * @return The newly created daemon info object, NULL on error
  **/
-sched_daemon_iter_t* sched_daemon_list_begin();
+sched_daemon_iter_t* sched_daemon_list_begin(void);
 
 /**
  * @brief Move to the next daemon in the daemon info list
@@ -69,7 +69,7 @@ int sched_daemon_stop(const char* daemon_name);
  * @note This function should be called from the daemon side
  * @return status code
  **/
-int sched_daemon_read_control_sock();
+int sched_daemon_read_control_sock(void);
 
 /**
  * @brief Reload the daemon with the given service object

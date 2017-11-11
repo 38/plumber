@@ -20,12 +20,12 @@
  * @brief initialize utils
  * @return <0 when error
  **/
-int utils_init();
+int utils_init(void);
 
 /**
  * @brief finalize utils
  * @return <0 when error
  **/
-int utils_finalize();
+int utils_finalize(void);
 
 #endif /*__UTILS_H__*/

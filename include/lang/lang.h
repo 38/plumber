@@ -15,13 +15,13 @@
  * @brief initialize the SDL module
  * @return status code
  **/
-int lang_init();
+int lang_init(void);
 
 /**
  * @brief fianlize the SDL module
  * @return status code
  **/
-int lang_finalize();
+int lang_finalize(void);
 
 
 #endif /*__PLUMBER_LANG_H__*/

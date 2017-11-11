@@ -50,14 +50,14 @@ struct _sched_task_t {
  * @brief initialize the scheduler task table
  * @return status code
  **/
-int sched_task_init();
+int sched_task_init(void);
 
 /**
  * @brief finalize the scheduler task table
  * @note the main thread will call this function in the end, so the main thread do not need to call this
  * @return status code
  **/
-int sched_task_finalize();
+int sched_task_finalize(void);
 
 /**
  * @brief Initialize a new scheduler task context

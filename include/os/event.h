@@ -57,7 +57,7 @@ typedef struct _os_event_poll_t os_event_poll_t;
  * @brief Create a new event poll object
  * @return the newly created OS poll event or NULL on error
  **/
-os_event_poll_t* os_event_poll_new();
+os_event_poll_t* os_event_poll_new(void);
 
 /**
  * @brief Dispose a used OS event poll object

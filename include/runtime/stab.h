@@ -18,12 +18,12 @@ typedef uint32_t runtime_stab_entry_t;
 /** @brief init the servlet module
  *  @return < 0 on error
  **/
-int runtime_stab_init();
+int runtime_stab_init(void);
 
 /** @brief release the memory used by this part
  *  @return < 0 on error
  **/
-int runtime_stab_finalize();
+int runtime_stab_finalize(void);
 
 /**
  * @brief set the owner of the servlet instance
@@ -142,13 +142,13 @@ const char* runtime_stab_get_binary_path(runtime_stab_entry_t sid);
  * @brief dispose all the servlet intances in the stab
  * @return status code
  **/
-int runtime_stab_dispose_all_namespaces();
+int runtime_stab_dispose_all_namespaces(void);
 
 /**
  * @brief Dispose the unused namespace
  * @return status code
  **/
-int runtime_stab_dispose_unused_namespace();
+int runtime_stab_dispose_unused_namespace(void);
 
 /**
  * @brief Switch to another namespace
@@ -157,13 +157,13 @@ int runtime_stab_dispose_unused_namespace();
  *       undergoing at the same time
  * @return status code
  **/
-int runtime_stab_switch_namespace();
+int runtime_stab_switch_namespace(void);
 
 /**
  * @brief Revert the effect of switching namespace, this is used when the non-stopping deploment
  *        is failed, then we need to dispose the current namespace and switch back to the previous one
  *  @return status code
  **/
-int runtime_stab_revert_current_namespace();
+int runtime_stab_revert_current_namespace(void);
 
 #endif /* __PLUMBER_RUNTIME_SERVLET_TAB_H__ */

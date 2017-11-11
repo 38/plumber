@@ -43,7 +43,7 @@ static inline runtime_task_t* _get_task(runtime_task_flags_t action)
  **/
 static inline itc_module_pipe_t* _get_handle(runtime_api_pipe_id_t pid)
 {
-	runtime_task_t* task = runtime_task_current(RUNTIME_TASK_FLAG_ACTION_EXEC);
+	runtime_task_t* task = runtime_task_current();
 	if(NULL == task) return NULL;
 
 	if(pid == ERROR_CODE(runtime_api_pipe_id_t) || (size_t)pid >= task->npipes)

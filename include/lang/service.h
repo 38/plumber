@@ -20,7 +20,7 @@ typedef struct _lang_service_t lang_service_t;
  * @brief Create a new service object
  * @return status code
  **/
-lang_service_t* lang_service_new();
+lang_service_t* lang_service_new(void);
 
 /**
  * @brief Dispose a used service

@@ -34,31 +34,31 @@ typedef struct _sched_rscope_stream_t sched_rscope_stream_t;
  * @brief initialize the request scope global objects
  * @return status code
  **/
-int sched_rscope_init();
+int sched_rscope_init(void);
 
 /**
  * @brief finalize the request scope global objects
  * @return status code
  **/
-int sched_rscope_finalize();
+int sched_rscope_finalize(void);
 
 /**
  * @brief initialize the thread locals
  * @return status code
  **/
-int sched_rscope_init_thread();
+int sched_rscope_init_thread(void);
 
 /**
  * @brief finalize the thread locals
  * @return status code
  **/
-int sched_rscope_finalize_thread();
+int sched_rscope_finalize_thread(void);
 
 /**
  * @brief create a new request scope
  * @return the newly created request local scope, NULL on error case
  **/
-sched_rscope_t* sched_rscope_new();
+sched_rscope_t* sched_rscope_new(void);
 
 /**
  * @brief dispose the used request scope, this will trigger

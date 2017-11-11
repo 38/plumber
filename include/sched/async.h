@@ -45,25 +45,25 @@
  * @brief Initialize the async subsystem
  * @return status code
  **/
-int sched_async_init();
+int sched_async_init(void);
 
 /**
  * @brief Fianlize the async subsystem
  * @return status code
  **/
-int sched_async_finalize();
+int sched_async_finalize(void);
 
 /**
  * @brief Start all the async thread and make the async task processor ready to run
  * @return status code
  **/
-int sched_async_start();
+int sched_async_start(void);
 
 /**
  * @biref Kill all the async thread and cleanup all the resource it occupies
  * @return status code
  **/
-int sched_async_kill();
+int sched_async_kill(void);
 
 /**
  * @brief Post as new task to the async task pool, and wait one of the async thread picking up the task
@@ -145,7 +145,7 @@ int sched_async_handle_cntl(runtime_api_async_handle_t* handle, uint32_t opcode,
  *       during the time, this actually discard all the request beside the waiting mode related operations
  * @return The fake handle
  **/
-runtime_api_async_handle_t* sched_async_fake_handle_new();
+runtime_api_async_handle_t* sched_async_fake_handle_new(void);
 
 /**
  * @brief Indicates if the fake handle has been compelted

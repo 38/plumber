@@ -140,13 +140,13 @@ typedef uint32_t itc_equeue_token_t;
  * @brief initialize the event queue subsystem
  * @return status code
  **/
-int itc_equeue_init();
+int itc_equeue_init(void);
 
 /**
  * @brief finalize the event queue subsystem
  * @return status code
  **/
-int itc_equeue_finalize();
+int itc_equeue_finalize(void);
 
 /**
  * @brief create new module thread token, this is used for event loop to get a new
@@ -161,7 +161,7 @@ itc_equeue_token_t itc_equeue_module_token(uint32_t size, itc_equeue_event_type_
  * @brief create new scheduler/dispatcher thread token
  * @return the token, or error code
  **/
-itc_equeue_token_t itc_equeue_scheduler_token();
+itc_equeue_token_t itc_equeue_scheduler_token(void);
 
 /**
  * @brief put a event in the queue
@@ -213,6 +213,6 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
  * @brief Interrupt the wait execution and make interrupt callback runs
  * @return status code
  **/
-int itc_equeue_wait_interrupt();
+int itc_equeue_wait_interrupt(void);
 
 #endif /*__PLUMBER_QUEUE_H__ */

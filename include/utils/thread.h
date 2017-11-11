@@ -63,7 +63,7 @@ typedef struct _thread_t thread_t;
  *       To address this, we have to make the main function for the test cases using an aligned
  *       stack. And this is the way for us to initialize a thread with aligned stack at this point
  **/
-typedef int (*thread_test_main_t)();
+typedef int (*thread_test_main_t)(void);
 
 /**
  * @brief the function type for the main function of a thread
@@ -161,7 +161,7 @@ const void* thread_pset_get_callback_data(thread_pset_t* pset);
  * @brief get the ID for current thread
  * @return the result thread id
  **/
-uint32_t thread_get_id();
+uint32_t thread_get_id(void);
 
 
 /**
@@ -177,7 +177,7 @@ thread_t* thread_new(thread_main_t main, void* data, thread_type_t type);
  * @brief get current thread object
  * @return current thread object, if the thread is not created by thread_new, or there's an error return NULL
  **/
-thread_t* thread_get_current();
+thread_t* thread_get_current(void);
 
 /**
  * @brief set current thread name
@@ -278,7 +278,7 @@ void* thread_pset_acquire(thread_pset_t* pset);
  * @return the thread type
  * @return the thread type or status code
  **/
-thread_type_t thread_get_current_type();
+thread_type_t thread_get_current_type(void);
 #	endif
 
 #	ifdef STACK_SIZE

@@ -70,7 +70,7 @@ typedef struct {
  * @brief create a new TCP connection pool
  * @return the newly created connection pool object
  **/
-module_tcp_pool_t* module_tcp_pool_new();
+module_tcp_pool_t* module_tcp_pool_new(void);
 
 /**
  * @brief Fork an existing TCP pool.

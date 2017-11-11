@@ -27,11 +27,11 @@
 /** @brief initlaization
  *  @return nothing
  */
-int log_init();
+int log_init(void);
 /** @brief initlaization
  *  @return nothing
  */
-int log_finalize();
+int log_finalize(void);
 
 /**
  * @brief redirect the log to the give file

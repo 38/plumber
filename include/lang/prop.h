@@ -68,13 +68,13 @@ typedef struct {
  * @brief initialize the prop utils
  * @return status code
  **/
-int lang_prop_init();
+int lang_prop_init(void);
 
 /**
  * @brief finalize the prop utils
  * @return the status code
  **/
-int lang_prop_finalize();
+int lang_prop_finalize(void);
 
 /**
  * @brief add a new call back function to the prop

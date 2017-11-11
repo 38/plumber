@@ -19,12 +19,12 @@
  * @brief initialize the runtime directory
  * @return error code < 0 indicates error
  **/
-int runtime_init();
+int runtime_init(void);
 
 /**
  * @brief finalize the runtime director
  * @return error code < 0 indicates error
  **/
-int runtime_finalize();
+int runtime_finalize(void);
 
 #endif /* __PLUMBER_RUNTIME_H__ */

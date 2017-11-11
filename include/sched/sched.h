@@ -23,12 +23,12 @@
  * @brief intitialize the scheduler part
  * @return status code
  **/
-int sched_init();
+int sched_init(void);
 
 /**
  * @brief finalizate the scheduler
  * @return status code
  **/
-int sched_finalize();
+int sched_finalize(void);
 
 #endif /** __PLUMBER_SCHED_H__ */
