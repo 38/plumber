@@ -1,0 +1,13 @@
+#!/usr/bin/env pscript
+
+import("daemon");
+if(len(argv) == 1)
+{
+	print("Usage: ", argv[0], " [daemon] ...");
+	exit(1);
+}
+for(var i = 1; i < len(argv); i ++)
+{
+	var daemon = argv[i];
+	print(daemon, " : ", Daemon.ping(daemon));
+}
