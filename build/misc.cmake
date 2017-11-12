@@ -56,3 +56,17 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/misc/install-prototype.sh.in"
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/misc/vimrc.in"
 	           "${CMAKE_CURRENT_SOURCE_DIR}/vimrc")
+
+if(NOT "${INSTALL_PROTOTYPE}" STREQUAL "no")
+	install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E env sh ${CMAKE_BINARY_DIR}/install-prototype.sh)")
+endif(NOT "${INSTALL_PROTOTYPE}" STREQUAL "no")
+
+install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E env LD_LIBRARY_PATH=${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_INSTALL_PREFIX}/bin/pscript -B)")
+
+if(NOT "${INSTALL_SCRIPTS}" STREQUAL "no")
+	file(GLOB script_to_install "${CMAKE_SOURCE_DIR}/misc/script/*")
+	foreach(script_source ${script_to_install})
+		get_filename_component(script_name ${script_source} NAME) 
+		install(FILES ${script_source} DESTINATION "bin" PERMISSIONS WORLD_EXECUTE OWNER_EXECUTE GROUP_EXECUTE WORLD_READ OWNER_READ GROUP_READ OWNER_WRITE)
+	endforeach(script_source ${script_to_install})
+endif(NOT "${INSTALL_SCRIPTS}" STREQUAL "no")

@@ -1,4 +1,5 @@
 #!/bin/sh
+export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:@CMAKE_INSTALL_PREFIX@/lib"
 for prototype in `echo "@PROTO_FILES_TO_INSTALL@" | awk 'BEGIN{RS = ";"; ORS="\n"}{print $1}'`
 do
 	@CMAKE_CURRENT_BINARY_DIR@/bin/protoman --update --yes --force ${prototype}

@@ -170,6 +170,8 @@ static inline lang_prop_value_t _get_prop(const char* symbol, const void* data)
 			required_size += strlen(path) + 1;
 		}
 
+		if(required_size == 0) required_size = 1;
+
 		char* bufmem = (char*)malloc(required_size);
 		if(NULL == bufmem)
 		{
