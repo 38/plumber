@@ -1125,3 +1125,18 @@ int pss_vm_set_global(pss_vm_t* vm, const char* var, pss_value_t val)
 
 	return 0;
 }
+
+pss_value_t pss_vm_get_global(pss_vm_t* vm, const char* var)
+{
+	if(NULL == vm || NULL == var)
+	{
+		pss_value_t err = {
+			.kind = PSS_VALUE_KIND_ERROR,
+			.num  = PSS_VM_ERROR_ARGUMENT
+		};
+		LOG_ERROR("Invalid arguments");
+		return err;
+	}
+
+	return pss_dict_get(vm->global, var);
+}

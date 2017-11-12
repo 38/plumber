@@ -29,9 +29,15 @@ int sched_daemon_finalize(void);
  * @brief Make current application a daemon, it will do the normal daemonize,
  *        create the controlling socket and pid file. When runtime.daemon.id == ""
  *        then this function does nothing
- * @return status code
+ * @param If we need fork twice
+ * @note The fork_twice option is actually used when we are in the REPL mode, because
+ *       we don't want the REPL shell exit after the daemon gets started.
+ *       Thus we need to fork the starter process first time and then finish the remining
+ *       part. At the same time, the REPL process just return successfully.
+ * @return For the fork once mode, it returns 1 or error code in the daemon process and the parent process will exit inside the function <br/>
+ *         For the fork twice mode, the REPL process will receive 0 or error code and daemon process will receive 1 or error code
  **/
-int sched_daemon_daemonize(void);
+int sched_daemon_daemonize(int fork_twice);
 
 /**
  * @brief Start enumerate the daemon list

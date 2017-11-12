@@ -734,7 +734,6 @@ static pss_value_t _pscript_builtin_service_output(pss_vm_t* vm, uint32_t argc, 
 
 static pss_value_t _pscript_builtin_service_start(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
-	(void)vm;
 	pss_value_t ret = {
 		.kind = PSS_VALUE_KIND_ERROR,
 		.num  = PSS_VM_ERROR_ARGUMENT
@@ -749,12 +748,27 @@ static pss_value_t _pscript_builtin_service_start(pss_vm_t* vm, uint32_t argc, p
 	if(pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_EXOTIC)
 	    return ret;
 
+	int fork_twice = 0;
+
+	pss_value_t is_repl = pss_vm_get_global(vm, "pscript.repl_mode");
+	if(is_repl.kind == PSS_VALUE_KIND_ERROR)
+	{
+		ret.num = PSS_VM_ERROR_INTERNAL;
+		LOG_ERROR("Cannot get the global variable pscript.rep_mode");
+		return ret;
+	}
+	else if(is_repl.kind == PSS_VALUE_KIND_NUM && is_repl.num == 1)
+	{
+		LOG_DEBUG("The pscript is in REPL mode, using fork twice mode");
+		fork_twice = 1;
+	}
+
 	pss_exotic_t* obj = (pss_exotic_t*)pss_value_get_data(argv[0]);
 	lang_service_t* serv = (lang_service_t*)pss_exotic_get_data(obj, LANG_SERVICE_TYPE_MAGIC);
 
 	_service_running = 1;
 
-	if(ERROR_CODE(int) == lang_service_start(serv))
+	if(ERROR_CODE(int) == lang_service_start(serv, fork_twice))
 	{
 		ret.num = PSS_VM_ERROR_SERVICE;
 		_service_running = 0;

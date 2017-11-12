@@ -106,6 +106,14 @@ int pss_vm_add_builtin_func(pss_vm_t* vm, const char* name, pss_value_builtin_t 
 int pss_vm_set_global(pss_vm_t* vm, const char* var, pss_value_t val);
 
 /**
+ * @brief Get the global variable from the given virtual machine
+ * @param vm The vm we want to peek
+ * @param var The variable name
+ * @return The result value
+ **/
+pss_value_t pss_vm_get_global(pss_vm_t* vm, const char* var);
+
+/**
  * @brief Dispose an used PSS virtual machine
  * @param vm The virtual machine to dispose
  * @return status code

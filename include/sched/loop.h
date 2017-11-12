@@ -15,7 +15,7 @@ typedef struct _sched_loop_t sched_loop_t;
  * @param service the service to run
  * @return status code
  **/
-int sched_loop_start(sched_service_t** service);
+int sched_loop_start(sched_service_t** service, int fork_twice);
 
 /**
  * @brief kill the scheduler loop

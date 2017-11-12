@@ -85,10 +85,11 @@ const char* lang_service_get_type(lang_service_t* service, int64_t nid, const ch
 
 /**
  * @brief Start the service
- * @param service The service to start
+ * @param service The service to startA
+ * @param fork_twice If we want to fork twice and keep current process
  * @return status code
  **/
-int lang_service_start(lang_service_t* service);
+int lang_service_start(lang_service_t* service, int fork_twice);
 
 /**
  * @brief Reload the service

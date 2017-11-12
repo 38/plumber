@@ -298,6 +298,18 @@ int cli_interactive(uint32_t debug)
 		LOG_ERROR("Cannot create PSS Virtual Machine");
 		return 1;
 	}
+
+	pss_value_t value = {
+		.kind = PSS_VALUE_KIND_NUM,
+		.num = 1
+	};
+
+	if(ERROR_CODE(int) == pss_vm_set_global(current_vm, "pscript.repl_mode", value))
+	{
+		LOG_ERROR("Cannot inject variable pscript.repl_mode to the global");
+		return 1;
+	}
+
 #define _ADD_BUILTIN_FUNC(name, func) \
 	if(ERROR_CODE(int) == pss_vm_add_builtin_func(current_vm, name, func)) \
 	{ \

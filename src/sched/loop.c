@@ -729,7 +729,7 @@ NEXT_ITER:
 	return 0;
 }
 
-int sched_loop_start(sched_service_t** service)
+int sched_loop_start(sched_service_t** service, int fork_twice)
 {
 
 	int rc = 0;
@@ -745,8 +745,14 @@ int sched_loop_start(sched_service_t** service)
 
 	if(NULL != _scheds) ERROR_RETURN_LOG_ERRNO(int, "Cannot call the sched loop function twice");
 
-	if(ERROR_CODE(int) == sched_daemon_daemonize())
+	int daemon_rc;
+
+	if(ERROR_CODE(int) == (daemon_rc = sched_daemon_daemonize(fork_twice)))
 	    ERROR_RETURN_LOG(int, "Cannot make the application a daemon");
+
+	/* If we are in fork twice mode, return true directly, since it's going to handle the
+	 * service in another process */
+	if(daemon_rc == 0 && fork_twice) return 0;
 
 	uint32_t i;
 	sched_loop_t* ptr = NULL;

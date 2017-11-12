@@ -311,7 +311,7 @@ const char* lang_service_get_type(lang_service_t* service, int64_t nid, const ch
 	return type_expr;
 }
 
-int lang_service_start(lang_service_t* service)
+int lang_service_start(lang_service_t* service, int fork_twice)
 {
 	if(NULL == service)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
@@ -329,7 +329,7 @@ int lang_service_start(lang_service_t* service)
 		service->object = service_obj;
 	}
 
-	if(ERROR_CODE(int) == sched_loop_start(&service->object))
+	if(ERROR_CODE(int) == sched_loop_start(&service->object, fork_twice))
 	    ERROR_RETURN_LOG(int, "Cannot start the service");
 
 	return 0;

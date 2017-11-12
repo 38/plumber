@@ -450,10 +450,15 @@ int sched_daemon_finalize()
 	return rc;
 }
 
-int sched_daemon_daemonize()
+int sched_daemon_daemonize(int fork_twice)
 {
-	int null_fd = -1;
+	int null_fd = -1, starter_pid;
 	if(_id[0] == 0) return 0;
+
+	if(fork_twice && (starter_pid = fork()) < 0)
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot fork the daemon starter");
+
+	if(fork_twice && starter_pid > 0) return 0;
 
 	char lock_path[PATH_MAX];
 	char sock_path[PATH_MAX];
@@ -552,7 +557,7 @@ int sched_daemon_daemonize()
 
 	LOG_NOTICE("Plumber daemon %s started PID:%d lockfile:%s sockfile:%s", _id, self_pid, lock_path, sock_path);
 
-	return 0;
+	return 1;
 ERR:
 	if(_lock_fd >= 0)
 	{
