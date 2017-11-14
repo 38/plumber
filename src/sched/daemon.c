@@ -465,6 +465,18 @@ int sched_daemon_daemonize(int fork_twice)
 	snprintf(lock_path, sizeof(lock_path), "%s/%s/%s%s", INSTALL_PREFIX, SCHED_DAEMON_FILE_PREFIX, _id, SCHED_DAEMON_LOCK_SUFFIX);
 	snprintf(sock_path, sizeof(sock_path), "%s/%s/%s%s", INSTALL_PREFIX, SCHED_DAEMON_FILE_PREFIX, _id, SCHED_DAEMON_SOCKET_SUFFIX);
 
+	/* Then we need to make sure that the directory is there */
+	char buf[PATH_MAX];
+	char *p, *q;
+	struct stat st;
+	for(p = lock_path, q = buf; *p; *(q++) = *(p++))
+	    if(*p == '/' && q - buf > 0 && (stat((*q = 0, buf), &st) < 0 || !S_ISDIR(st.st_mode)))
+	    {
+		    LOG_INFO("Creating directory %s", buf);
+		    if(mkdir(buf, 0775) < 0)
+		        ERROR_RETURN_LOG_ERRNO(int, "Cannot create directory %s", buf);
+	    }
+
 	if((_lock_fd = open(lock_path, O_RDWR | O_CREAT, 0640)) < 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot create the lock file %s", lock_path);
 
