@@ -3,6 +3,7 @@ import datetime
 import sys
 import argparse
 import time
+import os
 
 color = {
     'F': '\033[39;41m',
@@ -53,10 +54,34 @@ class LogRecord(object):
         return self.get_str(fmt)
 
 class LogFile(object):
-    def __init__(self, filenames, follow=False):
+    def __init__(self, filenames, follow=False, last = -1):
         self._fps = [open(f, "r") for f in filenames]
         self._last = [None for _ in filenames]
         self._follow = follow
+        if last >= 0:
+            for fp,name in zip(self._fps, filenames):
+                stat = os.stat(name)
+                size = stat.st_size
+                needs_search = True
+                for i in range(0, last + 1):
+                    if not fp.readline():
+                        needs_search = False
+                        break
+                fp.seek(0)
+                if not needs_search: continue
+                left,right = 0, size
+                while right - left > 1:
+                    mid = (right + left) / 2
+                    fp.seek(mid)
+                    count = 0
+                    while count <= last and fp.readline():
+                        count += 1
+                    if count == last + 1:
+                        left = mid
+                    else:
+                        right = mid
+                fp.seek(right)
+
     def __del__(self):
         for filep in self._fps:
             if filep != None:
@@ -145,7 +170,7 @@ else:
     args.color = False
     args.follow = True
 
-files = LogFile(args.log_files, args.follow) if len(args.log_files) else LogFile(["/dev/stdin"])
+files = LogFile(args.log_files, args.follow, args.last[0] if args.last else -1) if len(args.log_files) else LogFile(["/dev/stdin"])
 
 last = [None for _ in xrange(args.last[0])] if args.last else []
 if last:
