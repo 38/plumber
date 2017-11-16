@@ -101,6 +101,8 @@ int _entry_point(int argc, char** argv)
 
 	sched_task_context_t* stc = sched_task_context_new(NULL);
 
+	sched_rscope_init_thread();
+
 	for(;!_stopped;)
 	{
 		itc_module_pipe_t *in, *out;
