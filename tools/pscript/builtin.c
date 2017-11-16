@@ -1025,35 +1025,35 @@ static pss_value_t _pscript_builtin_log(pss_vm_t* vm, uint32_t argc, pss_value_t
 	if(argc != 2) return ret;
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF || PSS_VALUE_REF_TYPE_STRING != pss_value_ref_type(argv[0]))
-		return ret;
+	    return ret;
 
 	if(argv[1].kind != PSS_VALUE_KIND_REF || PSS_VALUE_REF_TYPE_STRING != pss_value_ref_type(argv[1]))
-		return ret;
+	    return ret;
 
 	ret.num = PSS_VM_ERROR_INTERNAL;
 
 	const char* level = (const char*)pss_value_get_data(argv[0]);
 	if(level == NULL)
-		return ret;
+	    return ret;
 	const char* msg = (const char*)pss_value_get_data(argv[1]);
 	if(msg == NULL)
-		return ret;
+	    return ret;
 
 	ret.kind =  PSS_VALUE_KIND_UNDEF;
 	if(strcmp(level, "fatal") == 0)
-		LOG_FATAL("%s", msg);
+	    LOG_FATAL("%s", msg);
 	else if(strcmp(level, "error") == 0)
-		LOG_ERROR("%s", msg);
+	    LOG_ERROR("%s", msg);
 	else if(strcmp(level, "warning") == 0)
-		LOG_WARNING("%s", msg);
+	    LOG_WARNING("%s", msg);
 	else if(strcmp(level, "notice") == 0)
-		LOG_NOTICE("%s", msg);
+	    LOG_NOTICE("%s", msg);
 	else if(strcmp(level, "info") == 0)
-		LOG_INFO("%s", msg);
+	    LOG_INFO("%s", msg);
 	else if(strcmp(level, "trace") == 0)
-		LOG_TRACE("%s", msg);
+	    LOG_TRACE("%s", msg);
 	else if(strcmp(level, "debug") == 0)
-		LOG_DEBUG("%s", msg);
+	    LOG_DEBUG("%s", msg);
 	else
 	{
 		LOG_ERROR("Invalid log level %s", level);
