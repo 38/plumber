@@ -1,0 +1,280 @@
+.TH PScript 1
+.SH NAME
+pscript - The Plumber Pipelining Configuration Scripting Language
+.SH SYNOPSIS
+.B pscript
+[
+.B -M 
+.I module-search-path
+]
+.B -d
+.I module-name
+.br
+.B pscript
+[
+.B -n
+] [
+.B -M 
+.I module-search-path
+] [
+.B -L
+.I interpreter-log-level
+] [
+.B -o
+.I output-path
+]
+.B -c
+.I script
+.br
+.B pscript 
+[
+.B -n
+] [
+.B -S
+.I servlet-search-path
+] [
+.B -L
+.I interpreter-log-level
+] [
+.B -M 
+.I module-search-path
+]
+.br
+.B pscript 
+[
+.B -n
+] [
+.B -L
+.I interpreter-log-level
+] [
+.B -M
+.I module-search-path
+]
+.B -B
+.br
+.B pscript 
+[
+.B -n
+] [
+.B -S
+.I servlet-search-path
+] [
+.B -L
+.I interpreter-log-level
+] 
+.B -e 
+.I code
+.br
+.B pscript 
+[
+.B -n
+] [
+.B -S
+.I servlet-search-path
+] [
+.B -L
+.I interpreter-log-level
+] 
+.I script
+[
+.I arguments
+]
+.SH DESCRIPTION
+PScript is the interpreter for the Plumber Pipelining Script Language (PSS). 
+PScript is a Turing-Completed langauge with the power of building data-flow based
+applications or daemons with Plumber servlets.
+It's serve as the fundamental shell of the Plumber software infrastructure and all
+the applications and daemons are directly implemneted with a PSS script.
+PScript implements a Javascript-like syntax and a DSL which is desgined for the
+data-flow based programming. It uses Plumber servlet as basic build blocks and 
+allows user to combine the basic build blocks into a "logic servlet".
+PScript is also repsonsible to initialize and configure the IO modules, setup the
+Plumber framework parameters and controls the Plumber daemons.
+The detailed language spec is avaiable from the Plumber Project documentation.
+This man page focuses on how applications and daemons are built by PSS.
+.SH OPTIONS
+.TP
+.B -M, --module-path
+Specify the additional PSS module search path
+.br
+.TP 
+.B -B, --build-mod
+Build all the system PSS module from the PSS module search path. This can be used with 
+.B -M
+to compile PSS modules from any directory.
+.br
+.TP
+.B -S, --servlet-dir
+Specify the servlet searching directory. If this argument is not provided PScript should
+search the default search path
+.I ${INSTALL_PREFIX}/lib/plumber/servlet/
+.br
+.TP
+.B -n, --no-debug-info
+Prevent the PScript compiler emit the debugging info (Line number, file name, etc).
+When this option is on, the stackback trace won't contains any line number information.
+However, it's useful if we want to reduce the size of the generated PSM bindary file.
+.br
+.TP
+.B -c, --compile
+Instead of actually run the script, just compile the PSS file into PSM bytecode. This can be
+used with 
+.B -n
+to create a PSM bytecode file without any debugging information.
+.br
+.TP
+.B -o, --output
+Specify where the compile PSM bytecode file should be put. This must be used with
+.B -c
+option
+.br
+.TP
+.B -d, --disassemble
+Disassemble the specific module, can be used with
+.B -M
+.br
+.TP
+.B -L, --log-level
+Change the interpreter logging level
+.br
+.TP
+.B -e, --eval
+Evaluate the given string as code
+.br
+.TP
+.B -v, --version
+Show the PScript version
+.SH BUILTINS
+PScript defines many builtin functions and variables. For the builtin function information, uses the 
+.I help()
+function in the REPL mode. For the builtin variable, we describe in following text:
+.br
+.TP
+.B args
+The array for the command line arguments
+.br
+.TP
+.B pscript.repl_mode (Read-only)
+1 or 
+.I undefined
+which indicates if the pscript interpreter is running under the REPL (Read-Evaluate-Print-Loop) mode.
+.br
+.TP
+.B runtime.servlet.path
+Get or set the servlet search path list for Plumber runtime. The search path list is a colon-seperated list of path, for example
+
+.ft B
+	runtime.servlet.path = ".:./output/:" + runtime.servlet.path;
+.ft R
+.br
+.TP
+.B runtime.daemon.id
+Get or set the daemon id. If this variable is empty string, the behavior of 
+.I Service.start(graph)
+builtin function is run the service graph within current process.
+If the string it non-empty string, once the service gets started, it will spawn the
+background daemon, which can be controled by the 
+.I daemon
+PSS module.
+.br
+.TP
+.B runtime.daemon.admin_group
+Indicates which group of user can uses the daemon PSS module to manage the daemon. This variable only meaningful when
+.I runtime.daemon.id
+is a non-empty value.
+.br
+.TP
+.B sched.worker.nthreads
+Get or set the number of worker threads used by Plumber core runtime. 
+.br
+.TP
+.B sched.worker.queue_size
+Get or set the maximum size of the event queue for each worker thread.
+.br
+.TP
+.B sched.worker.default_itc_pipe
+Get or set the default Inter-Task-Communication pipe type. The value should be a existing module instance identifier. E.g.
+
+.ft B
+	sched.worker.default_itc_pipe = "pipe.mem";
+.ft R
+.br
+.TP
+.B sched.worker.max_concurrency
+Get or set the maximum number of requests can be handled by a single worker thread at same time.
+.br
+.TP
+.B sched.asnyc.nthreads
+Get or set the number of asynchronous processing threads in the asynchronous processing unit.
+.br
+.TP
+.B sched.async.queue_size
+Get or set the maximum size of the async processing task queue
+.br
+.TP
+.B sched.async.wait_list_size
+Get or set the maximum size of the async wait list
+.br
+.TP
+.B module.binary.has_<module-binary-name> (Read-Only)
+Test if the system can find the module binary name. This is useful when we writing protable scripts. For example
+
+.ft B
+	if(module.binary.has_tls_pipe)
+.br
+		insmod("tls_pipe ...");
+.ft R
+.br
+.TP 
+.B profiler.enabled (Write-Only)
+Enable or disable the servlet profiler. 1 for enable, 0 for disable.
+.br
+.TP 
+.B profiler.output (Write-Only)
+Set the path where profiler put the profiling result
+.SH IO MODULES
+IO modules are the fundamental IO abstraction layer in the Plumber framework. In 
+.I PScript
+the IO module can be instantiated by the builtin function
+.I insmod
+For example,
+
+.ft B
+	insmod("tcp_pipe 80");
+.ft R
+.br
+Will create a new TCP module instance. After a module instance has been instantiated,
+an unique 
+.B module identifer 
+can be used as the reference to the module. It can be used to test if the module has been
+already loaded as well as configure the module. For example,
+
+.ft B
+	if(pipe.tcp.port_80) insmod("tcp_pipe 80");
+.br
+	pipe.tcp.port_80.backlog = 65536;
+.ft R
+
+See 
+.I get_prop, set_prop 
+module callback function src/module/*/module.c for the module setup details
+
+.SH AUTHORS
+Plumber Project contributors: see https://raw.githubusercontent.com/38/plumber/master/CONTRIBUTORS for details
+.SH LICENSE
+The entire Plumber Project is under 2-clause BSD license, see https://raw.githubusercontent.com/38/plumber/master/LICENSE for details
+
+
+.\" PScript: The Plumber Service Script Interpreter
+.\" Usage: pscript [options] service_script_file [arguments-to-script]
+.\"   -h  --help          Show this help information
+.\"   -M  --module-path   Set the module search path
+.\"   -B  --build-mod     Build all the modules under module search path
+.\"   -n  --no-debug-info Do not emit any debug info during compilation
+.\"   -c  --compile       The compile only mode
+.\"   -o  --output        The bytecode output directory
+.\"   -d  --disassemble   Disassemble the given module
+.\"   -S  --servlet-dir   Set the servlet search directory
+.\"   -L  --log-level     Set the log level
+.\"   -e  --eval          Evalute the string and exit
+.\"   -v  --version       Show version information
