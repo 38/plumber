@@ -179,7 +179,7 @@ if last:
     for lr in files:
         last[nxt] = lr
         nxt = (nxt + 1) % len(last)
-    for i in range(nxt + 1, nxt + len(last) + 1):
+    for i in range(nxt, nxt + len(last)):
         lr = last[i%len(last)]
         if lr:
             if args.color:

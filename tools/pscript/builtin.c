@@ -1016,6 +1016,53 @@ ERR:
 	return ret;
 }
 
+static pss_value_t _pscript_builtin_log(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
+{
+	(void)vm;
+
+	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR, .num = PSS_VM_ERROR_ARGUMENT};
+
+	if(argc != 2) return ret;
+
+	if(argv[0].kind != PSS_VALUE_KIND_REF || PSS_VALUE_REF_TYPE_STRING != pss_value_ref_type(argv[0]))
+		return ret;
+
+	if(argv[1].kind != PSS_VALUE_KIND_REF || PSS_VALUE_REF_TYPE_STRING != pss_value_ref_type(argv[1]))
+		return ret;
+
+	ret.num = PSS_VM_ERROR_INTERNAL;
+
+	const char* level = (const char*)pss_value_get_data(argv[0]);
+	if(level == NULL)
+		return ret;
+	const char* msg = (const char*)pss_value_get_data(argv[1]);
+	if(msg == NULL)
+		return ret;
+
+	ret.kind =  PSS_VALUE_KIND_UNDEF;
+	if(strcmp(level, "fatal") == 0)
+		LOG_FATAL("%s", msg);
+	else if(strcmp(level, "error") == 0)
+		LOG_ERROR("%s", msg);
+	else if(strcmp(level, "warning") == 0)
+		LOG_WARNING("%s", msg);
+	else if(strcmp(level, "notice") == 0)
+		LOG_NOTICE("%s", msg);
+	else if(strcmp(level, "info") == 0)
+		LOG_INFO("%s", msg);
+	else if(strcmp(level, "trace") == 0)
+		LOG_TRACE("%s", msg);
+	else if(strcmp(level, "debug") == 0)
+		LOG_DEBUG("%s", msg);
+	else
+	{
+		LOG_ERROR("Invalid log level %s", level);
+		ret.num = PSS_VM_ERROR_ARGUMENT;
+	}
+
+	return ret;
+}
+
 static pss_value_t _pscript_builtin_log_redirect(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
 	(void)vm;
@@ -1166,6 +1213,7 @@ static struct {
 	_B(import, "(name)", "Import the PSS module specified by the name"),
 	_B(insmod, "(init_str)", "Install a module specified by init_str to Plumber runtime system"),
 	_B(len,    "(obj)", "Get the length of the object"),
+	_B(log,    "(level, msg)", "Log a message to the logging system"),
 	_B(log_redirect, "(level, file [, mode])", "Override the logging redirection, level: the log level we want to redirect, file: the filename, mode: the fopen mode, by default is 'w'"),
 	_B(lsdaemon, "()", "List all the running Plumber daemons"),
 	_B(lsmod, "()", "Get a list of all the installed module installed to the Plumber runtime system"),
