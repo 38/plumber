@@ -143,5 +143,12 @@ pss_vm_exception_t* pss_vm_last_exception(pss_vm_t* vm);
  **/
 int pss_vm_exception_free(pss_vm_exception_t* exception);
 
+/**
+ * @brief Kill current execution
+ * @param target vm
+ * @return status code
+ **/
+int pss_vm_kill(pss_vm_t* vm);
+
 
 #endif
