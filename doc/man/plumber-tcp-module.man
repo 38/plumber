@@ -1,0 +1,92 @@
+.TH Plumber-TCP-Module 1 "Nov 16 2017" "Plumber Project Contributors" "Plumber Software Infrastructure"
+.SH NAME
+tcp_pipe - The Plumber TCP IO Module
+.SH SYNOPSIS
+insmod("
+.B tcp_pipe
+[
+.B --slave
+]
+.I port_id
+")
+.br
+insmod("
+.B tcp_pipe
+.I module_identifer_to_master
+")
+.SH DESCRIPTION
+The TCP IO module actually handles the IO event on TCP ports. It can be instantiated
+into multiple module instances and one master TCP module for each port. 
+The master TCP module instance uses the identifer
+.I pipe.tcp.port_<port_id>.
+.R For example,
+.br
+.ft B
+	pipe.tcp.port_80
+.ft R
+.br
+for the master module instance listening to the 80 TCP port.
+.br
+For the multi-threaded event loop case, the identifer
+.I pipe.tcp.port_<port_id>$<thread_id> 
+is used.
+.SH OPTIONS
+.TP
+.B --slave
+The slave mode, which means the module do not mark itself as the event accepting module instance.
+Thus other module, for example, TLS module, can use this TCP module instance as the transportation 
+layer implementation.
+.SH VARIABLES
+.TP
+.B pipe.tcp.port_<port>.port
+Get or set which port the module instance should be listening to. (Note: It's possible the
+port property changed after the module instance is initialize, but this is not recommended)
+.br
+.TP
+.B pipe.tcp.port_<port>.ttl
+Get or set the maximum time to live for an inactive TCP connection. If a TCP connection do not
+have data avaiable longer than the time TTL property specify, the connection will be closed automatically.
+Event the connection with persistent flag can be affected by this flag.
+.br
+.TP
+.B pipe.tcp.port_<port>.ttl
+Get or set the maximum size of the TCP connection pool, this value limits the maximum number
+of connection can be handled by this module.
+.br
+.TP
+.B pipe.tcp.port_<port>.event_size
+Get or set the size of the event buffer used by the connection pool.
+.br
+.TP
+.B pipe.tcp.port_<port>.event_timeout
+Get or set the maximum amount of time the TCP module wait for a single event.
+.br
+.TP
+.B pipe.tcp.port_<port>.backlog
+Get or set the TCP backlog size
+.br
+.TP
+.B pipe.tcp.port_<port>.ipv6
+Get or set if the module allows IPv6 Connections. 0 = disabled, 1 = enabled. The default value is disabled
+.br
+.TP
+.B pipe.tcp.port_<port>.reuseaddr
+Get or set if we append SO_REUSEADDR flag to the socket flags.
+.br
+.TP
+.B pipe.tcp.port_<port>.bindaddr
+Get or set the address string used as the binding address
+.br
+.TP
+.B pipe.tcp.port_<port>.nforks (Read-Only)
+Get the number of parallel event loop running on this port
+
+.SH SEE ALSO
+pscript, plumber-tls-module, plumber-mempipe-module, plumber-pssm
+
+.SH AUTHORS
+Plumber Project contributors: see https://raw.githubusercontent.com/38/plumber/master/CONTRIBUTORS for details
+.SH LICENSE
+The entire Plumber Project is under 2-clause BSD license, see https://raw.githubusercontent.com/38/plumber/master/LICENSE for details
+
+

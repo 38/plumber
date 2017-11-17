@@ -1,4 +1,4 @@
-.TH PScript 1
+.TH PScript 1 "Nov 16 2017" "Plumber Project Contributors" "Plumber Software Infrastructure"
 .SH NAME
 pscript - The Plumber Pipelining Configuration Scripting Language
 .SH SYNOPSIS
@@ -258,6 +258,9 @@ already loaded as well as configure the module. For example,
 See 
 .I get_prop, set_prop 
 module callback function src/module/*/module.c for the module setup details
+
+.SH SEE ALSO
+plumber-tcp-module, plumber-tls-module, plumber-mempipe-module, plumber-pssm
 
 .SH AUTHORS
 Plumber Project contributors: see https://raw.githubusercontent.com/38/plumber/master/CONTRIBUTORS for details

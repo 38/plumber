@@ -1,0 +1,104 @@
+.TH Plumber-TLS-Module 1 "Nov 16 2017" "Plumber Project Contributors" "Plumber Software Infrastructure"
+.SH NAME
+tls_pipe - The Plumber TLS IO Module
+.SH SYNOPSIS
+insmod("
+.B tls_pipe 
+[
+.B cert=
+.I certificate-path
+] [
+.B key=
+.I key-path
+]
+.I transprotation-layer-module-identifer
+")
+.SH DESCRIPTION
+This IO module implements the TLS (Transportantion Layer Security) communication
+channel. The transportation layer module is usually a TCP module instance in the
+slave mode. The module identifer for TLS module instance is
+.I pipe.tls.<transportation-layer-identifer>. For example, the TLS module on 433 TCP port
+can be referred by:
+.br
+.ft B
+	pipe.tls.pipe.tcp.port_80
+.ft R
+.SH OPTIONS
+.TP
+.B cert=<certificate-path>
+Set the certificate path. It should be a PEM file on the disk.
+.TP
+.B key=<key-path>
+Set the key path. It should be a PEM file on the disk.
+.SH VARIABLE
+.TP
+.B pipe.tls.<trans-layer>.async_write
+Get or set if the module supports asynchronous write.
+.br
+.TP
+.B pipe.tls.<trans-layer>.ssl2
+Get or set if the module should support SSLv2. The recommended value is 0, and this may be enabled
+for compatibility considerations.
+.br
+.TP
+.B pipe.tls.<trans-layer>.ssl3
+Get or set if the module should support SSLv3. Similar to ssl2 option, this should be disabled for most of the case.
+.br
+.TP
+.B pipe.tls.<trans-layer>.tls1
+Get or set if the module should support TLSv1.0.
+.br
+.TP
+.B pipe.tls.<trans-layer>.tls1_1
+Get or set if the module should support TLSv1.1.
+.br
+.TP
+.B pipe.tls.<trans-layer>.tls1_2
+Get or set if the module should support TLSv1.2.
+.br
+.TP
+.B pipe.tls.<trans-layer>.cipher
+Get or set the cipher configuration used by this module. The format of the cipher string
+can be found in the OpenSSL documentation.
+.br
+.TP
+.B pipe.tls.<trans-layer>.extra_cert_chain
+Get or set the extra ceritificate in the certificate chain. This is used when the TLS certificate is 
+signed by a non-root authority. Thus the trust chain should be provided in this way.
+.br
+.TP
+.B pipe.tls.<trans-layer>.dhparam
+The parameter file used by Diffie-Hellman Key Exchange (DHE) algorithm. This variable only meaningful when
+the DHE algorithm is enabled.
+.br
+.TP
+.B pipe.tls.<trans-layer>.ecdh_curve
+The name of the curve used by Elliptic-curve Diffie-Hellman (ECDH) algorithm. 
+It can be set to auto, means the framework should determine which curve should be used.
+.br
+.TP
+.B pipe.tls.<trans-layer>.alpn_protos
+Get or set the protocols supported by Application-Layer Protocol Negotiation (ALPN). The list should be
+space seperated name of protocols. The supported protocols are
+.br
+.ft B
+	h2
+.br
+	http/1.1
+.br
+	spdy/1
+.br
+	spdy/2
+.br
+	spdy/3
+.ft R
+
+.SH SEE ALSO
+pscript, plumber-tcp-module, plumber-mempipe-module, plumber-pssm
+
+.SH AUTHORS
+Plumber Project contributors: see https://raw.githubusercontent.com/38/plumber/master/CONTRIBUTORS for details
+.SH LICENSE
+The entire Plumber Project is under 2-clause BSD license, see https://raw.githubusercontent.com/38/plumber/master/LICENSE for details
+
+
