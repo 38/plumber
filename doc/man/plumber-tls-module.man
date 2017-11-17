@@ -17,8 +17,8 @@ insmod("
 This IO module implements the TLS (Transportantion Layer Security) communication
 channel. The transportation layer module is usually a TCP module instance in the
 slave mode. The module identifer for TLS module instance is
-.I pipe.tls.<transportation-layer-identifer>. For example, the TLS module on 433 TCP port
-can be referred by:
+.I pipe.tls.<transportation-layer-identifer>
+For example, the TLS module on 433 TCP port can be referred by:
 .br
 .ft B
 	pipe.tls.pipe.tcp.port_80
