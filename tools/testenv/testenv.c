@@ -16,12 +16,12 @@
 
 static int __memory_check = 1;
 
-extern int __check_memory_allocation();
-extern int __print_memory_leakage();
+extern int __check_memory_allocation(void);
+extern int __print_memory_leakage(void);
 
 extern test_case_t test_list[];
-int setup();
-int teardown();
+int setup(void);
+int teardown(void);
 
 #if defined(FULL_OPTIMIZATION) && !defined(__DARWIN__)
 void* mempool_objpool_alloc(mempool_objpool_t* pool)
@@ -72,7 +72,7 @@ static const char * const stage_message[] = {
 	"finalize plumber"
 };
 
-int testmain()
+int testmain(void)
 {
 	int stage = -1;
 	if(plumber_init() < 0)
@@ -130,8 +130,10 @@ ERR:
 	return -1;
 }
 
-int main()
+int main(void)
 {
+	const char* memchk = getenv("NO_LEAK_CHECK");
+	if(NULL != memchk) __memory_check = 0;
 	int ret = thread_run_test_main(testmain);
 	if(__memory_check)
 	{

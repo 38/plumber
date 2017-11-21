@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <testenv.h>
 #include <pss.h>
-int strify_test()
+int strify_test(void)
 {
 	pss_value_t dictval = pss_value_ref_new(PSS_VALUE_REF_TYPE_DICT, NULL);
 	ASSERT(dictval.kind == PSS_VALUE_KIND_REF, CLEANUP_NOP);
@@ -34,7 +34,7 @@ int strify_test()
 	ASSERT_OK(pss_value_decref(dictval), CLEANUP_NOP);
 	return 0;
 }
-int dict_test()
+int dict_test(void)
 {
 	pss_dict_t* dict;
 	ASSERT_PTR(dict = pss_dict_new(), CLEANUP_NOP);
@@ -93,7 +93,7 @@ ERR:
 	return ERROR_CODE(int);
 }
 
-int setup()
+int setup(void)
 {
 	ASSERT_OK(pss_log_set_write_callback(log_write_va), CLEANUP_NOP);
 	ASSERT_OK(pss_init(), CLEANUP_NOP);

@@ -6,7 +6,7 @@
 
 runtime_stab_entry_t id;
 
-int test_load_servlet()
+int test_load_servlet(void)
 {
 
 	const char* argv[] = {"serv_loader_test"};
@@ -19,7 +19,7 @@ int test_load_servlet()
 	return 0;
 }
 
-int test_servlet_not_found()
+int test_servlet_not_found(void)
 {
 	const char* argv[] = {"__servlet_not_exist__"};
 
@@ -28,14 +28,14 @@ int test_servlet_not_found()
 	return 0;
 }
 
-int test_servlet_invalid_args()
+int test_servlet_invalid_args(void)
 {
 	ASSERT(runtime_stab_load(0, NULL, NULL) == ERROR_CODE(runtime_stab_entry_t), CLEANUP_NOP);
 
 	return 0;
 }
 
-int test_servlet_num_pipes()
+int test_servlet_num_pipes(void)
 {
 	ASSERT(runtime_stab_num_pipes(id) == 5, CLEANUP_NOP);
 
@@ -44,7 +44,7 @@ int test_servlet_num_pipes()
 	return 0;
 }
 
-int test_servlet_find_pipe_by_name()
+int test_servlet_find_pipe_by_name(void)
 {
 	ASSERT(runtime_stab_get_pipe(id, "test_pipe_0") == 2, CLEANUP_NOP);
 	ASSERT(runtime_stab_get_pipe(id, "test_pipe_1") == 3, CLEANUP_NOP);
@@ -54,14 +54,14 @@ int test_servlet_find_pipe_by_name()
 	return 0;
 }
 
-int test_servlet_pipe_count()
+int test_servlet_pipe_count(void)
 {
 	ASSERT(runtime_stab_get_num_input_pipe(id) == 2, CLEANUP_NOP);
 	ASSERT(runtime_stab_get_num_output_pipe(id) == 1, CLEANUP_NOP);
 
 	return 0;
 }
-int setup()
+int setup(void)
 {
 	if(runtime_servlet_append_search_path(TESTDIR) < 0) return -1;
 	return 0;

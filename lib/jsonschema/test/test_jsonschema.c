@@ -7,7 +7,7 @@
 
 jsonschema_t* schema = NULL;
 
-int test_schema_compile()
+int test_schema_compile(void)
 {
 	const char* schema_text = "{\n"
 	"	\"name\": \"string(6,128)\",\n"
@@ -31,7 +31,7 @@ int test_schema_compile()
 	return 0;
 }
 
-int test_schema_validate_valid()
+int test_schema_validate_valid(void)
 {
 	const char* value_text[] = {
 		"{\"name\": \"plumber\", \"nickname\": \"plumber\", \"items\": [] }",
@@ -47,7 +47,7 @@ int test_schema_validate_valid()
 }
 
 
-int test_schema_validate_invalid()
+int test_schema_validate_invalid(void)
 {
 	const char* value_text[] = {
 		"{\"name\": \"bad\", \"nickname\": \"plumber\", \"items\": [] }",
@@ -66,7 +66,7 @@ int test_schema_validate_invalid()
 	return 0;
 }
 
-int test_schema_update()
+int test_schema_update(void)
 {
 	const char* original = "{\"name\": \"plumber\", \"items\": [] }";
 	char outbuf[1024];
@@ -129,7 +129,7 @@ int test_schema_update()
 
 }
 
-int setup()
+int setup(void)
 {
 	if(ERROR_CODE(int) == jsonschema_log_set_write_callback(log_write_va))
 	    ERROR_RETURN_LOG(int, "Cannot set the log write callback");
@@ -138,7 +138,7 @@ int setup()
 	return 0;
 }
 
-int teardown()
+int teardown(void)
 {
 	ASSERT(NULL == schema || ERROR_CODE(int) != jsonschema_free(schema), CLEANUP_NOP);
 	return 0;

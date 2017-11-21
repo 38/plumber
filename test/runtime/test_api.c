@@ -63,7 +63,7 @@ static void trap(int id)
 	}
 }
 
-int test_pipe_open()
+int test_pipe_open(void)
 {
 	unsigned i;
 
@@ -105,7 +105,7 @@ static inline int _pipe_cntl(itc_module_pipe_t* handle, uint32_t opcode, ...)
 }
 
 #if DO_NOT_COMPILE_ITC_MODULE_TEST == 0
-int test_pipe_read()
+int test_pipe_read(void)
 {
 	itc_module_type_t mod_test = itc_modtab_get_module_type_from_path("pipe.test.test");
 	ASSERT(ERROR_CODE(itc_module_type_t) != mod_test, CLEANUP_NOP);
@@ -159,14 +159,14 @@ ERR:
 }
 #endif /* DO_NOT_COMPILE_ITC_MODULE_TEST */
 
-int setup()
+int setup(void)
 {
 	ASSERT_OK(runtime_servlet_append_search_path(TESTDIR), CLEANUP_NOP);
 	ASSERT_OK(runtime_servlet_set_trap(trap), CLEANUP_NOP);
 	return 0;
 }
 
-int teardown()
+int teardown(void)
 {
 	if(pipe_open_rc) free(pipe_open_rc);
 	return 0;

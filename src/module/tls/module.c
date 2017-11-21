@@ -183,7 +183,7 @@ static unsigned long _ssl_tid(void)
  * @brief initialize the threading callbacks for the OpenSSL
  * @return status code
  **/
-static inline int _thread_init()
+static inline int _thread_init(void)
 {
 	uint32_t i;
 	_ssl_mutex_count = (uint32_t)CRYPTO_num_locks();
@@ -219,7 +219,7 @@ ERR:
  * @brief do the cleanup for the OpenSSL mutexes
  * @return status code
  **/
-static inline int _thread_finalize()
+static inline int _thread_finalize(void)
 {
 	if(_ssl_mutex == NULL) return 0;
 	uint32_t i;
@@ -477,7 +477,7 @@ static inline int _clean_openssl(void* thread, void* data)
  * @brief clear the open ssl error
  * @return status code
  **/
-static inline int _clear_ssl_error()
+static inline int _clear_ssl_error(void)
 {
 	static __thread int hook_installed = 0;
 	if(hook_installed == 0)

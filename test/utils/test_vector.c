@@ -8,7 +8,7 @@
 
 static vector_t* vec = NULL;
 
-int test_vector_insersion()
+int test_vector_insersion(void)
 {
 	uint32_t i;
 	for(i = 0; i < 5; i ++)
@@ -20,7 +20,7 @@ int test_vector_insersion()
 	return 0;
 }
 
-int test_vector_resize()
+int test_vector_resize(void)
 {
 	uint32_t i;
 	for(i = 5; i < 128; i ++)
@@ -32,7 +32,7 @@ int test_vector_resize()
 	return 0;
 }
 
-int test_vector_traverse()
+int test_vector_traverse(void)
 {
 	uint32_t i;
 
@@ -47,7 +47,7 @@ int test_vector_traverse()
 	return 0;
 }
 
-int test_vector_clean()
+int test_vector_clean(void)
 {
 	vector_clear(vec);
 	ASSERT(0 == vector_length(vec), CLEANUP_NOP);
@@ -55,13 +55,13 @@ int test_vector_clean()
 	return 0;
 }
 
-int setup()
+int setup(void)
 {
 	ASSERT(vec = vector_new(sizeof(uint32_t), 8), CLEANUP_NOP);
 	return 0;
 }
 
-int teardown()
+int teardown(void)
 {
 	ASSERT(NULL != vec && vector_free(vec) >= 0, if(NULL != vec) free(vec));
 	return 0;

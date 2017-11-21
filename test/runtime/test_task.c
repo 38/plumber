@@ -35,7 +35,7 @@ static void trap(int id)
 	}
 }
 
-int test_get_current_task()
+int test_get_current_task(void)
 {
 	const char* argv[] = {"task_test"};
 
@@ -57,7 +57,7 @@ int test_get_current_task()
 	return 0;
 }
 
-int test_exec_task()
+int test_exec_task(void)
 {
 	runtime_task_t* task = runtime_task_new(servlet, (RUNTIME_TASK_FLAG_ACTION_EXEC | 3));
 
@@ -72,14 +72,14 @@ int test_exec_task()
 }
 
 
-int setup()
+int setup(void)
 {
 	ASSERT_OK(runtime_servlet_append_search_path(TESTDIR), CLEANUP_NOP);
 
 	return 0;
 }
 
-int teardown()
+int teardown(void)
 {
 	ASSERT_OK(runtime_servlet_free(servlet), CLEANUP_NOP);
 	ASSERT_OK(runtime_servlet_binary_unload(binary), CLEANUP_NOP);

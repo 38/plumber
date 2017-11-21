@@ -236,7 +236,7 @@ int thread_run_test_main(thread_test_main_t main);
  * @return The pointer of current stack
  * @note This only works with the thread created by thread_new
  **/
-static inline thread_stack_t* thread_get_current_stack()
+static inline thread_stack_t* thread_get_current_stack(void)
 {
 	uintptr_t addr = (uintptr_t)&addr;
 	addr = addr - addr % STACK_SIZE - sizeof(thread_stack_t);
@@ -258,7 +258,7 @@ static inline void* thread_pset_acquire(thread_pset_t* pset)
 	return _thread_allocate_current_pointer(pset, tid);
 }
 
-static inline thread_type_t thread_get_current_type()
+static inline thread_type_t thread_get_current_type(void)
 {
 	return thread_get_current_stack()->type;
 }

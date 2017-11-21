@@ -365,7 +365,7 @@ static inline int _hash_delete(_node_t* node)
  *        there's a new protodb root
  * @return status code
  **/
-static inline int _clear_cache()
+static inline int _clear_cache(void)
 {
 	int rc = 0;
 	uint32_t i;

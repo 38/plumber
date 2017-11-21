@@ -20,7 +20,7 @@ static const char response[] = "HTTP/1.1 200 OK \r\n"
 static const char request[] =  "GET / HTTP/1.1\r\n"
                                "Host: 127.0.0.1\r\n"
                                "\r\n";
-int do_request()
+int do_request(void)
 {
 	int sock = socket(AF_INET, SOCK_STREAM, 0);
 	struct sockaddr_in addr;
@@ -71,7 +71,7 @@ static inline void sighand(int signo)
 	int rc = do_request();
 	exit(rc);
 }
-int eloop_test()
+int eloop_test(void)
 {
 	context->port = 9000;
 	pid_t pid;
@@ -146,7 +146,7 @@ ERR:
 /**
  * @todo fix the memory leak when exit
  **/
-int setup()
+int setup(void)
 {
 	context = (module_tcp_pool_configure_t*)itc_module_get_context(itc_modtab_get_module_type_from_path("pipe.tcp.port_8888"));
 	expected_memory_leakage();

@@ -53,7 +53,7 @@ module_tcp_pool_conninfo_t conn;
 int       r_flag = 0;
 module_tcp_pool_t* pool;
 
-double get_ts()
+double get_ts(void)
 {
 	struct timespec time;
 	clock_gettime(CLOCK_REALTIME, &time);
@@ -197,8 +197,9 @@ void* worker_func(void* ptr_id)
 	return NULL;
 }
 
-void* event_loop()
+void* event_loop(void* param)
 {
+	(void)param;
 	for(;;)
 	{
 		pthread_mutex_lock(&r_mutex);
@@ -220,7 +221,7 @@ void* event_loop()
 		pthread_cond_signal(&s_cond);
 	}
 }
-int main()
+int main(void)
 {
 	tl = fopen("timeline.tsv", "w");
 	signal(SIGPIPE, SIG_IGN);

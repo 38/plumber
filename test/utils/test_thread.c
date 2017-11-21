@@ -37,7 +37,7 @@ static int dealloc2(void* mem, const void* d)
 }
 
 
-int create()
+int create(void)
 {
 	ASSERT_PTR(pset1 = thread_pset_new(1, alloc1, dealloc1, NULL), CLEANUP_NOP);
 	ASSERT_PTR(pset2 = thread_pset_new(1, alloc2, dealloc2, NULL), CLEANUP_NOP);
@@ -66,7 +66,7 @@ static inline void* thread_main(void* ptr)
 
 	return p;
 }
-int run()
+int run(void)
 {
 	thread_t* t[N];
 	uint32_t i;
@@ -81,7 +81,7 @@ int run()
 	}
 	return 0;
 }
-int dispose()
+int dispose(void)
 {
 	uint32_t i, j = 0;
 	for(i = 0; i < 2 * N; i ++)
@@ -132,7 +132,7 @@ void* test_thread_main(void* arg)
 	return flag + n;
 }
 
-int thread_obj()
+int thread_obj(void)
 {
 	thread_t* threads[NT];
 	int n[NT];
@@ -157,7 +157,7 @@ int thread_obj()
 	return 0;
 }
 
-int setup()
+int setup(void)
 {
 #if __i386__
 	int i;

@@ -2,7 +2,7 @@
 #include <utils/hashmap.h>
 #include <stdio.h>
 
-int test_hashmap_new()
+int test_hashmap_new(void)
 {
 	hashmap_t* hm = hashmap_new(32767, 4096);
 	ASSERT_PTR(hm, goto ERR);
@@ -12,7 +12,7 @@ ERR:
 	hashmap_free(hm);
 	return ERROR_CODE(int);
 }
-int test_hashmap_insert_find()
+int test_hashmap_insert_find(void)
 {
 	hashmap_t* hm = hashmap_new(32767, 4096);
 	ASSERT_PTR(hm, goto ERR);
@@ -47,12 +47,12 @@ ERR:
 	hashmap_free(hm);
 	return ERROR_CODE(int);
 }
-int setup()
+int setup(void)
 {
 	return 0;
 }
 
-int teardown()
+int teardown(void)
 {
 	return 0;
 }

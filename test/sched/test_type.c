@@ -80,7 +80,7 @@ static inline runtime_stab_entry_t _load(const char* type)
 	    ASSERT_OK(sched_service_free(serv), CLEANUP_NOP);\
     }while(0)
 
-int untyped()
+int untyped(void)
 {
 	MKBUF;
 
@@ -108,7 +108,7 @@ int untyped()
 	return 0;
 }
 
-int typed()
+int typed(void)
 {
 	MKBUF;
 
@@ -156,7 +156,7 @@ int typed()
 	return 0;
 }
 
-int adhoc_type()
+int adhoc_type(void)
 {
 	MKBUF;
 
@@ -191,7 +191,7 @@ int adhoc_type()
 	return 0;
 }
 
-int invalid_conversion()
+int invalid_conversion(void)
 {
 	MKBUF;
 
@@ -219,7 +219,7 @@ int invalid_conversion()
 	return 0;
 }
 
-int invalid_generialization()
+int invalid_generialization(void)
 {
 	MKBUF;
 
@@ -248,7 +248,7 @@ int invalid_generialization()
 
 }
 
-int setup()
+int setup(void)
 {
 	ASSERT_OK(runtime_servlet_append_search_path(TESTDIR), CLEANUP_NOP);
 	expected_memory_leakage();

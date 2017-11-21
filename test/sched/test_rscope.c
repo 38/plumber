@@ -22,7 +22,7 @@ int test_multiple_request_free_func(void* ptr)
 	return 0;
 }
 
-int test_multiple_request()
+int test_multiple_request(void)
 {
 	sched_rscope_t* scope1 = NULL;
 	sched_rscope_t* scope[10];
@@ -147,7 +147,7 @@ static inline size_t _stream_obj_read(void* handle, void* buffer, size_t sz)
 	return ret;
 }
 
-int test_stream_interface()
+int test_stream_interface(void)
 {
 	runtime_api_scope_token_t t1, t2;
 	sched_rscope_t* scope = sched_rscope_new();
@@ -316,12 +316,12 @@ int test_stream_interface()
 	return 0;
 }
 
-int setup()
+int setup(void)
 {
 	return sched_rscope_init_thread();
 }
 
-int teardown()
+int teardown(void)
 {
 	return sched_rscope_finalize_thread();
 }

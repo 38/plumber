@@ -44,7 +44,7 @@ static int _initialized = 0;
 
 static pthread_mutex_t _mutex;
 
-static inline void _lock()
+static inline void _lock(void)
 {
 	if(!_initialized)
 	{
@@ -56,7 +56,7 @@ static inline void _lock()
 	pthread_mutex_lock(&_mutex);
 }
 
-static inline void _unlock()
+static inline void _unlock(void)
 {
 	if(_initialized != 1) return;
 
@@ -168,7 +168,7 @@ void* realloc(void* ptr, size_t new_size)
 
 #endif
 
-int __check_memory_allocation()
+int __check_memory_allocation(void)
 {
 #ifdef __LINUX__
 	memory_block_t* ptr;
@@ -186,7 +186,7 @@ int __check_memory_allocation()
 #endif
 }
 
-void __print_memory_leakage()
+void __print_memory_leakage(void)
 {
 #ifdef __LINUX__
 	memory_block_t* ptr;
@@ -202,7 +202,7 @@ void __print_memory_leakage()
 	return;
 #endif
 }
-void expected_memory_leakage()
+void expected_memory_leakage(void)
 {
 #ifdef __LINUX__
 	_num_expected_memory_leakage ++;

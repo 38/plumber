@@ -7,14 +7,14 @@
 
 runtime_pdt_t* pdt = NULL;
 
-int test_pdt_creation()
+int test_pdt_creation(void)
 {
 	ASSERT_PTR(pdt = runtime_pdt_new(), CLEANUP_NOP);
 
 	return 0;
 }
 
-int test_pdt_insertion()
+int test_pdt_insertion(void)
 {
 	int i;
 	for(i = 0; i < 100; i ++)
@@ -26,7 +26,7 @@ int test_pdt_insertion()
 	return 0;
 }
 
-int test_pdt_find()
+int test_pdt_find(void)
 {
 	int i;
 	for(i = 0; i < 100; i ++)
@@ -41,7 +41,7 @@ int test_pdt_find()
 	return 0;
 }
 
-int test_pdt_flags()
+int test_pdt_flags(void)
 {
 	uint32_t i;
 	for(i = 0; i < 100; i ++)
@@ -51,21 +51,21 @@ int test_pdt_flags()
 	return 0;
 }
 
-int test_pdt_size1()
+int test_pdt_size1(void)
 {
 	ASSERT(runtime_pdt_get_size(pdt) == 0, CLEANUP_NOP);
 
 	return 0;
 }
 
-int test_pdt_size2()
+int test_pdt_size2(void)
 {
 	ASSERT(runtime_pdt_get_size(pdt) == 100, CLEANUP_NOP);
 
 	return 0;
 }
 
-int test_pdt_input_output_count()
+int test_pdt_input_output_count(void)
 {
 #define CLEANUP if(pdt != NULL) runtime_pdt_free(pdt);
 	runtime_pdt_t* pdt = runtime_pdt_new();
@@ -100,7 +100,7 @@ int test_pdt_input_output_count()
 }
 DEFAULT_SETUP;
 
-int teardown()
+int teardown(void)
 {
 	ASSERT_OK(runtime_pdt_free(pdt), CLEANUP_NOP);
 

@@ -245,6 +245,7 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 	    _RAISE(ctx, return ERROR_CODE(int), "internal error: cannot peek token");
 
 	static uint32_t dimensions[128];
+	char typename_buf[4096];
 	int rc = 0;
 	int64_t ival = 0;
 	double  dval = 0;
@@ -301,7 +302,8 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 		if(NULL != (tok = _peek(ctx, 1)) && tok->type == LEXER_TOKEN_ID)
 		{
 			metadata.flags.scope.typename_size = strlen(tok->data->id) & 0x3fffffff;
-			metadata.scope_typename = (char*)tok->data->id;
+			metadata.scope_typename = typename_buf;
+			snprintf(typename_buf, sizeof(typename_buf), "%s", tok->data->id);
 			_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);
 		}
 		else _RAISE(ctx, return ERROR_CODE(int), "syntax error: identifer exepcted");
@@ -313,7 +315,7 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 
 	if(ERROR_CODE(int) == proto_type_append_atomic(type, namebuf, elem_size, ((rc == 0) ? NULL : dimensions), &metadata))
 	    _LIB_PROTO_ERROR(ctx, return ERROR_CODE(int));
-
+	
 	return 0;
 }
 

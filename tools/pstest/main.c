@@ -27,7 +27,7 @@ static struct option _options[] = {
 	{NULL,      0,                  0,   0 }
 };
 
-static inline int _load_default_module()
+static inline int _load_default_module(void)
 {
 	int rc = 0;
 	char const * args[3] = {};

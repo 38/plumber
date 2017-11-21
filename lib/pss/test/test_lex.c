@@ -5,7 +5,7 @@
 #include <testenv.h>
 #include <pss.h>
 pss_comp_lex_t* lexer = NULL;
-int create_lexer()
+int create_lexer(void)
 {
 	static char buf[10240];
 	FILE* fp = fopen(TESTDIR"/test_pss.in", "r");
@@ -17,7 +17,7 @@ int create_lexer()
 
 	return 0;
 }
-int verify_token()
+int verify_token(void)
 {
 	pss_comp_lex_token_t token;
 	ASSERT_OK(pss_comp_lex_next_token(lexer, &token), CLEANUP_NOP);
@@ -178,14 +178,14 @@ int verify_token()
 	ASSERT_STREQ(token.file, TESTDIR"/test_pss.in", CLEANUP_NOP);
 	return 0;
 }
-int setup()
+int setup(void)
 {
 	ASSERT_OK(pss_log_set_write_callback(log_write_va), CLEANUP_NOP);
 	ASSERT_OK(pss_init(), CLEANUP_NOP);
 	return 0;
 }
 
-int teardown()
+int teardown(void)
 {
 	ASSERT_OK(pss_comp_lex_free(lexer), CLEANUP_NOP);
 	ASSERT_OK(pss_finalize(), CLEANUP_NOP);

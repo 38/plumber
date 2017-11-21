@@ -6,7 +6,7 @@
 
 mempool_objpool_t* pool;
 
-int pool_creation()
+int pool_creation(void)
 {
 	ASSERT_PTR(pool = mempool_objpool_new(11), CLEANUP_NOP);
 	ASSERT((mempool_objpool_get_obj_size(pool) & (sizeof(uintptr_t) - 1)) == 0, CLEANUP_NOP);
@@ -21,7 +21,7 @@ static inline uintptr_t _p2u(void* mem)
 {
 	return *(uintptr_t*)mem;
 }
-int pool_allocation()
+int pool_allocation(void)
 {
 	void* mem;
 	ASSERT_PTR(mem = mempool_objpool_alloc(pool), CLEANUP_NOP);
@@ -83,7 +83,7 @@ int pool_allocation()
 	return 0;
 }
 
-int disabled_pool()
+int disabled_pool(void)
 {
 	uint32_t i;
 
@@ -113,12 +113,12 @@ int disabled_pool()
 
 	return 0;
 }
-int setup()
+int setup(void)
 {
 	return mempool_objpool_disabled(0);
 }
 
-int teardown()
+int teardown(void)
 {
 	return mempool_objpool_free(pool);
 }

@@ -17,7 +17,7 @@ void _write(int level, const char* file, const char* function, int line, const c
 	_called = 1;
 }
 
-int test_pss_log_write()
+int test_pss_log_write(void)
 {
 	ASSERT(ERROR_CODE(int) == pss_log_set_write_callback(NULL), CLEANUP_NOP);
 	pss_log_write(0, __FILE__, "func", __LINE__, "%s", "xxx");

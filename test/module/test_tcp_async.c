@@ -228,13 +228,13 @@ static inline void _unblock_async_thread(uint32_t cid)
 	pthread_mutex_unlock(&conn[cid].mutex);
 }
 
-int create_loop()
+int create_loop(void)
 {
 	ASSERT_PTR(loop = module_tcp_async_loop_new(128, 32, 240, test_write), CLEANUP_NOP);
 	return 0;
 }
 
-int cleanup_loop()
+int cleanup_loop(void)
 {
 	ASSERT_OK(module_tcp_async_loop_free(loop), CLEANUP_NOP);
 
@@ -252,7 +252,7 @@ __attribute__((used)) static inline uint32_t _as_u32(void* start, int n)
 {
 	return ((uint32_t*)start)[n];
 }
-int single_async_write()
+int single_async_write(void)
 {
 	uint32_t data;
 	/* Because the initial data state is wait, so nothing should happen here, so we can block every thing at this point */
@@ -555,13 +555,13 @@ static inline int _parallel_write(uint32_t n)
 	return 0;
 }
 
-int parallel_write()
+int parallel_write(void)
 {
 	ASSERT_OK(_parallel_write(100), CLEANUP_NOP);
 	return 0;
 }
 
-int setup()
+int setup(void)
 {
 	expected_memory_leakage();
 
@@ -585,7 +585,7 @@ int setup()
 	return 0;
 }
 
-int teardown()
+int teardown(void)
 {
 	unsigned i;
 	for(i = 0; i < sizeof(conn) / sizeof(*conn); i ++)

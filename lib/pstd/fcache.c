@@ -117,7 +117,7 @@ struct _pstd_fcache_file_t {
  * @note  this is currently just return the macro, but later we should make it read the configuration
  * return the size in number of elements
  **/
-static inline uint32_t _cache_hash_size()
+static inline uint32_t _cache_hash_size(void)
 {
 	return _CACHE_HASH_SIZE;
 }
@@ -127,7 +127,7 @@ static inline uint32_t _cache_hash_size()
  * @note  this should be configurable, make this read from a config file
  * @return the TTL in seconds
  **/
-static inline uint32_t _cache_ttl()
+static inline uint32_t _cache_ttl(void)
 {
 	return _CACHE_TTL;
 }
@@ -138,7 +138,7 @@ static inline uint32_t _cache_ttl()
  * @note  this should be configurable
  * @return the size limit in number of bytes
  **/
-static inline uint32_t _max_file_size()
+static inline uint32_t _max_file_size(void)
 {
 	return _MAX_FILE_SIZE;
 }
@@ -148,7 +148,7 @@ static inline uint32_t _max_file_size()
  * @note  this should be configurable
  * @return the max size of the thread cache
  **/
-static inline size_t _max_cache_size()
+static inline size_t _max_cache_size(void)
 {
 	return _MAX_CACHE_SIZE;
 }
@@ -185,7 +185,7 @@ static void _clean_cache(void* cache_table)
  * @brief ensure the thread local cache is initialized
  * @return status code
  **/
-static inline int _ensure_thread_init()
+static inline int _ensure_thread_init(void)
 {
 	if(_cache_table == NULL)
 	{

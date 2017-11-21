@@ -51,7 +51,7 @@ typedef struct {
  * @brief initialize the Python-Pservlet Interface
  * @return status code
  **/
-static inline int _init_ppi()
+static inline int _init_ppi(void)
 {
 	if(_init_count++ != 0)
 	{
@@ -114,7 +114,7 @@ ERR:
  * @brief finalize the PPI
  * @return sttus code
  **/
-static inline int _finalize_ppi()
+static inline int _finalize_ppi(void)
 {
 	if(-- _init_count != 0) return 0;
 	PyGILState_Ensure();

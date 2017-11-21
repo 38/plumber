@@ -46,7 +46,7 @@ typedef struct {
 
 #define _PRINT_INFO(message, args...) printf(message"\n", ##args)
 #define _PRINT_STDERR(message, args...) printf(message"\n", ##args)
-void display_help()
+void display_help(void)
 {
 	_PRINT_STDERR("protoman: The Plumber centralized protocol type system manangement utilities");
 	_PRINT_STDERR("Usage: protoman <command> [general-options|command-specified-options] [parameters]");
@@ -91,7 +91,7 @@ void display_help()
 	_PRINT_STDERR("\nSyntax Check");
 	_PRINT_STDERR("  protoman --syntax-check [general-options]  <ptype-file1> ... <ptype-fileN>");
 }
-void display_version()
+void display_version(void)
 {
 	_PRINT_STDERR("protoman: The Plumber centralized protocol type system manangement utilities");
 	_PRINT_STDERR("Program Version       : " PLUMBER_VERSION);

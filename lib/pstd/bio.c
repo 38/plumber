@@ -167,7 +167,7 @@ size_t pstd_bio_read(pstd_bio_t* pstd_bio, void* ptr, size_t size)
 
 	for(;size > 0 && !pipe_eof(pstd_bio->pipe);)
 	{
-		size_t rc = pipe_read(pstd_bio->pipe, ptr + ret, size);
+		size_t rc = pipe_read(pstd_bio->pipe, ((int8_t*)ptr + ret), size);
 		if(ERROR_CODE(size_t) == rc) ERROR_RETURN_LOG(size_t, "Cannot read data from pipe");
 		if(rc == 0) return ret;
 		size -= rc;

@@ -46,7 +46,7 @@ const char* str_tostr(const void* value, char* buf, size_t bufsize)
 	return value;
 }
 
-int test_ref_value()
+int test_ref_value(void)
 {
 	int* data = (int*)calloc(1, sizeof(int));
 	pss_value_t value = pss_value_ref_new(PSS_VALUE_REF_TYPE_TEST, data);
@@ -81,7 +81,7 @@ int test_ref_value()
 	return 0;
 }
 
-int test_primitive_value()
+int test_primitive_value(void)
 {
 	pss_value_t value = {
 		.kind = PSS_VALUE_KIND_NUM,
@@ -113,7 +113,7 @@ int test_primitive_value()
 	return 0;
 }
 
-int setup()
+int setup(void)
 {
 	ASSERT_OK(pss_log_set_write_callback(log_write_va), CLEANUP_NOP);
 	pss_value_ref_ops_t test_ops = {

@@ -20,7 +20,7 @@
 
 char expected_inst[48][1024];
 
-int code_generation_test()
+int code_generation_test(void)
 {
 	pss_bytecode_module_t* module = pss_bytecode_module_new();
 	ASSERT_PTR(module, CLEANUP_NOP);
@@ -100,7 +100,7 @@ int code_generation_test()
 	return 0;
 }
 
-int module_load_test()
+int module_load_test(void)
 {
 	pss_bytecode_module_t* module = NULL;
 	ASSERT_PTR(module = pss_bytecode_module_load(TESTDIR"/test_code.psm"), CLEANUP_NOP);
@@ -140,7 +140,7 @@ int module_load_test()
 }
 
 
-int setup()
+int setup(void)
 {
 	ASSERT_OK(pss_log_set_write_callback(log_write_va), CLEANUP_NOP);
 

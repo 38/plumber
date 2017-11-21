@@ -119,7 +119,7 @@ static inline void _on_thread_killed(int signo)
 	}
 }
 
-static inline int _init_eloop()
+static inline int _init_eloop(void)
 {
 	if(_thread_data != NULL) ERROR_RETURN_LOG(int, "Event loops are already started");
 
@@ -159,7 +159,7 @@ static inline int _init_eloop()
 	return 0;
 }
 
-int itc_eloop_start()
+int itc_eloop_start(void)
 {
 	if(ERROR_CODE(int) == _init_eloop())
 	    ERROR_RETURN_LOG(int, "Cannot initialize the event loop");
@@ -196,11 +196,11 @@ int itc_eloop_start()
 	return 0;
 }
 
-int itc_eloop_init()
+int itc_eloop_init(void)
 {
 	return 0;
 }
-int itc_eloop_finalize()
+int itc_eloop_finalize(void)
 {
 	uint32_t i;
 	uint32_t has_started = 0;

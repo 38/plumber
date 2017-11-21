@@ -7,7 +7,7 @@
 
 mempool_oneway_t* table;
 
-int test_allocate()
+int test_allocate(void)
 {
 	table = mempool_oneway_new(1024);
 	ASSERT_PTR(table, CLEANUP_NOP);
@@ -20,7 +20,7 @@ int test_allocate()
 }
 
 // default size 1024, allocate 100 for both pointers, their address should not be overlapping.
-int test_memory_in_same_block()
+int test_memory_in_same_block(void)
 {
 	table = mempool_oneway_new(1024);
 
@@ -36,7 +36,7 @@ int test_memory_in_same_block()
 	return 0;
 }
 
-int test_memory_in_different_block()
+int test_memory_in_different_block(void)
 {
 	table = mempool_oneway_new(1024);
 	ASSERT_PTR(table, CLEANUP_NOP);
@@ -47,17 +47,17 @@ int test_memory_in_different_block()
 	ASSERT_PTR(space1, CLEANUP_NOP);
 	ASSERT_PTR(space2, CLEANUP_NOP);
 
-	ASSERT(space2 != space1+100, CLEANUP_NOP);
+	ASSERT(space2 != (void*)(((int8_t*)space1) + 100), CLEANUP_NOP);
 	ASSERT_OK(mempool_oneway_free(table), CLEANUP_NOP);
 	return 0;
 }
 
-int setup()
+int setup(void)
 {
 	return 0;
 }
 
-int teardown()
+int teardown(void)
 {
 	return 0;
 }

@@ -31,7 +31,7 @@ STATIC_ASSERTION_LAST(_buffer_t, params);
  * @brief create a new option argument buffer
  * @return the newly created buffer
  **/
-static inline _buffer_t* _buffer_new()
+static inline _buffer_t* _buffer_new(void)
 {
 	_buffer_t* ret = (_buffer_t*)malloc(sizeof(_buffer_t) + 32 * sizeof(pstd_option_param_t));
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the param buffer");

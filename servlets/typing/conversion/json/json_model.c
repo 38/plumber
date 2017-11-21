@@ -26,7 +26,7 @@ typedef struct {
 	pstd_type_model_t*  type_model;    /*!< The PSTD type model */
 } _traverse_data_t;
 
-static inline void _print_libproto_err()
+static inline void _print_libproto_err(void)
 {
 #ifdef LOG_ERROR_ENABLED
 	const proto_err_t* err = proto_err_stack();

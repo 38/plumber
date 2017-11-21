@@ -40,7 +40,7 @@ static inline int _notify_stage(thread_data_t* data, uint32_t stage)
 	ASSERT_OK(pthread_mutex_unlock(&data->stage_mutex), CLEANUP_NOP);
 	return 0;
 }
-static inline int _next_stage()
+static inline int _next_stage(void)
 {
 	int i;
 	for(i = 0; i < NTHREADS; i ++)
@@ -172,7 +172,7 @@ void* thread_main(void* d)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 itc_equeue_token_t sched_token;
-int test_token()
+int test_token(void)
 {
 	ASSERT_RETOK(itc_equeue_token_t, sched_token = itc_equeue_scheduler_token(), CLEANUP_NOP);
 	ASSERT_OK(_next_stage(), CLEANUP_NOP);
@@ -180,7 +180,7 @@ int test_token()
 	return 0;
 }
 
-int test_put()
+int test_put(void)
 {
 	ASSERT_OK(_next_stage(),  CLEANUP_NOP);
 	ASSERT_OK(_validate_stage(2), CLEANUP_NOP);
@@ -205,7 +205,7 @@ int test_put()
 
 	return 0;
 }
-int test_writer_wait()
+int test_writer_wait(void)
 {
 	ASSERT_OK(_next_stage(), CLEANUP_NOP);
 
@@ -226,7 +226,7 @@ int test_writer_wait()
 
 	return 0;
 }
-int full_test()
+int full_test(void)
 {
 	ASSERT_OK(_next_stage(), CLEANUP_NOP);
 
@@ -252,7 +252,7 @@ int full_test()
 
 	return 0;
 }
-int random_test()
+int random_test(void)
 {
 	ASSERT_OK(_next_stage(), CLEANUP_NOP);
 
@@ -278,7 +278,7 @@ int random_test()
 
 	return 0;
 }
-int setup()
+int setup(void)
 {
 	srand((unsigned)time(NULL));
 	uint32_t i;
@@ -297,7 +297,7 @@ int setup()
 	return 0;
 }
 
-int teardown()
+int teardown(void)
 {
 	int i;
 	for(i = 0; i < NTHREADS; i ++)

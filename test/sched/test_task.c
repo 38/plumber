@@ -24,7 +24,7 @@ sched_task_context_t* stc = NULL;
 
 int args[] = {1,2,3,4,5,6,7,8,9,10};
 
-int load_servlet()
+int load_servlet(void)
 {
 	char argstr[32];
 	const char* aa[] = {"serv_helperA", argstr};
@@ -73,7 +73,7 @@ static inline int _pipe(int from_node, runtime_api_pipe_id_t from_pipe, int to_n
 
 	return sched_service_buffer_add_pipe(buffer, desc);
 }
-int single_node_test()
+int single_node_test(void)
 #if DO_NOT_COMPILE_ITC_MODULE_TEST == 0
 {
 	int rc = -1;
@@ -148,7 +148,7 @@ ERR:
 }
 #endif /* DO_NOT_COMPILE_ITC_MODULE_TEST */
 
-int build_buffer()
+int build_buffer(void)
 {
 	ASSERT_PTR(buffer = sched_service_buffer_new(), CLEANUP_NOP);
 	ASSERT_OK(sched_service_buffer_allow_reuse_servlet(buffer), CLEANUP_NOP);
@@ -267,14 +267,14 @@ ERR:
 }
 #endif /*DO_NOT_COMPILE_ITC_MODULE_TEST */
 
-int do_request_test()
+int do_request_test(void)
 {
 	int i = 0;
 	for(; i < 100; i ++)
 	    ASSERT_OK(request_test(i), CLEANUP_NOP);
 	return 0;
 }
-int build_service()
+int build_service(void)
 {
 	ASSERT_PTR(service = sched_service_from_buffer(buffer), CLEANUP_NOP);
 
@@ -285,7 +285,7 @@ static void _trap(int n)
 {
 	executed_flags[n] = 1;
 }
-int pipe_disable()
+int pipe_disable(void)
 {
 	memset(executed_flags, 0, sizeof(executed_flags));
 	int rc = 0;
@@ -388,7 +388,7 @@ CLEANUP:
 	return rc;
 }
 
-int task_cancel()
+int task_cancel(void)
 #if DO_NOT_COMPILE_ITC_MODULE_TEST == 0
 {
 	int rc = 0, i;
@@ -484,7 +484,7 @@ CLEANUP:
 	return 0;
 }
 #endif /* DO_NOT_COMPILE_ITC_MODULE_TEST */
-int setup()
+int setup(void)
 {
 	mod_test = itc_modtab_get_module_type_from_path("pipe.test.test");
 	ASSERT(ERROR_CODE(itc_module_type_t) != mod_test, CLEANUP_NOP);
@@ -497,7 +497,7 @@ int setup()
 }
 
 
-int teardown()
+int teardown(void)
 {
 	if(NULL != buffer)
 	{

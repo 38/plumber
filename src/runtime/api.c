@@ -145,7 +145,7 @@ static int _cntl(runtime_api_pipe_t pipe, uint32_t opcode, va_list ap)
 	}
 }
 
-static const char* _version()
+static const char* _version(void)
 {
 	return PLUMBER_VERSION;
 }

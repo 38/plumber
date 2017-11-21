@@ -30,7 +30,7 @@ static const char response[] = "HTTP/1.1 200 OK \r\n"
 static const char request[] =  "GET / HTTP/1.1\r\n"
                                "Host: 127.0.0.1\r\n"
                                "\r\n";
-int do_request()
+int do_request(void)
 {
 
 	int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -86,7 +86,7 @@ int do_request()
 	return 0;
 }
 
-int accept_test()
+int accept_test(void)
 {
 	itc_module_pipe_param_t param = {
 		.input_flags = RUNTIME_API_PIPE_INPUT,
@@ -141,7 +141,7 @@ ERR:
 	return -1;
 }
 
-int setup()
+int setup(void)
 {
 	mod_tcp = itc_modtab_get_module_type_from_path("pipe.tcp.port_8888");
 	ASSERT(ERROR_CODE(itc_module_type_t) != mod_tcp, CLEANUP_NOP);

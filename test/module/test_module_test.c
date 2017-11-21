@@ -6,7 +6,7 @@
 #include <itc/module_types.h>
 #include <module/test/module.h>
 
-int set_get_request()
+int set_get_request(void)
 #if DO_NOT_COMPILE_ITC_MODULE_TEST == 0
 {
 	itc_module_type_t mod_test = itc_modtab_get_module_type_from_path("pipe.test.test");

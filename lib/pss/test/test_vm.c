@@ -54,7 +54,7 @@ int _setter(const char* name, pss_value_t value)
 	return 0;
 }
 
-int test_extension()
+int test_extension(void)
 {
 	pss_bytecode_module_t* module = pss_bytecode_module_new();
 	ASSERT_PTR(module, CLEANUP_NOP);
@@ -103,7 +103,7 @@ int test_extension()
 
 }
 
-int test_gcd()
+int test_gcd(void)
 {
 	pss_bytecode_module_t* module = pss_bytecode_module_new();
 	ASSERT_PTR(module, CLEANUP_NOP);
@@ -165,7 +165,7 @@ int test_gcd()
 
 }
 
-int test_generic_add()
+int test_generic_add(void)
 {
 	pss_bytecode_module_t* module = pss_bytecode_module_new();
 	ASSERT_PTR(module, CLEANUP_NOP);
@@ -204,7 +204,7 @@ int test_generic_add()
 
 }
 
-int test_func_as_param()
+int test_func_as_param(void)
 {
 	pss_bytecode_module_t* module = pss_bytecode_module_new();
 	ASSERT_PTR(module, CLEANUP_NOP);
@@ -262,7 +262,7 @@ int test_func_as_param()
 	return 0;
 }
 
-int test_ucombinator()
+int test_ucombinator(void)
 {
 	pss_bytecode_module_t* module = pss_bytecode_module_new();
 	ASSERT_PTR(module, CLEANUP_NOP);
@@ -306,7 +306,7 @@ int test_ucombinator()
 	return 0;
 }
 
-int test_currying()
+int test_currying(void)
 {
 	pss_bytecode_module_t* module = pss_bytecode_module_new();
 	ASSERT_PTR(module, CLEANUP_NOP);
@@ -375,7 +375,7 @@ int test_currying()
 	return 0;
 }
 
-int test_first_class_func()
+int test_first_class_func(void)
 {
 	pss_bytecode_module_t* module = pss_bytecode_module_new();
 	ASSERT_PTR(module, CLEANUP_NOP);
@@ -408,7 +408,7 @@ int test_first_class_func()
 	return 0;
 }
 
-int setup()
+int setup(void)
 {
 	ASSERT_OK(pss_log_set_write_callback(log_write_va), CLEANUP_NOP);
 	ASSERT_OK(pss_init(), CLEANUP_NOP);

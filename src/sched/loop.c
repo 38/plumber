@@ -541,7 +541,7 @@ static itc_equeue_event_mask_t _interrupt_handler(void* pl)
  * @brief The dispatcher main function
  * @return status code
  **/
-static inline int _dispatcher_main()
+static inline int _dispatcher_main(void)
 {
 
 	thread_set_name("PbDispatcher");

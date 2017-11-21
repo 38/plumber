@@ -7,7 +7,7 @@
 #include <time.h>
 #include <stdlib.h>
 bitmask_t* bitmask;
-int test_alloc()
+int test_alloc(void)
 {
 	size_t i;
 	for(i = 0; i < 1234567; i ++)
@@ -16,14 +16,14 @@ int test_alloc()
 	return 0;
 }
 
-int test_full_alloc()
+int test_full_alloc(void)
 {
 	ASSERT((size_t)-1 == bitmask_alloc(bitmask), CLEANUP_NOP);
 
 	return 0;
 }
 
-int test_dealloc()
+int test_dealloc(void)
 {
 	size_t i;
 	for(i = 0; i < 1234567; i += 3)
@@ -31,7 +31,7 @@ int test_dealloc()
 	return 0;
 }
 
-int test_reuse()
+int test_reuse(void)
 {
 	size_t i;
 	for(i = 0; i < 1234567; i += 3)
@@ -73,7 +73,7 @@ static inline int _test_ops(int k)
 	}
 	return 0;
 }
-int test_random_ops()
+int test_random_ops(void)
 {
 	srand((unsigned)time(NULL));
 	ASSERT_OK(bitmask_clear(bitmask), CLEANUP_NOP);
@@ -83,7 +83,7 @@ int test_random_ops()
 	return 0;
 }
 
-int setup()
+int setup(void)
 {
 	bitmask = bitmask_new(1234567);
 	ASSERT_PTR(bitmask, CLEANUP_NOP);
@@ -91,7 +91,7 @@ int setup()
 	return 0;
 }
 
-int teardown()
+int teardown(void)
 {
 	bitmask_free(bitmask);
 

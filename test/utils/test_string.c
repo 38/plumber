@@ -5,7 +5,7 @@
 #include <testenv.h>
 #include <utils/string.h>
 #include <stdlib.h>
-int test_string_buffer()
+int test_string_buffer(void)
 {
 	char buffer[20];
 	string_buffer_t b;
@@ -17,7 +17,7 @@ int test_string_buffer()
 	ASSERT_STREQ(string_buffer_close(&b), "this is a test!", CLEANUP_NOP);
 	return 0;
 }
-int test_string_buffer_truncate()
+int test_string_buffer_truncate(void)
 {
 	char buffer[10];
 	string_buffer_t b;
@@ -29,7 +29,7 @@ int test_string_buffer_truncate()
 	return 0;
 }
 
-int test_string_buffer_appendf()
+int test_string_buffer_appendf(void)
 {
 	char buffer[20];
 	string_buffer_t b;
@@ -43,7 +43,7 @@ int test_string_buffer_appendf()
 
 	return 0;
 }
-int test_string_buffer_range()
+int test_string_buffer_range(void)
 {
 	char buffer[20];
 	string_buffer_t b;
@@ -55,7 +55,7 @@ int test_string_buffer_range()
 	return 0;
 }
 
-int test_string_buffer_empty()
+int test_string_buffer_empty(void)
 {
 	char buffer[10];
 	string_buffer_t b;

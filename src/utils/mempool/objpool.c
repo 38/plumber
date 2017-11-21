@@ -89,7 +89,7 @@ static const uint32_t _pagesize = 4096;
  * @brief allocate a new page for the memory pool
  * @return the object for that page
  **/
-static inline _page_t* _page_new()
+static inline _page_t* _page_new(void)
 {
 	_page_t* ret = (_page_t*)malloc(sizeof(_page_t));
 
@@ -131,7 +131,7 @@ static inline int _is_pool_disabled(mempool_objpool_t* pool)
  *        an generic thread
  * @return the index or THREAD_NUM_TYPES when this is a generic type
  **/
-static inline uint32_t _thread_type_to_idx()
+static inline uint32_t _thread_type_to_idx(void)
 {
 	thread_type_t thread_type = thread_get_current_type();
 

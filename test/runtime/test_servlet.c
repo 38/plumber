@@ -3,7 +3,7 @@
  **/
 
 #include <testenv.h>
-int test_add_search_path()
+int test_add_search_path(void)
 {
 	ASSERT(runtime_servlet_num_search_path() == 0, CLEANUP_NOP);
 	ASSERT_OK(runtime_servlet_append_search_path("test0"), CLEANUP_NOP);
@@ -28,7 +28,7 @@ int test_add_search_path()
 static runtime_servlet_binary_t* _test_binary;
 static runtime_servlet_t* _test_servlet;
 
-int test_load_servlet()
+int test_load_servlet(void)
 {
 	const char* argv[] = {"serv_loader_test"};
 	ASSERT_OK(runtime_servlet_clear_search_path(), CLEANUP_NOP);
@@ -42,7 +42,7 @@ int test_load_servlet()
 	return 0;
 }
 
-int test_unload_servlet()
+int test_unload_servlet(void)
 {
 	ASSERT_PTR(_test_servlet, CLEANUP_NOP);
 
@@ -52,7 +52,7 @@ int test_unload_servlet()
 	return 0;
 }
 
-int test_servlet_not_found()
+int test_servlet_not_found(void)
 {
 	ASSERT(runtime_servlet_num_search_path() == 1, CLEANUP_NOP);
 	ASSERT_STREQ(runtime_servlet_search_paths()[0], TESTDIR, CLEANUP_NOP);
@@ -64,7 +64,7 @@ int test_servlet_not_found()
 	return 0;
 }
 
-int setup()
+int setup(void)
 {
 	//IGNORE_MEMORY_LEAK();
 	return 0;

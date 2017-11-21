@@ -7,7 +7,7 @@
 #include <pss/bytecode.h>
 #include <pss/value.h>
 #include <pss/frame.h>
-int frame_test()
+int frame_test(void)
 {
 	pss_frame_t* frame = pss_frame_new(NULL);
 	ASSERT_PTR(frame, goto ERR);
@@ -56,7 +56,7 @@ ERR:
 	return ERROR_CODE(int);
 }
 
-int frame_copy_test()
+int frame_copy_test(void)
 {
 	pss_frame_t* frame = pss_frame_new(NULL);
 	ASSERT_PTR(frame, goto ERR);
@@ -134,7 +134,7 @@ ERR:
 	ASSERT_OK(pss_frame_free(frame), CLEANUP_NOP);
 	return ERROR_CODE(int);
 }
-int setup()
+int setup(void)
 {
 	ASSERT_OK(pss_log_set_write_callback(log_write_va), CLEANUP_NOP);
 	return 0;

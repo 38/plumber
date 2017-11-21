@@ -60,7 +60,7 @@ static uint32_t _pagesize;
  **/
 static uint32_t _pagedata_limit;
 
-static _buffer_page_t* __buffer_page_new()
+static _buffer_page_t* __buffer_page_new(void)
 {
 	_buffer_page_t* ret = (_buffer_page_t*)mempool_page_alloc();
 	if(NULL == ret) ERROR_PTR_RETURN_LOG("Cannot allocate memory for the new page");

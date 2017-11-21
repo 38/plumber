@@ -53,7 +53,7 @@ typedef struct {
 	uint32_t       empty:1;     /*!< if this is a request contains nothing */
 } _parser_state_t;
 
-static inline _parser_state_t* _parser_state_new()
+static inline _parser_state_t* _parser_state_new(void)
 {
 	/* TODO: use the memory pool */
 	_parser_state_t* ret = (_parser_state_t*)malloc(sizeof(_parser_state_t));

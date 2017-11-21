@@ -44,7 +44,7 @@ int           exit_code = 0;
 
 
 #define _MESSAGE(fmt, args...) fprintf(stderr, fmt"\n", ##args)
-void display_help()
+void display_help(void)
 {
 	_MESSAGE("PScript: The Plumber Service Script Interpreter");
 	_MESSAGE("Usage: pscript [options] service_script_file [arguments-to-script]");
@@ -61,7 +61,7 @@ void display_help()
 	_MESSAGE("  -v  --version       Show version information");
 }
 
-void display_version()
+void display_version(void)
 {
 	_MESSAGE("PScript: The Plumber Service Script Interpreter");
 	_MESSAGE("Program Version       : " PLUMBER_VERSION);
@@ -353,7 +353,7 @@ EXIT:
 	return rc;
 }
 
-int build_system_module()
+int build_system_module(void)
 {
 	uint32_t i;
 	for(i = 0; module_paths[i]; i ++)

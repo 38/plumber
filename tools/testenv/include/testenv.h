@@ -39,11 +39,11 @@ typedef struct {
 /**
  * A setup function that does nothing
  **/
-#define DEFAULT_SETUP    int setup(){return 0;}
+#define DEFAULT_SETUP    int setup(void){return 0;}
 /**
  * A teardown function that does nothing
  **/
-#define DEFAULT_TEARDOWN int teardown(){return 0;}
+#define DEFAULT_TEARDOWN int teardown(void){return 0;}
 
 /**
  * @brief create a test case in the test case list

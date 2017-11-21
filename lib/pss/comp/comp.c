@@ -267,7 +267,7 @@ int pss_comp_open_closure(pss_comp_t* comp, const char* id, uint32_t nargs, char
 	if(ERROR_CODE(int) == pss_comp_env_open_scope(comp->env))
 	    return pss_comp_raise(comp, "Internal error: Cannot open the new closure scope");
 
-	pss_bytecode_regid_t argid[nargs];
+	pss_bytecode_regid_t argid[nargs == 0 ? 1 : nargs];
 	pss_bytecode_segment_t* segment = NULL;
 	char* name = NULL;
 	uint32_t i;

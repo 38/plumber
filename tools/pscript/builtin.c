@@ -1301,7 +1301,7 @@ void builtin_print_doc(FILE* fp, int print_internals, pss_value_builtin_t func)
 	}
 }
 
-int builtin_service_running()
+int builtin_service_running(void)
 {
 	return _service_running != 0;
 }

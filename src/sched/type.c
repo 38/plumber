@@ -146,7 +146,7 @@ ERR:
  * @brief create a new environment table
  * @return the newly created environment table, NULL on error cases
  **/
-static inline _env_t* _env_new()
+static inline _env_t* _env_new(void)
 {
 	_env_t* ret = (_env_t*)calloc(1, sizeof(*ret));
 	if(NULL == ret)

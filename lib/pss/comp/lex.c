@@ -32,7 +32,7 @@ struct _pss_comp_lex_t {
  * @brief create a new lexer object
  * @return the newly create lexer, NULL on error
  **/
-static inline pss_comp_lex_t* _lexer_new()
+static inline pss_comp_lex_t* _lexer_new(void)
 {
 	pss_comp_lex_t* ret = NULL;
 	ret = (pss_comp_lex_t*)malloc(sizeof(pss_comp_lex_t));

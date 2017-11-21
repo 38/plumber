@@ -7,7 +7,7 @@
 #include <module/test/module.h>
 #define N 250
 
-int test_insmod()
+int test_insmod(void)
 {
 	int i;
 	static char name[N][32];
@@ -22,7 +22,7 @@ int test_insmod()
 	return 0;
 }
 
-int test_findmod()
+int test_findmod(void)
 {
 	int i;
 	static char name[32];
@@ -42,7 +42,7 @@ int test_findmod()
 	return 0;
 }
 
-int test_opendir()
+int test_opendir(void)
 {
 	itc_modtab_dir_iter_t iter;
 	const itc_modtab_instance_t* entry;

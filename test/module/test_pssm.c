@@ -14,7 +14,7 @@ runtime_stab_entry_t thread_local_test_sid;
 int thread_local_test_ok;
 int32_t* thread_local_test_buffer;
 
-int test_mem_pool()
+int test_mem_pool(void)
 {
 	runtime_task_t* task;
 	ASSERT_PTR(task = runtime_stab_create_exec_task(mem_pool_sid, RUNTIME_TASK_FLAG_ACTION_EXEC), CLEANUP_NOP);
@@ -26,7 +26,7 @@ int test_mem_pool()
 	return 0;
 }
 
-int test_method()
+int test_method(void)
 {
 	int i;
 	for(i = 0; i < 100; i ++)
@@ -48,7 +48,7 @@ void* test_thread(void* data)
 	return NULL;
 }
 
-int test_thread_local()
+int test_thread_local(void)
 {
 	thread_t* thread[32];
 	int i;
@@ -70,7 +70,7 @@ int test_thread_local()
 	return 0;
 }
 
-int setup()
+int setup(void)
 {
 
 #if __i386__

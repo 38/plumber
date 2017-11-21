@@ -83,7 +83,7 @@ static uint32_t _next_thread_id = 0;
  * @brief get the thread id of current thread
  * @return the thread id
  **/
-static inline uint32_t _get_thread_id()
+static inline uint32_t _get_thread_id(void)
 {
 #ifdef STACK_SIZE
 	return thread_get_current_stack()->id;

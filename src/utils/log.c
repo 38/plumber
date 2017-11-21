@@ -302,12 +302,15 @@ static inline int _is_framework_code(const char* filename)
 void log_write_va(int level, const char* file, const char* function, int line, const char* fmt, va_list ap)
 {
 	int locked = 0;
-	if(_log_mutex_active && pthread_mutex_lock(&_log_mutex) < 0)
+	if(_log_mutex_active)
 	{
-		perror("mutex error");
-		return;
+		if(pthread_mutex_lock(&_log_mutex) < 0)
+		{
+			perror("mutex error");
+			return;
+		}
+		else locked = 1;
 	}
-	else locked = 1;
 
 	if(_log_fp[level] == &_fp_off) goto UNLOCK;
 

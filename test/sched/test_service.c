@@ -29,7 +29,7 @@ static inline int _pipe(sched_service_buffer_t* buf, sched_service_node_id_t* no
 
 	return sched_service_buffer_add_pipe(buf, desc);
 }
-int service_buffer()
+int service_buffer(void)
 {
 	ASSERT_PTR(serv_buf = sched_service_buffer_new(), CLEANUP_NOP);
 	ASSERT_OK(sched_service_buffer_allow_reuse_servlet(serv_buf), CLEANUP_NOP);
@@ -70,7 +70,7 @@ int service_buffer()
 
 static sched_service_t* service;
 
-int build_service()
+int build_service(void)
 {
 	ASSERT_PTR(service = sched_service_from_buffer(serv_buf), CLEANUP_NOP);
 
@@ -90,7 +90,7 @@ int build_service()
 	return 0;
 }
 
-int serialize_service()
+int serialize_service(void)
 {
 	ASSERT_PTR(service, CLEANUP_NOP);
 
@@ -114,7 +114,7 @@ int serialize_service()
 	return 0;
 }
 
-int service_validation_invalid_input()
+int service_validation_invalid_input(void)
 {
 	runtime_api_pipe_id_t in = runtime_stab_get_pipe(servA, "stdin");
 	ASSERT_RETOK(runtime_api_pipe_id_t, in, CLEANUP_NOP);
@@ -129,7 +129,7 @@ int service_validation_invalid_input()
 	return 0;
 }
 
-int service_validation_circular_dep()
+int service_validation_circular_dep(void)
 {
 #define FB sched_service_buffer_free(buffer)
 	sched_service_buffer_t* buffer;
@@ -181,7 +181,7 @@ int service_validation_circular_dep()
 	return 0;
 }
 
-int service_getters()
+int service_getters(void)
 {
 #define FB sched_service_buffer_free(buffer)
 	sched_service_buffer_t* buffer;
@@ -243,7 +243,7 @@ int service_getters()
 	return 0;
 }
 
-int setup()
+int setup(void)
 {
 	const char* argv_A[] = {"serv_helperA", "1"};
 	const char* argv_B[] = {"serv_helperB", "1"};
@@ -256,7 +256,7 @@ int setup()
 	return 0;
 }
 
-int teardown()
+int teardown(void)
 {
 	ASSERT_OK(sched_service_buffer_free(serv_buf), CLEANUP_NOP);
 	return 0;

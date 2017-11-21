@@ -187,7 +187,7 @@ int sched_rscope_finalize_thread()
  * @brief allocate a new entry object from the entry table
  * @return the entry table that has been allocated, or error code
  **/
-static inline runtime_api_scope_token_t _entry_alloc()
+static inline runtime_api_scope_token_t _entry_alloc(void)
 {
 	runtime_api_scope_token_t ret = _NULL_ENTRY;
 

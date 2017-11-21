@@ -6,7 +6,7 @@
 #include <testenv.h>
 #include <pss.h>
 
-int test_env()
+int test_env(void)
 {
 	pss_comp_env_t* env = pss_comp_env_new();
 
@@ -41,7 +41,7 @@ int test_env()
 	return 0;
 }
 
-int recur_test()
+int recur_test(void)
 {
 	static uint32_t level = 789;
 	static pss_comp_env_t* env = NULL;
@@ -105,7 +105,7 @@ RET:
 	if(level == 789) ASSERT_OK(pss_comp_env_free(env), CLEANUP_NOP);
 	return 0;
 }
-int tmp_test()
+int tmp_test(void)
 {
 	pss_comp_env_t* env;
 	ASSERT_PTR(env = pss_comp_env_new(), CLEANUP_NOP);
@@ -135,7 +135,7 @@ static inline int _level(pss_bytecode_regid_t regid, pss_bytecode_regid_t left, 
 	else return _level(regid, mid, right) + 1;
 }
 
-int regsn_test()
+int regsn_test(void)
 {
 	int count[0xffff] = {};
 	pss_bytecode_regid_t i;
@@ -154,7 +154,7 @@ int regsn_test()
 
 	return 0;
 }
-int setup()
+int setup(void)
 {
 	ASSERT_OK(pss_log_set_write_callback(log_write_va), CLEANUP_NOP);
 

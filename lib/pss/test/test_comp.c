@@ -17,7 +17,7 @@ pss_value_t run_module(pss_bytecode_module_t* module)
 	return result;
 }
 
-int test_primitive()
+int test_primitive(void)
 {
 	char code [] = "return (function(x){"
 	               "	return function(y) { "
@@ -52,7 +52,7 @@ int test_primitive()
 	return 0;
 }
 
-int test_gcd()
+int test_gcd(void)
 {
 	char code [] = "gcd = function(a, b) {\n"
 	               "    if(a == 0) {return b;}\n"
@@ -84,7 +84,7 @@ int test_gcd()
 	return 0;
 }
 
-int high_order()
+int high_order(void)
 {
 	char code [] = "timesN = function(a) {\n"
 	               "    return function(b) {\n"
@@ -125,7 +125,7 @@ int high_order()
 	return 0;
 }
 
-int setup()
+int setup(void)
 {
 	ASSERT_OK(pss_log_set_write_callback(log_write_va), CLEANUP_NOP);
 	ASSERT_OK(pss_init(), CLEANUP_NOP);

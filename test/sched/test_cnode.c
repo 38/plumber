@@ -19,7 +19,7 @@ static inline int _pipe(sched_service_buffer_t* buf, sched_service_node_id_t* no
 
 	return sched_service_buffer_add_pipe(buf, desc);
 }
-int test_linear()
+int test_linear(void)
 {
 
 	sched_service_buffer_t* serv_buf = NULL;
@@ -122,7 +122,7 @@ ERR:
 	if(NULL != serv) sched_service_free(serv);
 	return ERROR_CODE(int);
 }
-int test_tree()
+int test_tree(void)
 {
 	sched_service_buffer_t* serv_buf = NULL;
 	sched_service_t* serv = NULL;
@@ -204,7 +204,7 @@ ERR:
 	return ERROR_CODE(int);
 }
 
-int setup()
+int setup(void)
 {
 	const char* argv_A[] = {"serv_helperA", "1"};
 	const char* argv_B[] = {"serv_helperB", "1"};

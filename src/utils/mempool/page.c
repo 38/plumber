@@ -118,7 +118,7 @@ int mempool_page_set_free_page_limit(size_t npages)
 /**
  * @brief get the size of each page
  **/
-static inline size_t _get_page_size()
+static inline size_t _get_page_size(void)
 {
 	int ret = getpagesize();
 	if(ret < 0) return 0;
@@ -139,7 +139,7 @@ static inline void* _page_alloc(int n)
 	return ret;
 }
 
-_page_t* _global_alloc()
+_page_t* _global_alloc(void)
 {
 	_page_t* claimed = NULL;
 
@@ -198,7 +198,7 @@ int _global_dealloc(_page_t* begin, _page_t* end, size_t n)
 
 	return 0;
 }
-static inline int _check_local_pool()
+static inline int _check_local_pool(void)
 {
 	if(NULL == _local_page_pool)
 	{

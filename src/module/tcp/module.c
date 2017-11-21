@@ -188,7 +188,7 @@ static int _dispose_state(void* data)
  * @brief create a new async buffer page
  * @return the newly created async buffer page, NULL on error cases
  **/
-static inline _async_buf_page_t* _async_buf_data_page_new()
+static inline _async_buf_page_t* _async_buf_data_page_new(void)
 {
 	_async_buf_page_t* ret = (_async_buf_page_t*)mempool_page_alloc();
 	if(NULL == ret)
