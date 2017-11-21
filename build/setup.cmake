@@ -58,7 +58,11 @@ message("Optimization Level: ${OPTLEVEL}")
 
 if("${OPTLEVEL}" GREATER "3")
 	set(OPT_CFLAGS "-DFULL_OPTIMIZATION -DSTACK_SIZE=0x200000")
-	set(OPTLEVEL 3)
+	if("${OPTLEVEL}" GREATER "4")
+		set(OPTLEVEL fast)
+	else("${OPTLEVEL}" GREATER "4")
+		set(OPTLEVEL 3)
+	endif("${OPTLEVEL}" GREATER "4")
 	message("FYI: you are configuring the project into a full optimization mode, which will enable some unsafe optimization")
 endif("${OPTLEVEL}" GREATER "3")
 
@@ -70,7 +74,7 @@ else("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "armv7l")
 	set(PADDING_INT_TYPE uintptr_t)
 endif("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "armv7l")
 
-set(CFLAGS "$ENV{CFLAGS} -O${OPTLEVEL} ${OPT_CFLAGS} ${ARCH_CFLAGS} -Wconversion -Wextra -Wall -Werror -g")
+set(CFLAGS "$ENV{CFLAGS} -O${OPTLEVEL} ${OPT_CFLAGS} ${ARCH_CFLAGS} -Wpointer-arith -Wformat=2 -Wconversion -Wextra -Wall -Werror -g")
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/${INCLUDE_DIR}" 
 	                "${CMAKE_CURRENT_BINARY_DIR}")
