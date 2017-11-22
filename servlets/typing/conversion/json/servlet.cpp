@@ -302,7 +302,7 @@ static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
 						    if(ERROR_CODE(size_t) == pstd_type_instance_read(inst, op->acc, &val, op->size))
 						        ERROR_LOG_GOTO(ERR, "Cannot read data from the typed pipe");
 
-						    if(ERROR_CODE(int) == _write(str, bio, "%"PRId64, val))
+						    if(ERROR_CODE(int) == _write(str, bio, "%" PRId64, val))
 						        ERROR_LOG_GOTO(ERR, "Cannot write the JSON value");
 						    break;
 					    }
@@ -312,7 +312,7 @@ static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
 						    if(ERROR_CODE(size_t) == pstd_type_instance_read(inst, op->acc, &val, op->size))
 						        ERROR_LOG_GOTO(ERR, "Cannot read data from the typed pipe");
 
-						    if(ERROR_CODE(int) == _write(str, bio, "%"PRIu64, val))
+						    if(ERROR_CODE(int) == _write(str, bio, "%" PRIu64, val))
 						        ERROR_LOG_GOTO(ERR, "Cannot write the JSON value");
 						    break;
 					    }
@@ -522,7 +522,7 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 #endif
 						    /* In this case we must expand the sign bit */
 						    if(op->type == JSON_MODEL_TYPE_SIGNED && value < 0)
-						        value |= (-1ll << (8 * op->size - 1));
+						        value |= ~((1ll << (8 * op->size - 1)) - 1);
 
 						    if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, &value, op->size))
 						        ERROR_RETURN_LOG(int, "Cannot write field");

@@ -509,12 +509,12 @@ static inline int _validate_primitive(const _primitive_t* data, uint32_t nullabl
 		    {
 			    int64_t value = object.GetInt64();
 			    return (data->int_schema.allowed && data->int_schema.min <= value && value <= data->int_schema.max) ||
-			           (data->float_schema.allowed && data->float_schema.min <= value && value <= data->float_schema.max);
+			           (data->float_schema.allowed && data->float_schema.min <= (double)value && (double)value <= data->float_schema.max);
 		    }
 		    else if(object.IsDouble())
 		    {
 			    double value = object.GetDouble();
-			    return (data->float_schema.allowed && data->float_schema.min <= value && value <= data->float_schema.max);
+			    return (data->float_schema.allowed && data->float_schema.min <= (double)value && (double)value <= data->float_schema.max);
 		    }
 		    else return 0;
 		case rapidjson::kTrueType:
