@@ -27,6 +27,19 @@ add_custom_target(tags
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+add_custom_target(valgrind_test
+	COMMAND find ${CMAKE_CURRENT_BINARY_DIR}/bin/${TEST_DIR} 
+	             -executable -xtype f 
+				 -regex "'.*/[^\\.]*'"
+				 -not -name script_test_main 
+				 -not -exec valgrind --error-exitcode=1 
+				                     --errors-for-leak-kinds=definite,indirect
+				                     --child-silent-after-fork=yes 
+									 --leak-check=full '{}' "\;" 
+				 -print
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/build/cmake_uninstall.cmake.in"
 	           "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"

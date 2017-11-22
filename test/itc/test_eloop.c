@@ -12,6 +12,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 module_tcp_pool_configure_t* context;
+int port;
 
 static const char response[] = "HTTP/1.1 200 OK \r\n"
                                "Content-Type: text/html\r\n"
@@ -32,7 +33,7 @@ int do_request(void)
 
 	addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(context->port);
+	addr.sin_port = htons(port);
 
 	if(connect(sock, (struct sockaddr*)&addr, sizeof(addr)) < 0)
 	{
@@ -84,6 +85,7 @@ int eloop_test(void)
 
 	if(pid == 0)
 	{
+		port = context->port;
 #ifndef __DARWIN__
 		/* TODO: figure out why OSX fails if we finalize libplumber */
 		plumber_finalize();

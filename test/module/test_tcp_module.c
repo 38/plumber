@@ -65,7 +65,7 @@ int do_request(void)
 	for(;(size_t)ptr < strlen(response);)
 	{
 		ssize_t rc = recv(sock, buffer + ptr, sizeof(buffer) - (size_t)ptr, 0);
-		printf("read %zd bytes from the socket\n", rc);
+		fprintf(stderr, "read %zd bytes from the socket\n", rc);
 		if(rc < 0)
 		{
 			perror("recv");
@@ -76,7 +76,7 @@ int do_request(void)
 		ptr += rc;
 	}
 
-	puts("connection closed");
+	fputs("connection closed", stderr);
 
 	shutdown(sock, 2);
 
