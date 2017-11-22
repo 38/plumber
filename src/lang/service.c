@@ -208,9 +208,9 @@ char** lang_service_node_port_names(const lang_service_t* service, int64_t nid)
 ERR:
 	if(ret != NULL)
 	{
-		uint32_t i;
-		for(i = 0; i < (size_t)(input_size + output_size + 2); i ++)
-		    if(NULL != ret[i]) free(ret[i]);
+		uint32_t j;
+		for(j = 0; j < (size_t)(input_size + output_size + 2); j ++)
+		    if(NULL != ret[j]) free(ret[j]);
 		free(ret);
 	}
 	return NULL;

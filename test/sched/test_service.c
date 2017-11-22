@@ -16,14 +16,14 @@ static void trap_func(int trap)
 	else trap_rc = 0;
 }
 
-static inline int _pipe(sched_service_buffer_t* buf, sched_service_node_id_t* nodes,
+static inline int _pipe(sched_service_buffer_t* buf, sched_service_node_id_t* node_arr,
                         sched_service_node_id_t src_node, runtime_api_pipe_id_t src_pipe,
                         sched_service_node_id_t dst_node, runtime_api_pipe_id_t dst_pipe)
 {
 	sched_service_pipe_descriptor_t desc = {
-		.source_node_id   = nodes[src_node],
+		.source_node_id   = node_arr[src_node],
 		.source_pipe_desc = src_pipe,
-		.destination_node_id = nodes[dst_node],
+		.destination_node_id = node_arr[dst_node],
 		.destination_pipe_desc = dst_pipe
 	};
 
@@ -133,17 +133,17 @@ int service_validation_circular_dep(void)
 {
 #define FB sched_service_buffer_free(buffer)
 	sched_service_buffer_t* buffer;
-	static sched_service_node_id_t nodes[6];
+	static sched_service_node_id_t node_arr[6];
 
 	ASSERT_PTR(buffer = sched_service_buffer_new(), CLEANUP_NOP);
 	ASSERT_OK(sched_service_buffer_allow_reuse_servlet(buffer), CLEANUP_NOP);
 
-	ASSERT_RETOK(sched_service_node_id_t, nodes[0] = sched_service_buffer_add_node(buffer, servA), FB);
-	ASSERT_RETOK(sched_service_node_id_t, nodes[1] = sched_service_buffer_add_node(buffer, servB), FB);
-	ASSERT_RETOK(sched_service_node_id_t, nodes[2] = sched_service_buffer_add_node(buffer, servA), FB);
-	ASSERT_RETOK(sched_service_node_id_t, nodes[3] = sched_service_buffer_add_node(buffer, servA), FB);
-	ASSERT_RETOK(sched_service_node_id_t, nodes[4] = sched_service_buffer_add_node(buffer, servA), FB);
-	ASSERT_RETOK(sched_service_node_id_t, nodes[5] = sched_service_buffer_add_node(buffer, servA), FB);
+	ASSERT_RETOK(sched_service_node_id_t, node_arr[0] = sched_service_buffer_add_node(buffer, servA), FB);
+	ASSERT_RETOK(sched_service_node_id_t, node_arr[1] = sched_service_buffer_add_node(buffer, servB), FB);
+	ASSERT_RETOK(sched_service_node_id_t, node_arr[2] = sched_service_buffer_add_node(buffer, servA), FB);
+	ASSERT_RETOK(sched_service_node_id_t, node_arr[3] = sched_service_buffer_add_node(buffer, servA), FB);
+	ASSERT_RETOK(sched_service_node_id_t, node_arr[4] = sched_service_buffer_add_node(buffer, servA), FB);
+	ASSERT_RETOK(sched_service_node_id_t, node_arr[5] = sched_service_buffer_add_node(buffer, servA), FB);
 
 	runtime_api_pipe_id_t inA = runtime_stab_get_pipe(servA, "stdin");
 	ASSERT_RETOK(runtime_api_pipe_id_t, inA, CLEANUP_NOP);
@@ -161,16 +161,16 @@ int service_validation_circular_dep(void)
 	runtime_api_pipe_id_t errB = runtime_stab_get_pipe(servB, "stderr");
 	ASSERT_RETOK(runtime_api_pipe_id_t, errB, CLEANUP_NOP);
 
-	ASSERT_OK(_pipe(buffer, nodes, 0, outA, 1, in1B), FB);
+	ASSERT_OK(_pipe(buffer, node_arr, 0, outA, 1, in1B), FB);
 
-	ASSERT_OK(_pipe(buffer, nodes, 1, outB, 2, inA), FB);
-	ASSERT_OK(_pipe(buffer, nodes, 2, outA, 3, inA), FB);
-	ASSERT_OK(_pipe(buffer, nodes, 3, outA, 4, inA), FB);
-	ASSERT_OK(_pipe(buffer, nodes, 4, outA, 5, inA), FB);
-	ASSERT_OK(_pipe(buffer, nodes, 4, errA, 1, in2B), FB);
+	ASSERT_OK(_pipe(buffer, node_arr, 1, outB, 2, inA), FB);
+	ASSERT_OK(_pipe(buffer, node_arr, 2, outA, 3, inA), FB);
+	ASSERT_OK(_pipe(buffer, node_arr, 3, outA, 4, inA), FB);
+	ASSERT_OK(_pipe(buffer, node_arr, 4, outA, 5, inA), FB);
+	ASSERT_OK(_pipe(buffer, node_arr, 4, errA, 1, in2B), FB);
 
-	ASSERT_OK(sched_service_buffer_set_input(buffer, nodes[0], inA), FB);
-	ASSERT_OK(sched_service_buffer_set_output(buffer, nodes[5], outA), FB);
+	ASSERT_OK(sched_service_buffer_set_input(buffer, node_arr[0], inA), FB);
+	ASSERT_OK(sched_service_buffer_set_output(buffer, node_arr[5], outA), FB);
 
 	ASSERT(NULL == sched_service_from_buffer(buffer), FB);
 
@@ -185,13 +185,13 @@ int service_getters(void)
 {
 #define FB sched_service_buffer_free(buffer)
 	sched_service_buffer_t* buffer;
-	static sched_service_node_id_t nodes[2];
+	static sched_service_node_id_t node_arr[2];
 
 	ASSERT_PTR(buffer = sched_service_buffer_new(), CLEANUP_NOP);
 	ASSERT_OK(sched_service_buffer_allow_reuse_servlet(buffer), CLEANUP_NOP);
 
-	ASSERT_RETOK(sched_service_node_id_t, nodes[0] = sched_service_buffer_add_node(buffer, servA), FB);
-	ASSERT_RETOK(sched_service_node_id_t, nodes[1] = sched_service_buffer_add_node(buffer, servB), FB);
+	ASSERT_RETOK(sched_service_node_id_t, node_arr[0] = sched_service_buffer_add_node(buffer, servA), FB);
+	ASSERT_RETOK(sched_service_node_id_t, node_arr[1] = sched_service_buffer_add_node(buffer, servB), FB);
 
 	runtime_api_pipe_id_t inA = runtime_stab_get_pipe(servA, "stdin");
 	ASSERT_RETOK(runtime_api_pipe_id_t, inA, CLEANUP_NOP);
@@ -209,29 +209,29 @@ int service_getters(void)
 	runtime_api_pipe_id_t errB = runtime_stab_get_pipe(servB, "stderr");
 	ASSERT_RETOK(runtime_api_pipe_id_t, errB, CLEANUP_NOP);
 
-	ASSERT_OK(_pipe(buffer, nodes, 0, outA, 1, in1B), FB);
-	ASSERT_OK(_pipe(buffer, nodes, 0, errA, 1, in2B), FB);
-	ASSERT_OK(sched_service_buffer_set_input(buffer, nodes[0], inA), FB);
-	ASSERT_OK(sched_service_buffer_set_output(buffer, nodes[1], outB), FB);
+	ASSERT_OK(_pipe(buffer, node_arr, 0, outA, 1, in1B), FB);
+	ASSERT_OK(_pipe(buffer, node_arr, 0, errA, 1, in2B), FB);
+	ASSERT_OK(sched_service_buffer_set_input(buffer, node_arr[0], inA), FB);
+	ASSERT_OK(sched_service_buffer_set_output(buffer, node_arr[1], outB), FB);
 
 	sched_service_t* serv;
 	const sched_service_pipe_descriptor_t* pds;
 	uint32_t n;
 	ASSERT_PTR(serv = sched_service_from_buffer(buffer), FB);
 #define FBS sched_service_free(serv); sched_service_buffer_free(buffer);
-	ASSERT_PTR(pds = sched_service_get_incoming_pipes(serv, nodes[0], &n), FBS);
+	ASSERT_PTR(pds = sched_service_get_incoming_pipes(serv, node_arr[0], &n), FBS);
 	ASSERT(0 == n, FBS);
-	ASSERT_PTR(pds = sched_service_get_incoming_pipes(serv, nodes[1], &n), FBS);
+	ASSERT_PTR(pds = sched_service_get_incoming_pipes(serv, node_arr[1], &n), FBS);
 	ASSERT(2 == n, FBS);
-	ASSERT(nodes[1] == pds[0].destination_node_id, FBS);
-	ASSERT(nodes[1] == pds[1].destination_node_id, FBS);
+	ASSERT(node_arr[1] == pds[0].destination_node_id, FBS);
+	ASSERT(node_arr[1] == pds[1].destination_node_id, FBS);
 	ASSERT(pds[0].destination_pipe_desc != pds[1].destination_pipe_desc, FBS);
-	ASSERT_PTR(pds = sched_service_get_outgoing_pipes(serv, nodes[0], &n), FBS);
+	ASSERT_PTR(pds = sched_service_get_outgoing_pipes(serv, node_arr[0], &n), FBS);
 	ASSERT(2 == n, FBS);
-	ASSERT(nodes[0] == pds[0].source_node_id, FBS);
-	ASSERT(nodes[0] == pds[1].source_node_id, FBS);
+	ASSERT(node_arr[0] == pds[0].source_node_id, FBS);
+	ASSERT(node_arr[0] == pds[1].source_node_id, FBS);
 	ASSERT(pds[0].source_pipe_desc != pds[1].source_pipe_desc, FBS);
-	ASSERT_PTR(pds = sched_service_get_outgoing_pipes(serv, nodes[1], &n), FBS);
+	ASSERT_PTR(pds = sched_service_get_outgoing_pipes(serv, node_arr[1], &n), FBS);
 	ASSERT(0 == n, FBS);
 
 	ASSERT_OK(sched_service_buffer_free(buffer), FBS);

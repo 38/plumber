@@ -89,12 +89,12 @@ int recur_test(void)
 	ASSERT(regid == pss_frame_serial_to_regid(0), CLEANUP_NOP);
 	if(level % 200 == 0)
 	{
-		pss_bytecode_regid_t buf[sizeof(varid) / sizeof(varid[0])];
-		memcpy(buf, varid, sizeof(buf));
+		pss_bytecode_regid_t buf2[sizeof(varid) / sizeof(varid[0])];
+		memcpy(buf2, varid, sizeof(buf2));
 		ASSERT_OK(recur_test(), CLEANUP_NOP);
-		memcpy(varid, buf, sizeof(buf));
+		memcpy(varid, buf2, sizeof(buf2));
 		ASSERT_OK(recur_test(), CLEANUP_NOP);
-		memcpy(varid, buf, sizeof(buf));
+		memcpy(varid, buf2, sizeof(buf2));
 		ASSERT_OK(recur_test(), CLEANUP_NOP);
 	}
 	else

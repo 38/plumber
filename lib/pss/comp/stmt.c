@@ -112,7 +112,6 @@ static inline int _if_stmt(pss_comp_t* comp, pss_bytecode_segment_t* seg)
 		if(ERROR_CODE(pss_bytecode_label_t) == lend)
 		    ERROR_RETURN_LOG(int, "Cannot get the end label for the control block");
 
-		pss_bytecode_regid_t r_target;
 		if(ERROR_CODE(pss_bytecode_regid_t) == (r_target = pss_comp_mktmp(comp)))
 		    ERROR_RETURN_LOG(int, "Cannot create target register");
 

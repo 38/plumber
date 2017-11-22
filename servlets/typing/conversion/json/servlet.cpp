@@ -536,8 +536,8 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 						    else
 						        d_value = cur_obj->GetDouble();
 						    float  f_value = (float)d_value;
-						    void* data = op->size == sizeof(double) ? (void*)&d_value : (void*)&f_value;
-						    if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, data, op->size))
+						    void* data_to_write = op->size == sizeof(double) ? (void*)&d_value : (void*)&f_value;
+						    if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, data_to_write, op->size))
 						        ERROR_RETURN_LOG(int, "Cannot write field");
 						    break;
 					    }

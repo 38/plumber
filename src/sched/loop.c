@@ -412,10 +412,10 @@ static inline void* _sched_main(void* data)
 			LOG_DEBUG("An old service request has completed");
 			if(0 == --old_service_refcnt)
 			{
-				uint32_t current;
+				uint32_t current_count;
 				do {
-					current = _deployed_count;
-				} while(!__sync_bool_compare_and_swap(&_deployed_count, current, current + 1));
+					current_count = _deployed_count;
+				} while(!__sync_bool_compare_and_swap(&_deployed_count, current_count, current_count + 1));
 				LOG_NOTICE("Deplyoment process has been sucessfully compeleted for scheduler #%u", context->thread_id);
 			}
 		}

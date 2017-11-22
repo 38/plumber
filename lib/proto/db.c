@@ -866,9 +866,9 @@ const char* proto_db_field_type(const char* typename, const char* fieldname)
 		    PROTO_ERR_RAISE_RETURN_PTR(DISALLOWED);
 
 		/* Then let's construct the primitive descriptor */
-		_primitive_desc_t pd = (info.primitive_data->flags.numeric.is_real ? _FLOAT : 0) |
-		                       (info.primitive_data->flags.numeric.is_signed ? _SIGNED : 0) |
-		                       sizecode;
+		pd = (info.primitive_data->flags.numeric.is_real ? _FLOAT : 0) |
+		      (info.primitive_data->flags.numeric.is_signed ? _SIGNED : 0) |
+		       sizecode;
 		return _adhoc_typename(pd);
 	}
 }
@@ -1081,9 +1081,9 @@ int proto_db_type_traverse(const char* type_name, proto_db_field_callback_t func
 		size_t namelen = strlen(info.name);
 		char namebuf[namelen + 3 * info.ndims + 1];
 		memcpy(namebuf, info.name, namelen);
-		uint32_t i;
-		for(i = 0; i < info.ndims; i ++)
-		    memcpy(namebuf + namelen + i * 3, "[0]", 3);
+		uint32_t k;
+		for(k = 0; k < info.ndims; k ++)
+		    memcpy(namebuf + namelen + k * 3, "[0]", 3);
 		namebuf[namelen + 3 * info.ndims] = 0;
 
 		if(ERROR_CODE(proto_db_field_prop_t) == (info.primitive_prop = proto_db_field_type_info(type_name, namebuf)))
@@ -1095,8 +1095,8 @@ int proto_db_type_traverse(const char* type_name, proto_db_field_callback_t func
 		if(ERROR_CODE(uint32_t) == (info.offset = proto_db_type_offset(type_name, info.name, &info.size)))
 		    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
-		for(i = 0; i < info.ndims; i ++)
-		    info.size /= info.dims[i];
+		for(k = 0; k < info.ndims; k ++)
+		    info.size /= info.dims[k];
 
 		if(ent->header.refkind == PROTO_TYPE_ENTITY_REF_NAME)
 		    info.is_alias = 1u;

@@ -309,9 +309,9 @@ ERR:
 
 }
 
-int do_install(int is_update, const program_option_t* program_option)
+int do_install(int is_update, const program_option_t* option)
 {
-	sandbox_insert_flags_t sf = is_update ? (program_option->force ?
+	sandbox_insert_flags_t sf = is_update ? (option->force ?
 	                                SANDBOX_FORCE_UPDATE :
 	                                SANDBOX_ALLOW_UPDATE) :
 	                            SANDBOX_INSERT_ONLY;
@@ -320,18 +320,18 @@ int do_install(int is_update, const program_option_t* program_option)
 	if(NULL == sandbox)
 	    ERROR_RETURN_LOG(int, "Cannot create sandbox for the install command");
 
-	for(i = 0; i < program_option->target_count; i ++)
+	for(i = 0; i < option->target_count; i ++)
 	{
 		compiler_result_t *result = NULL;
-		lexer_t* lexer = lexer_new(program_option->target[i]);
+		lexer_t* lexer = lexer_new(option->target[i]);
 		if(NULL == lexer)
-		    ERROR_LOG_GOTO(ITER_ERR, "Cannot create lexer for file %s", program_option->target[i]);
+		    ERROR_LOG_GOTO(ITER_ERR, "Cannot create lexer for file %s", option->target[i]);
 
-		_PRINT_STDERR("Compiling type description file %s", program_option->target[i]);
+		_PRINT_STDERR("Compiling type description file %s", option->target[i]);
 
 		compiler_options_t opt = {
 			.lexer = lexer,
-			.padding_size = program_option->padding_size
+			.padding_size = option->padding_size
 		};
 
 		if(NULL == (result = compiler_compile(opt)))
@@ -361,7 +361,7 @@ ITER_ERR:
 		goto ERR;
 	}
 
-	if(confirm_operation(sandbox, program_option) == ERROR_CODE(int))
+	if(confirm_operation(sandbox, option) == ERROR_CODE(int))
 	    goto ERR;
 
 	return sandbox_free(sandbox);
@@ -596,10 +596,10 @@ ENT_ERR:
 			{
 				if(ent->metadata->flags.numeric.default_size > 0)
 				{
-					uint32_t size = ent->metadata->flags.numeric.default_size;
+					uint32_t def_size = ent->metadata->flags.numeric.default_size;
 					uint32_t real = ent->metadata->flags.numeric.is_real;
 					uint32_t sign = ent->metadata->flags.numeric.is_signed;
-#define _PRINT_DEF(sz, r, s, f, t) else if(size == sz && real == r && sign == s) printf(" = %"f, *(t*)ent->metadata->numeric_default);
+#define _PRINT_DEF(sz, r, s, f, t) else if(def_size == sz && real == r && sign == s) printf(" = %"f, *(t*)ent->metadata->numeric_default);
 					if(0);
 					_PRINT_DEF(1, 0, 0, PRIu8, uint8_t)
 					_PRINT_DEF(1, 0, 1, PRId8, int8_t)

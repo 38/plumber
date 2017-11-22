@@ -1060,11 +1060,11 @@ pss_vm_exception_t* pss_vm_last_exception(pss_vm_t* vm)
 ERR:
 	if(NULL != ret)
 	{
-		pss_vm_backtrace_t* ptr;
-		for(ptr = ret->backtrace; NULL != ptr;)
+		pss_vm_backtrace_t* bc_ptr;
+		for(bc_ptr = ret->backtrace; NULL != bc_ptr;)
 		{
-			pss_vm_backtrace_t* this = ptr;
-			ptr = ptr->next;
+			pss_vm_backtrace_t* this = bc_ptr;
+			bc_ptr = bc_ptr->next;
 			free(this);
 		}
 		free(ret);

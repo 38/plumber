@@ -259,7 +259,7 @@ int main(void)
 	while(1)
 	{
 		pthread_mutex_lock(&s_mutex);
-		int i, f;
+		int f;
 		for(;;)
 		{
 			f = -1;

@@ -126,7 +126,6 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	for(i = 1; i < argc; i ++)
 	{
 		resource_ctx_t* res = ctx->resources + i - 1;
-		uint32_t j;
 		for(j = 0; argv[i][j] && argv[i][j] != ':'; j ++);
 		if(argv[i][j] == ':' && NULL == (res->parent_name = strndup(argv[i], j)))
 		    ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the parent name");

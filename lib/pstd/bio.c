@@ -262,10 +262,10 @@ size_t pstd_bio_vprintf(pstd_bio_t* pstd_bio, const char* fmt, va_list ap)
 		const char* p = _b;
 		while(bytes_to_write > 0)
 		{
-			size_t rc = pstd_bio_write(pstd_bio, p, bytes_to_write);
-			if(ERROR_CODE(size_t) == rc) ERROR_RETURN_LOG(size_t, "Cannot write to the BIO object");
-			bytes_to_write -= rc;
-			p += rc;
+			size_t wrc = pstd_bio_write(pstd_bio, p, bytes_to_write);
+			if(ERROR_CODE(size_t) == wrc) ERROR_RETURN_LOG(size_t, "Cannot write to the BIO object");
+			bytes_to_write -= wrc;
+			p += wrc;
 		}
 	}
 

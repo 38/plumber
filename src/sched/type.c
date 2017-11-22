@@ -352,11 +352,11 @@ static inline int _solve_ces(const sched_service_t* service, _env_t* env, const 
 		if(NULL == parsed_dest_type)
 		    ERROR_LOG_GOTO(LOOP_ERR, "Cannot parse the destination type for the convertibility equation");
 
-		uint32_t i;
-		for(i = 0; parsed_sour_type[i] != NULL && parsed_dest_type[i] != NULL; i++)
+		uint32_t k;
+		for(k = 0; parsed_sour_type[k] != NULL && parsed_dest_type[k] != NULL; k++)
 		{
-			const char* from_type = parsed_sour_type[i];
-			const char* to_type   = parsed_dest_type[i];
+			const char* from_type = parsed_sour_type[k];
+			const char* to_type   = parsed_dest_type[k];
 
 			if(to_type[0] == '$')
 			{
@@ -371,18 +371,18 @@ static inline int _solve_ces(const sched_service_t* service, _env_t* env, const 
 				if(j == 1)
 				    ERROR_LOG_GOTO(LOOP_ERR, "Invalid type variable name $");
 
-				if(parsed_dest_type[i + 1] == NULL)
+				if(parsed_dest_type[k + 1] == NULL)
 				{
 					LOG_DEBUG("The trailing type variable %s, capturing everything on the left side", varname);
 
-					if(ERROR_CODE(int) == _env_merge(env, varname, parsed_sour_type + i))
+					if(ERROR_CODE(int) == _env_merge(env, varname, parsed_sour_type + k))
 					    ERROR_LOG_GOTO(LOOP_ERR, "Cannot merge the type expression to the variable");
 				}
 				else
 				{
 					LOG_DEBUG("This isn't a trialing type variable (named %s), so we only try to map a simple type to it", varname);
 
-					const char* simple_type[] = {parsed_dest_type[i], NULL};
+					const char* simple_type[] = {parsed_dest_type[k], NULL};
 
 					if(ERROR_CODE(int) == _env_merge(env, varname, simple_type))
 					    ERROR_LOG_GOTO(LOOP_ERR, "Cannot merge the type expression to the variable");
@@ -683,7 +683,6 @@ int sched_type_check(sched_service_t* service)
 		if(NULL == pds)
 		    ERROR_LOG_GOTO(ERR, "Cannot get the output pipes");
 
-		uint32_t i;
 		for(i = 0; i < npds; i ++)
 		{
 			const sched_service_pipe_descriptor_t* pd = pds + i;

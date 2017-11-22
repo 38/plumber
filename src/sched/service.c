@@ -414,14 +414,14 @@ int sched_service_buffer_add_pipe(sched_service_buffer_t* buffer, sched_service_
 	uint32_t i;
 	for(i = 0; i < vector_length(buffer->pipes); i ++)
 	{
-		const sched_service_pipe_descriptor_t* desc = VECTOR_GET_CONST(sched_service_pipe_descriptor_t, buffer->pipes, i);
+		const sched_service_pipe_descriptor_t* desc_ptr = VECTOR_GET_CONST(sched_service_pipe_descriptor_t, buffer->pipes, i);
 
-		if((src_node == desc->source_node_id && src_pipe == desc->source_pipe_desc) ||
-		   (src_node == desc->destination_node_id && src_pipe == desc->destination_pipe_desc))
+		if((src_node == desc_ptr->source_node_id && src_pipe == desc_ptr->source_pipe_desc) ||
+		   (src_node == desc_ptr->destination_node_id && src_pipe == desc_ptr->destination_pipe_desc))
 		    ERROR_RETURN_LOG(int, "Pipe slot <NID=%u,PID=%u> has already in use", src_node, src_pipe);
 
-		if((dst_node == desc->source_node_id && dst_pipe == desc->source_pipe_desc) ||
-		   (dst_node == desc->destination_node_id && dst_pipe == desc->destination_pipe_desc))
+		if((dst_node == desc_ptr->source_node_id && dst_pipe == desc_ptr->source_pipe_desc) ||
+		   (dst_node == desc_ptr->destination_node_id && dst_pipe == desc_ptr->destination_pipe_desc))
 		    ERROR_RETURN_LOG(int, "Pipe slot <NID=%u,PID=%u> has already in use", dst_node, dst_pipe);
 	}
 

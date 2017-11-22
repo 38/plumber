@@ -416,7 +416,6 @@ ERR:
 		{
 			if(NULL != ret->list->element)
 			{
-				uint32_t i;
 				for(i = 0; i < ret->list->size; i ++)
 				{
 					if(NULL != ret->list->element[i])

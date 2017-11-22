@@ -536,7 +536,7 @@ static int _invoke(void* __restrict ctx, uint32_t opcode, va_list args)
 		case MODULE_PSSM_MODULE_OPCODE_ON_EXIT:
 		{
 			_on_exit_callback_t callback = va_arg(args, _on_exit_callback_t);
-			void* data = va_arg(args, void*);
+			data = va_arg(args, void*);
 			return _add_on_exit_callback(callback, data);
 		}
 		case MODULE_PSSM_MODULE_OPCODE_PAGE_ALLOCATE:

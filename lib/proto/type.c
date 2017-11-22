@@ -611,9 +611,9 @@ static inline uint32_t _proto_padding_offset(const proto_type_t* proto)
 		const proto_type_entity_t * ent = proto->entity_table + i;
 		/* Because all the reference types have proto->elem_size = 0, so it doesn't affect the padding */
 		uint32_t delta = ent->header.elem_size;
-		uint32_t i;
-		for(i = 0; i < ent->header.dimlen; i ++)
-		    delta *= ent->dimension[i];
+		uint32_t j;
+		for(j = 0; j < ent->header.dimlen; j ++)
+		    delta *= ent->dimension[j];
 
 		ret = (ret + delta) % proto->padding_size;
 	}

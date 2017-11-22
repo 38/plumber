@@ -299,11 +299,11 @@ int pss_comp_open_closure(pss_comp_t* comp, const char* id, uint32_t nargs, char
 	{
 		char full_name[4096];
 		char* ptr = full_name;
-		uint32_t i;
-		for(i = 0; i <= comp->seg_stack_top; i ++)
+		uint32_t j;
+		for(j = 0; j <= comp->seg_stack_top; j ++)
 		{
 			size_t bufsize = sizeof(full_name) - (size_t)(ptr - full_name);
-			size_t rc = (size_t)snprintf(ptr, bufsize, (i?"@%s":"%s"), comp->seg_name_stack[i] ? comp->seg_name_stack[i] : "<Anonymous>");
+			size_t rc = (size_t)snprintf(ptr, bufsize, (j?"@%s":"%s"), comp->seg_name_stack[j] ? comp->seg_name_stack[j] : "<Anonymous>");
 			if(rc > bufsize) rc = bufsize - 1;
 			bufsize -= rc;
 			ptr += rc;

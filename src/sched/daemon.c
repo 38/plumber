@@ -163,10 +163,10 @@ static inline int _is_running_daemon(const char* lockfile, const char* suffix, i
 			if(pid != NULL)
 			{
 				char buf[32];
-				ssize_t sz;
-				if((sz = read(fd, buf, sizeof(buf) - 1)) < 0)
+				ssize_t rdsz;
+				if((rdsz = read(fd, buf, sizeof(buf) - 1)) < 0)
 				    ERROR_LOG_ERRNO_GOTO(RET, "Cannot read the lock file %s", pathbuf);
-				buf[sz] = 0;
+				buf[rdsz] = 0;
 				*pid = (pid_t)atoi(buf);
 			}
 			rc = 1;

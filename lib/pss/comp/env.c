@@ -148,9 +148,9 @@ int pss_comp_env_free(pss_comp_env_t* env)
 			_reg_t* reg = this->reglist;
 			for(;NULL != reg;)
 			{
-				_reg_t* this = reg;
+				_reg_t* this_reg = reg;
 				reg = reg->next;
-				free(this);
+				free(this_reg);
 			}
 			free(this->name);
 			free(this);

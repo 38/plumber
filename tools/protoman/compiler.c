@@ -94,11 +94,11 @@ static inline int _consume(_context_t* context, uint32_t n)
  * @param message the message to outout
  **/
 #define _RAISE(ctx, action, message) do {\
-	const lexer_token_t* token = _peek(ctx, 1);\
-	if(token == NULL) \
+	const lexer_token_t* _token = _peek(ctx, 1);\
+	if(_token == NULL) \
 	    LOG_ERROR("Cannot peek token");\
 	else\
-	    LOG_ERROR("%s:%d:%d: error: %s", token->file, token->line + 1, token->column + 1, message);\
+	    LOG_ERROR("%s:%d:%d: error: %s", _token->file, _token->line + 1, _token->column + 1, message);\
 	action;\
 } while(0)
 

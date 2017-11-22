@@ -166,10 +166,10 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 		if(!(prop & PROTO_DB_FIELD_PROP_NUMERIC))
 		    ERROR_LOG_GOTO(ERR, "Type error: numeric type expected for a constant");
 
-		const void* data;
+		const void* data_ptr;
 		size_t size;
 
-		if(1 != proto_db_field_get_default(typename, constant->field, &data, &size))
+		if(1 != proto_db_field_get_default(typename, constant->field, &data_ptr, &size))
 		    ERROR_LOG_GOTO(ERR, "Cannot get the default value of the field");
 
 		if(!(prop & PROTO_DB_FIELD_PROP_REAL))
@@ -180,7 +180,7 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 			    ERROR_LOG_GOTO(ERR, "Type error: signedness mismatch");
 			if(size  > constant->size)
 			    ERROR_LOG_GOTO(ERR, "Type error: the integer constant has been truncated");
-			memcpy(constant->target, data, size);
+			memcpy(constant->target, data_ptr, size);
 			uint8_t* u8 = (uint8_t*)constant->target;
 			/* If this is a signed value, we should expand the sign bit */
 			if(constant->is_signed && (u8[size - 1]&0x80)) u8[size - 1] &= 0x7f, u8[constant->size - 1] |= 0x80;
@@ -189,10 +189,10 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 		{
 			/* This is a real number */
 			if(!constant->is_real) ERROR_LOG_GOTO(ERR, "Type error: floating point value expected, but integer number got");
-			if(size == 4 && constant->size == 4) *(float*)constant->target = *(float*)data;
-			if(size == 4 && constant->size == 8) *(double*)constant->target = *(float*)data;
-			if(size == 8 && constant->size == 4) *(float*)constant->target = (float)*(double*)data;
-			if(size == 8 && constant->size == 8) *(double*)constant->target = *(double*)data;
+			if(size == 4 && constant->size == 4) *(float*)constant->target = *(float*)data_ptr;
+			if(size == 4 && constant->size == 8) *(double*)constant->target = *(float*)data_ptr;
+			if(size == 8 && constant->size == 4) *(float*)constant->target = (float)*(double*)data_ptr;
+			if(size == 8 && constant->size == 8) *(double*)constant->target = *(double*)data_ptr;
 		}
 	}
 

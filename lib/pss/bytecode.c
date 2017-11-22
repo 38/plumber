@@ -874,7 +874,7 @@ pss_bytecode_addr_t  pss_bytecode_segment_append_code(pss_bytecode_segment_t* se
 
 				if(NULL == str) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid string");
 
-				_table_t* new_table = _table_ensure_space(segment->string_table);
+				new_table = _table_ensure_space(segment->string_table);
 				if(NULL == new_table)
 				    ERROR_RETURN_LOG(pss_bytecode_addr_t, "Cannot enlarge the string table");
 

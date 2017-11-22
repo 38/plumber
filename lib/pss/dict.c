@@ -390,8 +390,8 @@ static const char* _tostr(const void* dict_mem, char* buf, size_t bufsize)
 
 		if(value.kind == PSS_VALUE_KIND_REF && PSS_VALUE_REF_TYPE_STRING == pss_value_ref_type(value))
 		{
-			char* result = pss_string_literal((const char*)pss_value_get_data(value), buf, bufsize);
-			if(NULL == result) ERROR_PTR_RETURN_LOG("Cannot convert the value to string literal");
+			char* literal_result = pss_string_literal((const char*)pss_value_get_data(value), buf, bufsize);
+			if(NULL == literal_result) ERROR_PTR_RETURN_LOG("Cannot convert the value to string literal");
 			written = strlen(result);
 		}
 		else
