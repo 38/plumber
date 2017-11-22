@@ -14,6 +14,7 @@
 
 #include <constants.h>
 #include <error.h>
+#include <fallthrough.h>
 
 #include <plumber.h>
 #include <utils/log.h>
@@ -1194,6 +1195,7 @@ static int _external_set(const char* name, pss_value_t data)
 			        ERROR_RETURN_LOG(int, "Cannot get the string value from the string object");
 			    return lang_prop_set(name, val);
 		    }
+		    FALLTHROUGH("For other reference type, just ignore that");
 		default:
 		    return 0;
 	}

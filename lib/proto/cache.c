@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+#include <fallthrough.h>
+
 #include <package_config.h>
 #include <proto/err.h>
 #include <proto/ref.h>
@@ -74,12 +76,12 @@ static inline uint64_t _hash_func(const char* typename, size_t count)
 	switch(count)
 	{
 #define _ADD_BIT(n) case n: ret^= ((uint64_t)u8[(n)-1]) << (((n) - 1) * 8);
-		_ADD_BIT(7);
-		_ADD_BIT(6);
-		_ADD_BIT(5);
-		_ADD_BIT(4);
-		_ADD_BIT(3);
-		_ADD_BIT(2);
+		_ADD_BIT(7); FALLTHROUGH();
+		_ADD_BIT(6); FALLTHROUGH();
+		_ADD_BIT(5); FALLTHROUGH();
+		_ADD_BIT(4); FALLTHROUGH();
+		_ADD_BIT(3); FALLTHROUGH();
+		_ADD_BIT(2); FALLTHROUGH();
 		_ADD_BIT(1);
 #undef _ADD_BIT
 		ret *= m;

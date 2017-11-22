@@ -7,6 +7,8 @@
 #include <errno.h>
 #include <string.h>
 
+#include <fallthrough.h>
+
 #include <proto.h>
 
 #include <log.h>
@@ -315,7 +317,7 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 
 	if(ERROR_CODE(int) == proto_type_append_atomic(type, namebuf, elem_size, ((rc == 0) ? NULL : dimensions), &metadata))
 	    _LIB_PROTO_ERROR(ctx, return ERROR_CODE(int));
-	
+
 	return 0;
 }
 
@@ -388,6 +390,7 @@ static inline int _parse_alias_field(_context_t* ctx, proto_type_t* type)
 				    _TRY_CONSUME(ctx, goto ERR, 1);
 				    break;
 			    }
+			    FALLTHROUGH("Otherwise it must be the error case");
 			default:
 			    _RAISE(ctx, goto ERR, "syntax error: unexpected token");
 		}

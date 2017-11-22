@@ -8,6 +8,8 @@
 #ifndef __PLUMBER_UTILS_HASH_MURMURHASH3_H__
 #define __PLUMBER_UTILS_HASH_MURMURHASH3_H__
 
+#include <fallthrough.h>
+
 static inline uint64_t _murmurhash3_rotl64(uint64_t x, int8_t r)
 {
 	return (x << r) | (x >> (64 - r));
@@ -71,24 +73,25 @@ static inline void murmurhash3_128(const void* key, const size_t len, uint32_t h
 
 	switch(tail_size)
 	{
-		case 15: k2 ^= ((uint64_t)tail[14]) << 48;
-		case 14: k2 ^= ((uint64_t)tail[13]) << 40;
-		case 13: k2 ^= ((uint64_t)tail[12]) << 32;
-		case 12: k2 ^= ((uint64_t)tail[11]) << 24;
-		case 11: k2 ^= ((uint64_t)tail[10]) << 16;
-		case 10: k2 ^= ((uint64_t)tail[9]) << 8;
+		case 15: k2 ^= ((uint64_t)tail[14]) << 48; FALLTHROUGH();
+		case 14: k2 ^= ((uint64_t)tail[13]) << 40; FALLTHROUGH();
+		case 13: k2 ^= ((uint64_t)tail[12]) << 32; FALLTHROUGH();
+		case 12: k2 ^= ((uint64_t)tail[11]) << 24; FALLTHROUGH();
+		case 11: k2 ^= ((uint64_t)tail[10]) << 16; FALLTHROUGH();
+		case 10: k2 ^= ((uint64_t)tail[9]) << 8;   FALLTHROUGH();
 		case 9: k2 ^= ((uint64_t)tail[8]) << 0;
 		    k2 *= c2;
 		    k2 = _murmurhash3_rotl64(k2, 33);
 		    k2 *= c1;
 		    out[1] ^= k2;
-		case 8: k1 ^= ((uint64_t)tail[7]) << 56;
-		case 7: k1 ^= ((uint64_t)tail[6]) << 48;
-		case 6: k1 ^= ((uint64_t)tail[5]) << 40;
-		case 5: k1 ^= ((uint64_t)tail[4]) << 32;
-		case 4: k1 ^= ((uint64_t)tail[3]) << 24;
-		case 3: k1 ^= ((uint64_t)tail[2]) << 16;
-		case 2: k1 ^= ((uint64_t)tail[1]) << 8;
+		    FALLTHROUGH();
+		case 8: k1 ^= ((uint64_t)tail[7]) << 56; FALLTHROUGH();
+		case 7: k1 ^= ((uint64_t)tail[6]) << 48; FALLTHROUGH();
+		case 6: k1 ^= ((uint64_t)tail[5]) << 40; FALLTHROUGH();
+		case 5: k1 ^= ((uint64_t)tail[4]) << 32; FALLTHROUGH();
+		case 4: k1 ^= ((uint64_t)tail[3]) << 24; FALLTHROUGH();
+		case 3: k1 ^= ((uint64_t)tail[2]) << 16; FALLTHROUGH();
+		case 2: k1 ^= ((uint64_t)tail[1]) << 8;  FALLTHROUGH();
 		case 1: k1 ^= ((uint64_t)tail[0]) << 0;
 		    k1 *= c1;
 		    k1 = _murmurhash3_rotl64(k1, 31);

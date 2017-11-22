@@ -8,6 +8,7 @@
 #include <readline/history.h>
 #include <setjmp.h>
 
+#include <fallthrough.h>
 #include <constants.h>
 
 #include <pss.h>
@@ -125,6 +126,7 @@ static int _scan_brackets(pss_comp_lex_t* lexer)
 				    b_index --;
 				    break;
 			    }
+			    FALLTHROUGH("Error case");
 			case PSS_COMP_LEX_TOKEN_ERROR:
 			    ERROR_RETURN_ACTION(int, b_index = 0);
 			case PSS_COMP_LEX_TOKEN_EOF:

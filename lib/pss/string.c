@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <errno.h>
 
+#include <fallthrough.h>
 #include <error.h>
 
 #include <pss/log.h>
@@ -109,6 +110,7 @@ char* pss_string_literal(const char* str, char* buf, size_t sz)
 		    case '\?':
 		    case '\\':
 		        actual_size ++;
+		        FALLTHROUGH("For the escape char, we need an additional space for the backslash");
 		    default:
 		        actual_size ++;
 	    }

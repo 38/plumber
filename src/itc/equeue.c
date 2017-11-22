@@ -5,17 +5,21 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <plumber.h>
-#include <error.h>
-#include <utils/vector.h>
-#include <utils/static_assertion.h>
-#include <utils/log.h>
-#include <barrier.h>
-#include <arch/arch.h>
-
 #include <pthread.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/time.h>
+
+#include <error.h>
+#include <fallthrough.h>
+#include <barrier.h>
+#include <arch/arch.h>
+
+#include <utils/vector.h>
+#include <utils/static_assertion.h>
+#include <utils/log.h>
+
+
 
 /**
  * @brief the token used to identify the scheduler thread, which is 0xfffffffe, in order to distinguish with error code
@@ -95,8 +99,10 @@ ERR:
 	{
 		case 3:
 		    pthread_cond_destroy(&_take_cond);
+		    FALLTHROUGH();
 		case 2:
 		    vector_free(_queues);
+		    FALLTHROUGH();
 		case 1:
 		    pthread_mutex_destroy(&_global_mutex);
 	}
@@ -245,6 +251,7 @@ ERR:
 	{
 		case 2:
 		    pthread_cond_destroy(&queue->put_cond);
+		    FALLTHROUGH();
 		case 1:
 		    pthread_mutex_destroy(&queue->mutex);
 	}

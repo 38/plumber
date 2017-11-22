@@ -19,6 +19,7 @@
 #include <error.h>
 #include <predict.h>
 #include <barrier.h>
+#include <fallthrough.h>
 
 #include <utils/log.h>
 #include <utils/mempool/objpool.h>
@@ -390,6 +391,7 @@ static inline int _dra_eos(const void* __restrict handle)
 		case _DATA_SRC:
 		    if(ERROR_CODE(int) == (ret = dra->callback.eos(dra->callback.data_handle)))
 		        ERROR_RETURN_LOG(int, "The inner callback's eos function returns an error");
+		    FALLTHROUGH();
 		case _DATA_BUF:
 		    ret = ret && (dra->buffer_begin == dra->buffer_end);
 		    break;
@@ -450,6 +452,7 @@ static inline int _start_dra(_dra_t* dra)
 		case ERROR_CODE(int):
 		    /* The inner data source may be closed by the read function, but it's disposed anyway after this line of code */
 		    _dra_close(dra);
+		    FALLTHROUGH();
 
 		case ERROR_CODE_OT(int):
 		    /* If the inner data source is killed by the transporation layer module, do not kill it twice! */
