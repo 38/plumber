@@ -12,7 +12,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 module_tcp_pool_configure_t* context;
-int port;
+uint16_t port;
 
 static const char response[] = "HTTP/1.1 200 OK \r\n"
                                "Content-Type: text/html\r\n"

@@ -109,11 +109,11 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 		else break;
 	}
 
-	if(argc < 2)
-	    ERROR_RETURN_LOG(int, "Usage: %s [--from-json|--to-json] [--raw] <name>:<type> [<name>:<type> ...]", servlet_name);
-
 	ctx->typed = NULL;
 	ctx->model = NULL;
+
+	if(argc < 2)
+	    ERROR_RETURN_LOG(int, "Usage: %s [--from-json|--to-json] [--raw] <name>:<type> [<name>:<type> ...]", servlet_name);
 
 	ctx->count = argc - 1;
 	if(NULL == (ctx->typed = (json_model_t*)calloc(ctx->count, sizeof(ctx->typed[0]))))
