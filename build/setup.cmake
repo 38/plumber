@@ -74,7 +74,7 @@ else("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "armv7l")
 	set(PADDING_INT_TYPE uintptr_t)
 endif("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "armv7l")
 
-set(CFLAGS "$ENV{CFLAGS} -O${OPTLEVEL} ${OPT_CFLAGS} ${ARCH_CFLAGS} -Wpointer-arith -Wformat=2 -Wconversion -Wextra -Wall -Werror -Wshadow -Wcast-qual -Wmissing-prototypes -Wbad-function-cast -g")
+set(CFLAGS "$ENV{CFLAGS} -O${OPTLEVEL} ${OPT_CFLAGS} ${ARCH_CFLAGS} -Wpointer-arith -Wformat=2 -Wconversion -Wextra -Wall -Werror -Wshadow -Wcast-qual -Wmissing-prototypes -Wbad-function-cast -Wstrict-prototypes -g")
 set(CXXFLAGS "$ENV{CFLAGS} -O${OPTLEVEL} ${OPT_CFLAGS} ${ARCH_CFLAGS} -Wpointer-arith -Wformat=2 -Wconversion -Wextra -Wall -Werror -Wshadow -Wcast-qual -g")
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/${INCLUDE_DIR}" 
