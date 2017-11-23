@@ -338,7 +338,14 @@ void log_write_va(int level, const char* file, const char* function, int line, c
 		va_copy(ap_copy, ap);
 		flockfile(stderr);
 		fprintf(stderr,"%c[%16.6lf|%s@%s:%d] ", level_char[level], ts, function, file, line);
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
 		vfprintf(stderr, fmt, ap_copy);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 		fprintf(stderr, "\n");
 		fflush(stderr);
 		funlockfile(stderr);
@@ -346,7 +353,14 @@ void log_write_va(int level, const char* file, const char* function, int line, c
 
 	flockfile(fp);
 	fprintf(fp,"%c[%16.6lf|%s@%s:%d] ", level_char[level], ts, function, file, line);
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
 	vfprintf(fp, fmt, ap);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 	fprintf(fp, "\n");
 	fflush(fp);
 	funlockfile(fp);

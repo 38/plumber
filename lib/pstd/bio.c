@@ -252,8 +252,14 @@ size_t pstd_bio_vprintf(pstd_bio_t* pstd_bio, const char* fmt, va_list ap)
 	char _b[1024];
 	size_t _bsz = sizeof(_b);
 	size_t ret = 0;
-
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
 	int rc = vsnprintf(_b, _bsz, fmt, ap);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 	if(rc < 0) ERROR_RETURN_LOG_ERRNO(size_t, "vsnprintf returns an error");
 
 	if(ret != ERROR_CODE(size_t))

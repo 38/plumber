@@ -332,7 +332,14 @@ size_t pstd_string_vprintf(pstd_string_t* str, const char* fmt, va_list ap)
 
 	for(;;)
 	{
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
 		int rc = vsnprintf(str->buffer + str->length, str->capacity - str->length, fmt, ap);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 		if(rc < 0)
 		    ERROR_RETURN_LOG(size_t, "Cannot output the formated string to the string buffer");
 
