@@ -86,4 +86,11 @@ lexer_token_t* lexer_next_token(lexer_t* lexer);
  **/
 int lexer_token_free(lexer_token_t* token);
 
+/**
+ * @brief Get the name of the lexer token
+ * @param token THe token to get
+ * @return The name string
+ **/
+const char* lexer_token_get_name(const lexer_token_t* token);
+
 #endif /* __PROTOMAN_LEXER_H__ */

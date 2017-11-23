@@ -206,7 +206,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	return 0;
 }
 
-int _exec(void* ctxbuf)
+static int _exec(void* ctxbuf)
 {
 	context_t* ctx = (context_t*)ctxbuf;
 

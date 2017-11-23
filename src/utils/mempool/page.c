@@ -139,7 +139,7 @@ static inline void* _page_alloc(int n)
 	return ret;
 }
 
-_page_t* _global_alloc(void)
+static inline _page_t* _global_alloc(void)
 {
 	_page_t* claimed = NULL;
 
@@ -168,7 +168,7 @@ _page_t* _global_alloc(void)
 	return claimed;
 }
 
-int _global_dealloc(_page_t* begin, _page_t* end, size_t n)
+static inline int _global_dealloc(_page_t* begin, _page_t* end, size_t n)
 {
 	for(;begin != NULL && _max_cached_pages <= _num_free_pages + n;)
 	{

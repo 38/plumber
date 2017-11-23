@@ -48,7 +48,7 @@ static inline int _load_default_module(void)
 	return rc;
 }
 
-__attribute__((noreturn)) void display_help(int exitcode)
+__attribute__((noreturn)) static void display_help(int exitcode)
 {
 
 	fprintf(stderr,  "Plumber servlet test tool. The program redirect the pipes to files.\n"
@@ -61,7 +61,7 @@ __attribute__((noreturn)) void display_help(int exitcode)
 	       );
 	exit(exitcode);
 }
-__attribute__((noreturn)) void show_version(int exitcode)
+__attribute__((noreturn)) static void show_version(int exitcode)
 {
 	fprintf(stderr, "Program Version:          %s\n"
 	                "Libplumber Version:       %s\n",
@@ -69,7 +69,7 @@ __attribute__((noreturn)) void show_version(int exitcode)
 	                plumber_version());
 	exit(exitcode);
 }
-void split(const char* string, char delim, void (*action)(char*))
+static void split(const char* string, char delim, void (*action)(char*))
 {
 	int size;
 	static char buffer[4096];
@@ -91,7 +91,7 @@ void split(const char* string, char delim, void (*action)(char*))
 		action(buffer);
 	}
 }
-void add_search_path(char* path)
+static void add_search_path(char* path)
 {
 	runtime_servlet_append_search_path(path);
 }
@@ -115,7 +115,7 @@ static inline const char* _flagstr(runtime_api_pipe_flags_t flags)
 
 	return (ret == NULL || strlen(ret) == 0) ? "?" : ret;
 }
-void show_pipes(uint32_t argc, char const* const* argv)
+static void show_pipes(uint32_t argc, char const* const* argv)
 {
 	runtime_stab_entry_t sid = runtime_stab_load(argc, argv, NULL);
 
@@ -172,7 +172,7 @@ runtime_task_t* task = NULL;
 runtime_stab_entry_t sid;
 runtime_api_pipe_flags_t forks[65536];
 const char* filenames[65536];
-void init_pipe(char* cmd)
+static void init_pipe(char* cmd)
 {
 	char* pipe = cmd;
 	char* file = cmd;
@@ -223,7 +223,7 @@ void init_pipe(char* cmd)
 
 	task->pipes[pid] = ph;
 }
-void run_task(uint32_t argc, char const* const* argv)
+static void run_task(uint32_t argc, char const* const* argv)
 {
 	runtime_task_t* async_exec = NULL;
 	runtime_task_t* async_cleanup = NULL;

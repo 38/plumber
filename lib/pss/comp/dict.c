@@ -97,7 +97,7 @@ typedef struct {
  * @param full The full 128bit hash code
  * @return The hash slot
  **/
-uint32_t _hashcode(const char* str, size_t len, uint64_t full[2])
+static inline uint32_t _hashcode(const char* str, size_t len, uint64_t full[2])
 {
 	murmurhash3_128(str, len, 0x1234567u, full);
 
@@ -112,7 +112,7 @@ uint32_t _hashcode(const char* str, size_t len, uint64_t full[2])
  * @param name The name
  * @return The regsister
  **/
-pss_bytecode_regid_t _get_adj_reg(_service_ctx_t* ctx, const char* name, int rev)
+static pss_bytecode_regid_t _get_adj_reg(_service_ctx_t* ctx, const char* name, int rev)
 {
 	uint64_t hash[2];
 	size_t len;
@@ -161,7 +161,7 @@ CREATE_ERR:
 	return ERROR_CODE(pss_bytecode_regid_t);
 }
 
-_service_ctx_t* _service_ctx_new(pss_comp_t* comp, pss_bytecode_segment_t* seg, pss_bytecode_regid_t dict)
+static inline _service_ctx_t* _service_ctx_new(pss_comp_t* comp, pss_bytecode_segment_t* seg, pss_bytecode_regid_t dict)
 {
 	_service_ctx_t* ret = (_service_ctx_t*)calloc(1, sizeof(*ret));
 	if(NULL == ret)
@@ -177,7 +177,7 @@ _service_ctx_t* _service_ctx_new(pss_comp_t* comp, pss_bytecode_segment_t* seg, 
 	return ret;
 }
 
-int _service_ctx_free(_service_ctx_t* ctx)
+static int _service_ctx_free(_service_ctx_t* ctx)
 {
 	int rc = 0;
 	uint32_t i;

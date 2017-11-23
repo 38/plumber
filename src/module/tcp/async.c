@@ -235,7 +235,7 @@ static inline void _swap(module_tcp_async_loop_t* loop, uint32_t a, uint32_t b)
  * @param st the target state
  * @return the result index
  **/
-uint32_t _async_obj_state_begin(const module_tcp_async_loop_t* loop, _async_obj_state_t st)
+static inline uint32_t _async_obj_state_begin(const module_tcp_async_loop_t* loop, _async_obj_state_t st)
 {
 	if(st == 0) return 0;
 	return loop->limits[st - 1];
@@ -246,7 +246,7 @@ uint32_t _async_obj_state_begin(const module_tcp_async_loop_t* loop, _async_obj_
  * @param st the target state
  * @return the result index
  **/
-uint32_t _async_obj_state_end(const module_tcp_async_loop_t* loop, _async_obj_state_t st)
+static inline uint32_t _async_obj_state_end(const module_tcp_async_loop_t* loop, _async_obj_state_t st)
 {
 	return loop->limits[st];
 }

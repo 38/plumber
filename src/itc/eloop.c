@@ -19,6 +19,7 @@
 #include <itc/module_types.h>
 #include <itc/module.h>
 #include <itc/equeue.h>
+#include <itc/eloop.h>
 
 /**
  * @brief the thread specified data

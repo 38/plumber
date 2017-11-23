@@ -380,7 +380,7 @@ RET:
 __attribute__((weak, alias("_mempool_objpool_alloc_no_check")))
 void* mempool_objpool_alloc(mempool_objpool_t* pool);
 #endif
-void* _mempool_objpool_alloc_no_check(mempool_objpool_t* pool)
+static void* _mempool_objpool_alloc_no_check(mempool_objpool_t* pool)
 {
 	void* ret = NULL;
 
@@ -476,7 +476,7 @@ __attribute__((noinline)) static int _do_global_dealloc(mempool_objpool_t* pool,
 __attribute__((weak, alias("_mempool_objpool_dealloc_no_check")))
 int mempool_objpool_dealloc(mempool_objpool_t* pool, void* mem);
 #endif
-int _mempool_objpool_dealloc_no_check(mempool_objpool_t* pool, void* mem)
+static int _mempool_objpool_dealloc_no_check(mempool_objpool_t* pool, void* mem)
 {
 
 	_thread_local_pool_t* tlp = thread_pset_acquire(pool->local_pool);

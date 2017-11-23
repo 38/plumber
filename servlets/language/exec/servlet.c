@@ -84,7 +84,7 @@ static inline int _close_fds(int max_fd)
  * @param context the context we want to spawn child process for
  * @return the process data structure we are using
  **/
-process_t* _spawn_process(const context_t* context)
+static inline process_t* _spawn_process(const context_t* context)
 {
 	process_t* proc = (process_t*)malloc(sizeof(*proc));
 

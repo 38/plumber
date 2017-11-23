@@ -44,7 +44,7 @@ int           exit_code = 0;
 
 
 #define _MESSAGE(fmt, args...) fprintf(stderr, fmt"\n", ##args)
-void display_help(void)
+static void display_help(void)
 {
 	_MESSAGE("PScript: The Plumber Service Script Interpreter");
 	_MESSAGE("Usage: pscript [options] service_script_file [arguments-to-script]");
@@ -61,14 +61,14 @@ void display_help(void)
 	_MESSAGE("  -v  --version       Show version information");
 }
 
-void display_version(void)
+static void display_version(void)
 {
 	_MESSAGE("PScript: The Plumber Service Script Interpreter");
 	_MESSAGE("Program Version       : " PLUMBER_VERSION);
 	_MESSAGE("Libplumber Version    : %s", plumber_version());
 }
 
-__attribute__((noreturn)) void properly_exit(int code)
+__attribute__((noreturn)) static void properly_exit(int code)
 {
 	if(NULL != module_paths) free(module_paths);
 	if(NULL != servlet_dirs) free(servlet_dirs);
@@ -76,7 +76,7 @@ __attribute__((noreturn)) void properly_exit(int code)
 	exit(code);
 }
 
-int parse_args(int argc, char** argv)
+static int parse_args(int argc, char** argv)
 {
 	static struct option _options[] = {
 		{"help",        no_argument,        0,  'h'},
@@ -167,7 +167,7 @@ static void _stop(int signo)
 	    LOG_ERROR("Cannot kill current VM");
 }
 
-pss_value_t make_argv(int argc, char** argv)
+static pss_value_t make_argv(int argc, char** argv)
 {
 	pss_value_t ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_DICT, NULL);
 	if(ret.kind == PSS_VALUE_KIND_ERROR)
@@ -210,14 +210,14 @@ ERR:
 	return ret;
 }
 
-void print_bt(pss_vm_backtrace_t* bt)
+static void print_bt(pss_vm_backtrace_t* bt)
 {
 	if(NULL == bt) return;
 	print_bt(bt->next);
 	LOG_ERROR("\tfunc: %s, line: %u", bt->func, bt->line);
 }
 
-int run_user_script(const char* name, int argc, char** argv)
+static int run_user_script(const char* name, int argc, char** argv)
 {
 	pss_bytecode_module_t* module = module_from_file(name, !compile_only, 1, (int)debug, compiled_output);
 
@@ -292,7 +292,7 @@ int run_user_script(const char* name, int argc, char** argv)
 	return rc;
 }
 
-int file_filter(const struct dirent* ent)
+static int file_filter(const struct dirent* ent)
 {
 	if(ent->d_name[0] == '.') return 0;
 	if(ent->d_type == DT_DIR) return 1;
@@ -300,7 +300,7 @@ int file_filter(const struct dirent* ent)
 	return strcmp(ent->d_name + len - 4, ".pss") == 0;
 }
 
-int compile_dir(const char* path)
+static int compile_dir(const char* path)
 {
 	int rc = 0;
 	int num_dirent;
@@ -353,7 +353,7 @@ EXIT:
 	return rc;
 }
 
-int build_system_module(void)
+static int build_system_module(void)
 {
 	uint32_t i;
 	for(i = 0; module_paths[i]; i ++)
@@ -368,7 +368,7 @@ int build_system_module(void)
 	return module_unload_all();
 }
 
-void pscript_write_log(int level, const char* file, const char* function, int line, const char* fmt, va_list ap)
+static void pscript_write_log(int level, const char* file, const char* function, int line, const char* fmt, va_list ap)
 {
 	if(level <= log_level)
 	    log_write_va(level, file, function, line, fmt, ap);

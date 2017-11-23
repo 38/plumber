@@ -1,6 +1,7 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
+#pragma GCC diagnostic ignored "-Wmissing-prototypes"
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

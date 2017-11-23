@@ -5,7 +5,7 @@
 #include <pservlet.h>
 #include <stdlib.h>
 static pipe_t test_pipe[3];
-int init(uint32_t argc, char const* const* argv,void* data)
+static int init(uint32_t argc, char const* const* argv,void* data)
 {
 	(void) argc;
 	(void) argv;
@@ -19,7 +19,7 @@ int init(uint32_t argc, char const* const* argv,void* data)
 	return 0;
 }
 
-int unload(void* data)
+static int unload(void* data)
 {
 	LOG_DEBUG("Goodbye Plumber!");
 	free(*(void**)data);

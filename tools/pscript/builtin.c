@@ -21,6 +21,7 @@
 #include <pss.h>
 #include <module.h>
 #include <cli.h>
+#include <builtin.h>
 
 extern char const* const* module_paths;
 

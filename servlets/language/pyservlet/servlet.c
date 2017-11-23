@@ -123,7 +123,7 @@ static inline int _finalize_ppi(void)
 	return 0;
 }
 
-int init(uint32_t argc, char const* const* argv, void* data)
+static int init(uint32_t argc, char const* const* argv, void* data)
 {
 	int ret = 0;
 
@@ -247,12 +247,12 @@ PYEXIT:
 	return rc;
 }
 
-int exec(void* data)
+static int exec(void* data)
 {
 	return _invoke_servlet_function((servlet_data_t*)data, "execute");
 }
 
-int cleanup(void* data)
+static int cleanup(void* data)
 {
 	int rc = 0;
 	servlet_data_t* s = (servlet_data_t*)data;

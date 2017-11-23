@@ -46,7 +46,7 @@ typedef struct {
 
 #define _PRINT_INFO(message, args...) printf(message"\n", ##args)
 #define _PRINT_STDERR(message, args...) printf(message"\n", ##args)
-void display_help(void)
+static void display_help(void)
 {
 	_PRINT_STDERR("protoman: The Plumber centralized protocol type system manangement utilities");
 	_PRINT_STDERR("Usage: protoman <command> [general-options|command-specified-options] [parameters]");
@@ -91,13 +91,13 @@ void display_help(void)
 	_PRINT_STDERR("\nSyntax Check");
 	_PRINT_STDERR("  protoman --syntax-check [general-options]  <ptype-file1> ... <ptype-fileN>");
 }
-void display_version(void)
+static void display_version(void)
 {
 	_PRINT_STDERR("protoman: The Plumber centralized protocol type system manangement utilities");
 	_PRINT_STDERR("Program Version       : " PLUMBER_VERSION);
 }
 
-int check_specified_options(const char* allowed, const int* options)
+static int check_specified_options(const char* allowed, const int* options)
 {
 	int i;
 	for(i = 0; i < 128; i ++)
@@ -106,7 +106,7 @@ int check_specified_options(const char* allowed, const int* options)
 	return 1;
 }
 
-int parse_args(int argc, char** argv, program_option_t* out)
+static int parse_args(int argc, char** argv, program_option_t* out)
 {
 	static struct option options[] = {
 		{"install"      ,       no_argument,        0,         'i'},
@@ -217,7 +217,7 @@ int parse_args(int argc, char** argv, program_option_t* out)
 	return 0;
 }
 
-__attribute__((noreturn)) void properly_exit(int code)
+__attribute__((noreturn)) static void properly_exit(int code)
 {
 	if(ERROR_CODE(int) == proto_finalize())
 	    log_libproto_error(__FILE__, __LINE__);
@@ -225,7 +225,7 @@ __attribute__((noreturn)) void properly_exit(int code)
 }
 static program_option_t program_option;
 
-int op_compare(const void* left, const void* right)
+static int op_compare(const void* left, const void* right)
 {
 	const sandbox_op_t* lop = (const sandbox_op_t*)left;
 	const sandbox_op_t* rop = (const sandbox_op_t*)right;
@@ -236,7 +236,7 @@ int op_compare(const void* left, const void* right)
 	return strcmp(lop->target, rop->target);
 }
 
-int confirm_operation(sandbox_t* sandbox, const program_option_t* option)
+static int confirm_operation(sandbox_t* sandbox, const program_option_t* option)
 {
 	sandbox_op_t ops[1024];
 	_PRINT_STDERR("Validating....");
@@ -286,7 +286,7 @@ int confirm_operation(sandbox_t* sandbox, const program_option_t* option)
 	else _PRINT_STDERR("Modification reverted");
 	return 0;
 }
-int do_remove(const program_option_t* option)
+static int do_remove(const program_option_t* option)
 {
 	sandbox_t* sandbox = sandbox_new(SANDBOX_INSERT_ONLY);
 	uint32_t i;
@@ -309,7 +309,7 @@ ERR:
 
 }
 
-int do_install(int is_update, const program_option_t* option)
+static int do_install(int is_update, const program_option_t* option)
 {
 	sandbox_insert_flags_t sf = is_update ? (option->force ?
 	                                SANDBOX_FORCE_UPDATE :
@@ -372,7 +372,7 @@ ERR:
 }
 
 static const char ext[] = ".proto";
-int _filename_filter(const struct dirent* ent)
+static int _filename_filter(const struct dirent* ent)
 {
 	if(ent->d_name[0] == '.') return 0;
 	if(ent->d_type == DT_DIR) return 1;
@@ -382,7 +382,7 @@ int _filename_filter(const struct dirent* ent)
 	return 0;
 }
 
-int do_list(char* bufptr, const program_option_t* option)
+static int do_list(char* bufptr, const program_option_t* option)
 {
 	static char pathbuf[PATH_MAX];
 	static const char* pathbuf_end = &pathbuf[PATH_MAX];
@@ -439,7 +439,7 @@ CLEANUP:
 	return 0;
 }
 
-int show_type(const char* type, int rec)
+static int show_type(const char* type, int rec)
 {
 	int rc = 0;
 	static char pwdbuf[PATH_MAX];
@@ -628,7 +628,7 @@ LAYOUT_ERR:
 
 	return rc;
 }
-int show_info(const program_option_t* option)
+static int show_info(const program_option_t* option)
 {
 	int rc = 0;
 	uint32_t i;
@@ -640,7 +640,7 @@ int show_info(const program_option_t* option)
 	return rc;
 }
 
-int do_syntax(const program_option_t* option)
+static int do_syntax(const program_option_t* option)
 {
 	uint32_t i;
 	for(i = 0; i < option->target_count; i ++)

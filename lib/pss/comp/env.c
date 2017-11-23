@@ -66,7 +66,7 @@ struct _pss_comp_env_t {
  * @param root The root the adjust
  * @return Nothing
  **/
-void _rheapify(pss_comp_env_t* env, pss_bytecode_regid_t root)
+static inline void _rheapify(pss_comp_env_t* env, pss_bytecode_regid_t root)
 {
 	for(;root < env->rheap_size;)
 	{
@@ -88,7 +88,7 @@ void _rheapify(pss_comp_env_t* env, pss_bytecode_regid_t root)
  * @param env The environment to adjust
  * @return nothing
  **/
-void _rheap_decrease(pss_comp_env_t* env, pss_bytecode_regid_t node)
+static inline void _rheap_decrease(pss_comp_env_t* env, pss_bytecode_regid_t node)
 {
 	for(;node > 0 && env->rheap[node] < env->rheap[(node - 1) / 2]; node = (pss_bytecode_regid_t)((node - 1u) / 2u))
 	{
@@ -104,7 +104,7 @@ void _rheap_decrease(pss_comp_env_t* env, pss_bytecode_regid_t node)
  * @return The register serial number
  * @note This function will assume that the environment have at least one register is being recycled at this time
  **/
-pss_bytecode_regid_t _rheap_get(pss_comp_env_t* env)
+static inline pss_bytecode_regid_t _rheap_get(pss_comp_env_t* env)
 {
 	pss_bytecode_regid_t ret = env->rheap[0];
 	env->rheap[0] = env->rheap[--env->rheap_size];
@@ -118,7 +118,7 @@ pss_bytecode_regid_t _rheap_get(pss_comp_env_t* env)
  * @param sn The serial number
  * @return status code
  **/
-int _rheap_put(pss_comp_env_t* env, pss_bytecode_regid_t sn)
+static inline int _rheap_put(pss_comp_env_t* env, pss_bytecode_regid_t sn)
 {
 	env->rheap[env->rheap_size ++] = sn;
 	_rheap_decrease(env, (pss_bytecode_regid_t)(env->rheap_size - 1u));

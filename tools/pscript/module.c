@@ -37,7 +37,7 @@ int module_set_search_path(char const* const* paths)
 }
 
 
-time_t _get_file_ts(const char* path, off_t* size)
+static time_t _get_file_ts(const char* path, off_t* size)
 {
 	struct stat st;
 	if(stat(path, &st) < 0) return ERROR_CODE(time_t);
@@ -109,7 +109,7 @@ pss_bytecode_module_t* module_from_buffer(const char* code, uint32_t code_size, 
 }
 
 
-int _try_load_module(const char* source_path, const char* compiled_path, int load_compiled, int dump_compiled, int debug, pss_bytecode_module_t** ret)
+static int _try_load_module(const char* source_path, const char* compiled_path, int load_compiled, int dump_compiled, int debug, pss_bytecode_module_t** ret)
 {
 	off_t source_sz = 0;
 	time_t source_ts   = source_path == NULL ? ERROR_CODE(time_t) : _get_file_ts(source_path, &source_sz);

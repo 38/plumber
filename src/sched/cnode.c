@@ -125,7 +125,7 @@ CLEANUP:
  * @param state_size the size of the state
  * @return the newly created boundary object or NULL on error
  **/
-sched_cnode_boundary_t* _boundary_new(const sched_service_t* service, size_t num_nodes, sched_service_node_id_t cnode, uint64_t* state, size_t state_size)
+static inline sched_cnode_boundary_t* _boundary_new(const sched_service_t* service, size_t num_nodes, sched_service_node_id_t cnode, uint64_t* state, size_t state_size)
 {
 	sched_service_node_id_t i;
 	uint32_t j, size;

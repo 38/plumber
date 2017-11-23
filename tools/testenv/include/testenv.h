@@ -13,6 +13,7 @@
 
 /* We don't actually care about the test case */
 #pragma GCC diagnostic ignored "-Wshadow"
+#pragma GCC diagnostic ignored "-Wmissing-prototypes"
 
 #include <stdlib.h>
 #include <string.h>

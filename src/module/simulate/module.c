@@ -558,7 +558,7 @@ static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_
 	return 0;
 }
 
-itc_module_property_value_t _get_prop(void* __restrict ctx, const char * symbol)
+static itc_module_property_value_t _get_prop(void* __restrict ctx, const char * symbol)
 {
 	_module_context_t* context = (_module_context_t*)ctx;
 	itc_module_property_value_t ret = {

@@ -15,7 +15,7 @@
 
 static int _stopped = 0;
 sched_service_t* service;
-void _stop(int signo)
+static void _stop(int signo)
 {
 	(void)signo;
 	_stopped = 1;
@@ -53,7 +53,7 @@ static inline int _load_default_module(uint16_t port)
 	return rc;
 }
 
-int _entry_point(int argc, char** argv)
+static int _entry_point(int argc, char** argv)
 {
 	(void) argc;
 	(void) argv;

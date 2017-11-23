@@ -370,7 +370,7 @@ static inline void _strip_whilespace_and_comment(lexer_t* lexer)
  * @note this function assume that it's alread at the head of number token
  * @return the token parsed
  **/
-lexer_token_t* _parse_number(lexer_t* lexer)
+static lexer_token_t* _parse_number(lexer_t* lexer)
 {
 	int ch = _peek(lexer);
 	int64_t value = 0;

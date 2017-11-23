@@ -15,7 +15,7 @@ typedef struct {
 	pipe_t user_agent;
 } servlet_context_t;
 
-int init(uint32_t argc, char const* const* argv, void* data)
+static int init(uint32_t argc, char const* const* argv, void* data)
 {
 	(void) argc;
 	(void) argv;
@@ -26,14 +26,14 @@ int init(uint32_t argc, char const* const* argv, void* data)
 	return 0;
 }
 
-int cleanup(void* data)
+static int cleanup(void* data)
 {
 	(void) data;
 
 	return 0;
 }
 
-int exec(void* args)
+static int exec(void* args)
 {
 	servlet_context_t* ctx = (servlet_context_t*)args;
 	static const char uakey[] = "User-Agent:";

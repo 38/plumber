@@ -10,7 +10,7 @@
 #define N 128
 static void* data;
 uint32_t opcode;
-int init(uint32_t argc, char const* const* argv, void* _data)
+static int init(uint32_t argc, char const* const* argv, void* _data)
 {
 	(void) argc;
 	(void) argv;
@@ -39,7 +39,7 @@ static void _trap(int n)
 	trap(n);
 }
 #define _(id) RUNTIME_API_PIPE_FROM_ID(id)
-int exec(void* args)
+static int exec(void* args)
 {
 	(void) args;
 	LOG_NOTICE("start a exec task!");

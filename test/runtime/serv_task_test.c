@@ -4,7 +4,7 @@
 
 #include <pservlet.h>
 #include <stdlib.h>
-int init(uint32_t argc, char const* const* argv, void* data)
+static int init(uint32_t argc, char const* const* argv, void* data)
 {
 	(void) argc;
 	(void) argv;
@@ -12,13 +12,13 @@ int init(uint32_t argc, char const* const* argv, void* data)
 	trap(0);
 	return 0;
 }
-int exec(void* data)
+static int exec(void* data)
 {
 	(void) data;
 	trap(1);
 	return 0;
 }
-int unload(void* data)
+static int unload(void* data)
 {
 	(void) data;
 	trap(2);

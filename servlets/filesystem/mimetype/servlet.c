@@ -132,7 +132,7 @@ ERR:
 	return ERROR_CODE(int);
 }
 
-int _unload(void* ctxbuf)
+static int _unload(void* ctxbuf)
 {
 	context_t* ctx = (context_t*)ctxbuf;
 
@@ -174,7 +174,7 @@ ERR:
 	return ERROR_CODE(int);
 }
 
-int _exec(void* ctxbuf)
+static int _exec(void* ctxbuf)
 {
 	context_t* ctx = (context_t*)ctxbuf;
 

@@ -53,7 +53,7 @@ module_tcp_pool_conninfo_t conn;
 int       r_flag = 0;
 module_tcp_pool_t* pool;
 
-double get_ts(void)
+static double get_ts(void)
 {
 	struct timespec time;
 	clock_gettime(CLOCK_REALTIME, &time);
@@ -62,7 +62,7 @@ double get_ts(void)
 
 	return ts;
 }
-void* worker_func(void* ptr_id)
+static void* worker_func(void* ptr_id)
 {
 	int tid = *(int*)ptr_id;
 	int efd = epoll_create1(0);
@@ -197,7 +197,7 @@ void* worker_func(void* ptr_id)
 	return NULL;
 }
 
-void* event_loop(void* param)
+static void* event_loop(void* param)
 {
 	(void)param;
 	for(;;)
@@ -220,6 +220,7 @@ void* event_loop(void* param)
 		pthread_mutex_unlock(&r_mutex);
 		pthread_cond_signal(&s_cond);
 	}
+	return NULL;
 }
 int main(void)
 {

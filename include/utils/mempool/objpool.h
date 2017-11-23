@@ -62,7 +62,7 @@ int mempool_objpool_free(mempool_objpool_t* pool);
  **/
 void* mempool_objpool_alloc(mempool_objpool_t* pool);
 
-#if defined(TESTING_CODE) && defined(FULL_OPTIMIZATION) && !defined(__DARWIN__)
+#if defined(FULL_OPTIMIZATION) && !defined(__DARWIN__)
 void* mempool_objpool_alloc_checked(mempool_objpool_t* pool);
 #endif
 
@@ -74,7 +74,7 @@ void* mempool_objpool_alloc_checked(mempool_objpool_t* pool);
  **/
 int mempool_objpool_dealloc(mempool_objpool_t* pool, void* mem);
 
-#if defined(TESTING_CODE) && defined(FULL_OPTIMIZATION) && !defined(__DARWIN__)
+#if defined(FULL_OPTIMIZATION) && !defined(__DARWIN__)
 int mempool_objpool_dealloc_checked(mempool_objpool_t* pool, void* mem);
 #endif
 

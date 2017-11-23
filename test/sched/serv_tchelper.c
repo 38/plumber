@@ -13,7 +13,7 @@ typedef struct {
 	int id;
 } data_t;
 
-int init(uint32_t argc, char const* const* argv, void* mem)
+static int init(uint32_t argc, char const* const* argv, void* mem)
 {
 	(void) argc;
 	data_t* data = (data_t*)mem;
@@ -41,7 +41,7 @@ int init(uint32_t argc, char const* const* argv, void* mem)
 	return 0;
 }
 
-int exec(void* mem)
+static int exec(void* mem)
 {
 	char buffer[1024];
 	data_t* data = (data_t*) mem;
@@ -59,7 +59,7 @@ int exec(void* mem)
 	return 0;
 }
 
-int unload(void* mem)
+static int unload(void* mem)
 {
 	(void) mem;
 	return 0;

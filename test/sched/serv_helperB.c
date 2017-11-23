@@ -7,7 +7,7 @@
 #include <error.h>
 static pipe_t in1, in2, out, err;
 
-int init(uint32_t argc, char const* const* argv, void* data)
+static int init(uint32_t argc, char const* const* argv, void* data)
 {
 	(void) argc;
 	(void) argv;
@@ -26,7 +26,7 @@ int init(uint32_t argc, char const* const* argv, void* data)
 	return 0;
 }
 
-int cleanup(void* data)
+static int cleanup(void* data)
 {
 	(void) data;
 
@@ -34,7 +34,7 @@ int cleanup(void* data)
 	return 0;
 }
 
-int exec(void* args)
+static int exec(void* args)
 {
 	(void) args;
 	int a, b, c;

@@ -21,7 +21,7 @@ execute_process(COMMAND ${PLUMBER_V8_CONFIG} --cmake-libs
 
 set(LOCAL_LIBS pstd ${PLUMBER_V8_LIBS})
 set(LOCAL_INCLUDE ${PLUMBER_V8_INCLUDE})
-set(LOCAL_CFLAGS ${PLUMBER_V8_CFLAGS})
+set(LOCAL_CXXFLAGS ${PLUMBER_V8_CFLAGS})
 set(INSTALL yes)
 install_includes("${SOURCE_PATH}/lib" "lib/plumber/javascript" "*.js")
 

@@ -13,7 +13,7 @@ typedef struct {
 } context_t;
 
 
-int init(uint32_t argc, char const* const* argv, void* mem)
+static int init(uint32_t argc, char const* const* argv, void* mem)
 {
 	(void) argc;
 
@@ -26,7 +26,7 @@ int init(uint32_t argc, char const* const* argv, void* mem)
 	return 0;
 }
 
-int exec(void* mem)
+static int exec(void* mem)
 {
 	context_t* ctx = (context_t*)mem;
 
@@ -44,7 +44,7 @@ int exec(void* mem)
 	return 0;
 }
 
-int cleanup(void* mem)
+static int cleanup(void* mem)
 {
 	context_t* ctx = (context_t*)mem;
 	pipe_array_free(ctx->inputs);

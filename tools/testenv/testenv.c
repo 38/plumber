@@ -72,7 +72,7 @@ static const char * const stage_message[] = {
 	"finalize plumber"
 };
 
-int testmain(void)
+static int testmain(void)
 {
 	int stage = -1;
 	if(plumber_init() < 0)

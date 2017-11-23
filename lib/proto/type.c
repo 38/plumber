@@ -415,7 +415,7 @@ int proto_type_free(proto_type_t* proto)
  *       next entity begins <br/>
  * @return status code
  **/
-int _entity_load(FILE* fp, proto_type_entity_t* buf)
+static inline int _entity_load(FILE* fp, proto_type_entity_t* buf)
 {
 	if(1 != fread(&buf->header, sizeof(proto_type_entity_info_t), 1, fp))
 	    PROTO_ERR_RAISE_RETURN(int, READ);

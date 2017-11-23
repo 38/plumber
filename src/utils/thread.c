@@ -114,6 +114,9 @@ __attribute__((noinline))
  * @param tid  The thread id
  * @return pointer has been allocated
  **/
+#ifndef STACK_SIZE
+static
+#endif
 void* _thread_allocate_current_pointer(thread_pset_t* pset, uint32_t tid)
 {
 	if(pthread_mutex_lock(&pset->resize_lock) < 0)

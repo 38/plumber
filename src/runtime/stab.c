@@ -72,7 +72,7 @@ static inline runtime_servlet_t* _get_servlet(runtime_stab_entry_t sid)
  * @param nsid The namespace ID
  * @return status code
  **/
-int _dispose_namespace(unsigned nsid)
+static inline int _dispose_namespace(unsigned nsid)
 {
 	int rc = 0;
 	unsigned i;

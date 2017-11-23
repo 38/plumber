@@ -78,7 +78,7 @@ ERR:
 	return NULL;
 }
 
-PyObject* _pyservlet_write(PyObject* self, PyObject* args)
+static PyObject* _pyservlet_write(PyObject* self, PyObject* args)
 {
 	(void) self;
 	long pipe;
@@ -107,7 +107,7 @@ PyObject* _pyservlet_write(PyObject* self, PyObject* args)
 	return Py_BuildValue("k", (unsigned long)rc);
 }
 
-PyObject* _pyservlet_log(PyObject* self, PyObject* args)
+static PyObject* _pyservlet_log(PyObject* self, PyObject* args)
 {
 	(void) self;
 	int level;
@@ -132,7 +132,7 @@ PyObject* _pyservlet_log(PyObject* self, PyObject* args)
 	Py_RETURN_NONE;
 }
 
-PyObject* _pyservlet_eof(PyObject* self, PyObject* args)
+static PyObject* _pyservlet_eof(PyObject* self, PyObject* args)
 {
 	(void) self;
 	long pipe;
@@ -152,7 +152,7 @@ PyObject* _pyservlet_eof(PyObject* self, PyObject* args)
 	else return Py_BuildValue("i", rc);
 }
 
-PyObject* _pyservlet_get_flags(PyObject* self, PyObject* args)
+static PyObject* _pyservlet_get_flags(PyObject* self, PyObject* args)
 {
 	(void)self;
 	long pipe;
@@ -170,7 +170,7 @@ PyObject* _pyservlet_get_flags(PyObject* self, PyObject* args)
 	return Py_BuildValue("l", (long)flags);
 }
 
-PyObject* _pyservlet_set_flag(PyObject* self, PyObject* args)
+static PyObject* _pyservlet_set_flag(PyObject* self, PyObject* args)
 {
 	(void)self;
 	long pipe;
@@ -188,7 +188,7 @@ PyObject* _pyservlet_set_flag(PyObject* self, PyObject* args)
 	Py_RETURN_NONE;
 }
 
-PyObject* _pyservlet_clr_flag(PyObject* self, PyObject* args)
+static PyObject* _pyservlet_clr_flag(PyObject* self, PyObject* args)
 {
 	(void)self;
 	long pipe;
@@ -206,7 +206,7 @@ PyObject* _pyservlet_clr_flag(PyObject* self, PyObject* args)
 	Py_RETURN_NONE;
 }
 
-PyObject* _pyservlet_version(PyObject* self, PyObject* args)
+static PyObject* _pyservlet_version(PyObject* self, PyObject* args)
 {
 	(void)self;
 	if(!PyArg_ParseTuple(args, ""))
@@ -231,7 +231,7 @@ static int _pyobject_free(void* obj)
 	return 0;
 }
 
-PyObject* _pyservlet_push_state(PyObject* self, PyObject* args)
+static PyObject* _pyservlet_push_state(PyObject* self, PyObject* args)
 {
 	(void)self;
 	long pipe;
@@ -253,7 +253,7 @@ PyObject* _pyservlet_push_state(PyObject* self, PyObject* args)
 	Py_RETURN_NONE;
 }
 
-PyObject* _pyservlet_pop_state(PyObject* self, PyObject* args)
+static PyObject* _pyservlet_pop_state(PyObject* self, PyObject* args)
 {
 	(void)self;
 	long pipe;
@@ -290,7 +290,7 @@ static PyMethodDef methods[] = {
 	/* Log utils */
 	{"log",            _pyservlet_log,        METH_VARARGS,     "Write a log to plumber logging system"},
 	/* Version */
-	{"plumber_version",_pyservlet_clr_flag,   METH_VARARGS,     "Get the version code of plumber"},
+	{"plumber_version",_pyservlet_version,   METH_VARARGS,     "Get the version code of plumber"},
 	{NULL,             NULL,                  0,                NULL}
 };
 
