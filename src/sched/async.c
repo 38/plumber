@@ -981,7 +981,7 @@ int sched_async_fake_handle_completed(const runtime_api_async_handle_t* handle)
 {
 	if(NULL == handle) ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	_fake_handle_t* h = (_fake_handle_t*)handle;
+	const _fake_handle_t* h = (const _fake_handle_t*)handle;
 
 	if(h->magic_num != _FAKE_HANDLE_MAGIC) ERROR_RETURN_LOG(int, "Invalid fake handle");
 

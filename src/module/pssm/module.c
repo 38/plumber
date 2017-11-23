@@ -285,7 +285,7 @@ static inline int _thread_local_deallocator(void* mem, const void* data)
 {
 	if(NULL == mem || NULL == data) ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	_thread_local_data_t* tld = (_thread_local_data_t*)data;
+	const _thread_local_data_t* tld = (const _thread_local_data_t*)data;
 
 	if(tld->deallocator == NULL) ERROR_RETURN_LOG(int, "Invalid thread local data object");
 
@@ -319,7 +319,7 @@ static inline int _thread_local_get(thread_pset_t* pset, void** retbuf)
 {
 	if(NULL == pset || NULL == retbuf) ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	_thread_local_data_t* tld = (_thread_local_data_t*)thread_pset_get_callback_data(pset);
+	const _thread_local_data_t* tld = (const _thread_local_data_t*)thread_pset_get_callback_data(pset);
 	if(tld == NULL) ERROR_RETURN_LOG(int, "Cannot get the thread local data");
 	_thread_local_object_t* obj = (_thread_local_object_t*)thread_pset_acquire(pset);
 	if(NULL == obj) ERROR_RETURN_LOG(int, "Cannot acquire the thread local object");
@@ -337,8 +337,10 @@ static inline int _thread_local_free(thread_pset_t* pset)
 {
 	if(NULL == pset) ERROR_RETURN_LOG(int, "Invalid arguments");
 
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 	void* mem = (void*)thread_pset_get_callback_data(pset);
+#pragma GCC diagnostic pop
 
 	int rc = thread_pset_free(pset);
 

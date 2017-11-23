@@ -89,12 +89,15 @@ static inline v8::Isolate* _get_isolate()
 	return isolate_wrapper->get();
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 static inline void* _thread_context_new(uint32_t tid, const void* data)
 {
 	(void)tid;
 	Servlet::Context* context = (Servlet::Context*)data;
 	return context->thread_init();
 }
+#pragma GCC diagnostic pop
 
 static inline int _thread_context_free(void* mem, const void* data)
 {

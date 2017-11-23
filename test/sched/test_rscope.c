@@ -113,7 +113,11 @@ static inline void* _stream_obj_open(const void* ptr)
 {
 	if(NULL == ptr) return NULL;
 	stream_handle_t* ret = (stream_handle_t*)malloc(sizeof(*ret));
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 	ret->obj = (stream_object_t*)ptr;
+#pragma GCC diagnostic pop
 	ret->current = ret->obj->begin;
 
 	return ret;
@@ -129,7 +133,7 @@ static inline int _stream_obj_close(void* handle)
 static inline int _stream_obj_eos(const void* handle)
 {
 	if(NULL == handle) return ERROR_CODE(int);
-	stream_handle_t* hand = (stream_handle_t*)handle;
+	const stream_handle_t* hand = (const stream_handle_t*)handle;
 	return hand->obj->end <= hand->current;
 }
 

@@ -895,8 +895,12 @@ static inline int _dump_string(int fd, const char* string)
 	if(ERROR_CODE(int) == _fd_io(fd, &data, sizeof(data), _WRITE))
 	    ERROR_RETURN_LOG(int, "Cannot write the string header");
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 	if(ERROR_CODE(int) == _fd_io(fd, (void*)string, data.length, _WRITE))
 	    ERROR_RETURN_LOG(int, "Cannot write the string content");
+#pragma GCC diagnostic pop
+
 	return 0;
 }
 

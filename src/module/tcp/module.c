@@ -1090,7 +1090,7 @@ static size_t _write(void* __restrict ctx, const void* __restrict data, size_t n
 {
 	if(NULL == ctx || NULL == data || NULL == out) ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
-	const int8_t* bytes = (int8_t*)data;
+	const int8_t* bytes = (const int8_t*)data;
 
 	_handle_t* handle = (_handle_t*)out;
 	_module_context_t* context = (_module_context_t*)ctx;

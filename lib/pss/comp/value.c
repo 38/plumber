@@ -158,7 +158,7 @@ static inline int _parse_function_literal(pss_comp_t* comp, pss_bytecode_segment
 	if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
 	    ERROR_LOG_GOTO(FUNC_ERR, "Cannot consume the end of argument list");
 
-	if(ERROR_CODE(int) == pss_comp_open_closure(comp, func_name, argc, (const char**)argv))
+	if(ERROR_CODE(int) == pss_comp_open_closure(comp, func_name, argc, (char const* const* const)argv))
 	    ERROR_LOG_GOTO(FUNC_ERR, "Cannot open the closure for the nested function");
 
 	if(NULL != func_name) free(func_name);

@@ -79,7 +79,7 @@ static FILE* _prof_output;
 static inline void* _prof_array_new(uint32_t tid, const void* caller)
 {
 	(void)tid;
-	const sched_prof_t* prof = (sched_prof_t*)caller;
+	const sched_prof_t* prof = (const sched_prof_t*)caller;
 
 	size_t size = sizeof(_prof_array_t) + sizeof(_accu_t) * prof->serv_size;
 

@@ -83,7 +83,10 @@ static inline int _mod_free(itc_modtab_instance_t* node)
 
 	if(NULL != node->context) free(node->context);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 	free((void*)node->path);
+#pragma GCC diagnostic pop
 
 	free(node);
 
@@ -219,7 +222,7 @@ static inline itc_modtab_instance_t* _mod_load(const itc_module_t* module, uint3
 
 	return ret;
 ERR:
-	free((void*)ret->path);
+	free(path_buffer);
 	free(ret);
 	return NULL;
 }
@@ -242,7 +245,7 @@ static inline lang_prop_value_t _get_module_property(const char* symbol, const v
 		return ret;
 	}
 
-	itc_modtab_instance_t* node = (itc_modtab_instance_t*)data;
+	const itc_modtab_instance_t* node = (const itc_modtab_instance_t*)data;
 
 	if(symbol[0])
 	{
@@ -293,7 +296,7 @@ static inline int _set_module_property(const char* symbol, lang_prop_value_t val
 	if(NULL == data || NULL == symbol || LANG_PROP_TYPE_NONE == value.type || LANG_PROP_TYPE_ERROR == value.type)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	itc_modtab_instance_t* node  = (itc_modtab_instance_t*)data;
+	const itc_modtab_instance_t* node  = (const itc_modtab_instance_t*)data;
 
 	if(node->module->set_property == NULL) return 0;
 

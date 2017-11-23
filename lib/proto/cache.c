@@ -819,6 +819,31 @@ const char* proto_cache_full_name(const char* typename, const char* pwd)
 	return node->path;
 }
 
+static inline proto_type_t* _get_type_impl(const char* typename, const char* pwd, void** data)
+{
+	if(NULL == typename)
+	    PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
+
+	_node_t* node = _get_hash_node(typename, pwd);
+	if(NULL == node || _pending_deleted(node))
+	    PROTO_ERR_RAISE_RETURN_PTR(NOT_FOUND);
+
+	if(node->type == NULL)
+	{
+		char pathbuf[PATH_MAX];
+		snprintf(pathbuf, sizeof(pathbuf), "%s/%s"PROTO_CACHE_PROTO_FILE_SUFFIX, _root, node->path);
+		if(NULL == (node->type = proto_type_load(pathbuf)))
+		    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
+		node->own_type = 1u;
+		node->type_dirty = 0u;
+	}
+
+	if(NULL != data)
+	    *data = node->node_data;
+
+	return node->type;
+}
+
 int proto_cache_put(const char* typename, proto_type_t* proto)
 {
 	if(NULL == typename || NULL == proto)
@@ -833,7 +858,7 @@ int proto_cache_put(const char* typename, proto_type_t* proto)
 
 	if(!_pending_deleted(node) && _proto_file_exist(namebuf))
 	{
-		if(node->type == NULL && NULL == (node->type = (proto_type_t*)proto_cache_get_type(typename, NULL, NULL)))
+		if(node->type == NULL && NULL == (node->type = (proto_type_t*)_get_type_impl(typename, NULL, NULL)))
 		    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 		if(ERROR_CODE(int) == _update_rdep(typename, node->type, 0))
@@ -876,7 +901,7 @@ int proto_cache_delete(const char* typename)
 	if(NULL == node)
 	    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
-	if(_proto_file_exist(namebuf) && node->type == NULL && NULL == (node->type = (proto_type_t*)proto_cache_get_type(typename, NULL, NULL)))
+	if(_proto_file_exist(namebuf) && node->type == NULL && NULL == (node->type = (proto_type_t*)_get_type_impl(typename, NULL, NULL)))
 	    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	if(node->type != NULL && ERROR_CODE(int) == _update_rdep(typename, node->type, 0))
@@ -894,27 +919,7 @@ int proto_cache_delete(const char* typename)
 
 const proto_type_t* proto_cache_get_type(const char* typename, const char* pwd, void** data)
 {
-	if(NULL == typename)
-	    PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
-
-	_node_t* node = _get_hash_node(typename, pwd);
-	if(NULL == node || _pending_deleted(node))
-	    PROTO_ERR_RAISE_RETURN_PTR(NOT_FOUND);
-
-	if(node->type == NULL)
-	{
-		char pathbuf[PATH_MAX];
-		snprintf(pathbuf, sizeof(pathbuf), "%s/%s"PROTO_CACHE_PROTO_FILE_SUFFIX, _root, node->path);
-		if(NULL == (node->type = proto_type_load(pathbuf)))
-		    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
-		node->own_type = 1u;
-		node->type_dirty = 0u;
-	}
-
-	if(NULL != data)
-	    *data = node->node_data;
-
-	return node->type;
+	return _get_type_impl(typename, pwd, data);
 }
 
 char const* const* proto_cache_revdep_get(const char* typename, const char* pwd)

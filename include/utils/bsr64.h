@@ -29,7 +29,7 @@ static inline const char* bsr64_from_bin(const void* bin, size_t count, char* bu
 	for(;end - begin >= 8 && bufsize > 0; begin += 6)
 	{
 		uint64_t v48 = 0xffff000000000000ull;
-		v48 |= *(uint64_t*)begin;
+		v48 |= *(const uint64_t*)begin;
 		for(;v48 != 0xffff && bufsize > 0; v48 >>= 6, bufsize --)
 		    *(buffer++) = _val2ch[v48&63];
 	}
@@ -92,7 +92,7 @@ static inline size_t bsr64_to_bin(const char* bsr_begin, const char* bsr_end, vo
 	uint8_t  cur = 0;
 	for(;bsr_begin != bsr_end && bufsize > 0; bsr_begin ++)
 	{
-		uint8_t val = _ch2val[*(uint8_t*)bsr_begin];
+		uint8_t val = _ch2val[*(const uint8_t*)bsr_begin];
 
 		if(val == 64) return 0;
 

@@ -36,8 +36,8 @@ typedef struct {
 
 static int _cmp_modification(const void* pa, const void* pb)
 {
-	const modification_t* a = (modification_t*)pa;
-	const modification_t* b = (modification_t*)pb;
+	const modification_t* a = (const modification_t*)pa;
+	const modification_t* b = (const modification_t*)pb;
 
 	if(a->offset < b->offset) return -1;
 	if(a->offset > b->offset) return 1;

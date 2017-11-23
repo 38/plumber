@@ -1,6 +1,7 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
+#pragma GCC diagnostic ignored "-Wcast-qual"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>

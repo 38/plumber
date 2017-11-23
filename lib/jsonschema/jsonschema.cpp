@@ -175,6 +175,21 @@ static const char* _strip_ws(const char* start)
 	return start;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+static inline long _strtol(const char* str, char const* *next, int base)
+{
+	return strtol(str, (char**)next, base);
+}
+static inline long long _strtoll(const char* str, char const* *next, int base)
+{
+	return strtoll(str, (char**)next, base);
+}
+static inline double _strtod(const char* str, char const* * next)
+{
+	return strtod(str, (char**)next);
+}
+#pragma GCC diagnostic pop
 /**
  * @param parse the int constraint in a JSON schema
  * @param types The primitive type data to fill up
@@ -193,9 +208,11 @@ static long _int_constraint(_primitive_t* types, const char* desc)
 		return 0;
 	}
 
+	/* Since strtol has a interface without any access qualifier, thus we make the exception */
+
 	/* Otherwise, we need to strip the white space after parentheses */
 	desc = _strip_ws(desc + 1);
-	types->int_schema.min = (int32_t)strtol(desc, (char**)&desc, 0);
+	types->int_schema.min = (int32_t)_strtol(desc, &desc, 0);
 
 	/* We are expecting a comma otherwise it must be an error */
 	desc = _strip_ws(desc);
@@ -203,7 +220,7 @@ static long _int_constraint(_primitive_t* types, const char* desc)
 
 	/* Parse the lower bound */
 	desc = _strip_ws(desc + 1);
-	types->int_schema.max = (int32_t)strtol(desc, (char**)&desc, 0);
+	types->int_schema.max = (int32_t)_strtol(desc, &desc, 0);
 
 	/* Strip the white space and check if we reached the end of the constraint */
 	desc = _strip_ws(desc);
@@ -230,10 +247,11 @@ static long _float_constraint(_primitive_t* types, const char* desc)
 		types->float_schema.unlimited = 1;
 		return 0;
 	}
+	/* Since strtol has a interface without any access qualifier, thus we make the exception */
 
 	/* Parse the lower bound of the schema */
 	desc = _strip_ws(desc + 1);
-	types->float_schema.min = strtod(desc, (char**)&desc);
+	types->float_schema.min = _strtod(desc, &desc);
 
 	/* Check if we have the comma */
 	desc = _strip_ws(desc);
@@ -241,7 +259,7 @@ static long _float_constraint(_primitive_t* types, const char* desc)
 
 	/* Parse the upper bound */
 	desc = _strip_ws(desc + 1);
-	types->float_schema.max = strtod(desc, (char**)&desc);
+	types->float_schema.max = _strtod(desc, &desc);
 
 	/* We are expecting the end of the constraint */
 	desc = _strip_ws(desc);
@@ -268,9 +286,10 @@ static long _string_constraint(_primitive_t* types, const char* desc)
 		return 0;
 	}
 
+	/* Since strtol has a interface without any access qualifier, thus we make the exception */
 	/* We should parse the lower bound of the string size */
 	desc = _strip_ws(desc + 1);
-	types->string_schema.min_len = (size_t)strtoll(desc, (char**)&desc, 0);
+	types->string_schema.min_len = (size_t)_strtoll(desc, &desc, 0);
 
 	/* Then we check if we have the comma between lower and upper bound */
 	desc = _strip_ws(desc);
@@ -278,7 +297,7 @@ static long _string_constraint(_primitive_t* types, const char* desc)
 
 	/* Finally, we need to parse the upper bound of the string length */
 	desc = _strip_ws(desc + 1);
-	types->string_schema.max_len = (size_t)strtoll(desc, (char**)&desc, 0);
+	types->string_schema.max_len = (size_t)_strtoll(desc, &desc, 0);
 
 	/* The last thing, we need to make sure the parentheses is closed */
 	desc = _strip_ws(desc);

@@ -281,7 +281,10 @@ pss_value_t pss_dict_get(const pss_dict_t* dict, const char* key)
 		return pss_value_err();
 	}
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 	_node_t* node = _hash_find((pss_dict_t*)dict, key, 0);
+#pragma GCC diagnostic pop
 
 	pss_value_t value = {};
 

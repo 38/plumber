@@ -50,7 +50,7 @@ static void* _mkval(void* param)
 
 static const char* _tostr(const void* ptr, char* buf, size_t bufsize)
 {
-	pss_exotic_t* obj = (pss_exotic_t*)ptr;
+	const pss_exotic_t* obj = (const pss_exotic_t*)ptr;
 	snprintf(buf, bufsize, "<exotic_obj:%s@%p>", obj->typename, ptr);
 	return buf;
 }

@@ -15,7 +15,7 @@ int pool_creation(void)
 }
 int compare(const void* a, const void* b)
 {
-	return (int)(*(uintptr_t*)a - *(uintptr_t*)b);
+	return (int)(*(const uintptr_t*)a - *(const uintptr_t*)b);
 }
 static inline uintptr_t _p2u(void* mem)
 {

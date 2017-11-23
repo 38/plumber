@@ -105,7 +105,10 @@ static PyObject* _open(PyObject* self, PyObject* args)
 		return NULL;
 	}
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 	return PyFile_FromFile(cfile, (char*)filename, (char*)mode, fclose);
+#pragma GCC diagnostic pop
 }
 
 static scope_object_ops_t _ops = {

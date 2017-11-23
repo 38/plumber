@@ -189,10 +189,10 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 		{
 			/* This is a real number */
 			if(!constant->is_real) ERROR_LOG_GOTO(ERR, "Type error: floating point value expected, but integer number got");
-			if(size == 4 && constant->size == 4) *(float*)constant->target = *(float*)data_ptr;
-			if(size == 4 && constant->size == 8) *(double*)constant->target = *(float*)data_ptr;
-			if(size == 8 && constant->size == 4) *(float*)constant->target = (float)*(double*)data_ptr;
-			if(size == 8 && constant->size == 8) *(double*)constant->target = *(double*)data_ptr;
+			if(size == 4 && constant->size == 4) *(float*)constant->target = *(const float*)data_ptr;
+			if(size == 4 && constant->size == 8) *(double*)constant->target = *(const float*)data_ptr;
+			if(size == 8 && constant->size == 4) *(float*)constant->target = (float)*(const double*)data_ptr;
+			if(size == 8 && constant->size == 8) *(double*)constant->target = *(const double*)data_ptr;
 		}
 	}
 

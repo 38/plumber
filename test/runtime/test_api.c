@@ -19,8 +19,8 @@ static void trap(int id)
 {
 	runtime_task_t* task = runtime_task_current();
 	const void* data = task->servlet->data;
-	const int* intarr = (int*)data;
-	const char** strarr = (const char**)data;
+	const int* intarr = (const int*)data;
+	const char* const* strarr = (const char* const*)data;
 	switch(id)
 	{
 		case 0:

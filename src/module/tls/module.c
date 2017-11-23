@@ -822,7 +822,7 @@ static size_t _write(void* __restrict ctx, const void* __restrict data, size_t n
 		{
 			ret += (size_t)rc;
 			nbytes -= (size_t)rc;
-			data = ((char*)data) + rc;
+			data = ((const char*)data) + rc;
 		}
 		else if(_should_encrypt(handle))
 		    ERROR_RETURN_LOG(size_t, "TLS write error: %s", ERR_error_string(ERR_get_error(), NULL));
@@ -1037,7 +1037,7 @@ RET:
  **/
 static inline const _alpn_protocol_t* _get_next_protocol(const _alpn_protocol_t* prev)
 {
-	_alpn_protocol_t* ret = (_alpn_protocol_t*)&prev->name[prev->length];
+	const _alpn_protocol_t* ret = (const _alpn_protocol_t*)&prev->name[prev->length];
 	if(ret->length == 0) return NULL;
 	return ret;
 }

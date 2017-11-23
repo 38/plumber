@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <errno.h>
 
+#include <utils/static_assertion.h>
 #include <proto/err.h>
 
 /**
@@ -32,6 +33,8 @@ static char* _err_desc[] = {
 	[PROTO_ERR_CODE_VERSION]      = "Unsupported version"
 };
 
+STATIC_ASSERTION_FIRST(proto_err_t, child);
+
 /**
  * @brief the thread local state that is used to tracking the error code
  **/
@@ -46,7 +49,7 @@ void proto_err_clear()
 {
 	for(;NULL != _stack;)
 	{
-		proto_err_t* next = (proto_err_t*)_stack->child;
+		proto_err_t* next = *(proto_err_t**)_stack;
 		free(_stack);
 		_stack = next;
 	}

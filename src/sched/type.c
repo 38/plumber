@@ -229,7 +229,7 @@ static inline int _env_get(const _env_t* env, const char* varname, char const* *
 
 	if(rc == 0) return 0;
 
-	uint32_t idx = *(uint32_t*)result.val_data;
+	uint32_t idx = *(const uint32_t*)result.val_data;
 
 	if(idx >= vector_length(env->values))
 	    ERROR_RETURN_LOG(int, "Invalid variable ID %u", idx);

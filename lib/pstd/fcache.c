@@ -666,10 +666,13 @@ int pstd_fcache_close(pstd_fcache_file_t* file)
 		{
 			/* This is the only place that the IO loop modify the refcnt, but we do a CAS here, so
 			 * we make sure the counter is correct although the order of execution is not deterministic*/
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 			uint32_t new_val;
 			do {
 				new_val = file->cache->refcnt - 1;
 			} while(!__sync_bool_compare_and_swap((uint32_t*)&file->cache->refcnt, new_val + 1, new_val));
+#pragma GCC diagnostic pop
 		}
 		else
 		    ERROR_RETURN_LOG(int, "Code bug: refcnt is less than 0");

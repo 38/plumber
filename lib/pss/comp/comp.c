@@ -259,7 +259,7 @@ pss_bytecode_segment_t* pss_comp_get_code_segment(pss_comp_t* comp)
 	return comp->seg_stack[comp->seg_stack_top - 1];
 }
 
-int pss_comp_open_closure(pss_comp_t* comp, const char* id, uint32_t nargs, char const** argnames)
+int pss_comp_open_closure(pss_comp_t* comp, const char* id, uint32_t nargs, char const* const* argnames)
 {
 	if(NULL == comp || ERROR_CODE(uint32_t) == nargs || (NULL == argnames && nargs > 0))
 	    PSS_COMP_RAISE_INT(comp, ARGS);

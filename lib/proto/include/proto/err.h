@@ -46,11 +46,11 @@ typedef enum {
  * @brief an actual protocol library error
  **/
 typedef struct _proto_err_t {
+	struct _proto_err_t const *    child; /*!< the child error */
 	proto_err_code_t               code;  /*!< the error code */
 	int                            errnum;/*!< the errorno when the error happens */
 	uint32_t                       line;  /*!< the line number that raises this error */
 	const char*                    file;  /*!< the source code filename that raises this error, the filename shouldn't be a dynamically allocated value */
-	struct _proto_err_t const *    child; /*!< the child error */
 } proto_err_t;
 
 /**

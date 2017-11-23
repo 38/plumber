@@ -105,6 +105,9 @@ static inline int _read_stat(const pstd_file_t* file)
 	}
 
 	LOG_DEBUG("The file RLS object do not have stat metadata cached in memory, call the system call");
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+	/* We should allow the interal data be modified anyway */
 
 #ifdef PSTD_FILE_NO_CACHE
 	if(stat(file->filename, (struct stat*)&file->stat) < 0)
@@ -116,6 +119,7 @@ static inline int _read_stat(const pstd_file_t* file)
 
 	/* dirty hack, but we still need to do this */
 	((pstd_file_t*)file)->stat_ready = 1;
+#pragma GCC diagnostic pop
 
 	return 0;
 }
@@ -179,8 +183,11 @@ FILE* pstd_file_open(const pstd_file_t* file, const char* mode)
 
 	LOG_DEBUG("File RLS object for %s has been opened as stdio FILE", file->filename);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 	/* Because the stdio FILE may modify the file, so we may want to reload the stat again */
 	((pstd_file_t*)file)->stat_ready = 0;
+#pragma GCC diagnostic pop
 
 	return ret;
 }
@@ -252,7 +259,7 @@ static inline int _eos(const void* stream_mem)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot check if the stream gets the end");
 	return rc > 0;
 #else
-	pstd_fcache_file_t* stream = (pstd_fcache_file_t*)stream_mem;
+	const pstd_fcache_file_t* stream = (const pstd_fcache_file_t*)stream_mem;
 	return pstd_fcache_eof(stream);
 #endif
 }

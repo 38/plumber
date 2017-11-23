@@ -72,10 +72,10 @@ static inline _buffer_t* _buffer_insert(_buffer_t* buffer, pstd_option_param_typ
 	switch(ret->params[ret->size].type = type)
 	{
 		case PSTD_OPTION_TYPE_INT:
-		    ret->params[ret->size].intval = *(int64_t*)value;
+		    ret->params[ret->size].intval = *(const int64_t*)value;
 		    break;
 		case PSTD_OPTION_TYPE_DOUBLE:
-		    ret->params[ret->size].doubleval = *(double*)value;
+		    ret->params[ret->size].doubleval = *(const double*)value;
 		    break;
 		case PSTD_OPTION_STRING:
 		    ret->params[ret->size].strval = (const char*)value;

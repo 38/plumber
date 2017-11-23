@@ -468,7 +468,7 @@ typedef struct {
  **/
 static inline runtime_api_pipe_flags_t itc_module_get_handle_flags(const void* handle)
 {
-	return *(runtime_api_pipe_flags_t*)((uintpad_t*)handle - 1);
+	return *(const runtime_api_pipe_flags_t*)((const uintpad_t*)handle - 1);
 }
 
 #endif /* __PLUMBER_ITC_MODULE_TYPES_H__ */

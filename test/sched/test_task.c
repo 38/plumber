@@ -367,7 +367,7 @@ int pipe_disable(void)
 
 	ASSERT_OK(src, goto ERR);
 
-	ASSERT(1 == *(uint32_t*)module_test_get_response(), CLEANUP_NOP);
+	ASSERT(1 == *(const uint32_t*)module_test_get_response(), CLEANUP_NOP);
 
 	ASSERT(executed_flags[0] == 1, goto ERR);
 	ASSERT(executed_flags[1] == 1, goto ERR);
