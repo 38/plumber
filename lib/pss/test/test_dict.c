@@ -58,11 +58,11 @@ int dict_test(void)
 	{
 		char buf[32];
 		snprintf(buf, sizeof(buf), "var_%x", i);
-		pss_value_t valbuf2 = {
+		pss_value_t valbuf = {
 			.kind = PSS_VALUE_KIND_NUM,
 			.num = i
 		};
-		ASSERT_OK(pss_dict_set(dict, buf, valbuf2), goto ERR);
+		ASSERT_OK(pss_dict_set(dict, buf, valbuf), goto ERR);
 	}
 
 	for(i = 0; i < 500000; i ++)

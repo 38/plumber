@@ -269,9 +269,9 @@ void* Servlet::Context::thread_init()
 		if(_context_json == NULL)
 		{
 			v8::HandleScope handle_scope(isolate);
-			v8::Local<v8::Context> context = v8::Local<v8::Context>::New(isolate, ret->get());
-			v8::Context::Scope scope = v8::Context::Scope(context);
-			v8::Local<v8::Function> func = _get_servlet_function(context, "init");
+			v8::Local<v8::Context> local_context = v8::Local<v8::Context>::New(isolate, ret->get());
+			v8::Context::Scope scope = v8::Context::Scope(local_context);
+			v8::Local<v8::Function> func = _get_servlet_function(local_context, "init");
 			if(func.IsEmpty()) _E("init is not a function");
 
 			v8::Handle<v8::Value>* args = new v8::Handle<v8::Value>[_argc];
@@ -281,7 +281,7 @@ void* Servlet::Context::thread_init()
 			    args[i] = v8::String::NewFromUtf8(isolate, _argv[i]);
 
 			v8::TryCatch trycatch(isolate);
-			v8::Handle<v8::Value> result = func->Call(context->Global(), (int)_argc, args);
+			v8::Handle<v8::Value> result = func->Call(local_context->Global(), (int)_argc, args);
 
 			if(result.IsEmpty())
 			{
@@ -295,13 +295,13 @@ void* Servlet::Context::thread_init()
 					int frame_count = backtrace->GetFrameCount(),i;
 					for(i = 0; i < frame_count; i ++)
 					{
-						v8::Local<v8::StackFrame> frame = backtrace->GetFrame((unsigned)i);
-						v8::String::Utf8Value path(frame->GetScriptName());
-						v8::String::Utf8Value func(frame->GetFunctionName());
+						v8::Local<v8::StackFrame> current_frame = backtrace->GetFrame((unsigned)i);
+						v8::String::Utf8Value current_path(current_frame->GetScriptName());
+						v8::String::Utf8Value current_func(current_frame->GetFunctionName());
 #if LOG_LEVEL_ENABLED
-						int line = frame->GetLineNumber();
-						int col  = frame->GetColumn();
-						LOG_ERROR("[%d] at %s(%s:%d:%d)",i, *func, *path, line, col);
+						int line = current_frame->GetLineNumber();
+						int col  = current_frame->GetColumn();
+						LOG_ERROR("[%d] at %s(%s:%d:%d)",i, *current_func, *current_path, line, col);
 #endif
 					}
 				}
@@ -356,13 +356,13 @@ int Servlet::Context::exec()
 			int frame_count = backtrace->GetFrameCount(),i;
 			for(i = 0; i < frame_count; i ++)
 			{
-				v8::Local<v8::StackFrame> frame = backtrace->GetFrame((unsigned)i);
-				v8::String::Utf8Value path(frame->GetScriptName());
-				v8::String::Utf8Value func(frame->GetFunctionName());
+				v8::Local<v8::StackFrame> current_frame = backtrace->GetFrame((unsigned)i);
+				v8::String::Utf8Value current_path(current_frame->GetScriptName());
+				v8::String::Utf8Value current_func(current_frame->GetFunctionName());
 #if LOG_LEVEL_ENABLED
-				int line = frame->GetLineNumber();
-				int col  = frame->GetColumn();
-				LOG_ERROR("[%d] at %s(%s:%d:%d)",i, *func, *path, line, col);
+				int line = current_frame->GetLineNumber();
+				int col  = current_frame->GetColumn();
+				LOG_ERROR("[%d] at %s(%s:%d:%d)",i, *current_func, *current_path, line, col);
 #endif
 			}
 		}

@@ -408,7 +408,6 @@ CLEANUP:
 
 	if(NULL != module_argv)
 	{
-		uint32_t i;
 		for(i = 0; i < module_argc; i ++)
 		    free(module_argv[i]);
 
@@ -984,14 +983,14 @@ static pss_value_t _pscript_builtin_split(pss_vm_t* vm, uint32_t argc, pss_value
 		if(*matched == 0 || *end == 0)
 		{
 			size_t len = *end ? (size_t)(end + 1 - begin - (matched - sep)) : (size_t)(end - begin);
-			char* ret = (char*)malloc(len + 1);
-			if(NULL == ret) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the new string");
-			memcpy(ret, begin, len);
-			ret[len] = 0;
-			pss_value_t val = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, ret);
+			char* retstr = (char*)malloc(len + 1);
+			if(NULL == retstr) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the new string");
+			memcpy(retstr, begin, len);
+			retstr[len] = 0;
+			pss_value_t val = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, retstr);
 			if(PSS_VALUE_KIND_ERROR == val.kind)
 			{
-				free(ret);
+				free(retstr);
 				ERROR_LOG_GOTO(ERR, "Cannot create new string object");
 			}
 

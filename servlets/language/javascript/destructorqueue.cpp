@@ -42,13 +42,13 @@ Servlet::DestructorQueue::_node_t::~_node_t()
 				int frame_count = backtrace->GetFrameCount(),i;
 				for(i = 0; i < frame_count; i ++)
 				{
-					v8::Local<v8::StackFrame> frame = backtrace->GetFrame((uint32_t)i);
-					v8::String::Utf8Value path(frame->GetScriptName());
-					v8::String::Utf8Value func(frame->GetFunctionName());
+					v8::Local<v8::StackFrame> current_frame = backtrace->GetFrame((uint32_t)i);
+					v8::String::Utf8Value current_path(current_frame->GetScriptName());
+					v8::String::Utf8Value current_func(current_frame->GetFunctionName());
 #ifdef LOG_ERROR_ENABLED
-					int line = frame->GetLineNumber();
-					int col  = frame->GetColumn();
-					LOG_ERROR("[%d] at %s(%s:%d:%d)",i, *func, *path, line, col);
+					int line = current_frame->GetLineNumber();
+					int col  = current_frame->GetColumn();
+					LOG_ERROR("[%d] at %s(%s:%d:%d)",i, *current_func, *current_path, line, col);
 #endif
 				}
 			}

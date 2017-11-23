@@ -10,6 +10,10 @@
  **/
 #ifndef __TESTENV_TESTENV_H__
 #define __TESTENV_TESTENV_H__
+
+/* We don't actually care about the test case */
+#pragma GCC diagnostic ignored "-Wshadow"
+
 #include <stdlib.h>
 #include <string.h>
 
