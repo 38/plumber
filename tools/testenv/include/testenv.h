@@ -14,6 +14,7 @@
 /* We don't actually care about the test case */
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wmissing-prototypes"
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
 
 #include <stdlib.h>
 #include <string.h>

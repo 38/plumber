@@ -70,7 +70,9 @@ static inline int _simplify_path(scope_token_t path_token, const context_t* ctx,
 	const char *begin = path + (path[0] == '/'), *end = path + (path[0] == '/');
 	const char *extname = NULL;
 	int32_t sp = 0, simplified = 0;
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
+	/* Since it's unlikely that we can have sp overflowed, thus we are able to ignore that*/
 	for(;sp >= 0;end++)
 	    if(*end == '/' || *end == 0)
 	    {
@@ -89,6 +91,7 @@ static inline int _simplify_path(scope_token_t path_token, const context_t* ctx,
 
 	/* If we pop the stack too much, this should not be allowed, so we produce zero output */
 	if(sp < 0) return 0;
+#pragma GCC diagnostic pop
 
 	uint32_t nprefix = (ctx->prefix_level > (uint32_t)sp) ? 0 : ctx->prefix_level;
 	if(ctx->prefix_token != ERROR_CODE(pstd_type_accessor_t) && ERROR_CODE(int) == _write_path(inst, ctx->prefix_token, bs, es, nprefix))

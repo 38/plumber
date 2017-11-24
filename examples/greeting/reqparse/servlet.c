@@ -50,7 +50,7 @@ static int exec(void* args)
 	int written = 0, has_user_agent = 0;
 	while((rc = pstd_bio_getc(in, &ch)) > 0)
 	{
-		written ++;
+		written = 1;
 		if(found == 0)
 		{
 			if(ch == '\r' || ch == '\n')

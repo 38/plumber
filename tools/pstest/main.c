@@ -72,6 +72,7 @@ __attribute__((noreturn)) static void show_version(int exitcode)
 static void split(const char* string, char delim, void (*action)(char*))
 {
 	int size;
+	int needs_flush = 0;
 	static char buffer[4096];
 
 	for(size = 0;*string; string ++)
@@ -81,11 +82,12 @@ static void split(const char* string, char delim, void (*action)(char*))
 			buffer[size] = 0;
 			action(buffer);
 			size = 0;
+			needs_flush = 0;
 		}
 		else
-		    buffer[size++] = *string;
+		    buffer[size++] = *string, needs_flush = 1;
 	}
-	if(size > 0)
+	if(needs_flush)
 	{
 		buffer[size] = 0;
 		action(buffer);

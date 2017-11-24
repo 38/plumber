@@ -186,13 +186,13 @@ char** lang_service_node_port_names(const lang_service_t* service, int64_t nid)
 		if(ERROR_CODE(runtime_api_pipe_flags_t) == flags)
 		    ERROR_LOG_GOTO(ERR, "Cannot access the flag of pipe <SID=%u, PID=%u>", service->sid_map[nid], pid);
 
-		int idx = -1;
+		int idx = -1, valid = 0;
 		if(RUNTIME_API_PIPE_IS_INPUT(flags))
-		    idx = ic ++;
+		    idx = ic ++, valid = 1;
 		else if(RUNTIME_API_PIPE_IS_OUTPUT(flags))
-		    idx = (oc ++) + input_size + 1;
+		    idx = (oc ++) + input_size + 1, valid = 1;
 
-		if(idx >= 0)
+		if(valid)
 		{
 			const runtime_pdt_t* pdt = runtime_stab_get_pdt(service->sid_map[nid]);
 			if(NULL == pdt) ERROR_LOG_GOTO(ERR, "Cannot get the PDT for servlet %u", service->sid_map[nid]);

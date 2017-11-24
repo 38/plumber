@@ -212,6 +212,8 @@ static inline int _write(pstd_string_t* str, pstd_bio_t* bio, const char* fmt, .
 	return 0;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
 static inline int _write_name(pstd_string_t* str, pstd_bio_t* bio, const char* fmt, const char* name)
 {
 	rapidjson::MemoryBuffer stream;
@@ -224,6 +226,7 @@ static inline int _write_name(pstd_string_t* str, pstd_bio_t* bio, const char* f
 	    ERROR_RETURN_LOG(int, "Cannot write JSON string to the pipe");
 	return 0;
 }
+#pragma GCC diagnostic pop
 
 static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
 {

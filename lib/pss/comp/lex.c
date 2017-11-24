@@ -426,6 +426,8 @@ static inline int _graphviz_prop(pss_comp_lex_t* lexer, char* buf, size_t sz)
 			case _DOT_ESC:
 			    state = _DOT_STRING;
 		}
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
 		if(level > 0)
 		{
 			if(sz > 1)
@@ -436,6 +438,7 @@ static inline int _graphviz_prop(pss_comp_lex_t* lexer, char* buf, size_t sz)
 				truncated = 1;
 			}
 		}
+#pragma GCC diagnostic pop
 	}
 	buf[0] = 0;
 	if(level > 0) return ERROR_CODE(int);

@@ -140,10 +140,10 @@ static inline int _is_running_daemon(const char* lockfile, const char* suffix, i
 
 	/* Then we match the lock suffix */
 	const char* q = pathbuf + sz - 1;
-	for(;p >= _lock_suffix && *p == *q; p--, q--);
+	for(;p - _lock_suffix >= 0 && *p == *q; p--, q--);
 
 	/* If the suffix doesn't match, then this is not a lock file */
-	if(p >= _lock_suffix) return 0;
+	if(p - _lock_suffix >= 0) return 0;
 
 	/* Open the file */
 	int fd = open(pathbuf, O_RDONLY);
