@@ -1,5 +1,6 @@
-set(COMPILER_CFLAGS "-g -Wpointer-arith -Wformat=2 -Wconversion -Wextra -Wall -Werror -Wshadow -Wcast-qual -Wstrict-overflow=5 -Wuninitialized -Wmissing-prototypes -Wbad-function-cast -Wstrict-prototypes")
-set(COMPILER_CXXFLAGS "-nostdinc++ -I/usr/include/c++/v1 -g -Wpointer-arith -Wformat=2 -Wconversion -Wextra -Wall -Werror -Wshadow -Wcast-qual -Wstrict-overflow=5 -Wuninitialized")
+include("${CMAKE_CURRENT_SOURCE_DIR}/build/compiler/shared.cmake")
+set(COMPILER_CFLAGS "${SHARED_CFLAGS} -Wstrict-overflow=5")
+set(COMPILER_CXXFLAGS "-nostdinc++ -I/usr/include/c++/v1 ${SHARED_CXXFLAGS} -Wstrict-overflow=5")
 if("${LIB_PSS_VM_STACK_LIMIT}" STREQUAL "")
 	set(LIB_PSS_VM_STACK_LIMIT 384)
 endif("${LIB_PSS_VM_STACK_LIMIT}" STREQUAL "")

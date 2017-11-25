@@ -1,2 +1,3 @@
-set(COMPILER_CFLAGS "-g -Wpointer-arith -Wformat=2 -Wconversion -Wextra -Wall -Werror -Wshadow -Wcast-qual -Wuninitialized -Wmissing-prototypes -Wbad-function-cast -Wstrict-prototypes -Wno-missing-field-initializers -Wno-strict-aliasing")
-set(COMPILER_CXXFLAGS "-g -Wpointer-arith -Wformat=2 -Wconversion -Wextra -Wall -Werror -Wshadow -Wcast-qual -Wuninitialized -Wno-missing-field-initializers -Wno-strict-aliasing")
+include("${CMAKE_CURRENT_SOURCE_DIR}/build/compiler/shared.cmake")
+set(COMPILER_CFLAGS "${SHARED_CFLAGS} -Wno-missing-field-initializers -Wno-strict-aliasing")
+set(COMPILER_CXXFLAGS "${SHARED_CXXFLAGS} -Wno-missing-field-initializers -Wno-strict-aliasing")
