@@ -117,7 +117,7 @@ static inline const char* _render_pattern(const char* pattern, char *buffer, siz
 	int num_sign = 0;
 	char* b_begin = buffer;
 	char* b_end = buffer + size - 1;
-	for(;*pattern && b_begin - b_end < 0; pattern ++)
+	for(;*pattern && b_end - b_begin > 0; pattern ++)
 	{
 		char ch = *pattern;
 		if(ch == '#')
