@@ -1,2 +1,2 @@
-set(COMPILER_CFLAGS "-g -Wpointer-arith -Wformat=2 -Wconversion -Wextra -Wall -Werror -Wshadow -Wcast-qual -Wstrict-overflow=2 -Wuninitialized -Wmissing-prototypes -Wbad-function-cast -Wstrict-prototypes")
-set(COMPILER_CXXFLAGS "-g -Wpointer-arith -Wformat=2 -Wconversion -Wextra -Wall -Werror -Wshadow -Wcast-qual -Wstrict-overflow=2 -Wuninitialized")
+set(COMPILER_CFLAGS "-g -Wpointer-arith -Wformat=2 -Wconversion -Wextra -Wall -Werror -Wshadow -Wcast-qual -Wuninitialized -Wmissing-prototypes -Wbad-function-cast -Wstrict-prototypes -Wno-missing-field-initializers -Wno-strict-aliasing")
+set(COMPILER_CXXFLAGS "-g -Wpointer-arith -Wformat=2 -Wconversion -Wextra -Wall -Werror -Wshadow -Wcast-qual -Wuninitialized -Wno-missing-field-initializers -Wno-strict-aliasing")
