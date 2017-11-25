@@ -32,7 +32,7 @@ macro(compile_protocol_type_files target_prefix indir)
 endmacro(compile_protocol_type_files indir outdir)
 
 macro(get_default_compiler_flags target compiler type)
-	execute_process(COMMAND ${CMAKE_COMMAND} -E env sh ${CMAKE_CURRENT_SOURCE_DIR}/misc/compiler_version.sh ${compiler}
+	execute_process(COMMAND ${CMAKE_COMMAND} -E env bash ${CMAKE_CURRENT_SOURCE_DIR}/misc/compiler_version.sh ${compiler}
 		            RESULT_VARIABLE result
 		            OUTPUT_VARIABLE compiler_version)
 	if(NOT "${result}" STREQUAL "0")

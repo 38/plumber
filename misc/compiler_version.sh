@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+set -eo pipefail
 echo '
 #if defined(__GNUC__) && !defined(__clang__)
 gcc#__GNUC__#__GNUC_MINOR__#__GNUC_PATCHLEVEL__
