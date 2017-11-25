@@ -11,6 +11,10 @@
 
 #include <error.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds" 
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
+
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/memorybuffer.h>
@@ -20,8 +24,6 @@
 #include <jsonschema.h>
 #include <jsonschema/log.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
 
 /**
  * @brief The type of this schema

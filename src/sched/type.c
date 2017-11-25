@@ -671,6 +671,9 @@ int sched_type_check(sched_service_t* service)
 	    if(NULL == sched_service_get_incoming_pipes(service, i, degree + i))
 	        ERROR_LOG_GOTO(ERR, "Cannot get the number of incoming pipes");
 
+	/* Since # of nodes is much less than maxint, so we do not worry about wraparound */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
 	while(sp > 0)
 	{
 		sched_service_node_id_t current = stack[--sp];
@@ -690,6 +693,7 @@ int sched_type_check(sched_service_t* service)
 			    stack[sp ++] = pd->destination_node_id;
 		}
 	}
+#pragma GCC diagnostic pop
 
 	rc = 0;
 ERR:

@@ -1,5 +1,5 @@
 set(package_status "" )
-set(CONF "System: ${SYSNAME}\nCC=${CMAKE_C_COMPILER}\nCFLAGS=${COMPILE_FLAGS} ${CFLAGS}")
+set(CONF "System: ${SYSNAME}\nCC=${CMAKE_C_COMPILER}\nCFLAGS=${COMPILE_FLAGS} ${CFLAGS}\nCXXFLAGS=${COMPILE_FLAGS} ${CXXFLAGS}")
 set(CONF "${CONF}\n--------------------------------------------------------------------------------")
 append_pakage_configure("package" "type" "build" "install")
 set(CONF "${CONF}\n--------------------------------------------------------------------------------")

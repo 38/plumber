@@ -7,6 +7,9 @@
 #include <errno.h>
 #include <inttypes.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
+
 #include <rapidjson/memorybuffer.h>
 #include <rapidjson/memorystream.h>
 #include <rapidjson/writer.h>
@@ -605,3 +608,4 @@ static inline int _exec(void* ctxbuf)
 
 
 PSERVLET_EXPORT(context_t, _init, _exec, _cleanup, "Parse the JSON to expected type", 0);
+#pragma GCC diagnostic pop

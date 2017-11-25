@@ -404,20 +404,22 @@ static inline int _graphviz_prop(pss_comp_lex_t* lexer, char* buf, size_t sz)
 {
 	if(_peek(lexer, 0) != '@' || _peek(lexer, 1) != '[') return ERROR_CODE(int);
 	_consume(lexer, 2);
-	int level = 1, ch, truncated = 0;
+	int level = 1, ch, truncated = 0, level_pos = 1;
 	enum {
 		_DOT_CODE,
 		_DOT_STRING,
 		_DOT_ESC
 	} state = _DOT_CODE;
-	for(;(ch = _peek(lexer, 0)) != ERROR_CODE(int) && level > 0; _consume(lexer, 1))
+	for(;(ch = _peek(lexer, 0)) != ERROR_CODE(int) && level_pos; _consume(lexer, 1))
 	{
 		switch(state)
 		{
 			case _DOT_CODE:
 			    if(ch == '"') state = _DOT_STRING;
-			    else if(ch == '[') level ++;
-			    else if(ch == ']') level --;
+			    else if(ch == '[') 
+					level_pos = ((level ++) >= 0);
+			    else if(ch == ']')
+					level_pos = !((level --) <= 1);
 			    break;
 			case _DOT_STRING:
 			    if(ch == '\\') state = _DOT_ESC;
@@ -426,9 +428,8 @@ static inline int _graphviz_prop(pss_comp_lex_t* lexer, char* buf, size_t sz)
 			case _DOT_ESC:
 			    state = _DOT_STRING;
 		}
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstrict-overflow"
-		if(level > 0)
+		
+		if(level_pos)
 		{
 			if(sz > 1)
 			    *(buf ++) = (char)ch, sz --;
@@ -438,10 +439,9 @@ static inline int _graphviz_prop(pss_comp_lex_t* lexer, char* buf, size_t sz)
 				truncated = 1;
 			}
 		}
-#pragma GCC diagnostic pop
 	}
 	buf[0] = 0;
-	if(level > 0) return ERROR_CODE(int);
+	if(level_pos) return ERROR_CODE(int);
 	return 0;
 }
 int pss_comp_lex_next_token(pss_comp_lex_t* lexer, pss_comp_lex_token_t* buffer)

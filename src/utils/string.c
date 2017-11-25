@@ -39,7 +39,7 @@ size_t string_buffer_appendf(string_buffer_t* buf, const char* fmt, ...)
 	va_end(ap);
 	if(rc < 0) return 0;
 
-	if(rc > (int)buf->size - 1) rc = (int)buf->size - 1;
+	if(rc - (int)buf->size > 1) rc = (int)buf->size - 1;
 
 	buf->buffer += (size_t)rc;
 	buf->size -= (size_t)rc;

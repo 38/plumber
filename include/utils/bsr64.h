@@ -96,7 +96,7 @@ static inline size_t bsr64_to_bin(const char* bsr_begin, const char* bsr_end, vo
 
 		if(val == 64) return 0;
 
-		if(begin + 6 > 8)
+		if(begin > 8 - 6)
 		{
 			if(begin < 8)
 			{

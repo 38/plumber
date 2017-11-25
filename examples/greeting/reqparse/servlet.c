@@ -1,6 +1,9 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
+/* We don't care about overflow in the example servlets */
+
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
 
 #include <string.h>
 
