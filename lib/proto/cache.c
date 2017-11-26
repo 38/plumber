@@ -858,7 +858,7 @@ int proto_cache_put(const char* typename, proto_type_t* proto)
 
 	if(!_pending_deleted(node) && _proto_file_exist(namebuf))
 	{
-		if(node->type == NULL && NULL == (node->type = (proto_type_t*)_get_type_impl(typename, NULL, NULL)))
+		if(node->type == NULL && NULL == (node->type = _get_type_impl(typename, NULL, NULL)))
 		    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 		if(ERROR_CODE(int) == _update_rdep(typename, node->type, 0))
@@ -901,7 +901,7 @@ int proto_cache_delete(const char* typename)
 	if(NULL == node)
 	    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
-	if(_proto_file_exist(namebuf) && node->type == NULL && NULL == (node->type = (proto_type_t*)_get_type_impl(typename, NULL, NULL)))
+	if(_proto_file_exist(namebuf) && node->type == NULL && NULL == (node->type = _get_type_impl(typename, NULL, NULL)))
 	    PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	if(node->type != NULL && ERROR_CODE(int) == _update_rdep(typename, node->type, 0))
