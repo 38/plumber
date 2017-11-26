@@ -12,7 +12,7 @@
 #include <error.h>
 
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds" 
+#pragma GCC diagnostic ignored "-Warray-bounds"
 #pragma GCC diagnostic ignored "-Wstrict-overflow"
 
 #include <rapidjson/filereadstream.h>

@@ -416,10 +416,10 @@ static inline int _graphviz_prop(pss_comp_lex_t* lexer, char* buf, size_t sz)
 		{
 			case _DOT_CODE:
 			    if(ch == '"') state = _DOT_STRING;
-			    else if(ch == '[') 
-					level_pos = ((level ++) >= 0);
+			    else if(ch == '[')
+			        level_pos = ((level ++) >= 0);
 			    else if(ch == ']')
-					level_pos = !((level --) <= 1);
+			        level_pos = !((level --) <= 1);
 			    break;
 			case _DOT_STRING:
 			    if(ch == '\\') state = _DOT_ESC;
@@ -428,7 +428,7 @@ static inline int _graphviz_prop(pss_comp_lex_t* lexer, char* buf, size_t sz)
 			case _DOT_ESC:
 			    state = _DOT_STRING;
 		}
-		
+
 		if(level_pos)
 		{
 			if(sz > 1)
