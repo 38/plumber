@@ -14,19 +14,19 @@
 
 #ifndef PREDICT_ASSERTION
 #	define PREDICT_IMPOSSIBLE(expr) do{\
-		if(expr) __builtin_unreachable();\
-	} while(0)
+	    if(expr) __builtin_unreachable();\
+    } while(0)
 #else
 #	include <stdlib.h>
 #	include <utils/log.h>
 #	define PREDICT_IMPOSSIBLE(expr) do{\
-		if(expr) \
-		{\
-			LOG_FATAL("Predict assertion failure: `"#expr"' should not be true"); \
-			abort();\
-		}\
-		if(expr) __builtin_unreachable();\
-	} while(0)
+	    if(expr) \
+	    {\
+		    LOG_FATAL("Predict assertion failure: `"#expr"' should not be true"); \
+		    abort();\
+	    }\
+	    if(expr) __builtin_unreachable();\
+    } while(0)
 #endif
 
 #define PREDICT_ASSUME(expr) PREDICT_IMPOSSIBLE(!(expr))

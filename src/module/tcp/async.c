@@ -1036,7 +1036,7 @@ int module_tcp_async_write_register(module_tcp_async_loop_t* loop,
 	if(loop->objects[conn_id].b_size > (uint32_t)getpagesize())
 	{
 		LOG_WARNING("Adjusted the buffer size to fit one page");
-	    loop->objects[conn_id].b_size = (uint32_t)getpagesize();
+		loop->objects[conn_id].b_size = (uint32_t)getpagesize();
 	}
 
 	LOG_INFO("Initialized async operation on connection object %"PRIu32, conn_id);

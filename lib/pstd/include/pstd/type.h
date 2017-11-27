@@ -176,19 +176,19 @@ int pstd_type_model_const(pstd_type_model_t* model, pipe_t pipe, const char* fie
     })
 
 #define PSTD_TYPE_INSTANCE_LOCAL_NEW(model) ({\
-		pstd_type_instance_t* _inst = NULL;\
-		size_t _tisz = pstd_type_instance_size(model);\
-		if(_tisz != ERROR_CODE(size_t)) \
-		{\
-			void* _buf = NULL;\
-			if(_tisz <= 4096) \
-			{\
-				_buf = alloca(_tisz); \
-			}\
-			_inst = pstd_type_instance_new(model, _buf); \
-		}\
-		_inst;\
-	})
+	    pstd_type_instance_t* _inst = NULL;\
+	    size_t _tisz = pstd_type_instance_size(model);\
+	    if(_tisz != ERROR_CODE(size_t)) \
+	    {\
+		    void* _buf = NULL;\
+		    if(_tisz <= 4096) \
+		    {\
+			    _buf = alloca(_tisz); \
+		    }\
+		    _inst = pstd_type_instance_new(model, _buf); \
+	    }\
+	    _inst;\
+    })
 
 /**
  * @brief Get the size of the field

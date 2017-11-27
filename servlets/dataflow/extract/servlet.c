@@ -59,9 +59,9 @@ static int _exec(void* ctxbuf)
 
 	char* buf = NULL, * mem_to_free = NULL;
 	if(sz < 4096)
-		buf = (char*)alloca(sz);
+	    buf = (char*)alloca(sz);
 	else
-		mem_to_free = buf = (char*)malloc(sz);
+	    mem_to_free = buf = (char*)malloc(sz);
 
 	size_t bytes_read = pstd_type_instance_read(inst, ctx->accessor, buf, sz);
 	if(ERROR_CODE(size_t) == bytes_read)

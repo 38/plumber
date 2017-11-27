@@ -567,7 +567,7 @@ static inline pss_bytecode_segment_t* _load_segment(FILE* in)
 	    ERROR_LOG_GOTO(ERR, "Cannot load the register table");
 
 	if(ret->argument_table->header.size > PSS_VM_ARG_MAX)
-		ERROR_LOG_GOTO(ERR, "Too many arguments defined by the segment");
+	    ERROR_LOG_GOTO(ERR, "Too many arguments defined by the segment");
 
 	if(NULL == (ret->string_table = _load_table(_TABLE_TYPE_STR, in)))
 	    ERROR_LOG_GOTO(ERR, "Cannot load the string table");

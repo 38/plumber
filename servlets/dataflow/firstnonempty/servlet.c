@@ -80,7 +80,7 @@ static int _copy_header(const context_t* ctx, pipe_t pipe)
 		{
 			int eof_rc = pipe_eof(pipe);
 			if(ERROR_CODE(int) == eof_rc)
-				ERROR_RETURN_LOG(int, "Cannot check if the pipe stream has reached the end");
+			    ERROR_RETURN_LOG(int, "Cannot check if the pipe stream has reached the end");
 			if(eof_rc == 1) ERROR_RETURN_LOG(int, "Incompleted header data");
 			/* Otherwise, we should wait for more data */
 		}
@@ -93,7 +93,7 @@ static int _copy_header(const context_t* ctx, pipe_t pipe)
 		{
 			size_t wrc = pipe_hdr_write(ctx->output, to_write, rc);
 			if(ERROR_CODE(size_t) == wrc)
-				ERROR_RETURN_LOG(int, "Cannot write the typed header to output");
+			    ERROR_RETURN_LOG(int, "Cannot write the typed header to output");
 			rc -= wrc;
 			to_write += wrc;
 		}

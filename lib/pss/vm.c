@@ -876,13 +876,13 @@ static inline pss_bytecode_regid_t _exec(pss_vm_t* vm)
 			    retreg = inst.reg[0];
 			    break;
 			case PSS_BYTECODE_OP_ARG:
-				if(top->argc >= PSS_VM_ARG_MAX)
-				{
-					vm->error = PSS_VM_ERROR_ARGUMENT;
-					LOG_ERROR("Too many arguments for a function invocation");
-					rc = ERROR_CODE(int);
-				}
-				else top->arg[top->argc ++] = inst.reg[0];
+			    if(top->argc >= PSS_VM_ARG_MAX)
+			    {
+				    vm->error = PSS_VM_ERROR_ARGUMENT;
+				    LOG_ERROR("Too many arguments for a function invocation");
+				    rc = ERROR_CODE(int);
+			    }
+			    else top->arg[top->argc ++] = inst.reg[0];
 			    break;
 			case PSS_BYTECODE_OP_DEBUGINFO:
 			    if(inst.info->rtype == PSS_BYTECODE_RTYPE_INT)

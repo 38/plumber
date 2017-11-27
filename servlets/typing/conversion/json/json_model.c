@@ -73,16 +73,16 @@ static int _process_scalar(proto_db_field_info_t info, const char* actual_name, 
 		size_t prefix_size = strlen(td->field_prefix) + strlen(actual_name) + 2;
 
 		char* prefix = NULL;
-	
-		/* Since the prefix_size can't be 0, this is safe. But if prefix_size is 0, ((prefix_size - 1) & 0xff + 1) = 256 */
-		if(prefix_size <= 256) 
-			prefix = alloca(((prefix_size - 1) & 0xff) + 1);
-		else 
-			prefix = malloc(prefix_size);
 
-		if(NULL == prefix) 
-			ERROR_RETURN_LOG(int, "Cannot allocate memory for the prefix %s.%s", td->field_prefix, actual_name);
-		
+		/* Since the prefix_size can't be 0, this is safe. But if prefix_size is 0, ((prefix_size - 1) & 0xff + 1) = 256 */
+		if(prefix_size <= 256)
+		    prefix = alloca(((prefix_size - 1) & 0xff) + 1);
+		else
+		    prefix = malloc(prefix_size);
+
+		if(NULL == prefix)
+		    ERROR_RETURN_LOG(int, "Cannot allocate memory for the prefix %s.%s", td->field_prefix, actual_name);
+
 		if(td->field_prefix[0] > 0)
 		    snprintf(prefix, prefix_size, "%s.%s", td->field_prefix, actual_name);
 		/* If this is a complex field */

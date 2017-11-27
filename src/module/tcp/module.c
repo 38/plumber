@@ -555,7 +555,7 @@ static inline int _module_context_init(_module_context_t* ctx, _module_context_t
 	ctx->async_buf_size     = MODULE_TCP_MAX_ASYNC_BUF_SIZE;
 
 	if(ctx->async_buf_size > (uint32_t)getpagesize())
-		ctx->async_buf_size = (uint32_t)getpagesize();
+	    ctx->async_buf_size = (uint32_t)getpagesize();
 
 	ctx->pool_initialized = 0;
 
@@ -1356,7 +1356,7 @@ static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_
 		else if(strcmp(sym, "backlog") == 0) context->pool_conf.tcp_backlog = (int)value.num;
 		else if(strcmp(sym, "ipv6") == 0) context->pool_conf.ipv6 = (int)value.num;
 		else if(strcmp(sym, "reuseaddr") == 0) context->pool_conf.reuseaddr = (int)value.num;
-		else if(strcmp(sym, "async_buf_size") == 0) 
+		else if(strcmp(sym, "async_buf_size") == 0)
 		{
 			context->async_buf_size = (uint32_t)value.num;
 			if(context->async_buf_size > (uint32_t)getpagesize())

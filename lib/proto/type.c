@@ -160,7 +160,7 @@ static inline proto_type_atomic_metadata_t* _load_metadata(FILE* fp)
 			size_t bytes_to_read = n_dropped > sizeof(dropped) ? sizeof(dropped) : n_dropped;
 
 			if(1 != fread(dropped, bytes_to_read, 1, fp))
-				PROTO_ERR_RAISE_GOTO(ERR, FORMAT);
+			    PROTO_ERR_RAISE_GOTO(ERR, FORMAT);
 
 			n_dropped -= bytes_to_read;
 		}

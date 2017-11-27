@@ -1035,9 +1035,9 @@ int proto_db_field_get_default(const char* typename, const char* fieldname, cons
  *
  * The compiler mark size of b can be extermly large, however, this couldn't happen anyway.
  * Note, this only happens when the function is __builtin_strlen or strlen. Replacing the function
- * with a normal function, the compiler infer the range correctly. 
+ * with a normal function, the compiler infer the range correctly.
  * It's generally important not make unbounded stack allocations, however, the case above is the
- * false positive for sure. 
+ * false positive for sure.
  * Thus we should ignore this warning until the compiler bug fixed
  */
 #pragma GCC diagnostic push
@@ -1112,13 +1112,13 @@ int proto_db_type_traverse(const char* type_name, proto_db_field_callback_t func
 		size_t namelen = strlen(info.name);
 		size_t buflen = namelen + 3 * info.ndims + 1;
 		char* namebuf = NULL, * to_dispose = NULL;
-		
+
 		char local_buf[buflen <= 4096 ? buflen : 1 ];
-		
+
 		if(buflen > 4096)
-			to_dispose = namebuf = (char*)malloc(buflen);
+		    to_dispose = namebuf = (char*)malloc(buflen);
 		else
-			namebuf = local_buf;
+		    namebuf = local_buf;
 
 		if(NULL == namebuf) PROTO_ERR_RAISE_RETURN(int, ALLOC);
 

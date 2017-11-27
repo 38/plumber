@@ -104,17 +104,17 @@ int64_t lang_service_add_node(lang_service_t* service, const char* init_args)
 		    else escape = 0;
 		if(!empty) argc ++;
 	}
-	
+
 	char* buf = NULL;
 	char const* * argv = NULL;
 	size_t scanned, argidx, processed;
 	size_t len = strlen(init_args);
 
 	if(NULL == (buf = strdup(init_args)))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate duplicate the init string");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate duplicate the init string");
 
 	if(NULL == (argv = (char const* *)calloc(argc, sizeof(char const*))))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the argument array");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the argument array");
 
 	for(scanned = argidx = processed = 0; scanned < len; scanned ++)
 	{
