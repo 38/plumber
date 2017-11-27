@@ -72,10 +72,16 @@ static int _process_scalar(proto_db_field_info_t info, const char* actual_name, 
 	{
 		size_t prefix_size = strlen(td->field_prefix) + strlen(actual_name) + 2;
 
-		char prefix_buf[256];
-		char* prefix = prefix_size <= sizeof(prefix_buf) ? prefix_buf : malloc(prefix_size);
+		char* prefix = NULL;
+	
+		/* Since the prefix_size can't be 0, this is safe. But if prefix_size is 0, ((prefix_size - 1) & 0xff + 1) = 256 */
+		if(prefix_size <= 256) 
+			prefix = alloca(((prefix_size - 1) & 0xff) + 1);
+		else 
+			prefix = malloc(prefix_size);
 
-		if(NULL == prefix) ERROR_RETURN_LOG(int, "Cannot allocate memory for the prefix %s.%s", td->field_prefix, actual_name);
+		if(NULL == prefix) 
+			ERROR_RETURN_LOG(int, "Cannot allocate memory for the prefix %s.%s", td->field_prefix, actual_name);
 		
 		if(td->field_prefix[0] > 0)
 		    snprintf(prefix, prefix_size, "%s.%s", td->field_prefix, actual_name);
@@ -89,10 +95,10 @@ static int _process_scalar(proto_db_field_info_t info, const char* actual_name, 
 		if(ERROR_CODE(int) == proto_db_type_traverse(info.type, _traverse_type, &new_td))
 		{
 			_print_libproto_err();
-			if(NULL != prefix && prefix_buf != prefix) free(prefix);
+			if(prefix_size > 256) free(prefix);
 			ERROR_RETURN_LOG(int, "Cannot process %s.%s", td->root_type, prefix);
 		}
-		if(NULL != prefix && prefix_buf != prefix) free(prefix);
+		if(prefix_size > 256) free(prefix);
 		return 0;
 	}
 
@@ -166,8 +172,7 @@ static int _traverse_type(proto_db_field_info_t info, void* data)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot dup the field name");
 	td->json_model->nops ++;
 
-	char local_buf[256];
-	char* buf = sizeof(local_buf) > buf_size ? local_buf : (char*)malloc(buf_size + 1);
+	char* buf = buf_size < 256 ? (char*)alloca((buf_size&0xff) + 1) : (char*)malloc(buf_size + 1);
 	if(NULL == buf) ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the name buffer");
 
 	if(td->field_prefix[0] == 0)
@@ -184,10 +189,10 @@ static int _traverse_type(proto_db_field_info_t info, void* data)
 	td->json_model->ops[td->json_model->nops].opcode = JSON_MODEL_OPCODE_CLOSE;
 	td->json_model->nops ++;
 
-	if(local_buf != buf) free(buf);
+	if(buf_size >= 256) free(buf);
 	return 0;
 ERR:
-	if(local_buf != buf) free(buf);
+	if(buf_size >= 256 && NULL != buf) free(buf);
 	return ERROR_CODE(int);
 }
 

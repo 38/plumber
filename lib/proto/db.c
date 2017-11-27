@@ -1113,9 +1113,9 @@ int proto_db_type_traverse(const char* type_name, proto_db_field_callback_t func
 		size_t buflen = namelen + 3 * info.ndims + 1;
 		char* namebuf = NULL, * to_dispose = NULL;
 		
-		char local_buf[buflen < 4096 ? buflen : 1 ];
+		char local_buf[buflen <= 4096 ? buflen : 1 ];
 		
-		if(buflen >= 4096)
+		if(buflen > 4096)
 			to_dispose = namebuf = (char*)malloc(buflen);
 		else
 			namebuf = local_buf;

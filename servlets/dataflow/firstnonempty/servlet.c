@@ -75,6 +75,16 @@ static int _copy_header(const context_t* ctx, pipe_t pipe)
 		size_t rc = pipe_hdr_read(pipe, hdrbuf, rem > sizeof(hdrbuf) ? sizeof(hdrbuf) : rem);
 		if(ERROR_CODE(size_t) == rc)
 		    ERROR_RETURN_LOG(int, "Cannot read the typed header");
+
+		if(rc == 0)
+		{
+			int eof_rc = pipe_eof(pipe);
+			if(ERROR_CODE(int) == eof_rc)
+				ERROR_RETURN_LOG(int, "Cannot check if the pipe stream has reached the end");
+			if(eof_rc == 1) ERROR_RETURN_LOG(int, "Incompleted header data");
+			/* Otherwise, we should wait for more data */
+		}
+
 		rem -= (uint32_t)rc;
 
 		const char* to_write = hdrbuf;
@@ -85,6 +95,7 @@ static int _copy_header(const context_t* ctx, pipe_t pipe)
 			if(ERROR_CODE(size_t) == wrc)
 				ERROR_RETURN_LOG(int, "Cannot write the typed header to output");
 			rc -= wrc;
+			to_write += wrc;
 		}
 	}
 

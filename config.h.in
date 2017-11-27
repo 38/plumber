@@ -175,6 +175,6 @@
 #	define MODULE_TLS_ENABLED @MODULE_TLS_ENABLED@
 
 /** @brief The default async write buffer size for TCP module */
-#	define MODULE_TCP_ASYNC_BUF_SIZE @MODULE_TCP_ASYNC_BUF_SIZE@
+#	define MODULE_TCP_MAX_ASYNC_BUF_SIZE @MODULE_TCP_MAX_ASYNC_BUF_SIZE@
 
 #endif

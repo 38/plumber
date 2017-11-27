@@ -552,7 +552,10 @@ static inline int _module_context_init(_module_context_t* ctx, _module_context_t
 
 
 	ctx->sync_write_attempt = 1;
-	ctx->async_buf_size     = MODULE_TCP_ASYNC_BUF_SIZE;
+	ctx->async_buf_size     = MODULE_TCP_MAX_ASYNC_BUF_SIZE;
+
+	if(ctx->async_buf_size > (uint32_t)getpagesize())
+		ctx->async_buf_size = (uint32_t)getpagesize();
 
 	ctx->pool_initialized = 0;
 
@@ -925,9 +928,7 @@ static inline size_t _ensure_async_handle(_module_context_t* context, _handle_t*
 	}
 	else return 0;
 }
-/* Because currently -Wstack-usage doesn't follow the variable range hint, thus we ignore the warning for now */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstack-usage="
+
 static int _write_callback(void* __restrict ctx, itc_module_data_source_t data_source, void* __restrict out)
 {
 	if(NULL == ctx || NULL == out)
@@ -945,7 +946,8 @@ static int _write_callback(void* __restrict ctx, itc_module_data_source_t data_s
 
 	runtime_api_pipe_flags_t flags = itc_module_get_handle_flags(out);
 
-	PREDICT_IMPOSSIBLE(context->async_buf_size > 4096);
+	/* Since we previously make sure the size of sync buf is at most one page, so this is bounded */
+	PREDICT_IMPOSSIBLE(context->async_buf_size > MODULE_TCP_MAX_ASYNC_BUF_SIZE);
 	int8_t sync_buf[context->async_buf_size];
 
 	if(flags & RUNTIME_API_PIPE_ASYNC)
@@ -1090,7 +1092,6 @@ ASYNC_RET:
 		return data_source.close(data_source.data_handle);
 	}
 }
-#pragma GCC diagnostic pop
 
 static size_t _write(void* __restrict ctx, const void* __restrict data, size_t nbytes, void* __restrict out)
 {
@@ -1362,6 +1363,12 @@ static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_
 			{
 				LOG_WARNING("Async buffer size is larger than one page, adjust it to fit one page");
 				context->async_buf_size = (uint32_t)getpagesize();
+			}
+
+			if(context->async_buf_size > MODULE_TCP_MAX_ASYNC_BUF_SIZE)
+			{
+				LOG_WARNING("Async buffer size is larger than the hard limit, adjust it to the hard limit");
+				context->async_buf_size = MODULE_TCP_MAX_ASYNC_BUF_SIZE;
 			}
 		}
 		else return 0;
