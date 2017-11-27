@@ -62,7 +62,8 @@ static inline void arch_atomic_sw_assignment_u32(uint32_t* var, uint32_t val)
  * @param argv The argument list
  * @return status code
  **/
-__attribute__((noinline, used)) static int arch_switch_stack(void* baseaddr, size_t size, int (*main)(int, char **), int argc, char** argv)
+__attribute__((noinline, used, error("fixme: stack switching for ARM32 haven't been implemented"))) 
+static int arch_switch_stack(void* baseaddr, size_t size, int (*main)(int, char **), int argc, char** argv)
 {
 	(void)baseaddr;
 	(void)size;
