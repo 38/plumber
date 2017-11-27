@@ -54,6 +54,12 @@
 /** @brief the initial size of the out going list for each service buffer node */
 #   define SCHED_SERVICE_BUFFER_OUT_GOING_LIST_INIT_SIZE @SCHED_SERVICE_BUFFER_OUT_GOING_LIST_INIT_SIZE@
 
+/** @brief The maximum number of nodes that is allowed in a single service graph */
+#	define SCHED_SERVICE_MAX_NUM_NODES @SCHED_SERVICE_MAX_NUM_NODES@
+
+/** @brief The maximum number of edges that is allowed in a single service graph */
+#	define SCHED_SERVICE_MAX_NUM_EDGES @SCHED_SERVICE_MAX_NUM_EDGES@
+
 /** @brief the number of slots in the scheduler task hash table */
 #	define SCHED_TASK_TABLE_SLOT_SIZE @SCHED_TASK_TABLE_SLOT_SIZE@
 
@@ -167,5 +173,8 @@
 
 /** @brief Indicates if TLS module is enabled */
 #	define MODULE_TLS_ENABLED @MODULE_TLS_ENABLED@
+
+/** @brief The default async write buffer size for TCP module */
+#	define MODULE_TCP_ASYNC_BUF_SIZE @MODULE_TCP_ASYNC_BUF_SIZE@
 
 #endif

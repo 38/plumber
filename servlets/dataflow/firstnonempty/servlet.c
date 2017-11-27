@@ -67,24 +67,25 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 
 static int _copy_header(const context_t* ctx, pipe_t pipe)
 {
-	char hdrbuf[ctx->header_size];
+	char hdrbuf[1024];
 
 	uint32_t rem = ctx->header_size;
 	while(rem > 0)
 	{
-		size_t rc = pipe_hdr_read(pipe, hdrbuf + ctx->header_size - rem, rem);
+		size_t rc = pipe_hdr_read(pipe, hdrbuf, rem > sizeof(hdrbuf) ? sizeof(hdrbuf) : rem);
 		if(ERROR_CODE(size_t) == rc)
 		    ERROR_RETURN_LOG(int, "Cannot read the typed header");
 		rem -= (uint32_t)rc;
-	}
 
-	rem = ctx->header_size;
-	while(rem > 0)
-	{
-		size_t rc = pipe_hdr_write(ctx->output, hdrbuf + ctx->header_size - rem, rem);
-		if(ERROR_CODE(size_t) == rc)
-		    ERROR_RETURN_LOG(int, "Cannot write the typed header");
-		rem -= (uint32_t)rc;
+		const char* to_write = hdrbuf;
+
+		while(rc > 0)
+		{
+			size_t wrc = pipe_hdr_write(ctx->output, to_write, rc);
+			if(ERROR_CODE(size_t) == wrc)
+				ERROR_RETURN_LOG(int, "Cannot write the typed header to output");
+			rc -= wrc;
+		}
 	}
 
 	return 0;

@@ -178,10 +178,7 @@ static int _exec(void* ctxbuf)
 {
 	context_t* ctx = (context_t*)ctxbuf;
 
-	size_t tisz = pstd_type_instance_size(ctx->type_model);
-	if(ERROR_CODE(size_t) == tisz) ERROR_RETURN_LOG(int, "Cannot get the size of the type model");
-	char tibuf[tisz];
-	pstd_type_instance_t* inst = pstd_type_instance_new(ctx->type_model, tibuf);
+	pstd_type_instance_t* inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model);
 	if(NULL == inst) ERROR_RETURN_LOG(int, "Cannot get the type instance");
 
 	scope_token_t token;

@@ -213,13 +213,8 @@ static int _exec(void* ctxbuf)
 {
 	context_t* ctx = (context_t*)ctxbuf;
 
-	pstd_type_instance_t* inst = NULL;
-	size_t sz = pstd_type_instance_size(ctx->model);
-	if(ERROR_CODE(size_t) == sz)
-	    ERROR_RETURN_LOG(int, "Cannot get the size of the model");
-
-	char buf[sz];
-	if(NULL == (inst = pstd_type_instance_new(ctx->model, buf)))
+	pstd_type_instance_t* inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->model);
+	if(NULL == inst)
 	    ERROR_LOG_GOTO(ERR, "Cannot create the model");
 
 	scope_token_t token;

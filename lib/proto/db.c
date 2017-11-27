@@ -7,6 +7,8 @@
 #include <errno.h>
 #include <stdint.h>
 
+#include <predict.h>
+
 #include <package_config.h>
 #include <proto/err.h>
 #include <proto/ref.h>
@@ -1012,6 +1014,35 @@ int proto_db_field_get_default(const char* typename, const char* fieldname, cons
 	return 1;
 }
 
+#if __GNUC__ >= 7
+/* I believe there must be some bug with the static analyzer of GCC 7, which make the code
+ *    void test(void)
+ *    {
+ *    	unsigned long l = __builtin_strlen(s);
+ *    	if(l < 4096)
+ *    	{
+ *    		char b[l];
+ *    		do_something(b);
+ *    	}
+ *    }
+ *
+ *    $ gcc-7 -Wvla-larger-than=409600 -O2 db.c -c
+ *    db.c: In function ‘test’:
+ *    db.c:8:8: warning: argument to variable-length array may be too large [-Wvla-larger-than=]
+ *    char b[l];
+ *          ^
+ *    db.c:8:8: note: limit is 409600 bytes, but argument may be as large as 9223372036854775806
+ *
+ * The compiler mark size of b can be extermly large, however, this couldn't happen anyway.
+ * Note, this only happens when the function is __builtin_strlen or strlen. Replacing the function
+ * with a normal function, the compiler infer the range correctly. 
+ * It's generally important not make unbounded stack allocations, however, the case above is the
+ * false positive for sure. 
+ * Thus we should ignore this warning until the compiler bug fixed
+ */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wvla-larger-than="
+#endif
 int proto_db_type_traverse(const char* type_name, proto_db_field_callback_t func, void* data)
 {
 	if(NULL == type_name || NULL == func) PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
@@ -1079,21 +1110,32 @@ int proto_db_type_traverse(const char* type_name, proto_db_field_callback_t func
 		info.dims  = name_info.dimension;
 
 		size_t namelen = strlen(info.name);
-		char namebuf[namelen + 3 * info.ndims + 1];
+		size_t buflen = namelen + 3 * info.ndims + 1;
+		char* namebuf = NULL, * to_dispose = NULL;
+		
+		char local_buf[buflen < 4096 ? buflen : 1 ];
+		
+		if(buflen >= 4096)
+			to_dispose = namebuf = (char*)malloc(buflen);
+		else
+			namebuf = local_buf;
+
+		if(NULL == namebuf) PROTO_ERR_RAISE_RETURN(int, ALLOC);
+
 		memcpy(namebuf, info.name, namelen);
 		uint32_t k;
 		for(k = 0; k < info.ndims; k ++)
 		    memcpy(namebuf + namelen + k * 3, "[0]", 3);
-		namebuf[namelen + 3 * info.ndims] = 0;
+		namebuf[buflen] = 0;
 
 		if(ERROR_CODE(proto_db_field_prop_t) == (info.primitive_prop = proto_db_field_type_info(type_name, namebuf)))
-		    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		    PROTO_ERR_RAISE_GOTO(ITER_ERR, FAIL);
 
 		if((info.primitive_prop & PROTO_DB_FIELD_PROP_SCOPE) == 0 && name_info.elemsize > 0 && NULL == (info.type = proto_db_field_type(type_name, namebuf)))
-		    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		    PROTO_ERR_RAISE_GOTO(ITER_ERR, FAIL);
 
 		if(ERROR_CODE(uint32_t) == (info.offset = proto_db_type_offset(type_name, info.name, &info.size)))
-		    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		    PROTO_ERR_RAISE_GOTO(ITER_ERR, FAIL);
 
 		for(k = 0; k < info.ndims; k ++)
 		    info.size /= info.dims[k];
@@ -1103,9 +1145,19 @@ int proto_db_type_traverse(const char* type_name, proto_db_field_callback_t func
 
 
 		if(ERROR_CODE(int) == func(info, data))
-		    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		    PROTO_ERR_RAISE_GOTO(ITER_ERR, FAIL);
+
+		if(to_dispose != NULL) free(to_dispose);
+		continue;
+ITER_ERR:
+		if(to_dispose != NULL) free(to_dispose);
+		goto ERR;
 	}
 
 	return 0;
+ERR:
+	return ERROR_CODE(int);
 }
-
+#if __GNUC__ >= 7
+#pragma GCC diagnostic pop
+#endif

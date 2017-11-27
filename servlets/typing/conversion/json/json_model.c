@@ -6,6 +6,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include <predict.h>
+
 #include <utils/static_assertion.h>
 
 #include <pstd.h>
@@ -69,7 +71,12 @@ static int _process_scalar(proto_db_field_info_t info, const char* actual_name, 
 	if(info.primitive_prop == 0 && strcmp(info.type, "plumber/std/request_local/String") != 0)
 	{
 		size_t prefix_size = strlen(td->field_prefix) + strlen(actual_name) + 2;
-		char prefix[prefix_size];
+
+		char prefix_buf[256];
+		char* prefix = prefix_size <= sizeof(prefix_buf) ? prefix_buf : malloc(prefix_size);
+
+		if(NULL == prefix) ERROR_RETURN_LOG(int, "Cannot allocate memory for the prefix %s.%s", td->field_prefix, actual_name);
+		
 		if(td->field_prefix[0] > 0)
 		    snprintf(prefix, prefix_size, "%s.%s", td->field_prefix, actual_name);
 		/* If this is a complex field */
@@ -82,8 +89,10 @@ static int _process_scalar(proto_db_field_info_t info, const char* actual_name, 
 		if(ERROR_CODE(int) == proto_db_type_traverse(info.type, _traverse_type, &new_td))
 		{
 			_print_libproto_err();
+			if(NULL != prefix && prefix_buf != prefix) free(prefix);
 			ERROR_RETURN_LOG(int, "Cannot process %s.%s", td->root_type, prefix);
 		}
+		if(NULL != prefix && prefix_buf != prefix) free(prefix);
 		return 0;
 	}
 
@@ -157,7 +166,9 @@ static int _traverse_type(proto_db_field_info_t info, void* data)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot dup the field name");
 	td->json_model->nops ++;
 
-	char buf[buf_size + 1];
+	char local_buf[256];
+	char* buf = sizeof(local_buf) > buf_size ? local_buf : (char*)malloc(buf_size + 1);
+	if(NULL == buf) ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the name buffer");
 
 	if(td->field_prefix[0] == 0)
 	    snprintf(buf, buf_size + 1, "%s", info.name);
@@ -166,14 +177,18 @@ static int _traverse_type(proto_db_field_info_t info, void* data)
 
 
 	if(ERROR_CODE(int) == _build_dimension(info, td, 0, buf, buf + strlen(buf), buf_size + 1))
-	    ERROR_RETURN_LOG(int, "Cannot process the field");
+	    ERROR_LOG_GOTO(ERR, "Cannot process the field");
 
 	if(ERROR_CODE(int) == _ensure_space(td->json_model))
-	    ERROR_RETURN_LOG(int, "Cannot enough the output model has enough space");
+	    ERROR_LOG_GOTO(ERR, "Cannot enough the output model has enough space");
 	td->json_model->ops[td->json_model->nops].opcode = JSON_MODEL_OPCODE_CLOSE;
 	td->json_model->nops ++;
 
+	if(local_buf != buf) free(buf);
 	return 0;
+ERR:
+	if(local_buf != buf) free(buf);
+	return ERROR_CODE(int);
 }
 
 json_model_t* json_model_new(const char* pipe_name, const char* type_name, int input, pstd_type_model_t* type_model, void* mem)

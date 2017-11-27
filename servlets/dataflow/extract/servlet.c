@@ -46,12 +46,7 @@ static int _exec(void* ctxbuf)
 	int rc = ERROR_CODE(int);
 	context_t* ctx = (context_t*)ctxbuf;
 
-	size_t ti_size = pstd_type_instance_size(ctx->model);
-	if(ERROR_CODE(size_t) == ti_size)
-	    ERROR_RETURN_LOG(int, "Cannot get the type instance size");
-	char ti_mem[ti_size];
-
-	pstd_type_instance_t* inst = pstd_type_instance_new(ctx->model, ti_mem);
+	pstd_type_instance_t* inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->model);
 	if(NULL == inst) ERROR_RETURN_LOG(int, "Cannot create new type instance");
 
 	size_t sz = pstd_type_instance_field_size(inst, ctx->accessor);
@@ -61,7 +56,12 @@ static int _exec(void* ctxbuf)
 		pstd_type_instance_free(inst);
 		return ERROR_CODE(int);
 	}
-	char buf[sz];
+
+	char* buf = NULL, * mem_to_free = NULL;
+	if(sz < 4096)
+		buf = (char*)alloca(sz);
+	else
+		mem_to_free = buf = (char*)malloc(sz);
 
 	size_t bytes_read = pstd_type_instance_read(inst, ctx->accessor, buf, sz);
 	if(ERROR_CODE(size_t) == bytes_read)
@@ -82,6 +82,8 @@ static int _exec(void* ctxbuf)
 ERR:
 	if(ERROR_CODE(int) == pstd_type_instance_free(inst))
 	    ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
+
+	if(NULL != mem_to_free) free(mem_to_free);
 
 	return rc;
 }

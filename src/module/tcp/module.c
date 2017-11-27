@@ -16,6 +16,7 @@
 
 #include <barrier.h>
 #include <error.h>
+#include <predict.h>
 #include <utils/log.h>
 #include <utils/static_assertion.h>
 #include <utils/mempool/objpool.h>
@@ -551,7 +552,7 @@ static inline int _module_context_init(_module_context_t* ctx, _module_context_t
 
 
 	ctx->sync_write_attempt = 1;
-	ctx->async_buf_size     = 4096;
+	ctx->async_buf_size     = MODULE_TCP_ASYNC_BUF_SIZE;
 
 	ctx->pool_initialized = 0;
 
@@ -924,7 +925,9 @@ static inline size_t _ensure_async_handle(_module_context_t* context, _handle_t*
 	}
 	else return 0;
 }
-
+/* Because currently -Wstack-usage doesn't follow the variable range hint, thus we ignore the warning for now */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstack-usage="
 static int _write_callback(void* __restrict ctx, itc_module_data_source_t data_source, void* __restrict out)
 {
 	if(NULL == ctx || NULL == out)
@@ -941,6 +944,8 @@ static int _write_callback(void* __restrict ctx, itc_module_data_source_t data_s
 	    ERROR_RETURN_LOG(int, "Invalid type of handle, expected write, but get read");
 
 	runtime_api_pipe_flags_t flags = itc_module_get_handle_flags(out);
+
+	PREDICT_IMPOSSIBLE(context->async_buf_size > 4096);
 	int8_t sync_buf[context->async_buf_size];
 
 	if(flags & RUNTIME_API_PIPE_ASYNC)
@@ -1085,6 +1090,7 @@ ASYNC_RET:
 		return data_source.close(data_source.data_handle);
 	}
 }
+#pragma GCC diagnostic pop
 
 static size_t _write(void* __restrict ctx, const void* __restrict data, size_t nbytes, void* __restrict out)
 {
@@ -1309,6 +1315,7 @@ static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* s
 	else if(strcmp(sym, "backlog") == 0) return _make_num(context->pool_conf.tcp_backlog);
 	else if(strcmp(sym, "ipv6") == 0) return _make_num(context->pool_conf.ipv6);
 	else if(strcmp(sym, "reuseaddr") == 0) return _make_num((long long)context->pool_conf.reuseaddr);
+	else if(strcmp(sym, "async_buf_size") == 0) return _make_num((long long)context->async_buf_size);
 	else if(strcmp(sym, "bindaddr") == 0) //*(const char**)data = context->pool_conf.bind_addr;
 	{
 		size_t len;
@@ -1348,6 +1355,15 @@ static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_
 		else if(strcmp(sym, "backlog") == 0) context->pool_conf.tcp_backlog = (int)value.num;
 		else if(strcmp(sym, "ipv6") == 0) context->pool_conf.ipv6 = (int)value.num;
 		else if(strcmp(sym, "reuseaddr") == 0) context->pool_conf.reuseaddr = (int)value.num;
+		else if(strcmp(sym, "async_buf_size") == 0) 
+		{
+			context->async_buf_size = (uint32_t)value.num;
+			if(context->async_buf_size > (uint32_t)getpagesize())
+			{
+				LOG_WARNING("Async buffer size is larger than one page, adjust it to fit one page");
+				context->async_buf_size = (uint32_t)getpagesize();
+			}
+		}
 		else return 0;
 	}
 	else if(value.type == ITC_MODULE_PROPERTY_TYPE_STRING)

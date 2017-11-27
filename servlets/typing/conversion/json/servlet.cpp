@@ -585,12 +585,7 @@ static inline int _exec(void* ctxbuf)
 	int rc = 0;
 	context_t* ctx = (context_t*)ctxbuf;
 
-	size_t ti_size = pstd_type_instance_size(ctx->model);
-	if(ERROR_CODE(size_t) == ti_size)
-	    ERROR_RETURN_LOG(int, "Cannot get the size of the type model");
-	char ti_buf[ti_size];
-
-	pstd_type_instance_t* inst = pstd_type_instance_new(ctx->model, ti_buf);
+	pstd_type_instance_t* inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->model);
 	if(NULL == inst) ERROR_RETURN_LOG(int, "Cannot create new type instance");
 
 	if(ctx->from_json)

@@ -123,14 +123,11 @@ static int _exec(void* ctxbuf)
 {
 	context_t* ctx = (context_t*)ctxbuf;
 
-	size_t tisz = pstd_type_instance_size(ctx->type_model);
 	uint32_t status;
-	if(ERROR_CODE(size_t) == tisz) ERROR_RETURN_LOG(int, "Cannot get the size of the type instance");
-	char tibuf[tisz];
 	pstd_file_t* file = NULL;
 	pstd_string_t* redir = NULL;
 	scope_token_t file_token, redir_token;
-	pstd_type_instance_t* inst = pstd_type_instance_new(ctx->type_model, tibuf);
+	pstd_type_instance_t* inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model);
 	if(NULL == inst) ERROR_RETURN_LOG(int, "Cannot create type instance");
 
 	const char* path = _read_string(inst, ctx->path_token);

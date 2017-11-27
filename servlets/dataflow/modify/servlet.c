@@ -173,7 +173,7 @@ static int _cleanup(void* ctxbuf)
 
 static inline int _copy_header(pipe_t from, pipe_t to, uint32_t size)
 {
-	char buf[size];
+	char buf[1024];
 	size_t bytes_to_copy = size;
 
 	int eof_rc = pipe_eof(from);
@@ -183,7 +183,7 @@ static inline int _copy_header(pipe_t from, pipe_t to, uint32_t size)
 
 	while(bytes_to_copy > 0)
 	{
-		size_t bytes_read = pipe_hdr_read(from, buf, bytes_to_copy);
+		size_t bytes_read = pipe_hdr_read(from, buf, bytes_to_copy > sizeof(buf) ? sizeof(buf) : bytes_to_copy);
 		if(ERROR_CODE(size_t) == bytes_read)
 		    ERROR_RETURN_LOG(int, "Cannot read header from the input pipe");
 

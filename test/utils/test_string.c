@@ -5,6 +5,7 @@
 #include <testenv.h>
 #include <utils/string.h>
 #include <stdlib.h>
+#include <predict.h>
 int test_string_buffer(void)
 {
 	char buffer[20];
@@ -15,6 +16,7 @@ int test_string_buffer(void)
 	ASSERT(string_buffer_append("is ", &b) == 3, CLEANUP_NOP);
 	ASSERT(string_buffer_append("a test!", &b) == 7, CLEANUP_NOP);
 	ASSERT_STREQ(string_buffer_close(&b), "this is a test!", CLEANUP_NOP);
+
 	return 0;
 }
 int test_string_buffer_truncate(void)

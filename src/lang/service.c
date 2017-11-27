@@ -104,12 +104,18 @@ int64_t lang_service_add_node(lang_service_t* service, const char* init_args)
 		    else escape = 0;
 		if(!empty) argc ++;
 	}
-
-	size_t len = strlen(init_args);
-	char  buf[len + 1];
-	char const* argv[argc];
+	
+	char* buf = NULL;
+	char const* * argv = NULL;
 	size_t scanned, argidx, processed;
-	memcpy(buf, init_args, len + 1);
+	size_t len = strlen(init_args);
+
+	if(NULL == (buf = strdup(init_args)))
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate duplicate the init string");
+
+	if(NULL == (argv = (char const* *)calloc(argc, sizeof(char const*))))
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the argument array");
+
 	for(scanned = argidx = processed = 0; scanned < len; scanned ++)
 	{
 		for(;buf[scanned] == ' ' || buf[scanned] == '\t'; scanned ++);
@@ -130,11 +136,11 @@ int64_t lang_service_add_node(lang_service_t* service, const char* init_args)
 
 	runtime_stab_entry_t sid = runtime_stab_load(argc, argv, NULL);
 	if(ERROR_CODE(runtime_stab_entry_t) == sid)
-	    ERROR_RETURN_LOG(int64_t, "Cannot not load servlet with init args: %s", init_args);
+	    ERROR_LOG_GOTO(ERR, "Cannot not load servlet with init args: %s", init_args);
 
 	sched_service_node_id_t nid = sched_service_buffer_add_node(service->buffer, sid);
 	if(ERROR_CODE(sched_service_node_id_t) == nid)
-	    ERROR_RETURN_LOG(int64_t, "Cannot add new node to the service buffer");
+	    ERROR_LOG_GOTO(ERR, "Cannot add new node to the service buffer");
 
 	sched_service_node_id_t new_cap = service->sid_cap;
 	while(nid >= new_cap)
@@ -149,7 +155,7 @@ int64_t lang_service_add_node(lang_service_t* service, const char* init_args)
 	{
 		runtime_stab_entry_t* sid_map;
 		if(NULL == (sid_map = (runtime_stab_entry_t*)realloc(service->sid_map, sizeof(sid_map[0]) * new_cap)))
-		    ERROR_RETURN_LOG(int64_t, "Cannot resize the SID map");
+		    ERROR_LOG_GOTO(ERR, "Cannot resize the SID map");
 		memset(sid_map + service->sid_cap, -1, sizeof(sid_map[0]) * (new_cap - service->sid_cap));
 		service->sid_map = sid_map;
 		service->sid_cap = new_cap;
@@ -158,7 +164,14 @@ int64_t lang_service_add_node(lang_service_t* service, const char* init_args)
 
 	service->sid_map[nid] = sid;
 
+	free(buf);
+	free(argv);
+
 	return (int64_t)nid;
+ERR:
+	if(NULL != buf) free(buf);
+	if(NULL != argv) free(argv);
+	return ERROR_CODE(int64_t);
 }
 
 char** lang_service_node_port_names(const lang_service_t* service, int64_t nid)

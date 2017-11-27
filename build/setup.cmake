@@ -67,6 +67,8 @@ if("${OPTLEVEL}" GREATER "3")
 		set(OPTLEVEL 3)
 	endif("${OPTLEVEL}" GREATER "4")
 	message("FYI: you are configuring the project into a full optimization mode, which will enable some unsafe optimization")
+else("${OPTLEVEL}" GREATER "3")
+	set(OPT_CFLAGS "-DPREDICT_ASSERTION")
 endif("${OPTLEVEL}" GREATER "3")
 
 ## Basic constant

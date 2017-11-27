@@ -3,6 +3,8 @@
  **/
 #include <Python.h>
 
+#include <predict.h>
+
 #include <pservlet.h>
 #include <pstd.h>
 
@@ -162,6 +164,8 @@ static PyObject* _type_instance_read_int(PyObject* _self, PyObject* args)
 	}
 
 
+	PREDICT_IMPOSSIBLE(size < 1);
+	PREDICT_IMPOSSIBLE(size > 8);
 	char buf[size];
 
 	union {
@@ -231,7 +235,10 @@ static PyObject* _type_instance_read_float(PyObject* _self, PyObject* args)
 		return NULL;
 	}
 
+	PREDICT_IMPOSSIBLE(size > 8);
+	PREDICT_IMPOSSIBLE(size < 4);
 	char buf[size];
+
 	union {
 		void* generic;
 		float* f;

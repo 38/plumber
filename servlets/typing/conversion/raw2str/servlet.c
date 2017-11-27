@@ -1,6 +1,8 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
+#include <stdlib.h>
+
 #include <pservlet.h>
 #include <pstd.h>
 
@@ -37,15 +39,9 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 static int _exec(void* ctxbuf)
 {
 	context_t* ctx = (context_t*)ctxbuf;
-
-	size_t sz = pstd_type_instance_size(ctx->type_model);
-	if(ERROR_CODE(size_t) == sz)
-	    ERROR_RETURN_LOG(int, "Cannot get the size of the model");
-
 	int rc = ERROR_CODE(int);
 
-	char buf[sz];
-	pstd_type_instance_t* inst = pstd_type_instance_new(ctx->type_model, buf);
+	pstd_type_instance_t* inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model);
 	if(NULL == inst) ERROR_RETURN_LOG(int, "Cannot create the instance");
 
 	pstd_string_t* string = pstd_string_new(32);

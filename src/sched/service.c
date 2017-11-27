@@ -492,9 +492,16 @@ sched_service_t* sched_service_from_buffer(const sched_service_buffer_t* buffer)
 
 	size_t counting_array_size = sizeof(uint32_t) * num_nodes;
 
+	if(num_nodes > SCHED_SERVICE_MAX_NUM_NODES)
+		ERROR_PTR_RETURN_LOG("Too many nodes in the service graph. (Current value: %zu, Limit: %lu)", num_nodes, SCHED_SERVICE_MAX_NUM_NODES);
+	
+	if(vector_length(buffer->pipes) > SCHED_SERVICE_MAX_NUM_EDGES)
+		ERROR_PTR_RETURN_LOG("Too many edges in the service graph. (Current value: %zu, Limit: %lu)", vector_length(buffer->pipes), SCHED_SERVICE_MAX_NUM_EDGES);
+
 	if(NULL == (incoming_count = (uint32_t*)calloc(1, counting_array_size))) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate incoming counting array");
 
 	if(NULL == (outgoing_count = (uint32_t*)calloc(1, counting_array_size))) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate outgoing counting array");
+
 
 	for(i = 0; i < vector_length(buffer->pipes); i ++)
 	{
@@ -969,7 +976,15 @@ sched_service_t* sched_service_from_fd(int fd)
 	else
 	    LOG_INFO("Output port: %s", output_port);
 
-	runtime_stab_entry_t servlet_ids[header.node_count];
+	if(header.node_count > SCHED_SERVICE_MAX_NUM_NODES)
+		ERROR_PTR_RETURN_LOG("Invalid graph: too many nodes in the graph");
+
+	if(header.edge_count > SCHED_SERVICE_MAX_NUM_EDGES)
+		ERROR_PTR_RETURN_LOG("Invalid graph: too many edges in the graph");
+
+	runtime_stab_entry_t* servlet_ids = (runtime_stab_entry_t*)malloc(sizeof(runtime_stab_entry_t) * header.node_count);
+	if(NULL == servlet_ids)
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the servlet id array");
 
 	/* First, load the nodes for the service */
 	for(i = 0; i < header.node_count; i ++)
@@ -1119,11 +1134,14 @@ EDGE_ERR:
 	if(ERROR_CODE(int) == sched_service_buffer_free(buffer))
 	    LOG_WARNING("Cannot dispose the used service buffer");
 
+	free(servlet_ids);
+
 	return ret;
 ERR:
 	if(NULL != buffer) sched_service_buffer_free(buffer);
 	if(NULL != input_port) free(input_port);
 	if(NULL != output_port) free(output_port);
+	if(NULL != servlet_ids) free(servlet_ids);
 	return NULL;
 }
 

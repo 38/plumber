@@ -153,9 +153,17 @@ static inline proto_type_atomic_metadata_t* _load_metadata(FILE* fp)
 
 	if(ret->size > nbytes)
 	{
-		char dropped[ret->size - nbytes];
-		if(1 != fread(dropped, ret->size - nbytes, 1, fp))
-		    PROTO_ERR_RAISE_GOTO(ERR, FORMAT);
+		size_t n_dropped = ret->size - nbytes;
+		char dropped[128];
+		while(n_dropped > 0)
+		{
+			size_t bytes_to_read = n_dropped > sizeof(dropped) ? sizeof(dropped) : n_dropped;
+
+			if(1 != fread(dropped, bytes_to_read, 1, fp))
+				PROTO_ERR_RAISE_GOTO(ERR, FORMAT);
+
+			n_dropped -= bytes_to_read;
+		}
 	}
 
 	if(ret->flags.scope.valid && (ret->flags.scope.typename_size == 0 ||  NULL != (ret->scope_typename = (char*)malloc(ret->flags.scope.typename_size + 1u))))
