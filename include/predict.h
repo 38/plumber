@@ -29,4 +29,6 @@
 	} while(0)
 #endif
 
+#define PREDICT_ASSUME(expr) PREDICT_IMPOSSIBLE(!(expr))
+
 #endif /* __PLUMBER_PREDICT_H__ */
