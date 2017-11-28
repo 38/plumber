@@ -636,7 +636,7 @@ int itc_module_pipe_write_data_source(itc_module_data_source_t data_source, cons
 	 * please go ahead and dispose it */
 	_GET_MODULE(mod, handle, 0);
 
-	char buf[4096];   /* TODO: make this adjustable */
+	char buf[ITC_MODULE_CALLBACK_READ_BUF_SIZE];
 	if(NULL != data_req)
 	{
 		LOG_DEBUG("Token stream data request is defined, will consume at most %zu bytes with the callback", data_req->size);

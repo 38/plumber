@@ -136,8 +136,6 @@ static uint32_t _ssl_mutex_count;
  **/
 static uint32_t _module_instance_count = 0;
 
-/* TODO: cleanup for each thread properly */
-
 /**
  * @brief if the string a is prefix-ed by string b
  * @param a the string a

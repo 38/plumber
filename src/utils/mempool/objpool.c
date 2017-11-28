@@ -170,7 +170,7 @@ static inline uint32_t _get_current_global_alloc_unit(const mempool_objpool_t* p
 {
 	uint32_t idx = _thread_type_to_idx();
 	if(PREDICT_FALSE(idx >= THREAD_NUM_TYPES))
-	    return 8;  /* TODO: make this adjustable */
+	    return UTILS_THREAD_GENERIC_ALLOC_UNIT;
 
 	return pool->policy[idx].alloc_unit;
 }

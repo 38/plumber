@@ -47,6 +47,8 @@ endif("${MODULE_TLS_ENABLED}" EQUAL "1")
 ##LibPlumber Configurations
 constant(DO_NOT_COMPILE_ITC_MODULE_TEST 0)
 
+constant(UTILS_THREAD_GENERIC_ALLOC_UNIT 8)
+
 constant(RUNTIME_SERVLET_DEFINE_SYM __servdef__)
 constant(RUNTIME_ADDRESS_TABLE_SYM __plumber_address_table)
 constant(RUNTIME_SERVLET_TAB_INIT_SIZE 32)
@@ -79,6 +81,7 @@ constant(SCHED_DAEMON_PID_SUFFIX \".pid\")
 constant(SCHED_DAEMON_LOCK_SUFFIX \".lock\")
 
 constant(ITC_MODULE_EVENT_QUEUE_SIZE 128)
+constant(ITC_MODULE_CALLBACK_READ_BUF_SIZE 4096)
 constant(ITC_EQUEUE_VEC_INIT_SIZE 4)
 constant(ITC_MODTAB_MAX_PATH 4096)
 

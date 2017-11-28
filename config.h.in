@@ -23,6 +23,11 @@
 #   define CONFIG_PATH @CONFIG_PATH@
 
 /**
+ * @brief The allocation unit for generic thread
+ **/
+#	define UTILS_THREAD_GENERIC_ALLOC_UNIT @UTILS_THREAD_GENERIC_ALLOC_UNIT@
+
+/**
  * @brief the default servlet search path 
  **/
 #	define RUNTIME_SERVLET_DEFAULT_SEARCH_PATH @RUNTIME_SERVLET_DEFAULT_SEARCH_PATH@
@@ -69,6 +74,8 @@
 /** @brief the maximum size of event queue for a module */
 #	define ITC_MODULE_EVENT_QUEUE_SIZE @ITC_MODULE_EVENT_QUEUE_SIZE@
 
+/** @brief The size of the buffer used to read the data source callback to write */
+#	define ITC_MODULE_CALLBACK_READ_BUF_SIZE @ITC_MODULE_CALLBACK_READ_BUF_SIZE@
 
 /** @brief the init size of the event queue vector */
 #	define ITC_EQUEUE_VEC_INIT_SIZE @ITC_EQUEUE_VEC_INIT_SIZE@
