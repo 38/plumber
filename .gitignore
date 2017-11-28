@@ -72,3 +72,6 @@ install-prototype.sh
 vimrc
 
 *.psm
+
+#CScope files
+cscope.*
