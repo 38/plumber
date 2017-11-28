@@ -20,6 +20,7 @@ endif
 map BU :Build <CR>
 map UT :UpdateTags <CR>
 map FIND "zyiw:call asyncrun#run('<bang>', "", "ack ".@z) <CR> :copen <CR>
+map <C-R> "zyiw:execute 'cs' 'find' 'c' @z<CR>
 
 function! GetCurrentTestCase(source)
 	let relative = split(substitute(a:source, "@CMAKE_CURRENT_SOURCE_DIR@" . "/", "", ""), "/")
