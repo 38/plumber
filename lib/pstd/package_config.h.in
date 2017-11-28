@@ -1,0 +1,16 @@
+/**
+ * Copyright (C) 2017, Hao Hou
+ **/
+#ifndef __PSTD_PACKAGE_CONFIG_H__
+#define __PSTD_PACKAGE_CONFIG_H__
+
+/** @brief The initial size of the pipe vector in a type model */
+#define PSTD_TYPE_MODEL_PIPE_VEC_INIT_CAP @LIB_PSTD_TYPE_MODEL_PIPE_VEC_INIT_CAP@
+
+/** @brief The initial size of the accessor list in a type model */
+#define PSTD_TYPE_MODEL_ACC_VEC_INIT_CAP @LIB_PSTD_TYPE_MODEL_ACC_VEC_INIT_CAP@
+
+/** @brief The defaulf size of the buffer used for bufferred IO utilty */
+#define PSTD_BIO_INIT_BUF_SIZE @LIB_PSTD_BIO_DEFAULT_BUF_SIZE@
+
+#endif

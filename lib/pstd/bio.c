@@ -6,8 +6,12 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>
+
 #include <error.h>
+
 #include <pservlet.h>
+
+#include <package_config.h>
 #include <pstd.h>
 
 /**
@@ -30,13 +34,12 @@ pstd_bio_t* pstd_bio_new(pipe_t pipe)
 	if(pipe_cntl(pipe, PIPE_CNTL_GET_FLAGS, & flags) == ERROR_CODE(int))
 	    ERROR_PTR_RETURN_LOG("Cannot read the pipe flags from the buffer");
 
-	//pstd_bio_t* ret = calloc(1, sizeof(pstd_bio_t));
 	pstd_bio_t* ret = (pstd_bio_t*)pstd_mempool_alloc(sizeof(pstd_bio_t));
 	if(NULL == ret) ERROR_PTR_RETURN_LOG("Cannot allocate memory for the new BIO object");
 	memset(ret, 0, sizeof(pstd_bio_t));
 
 	ret->pipe = pipe;
-	ret->buf_size = 4096;   /* TODO make this default size configurable */
+	ret->buf_size = PSTD_BIO_INIT_BUF_SIZE;
 	if(NULL == (ret->buf = (char*)malloc(ret->buf_size)))
 	    ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the BIO buffer");
 	ret->buf_data_begin = ret->buf_data_end = 0;
@@ -67,7 +70,6 @@ int pstd_bio_free(pstd_bio_t* pstd_bio)
 
 	free(pstd_bio->buf);
 	pstd_mempool_free(pstd_bio);
-	//free(pstd_bio);
 	return rc;
 }
 static inline int _flush(pstd_bio_t* pstd_bio, int all)

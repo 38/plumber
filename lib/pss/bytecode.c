@@ -592,7 +592,7 @@ ERR:
 
 pss_bytecode_module_t* pss_bytecode_module_new()
 {
-	return _module_new(32 /* TODO: make this configurable */);
+	return _module_new(PSS_BYTECODE_MODULE_SEGMENT_VEC_INIT_SIZE);
 }
 
 pss_bytecode_module_t* pss_bytecode_module_load(const char* path)
@@ -727,10 +727,10 @@ pss_bytecode_segment_t* pss_bytecode_segment_new(pss_bytecode_regid_t argc, cons
 	if(NULL == (ret->argument_table = _table_new((uint32_t)argc, _TABLE_TYPE_REG)))
 	    ERROR_LOG_GOTO(ERR, "Cannot create the argument table");
 
-	if(NULL == (ret->string_table = _table_new(32 /* TODO: make this configurable */, _TABLE_TYPE_STR)))
+	if(NULL == (ret->string_table = _table_new(PSS_BYTECODE_SEGMENT_STRTAB_INIT_CAP, _TABLE_TYPE_STR)))
 	    ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the string table");
 
-	if(NULL == (ret->code_table = _table_new(32 /* TODO: make this configurable */, _TABLE_TYPE_INST)))
+	if(NULL == (ret->code_table = _table_new(PSS_BYTECODE_SEGMENT_CODETAB_INIT_CAP, _TABLE_TYPE_INST)))
 	    ERROR_LOG_GOTO(ERR, "Cannot allocate the code table");
 
 	/* Fill the registers */

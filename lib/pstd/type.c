@@ -10,6 +10,7 @@
 #include <utils/static_assertion.h>
 
 #include <pservlet.h>
+#include <package_config.h>
 #include <proto.h>
 
 #include <pstd/type.h>
@@ -336,7 +337,7 @@ pstd_type_model_t* pstd_type_model_new()
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the type model");
 
 	ret->pipe_max = 0;
-	ret->pipe_cap = 32;       /*! TODO: magic number */
+	ret->pipe_cap = PSTD_TYPE_MODEL_PIPE_VEC_INIT_CAP;
 
 	if(NULL == (ret->type_info = (_typeinfo_t*)calloc(ret->pipe_cap, sizeof(ret->type_info[0]))))
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for for the typeinfo array");
@@ -346,7 +347,7 @@ pstd_type_model_t* pstd_type_model_new()
 	    ret->type_info[i].accessor_list = ERROR_CODE(uint32_t);
 
 	ret->accessor_cnt = 0;
-	ret->accessor_cap = 32;   /*!< TODO: magic number */
+	ret->accessor_cap = PSTD_TYPE_MODEL_ACC_VEC_INIT_CAP;
 	if(NULL == (ret->accessor = (_accessor_t*)malloc(ret->accessor_cap * sizeof(ret->accessor[0]))))
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the accessor array");
 

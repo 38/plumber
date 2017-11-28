@@ -17,6 +17,21 @@
 #	define PSS_BYTECODE_TABLE_INIT_SIZE @LIB_PSS_BYTECODE_TABLE_INIT_SIZE@
 
 /**
+ * @brief The initial capacity of the segment list in a PSS module object
+ **/
+#	define PSS_BYTECODE_MODULE_SEGMENT_VEC_INIT_SIZE @LIB_PSS_BYTECODE_MODULE_SEGMENT_VEC_INIT_SIZE@
+
+/**
+ * @brief The inital capacity of the string table of a newly created code segment object
+ **/
+#	define PSS_BYTECODE_SEGMENT_STRTAB_INIT_CAP @LIB_PSS_BYTECODE_SEGMENT_INIT_STRTAB_CAP@
+
+/**
+ * @brief The initial capacity of the code table of a newly created code segment object
+ **/
+#	define PSS_BYTECODE_SEGMENT_CODETAB_INIT_CAP @LIB_PSS_BYTECODE_SEGMENT_INIT_CODETAB_CAP@
+
+/**
  * @brief The initial number of slots of the dictionary
  **/
 #	define PSS_DICT_INIT_SIZE @LIB_PSS_DICT_INIT_HASH_SIZE@
