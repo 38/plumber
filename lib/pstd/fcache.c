@@ -523,6 +523,8 @@ pstd_fcache_file_t* pstd_fcache_open(const char* filename)
 		return _create_cached_file(entry);
 	}
 
+	time_t ts = time(NULL);
+
 	/* Get the file metadata */
 	struct stat st;
 	if(stat(filename, &st) < 0)
@@ -603,7 +605,7 @@ pstd_fcache_file_t* pstd_fcache_open(const char* filename)
 	entry->refcnt = 0;
 	entry->hash[0] = hash[0];
 	entry->hash[1] = hash[1];
-	entry->timestamp = time(NULL);
+	entry->timestamp = ts;
 	entry->stat = st;
 	entry->size = (size_t)st.st_size;
 #ifdef PSTD_FILE_CACHE_STRICT_KEY_COMP
