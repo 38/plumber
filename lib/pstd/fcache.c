@@ -15,41 +15,13 @@
 
 #include <pservlet.h>
 
+#include <package_config.h>
 #include <pstd/fcache.h>
 #include <pstd/onexit.h>
 #include <pstd/mempool.h>
 
 #include <utils/hash/murmurhash3.h>
 
-/**
- * @brief the size of the cache hash table
- * @todo this should be configurable. Currently, we just use the
- *       simple replacement policy: If there's a conflict, then we
- *       replace it. <br/>
- *       Also, the cache is thread local, so that we can avoid the
- *       locks and mutex. But it's still not clear what actually comes out
- *       by this. <br/>
- *       Also, it seems we don't have a way to configure pstd, which is annoying
- **/
-#define _CACHE_HASH_SIZE 32771
-
-/**
- * @brief The maximum time to live for a cache slot, all the cache that elder than
- *        this time limit (in seconds) should be considered invalid
- * @todo  also this should be configurable
- **/
-#define _CACHE_TTL 300
-
-/**
- * @brief the maximum number of bytes allowed for a single file
- * @todo  make this configurable
- **/
-#define _MAX_FILE_SIZE (1u<<20)     /* 1M for each file */
-
-/**
- * @brief The maximum data size of the cache for a single thread
- **/
-#define _MAX_CACHE_SIZE (32u<<20)   /* 32M for each thread */
 
 /**
  * @brief the data structure  for a cache entry
@@ -115,11 +87,18 @@ struct _pstd_fcache_file_t {
 /**
  * @brief get the size of the thread local cache
  * @note  this is currently just return the macro, but later we should make it read the configuration
+ * @todo this should be configurable. Currently, we just use the
+ *       simple replacement policy: If there's a conflict, then we
+ *       replace it. <br/>
+ *       Also, the cache is thread local, so that we can avoid the
+ *       locks and mutex. But it's still not clear what actually comes out
+ *       by this. <br/>
+ *       Also, it seems we don't have a way to configure pstd, which is annoying
  * return the size in number of elements
  **/
 static inline uint32_t _cache_hash_size(void)
 {
-	return _CACHE_HASH_SIZE;
+	return PSTD_FCACHE_DEFAULT_HASH_SIZE;
 }
 
 /**
@@ -129,7 +108,7 @@ static inline uint32_t _cache_hash_size(void)
  **/
 static inline uint32_t _cache_ttl(void)
 {
-	return _CACHE_TTL;
+	return PSTD_FCACHE_DEFAULT_TTL;
 }
 
 /**
@@ -140,7 +119,7 @@ static inline uint32_t _cache_ttl(void)
  **/
 static inline uint32_t _max_file_size(void)
 {
-	return _MAX_FILE_SIZE;
+	return PSTD_FCACHE_DEFAULT_MAX_FILE_SIZE;
 }
 
 /**
@@ -150,7 +129,7 @@ static inline uint32_t _max_file_size(void)
  **/
 static inline size_t _max_cache_size(void)
 {
-	return _MAX_CACHE_SIZE;
+	return PSTD_FCACHE_DEFAULT_MAX_CACHE_SIZE;
 }
 
 /**
@@ -523,7 +502,7 @@ pstd_fcache_file_t* pstd_fcache_open(const char* filename)
 		return _create_cached_file(entry);
 	}
 
-	time_t ts = time(NULL);
+	time_t timestamp = time(NULL);
 
 	/* Get the file metadata */
 	struct stat st;
@@ -605,7 +584,7 @@ pstd_fcache_file_t* pstd_fcache_open(const char* filename)
 	entry->refcnt = 0;
 	entry->hash[0] = hash[0];
 	entry->hash[1] = hash[1];
-	entry->timestamp = ts;
+	entry->timestamp = timestamp;
 	entry->stat = st;
 	entry->size = (size_t)st.st_size;
 #ifdef PSTD_FILE_CACHE_STRICT_KEY_COMP

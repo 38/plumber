@@ -4,6 +4,18 @@
 #ifndef __PSTD_PACKAGE_CONFIG_H__
 #define __PSTD_PACKAGE_CONFIG_H__
 
+/** @brief The Time-To-Live period for the PSTD file cache */
+#define PSTD_FCACHE_DEFAULT_TTL @LIB_PSTD_FCACHE_DEFAULT_TTL@
+
+/** @brief The size of the cache hash table */
+#define PSTD_FCACHE_DEFAULT_HASH_SIZE @LIB_PSTD_FCACHE_DEFAULT_HASH_SIZE@
+
+/** @brief The maximum size of a single file */
+#define PSTD_FCACHE_DEFAULT_MAX_FILE_SIZE @LIB_PSTD_FCACHE_DEFAULT_MAX_FILE_SIZE@
+
+/** @brief The maximum size of the entire cache for one thread */
+#define PSTD_FCACHE_DEFAULT_MAX_CACHE_SIZE @LIB_PSTD_FCACHE_DEFAULT_MAX_CACHE_SIZE@
+
 /** @brief The initial size of the pipe vector in a type model */
 #define PSTD_TYPE_MODEL_PIPE_VEC_INIT_CAP @LIB_PSTD_TYPE_MODEL_PIPE_VEC_INIT_CAP@
 
