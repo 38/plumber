@@ -12,7 +12,6 @@
 #include <stdint.h>
 
 #include <utils/log.h>
-#include <utils/hashmap.h>
 #include <utils/mempool/objpool.h>
 #include <utils/mempool/page.h>
 #include <utils/thread.h>
@@ -131,19 +130,20 @@ static _on_exit_t* _on_exit_list = NULL;
 /**
  * @brief The actual data strcuture for a library configuration value
  **/
-typedef struct {
-	itc_module_property_type_t type; /*!< The type of the property, this can be either INT or STRING */
-
-	uintpad_t __padding__[0];
-
-	int64_t int_data[0];             /*!< The interger configuration value */
-	char    str_data[0];             /*!< The string configuration value */
+typedef struct _libconf_value_t {
+	itc_module_property_type_t type;   /*!< The type of the property, this can be either INT or STRING */
+	struct _libconf_value_t*   next;   /*!< The next node in the configuration linked list */
+	char*                      key;    /*!< The key value of the config */
+	union {
+		char*                  string;  /*!< The string value */
+		int64_t                numeric; /*!< The numeric value */
+	}                          value;  /*!< The value of the configuration */
 } _libconf_value_t;
 
 /**
  * @brief The library configuration cache
  **/
-static hashmap_t* _libconf_map = NULL;
+static _libconf_value_t* _libconf_map = NULL;
 
 static int _init(void* __restrict context, uint32_t argc, char const* __restrict const* __restrict argv)
 {
@@ -209,8 +209,16 @@ static int _cleanup(void* __restrict context)
 	if(pthread_mutex_destroy(&_on_exit_mutex) < 0)
 	    rc = ERROR_CODE(int);
 
-	if(NULL != _libconf_map && hashmap_free(_libconf_map))
-		rc = ERROR_CODE(int);
+	_libconf_value_t* ptr;
+	for(ptr = _libconf_map; ptr != NULL;)
+	{
+		_libconf_value_t* this = ptr;
+		ptr = ptr->next;
+		if(this->type == ITC_MODULE_PROPERTY_TYPE_STRING) 
+			free(this->value.string);
+		free(this->key);
+		free(this);
+	}
 
 	_initialized = 0;
 
@@ -498,6 +506,32 @@ static inline int _page_deallocate(void* page)
 	return mempool_page_dealloc(page);
 }
 
+static inline _libconf_value_t* _find_libconf(const char* key)
+{
+	_libconf_value_t* ptr;
+	for(ptr = _libconf_map; NULL != ptr && strcmp(ptr->key, key) != 0; ptr = ptr->next);
+	return ptr;
+}
+
+static inline int _get_libconfig(const char* name, int* is_numeric, void const * * data)
+{
+	if(NULL == data || NULL == is_numeric || NULL == name) ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	const _libconf_value_t* node = _find_libconf(name);
+
+	if(NULL == node || node->type == ITC_MODULE_PROPERTY_TYPE_NONE) *data = NULL;
+	else
+	{
+		if(node->type == ITC_MODULE_PROPERTY_TYPE_INT) *is_numeric = 1;
+		else *is_numeric = 0;
+
+		if(node->type == ITC_MODULE_PROPERTY_TYPE_STRING) *data = node->value.string;
+		else if(node->type == ITC_MODULE_PROPERTY_TYPE_INT) *data = &node->value.numeric;
+		else *data = NULL;
+	}
+
+	return 0;
+}
 
 static int _invoke(void* __restrict ctx, uint32_t opcode, va_list args)
 {
@@ -571,6 +605,13 @@ static int _invoke(void* __restrict ctx, uint32_t opcode, va_list args)
 			void* page = va_arg(args, void*);
 			return _page_deallocate(page);
 		}
+		case MODULE_PSSM_MODULE_OPCODE_GET_LIBCONFIG:
+		{
+			const char* name = va_arg(args, const char*);
+			int* is_numeric = va_arg(args, int*);
+			void const** value_ptr = va_arg(args, void const**);
+			return _get_libconfig(name, is_numeric, value_ptr);
+		}
 		default:
 		    ERROR_RETURN_LOG(int, "Invalid opcode 0x%x", opcode);
 	}
@@ -591,7 +632,7 @@ static uint32_t _get_opcode(void* __restrict ctx, const char* name)
 	if(strcmp(name, "on_exit") == 0) return MODULE_PSSM_MODULE_OPCODE_ON_EXIT;
 	if(strcmp(name, "page_allocate") == 0) return MODULE_PSSM_MODULE_OPCODE_PAGE_ALLOCATE;
 	if(strcmp(name, "page_deallocate") == 0) return MODULE_PSSM_MODULE_OPCODE_PAGE_DEALLOCATE;
-	//if(strcmp(name, "get_libconfig") == 0) return MODULE_PSSM_MODULE_OPCODE_GET_LIBCONFIG;
+	if(strcmp(name, "get_libconfig") == 0) return MODULE_PSSM_MODULE_OPCODE_GET_LIBCONFIG;
 
 	ERROR_RETURN_LOG(uint32_t, "Invalid method name %s", name);
 }
@@ -609,24 +650,19 @@ static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* s
 	for(;(q + sizeof(_libconf_prefix) - 1) - _libconf_prefix > 0 && *p == *q; p++, q++);
 	if(*q == 0 && _libconf_map != NULL)
 	{
-		hashmap_find_res_t find_res;
-		size_t key_size = strlen(p); 
-		int rc;
-		if(ERROR_CODE(int) == (rc = hashmap_find(_libconf_map, p, key_size, &find_res)))
-			ERROR_LOG_GOTO(RET, "Libconf hash table lookup error");
+		const _libconf_value_t* node = _find_libconf(p);;
 
-		if(rc)
+		if(NULL != node && node->type != ITC_MODULE_PROPERTY_TYPE_NONE)
 		{
-			const _libconf_value_t* val = (const _libconf_value_t*)find_res.val_data;
-			if(NULL == val || (val->type != ITC_MODULE_PROPERTY_TYPE_INT && val->type != ITC_MODULE_PROPERTY_TYPE_STRING))
+			if(node->type != ITC_MODULE_PROPERTY_TYPE_INT && node->type != ITC_MODULE_PROPERTY_TYPE_STRING)
 				ERROR_LOG_GOTO(RET, "Libconf hash table returns an unexpected value");
 
-			if(val->type == ITC_MODULE_PROPERTY_TYPE_STRING && NULL == (ret.str = strdup(val->str_data)))
+			if(node->type == ITC_MODULE_PROPERTY_TYPE_STRING && NULL == (ret.str = strdup(node->value.string)))
 				ERROR_LOG_ERRNO_GOTO(RET, "Cannot allocate memory for the configuration value string");
-			else if(val->type == ITC_MODULE_PROPERTY_TYPE_INT)
-				ret.num = *val->int_data;
+			else if(node->type == ITC_MODULE_PROPERTY_TYPE_INT)
+				ret.num = node->value.numeric;
 			
-			ret.type = val->type;
+			ret.type = node->type;
 	
 		}
 		else ret.type = ITC_MODULE_PROPERTY_TYPE_NONE;
@@ -644,29 +680,49 @@ static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_
 	for(;(q + sizeof(_libconf_prefix) - 1) - _libconf_prefix > 0 && *p == *q; p++, q++);
 	if(*q == 0)
 	{
-		if(_libconf_map == NULL && NULL == (_libconf_map = hashmap_new(197, 32)))
-			ERROR_RETURN_LOG(int, "Cannot create new library configuration map");
+		_libconf_value_t* node = _find_libconf(p);
 
-		size_t data_size = value.type == ITC_MODULE_PROPERTY_TYPE_INT ? sizeof(int64_t) : strlen(value.str) + 1;
+		int ownership = 0;
 
-		_libconf_value_t* valbuf = (_libconf_value_t*)malloc(sizeof(*valbuf) + data_size);
-
-		if(NULL == valbuf) ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the configuration value");
-		valbuf->type = value.type;
-
-		memcpy(valbuf->str_data, 
-			   valbuf->type == ITC_MODULE_PROPERTY_TYPE_INT ? (const void*)&value.num : (const void*)value.str, 
-			   data_size);
-		
-		size_t key_size = strlen(p);
-	
-		if(ERROR_CODE(int) == hashmap_insert(_libconf_map, p, key_size, valbuf, sizeof(*valbuf) + data_size, NULL, 1))
+		if(NULL == node)
 		{
-			free(valbuf);
-			ERROR_RETURN_LOG(int, "Cannot insert the configuration item to the config map");
+			LOG_DEBUG("The libconfig %s haven't been defined yet", p);
+			node = (_libconf_value_t*)malloc(sizeof(_libconf_value_t));
+			if(NULL == node) ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the configuration value map");
+			if(NULL == (node->key = strdup(p)))
+			{
+				LOG_ERROR_ERRNO("Cannot duplicate the key string");
+				free(node);
+				return ERROR_CODE(int);
+			}
+			ownership = 1;
+		}
+		else
+		{
+			LOG_DEBUG("The lib configuration %s have been previously defined, disposing the previous value", p);
+
+			if(node->type == ITC_MODULE_PROPERTY_TYPE_STRING)
+				free(node->value.string);
 		}
 
-		free(valbuf);
+		if(value.type == ITC_MODULE_PROPERTY_TYPE_STRING)
+		{
+			if(NULL == (node->value.string = strdup(value.str)))
+			{
+				if(ownership) free(node->key), free(node);
+				ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the value string");
+			}
+		}
+		else node->value.numeric = value.num;
+
+		node->type = value.type;
+
+		if(ownership)
+		{
+			node->next = _libconf_map;
+			_libconf_map = node;
+		}
+		
 		return 1;
 	}
 	

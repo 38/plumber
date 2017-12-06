@@ -29,7 +29,8 @@ enum {
 	MODULE_PSSM_MODULE_OPCODE_REQUEST_SCOPE_GET,   /*!< remove a existing request pointer */
 	MODULE_PSSM_MODULE_OPCODE_ON_EXIT,             /*!< register an on exit callback, this will be used by the user-space library to do clean works */
 	MODULE_PSSM_MODULE_OPCODE_PAGE_ALLOCATE,       /*!< allocate an entire page from the page memory pool */
-	MODULE_PSSM_MODULE_OPCODE_PAGE_DEALLOCATE      /*!< deallocate the used page allocated from the page memory pool */
+	MODULE_PSSM_MODULE_OPCODE_PAGE_DEALLOCATE,     /*!< deallocate the used page allocated from the page memory pool */
+	MODULE_PSSM_MODULE_OPCODE_GET_LIBCONFIG        /*!< Get the library configuration */
 };
 
 #endif /* __PLUMBER_MODULE_PSSM_MODULE_H__ */

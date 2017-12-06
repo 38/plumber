@@ -24,6 +24,7 @@ extern "C" {
 #include <pstd/fcache.h>
 #include <pstd/dfa.h>
 #include <pstd/type.h>
+#include <pstd/libconf.h>
 
 #	ifdef __cplusplus
 }
