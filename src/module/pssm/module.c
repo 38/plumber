@@ -12,6 +12,7 @@
 #include <stdint.h>
 
 #include <utils/log.h>
+#include <utils/hashmap.h>
 #include <utils/mempool/objpool.h>
 #include <utils/mempool/page.h>
 #include <utils/thread.h>
@@ -127,6 +128,23 @@ pthread_mutex_t _on_exit_mutex;
  **/
 static _on_exit_t* _on_exit_list = NULL;
 
+/**
+ * @brief The actual data strcuture for a library configuration value
+ **/
+typedef struct {
+	itc_module_property_type_t type; /*!< The type of the property, this can be either INT or STRING */
+
+	uintpad_t __padding__[0];
+
+	int64_t int_data[0];             /*!< The interger configuration value */
+	char    str_data[0];             /*!< The string configuration value */
+} _libconf_value_t;
+
+/**
+ * @brief The library configuration cache
+ **/
+static hashmap_t* _libconf_map = NULL;
+
 static int _init(void* __restrict context, uint32_t argc, char const* __restrict const* __restrict argv)
 {
 	if(_initialized) ERROR_RETURN_LOG(int, "cannot initialize the singleton module twice");
@@ -190,6 +208,9 @@ static int _cleanup(void* __restrict context)
 
 	if(pthread_mutex_destroy(&_on_exit_mutex) < 0)
 	    rc = ERROR_CODE(int);
+
+	if(NULL != _libconf_map && hashmap_free(_libconf_map))
+		rc = ERROR_CODE(int);
 
 	_initialized = 0;
 
@@ -271,7 +292,6 @@ static inline void* _thread_local_allocator(uint32_t tid, const void* data)
 {
 	if(NULL == data || tid == ERROR_CODE(uint32_t)) ERROR_PTR_RETURN_LOG("Invalid arguments");
 
-	/*TODO: use the mempool */
 	_thread_local_object_t* ret = (_thread_local_object_t*)malloc(sizeof(_thread_local_object_t));
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allcoate memory for the thread local object");
 
@@ -571,8 +591,86 @@ static uint32_t _get_opcode(void* __restrict ctx, const char* name)
 	if(strcmp(name, "on_exit") == 0) return MODULE_PSSM_MODULE_OPCODE_ON_EXIT;
 	if(strcmp(name, "page_allocate") == 0) return MODULE_PSSM_MODULE_OPCODE_PAGE_ALLOCATE;
 	if(strcmp(name, "page_deallocate") == 0) return MODULE_PSSM_MODULE_OPCODE_PAGE_DEALLOCATE;
+	//if(strcmp(name, "get_libconfig") == 0) return MODULE_PSSM_MODULE_OPCODE_GET_LIBCONFIG;
 
 	ERROR_RETURN_LOG(uint32_t, "Invalid method name %s", name);
+}
+
+static const char _libconf_prefix[] = "libconf.";
+
+static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* sym)
+{
+	(void)ctx;
+	itc_module_property_value_t ret = {
+		.type = ITC_MODULE_PROPERTY_TYPE_ERROR
+	};
+
+	const char* p = sym, *q = _libconf_prefix;
+	for(;(q + sizeof(_libconf_prefix) - 1) - _libconf_prefix > 0 && *p == *q; p++, q++);
+	if(*q == 0 && _libconf_map != NULL)
+	{
+		hashmap_find_res_t find_res;
+		size_t key_size = strlen(p); 
+		int rc;
+		if(ERROR_CODE(int) == (rc = hashmap_find(_libconf_map, p, key_size, &find_res)))
+			ERROR_LOG_GOTO(RET, "Libconf hash table lookup error");
+
+		if(rc)
+		{
+			const _libconf_value_t* val = (const _libconf_value_t*)find_res.val_data;
+			if(NULL == val || (val->type != ITC_MODULE_PROPERTY_TYPE_INT && val->type != ITC_MODULE_PROPERTY_TYPE_STRING))
+				ERROR_LOG_GOTO(RET, "Libconf hash table returns an unexpected value");
+
+			if(val->type == ITC_MODULE_PROPERTY_TYPE_STRING && NULL == (ret.str = strdup(val->str_data)))
+				ERROR_LOG_ERRNO_GOTO(RET, "Cannot allocate memory for the configuration value string");
+			else if(val->type == ITC_MODULE_PROPERTY_TYPE_INT)
+				ret.num = *val->int_data;
+			
+			ret.type = val->type;
+	
+		}
+		else ret.type = ITC_MODULE_PROPERTY_TYPE_NONE;
+	}
+	else ret.type = ITC_MODULE_PROPERTY_TYPE_NONE;
+
+RET:
+	return ret;
+}
+
+static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_value_t value)
+{
+	(void)ctx;
+	const char* p = sym, *q = _libconf_prefix;
+	for(;(q + sizeof(_libconf_prefix) - 1) - _libconf_prefix > 0 && *p == *q; p++, q++);
+	if(*q == 0)
+	{
+		if(_libconf_map == NULL && NULL == (_libconf_map = hashmap_new(197, 32)))
+			ERROR_RETURN_LOG(int, "Cannot create new library configuration map");
+
+		size_t data_size = value.type == ITC_MODULE_PROPERTY_TYPE_INT ? sizeof(int64_t) : strlen(value.str) + 1;
+
+		_libconf_value_t* valbuf = (_libconf_value_t*)malloc(sizeof(*valbuf) + data_size);
+
+		if(NULL == valbuf) ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the configuration value");
+		valbuf->type = value.type;
+
+		memcpy(valbuf->str_data, 
+			   valbuf->type == ITC_MODULE_PROPERTY_TYPE_INT ? (const void*)&value.num : (const void*)value.str, 
+			   data_size);
+		
+		size_t key_size = strlen(p);
+	
+		if(ERROR_CODE(int) == hashmap_insert(_libconf_map, p, key_size, valbuf, sizeof(*valbuf) + data_size, NULL, 1))
+		{
+			free(valbuf);
+			ERROR_RETURN_LOG(int, "Cannot insert the configuration item to the config map");
+		}
+
+		free(valbuf);
+		return 1;
+	}
+	
+	return 0;
 }
 
 itc_module_t module_pssm_module_def = {
@@ -584,5 +682,7 @@ itc_module_t module_pssm_module_def = {
 	.get_path       = _get_path,
 	.invoke         = _invoke,
 	.get_opcode     = _get_opcode,
-	.on_exit        = _onexit
+	.on_exit        = _onexit,
+	.get_property   = _get_prop,
+	.set_property   = _set_prop
 };

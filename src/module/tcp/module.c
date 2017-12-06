@@ -339,7 +339,7 @@ static inline size_t _async_handle_getdata(uint32_t conn, void* data, size_t siz
 		}
 		else
 		{
-			/* Previously, ff the next page is empty, which means we have reached the end of the buffer.
+			/* Previously, if the next page is empty, which means we have reached the end of the buffer.
 			 * However, when we introduces the data source callback change, this is no longer true, because
 			 * a callback page can not reuse this memory. Which means the page to reused is dead in this case.
 			 *
