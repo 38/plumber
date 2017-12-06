@@ -1,0 +1,36 @@
+/**
+ * Copyright (C) 2017, Hao Hou
+ **/
+LibUtils.get_config = function LibUtils.get_config(lib_name, key) 
+{
+	if(plumber.std != 1) 
+	{
+		if(module.binary.has_pssm != 1)
+		{
+			log("error", "Plumber cannot load the Plumber Standard Service Module (PSSM)");
+			return undefined;
+		}
+		insmod("pssm");
+	}
+	return $global["plumber.std.libconf." + lib_name + "." + key];
+}
+
+LibUtils.set_config = function LibUtils.set_config(lib_name, key, val)
+{
+	var typename = typeof(val);
+	if(typename != "number" && typename != "string")
+	{
+		log("error", "Only number or string is supported by the library configuration");
+	}
+	
+	if(plumber.std != 1) 
+	{
+		if(module.binary.has_pssm != 1)
+		{
+			log("error", "Plumber cannot load the Plumber Standard Service Module (PSSM)");
+			return undefined;
+		}
+		insmod("pssm");
+	}
+	$global["plumber.std.libconf." + lib_name + "." + key] = val;
+}
