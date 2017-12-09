@@ -67,7 +67,7 @@ const char* pstd_libconf_read_string(const char* key, const char* default_val)
 		return default_val;
 	}
 
-	if(!is_num || result == NULL) return default_val;
+	if(is_num || result == NULL) return default_val;
 
 	return (const char*)result;
 }
