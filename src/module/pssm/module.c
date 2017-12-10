@@ -214,8 +214,8 @@ static int _cleanup(void* __restrict context)
 	{
 		_libconf_value_t* this = ptr;
 		ptr = ptr->next;
-		if(this->type == ITC_MODULE_PROPERTY_TYPE_STRING) 
-			free(this->value.string);
+		if(this->type == ITC_MODULE_PROPERTY_TYPE_STRING)
+		    free(this->value.string);
 		free(this->key);
 		free(this);
 	}
@@ -655,15 +655,15 @@ static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* s
 		if(NULL != node && node->type != ITC_MODULE_PROPERTY_TYPE_NONE)
 		{
 			if(node->type != ITC_MODULE_PROPERTY_TYPE_INT && node->type != ITC_MODULE_PROPERTY_TYPE_STRING)
-				ERROR_LOG_GOTO(RET, "Libconf hash table returns an unexpected value");
+			    ERROR_LOG_GOTO(RET, "Libconf hash table returns an unexpected value");
 
 			if(node->type == ITC_MODULE_PROPERTY_TYPE_STRING && NULL == (ret.str = strdup(node->value.string)))
-				ERROR_LOG_ERRNO_GOTO(RET, "Cannot allocate memory for the configuration value string");
+			    ERROR_LOG_ERRNO_GOTO(RET, "Cannot allocate memory for the configuration value string");
 			else if(node->type == ITC_MODULE_PROPERTY_TYPE_INT)
-				ret.num = node->value.numeric;
-			
+			    ret.num = node->value.numeric;
+
 			ret.type = node->type;
-	
+
 		}
 		else ret.type = ITC_MODULE_PROPERTY_TYPE_NONE;
 	}
@@ -702,7 +702,7 @@ static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_
 			LOG_DEBUG("The lib configuration %s have been previously defined, disposing the previous value", p);
 
 			if(node->type == ITC_MODULE_PROPERTY_TYPE_STRING)
-				free(node->value.string);
+			    free(node->value.string);
 		}
 
 		if(value.type == ITC_MODULE_PROPERTY_TYPE_STRING)
@@ -722,10 +722,10 @@ static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_
 			node->next = _libconf_map;
 			_libconf_map = node;
 		}
-		
+
 		return 1;
 	}
-	
+
 	return 0;
 }
 

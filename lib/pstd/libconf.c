@@ -22,8 +22,8 @@ static inline pipe_t _ensure_pipe(void)
 		    ERROR_RETURN_LOG(pipe_t, "Cannot find servlet module function plumber.std.get_libconfig make sure you have installed pssm module");
 	}
 
-	if(ERROR_CODE(pipe_t) == ret) 
-		LOG_WARNING("Cannot get the pipe for the service module function plumber.std.get_libconfig");
+	if(ERROR_CODE(pipe_t) == ret)
+	    LOG_WARNING("Cannot get the pipe for the service module function plumber.std.get_libconfig");
 
 	return ret;
 }

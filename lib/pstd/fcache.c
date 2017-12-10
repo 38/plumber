@@ -100,8 +100,8 @@ struct _pstd_fcache_file_t {
 static inline uint32_t _cache_hash_size(void)
 {
 	static uint32_t hash_size = ERROR_CODE(uint32_t);
-	if(hash_size == ERROR_CODE(uint32_t)) 
-		hash_size = (uint32_t)pstd_libconf_read_numeric("pstd.fcache.hash_size", PSTD_FCACHE_DEFAULT_HASH_SIZE);
+	if(hash_size == ERROR_CODE(uint32_t))
+	    hash_size = (uint32_t)pstd_libconf_read_numeric("pstd.fcache.hash_size", PSTD_FCACHE_DEFAULT_HASH_SIZE);
 	return hash_size;
 }
 
@@ -114,7 +114,7 @@ static inline uint32_t _cache_ttl(void)
 {
 	static uint32_t ttl = ERROR_CODE(uint32_t);
 	if(ttl == ERROR_CODE(uint32_t))
-		ttl = (uint32_t)pstd_libconf_read_numeric("pstd.fcache.cache_ttl", PSTD_FCACHE_DEFAULT_TTL);
+	    ttl = (uint32_t)pstd_libconf_read_numeric("pstd.fcache.cache_ttl", PSTD_FCACHE_DEFAULT_TTL);
 	return ttl;
 }
 
@@ -128,7 +128,7 @@ static inline uint32_t _max_file_size(void)
 {
 	static uint32_t max_file_size = ERROR_CODE(uint32_t);
 	if(max_file_size == ERROR_CODE(uint32_t))
-		max_file_size = (uint32_t)pstd_libconf_read_numeric("pstd.fcache.max_file_size", PSTD_FCACHE_DEFAULT_MAX_FILE_SIZE);
+	    max_file_size = (uint32_t)pstd_libconf_read_numeric("pstd.fcache.max_file_size", PSTD_FCACHE_DEFAULT_MAX_FILE_SIZE);
 	return max_file_size;
 }
 
@@ -141,7 +141,7 @@ static inline size_t _max_cache_size(void)
 {
 	static uint32_t max_cache_size = ERROR_CODE(uint32_t);
 	if(max_cache_size == ERROR_CODE(uint32_t))
-		max_cache_size = (uint32_t)pstd_libconf_read_numeric("pstd.fcache.max_cache_size", PSTD_FCACHE_DEFAULT_MAX_CACHE_SIZE);
+	    max_cache_size = (uint32_t)pstd_libconf_read_numeric("pstd.fcache.max_cache_size", PSTD_FCACHE_DEFAULT_MAX_CACHE_SIZE);
 	return  max_cache_size;
 }
 
