@@ -160,11 +160,11 @@ size_t pstd_bio_read(pstd_bio_t* pstd_bio, void* ptr, size_t size)
 
 	if(pstd_bio->writable) ERROR_RETURN_LOG(size_t, "Cannot read from an output BIO object");
 
-	const void* data;
+	const void* data = NULL;
 	size_t ret = _get_bufferred_data(pstd_bio, size, &data);
 	if(ERROR_CODE(size_t) == ret)
 	    ERROR_RETURN_LOG(size_t, "Cannot read from BIO read buffer");
-	memcpy(ptr, data, ret);
+	if(ret > 0 && data != NULL) memcpy(ptr, data, ret);
 	size -= ret;
 
 	for(;size > 0 && !pipe_eof(pstd_bio->pipe);)
