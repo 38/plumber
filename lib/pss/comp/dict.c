@@ -709,6 +709,14 @@ static inline int _pipe_statement(_service_ctx_t* context, _pending_list_t* resu
 	    ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
 
 	const char* right_node = context->right_node;
+	
+	/* Bug fix: Since it's possible that the pending list contains both input_edge and output_edge,
+	 *          Thus if we put the declaration of the output edge in the if scope, then the behavior
+	 *          is undefined. Thus we call _process_pending_list outside of this scope.
+	 *          This doesn't cuase problem with default GCC in Ubuntu, but it fails a lot when we using
+	 *          other version of GCC
+	 **/
+	_pending_edge_t output_edge;
 
 	if(ahead[0]->type == PSS_COMP_LEX_TOKEN_STRING &&
 	   ahead[1]->type == PSS_COMP_LEX_TOKEN_ARROW  &&
@@ -726,7 +734,6 @@ static inline int _pipe_statement(_service_ctx_t* context, _pending_list_t* resu
 
 		/* process the output pipe */
 		_pending_list_t output_list = {NULL, NULL};
-		_pending_edge_t output_edge;
 		if(_pipe_output(context, &output_list, &output_edge, right_node) == ERROR_CODE(int))
 		    ERROR_RETURN_LOG(int, "Invalid output pipe desc");
 		_pending_list_merge(result, &output_list);
