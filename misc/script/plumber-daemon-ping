@@ -1,12 +1,27 @@
 #!/usr/bin/env pscript
-
+import("options");
 import("daemon");
-if(len(argv) == 1)
+
+var template = Options.empty_template();
+Options.add_option(template, "--help", "-h", "Show this help message", 0, 0);
+var result = Options.parse(template, argv);
+
+var show_help = function(code, message) 
 {
-	print("Usage: ", argv[0], " [daemon] ...");
-	exit(1);
+	if(message != undefined) print(message);
+	print("Ping the existing Plumber daemon application, check if it's responding");
+	print("Usage: \n\t", argv[0], " [daemon-ids]");
+	print("Arguments:");
+	Options.print_help(template);
+	exit(code);
 }
-for(var i = 1; i < len(argv); i ++)
+if(result == undefined) show_help(1, undefined);
+if(result["parsed"]["--help"] != undefined) show_help(0, undefined);
+if(len(result["unparsed"]) == 0) show_help(1, "Missing daemon IDs");
+
+argv = result["unparsed"];
+
+for(var i = 0; i < len(argv); i ++)
 {
 	var daemon = argv[i];
 	print(daemon, " : ", Daemon.ping(daemon));

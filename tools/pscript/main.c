@@ -104,6 +104,7 @@ static int parse_args(int argc, char** argv)
 	module_paths[1] = "/";
 
 	int opt_idx, c, last_optind = 1;
+	opterr = 0;
 	for(;(c = getopt_long(argc, argv, "hvNM:S:r:co:dBnL:e:", _options, &opt_idx)) >= 0;)
 	{
 		if(optind - last_optind > (optarg != NULL) + 1)

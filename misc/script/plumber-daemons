@@ -1,5 +1,23 @@
 #!/usr/bin/env pscript
 import("daemon");
+import("options");
+
+var template = Options.empty_template();
+Options.add_option(template, "--help", "-h", "Show this help message", 0, 0);
+var result = Options.parse(template, argv);
+
+var show_help = function(code, message) 
+{
+	if(message != undefined) print(message);
+	print("List existing daemons");
+	print("Usage: \n\t", argv[0]);
+	print("Arguments:");
+	Options.print_help(template);
+	exit(code);
+}
+if(result == undefined) show_help(1, undefined);
+if(result["parsed"]["--help"] != undefined) show_help(0, undefined);
+
 var daemon_list = Daemon.list();
 for(var pid in daemon_list)
 {

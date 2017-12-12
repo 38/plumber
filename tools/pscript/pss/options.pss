@@ -1,0 +1,175 @@
+/**
+ * Copyright (C) 2017, Hao Hou
+ **/
+import("list");
+import("dict");
+
+/**
+ * @brief Parse the command line arguments with the option template
+ * @param template The option template
+ * @param arguments The actual argument array
+ * @return The parsed command line arguments or undefined on error case
+ **/
+Options.parse = function Options.parse(template, arguments) 
+{
+	var ret = {
+		"program": arguments[0],
+		"unparsed": List.empty(),
+		"parsed":   {}
+	};
+
+	for(var i = 1; i < len(arguments);)
+	{
+		 var arg = arguments[i];
+
+		 if(template[arg] != undefined)
+		 {
+			 if(template[arg]["long"] != undefined) arg = template[arg]["long"];
+			 if(template[arg] == undefined)
+			 {
+				 log("error", "Malformed options template");
+				 return undefined;
+			 }
+			 var nargs_max = template[arg]["nargs_max"];
+			 var nargs_min = template[arg]["nargs_min"];
+
+			 if(nargs_min == undefined) nargs_min = 0;
+			 if(nargs_max == undefined) nargs_max = nargs_min;
+
+			 if(i + nargs_min >= len(arguments))
+			 {
+				 log("error", "Invalid command line options: insufficient arguments");
+				 return undefined;
+			 }
+
+			 if(ret["parsed"][arg] == undefined) 
+				 ret["parsed"][arg] = List.empty();
+			 ret["parsed"][arg] = List.concat(ret["parsed"][arg], List.slice(arguments, i + 1, i + 1 + nargs_min));
+			 
+			 i += 1 + nargs_min;
+
+			 var count = nargs_min;
+
+			 while(i < len(arguments) && template[arguments[i]] == undefined && (nargs_max == undefined || count < nargs_max))
+			 {
+				 List.append(ret["parsed"][arg], arguments[i]);
+				 i ++;
+				 count ++;
+			 }
+		 }
+		 else List.append(ret["unparsed"], arguments[i++]);
+	}
+
+	return ret;
+}
+/**
+ * @brief Create a empty template
+ * @return The empty template
+ **/
+Options.empty_template = function Options.empty_template() 
+{
+	return {};
+}
+
+/**
+ * @brief Add a new command line option to the template
+ * @param template The template to add
+ * @param long The long option, undefined if not apply
+ * @param short The short option, undefined if not apply
+ * @param nargs_min the Minimum number of arguments
+ * @param nargs_max The maximum number of arguments
+ * @return nothing
+ **/
+Options.add_option = function Options.add_option(template, long, short, desc, nargs_min, nargs_max) 
+{
+	if(long == undefined)
+	{
+		if(short == undefined) return undefined;
+		long = short;
+		short = undefined;
+	}
+
+	template[long] = {
+		"nargs_min": nargs_min,
+		"nargs_max": nargs_max,
+		"description": desc,
+		"short" : short,
+	};
+
+	template[short] = {
+		"nargs_min": nargs_min,
+		"nargs_max": nargs_max,
+		"description": desc,
+		"long": long
+	};
+}
+/**
+ * @brief Print the help message
+ * @param template The template to print
+ * @return nothing
+ **/
+Options.print_help = function Options.print_help(template) 
+{
+	var buffer = List.empty();
+	var size   = {};
+	var keys = List.sort(Dict.keys(template));
+	var get_args = function(opt_data) 
+	{
+		var max = opt_data["nargs_max"];
+		var min = opt_data["nargs_min"];
+
+		if(min == undefined) min = 0;
+		if(max == undefined) max = min;
+		var ret = "";
+		for(var i = 0; i < max; i ++)
+		{
+			if(i > 0) ret += " ";
+			if(i >= min) ret += "[";
+			ret += ("arg" + (i + 1));
+			if(i >= min) ret += "]";
+		}
+		return ret;
+	}
+	for(var opt in template)
+	{
+		var opt_data = template[opt]
+		if(opt_data["long"] == undefined)
+		{
+			List.append(buffer, {
+				"long":  opt,
+				"short": opt_data["short"],
+				"args": get_args(opt_data),
+				"desc": opt_data["description"]
+			});
+		}
+	}
+
+	for(var i in buffer)
+	{
+		for(var col in buffer[i])
+		{
+			if(size[col] == undefined) size[col] = 0;
+			if(buffer[i][col] == undefined) buffer[i][col] = "";
+			if(size[col] < len(buffer[i][col]))
+				size[col] = len(buffer[i][col]);
+		}
+	}
+
+	var append_line_buf = function(name, val) 
+	{
+		line_buf = val;
+		for(var j = 0; j < size[name] - len(val); j ++)
+			line_buf += " ";
+		return line_buf;
+	}
+
+	for(var i in buffer)
+	{
+		var line_buf = "\t";
+		line_buf += append_line_buf("long", buffer[i]["long"]) + "\t";
+		line_buf += append_line_buf("short", buffer[i]["short"]) + "\t";
+		line_buf += append_line_buf("args", buffer[i]["args"]) + "\t";
+		line_buf += append_line_buf("desc", buffer[i]["desc"]);
+		print(line_buf);
+	}
+}
