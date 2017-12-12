@@ -3,7 +3,14 @@
  **/
 import("list");
 
-Dict.map = function(func, dictionary)
+/**
+ * @brief Map the dictionary value, which means a new dictionary which
+ *        ret = {key: func(dict[k])}
+ * @param func The function that used for element mapping
+ * @param dicionary The dictionary to map
+ * @return The newly created dicionary
+ **/
+Dict.map = function Dict.map (func, dictionary)
 {
 	var ret = dict();
 	for(var key in dictionary)
@@ -11,7 +18,12 @@ Dict.map = function(func, dictionary)
 	return ret;
 }
 
-Dict.keys = function(dictionary)
+/**
+ * @brief Get the list of the keys 
+ * @param dictionary The target dictionary
+ * @return The list that contains all the keys of the target dictionary
+ **/
+Dict.keys = function Dict.key(dictionary)
 {
 	var ret = List.empty();
 	for(var key in dictionary)
@@ -19,7 +31,12 @@ Dict.keys = function(dictionary)
 	return ret;
 }
 
-Dict.values = function(dictionary)
+/**
+ * @brief Get the list of the values
+ * @parm dictionary The target dictionary
+ * @return The list that contains all the values of the target dictionary
+ **/
+Dict.values = function Dict.value(dictionary)
 {
 	var ret = List.empty();
 	for(var key in dictionary)

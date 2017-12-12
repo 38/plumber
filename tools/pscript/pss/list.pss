@@ -2,11 +2,22 @@
  * Copyright (C) 2017, Hao Hou
  **/
 
+/**
+ * @brief Create an empty list
+ * @return The empty list
+ * @note In PScript, the list is actually a dictionary with numeric key
+ **/
 List.empty = function List.empty() 
 {
 	return {};
 }
 
+/**
+ * @brief Generate the list of numbers from variable from to variable to [from, to)
+ * @param from The left side of the range. If the to is undefined, the range will be set to [0, from)
+ * @param to The right side of the range. If this is undefined, the range will be [0, from)
+ * @return The list
+ **/
 List.range = function List.range(from, to) 
 {
 	var ret = List.empty();
@@ -20,6 +31,14 @@ List.range = function List.range(from, to)
 	return ret;
 }
 
+/**
+ * @brief Append a new item to the list
+ * @param list The list to append
+ * @param item The item to append
+ * @return The list
+ * @note The list is a reference object, thus the return list
+ *       and orignal list are the same object.
+ */
 List.append = function List.append(list, item)
 {
 	var length = len(list);
@@ -27,6 +46,15 @@ List.append = function List.append(list, item)
 	return list;
 }
 
+/**
+ * @brief Extract a subsequence of the list
+ * @param list The original list
+ * @param left The left side of the range
+ * @param right The right side of the range
+ * @note If the left side param is undefined, it will set of 0 by default
+ *       If the right side param is undefined it will be set to the length of the list.
+ * @return The result list
+ */
 List.slice = function List.slice(list, left, right)
 {
 	var ret = List.empty();
@@ -38,6 +66,12 @@ List.slice = function List.slice(list, left, right)
 	return ret;
 }
 
+/**
+ * @brief Map the list to antoher list using given function
+ * @param func The function to apply
+ * @param list The target list
+ * @return The result
+ **/
 List.map = function List.map(func, list) 
 {
 	var ret = List.empty();
@@ -47,6 +81,13 @@ List.map = function List.map(func, list)
 	return ret;
 }
 
+/**
+ * @brief Reduce the list to a single value using the given function
+ * @note This is similar to python's reduce function
+ * @param func The function used to reduce values
+ * @param list The list to reduce
+ * @return The result result
+ **/
 List.reduce = function List.reduce(func, list)
 {
 	var ret = undefined;
@@ -71,6 +112,11 @@ List.filter = function List.filter(f, l)
 	return ret;
 }
 
+/**
+ * @brief Print the content of the list to screen
+ * @param list The list to print
+ * @return nothing
+ **/
 List.print = function List.print(list)
 {
 	var buf = "[";
@@ -83,6 +129,12 @@ List.print = function List.print(list)
 	print(buf, "]")
 }
 
+/**
+ * @brief Concatenate the left list and right list
+ * @param left The left list
+ * @param right The right list
+ * @param The concatenated list
+ **/
 List.concat = function List.concat(left, right)
 {
 	var ret = List.empty();
@@ -95,6 +147,12 @@ List.concat = function List.concat(left, right)
 	return ret;
 }
 
+/**
+ * @brief Sort the list
+ * @param list The list to sort
+ * @param comp The comprasion function, if this is undefined, using the default order
+ * @return The sorted list (this is different object than the input list)
+ **/
 List.sort = function(list) 
 {
 	var __qsort = function __sort(list, comp, qsort)
@@ -118,6 +176,7 @@ List.sort = function(list)
 		}
 		return List.concat(List.concat(qsort(left, comp, qsort), equal), qsort(right, comp, qsort));
 	}
+
 	return function List.sort(list, comp) 
 	{
 		if(comp == undefined)
@@ -133,6 +192,12 @@ List.sort = function(list)
 	}
 }();
 
+/**
+ * @brief Zip two list, which means a list [[a[k], b[k]] for k in 0..len]
+ * @param a The list a
+ * @param b The list b
+ * @return The result list
+ **/
 List.zip = function List.zip(a, b)
 {
 	var la = len(a);

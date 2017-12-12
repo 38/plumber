@@ -2,6 +2,18 @@
  * Copyright (C) 2017, Hao Hou
  * The service utilities
  **/
+/**
+ * @brief Traverse the service
+ * @param serv The service to traverse
+ * @param handler The handle function dictionary: 
+ *                <node, function node_handle(node_name, node_def)>                                Traverse the node
+ *                <pipe, function pipe_handle(src_node, src_port, dst_node, dst_port)>             Traverse the pipe
+ *                <rev_pipe, function rev_pipe_handle(src_node, src_port, dest_node, dest_port)>   Traverse the inversed pipe
+ *                <port_handle, function port_handle(port_name, node, pipe_name, pipe_type)>       Traverse the port
+ *                <input_handle, function input_handle(node, pipe_name)>                           Hnadle the input port
+ *                <output_handle, function output_handle(node, pipe_name)>                         Handle the output port
+ * @return nothing
+ **/
 Service.for_each_element = function Service.for_each_element(serv, handler)
 {
 	var _get_func = function(name)
@@ -60,6 +72,13 @@ Service.for_each_element = function Service.for_each_element(serv, handler)
 	}
 };
 
+/**
+ * @brief Dynamically add a new node to the service graph
+ * @param serv The target service graph
+ * @param name The name of the node
+ * @param init_arg The initialization string of the servlet or the logic servlet object
+ * @return nothing
+ **/
 Service.add_node = function Service.add_node(serv, name, init_arg)
 {
 	serv[name] = init_arg;
@@ -67,6 +86,15 @@ Service.add_node = function Service.add_node(serv, name, init_arg)
 	serv["!@" + name] = {};
 }
 
+/**
+ * @brief Dyanmically add a pipe between the source to destination
+ * @param serv The target service graph
+ * @param src_node The node of the source
+ * @param src_port The port name of the source
+ * @param dst_port The port name of the destination
+ * @param dst_node The node of the destination
+ * @return nothing
+ **/
 Service.add_pipe = function Service.add_pipe(serv, src_node, src_port, dst_port, dst_node) 
 {
 	if(serv["@"+ src_node] == undefined)
@@ -77,11 +105,27 @@ Service.add_pipe = function Service.add_pipe(serv, src_node, src_port, dst_port,
 	serv["!@" + dst_node][dst_port] = src_node + "@" + src_port;
 }
 
+/**
+ * @brief Add the input port
+ * @param serv The target service graph
+ * @param name The name of the port
+ * @param node The node name 
+ * @param port The name of the port
+ * @return nothing
+ **/
 Service.add_in_port = function Service.add_in_port(serv, name, node, port)
 {
 	serv["@input@" + name] = node + "@" + port; 
 }
 
+/**
+ * @brief Add the output port
+ * @param serv The target service graph
+ * @param name The name of the port
+ * @param node The node name 
+ * @param port The name of the port
+ * @return nothing
+ **/
 Service.add_out_port = function Service.add_out_port(serv, name, node, port)
 {
 	serv["@output@" + name] = node + "@" + port;
@@ -195,11 +239,26 @@ var _add_merger_or_splitter = function _add_merger_or_splitter(serv, splitter, m
 		_modify_graph(upstream[to_str], to_str);
 }
 
+/**
+ * @brief Do the preprocess of the service
+ * @param serv The service to preprocess
+ * @note This function actually do the preprocess before the service gets started.
+ *       Current stage the preprocess only rewrite the graph for merges and splits.
+ *       But later we may use this function to rewrite the graph thus we can deploy it
+ *       for a cluster
+ **/
 Service.preprocess = function Service.preprocess(serv) 
 {
 	_add_merger_or_splitter(serv, "dataflow/dup", "dataflow/firstnonempty");
 }
 
+/**
+ * @brief Build the exotic service object from the service description
+ * @param serv The service to build
+ * @note This function actually convert the dictionary based service description to the
+ *       internal object used by Plumber framework to run the application. 
+ * @return The newly created exotic service object
+ **/
 Service.build = function(serv)
 {
 	var _build = function _build_impl(serv, obj, build, prefix, nodemap) 
@@ -256,12 +315,26 @@ Service.build = function(serv)
 	}
 }();
 
+/**
+ * @brief Start the given service graph
+ * @param serv The service graph to start
+ * @note This function will convert the PScript interpreter to the serving mode. 
+ *       However, if the runtime.daemon.id is not an empty string.
+ *       The application won't run in current process, instead it start a deamon 
+ *       runs the service
+ * @return nothing
+ **/
 Service.start = function Service.start(serv) 
 {
 	var serv_obj = Service.build(serv);
 	__service_start(serv_obj);
 }
 
+/**
+ * @brief Print the visualization graph dot source for the service
+ * @param serv The target service
+ * @return nothing
+ **/
 Service.visualize = function Service.visualize(serv) 
 {
 	print("digraph {");
@@ -362,6 +435,11 @@ Service.visualize = function Service.visualize(serv)
 	print("}");
 }
 
+/**
+ * @brief Print the type infomation for each servlet ports of the given service
+ * @param serv The service to print
+ * @return The dictionary that contains all the type information
+ **/
 Service.typeinfo = function typeinfo(serv) 
 {
 	var ret = {};

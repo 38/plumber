@@ -141,10 +141,15 @@ static inline int _comments_or_ws(pss_comp_lex_t* lexer)
 				_consume(lexer, 2);
 				for(;state != 2; _consume(lexer,1))
 				{
-					int next = _peek(lexer, 1);
+					int next = _peek(lexer, 0);
 					if(next == -1) break;
 					else if(0 == state && '*' == next) state ++;
-					else if(1 == state && '/' == next) state ++;
+					else if(1 == state)
+					{
+						if('/' == next) state ++;
+						else if('*' != next) state = 0;
+					}
+					else state = 0;
 				}
 				if(state != 2)
 				{
@@ -152,7 +157,6 @@ static inline int _comments_or_ws(pss_comp_lex_t* lexer)
 					lexer->errstr = "Unexpected EOF in comment block";
 					return ERROR_CODE(int);
 				}
-				else _consume(lexer, 1);
 			}
 			else return 0;
 		}

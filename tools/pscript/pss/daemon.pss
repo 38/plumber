@@ -5,14 +5,29 @@
 
 import("service");
 
-Daemon.list = function() {
+/**
+ * @brief List all the running daemons
+ * @return The dictionary of <daemon-pid, daemon-name>
+ **/
+Daemon.list = function Daemon.list() 
+{
 	return lsdaemon();
 }
 
+/**
+ * @brief Stop the daemon 
+ * @param id The name of the daemon
+ * @return nothing
+ **/
 Daemon.stop = function Daemon.stop(id) {
 	return __daemon_stop(id);
 }
 
+/**
+ * @brief Get the master pid of the given daemon name
+ * @param name The name of the daemon
+ * @return If the daemon exists, return the master process id. Otherwise return undefined
+ **/
 Daemon.pid = function Daemon.pid(name) {
 	var daemon_list = Daemon.list();
 	for(var pid in daemon_list)
@@ -21,10 +36,25 @@ Daemon.pid = function Daemon.pid(name) {
 	return undefined;
 }
 
+/**
+ * @brief Ping the daemon: Test if the daemon is alive
+ * @param name The name of the daemon
+ * @return The ping result: if the daemon with the specified name is responding
+ **/
 Daemon.ping = function Daemon.ping(name) {
 	return __daemon_ping(name);
 }
 
+/**
+ * @brief Reload the given daemon with the graph
+ * @param name The name of the daemon
+ * @param graph The new application graph to deploy
+ * @note This is the function we used to update the application.
+ *       During the daemon is updating the service will be able to 
+ *       service traffic as well. Thus this is the non-stop deployment
+ *       support
+ * @return nothing
+ **/
 Daemon.reload = function Daemon.reload(name, graph) {
 	return __daemon_reload(name, Service.build(graph));
 }

@@ -3,6 +3,16 @@
  * The module testing utiles
  **/
 import("service");
+/**
+ * @brief Embed a logic servlet / binary servlet to the testbed
+ * @param graph The graph to test
+ * @param in_ports The ports and types that accepts the input: Key is the name, Value is the type
+ * @param out_port The ports and types that accepts the output: Key is the name, Value is the type
+ * @return The service graph used for testing
+ * @note This function can be used to create a testing application graph that runs the logic to test.
+ *       It typically used with the simulation module, which reads and writes event to files. 
+ *       The application graph will expected the JSONified inputs and preduce JSONifed output.
+ **/
 Testbed.embed = function embed(graph, in_ports, out_ports) 
 {
 	var src_servlet = "typing/conversion/json --raw --from-json";

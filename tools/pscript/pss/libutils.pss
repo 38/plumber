@@ -1,6 +1,18 @@
 /**
  * Copyright (C) 2017, Hao Hou
  **/
+
+/**
+ * @brief Get the applciation layer library configuration
+ * @lib_name The name of the library
+ * @key The key of the configuration
+ * @return The configuration value. Undefined will be returned if the key doesn't exist
+ * @note This is the wrapper used for the application layer library (for example, PSTD, etc.)
+ *       And this is the uniformed interface that we configure the library in the PSS script.
+ *       For example, for the PSTD's file cache, we can configure how much memory it can use,
+ *       etc. This interface also can provides configuration utils for other library as well.
+ *       It requires the PSSM module loaded
+ **/
 LibUtils.get_config = function LibUtils.get_config(lib_name, key) 
 {
 	if(plumber.std != 1) 
@@ -15,6 +27,13 @@ LibUtils.get_config = function LibUtils.get_config(lib_name, key)
 	return $global["plumber.std.libconf." + lib_name + "." + key];
 }
 
+/**
+ * @brief Configure the application library and return the value back
+ * @param lib_name The library name
+ * @param key The key of the configuration
+ * @param val The value of the configuration
+ * @return The value to set otherwise undefined
+ **/
 LibUtils.set_config = function LibUtils.set_config(lib_name, key, val)
 {
 	var typename = typeof(val);
