@@ -103,9 +103,14 @@ static int parse_args(int argc, char** argv)
 	module_paths[0] = ".";
 	module_paths[1] = "/";
 
-	int opt_idx, c;
+	int opt_idx, c, last_optind = 1;
 	for(;(c = getopt_long(argc, argv, "hvNM:S:r:co:dBnL:e:", _options, &opt_idx)) >= 0;)
 	{
+		if(optind - last_optind > (optarg != NULL) + 1)
+		{
+			optind = last_optind;
+			break;
+		}
 		switch(c)
 		{
 			case 'v':
@@ -150,6 +155,8 @@ static int parse_args(int argc, char** argv)
 			    display_help();
 			    properly_exit(1);
 		}
+
+		last_optind = optind;
 	}
 	module_paths[module_count++] = PSCRIPT_GLOBAL_MODULE_PATH;
 

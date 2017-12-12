@@ -9,7 +9,12 @@ List.empty = function List.empty()
 
 List.range = function List.range(from, to) 
 {
-	var ret = List.empty()
+	var ret = List.empty();
+	if(to == undefined) 
+	{
+		to = from;
+		from = 0;
+	}
 	for(var i = 0; from < to; from ++)
 		ret[i ++] = from;
 	return ret;
@@ -25,6 +30,9 @@ List.append = function List.append(list, item)
 List.slice = function List.slice(list, left, right)
 {
 	var ret = List.empty();
+
+	if(right == undefined) right = len(list);
+	if(left == undefined) left = 0;
 	for(var i = left; i < right; i ++)
 		ret[i - left] = list[i];
 	return ret;

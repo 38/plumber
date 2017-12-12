@@ -709,7 +709,7 @@ static inline int _pipe_statement(_service_ctx_t* context, _pending_list_t* resu
 	    ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
 
 	const char* right_node = context->right_node;
-	
+
 	/* Bug fix: Since it's possible that the pending list contains both input_edge and output_edge,
 	 *          Thus if we put the declaration of the output edge in the if scope, then the behavior
 	 *          is undefined. Thus we call _process_pending_list outside of this scope.
