@@ -19,7 +19,7 @@ int test_pdt_insertion(void)
 	int i;
 	for(i = 0; i < 100; i ++)
 	{
-		static char buffer[20];
+		static char buffer[32];
 		snprintf(buffer, sizeof(buffer), "test_pipe_#%d", i);
 		ASSERT_RETOK(runtime_api_pipe_id_t, runtime_pdt_insert(pdt, buffer, (runtime_api_pipe_flags_t)(i * 2), "$T"), CLEANUP_NOP);
 	}
@@ -31,7 +31,7 @@ int test_pdt_find(void)
 	int i;
 	for(i = 0; i < 100; i ++)
 	{
-		static char buffer[20];
+		static char buffer[32];
 		snprintf(buffer, sizeof(buffer), "test_pipe_#%d", i);
 		ASSERT(runtime_pdt_get_pd_by_name(pdt, buffer) == i, CLEANUP_NOP);
 	}
@@ -78,7 +78,7 @@ int test_pdt_input_output_count(void)
 	int i;
 	for(i = 0; i < 100; i ++)
 	{
-		static char buffer[20];
+		static char buffer[32];
 		snprintf(buffer, sizeof(buffer), "test_pipe_#%d", i);
 		ASSERT_RETOK(runtime_api_pipe_id_t, runtime_pdt_insert(pdt, buffer, RUNTIME_API_PIPE_INPUT, "$T"), CLEANUP);
 		ASSERT(runtime_pdt_input_count(pdt) == i + 1, CLEANUP);
@@ -87,7 +87,7 @@ int test_pdt_input_output_count(void)
 
 	for(i = 0; i < 100; i ++)
 	{
-		static char buffer[20];
+		static char buffer[32];
 		snprintf(buffer, sizeof(buffer), "test_pipe_#%d", i + 100);
 		ASSERT_RETOK(runtime_api_pipe_id_t, runtime_pdt_insert(pdt, buffer, RUNTIME_API_PIPE_OUTPUT, "$S"), CLEANUP);
 		ASSERT(runtime_pdt_input_count(pdt) == 100, CLEANUP);
