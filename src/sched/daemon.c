@@ -671,14 +671,19 @@ ERR:
 	return ERROR_CODE(int);
 }
 
-static inline int _simple_daemon_command(const char* daemon_name, _daemon_op_t op, int wait_response)
+static inline int _simple_daemon_command(const char* daemon_name, _daemon_op_t op, int wait_response, int error_daemon_not_found)
 {
 	int pid, is_daemon;
 	if(NULL == daemon_name || ERROR_CODE(int) == (is_daemon = _is_running_daemon(daemon_name, SCHED_DAEMON_LOCK_SUFFIX, &pid)))
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(!is_daemon)
-	    ERROR_RETURN_LOG(int, "Cannot find daemon named %s", daemon_name);
+	{
+		if(error_daemon_not_found)
+		    ERROR_RETURN_LOG(int, "Cannot find daemon named %s", daemon_name);
+		else
+		    return ERROR_CODE(int);
+	}
 
 	int conn_fd;
 	if(ERROR_CODE(int) == (conn_fd = _connect_control_sock(daemon_name)))
@@ -714,19 +719,19 @@ ERR:
 
 int sched_daemon_stop(const char* daemon_name)
 {
-	return _simple_daemon_command(daemon_name, _DAEMON_STOP, 1);
+	return _simple_daemon_command(daemon_name, _DAEMON_STOP, 1, 1);
 }
 
 int sched_daemon_ping(const char* daemon_name)
 {
-	if(ERROR_CODE(int) == _simple_daemon_command(daemon_name, _DAEMON_PING, 1))
+	if(ERROR_CODE(int) == _simple_daemon_command(daemon_name, _DAEMON_PING, 1, 0))
 	    return 0;
 	return 1;
 }
 
 int sched_daemon_reload(const char* daemon_name, const sched_service_t* service)
 {
-	int fd = _simple_daemon_command(daemon_name, _DAEMON_RELOAD, 0);
+	int fd = _simple_daemon_command(daemon_name, _DAEMON_RELOAD, 0, 1);
 	if(ERROR_CODE(int) == fd)
 	    return ERROR_CODE(int);
 
