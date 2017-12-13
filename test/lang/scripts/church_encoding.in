@@ -1,0 +1,136 @@
+/* 
+CaseBegin
+	Name: church_encoding_test
+	Expected: <1024>
+			  <1>
+			  <3>
+			  <1033>
+			  <2>
+CaseEnd
+*/
+var ch_inc = function ch_inc(n) 
+{
+	return function(f, x) 
+	{
+		return f(n(f,x));
+	}
+}
+
+var ch_get_val = function ch_get_val(n) 
+{
+	return n(function(x) {return x + 1;}, 0);
+}
+
+var ch_add = function ch_add(m, n) 
+{
+	return m(ch_inc, n);
+}
+
+var ch_mul = function ch_mul(m, n)
+{
+	return function(f,x)
+	{
+		return m(function(x)
+		{
+			return n(f, x);
+		}, x);
+	}
+}
+
+var ch_0 = function ch_0(f, x) 
+{
+	return x;
+}
+var ch_1 = ch_inc(ch_0);
+
+var ch_if = function ch_if(n, zero, non_zero) 
+{
+	return n(function(x) 
+	{
+		return non_zero();
+	}, zero());
+}
+var ch_mkpair = function ch_mkpair(first, second)
+{
+	return function(n) 
+	{
+		return n(function(x) 
+		{
+			return second;
+		}, first);
+	}
+}
+
+var ch_dec = function(n)
+{
+	return n(function(x) 
+	{
+		return ch_mkpair(ch_inc(x(ch_0)), ch_if(x(ch_0), function()
+		{
+			return ch_0;
+		},
+		function()
+		{
+			return ch_inc(x(ch_1));
+		}));
+	}, ch_mkpair(ch_0, ch_0))(ch_1);
+}
+
+var ch_sub = function(m, n)
+{
+	return n(ch_dec, m);
+}
+
+var ch_div = function(m, n)
+{
+	return m(function(x)
+	{
+		return ch_if(ch_sub(ch_inc(x(ch_1)), n), function()
+		{
+			return x;
+		},
+		function()
+		{
+			return ch_mkpair(ch_inc(x(ch_0)), ch_sub(x(ch_1), n));
+		});
+	}, ch_mkpair(ch_0, m))(ch_0);
+}
+
+var ch_mod = function(m, n)
+{
+	return m(function(x)
+	{
+		return ch_if(ch_sub(ch_inc(x(ch_1)), n), function()
+		{
+			return x;
+		},
+		function()
+		{
+			return ch_mkpair(ch_inc(x(ch_0)), ch_sub(x(ch_1), n));
+		});
+	}, ch_mkpair(ch_0, m))(ch_1);
+}
+
+var ch_pow = function ch_pow(m, n)
+{
+	return n(function (x) {
+		return ch_mul(x, m);
+	}, ch_1);
+}
+
+var ch_2 = ch_inc(ch_1);
+var ch_3 = ch_inc(ch_2);
+var ch_4 = ch_inc(ch_3);
+var ch_5 = ch_inc(ch_4);
+var ch_6 = ch_inc(ch_5);
+var ch_7 = ch_inc(ch_6);
+var ch_8 = ch_inc(ch_7);
+var ch_9 = ch_inc(ch_8);
+var ch_10 = ch_inc(ch_9);
+
+var ch_1k = ch_pow(ch_2, ch_10)
+print(ch_get_val(ch_1k));
+print(ch_get_val(ch_mod(ch_mul(ch_5, ch_3), ch_7)));
+print(ch_get_val(ch_div(ch_10, ch_3)));
+print(ch_get_val(ch_add(ch_1k, ch_9)));
+print(ch_get_val(ch_sub(ch_10, ch_8)));
