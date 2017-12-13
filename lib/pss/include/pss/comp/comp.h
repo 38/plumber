@@ -3,7 +3,7 @@
  **/
 /**
  * @brief The top level compiler interfaces
- * @file  pss/comp/compiler.h
+ * @file  pss/comp/comp.h
  **/
 #include <utils/static_assertion.h>
 #ifndef __PSS_COMP_COMP_H__
@@ -81,7 +81,7 @@ int pss_comp_free_error(pss_comp_error_t* error);
 /**
  * @brief Peek the next N-th token in from the compiler's lexer
  * @param comp The compiler instance
- * @Param N The n-th token
+ * @param n The n-th token
  * @return The token peeked
  **/
 const pss_comp_lex_token_t* pss_comp_peek(pss_comp_t* comp, uint32_t n);
@@ -160,14 +160,15 @@ pss_bytecode_regid_t pss_comp_decl_local_var(pss_comp_t* comp, const char* var);
 
 /**
  * @brief Make a temporory register
- * @parap comp The compiler instance
+ * @param comp The compiler instance
  * @return The register id
  **/
 pss_bytecode_regid_t pss_comp_mktmp(pss_comp_t* comp);
 
 /**
- * @biref Rerlease a temp register
+ * @brief Rerlease a temp register
  * @param regid The register to release
+ * @param comp The compiler context
  * @return status code
  **/
 int pss_comp_rmtmp(pss_comp_t* comp, pss_bytecode_regid_t regid);
@@ -176,6 +177,7 @@ int pss_comp_rmtmp(pss_comp_t* comp, pss_bytecode_regid_t regid);
  * @brief Open a new control block, a control block is the block which contains a begin and end label, so that
  *        we can performe jump instruction to the code block
  * @param comp The compiler instance
+ * @param loop If this control block is opened for a loop
  * @return status code
  **/
 int pss_comp_open_control_block(pss_comp_t* comp, int loop);
@@ -188,8 +190,9 @@ int pss_comp_open_control_block(pss_comp_t* comp, int loop);
 int pss_comp_close_control_block(pss_comp_t* comp);
 
 /**
- * @biref The get begin address of the last control block, this is useful when we have a continue instruction
+ * @brief The get begin address of the last control block, this is useful when we have a continue instruction
  * @param comp The compiler instance
+ * @param n The n-th control block in the stack
  * @return status code
  **/
 pss_bytecode_addr_t pss_comp_last_control_block_begin(pss_comp_t* comp, uint32_t n);
@@ -197,6 +200,7 @@ pss_bytecode_addr_t pss_comp_last_control_block_begin(pss_comp_t* comp, uint32_t
 /**
  * @brief Get the end label of the last control block
  * @param comp The compiler instance
+ * @param n The n-th control block in the stack
  * @return status code
  **/
 pss_bytecode_label_t pss_comp_last_control_block_end(pss_comp_t* comp, uint32_t n);
@@ -225,7 +229,7 @@ pss_bytecode_label_t pss_comp_last_loop_end(pss_comp_t* comp);
 int pss_comp_expect_token(pss_comp_t* comp, pss_comp_lex_token_type_t token);
 
 /**
- * @biref Expect the next token is the give keyword otherwise raise a compile error
+ * @brief Expect the next token is the give keyword otherwise raise a compile error
  * @param comp The compiler
  * @param keyword The keyword expected
  * @return status code
@@ -252,7 +256,7 @@ int pss_comp_raise(pss_comp_t* comp, const char* msg, ...)
 int pss_comp_raise_internal(pss_comp_t* comp, pss_comp_internal_t reason);
 
 /**
- * @biref Get the line number of the latest comsumed token
+ * @brief Get the line number of the latest comsumed token
  * @param comp The compiler instance
  * @return the line number or error code
  **/

@@ -3,7 +3,7 @@
  **/
 /**
  * @brief  The OS related constants
- * @file os/constant.h
+ * @file os/const.h
  **/
 #ifndef __OS_CONSTANT_H__
 #include <constants.h>

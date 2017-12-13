@@ -60,7 +60,8 @@ static inline const char* bsr64_from_bin(const void* bin, size_t count, char* bu
 
 /**
  * @brief Convert the binary-string representation to binary
- * @param bsr The BSR to convert
+ * @param bsr_begin The beginging BSR to convert
+ * @param bsr_end The end of the BSR to convert
  * @param buf the buffer for the binary
  * @param bufsize The size of the buffer
  * @return status code

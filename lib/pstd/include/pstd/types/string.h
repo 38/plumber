@@ -108,7 +108,7 @@ extern "C" {
 	__attribute__((format (printf, 2, 3)));
 
 	/**
-	* @biref append the formatted string to the string object. This is similar to pstd_string_printf, but it accepts
+	* @brief append the formatted string to the string object. This is similar to pstd_string_printf, but it accepts
 	*        va_list as additional parameters
 	* @param str The string object
 	* @param fmt The formatting string

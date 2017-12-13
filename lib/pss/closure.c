@@ -58,7 +58,7 @@ ERR:
 }
 
 /**
- * @param Dispose the used closure
+ * @brief Dispose the used closure
  * @param closure_mem The memory occupied by the closure
  * @return status code
  **/
@@ -78,7 +78,7 @@ static int _free(void* closure_mem)
 }
 
 /**
- * @param Convert a closure to string
+ * @brief Convert a closure to string
  * @param ptr The pointer to the clsoure
  * @param buf The string buffer
  * @param bufsize The size of the string buffer

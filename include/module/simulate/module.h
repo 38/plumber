@@ -4,7 +4,7 @@
 /**
  * @brief The module used to simulate the event, this could be useful when we want to do some
  *        automatic testing
- * @file  module/silumate/module.h
+ * @file  module/simulate/module.h
  **/
 #ifndef __MODULE_SIMULATE_MODULE_H__
 #define __MODULE_SIMULATE_MODULE_H__

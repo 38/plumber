@@ -64,7 +64,7 @@ typedef struct {
 	 **/
 	pss_value_t (*get)(const char* name);
 	/**
-	 * @biref The setter func
+	 * @brief The setter func
 	 * @param name The name of the variable
 	 * @param data The data we want to put
 	 * @return The number of field that has been wrrite, or error code
@@ -145,7 +145,7 @@ int pss_vm_exception_free(pss_vm_exception_t* exception);
 
 /**
  * @brief Kill current execution
- * @param target vm
+ * @param vm the target vm
  * @return status code
  **/
 int pss_vm_kill(pss_vm_t* vm);

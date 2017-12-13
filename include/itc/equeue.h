@@ -202,7 +202,6 @@ int itc_equeue_empty(itc_equeue_token_t token);
  *       somebody elses calls itc_equeue_wait_interrupt, the function will
  *       call the given callback (if it's not NULL) and then go back to waiting mode
  * @param token The token
- * @param type_mask Indicates which type of event we are looking for
  * @param killed If thread gets killed
  * @param interrupt The interrupt callback
  * @return status code

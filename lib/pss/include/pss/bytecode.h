@@ -70,7 +70,7 @@ typedef enum {
 #define PSS_BYTECODE_ARG_STRING(value) PSS_BYTECODE_ARGTYPE_STRING, _PSS_BYTECODE_ARGTYPE_CHECK(const char*, value)
 
 /**
- * @Brief Make a nuermic argument
+ * @brief Make a nuermic argument
  * @param value the numeric expression
  **/
 #define PSS_BYTECODE_ARG_NUMERIC(value) PSS_BYTECODE_ARGTYPE_NUMERIC, _PSS_BYTECODE_ARGTYPE_CHECK(pss_bytecode_numeric_t, value)
@@ -82,7 +82,7 @@ typedef enum {
 #define PSS_BYTECODE_ARG_LABEL(value) PSS_BYTECODE_ARGTYPE_LABEL, _PSS_BYTECODE_ARGTYPE_CHECK(pss_bytecode_label_t, value)
 
 /**
- * @Brief Make register argument
+ * @brief Make register argument
  * @param value The register expression
  **/
 #define PSS_BYTECODE_ARG_REGISTER(value) PSS_BYTECODE_ARGTYPE_REGISTER, _PSS_BYTECODE_ARGTYPE_CHECK(pss_bytecode_regid_t, value)
@@ -273,7 +273,7 @@ pss_bytecode_module_t* pss_bytecode_module_load(const char* path);
 
 /**
  * @brief Dump a in memory bytecode table to disk
- * /@param mdoule The bytecode module to dump
+ * @param module The bytecode module to dump
  * @param path  The path to the target file
  * @return status code
  **/
@@ -281,7 +281,7 @@ int pss_bytecode_module_dump(const pss_bytecode_module_t* module, const char* pa
 
 /**
  * @brief Dispose a used bytecode table
- * @param table The bytecode table to dispose
+ * @param module The bytecode table to dispose
  * @return status code
  **/
 int pss_bytecode_module_free(pss_bytecode_module_t* module);

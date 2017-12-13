@@ -2,7 +2,7 @@
  * Copyright (C) 2017, Hao Hou
  **/
 /**
- * @file servlet/typing/conversion/json/include/json_model.h
+ * @file servlets/typing/conversion/json/include/json_model.h
  * @brief The JSON type model used by the JSON servlet
  **/
 

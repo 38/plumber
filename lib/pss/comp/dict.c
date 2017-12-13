@@ -110,6 +110,7 @@ static inline uint32_t _hashcode(const char* str, size_t len, uint64_t full[2])
  * @brief Get the adj list register by the node name
  * @param ctx The context
  * @param name The name
+ * @param rev The register for the inverse
  * @return The regsister
  **/
 static pss_bytecode_regid_t _get_adj_reg(_service_ctx_t* ctx, const char* name, int rev)

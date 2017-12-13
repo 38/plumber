@@ -409,7 +409,7 @@ static inline int _set_prop(const char* symbol, lang_prop_value_t value, const v
 
 /**
  * @brief get the property of the async task processor
- * @param sym The symbol to get
+ * @param symbol The symbol to get
  * @param param The param
  * @return the result
  **/

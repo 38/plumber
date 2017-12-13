@@ -82,6 +82,7 @@ static inline const _node_t* _cow_get(_node_t* root, pss_bytecode_regid_t left, 
  * @param left  The left boundary of the register id
  * @param right The right boundary of the register id
  * @param target The register id we want to modify
+ * @param value The new value to write
  * @return The tree that has been created after modify
  **/
 static inline _node_t* _cow_write(_node_t* root, pss_bytecode_regid_t left, pss_bytecode_regid_t right, pss_bytecode_regid_t target, pss_value_t value)
@@ -155,6 +156,8 @@ static inline _node_t* _cow_write(_node_t* root, pss_bytecode_regid_t left, pss_
 /**
  * @brief decreference a entire tree
  * @param root The tree node
+ * @param left The smallest register id
+ * @param right The largest register id + 1
  * @return status code
  **/
 static inline int _tree_decref(_node_t* root, pss_bytecode_regid_t left, pss_bytecode_regid_t right)

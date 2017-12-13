@@ -120,6 +120,7 @@ static thread_t* _reload_thread = NULL;
  * @brief Check if the given name is a running daemon
  * @param lockfile The name of the lock file
  * @param suffix The suffix we should append after this lockfile
+ * @param pid The buffer for the master process ID for this daemon
  * @return The result or error code
  **/
 static inline int _is_running_daemon(const char* lockfile, const char* suffix, int* pid)

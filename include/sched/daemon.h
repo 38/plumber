@@ -29,7 +29,7 @@ int sched_daemon_finalize(void);
  * @brief Make current application a daemon, it will do the normal daemonize,
  *        create the controlling socket and pid file. When runtime.daemon.id == ""
  *        then this function does nothing
- * @param If we need fork twice
+ * @param fork_twice If we need fork twice
  * @note The fork_twice option is actually used when we are in the REPL mode, because
  *       we don't want the REPL shell exit after the daemon gets started.
  *       Thus we need to fork the starter process first time and then finish the remining
@@ -47,7 +47,7 @@ sched_daemon_iter_t* sched_daemon_list_begin(void);
 
 /**
  * @brief Move to the next daemon in the daemon info list
- * @param info current daemon list
+ * @param iter current daemon list iterator
  * @param name The buffer used to return name, this will allocate memory
  * @param pid The buffer used to return pid
  * @return How many daemon info has been returned, 0 if we enumerated all. Error code on error cases

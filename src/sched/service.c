@@ -868,7 +868,7 @@ typedef enum {
  * @param fd The file descriptor
  * @param buf The buffer
  * @param size The size of the data
- * @param func The actual IO function
+ * @param type The type of the IO either read or write
  * @return status code
  **/
 static inline int _fd_io(int fd, void* buf, size_t size, _fd_io_type_t type)
@@ -937,7 +937,7 @@ ERR:
 }
 
 /**
- * @detail Actual data layout:
+ * @details Actual data layout:
  *           +-----------------------------------------------------------------------------------+
  *           |  Dump Header| Input Port | Output Port |  Node definitions  |   Pipe definitions  |
  *           +-----------------------------------------------------------------------------------+

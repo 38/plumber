@@ -89,7 +89,6 @@ int os_event_poll_del(os_event_poll_t* poll, int fd, int read);
 /**
  * @brief Wait for the event defined in the poll object
  * @param poll The poll object
- * @param data_buf The buffer used to return the data object that has been activated
  * @param max_events The maximum events we are accepting
  * @param timeout The time limit for waiting
  * @return The number of events has been returned, or error code
@@ -110,7 +109,7 @@ void* os_event_poll_take_result(os_event_poll_t* poll, size_t idx);
 /**
  * @brief Consume a user space event
  * @param fd The user event FD to consume
- * @parap poll The poll object owns this event
+ * @param poll The poll object owns this event
  * @return status code
  **/
 int os_event_user_event_consume(os_event_poll_t* poll, int fd);

@@ -230,7 +230,7 @@ ERR:
 /**
  * @brief the callback function used to pass the property get operation in service script to the module
  * @param symbol the symbol id for each section
- * @param The additional data, which is the module context
+ * @param data The additional data, which is the module context
  * @return The result
  **/
 static inline lang_prop_value_t _get_module_property(const char* symbol, const void* data)

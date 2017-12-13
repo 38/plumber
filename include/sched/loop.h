@@ -13,6 +13,8 @@ typedef struct _sched_loop_t sched_loop_t;
 /**
  * @brief start scheduler loop
  * @param service the service to run
+ * @param fork_twice Indicate if we need to fork another time, because we don't want the
+ *        interactive session daed
  * @return status code
  **/
 int sched_loop_start(sched_service_t** service, int fork_twice);

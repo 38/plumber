@@ -193,6 +193,7 @@ const proto_type_t* proto_db_query_type(const char* typename)
  * @param typename current type name
  * @param pwd current pwd
  * @param result the result buffer
+ * @param namebuf The name buffer
  * @return status code
  **/
 static inline int _get_type_pwd(const char* typename, const char* pwd, char** result, char** namebuf)

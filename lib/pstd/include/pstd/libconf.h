@@ -11,7 +11,7 @@
 /**
  * @brief Try to read the library configuration dynamically, this can be changed by
  *        PSS code:
- *        plumber.std.libconf.<key> = xxxx
+ *        plumber.std.libconf.&lt;key&gt; = xxxx
  *        If the system can not tell the value, use the default value provided in the param
  * @param key The key to read
  * @param default_val The defualt value

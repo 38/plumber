@@ -297,7 +297,7 @@ STATIC_ASSERTION_EQ_ID(__non_module_related_pop_state__, 0xff, RUNTIME_API_PIPE_
 
 /**
  * @brief Cancel the async task, which means we skip the async_exec task and move foward to the async_cleanup directly
- * @detail This is useful when the servlet calls a server and maintains a cache. <br/>
+ * @details This is useful when the servlet calls a server and maintains a cache. <br/>
  *         The async_init task can lookup the local cache first to determine if we need to actually make the remote call
  *         Also, we give this operation the ability to set the async operation's status code. Which means if the init task
  *         realize the cache has something wrong with it, it can skip the task and set the async task to error

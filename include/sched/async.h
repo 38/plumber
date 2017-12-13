@@ -60,7 +60,7 @@ int sched_async_finalize(void);
 int sched_async_start(void);
 
 /**
- * @biref Kill all the async thread and cleanup all the resource it occupies
+ * @brief Kill all the async thread and cleanup all the resource it occupies
  * @return status code
  **/
 int sched_async_kill(void);
@@ -134,7 +134,7 @@ int sched_async_handle_cancel(runtime_api_async_handle_t* handle, int status);
  * @brief The actual handle cntl implemnetaiton
  * @param handle The async handle
  * @param opcode The opcode
- * @return ap The va list
+ * @param ap The va list
  * @return status code
  **/
 int sched_async_handle_cntl(runtime_api_async_handle_t* handle, uint32_t opcode, va_list ap);

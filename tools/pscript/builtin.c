@@ -945,7 +945,7 @@ static pss_value_t _pscript_builtin_substr(pss_vm_t* vm, uint32_t argc, pss_valu
 
 	if((PSS_VALUE_KIND_REF != argv[0].kind || pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING) ||
 	   (PSS_VALUE_KIND_NUM != argv[1].kind && PSS_VALUE_KIND_UNDEF != argv[1].kind))
-		return ret;
+	    return ret;
 
 	int64_t left = argv[1].kind == PSS_VALUE_KIND_UNDEF ? 0 : argv[1].num;
 	int64_t right = -1;
@@ -970,11 +970,11 @@ static pss_value_t _pscript_builtin_substr(pss_vm_t* vm, uint32_t argc, pss_valu
 	retstr[right - left] = 0;
 
 	if(right - left > 0)
-		memcpy(retstr, str + left, (size_t)(right - left));
+	    memcpy(retstr, str + left, (size_t)(right - left));
 
 	ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, retstr);
 	if(ret.kind == PSS_VALUE_KIND_ERROR)
-		free(retstr);
+	    free(retstr);
 
 	return ret;
 }
@@ -998,11 +998,11 @@ static pss_value_t _pscript_builtin_parse_int(pss_vm_t* vm, uint32_t argc, pss_v
 
 	if((PSS_VALUE_KIND_REF != argv[0].kind || pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING) ||
 	   (argc == 2 && PSS_VALUE_KIND_NUM != argv[1].kind))
-		return ret;
+	    return ret;
 
 	int has_default = (argc == 2);
 	int64_t defval = (argc == 2) ? argv[1].num : 0;
-	
+
 	const char* str = (const char*)pss_value_get_data(argv[0]);
 	char* next;
 
@@ -1010,9 +1010,9 @@ static pss_value_t _pscript_builtin_parse_int(pss_vm_t* vm, uint32_t argc, pss_v
 	if(NULL != next && *next != 0)
 	{
 		if(has_default)
-			val = defval;
+		    val = defval;
 		else
-			return ret;
+		    return ret;
 	}
 
 	ret.num = val;
@@ -1033,7 +1033,7 @@ static pss_value_t _pscript_builtin_charat(pss_vm_t* vm, uint32_t argc, pss_valu
 
 	if((PSS_VALUE_KIND_REF != argv[0].kind || pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING) ||
 	   (PSS_VALUE_KIND_NUM != argv[1].kind))
-		return ret;
+	    return ret;
 
 	int64_t ofs = argv[1].num;
 	const char* str = (const char*)pss_value_get_data(argv[0]);
@@ -1046,7 +1046,7 @@ static pss_value_t _pscript_builtin_charat(pss_vm_t* vm, uint32_t argc, pss_valu
 	}
 
 	if(ofs < 0 || (size_t)ofs >= strlen(str))
-		return ret;
+	    return ret;
 
 	char ch = str[ofs];
 

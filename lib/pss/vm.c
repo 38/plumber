@@ -150,7 +150,7 @@ static inline int _stack_free(_stack_t* stack)
 
 /**
  * @brief Read the register from the current instruction on current stack frame
- * @param stack The current stack frame
+ * @param vm The traget vm
  * @param inst The instruction
  * @param idx The operand index
  * @return The value read from the frame

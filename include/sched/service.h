@@ -4,7 +4,7 @@
 
 /**
  * @brief The graph that represents a service
- * @file service.h
+ * @file sched/service.h
  **/
 #ifndef __PLUMBER_SCHED_SERVICE_H__
 #define __PLUMBER_SCHED_SERVICE_H__

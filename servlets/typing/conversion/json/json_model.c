@@ -42,7 +42,7 @@ static int _traverse_type(proto_db_field_info_t info, void* data);
 
 /**
  * @brief Push a new operation to the ops table on the given field
- * @param out    The output buffer
+ * @param jm The target JSON model
  * @return status code
  **/
 static inline int _ensure_space(json_model_t* jm)

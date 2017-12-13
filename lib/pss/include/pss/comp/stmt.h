@@ -12,7 +12,6 @@
 /**
  * @brief Parse one statement
  * @param comp The compiler
- * @param result The statement result
  * @param valbuf The value buffer, only used when the statement is an expression statement
  *               If this is passed, the result of the expression won't be discard and it will
  *               be passed back.

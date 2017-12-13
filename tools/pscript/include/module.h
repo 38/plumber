@@ -20,6 +20,9 @@ int module_set_search_path(char const* const* paths);
  * @brief Load a module from the given module name
  * @param name The name of the mdoule
  * @param dump_compiled Indicates if we want to dump the compiled bytecode to the psm file
+ * @param load_compiled If we should allow reading from a precompiled bytecode file
+ * @param debug If the compiler  should emit debugging information
+ * @param compiled_output The path of the compiled bytecode file, NULL for default setting
  * @return module
  **/
 pss_bytecode_module_t* module_from_file(const char* name, int load_compiled, int dump_compiled, int debug, const char* compiled_output);
@@ -28,7 +31,8 @@ pss_bytecode_module_t* module_from_file(const char* name, int load_compiled, int
  * @brief Load a module from the given buffer
  * @param code The buffer contains the code
  * @param code_size The size of the code
- * @param the REPL mode switch
+ * @param repl the REPL mode switch
+ * @param debug The debug mode
  * @return The module compiled from the code buffer
  **/
 pss_bytecode_module_t* module_from_buffer(const char* code, uint32_t code_size, uint32_t debug, uint32_t repl);

@@ -2,8 +2,8 @@
  * Copyright (C) 2017, Hao Hou
  **/
 /**
- * @brief The builtin functions used by PSS languange
- * @file lang/builtin.h
+ * @brief The PSS binding for service objects
+ * @file lang/service.h
  **/
 
 #ifndef __LANG_SERVICE_H__
@@ -31,7 +31,6 @@ int lang_service_free(lang_service_t* service);
 /**
  * @brief Create a new service node in the exotic object
  * @param service The exotic service object
- * @param name The name of the node
  * @param init_args The initialization arguments
  * @return The node id
  **/
@@ -94,7 +93,7 @@ int lang_service_start(lang_service_t* service, int fork_twice);
 /**
  * @brief Reload the service
  * @param daemon The daemon name
- * @parma service The service
+ * @param service The service
  * @return status code
  **/
 int lang_service_reload(const char* daemon, lang_service_t* service);

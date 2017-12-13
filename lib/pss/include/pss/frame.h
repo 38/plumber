@@ -48,7 +48,7 @@ int pss_frame_reg_set(pss_frame_t* frame, pss_bytecode_regid_t regid, pss_value_
  * @brief Move the value of a register to another
  * @param frame The frame we are operating
  * @param from  The source register
- * @param dest  The destination register
+ * @param to  The destination register
  * @return The status code
  **/
 int pss_frame_reg_move(pss_frame_t* frame, pss_bytecode_regid_t from, pss_bytecode_regid_t to);

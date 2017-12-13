@@ -43,7 +43,6 @@ typedef struct _line_list_t {
 /**
  * @brief concatenate the lines in line list
  * @param lines The list of lines has been read
- * @param code_size The size of the code
  * @note The line list is in reversed order, and the caller should do cleanup works
  * @return The newly constructed string
  **/

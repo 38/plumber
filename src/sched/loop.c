@@ -69,7 +69,7 @@ STATIC_ASSERTION_SIZE(sched_loop_t, events, 0);
 
 /**
  * @brief The data structure we used to carry the pending event
- * @detail A pending event is a event that should be sent to specified
+ * @details A pending event is a event that should be sent to specified
  *         scheduler, how ever the scheduler's queue is current full.
  *         In this case, we put this task to the pending list and will
  *         check if this can be dispatched later
@@ -911,7 +911,7 @@ static inline int _set_prop(const char* symbol, lang_prop_value_t value, const v
 
 /**
  * @brief get the property of the worker thread
- * @param sym The symbol to get
+ * @param symbol The symbol to get
  * @param param The param
  * @return the result
  **/

@@ -29,7 +29,7 @@ pss_comp_env_t* pss_comp_env_new(void);
 int pss_comp_env_free(pss_comp_env_t* env);
 
 /**
- * @biref Open a new scope inside current scope
+ * @brief Open a new scope inside current scope
  * @note  This will allow the compile allocate variable valid thru we close the scope
  * @param env The abstract runtime envronment
  * @return status code

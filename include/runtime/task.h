@@ -111,7 +111,6 @@ int runtime_task_async_companions(runtime_task_t* task, runtime_task_t** exec_bu
 /**
  * @brief start the task
  * @param task the task to start
- * @param data an additional data would pass to the task, this will only used for the async_setup and async_exec tasks
  * @note  change this
  * @return the status code
  **/
@@ -135,7 +134,6 @@ int runtime_task_start_exec_fast(runtime_task_t* task);
  * @details In this function we will assume we have a valid async_setup task, otherwise
  *          it's extermely dangerous
  * @param task The task to start
- * @param async_handle The pointer to the async handle
  * @return status code
  **/
 int runtime_task_start_async_setup_fast(runtime_task_t* task);
@@ -146,7 +144,6 @@ int runtime_task_start_async_setup_fast(runtime_task_t* task);
  *          see the documentation for runtime_task_start_async_setup_fast and runtime_task_start_exec_fast
  *          for more details
  * @param task The task to start
- * @param async_handle The async handle we want to use
  * @return status code
  **/
 int runtime_task_start_async_cleanup_fast(runtime_task_t* task);

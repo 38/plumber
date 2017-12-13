@@ -299,7 +299,7 @@ ERR:
 
 /**
  * @brief Get the size of each table element for the given type
- * @param Type the type code
+ * @param type the type code
  * @return The size of the element
  **/
 static inline size_t _table_elem_size(_table_type_t type)
@@ -344,7 +344,7 @@ static inline _table_t* _table_new(uint32_t cap, _table_type_t type)
 
 /**
  * @brief Make sure the table contains one more space
- * @param talbe The table to ensure
+ * @param table The table to ensure
  * @return The pointer has been resized
  **/
 static inline _table_t* _table_ensure_space(_table_t* table)
@@ -489,7 +489,7 @@ static inline int _dump_segment(const pss_bytecode_segment_t* seg, FILE* out)
 
 /**
  * @brief Dump the entire bytecode table to the file
- * @param table The bytecode table to dump
+ * @param module The bytecode table to dump
  * @param out   The out put file pointer
  * @return status code
  **/

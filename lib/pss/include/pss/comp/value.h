@@ -3,7 +3,7 @@
  **/
 /**
  * @brief The RValue parser
- * @pfile pss/comp/value.h
+ * @file pss/comp/value.h
  **/
 #ifndef __PSS_COMP_VALUE_H__
 #define __PSS_COMP_VALUE_H__
@@ -57,7 +57,7 @@ static inline int pss_comp_value_is_lvalue(const pss_comp_value_t* value)
 
 /**
  * @brief Simplify a value.
- * @detail This means if the value is a L-Value, dereference it and put it to a tmp register
+ * @details This means if the value is a L-Value, dereference it and put it to a tmp register
  * @param comp The compiler instance
  * @param value The value
  * @return status code

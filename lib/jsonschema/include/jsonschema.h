@@ -4,11 +4,9 @@
 /**
  * @brief The JSON schema library
  * @file jsonschema/include/jsonschema.h
- * @detail The simple JSON schema library. This library uses JSON to describe the JSON schema
+ * @details The simple JSON schema library. This library uses JSON to describe the JSON schema
  *         The syntax is very easy, for the object, instead of putting the value, we actaully puts
  *         a list of type name to the value. For example.
- *         <code>
- *
  *         {
  *         	  "name": "string",
  *         	  "nickname": "string|null",
@@ -27,8 +25,6 @@
  *         		"unit_price": "float"
  *         	  }, "*"]
  *           }
- *
- *         </code>
  *         In this case, the address object contains a __schema_property__ field which means we
  *         have some additional directive to this object, in this case, this means the object is nullable.
  *         For the list like examples, if the last element is "*" it means we need to repeat the list containt
@@ -63,7 +59,7 @@ extern "C" {
 
 	/**
 	* @brief Load a JSON schema from a string
-	* @param scehma_str The schema string
+	* @param schema_str The schema string
 	* @return the newly created schema or NULL on error case
 	**/
 	jsonschema_t* jsonschema_from_string(const char* schema_str);
@@ -107,7 +103,7 @@ extern "C" {
 	* @param bufsize The buffer size
 	* @return The size of the updated JSON string
 	**/
-	size_t jsonschema_update_str(const jsonschema_t* schema, const char* target, size_t target_len, const char* patch, size_t patch_len, char* outbuf, size_t bufisze);
+	size_t jsonschema_update_str(const jsonschema_t* schema, const char* target, size_t target_len, const char* patch, size_t patch_len, char* outbuf, size_t bufsize);
 
 #ifdef __cplusplus
 }

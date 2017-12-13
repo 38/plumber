@@ -89,7 +89,7 @@ static inline int _clean_ref(proto_type_entity_t* ref)
 }
 
 /**
- * @biref Duplicate the metadata
+ * @brief Duplicate the metadata
  * @param metadata The metadata to duplicate
  * @return The duplicated metadata
  **/

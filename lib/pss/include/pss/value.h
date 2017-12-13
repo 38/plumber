@@ -144,7 +144,7 @@ int pss_value_incref(pss_value_t value);
 
 /**
  * @brief Decrease the reference counter of the value
- * @param vvalue The value to oeprate
+ * @param value The value to oeprate
  * @return status code
  **/
 int pss_value_decref(pss_value_t value);

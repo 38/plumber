@@ -3,7 +3,7 @@
  **/
 /**
  * @brief The constant used in the pyservlet module
- * @file pservlet/include/const.h
+ * @file pyservlet/include/const.h
  **/
 #ifndef __PYSERVLET_CONST_H__
 #define __PYSERVLET_CONST_H__

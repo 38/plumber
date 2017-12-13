@@ -94,7 +94,7 @@ uint32_t proto_db_type_offset(const char* type_name, const char* fieldname, uint
 /**
  * @brief Get the field name of the type
  * @note If the field is a primitive, it will returns an adhoc data type for the primitves, for example uint32, etc
- *       For this kinds of virtual typename, the only thing we can access is <typename>.value, which has the primitive
+ *       For this kinds of virtual typename, the only thing we can access is &lt;typename&gt;.value, which has the primitive
  *       type
  * @param type_name The type name
  * @param fieldname The field name descriptor

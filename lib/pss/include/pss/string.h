@@ -15,7 +15,7 @@
 int pss_string_init(void);
 
 /**
- * @biref Cleanup
+ * @brief Cleanup
  * @return status code
  **/
 int pss_string_finalize(void);
