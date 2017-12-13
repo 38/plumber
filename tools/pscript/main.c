@@ -107,11 +107,12 @@ static int parse_args(int argc, char** argv)
 	opterr = 0;
 	for(;(c = getopt_long(argc, argv, "hvNM:S:r:co:dBnL:e:", _options, &opt_idx)) >= 0;)
 	{
-		if(optind - last_optind > (optarg != NULL) + 1)
+		if(argv[last_optind][0] != '-')
 		{
 			optind = last_optind;
 			break;
 		}
+
 		switch(c)
 		{
 			case 'v':

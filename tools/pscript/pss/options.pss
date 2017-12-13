@@ -18,46 +18,80 @@ Options.parse = function Options.parse(template, arguments)
 		"parsed":   {}
 	};
 
+	var _parse_option = function _parse_option(i, arg)
+	{
+		var previous_i = i;
+		var long = (substr(arg, 0, 2) == "--");
+		var full = arg;
+		if(!long) arg = substr(arg, 0, 2);
+
+		if(template[arg] != undefined)
+		{
+			if(template[arg]["long"] != undefined) arg = template[arg]["long"];
+			if(template[arg] == undefined)
+			{
+				log("error", "Malformed options template");
+				return undefined;
+			}
+			var nargs_max = template[arg]["nargs_max"];
+			var nargs_min = template[arg]["nargs_min"];
+
+			if(nargs_min == undefined) nargs_min = 0;
+			if(nargs_max == undefined) nargs_max = nargs_min;
+
+			if(ret["parsed"][arg] == undefined) 
+				ret["parsed"][arg] = List.empty();
+
+			var consumed = 1;
+
+			if(!long && len(full) > 2)
+			{
+				if(nargs_max > 0)
+				{
+					List.append(ret["parsed"][arg], substr(full, 2));
+					if(nargs_min > 0) nargs_min --;
+					nargs_max --;
+				}
+				else consumed = 0;
+			}
+
+			if(i + nargs_min >= len(arguments))
+			{
+				log("error", "Invalid command line options: insufficient arguments");
+				return undefined;
+			}
+
+			ret["parsed"][arg] = List.concat(ret["parsed"][arg], List.slice(arguments, i + 1, i + 1 + nargs_min));
+			
+			i += consumed + nargs_min;
+
+			var count = nargs_min;
+
+			while(i < len(arguments) && template[arguments[i]] == undefined && (count < nargs_max))
+			{
+				List.append(ret["parsed"][arg], arguments[i]);
+				i ++;
+				count ++;
+			}
+
+			print(i);
+			print(previous_i);
+		}
+		else List.append(ret["unparsed"], arguments[i++]);
+
+		return i - previous_i;
+	}
+
 	for(var i = 1; i < len(arguments);)
 	{
-		 var arg = arguments[i];
-
-		 if(template[arg] != undefined)
-		 {
-			 if(template[arg]["long"] != undefined) arg = template[arg]["long"];
-			 if(template[arg] == undefined)
-			 {
-				 log("error", "Malformed options template");
-				 return undefined;
-			 }
-			 var nargs_max = template[arg]["nargs_max"];
-			 var nargs_min = template[arg]["nargs_min"];
-
-			 if(nargs_min == undefined) nargs_min = 0;
-			 if(nargs_max == undefined) nargs_max = nargs_min;
-
-			 if(i + nargs_min >= len(arguments))
-			 {
-				 log("error", "Invalid command line options: insufficient arguments");
-				 return undefined;
-			 }
-
-			 if(ret["parsed"][arg] == undefined) 
-				 ret["parsed"][arg] = List.empty();
-			 ret["parsed"][arg] = List.concat(ret["parsed"][arg], List.slice(arguments, i + 1, i + 1 + nargs_min));
-			 
-			 i += 1 + nargs_min;
-
-			 var count = nargs_min;
-
-			 while(i < len(arguments) && template[arguments[i]] == undefined && (nargs_max == undefined || count < nargs_max))
-			 {
-				 List.append(ret["parsed"][arg], arguments[i]);
-				 i ++;
-				 count ++;
-			 }
-		 }
-		 else List.append(ret["unparsed"], arguments[i++]);
+		var current = arguments[i];
+		var increment = 0;
+		while(increment == 0)
+		{
+			increment = _parse_option(i, current);
+			current = "-" + substr(current, 2);
+		}
+		i += increment;
 	}
 
 	return ret;

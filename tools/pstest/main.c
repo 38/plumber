@@ -341,25 +341,13 @@ int main(int argc, char** argv)
 int _program(int argc, char** argv)
 #endif
 {
-	int opt_idx, c, current = 1;
+	int opt_idx, c, last_optind = 1;
+	opterr = 0;
 	for(;(c = getopt_long(argc, argv, "p:s:hlv", _options, &opt_idx)) >= 0;)
 	{
-		int previous = current;
-		switch(c)
+		if(argv[last_optind][0] != '-') 
 		{
-			case 's':
-			case 'p':
-			    current += 2;
-			    break;
-			default:
-			    current ++;
-			    break;
-		}
-
-		/* we do not want to parse the argument beyond the first invalid token, which means it should be servlet argument */
-		if(current != optind)
-		{
-			current = previous;
+			optind = last_optind;
 			break;
 		}
 
@@ -384,12 +372,14 @@ int _program(int argc, char** argv)
 			    fprintf(stderr, "Invalid argument %c\n", c);
 			    display_help(EXIT_FAILURE);
 		}
+
+		last_optind = optind;
 	}
 
 	if(NULL == servlet_path)
 	    servlet_path = "";
 
-	if(current == argc)
+	if(optind == argc)
 	{
 		fprintf(stderr, "Servlet name is required.\n");
 		display_help(EXIT_FAILURE);
@@ -421,8 +411,8 @@ int _program(int argc, char** argv)
 	split(servlet_path, ':', add_search_path);
 	add_search_path(RUNTIME_SERVLET_DEFAULT_SEARCH_PATH);
 
-	if(list == 1) show_pipes((uint32_t)(argc - current), (char const* const*)argv + current);
-	else run_task((uint32_t)(argc - current), (char const* const*)argv + current);
+	if(list == 1) show_pipes((uint32_t)(argc - optind), (char const* const*)argv + optind);
+	else run_task((uint32_t)(argc - optind), (char const* const*)argv + optind);
 	plumber_finalize();
 	return 0;
 }
