@@ -955,6 +955,7 @@ static pss_value_t _pscript_builtin_substr(pss_vm_t* vm, uint32_t argc, pss_valu
 
 	if(right == -1) right = (int64_t)strlen(str);
 
+	if(left < 0) left = 0;
 	if(right < left) right = left;
 
 	char* retstr = (char*)malloc((size_t)(right - left + 1));
