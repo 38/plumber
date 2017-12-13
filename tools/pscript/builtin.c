@@ -988,6 +988,13 @@ static pss_value_t _pscript_builtin_parse_int(pss_vm_t* vm, uint32_t argc, pss_v
 
 	if(argc != 1 && argc != 2) return ret;
 
+	if(PSS_VALUE_KIND_UNDEF == argv[0].kind && argc == 2 && PSS_VALUE_KIND_NUM == argv[1].kind)
+	{
+		ret.num = argv[1].num;
+		ret.kind = PSS_VALUE_KIND_NUM;
+		return ret;
+	}
+
 	if((PSS_VALUE_KIND_REF != argv[0].kind || pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING) ||
 	   (argc == 2 && PSS_VALUE_KIND_NUM != argv[1].kind))
 		return ret;
