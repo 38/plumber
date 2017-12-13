@@ -933,6 +933,121 @@ static pss_value_t _pscript_builtin_typeof(pss_vm_t* vm, uint32_t argc, pss_valu
 	return ret;
 }
 
+static pss_value_t _pscript_builtin_substr(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
+{
+	(void)vm;
+	pss_value_t ret =  {
+		.kind = PSS_VALUE_KIND_ERROR,
+		.num  = PSS_VM_ERROR_ARGUMENT
+	};
+
+	if(argc != 2 && argc != 3) return ret;
+
+	if((PSS_VALUE_KIND_REF != argv[0].kind || pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING) ||
+	   (PSS_VALUE_KIND_NUM != argv[1].kind && PSS_VALUE_KIND_UNDEF != argv[1].kind))
+		return ret;
+
+	int64_t left = argv[1].kind == PSS_VALUE_KIND_UNDEF ? 0 : argv[1].num;
+	int64_t right = -1;
+	const char* str = (const char*)pss_value_get_data(argv[0]);
+
+	if(argc == 3 && PSS_VALUE_KIND_NUM == argv[2].kind) right = argv[2].num;
+
+	if(right == -1) right = (int64_t)strlen(str);
+
+	if(right < left) right = left;
+
+	char* retstr = (char*)malloc((size_t)(right - left + 1));
+
+	if(NULL == retstr)
+	{
+		LOG_ERROR_ERRNO("Cannot allocate memory for the substring");
+		ret.num = PSS_VM_ERROR_INTERNAL;
+		return ret;
+	}
+
+	retstr[right - left] = 0;
+
+	if(right - left > 0)
+		memcpy(retstr, str + left, (size_t)(right - left));
+
+	ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, retstr);
+	if(ret.kind == PSS_VALUE_KIND_ERROR)
+		free(retstr);
+
+	return ret;
+}
+
+static pss_value_t _pscript_builtin_parse_int(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
+{
+	(void)vm;
+	pss_value_t ret =  {
+		.kind = PSS_VALUE_KIND_ERROR,
+		.num  = PSS_VM_ERROR_ARGUMENT
+	};
+
+	if(argc != 1 && argc != 2) return ret;
+
+	if((PSS_VALUE_KIND_REF != argv[0].kind || pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING) ||
+	   (argc == 2 && PSS_VALUE_KIND_NUM != argv[1].kind))
+		return ret;
+
+	int has_default = (argc == 2);
+	int64_t defval = (argc == 2) ? argv[1].num : 0;
+	
+	const char* str = (const char*)pss_value_get_data(argv[0]);
+	char* next;
+
+	long long val = strtol(str, &next, 0);
+	if(NULL != next && *next != 0)
+	{
+		if(has_default)
+			val = defval;
+		else
+			return ret;
+	}
+
+	ret.num = val;
+	ret.kind = PSS_VALUE_KIND_NUM;
+
+	return ret;
+}
+
+static pss_value_t _pscript_builtin_charat(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
+{
+	(void)vm;
+	pss_value_t ret =  {
+		.kind = PSS_VALUE_KIND_ERROR,
+		.num  = PSS_VM_ERROR_ARGUMENT
+	};
+
+	if(argc != 2) return ret;
+
+	if((PSS_VALUE_KIND_REF != argv[0].kind || pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING) ||
+	   (PSS_VALUE_KIND_NUM != argv[1].kind))
+		return ret;
+
+	int64_t ofs = argv[1].num;
+	const char* str = (const char*)pss_value_get_data(argv[0]);
+
+
+	if(NULL == str)
+	{
+		ret.num = PSS_VM_ERROR_INTERNAL;
+		return ret;
+	}
+
+	if(ofs < 0 || (size_t)ofs >= strlen(str))
+		return ret;
+
+	char ch = str[ofs];
+
+	ret.kind = PSS_VALUE_KIND_NUM;
+	ret.num = (int64_t)ch;
+
+	return ret;
+}
+
 static pss_value_t _pscript_builtin_split(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
 	(void)vm;
@@ -1209,6 +1324,7 @@ static struct {
 	const char*         proto;
 	const char*         desc;
 } _builtins[] = {
+	_B(charat,"(str, pos)", "Return the char code at the specified location in the given string"),
 	_B(exit,   "([code])", "Exit with the given exit code or 0 (For REPL mode, this function only set the exit code, but won't actually exit the REPL shell)"),
 	_B(dict,   "()",   "Create a new dictionary"),
 	_B(getcwd, "()", "Get the current working directory"),
@@ -1221,7 +1337,9 @@ static struct {
 	_B(lsmod, "()", "Get a list of all the installed module installed to the Plumber runtime system"),
 	_B(print,  "(val1 [, ...])", "Print the values to stdout"),
 	_B(typeof, "(value)", "Get the type of the value"),
+	_B(substr, "(str, left, [right])", "Get the substring"),
 	_B(split, "(str [, sep])", "Split the given string str by seperator sep, if sep is not given, split the string by white space '\" \"'"),
+	_B(parse_int, "(str)", "Parse the integer form the string"),
 	_B(version, "()", "Get the version string of current Plumber system"),
 	_P(daemon_ping, "(daemon_ping)", "Ping a daemon, test if the daemon is responding"),
 	_P(daemon_reload, "(daemon, service)", "Reload the daemon with the graph"),
