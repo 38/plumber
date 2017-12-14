@@ -73,9 +73,6 @@ Options.parse = function Options.parse(template, arguments)
 				i ++;
 				count ++;
 			}
-
-			print(i);
-			print(previous_i);
 		}
 		else List.append(ret["unparsed"], arguments[i++]);
 
