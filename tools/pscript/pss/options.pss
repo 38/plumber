@@ -67,8 +67,11 @@ Options.parse = function Options.parse(template, arguments)
 
 			var count = nargs_min;
 
-			while(i < len(arguments) && template[arguments[i]] == undefined && (count < nargs_max))
+			while(i < len(arguments) && count < nargs_max)
 			{
+				if(template[arguments[i]] != undefined ||
+				   template[substr(arguments[i], 0, 2)] != undefined)
+					break;
 				List.append(ret["parsed"][arg], arguments[i]);
 				i ++;
 				count ++;
