@@ -9,6 +9,10 @@
 #include <pservlet.h>
 #include <pstd.h>
 
+#include <curl/curl.h>
+
+#include <client.h>
+
 typedef struct {
 	pipe_t req_data_p; /*!< The request data */
 } ctx_t;
@@ -21,6 +25,18 @@ static int _init(uint32_t argc, char const* const* argv, void* data)
 	ctx_t* ctx = (ctx_t*)data;
 	ctx->req_data_p = pipe_define("request", PIPE_INPUT, NULL);
 
+	if(ERROR_CODE(int) == client_servlet_init())
+		ERROR_RETURN_LOG(int, "Cannot intialize the client library");
+
+	return 0;
+}
+
+static int _cleanup(void* data)
+{
+	(void)data;
+	if(ERROR_CODE(int) == client_servlet_finalize())
+		ERROR_RETURN_LOG(int, "Cannot finalize the client library");
+
 	return 0;
 }
 
@@ -28,5 +44,6 @@ SERVLET_DEF = {
 	.size = sizeof(ctx_t),
 	.desc = "The HTTP client servlet",
 	.version = 0x0,
-	.init = _init
+	.init = _init,
+	.unload = _cleanup
 };
