@@ -1,10 +1,10 @@
 /**
- * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017-2018, Hao Hou
  **/
 /**
  * @note I have thought about if the async task queue should be lock-free and do we really care about the
  *       lock overhead of posting a async task to the queue. The answer seems not. <br/>
- *       For the enttire processing procedure, it's hard to believe that most of the time the worker thread
+ *       For the entire processing procedure, it's hard to believe that most of the time the worker thread
  *       is initializing the async task - Most of the operation should be done by the worker thread, unless
  *       the slow operations. <br/>
  *       Although the global mutex will serialize all the worker threads if every worker is starting a async
@@ -90,7 +90,7 @@ typedef struct _handle_t {
 typedef struct {
 	uint32_t    magic_num;     /*!< The magic number */
 	uint32_t    completed:1;  /*!< Indicates if this task has been completed */
-} _fake_handle_t;;
+} _fake_handle_t;
 STATIC_ASSERTION_TYPE_COMPATIBLE(_handle_t, magic_num, _fake_handle_t, magic_num);
 
 /**
