@@ -22,11 +22,16 @@ typedef int (*client_request_setup_func_t)(CURL* handle, void* data);
 
 /**
  * @brief Initialize the client
+ * @param queue_size the *minimun* size of queue this servlet requested for, the actual
+ *                   value will not be smaller than this value
+ * @param parallel_limit The lower bound of the numer of parallel request at the same time per thread
+ * @param num_threads The lower bound of the number of threads
  * @return status code
- * @note This actually initialize the global thread and state when it gets called
- *       first time. After that this function only increment the initialize counter
+ * @note Since the client threads are shared among all the client servlet instances, and each of the
+ *       servlet might request for different queue size, parallel limit and number of threads. 
+ *       In this case, the client library will satisify requests of all the threads
  **/
-int client_servlet_init(void);
+int client_init(uint32_t queue_size, uint32_t parallel_limit, uint32_t num_threads);
 
 /**
  * @brief Finalize the client
@@ -34,17 +39,7 @@ int client_servlet_init(void);
  * @note This function actually decrement the initialize counter and when the intialize
  *       counter reached 0, the actual finalization procedure will be triggerred.
  **/
-int client_servlet_finalize(void);
-
-/**
- * @brief Change the size of the request queue
- * @param size The new size of the queue
- * @note This function just enlarge the queue, if the new size
- *       is smaller than current size, this function will ignore the
- *       new value
- * @return status code
- **/
-int client_set_queue_size(uint32_t size);
+int client_finalize(void);
 
 /**
  * @brief Set the user-agent string of this client

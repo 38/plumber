@@ -25,7 +25,7 @@ static int _init(uint32_t argc, char const* const* argv, void* data)
 	ctx_t* ctx = (ctx_t*)data;
 	ctx->req_data_p = pipe_define("request", PIPE_INPUT, NULL);
 
-	if(ERROR_CODE(int) == client_servlet_init())
+	if(ERROR_CODE(int) == client_init(1024, 128, 1))
 		ERROR_RETURN_LOG(int, "Cannot intialize the client library");
 
 	return 0;
@@ -34,7 +34,7 @@ static int _init(uint32_t argc, char const* const* argv, void* data)
 static int _cleanup(void* data)
 {
 	(void)data;
-	if(ERROR_CODE(int) == client_servlet_finalize())
+	if(ERROR_CODE(int) == client_finalize())
 		ERROR_RETURN_LOG(int, "Cannot finalize the client library");
 
 	return 0;
