@@ -65,9 +65,9 @@ int log_init()
 		static char type[128];
 		static char path[PATH_MAX];
 		static char mode[32];
-		int screen_print = 0;
 		for(;NULL != fgets(buf, sizeof(buf), fp);)
 		{
+			int screen_print = 0;
 			char* begin = NULL;
 			char* end = NULL;
 			char* p, *q;
@@ -159,6 +159,7 @@ int log_init()
 		if(_log_fp[i] == NULL)
 		{
 			_log_fp[i] = default_fp;
+			_log_stderr[i] = _log_stderr[7];
 			snprintf(_log_path[i], sizeof(_log_path[0]), "%s", _log_path[7]);
 			snprintf(_log_mode[i], sizeof(_log_mode[0]), "%s", _log_mode[7]);
 		}

@@ -321,11 +321,18 @@ static void run_task(uint32_t argc, char const* const* argv)
 		exit(1);
 	}
 
+	if(ERROR_CODE(int) == sched_async_fake_handle_free(async_cleanup->async_handle))
+	{
+		LOG_FATAL("Cannot dispose the async handle");
+		exit(1);
+	}
+
 	if(ERROR_CODE(int) == runtime_task_free(async_cleanup))
 	{
 		LOG_FATAL("Cannot dispose the async task");
 		exit(1);
 	}
+
 }
 
 #ifndef STACK_SIZE

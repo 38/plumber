@@ -25,10 +25,10 @@ static int _init(uint32_t argc, char const* const* argv, void* data)
 	ctx_t* ctx = (ctx_t*)data;
 	ctx->req_data_p = pipe_define("request", PIPE_INPUT, NULL);
 
-	if(ERROR_CODE(int) == client_init(1024, 128, 1))
+	if(ERROR_CODE(int) == client_init(1024, 128, 4))
 		ERROR_RETURN_LOG(int, "Cannot intialize the client library");
 
-	return 0;
+	return 1;
 }
 
 static int _cleanup(void* data)
@@ -40,10 +40,48 @@ static int _cleanup(void* data)
 	return 0;
 }
 
+static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
+{
+	(void)handle;
+	(void)data;
+	(void)ctxbuf;
+
+	client_add_request("test", handle, 0, 0, NULL, NULL);
+
+	/* TODO: try to do non-blocking request posting */
+
+	return 0;
+}
+
+static int _async_cleanup(async_handle_t* handle, void* data, void* ctxbuf)
+{
+	(void)handle;
+	(void)data;
+	(void)ctxbuf;
+
+	/* TODO: construct the request result */
+
+	return 0;
+}
+
+static int _async_exec(async_handle_t* handle, void* data)
+{
+	(void)handle;
+	(void)data;
+
+	/* TODO: blocking request posting */
+
+	return 0;
+}
+
 SERVLET_DEF = {
 	.size = sizeof(ctx_t),
+	.async_buf_size = sizeof(int),
 	.desc = "The HTTP client servlet",
 	.version = 0x0,
 	.init = _init,
-	.unload = _cleanup
+	.unload = _cleanup,
+	.async_setup = _async_setup,
+	.async_cleanup = _async_cleanup,
+	.async_exec = _async_exec
 };

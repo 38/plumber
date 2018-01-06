@@ -42,13 +42,6 @@ int client_init(uint32_t queue_size, uint32_t parallel_limit, uint32_t num_threa
 int client_finalize(void);
 
 /**
- * @brief Set the user-agent string of this client
- * @param ua The user agent string
- * @return status
- **/
-int client_set_user_agent_string(const char* ua);
-
-/**
  * @brief Add a new request to the request queue
  * @param url The url to request
  * @param handle The async processing handle
