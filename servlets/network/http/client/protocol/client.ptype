@@ -1,0 +1,19 @@
+package plumber.std_servlet.network.http.client.v0;
+type MethodCode {
+	uint32 OPTIONS = 0;    /*!< OPTIONS */
+	uint32 GET     = 1;    /*!< GET */
+	uint32 HEAD    = 2;    /*!< HEAD */
+	uint32 POST    = 3;    /*!< POST */
+	uint32 PUT     = 4;    /*!< PUT */
+	uint32 DELETE  = 5;    /*!< DELETE */
+	uint32 TRACE   = 6;    /*!< TRACE */
+	uint32 CONNECT = 7;    /*!< CONNECT */
+};
+
+type Request : MethodCode {
+	plumber.std.request_local.String url;      /*!< The URL to request */
+	plumber.std.request_local.String data;     /*!< The data payload for this request. TODO: what if the data section is large ? */
+	int32                            priority; /*!< The priorty of this request */
+	uint32                           method;   /*!< The request method we want to use (only used by HTTP) */
+	/* TODO: Cookies, etc */
+};
