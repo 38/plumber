@@ -42,6 +42,8 @@ typedef struct {
 	const char* url;     /*!< The URL we are requesting */
 	const char* data;    /*!< The data payload */
 	int32_t     priority;/*!< The priorty of this request */
+	size_t      result_sz; /*!< The size of the result */
+	char*       result;  /*!< The result buffer (TODO: what if the result is too large) */
 	enum {
 		NONE,            /*!< For the request that is not a HTTP request */
 		GET,             /*!< The GET HTTP method */
@@ -248,6 +250,8 @@ static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 	if(ERROR_CODE(int32_t) == (abuf->priority = PSTD_TYPE_INST_READ_PRIMITIVE(int32_t, inst, ctx->priority_acc)))
 		ERROR_LOG_GOTO(ERR, "Cannot read the priority from the input");
 
+	abuf->result = NULL;
+
 	int rc = client_add_request(abuf->url, handle, abuf->priority, 0, _setup_request, abuf);
 
 	if(rc == ERROR_CODE(int))
@@ -271,21 +275,62 @@ ERR:
 
 static int _async_cleanup(async_handle_t* handle, void* data, void* ctxbuf)
 {
-	(void)handle;
-	(void)data;
-	(void)ctxbuf;
+	ctx_t* ctx = (ctx_t*)ctxbuf;
+	async_buf_t* abuf = (async_buf_t*)data;
+	int async_rc = 0;
 
-	/* TODO: construct the request result */
+	pstd_type_instance_t* inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model);
+
+	if(NULL == inst) 
+		ERROR_RETURN_LOG(int, "Cannot create type instance from the type model");
+
+	if(ERROR_CODE(int) == async_cntl(handle, ASYNC_CNTL_RETCODE, &async_rc))
+		ERROR_LOG_GOTO(ERR, "Cannot access the return code of the async task");
+
+	if(async_rc == ERROR_CODE(int))
+		ERROR_LOG_GOTO(ERR, "The async task returns an error");
+
+
+	/* Then we need to write the result back to the pipe */
+	if(NULL != abuf->result)
+	{
+		LOG_DEBUG("The async request result a nonempty result, adding to RLS");
+
+		pstd_string_t* str = pstd_string_from_onwership_pointer(abuf->result, abuf->result_sz);
+
+		if(NULL == str)
+			ERROR_LOG_GOTO(ERR, "Cannot create new RLS string from the request result");
+
+		scope_token_t tok;
+
+		if(ERROR_CODE(scope_token_t) == (tok = pstd_string_commit(str)))
+		{
+			pstd_string_free(str);
+			ERROR_LOG_GOTO(ERR, "Cannot commit the result string to the RLS");
+		}
+
+		abuf->result = NULL;
+
+		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, ctx->response_acc, tok))
+			ERROR_LOG_GOTO(ERR, "Cannot write the result to the output pipe");
+	}
+
+	if(ERROR_CODE(int) == pstd_type_instance_free(inst))
+		ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
 
 	return 0;
+ERR:
+	if(NULL != inst) pstd_type_instance_free(inst);
+	if(NULL != abuf->result) free(abuf->result);
+	return ERROR_CODE(int);
 }
 
 static int _async_exec(async_handle_t* handle, void* data)
 {
-	(void)handle;
-	(void)data;
+	async_buf_t* abuf = (async_buf_t*)data;
 
-	/* TODO: blocking request posting */
+	if(client_add_request(abuf->url, handle, abuf->priority, 1, _setup_request, abuf) == ERROR_CODE(int))
+		ERROR_RETURN_LOG(int, "Cannot add the request to the request queue");
 
 	return 0;
 }

@@ -16,23 +16,31 @@
 #include <pservlet.h>
 #include <pstd.h>
 
+#include <barrier.h>
+#include <arch/arch.h>
+
 #include <client.h>
+
+typedef struct _thread_ctx_t _thread_ctx_t;
 
 /**
  * @brief The data structure used to tracking a request
  **/
 typedef struct {
 	uint32_t                    in_use:1;      /*!< indicates if this request buffer is being used */
+	uint32_t                    epolled:1;     /*!< If this request is already managed by epoll */
 	union {
 		int                     priority;      /*!< The priority of this request */
 		uint32_t                next_unused;   /*!< The next element unused request buffer list */
 	};
 	uint64_t                    serial_num;    /*!< The serial number for this request */
+	_thread_ctx_t*              thread_ctx;    /*!< The ower thread ctx */
 	const char*                 url;           /*!< The target URL */
 	CURL*                       curl_handle;   /*!< The CURL hndle object, NULL if this object haven't been picked up */
 	async_handle_t*             async_handle;  /*!< The servlet asynchronous handle, used for completion notification */
 	client_request_setup_func_t setup_cb;      /*!< The setup callback */
 	void*                       setup_data;    /*!< The data used by the setup callback */
+	int                         fd;            /*!< The underlying conmmunication fd */
 } _req_t;
 
 /**
@@ -40,7 +48,7 @@ typedef struct {
  * @todo Currently we use epoll direcly for simplicity. 
  *       But we need to support other flavor of event driven APIs
  **/
-typedef struct {
+struct _thread_ctx_t {
 	/***** The global resources ********/
 	uint32_t  started:1;    /*!< Indicates if the client thread has been started */
 	uint32_t  killed:1;     /*!< Indicates if this client has been killed */
@@ -54,15 +62,15 @@ typedef struct {
 	uint32_t  unused;       /*!< The unused request list */
 
 	/******** The pending-for-add quee ************/
-	int       event_fd;        /*!< The event fd use for add notification */
-	uint32_t  add_queue_front; /*!< The front pointer of the add queue */
-	uint32_t  add_queue_rear;  /*!< The rear pointer of the add queue */
-	uint32_t* add_queue;       /*!< The actual pending queue */
+	int                event_fd;        /*!< The event fd use for add notification */
+	volatile uint32_t  add_queue_front; /*!< The front pointer of the add queue */
+	volatile uint32_t  add_queue_rear;  /*!< The rear pointer of the add queue */
+	uint32_t*          add_queue;       /*!< The actual pending queue */
 
 	/******** The pending request heap ***********/
 	uint32_t* req_heap;            /*!< The pending request heap */
 	uint32_t  req_heap_size;       /*!< The pending request heap size */
-} _thread_ctx_t;
+};
 
 /**
  * @brief The global context of the client library 
@@ -77,6 +85,143 @@ static struct {
 	uint32_t        num_started_threads;/*!< The number of started client threads */
 	_thread_ctx_t*  thread_ctx;         /*!< The thread context objects */
 } _ctx;
+
+static inline int _req_cmp(_thread_ctx_t* ctx, uint32_t a, uint32_t b)
+{
+	_req_t* ra = ctx->req_buf + ctx->req_heap[a];
+	_req_t* rb = ctx->req_buf + ctx->req_heap[b];
+
+	if(ra->priority < rb->priority) 
+		return -1;
+	
+	if(ra->priority > rb->priority)
+		return 1;
+	
+	if(ra->serial_num < rb->serial_num)
+		return -1;
+
+	if(ra->serial_num > rb->serial_num)
+		return 1;
+
+	return 0;
+}
+
+static inline void _req_heapify(_thread_ctx_t* ctx, uint32_t root)
+{
+	for(;;)
+	{
+		uint32_t idx = root;
+		if(root * 2 + 1 < ctx->req_heap_size && _req_cmp(ctx, idx, root * 2 + 1) == -1)
+			idx = root * 2 + 1;
+		if(root * 2 + 2 < ctx->req_heap_size && _req_cmp(ctx, idx, root * 2 + 2) == -1)
+			idx = root * 2 + 2;
+
+		if(idx == root) return;
+
+		uint32_t tmp = ctx->req_heap[root];
+		ctx->req_heap[root] = ctx->req_heap[idx];
+		ctx->req_heap[idx] = tmp;
+
+		root = idx;
+	}
+}
+
+static inline void _req_heap_add(_thread_ctx_t* ctx, uint32_t req_idx)
+{
+	/* Although race condition is possible with the next_serial_num variable,
+	 * However, the only way we use the serial num is determine the order within
+	 * the same thread. */
+	static uint64_t next_serial_num = 0;
+
+	/* Since we will use up all the request buffer at the time the queue is full,
+	 * thus we don't need to check if the heap is full, because this is not possible */
+	
+	ctx->req_heap[ctx->req_heap_size ++] = req_idx;
+	ctx->req_buf[req_idx].serial_num = next_serial_num;
+	arch_atomic_sw_increment_u64(&next_serial_num);
+
+	uint32_t root = ctx->req_heap_size - 1;
+
+	for(;root > 0 && _req_cmp(ctx, (root - 1) / 2, root) == 1; root = (root - 1) / 2)
+	{
+		uint32_t tmp = ctx->req_heap[root];
+		ctx->req_heap[root] = ctx->req_heap[(root - 1) / 2];
+		ctx->req_heap[(root - 1) / 2] = tmp;
+	}
+
+	ctx->req_buf[req_idx].thread_ctx = ctx;
+}
+
+static inline uint32_t _req_heap_pop(_thread_ctx_t* ctx)
+{
+	if(ctx->req_heap_size == 0) return ERROR_CODE(uint32_t);
+
+	uint32_t ret = ctx->req_heap[0];
+	
+	ctx->req_heap[0] = ctx->req_heap[--ctx->req_heap_size];
+
+	_req_heapify(ctx, 0);
+
+	return ret;
+}
+
+static int _curl_socket_func(CURL* handle, int fd, int action, void* up, void* sp)
+{
+	(void)sp;
+	(void)up;
+	_req_t* req;
+
+	CURLcode rc = curl_easy_getinfo(handle, CURLINFO_PRIVATE, &req);
+	if(CURLE_OK != rc)
+		ERROR_RETURN_LOG(int, "Cannot get the request data structure: %s", curl_easy_strerror(rc));
+
+	int opcode;
+
+	struct epoll_event event = {
+		.events = 0,
+		.data = {
+			.ptr = req
+		}
+	};
+
+	switch(action)
+	{
+		case CURL_POLL_REMOVE:
+			opcode = EPOLL_CTL_DEL;
+			break;
+		case CURL_POLL_IN:
+			opcode = EPOLL_CTL_ADD;
+			event.events = EPOLLIN;
+			break;
+		case CURL_POLL_OUT:
+			opcode = EPOLL_CTL_ADD;
+			event.events = EPOLLOUT;
+			break;
+		case CURL_POLL_INOUT:
+			opcode = EPOLL_CTL_ADD;
+			event.events = EPOLLIN | EPOLLOUT;
+			break;
+		default:
+			return 0;
+	}
+
+	if(opcode == EPOLL_CTL_ADD && req->epolled)
+		opcode = EPOLL_CTL_MOD;
+
+	if(epoll_ctl(req->thread_ctx->epoll_fd, opcode, fd, &event) < 0)
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot invoke epoll_ctl: op(%x), fd(%x)", fd, opcode);
+
+	return 0;
+}
+
+static inline int _dispose_req(_thread_ctx_t* ctx, uint32_t idx)
+{
+	/* TODO: see what needs to be disposed */
+	ctx->req_buf[idx].next_unused = ctx->unused;
+	ctx->unused = idx;
+	ctx->req_buf[idx].in_use = 0;
+	return 0;
+}
 
 static void* _client_main(void* data)
 {
@@ -95,8 +240,96 @@ static void* _client_main(void* data)
 
 	while(!ctx->killed)
 	{
-		/* TODO: actual processing logic */
-		sleep(1);
+		struct epoll_event events[128];
+
+		int eprc = epoll_wait(ctx->epoll_fd, events, sizeof(events) / sizeof(events[0]), 1000);
+
+		if(eprc < 0) 
+		{
+			LOG_WARNING_ERRNO("Cannot epoll the event");
+			continue;
+		}
+
+		/* Then we need to handle all the epoll events */
+		int i, num_running_handle = 0;
+		for(i = 0; i < eprc; i ++)
+			if(events[i].data.ptr != NULL)
+			{
+				/* If this is an communication FD */
+				_req_t* req = (_req_t*)events[i].data.ptr;
+
+
+				CURLMcode rc = curl_multi_socket_action(ctx->curlm, req->fd, 0, &num_running_handle);
+				if(rc != CURLM_OK)
+				{
+					LOG_WARNING("Cannot send the socket ready event to libcurl: %s", curl_multi_strerror(rc));
+					continue;
+				}
+
+				int n_msg = 0;
+				for(;;)
+				{
+					CURLMsg* msg = curl_multi_info_read(ctx->curlm, &n_msg);
+					if(msg == NULL) break;
+					if(msg->msg == CURLMSG_DONE)
+					{
+						CURL* handle = msg->easy_handle;
+						_req_t* cur_req;
+						CURLcode get_info_rc = curl_easy_getinfo(handle, CURLINFO_PRIVATE, &cur_req);
+						if(CURLE_OK != get_info_rc)
+							LOG_WARNING("Cannot get the curl private data: %s", curl_easy_strerror(rc));
+						else
+						{
+							if(ERROR_CODE(int) == async_cntl(cur_req->async_handle, ASYNC_CNTL_NOTIFY_WAIT, 0))
+								LOG_WARNING("Cannot notify the completion state");
+
+							if(ERROR_CODE(int) == _dispose_req(ctx, (uint32_t)(cur_req - ctx->req_buf)))
+								LOG_WARNING("Cannot dispose the request buffer");
+						}
+					}
+				}
+			}
+
+		/* Then we need to add the pending-to-add queue to the request heap */
+		while(((ctx->add_queue_rear - ctx->add_queue_front) & (_ctx.queue_size - 1)) > 0)
+		{
+			_req_heap_add(ctx, ctx->add_queue[ctx->add_queue_front]);
+			BARRIER();
+			ctx->add_queue_front ++;
+		}
+
+		/* After that we should create new running request if the number of running handle is less than the 
+		 * parallel limit */
+		while((uint32_t)num_running_handle < _ctx.pr_limit && ctx->req_heap_size > 0)
+		{
+			uint32_t idx = _req_heap_pop(ctx);
+			_req_t* buf = ctx->req_buf + idx;
+			if(NULL == (buf->curl_handle = curl_easy_init()))
+				ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot initialize the libcurl handle object");
+
+			CURLcode rc = curl_easy_setopt(buf->curl_handle, CURLOPT_PRIVATE, buf);
+			if(rc != CURLE_OK)
+				ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot set the private pointer: %s", curl_easy_strerror(rc));
+
+			rc = curl_easy_setopt(buf->curl_handle, CURLOPT_URL, buf->url);
+			if(rc != CURLE_OK)
+				ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot set the URL: %s", curl_easy_strerror(rc));
+
+			rc = curl_multi_add_handle(ctx->curlm, buf->curl_handle);
+			if(rc != CURLE_OK)
+				ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot add the handle to CURL: %s", curl_multi_strerror(rc));
+
+			num_running_handle ++;
+			continue;
+
+CURL_INIT_ERR:
+			/* In this case we should cleanup the failed request */ 
+			if(ERROR_CODE(int) == async_cntl(buf->async_handle, ASYNC_CNTL_NOTIFY_WAIT, ERROR_CODE(int)))
+				LOG_WARNING("Cannot notify the async failure status");
+
+			if(ERROR_CODE(int) == _dispose_req(ctx, idx))
+				LOG_WARNING("Cannot dispose the request");
+		}
 	}
 
 	/* TODO: Dispose the existing requests */
@@ -255,6 +488,9 @@ static inline int _thread_init(void)
 
 	if(NULL == (current->curlm = curl_multi_init()))
 		ERROR_LOG_GOTO(ERR, "Cannot initialize the CURL Multi interface");
+
+	if(CURLM_OK != curl_multi_setopt(current->curlm, CURLMOPT_SOCKETFUNCTION, _curl_socket_func))
+		ERROR_LOG_GOTO(ERR, "Cannot setup the socket callback function for the CURLM");
 
 	if(-1 == (current->epoll_fd = epoll_create1(0)))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create epoll for the HTTP client thread");
