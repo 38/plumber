@@ -49,8 +49,10 @@ int client_finalize(void);
  * @param setup The setup callback, NULL if there's no need for setup
  * @param setup_data The data needs to be pass in to the setup callback
  * @param priority The priority of this request
+ * @param res_buf The result buffer
+ * @param size_buf The result size buffer
  * @return status code
  **/
-int client_add_request(const char* url, async_handle_t* handle, int priority, int block, client_request_setup_func_t setup, void* setup_data);
+int client_add_request(const char* url, async_handle_t* handle, int priority, int block, client_request_setup_func_t setup, void* setup_data, char** res_buf, size_t* size_buf);
 
 #endif /* __NETWORK_HTTP_CLIENT_CLIENT_H__ */

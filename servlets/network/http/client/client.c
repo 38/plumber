@@ -40,6 +40,9 @@ typedef struct {
 	async_handle_t*             async_handle;  /*!< The servlet asynchronous handle, used for completion notification */
 	client_request_setup_func_t setup_cb;      /*!< The setup callback */
 	void*                       setup_data;    /*!< The data used by the setup callback */
+	char**                      result_buf;    /*!< The result buffer */
+	size_t*                     result_size_buf; /*!< The result size buffer */
+	size_t                      buf_cap;       /*!< The buffer capacity */
 	int                         fd;            /*!< The underlying conmmunication fd */
 } _req_t;
 
@@ -57,6 +60,8 @@ struct _thread_ctx_t {
 	CURLM*    curlm;        /*!< The CURL Multi interface */
 	_req_t*   req_buf;      /*!< The buffer for the request data */
 	pthread_t thread;       /*!< Current pthread object */
+	pthread_mutex_t writer_mutex; /*!< The writter mutex */
+	pthread_cond_t writer_cond;  /*!< The writer condition variable */
 	
 	/******** The unused request buffer list ******/
 	uint32_t  unused;       /*!< The unused request list */
@@ -165,6 +170,38 @@ static inline uint32_t _req_heap_pop(_thread_ctx_t* ctx)
 	return ret;
 }
 
+static int _curl_write_func(char* data, size_t size, size_t count, void* up)
+{
+	_req_t* req = (_req_t*)up;
+
+	if(*(req->result_buf) == NULL)
+	{
+		req->buf_cap = 4096;
+		*(req->result_size_buf) = 0;
+		if(NULL == (*(req->result_buf) = (char*)malloc(req->buf_cap)))
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the result buffer");
+	}
+
+	size_t required = size * count;
+	if(req->buf_cap <= *(req->result_size_buf) + required)
+	{
+		size_t new_size = *(req->result_size_buf) + required;
+		
+		new_size = (new_size & ~(size_t)(4096 - 1)) + 4096;
+		
+		char* buf = realloc(*(req->result_buf), new_size);
+		if(NULL == buf) ERROR_RETURN_LOG_ERRNO(int, "Cannot resize the result buffer");
+
+		*req->result_buf = buf;
+		req->buf_cap = new_size;
+	}
+
+	memcpy(*req->result_buf + *req->result_size_buf, data, required);
+	(*req->result_buf)[(*req->result_size_buf) += required] = 0;
+
+	return (int)required;
+}
+
 static int _curl_socket_func(CURL* handle, int fd, int action, void* up, void* sp)
 {
 	(void)sp;
@@ -211,12 +248,23 @@ static int _curl_socket_func(CURL* handle, int fd, int action, void* up, void* s
 	if(epoll_ctl(req->thread_ctx->epoll_fd, opcode, fd, &event) < 0)
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot invoke epoll_ctl: op(%x), fd(%x)", fd, opcode);
 
+	req->fd = fd;
+
 	return 0;
 }
 
 static inline int _dispose_req(_thread_ctx_t* ctx, uint32_t idx)
 {
-	/* TODO: see what needs to be disposed */
+	if(ctx->req_buf[idx].curl_handle != NULL)
+	{
+		CURLMcode mrc =  curl_multi_remove_handle(ctx->curlm, ctx->req_buf[idx].curl_handle);
+		if(mrc != CURLM_OK)
+			ERROR_RETURN_LOG(int, "Cannot remove the handle from the libcurl multi stack object: %s", curl_multi_strerror(mrc));
+
+		curl_easy_cleanup(ctx->req_buf[idx].curl_handle);
+		ctx->req_buf[idx].curl_handle = NULL;
+	}
+
 	ctx->req_buf[idx].next_unused = ctx->unused;
 	ctx->unused = idx;
 	ctx->req_buf[idx].in_use = 0;
@@ -296,6 +344,15 @@ static void* _client_main(void* data)
 			_req_heap_add(ctx, ctx->add_queue[ctx->add_queue_front]);
 			BARRIER();
 			ctx->add_queue_front ++;
+
+			if(pthread_mutex_lock(&ctx->writer_mutex) < 0)
+				LOG_WARNING_ERRNO("Cannot acquire the writer mutex for client thread #%u", ctx->tid);
+
+			if(pthread_cond_signal(&ctx->writer_cond) < 0)
+				LOG_WARNING_ERRNO("Cannot notify the writer for queue avibilitiy(thread #%u)", ctx->tid);
+
+			if(pthread_mutex_unlock(&ctx->writer_mutex) < 0)
+				LOG_WARNING_ERRNO("Cannot release the writer mutex for client thread #%u", ctx->tid);
 		}
 
 		/* After that we should create new running request if the number of running handle is less than the 
@@ -306,7 +363,7 @@ static void* _client_main(void* data)
 			_req_t* buf = ctx->req_buf + idx;
 			if(NULL == (buf->curl_handle = curl_easy_init()))
 				ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot initialize the libcurl handle object");
-
+			
 			CURLcode rc = curl_easy_setopt(buf->curl_handle, CURLOPT_PRIVATE, buf);
 			if(rc != CURLE_OK)
 				ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot set the private pointer: %s", curl_easy_strerror(rc));
@@ -314,6 +371,17 @@ static void* _client_main(void* data)
 			rc = curl_easy_setopt(buf->curl_handle, CURLOPT_URL, buf->url);
 			if(rc != CURLE_OK)
 				ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot set the URL: %s", curl_easy_strerror(rc));
+
+			rc = curl_easy_setopt(buf->curl_handle, CURLOPT_WRITEFUNCTION, _curl_write_func);
+			if(rc != CURLE_OK)
+				ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot set the write function callback: %s", curl_easy_strerror(rc));
+
+			rc = curl_easy_setopt(buf->curl_handle, CURLOPT_WRITEDATA, buf);
+			if(rc != CURLE_OK)
+				ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot set the write function data: %s", curl_easy_strerror(rc));
+			
+			if(buf->setup_cb != NULL && ERROR_CODE(int) == buf->setup_cb(buf->curl_handle, buf->setup_data))
+				ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot configure the CURL handle");
 
 			rc = curl_multi_add_handle(ctx->curlm, buf->curl_handle);
 			if(rc != CURLE_OK)
@@ -323,6 +391,13 @@ static void* _client_main(void* data)
 			continue;
 
 CURL_INIT_ERR:
+
+			if(buf->curl_handle != NULL)
+			{
+				curl_easy_cleanup(buf->curl_handle);
+				buf->curl_handle = NULL;
+			}
+
 			/* In this case we should cleanup the failed request */ 
 			if(ERROR_CODE(int) == async_cntl(buf->async_handle, ASYNC_CNTL_NOTIFY_WAIT, ERROR_CODE(int)))
 				LOG_WARNING("Cannot notify the async failure status");
@@ -332,7 +407,14 @@ CURL_INIT_ERR:
 		}
 	}
 
-	/* TODO: Dispose the existing requests */
+	uint32_t i;
+	for(i = 0; i < _ctx.queue_size; i ++)
+	{
+		if(!ctx->req_buf[i].in_use) continue;
+		if(ERROR_CODE(int) == _dispose_req(ctx, i))
+			LOG_ERROR("Cannot dispose the currently running request");
+	}
+
 
 	LOG_NOTICE("Client thread #%u is terminated", ctx->tid);
 
@@ -356,6 +438,9 @@ static inline int _ensure_threads_started(void)
 			if(!_ctx.thread_ctx[i].started)
 			{
 				LOG_NOTICE("Starting client thread #%u", i);
+
+				if(0 != pthread_mutex_init(&_ctx.thread_ctx[i].writer_mutex, NULL))
+					ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the writer mutex for client thread #%u", i);
 
 				if(NULL == (_ctx.thread_ctx[i].req_buf = (_req_t*)malloc(sizeof(_req_t) * _ctx.queue_size)))
 					ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the request buffer for client thread #%u", i);
@@ -450,6 +535,12 @@ static inline int _thread_cleanup(void)
 		if(_ctx.thread_ctx[i].epoll_fd > 0 && close(_ctx.thread_ctx[i].epoll_fd) < 0)
 		{
 			LOG_ERROR_ERRNO("Cannot close the epoll FD for the client thread #%u", i);
+			rc = ERROR_CODE(int);
+		}
+
+		if(0 != pthread_mutex_destroy(&_ctx.thread_ctx[i].writer_mutex))
+		{
+			LOG_ERROR_ERRNO("Cannot dispose the writer mutex for client thread #%u", i);
 			rc = ERROR_CODE(int);
 		}
 	}
@@ -577,19 +668,72 @@ int client_finalize(void)
 	return ret;
 }
 
-int client_add_request(const char* url, async_handle_t* handle, int priority, int block, client_request_setup_func_t setup, void* setup_data)
+int client_add_request(const char* url, async_handle_t* handle, int priority, int block, client_request_setup_func_t setup, void* setup_data, char** res_buf, size_t* size_buf)
 {
-	(void) block;
-	(void) setup;
-	(void) setup_data;
-
-	if(NULL == url || NULL == handle || priority < 0)
+	int ret = 0;
+	if(NULL == url || NULL == handle || priority < 0 || res_buf == NULL || size_buf == NULL)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(ERROR_CODE(int) == _ensure_threads_started())
 		ERROR_RETURN_LOG(int, "Cannot ensure all the client threads initialized");
 
-	/* TODO: actually post the request */
+	static __thread uint32_t round_ronbin_next = 0;
 
-	return 0;
+	_thread_ctx_t* thread = _ctx.thread_ctx + (round_ronbin_next ++);
+
+	if(round_ronbin_next >= _ctx.num_threads) round_ronbin_next = 0;
+
+	if(!block)
+	{
+		if(((thread->add_queue_rear - thread->add_queue_front) & (_ctx.queue_size - 1)) == _ctx.queue_size)
+			return 0;
+
+		if(pthread_mutex_trylock(&thread->writer_mutex) < 0)
+		{
+			/* Detect the case that the mutex has been used, thus non-blocking posting failed */
+			if(errno == EBUSY) 
+				return 0;
+			else
+				ERROR_RETURN_LOG(int, "Cannot acquire the writer mutex for client thread #%u", thread->tid);
+		}
+	}
+	else if(pthread_mutex_lock(&thread->writer_mutex) < 0)
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the writer mutex for client thread #%u", thread->tid);
+
+	for(;((thread->add_queue_rear - thread->add_queue_front) & (_ctx.queue_size - 1)) == _ctx.queue_size;)
+		if(pthread_cond_wait(&thread->writer_cond, &thread->writer_mutex) < 0)
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot wait for the condition variable");
+
+	uint32_t idx = thread->unused;
+	_req_t* req = thread->req_buf + idx;
+	thread->unused = req->next_unused;
+
+	/* TODO: fill all the fields for that request */
+	req->setup_cb = setup;
+	req->setup_data = setup_data;
+	req->in_use = 1;
+	req->epolled = 0;
+	req->priority = priority;
+	req->url = url;
+	req->curl_handle = NULL;
+	req->result_buf = res_buf;
+	req->result_size_buf = size_buf;
+
+	*size_buf = 0;
+	*res_buf  = NULL;
+	req->buf_cap = 0;
+
+	/* Finally wake up the epoll */
+	uint64_t val = 1;
+	if(write(thread->event_fd, &val, sizeof(val)) < 0)
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot write event FD for thread #%u", thread->tid);
+
+	goto EXIT;
+ERR:
+	ret = ERROR_CODE(int);
+EXIT:
+	if(pthread_mutex_unlock(&thread->writer_mutex) < 0)
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the writer mutex for client thread #%u", thread->tid);
+
+	return ret;
 }

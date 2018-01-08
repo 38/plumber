@@ -252,7 +252,8 @@ static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 
 	abuf->result = NULL;
 
-	int rc = client_add_request(abuf->url, handle, abuf->priority, 0, _setup_request, abuf);
+	int rc = client_add_request(abuf->url, handle, abuf->priority, 0, _setup_request, 
+			                    abuf, &abuf->result, &abuf->result_sz);
 
 	if(rc == ERROR_CODE(int))
 		ERROR_LOG_GOTO(ERR, "Cannot add request to the request queue");
@@ -329,7 +330,8 @@ static int _async_exec(async_handle_t* handle, void* data)
 {
 	async_buf_t* abuf = (async_buf_t*)data;
 
-	if(client_add_request(abuf->url, handle, abuf->priority, 1, _setup_request, abuf) == ERROR_CODE(int))
+	if(client_add_request(abuf->url, handle, abuf->priority, 1, 
+				          _setup_request, abuf, &abuf->result, &abuf->result_sz) == ERROR_CODE(int))
 		ERROR_RETURN_LOG(int, "Cannot add the request to the request queue");
 
 	return 0;
