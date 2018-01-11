@@ -411,13 +411,13 @@ static void* _client_main(void* data)
 			BARRIER();
 			ctx->add_queue_front ++;
 
-			if(pthread_mutex_lock(&ctx->writer_mutex) < 0)
+			if((errno = pthread_mutex_lock(&ctx->writer_mutex)) != 0)
 				LOG_WARNING_ERRNO("Cannot acquire the writer mutex for client thread #%u", ctx->tid);
 
-			if(pthread_cond_signal(&ctx->writer_cond) < 0)
+			if((errno = pthread_cond_signal(&ctx->writer_cond)) != 0)
 				LOG_WARNING_ERRNO("Cannot notify the writer for queue avibilitiy(thread #%u)", ctx->tid);
 
-			if(pthread_mutex_unlock(&ctx->writer_mutex) < 0)
+			if((errno = pthread_mutex_unlock(&ctx->writer_mutex)) != 0)
 				LOG_WARNING_ERRNO("Cannot release the writer mutex for client thread #%u", ctx->tid);
 		}
 
@@ -808,7 +808,7 @@ static inline int _post_request(client_request_t* req, int block, _thread_ctx_t*
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the writer mutex for client thread #%u", thread->tid);
 
 	for(;((thread->add_queue_rear - thread->add_queue_front) & (_global.queue_size - 1)) == _global.queue_size;)
-		if(pthread_cond_wait(&thread->writer_cond, &thread->writer_mutex) < 0)
+		if((errno = pthread_cond_wait(&thread->writer_cond, &thread->writer_mutex)) != 0)
 			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot wait for the condition variable");
 
 	uint32_t idx = thread->unused;

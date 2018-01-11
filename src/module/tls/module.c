@@ -192,7 +192,7 @@ static inline int _thread_init(void)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the ssl mutex array");
 
 	for(i = 0; i < _ssl_mutex_count; i ++)
-	    if(pthread_mutex_init(_ssl_mutex + i, NULL) < 0)
+	    if((errno = pthread_mutex_init(_ssl_mutex + i, NULL)) != 0)
 	        ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the mutex");
 
 	CRYPTO_set_id_callback(_ssl_tid);
@@ -224,7 +224,7 @@ static inline int _thread_finalize(void)
 	int rc = 0;
 
 	for(i = 0; i < _ssl_mutex_count; i ++)
-	    if(pthread_mutex_destroy(_ssl_mutex + i) < 0)
+	    if((errno = pthread_mutex_destroy(_ssl_mutex + i)) != 0)
 	        rc = ERROR_CODE(int);
 
 	free(_ssl_mutex);

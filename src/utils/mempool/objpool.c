@@ -233,7 +233,7 @@ mempool_objpool_t* mempool_objpool_new(uint32_t size)
 	if(NULL == (ret->local_pool = thread_pset_new(1, _thread_pool_alloc , _thread_pool_free, ret)))
 	    ERROR_LOG_GOTO(ERR, "Cannot create thread local pointer set as the lcoal thread pool");
 
-	if(pthread_mutex_init(&ret->mutex, NULL) < 0)
+	if((errno = pthread_mutex_init(&ret->mutex, NULL)) != 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the mutex for the memory pool");
 
 	int i;
@@ -256,7 +256,7 @@ int mempool_objpool_free(mempool_objpool_t* pool)
 {
 	int rc = 0;
 	if(NULL == pool) ERROR_RETURN_LOG(int, "Invalid arguments");
-	if(pthread_mutex_destroy(&pool->mutex) < 0)
+	if((errno = pthread_mutex_destroy(&pool->mutex)) != 0)
 	{
 		LOG_ERROR_ERRNO("Cannot dispose the pool mutex");
 		rc = ERROR_CODE(int);
@@ -297,7 +297,7 @@ static uint32_t _global_alloc(mempool_objpool_t* pool, _thread_local_pool_t* tlp
 {
 	uint32_t ret = ERROR_CODE(uint32_t);
 
-	if(pthread_mutex_lock(&pool->mutex) < 0)
+	if((errno = pthread_mutex_lock(&pool->mutex)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(uint32_t, "Cannot acquire the pool mutex");
 
 	uint32_t to_alloc = _get_current_global_alloc_unit(pool);
@@ -371,7 +371,7 @@ ERR:
 		pool->cached = begin;
 	}
 RET:
-	if(pthread_mutex_unlock(&pool->mutex) < 0)
+	if((errno = pthread_mutex_unlock(&pool->mutex)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(uint32_t, "Cannot release the pool mutex");
 	return ret;
 }
@@ -444,7 +444,7 @@ int mempool_objpool_disabled(int val)
  **/
 static inline int _global_dealloc(mempool_objpool_t* pool, _cached_object_t* begin, _cached_object_t* end)
 {
-	if(pthread_mutex_lock(&pool->mutex) < 0)
+	if((errno = pthread_mutex_lock(&pool->mutex)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the pool mutex");
 
 	end->next = pool->cached;
@@ -452,7 +452,7 @@ static inline int _global_dealloc(mempool_objpool_t* pool, _cached_object_t* beg
 	pool->cached = begin;
 	begin->prev = NULL;
 
-	if(pthread_mutex_unlock(&pool->mutex) < 0)
+	if((errno = pthread_mutex_unlock(&pool->mutex)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot release the pool mutex");
 
 	return 0;

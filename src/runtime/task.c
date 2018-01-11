@@ -35,13 +35,13 @@ static pthread_mutex_t _pool_mutex;
 
 int runtime_task_init()
 {
-	if(pthread_mutex_init(&_pool_mutex, NULL) < 0) ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the pool mutex");
+	if((errno = pthread_mutex_init(&_pool_mutex, NULL)) != 0) ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the pool mutex");
 	return 0;
 }
 
 int runtime_task_finalize()
 {
-	if(pthread_mutex_destroy(&_pool_mutex) < 0)
+	if((errno = pthread_mutex_destroy(&_pool_mutex)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot dispose the pool mutex");
 	return 0;
 }
@@ -59,13 +59,13 @@ static inline runtime_task_t* _task_new(runtime_servlet_t* servlet, uint32_t act
 		if(NULL == servlet->task_pool)
 		{
 			size_t size = sizeof(runtime_task_t) + npipes * sizeof(itc_module_pipe_t*);
-			if(pthread_mutex_lock(&_pool_mutex) < 0)
+			if((errno = pthread_mutex_lock(&_pool_mutex)) != 0)
 			    LOG_WARNING_ERRNO("Cannot acquire the pool mutex");
 			/* Because there may be multiple threads blocked here, so we need to check if the pool is already allocated
 			 * after we acquired the lock */
 			if(NULL == servlet->task_pool && NULL == (servlet->task_pool = mempool_objpool_new((uint32_t)size)))
 			        ERROR_PTR_RETURN_LOG("Cannot create memory pool for the servlet task");
-			if(pthread_mutex_unlock(&_pool_mutex) < 0)
+			if((errno = pthread_mutex_unlock(&_pool_mutex)) != 0)
 			    LOG_WARNING_ERRNO("Cannot release the pool mutex");
 		}
 
@@ -82,13 +82,13 @@ static inline runtime_task_t* _task_new(runtime_servlet_t* servlet, uint32_t act
 				{
 					size_t size = (size_t)servlet->bin->define->async_buf_size;
 
-					if(pthread_mutex_lock(&_pool_mutex) < 0)
+					if((errno = pthread_mutex_lock(&_pool_mutex)) != 0)
 					    LOG_WARNING_ERRNO("Cannot acquire the pool mutex");
 
 					if(NULL == servlet->bin->async_pool && NULL == (servlet->bin->async_pool = mempool_objpool_new((uint32_t)size)))
 					    ERROR_LOG_GOTO(ERR, "Cannot create memory pool for the servlet async buffer");
 
-					if(pthread_mutex_unlock(&_pool_mutex) < 0)
+					if((errno = pthread_mutex_unlock(&_pool_mutex)) != 0)
 					    LOG_WARNING_ERRNO("Cannot release the pool mutex");
 				}
 

@@ -191,7 +191,7 @@ int itc_eloop_start(void)
 
 	if(sigaddset(&mask, _SIGTHREADKILL) < 0) LOG_WARNING_ERRNO("Cannot set signal set");
 
-	if(pthread_sigmask(SIG_BLOCK, &mask, NULL) < 0) LOG_WARNING_ERRNO("Cannot block the _SIGTHREADKILL signal");
+	if((errno = pthread_sigmask(SIG_BLOCK, &mask, NULL)) != 0) LOG_WARNING_ERRNO("Cannot block the _SIGTHREADKILL signal");
 
 	LOG_INFO("Event Loop is successfully started");
 	return 0;

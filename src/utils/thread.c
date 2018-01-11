@@ -119,7 +119,7 @@ static
 #endif
 void* _thread_allocate_current_pointer(thread_pset_t* pset, uint32_t tid)
 {
-	if(pthread_mutex_lock(&pset->resize_lock) < 0)
+	if((errno = pthread_mutex_lock(&pset->resize_lock)) != 0)
 	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot acquire the resize lock");
 
 	/* Then the thread should be the only one executing this code,
@@ -128,7 +128,7 @@ void* _thread_allocate_current_pointer(thread_pset_t* pset, uint32_t tid)
 	thread_pointer_array_t* current = pset->array;
 	if(current->size > tid)
 	{
-		if(pthread_mutex_unlock(&pset->resize_lock) < 0)
+		if((errno = pthread_mutex_unlock(&pset->resize_lock)) != 0)
 		    LOG_WARNING_ERRNO("Cannot release the resize lock");
 		return current->ptr[tid];
 	}
@@ -159,12 +159,12 @@ void* _thread_allocate_current_pointer(thread_pset_t* pset, uint32_t tid)
 
 	pset->array = new_array;
 
-	if(pthread_mutex_unlock(&pset->resize_lock) < 0)
+	if((errno = pthread_mutex_unlock(&pset->resize_lock)) != 0)
 	    LOG_WARNING_ERRNO("Cannot release the resize lock");
 
 	return pset->array->ptr[tid];
 ERR:
-	if(pthread_mutex_unlock(&pset->resize_lock) < 0)
+	if((errno = pthread_mutex_unlock(&pset->resize_lock)) != 0)
 	    LOG_WARNING_ERRNO("Cannot release the resize lock");
 
 	if(new_array != NULL)
@@ -205,7 +205,7 @@ thread_pset_t* thread_pset_new(uint32_t init_size, thread_pset_allocate_t alloc,
 
 	ret->array = NULL;
 
-	if(pthread_mutex_init(&ret->resize_lock, NULL) < 0)
+	if((errno = pthread_mutex_init(&ret->resize_lock, NULL)) != 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the resize lock");
 
 	ret->alloc = alloc;
@@ -223,7 +223,7 @@ thread_pset_t* thread_pset_new(uint32_t init_size, thread_pset_allocate_t alloc,
 
 	return ret;
 ERR:
-	if(mutex_init && pthread_mutex_unlock(&ret->resize_lock) < 0)
+	if(mutex_init && (errno = pthread_mutex_unlock(&ret->resize_lock)) != 0)
 	    LOG_WARNING_ERRNO("Cannot dispose the resize lock");
 	if(NULL != ret->array)
 	{
@@ -242,7 +242,7 @@ int thread_pset_free(thread_pset_t* pset)
 
 	int rc = 0;
 
-	if(pthread_mutex_destroy(&pset->resize_lock) < 0)
+	if((errno = pthread_mutex_destroy(&pset->resize_lock)) != 0)
 	{
 		LOG_WARNING_ERRNO("Cannot dispose the resize lock");
 		rc = ERROR_CODE(int);
@@ -342,16 +342,16 @@ int thread_run_test_main(thread_test_main_t func)
 
 	pthread_attr_t attr;
 	void* rc;
-	if(pthread_attr_init(&attr) < 0)
+	if((errno = pthread_attr_init(&attr)) != 0)
 	    goto ERR;
 
-	if(pthread_attr_setstack(&attr, ret->stack->base, STACK_SIZE) < 0)
+	if((errno = pthread_attr_setstack(&attr, ret->stack->base, STACK_SIZE)) != 0)
 	    goto ERR;
 
-	if(pthread_create(&ret->handle, &attr, _start_main, func) < 0)
+	if((errno = pthread_create(&ret->handle, &attr, _start_main, func)) != 0)
 	    goto ERR;
 
-	if(pthread_join(ret->handle, &rc) < 0)
+	if((errno = pthread_join(ret->handle, &rc)) != 0)
 	    goto ERR;
 
 	free(ret);
@@ -396,17 +396,17 @@ thread_t* thread_new(thread_main_t main, void* data, thread_type_t type)
 	ret->stack->type = type;
 
 	pthread_attr_t attr;
-	if(pthread_attr_init(&attr) < 0)
+	if((errno = pthread_attr_init(&attr)) != 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create attribute of the thread");
 
-	if(pthread_attr_setstack(&attr, ret->stack->base, STACK_SIZE) < 0)
+	if((errno = pthread_attr_setstack(&attr, ret->stack->base, STACK_SIZE)) != 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the base address of the stack");
 
-	if(pthread_create(&ret->handle, &attr, _thread_main, ret) < 0)
+	if((errno = pthread_create(&ret->handle, &attr, _thread_main, ret)) != 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot start the thread");
 #else
 	ret->type = type;
-	if(pthread_create(&ret->handle, NULL, _thread_main, ret) < 0)
+	if((errno = pthread_create(&ret->handle, NULL, _thread_main, ret)) != 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot start the thread");
 #endif
 
@@ -449,7 +449,7 @@ int thread_kill(thread_t* thread, int signal)
 {
 	if(NULL == thread) ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	if(pthread_kill(thread->handle, signal) < 0)
+	if((errno = pthread_kill(thread->handle, signal)) != 0 && errno != ESRCH)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot send signal to target thread");
 
 	return 0;
@@ -459,7 +459,7 @@ int thread_free(thread_t* thread, void** ret)
 {
 	if(NULL == thread) ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	if(pthread_join(thread->handle, ret) < 0)
+	if((errno = pthread_join(thread->handle, ret)) != 0)
 	{
 		free(thread);
 		ERROR_RETURN_LOG(int, "Cannot join the thread");

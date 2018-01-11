@@ -153,7 +153,7 @@ static int _init(void* __restrict context, uint32_t argc, char const* __restrict
 	(void)argv;
 
 	/* Intialize the memory pool */
-	if(pthread_mutex_init(&_mempool_mutex, NULL) < 0)
+	if((errno = pthread_mutex_init(&_mempool_mutex, NULL)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the mempool module mutex");
 
 	_pools = (mempool_objpool_t**)calloc(_size_limit, sizeof(mempool_objpool_t**));
@@ -164,7 +164,7 @@ static int _init(void* __restrict context, uint32_t argc, char const* __restrict
 	}
 
 	/* Initialize the on exit list */
-	if(pthread_mutex_init(&_on_exit_mutex, NULL) < 0)
+	if((errno = pthread_mutex_init(&_on_exit_mutex, NULL)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the mutex for the on exit list");
 
 	_initialized = 1;
@@ -203,10 +203,10 @@ static int _cleanup(void* __restrict context)
 
 	free(_pools);
 
-	if(pthread_mutex_destroy(&_mempool_mutex) < 0)
+	if((errno = pthread_mutex_destroy(&_mempool_mutex)) != 0)
 	    rc = ERROR_CODE(int);
 
-	if(pthread_mutex_destroy(&_on_exit_mutex) < 0)
+	if((errno = pthread_mutex_destroy(&_on_exit_mutex)) != 0)
 	    rc = ERROR_CODE(int);
 
 	_libconf_value_t* ptr;
@@ -239,16 +239,16 @@ static inline mempool_objpool_t* _get_pool(uint32_t size)
 
 	if(_pools[idx] != NULL) return _pools[idx];
 
-	if(pthread_mutex_lock(&_mempool_mutex) < 0)
+	if((errno = pthread_mutex_lock(&_mempool_mutex)) != 0)
 	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot acquire the mempool module global mutex");
 
 	if(_pools[idx] == NULL && NULL == (_pools[idx] = mempool_objpool_new(size + (uint32_t)sizeof(_memory_chunck_t))))
 	{
-		if(pthread_mutex_unlock(&_mempool_mutex) < 0)
+		if((errno = pthread_mutex_unlock(&_mempool_mutex)) != 0)
 		    LOG_WARNING("Cannot release the mempool module global mutex");
 		ERROR_PTR_RETURN_LOG("Cannot allocate new memory pool for the size %u", size);
 	}
-	if(pthread_mutex_unlock(&_mempool_mutex) < 0)
+	if((errno = pthread_mutex_unlock(&_mempool_mutex)) != 0)
 	    LOG_WARNING("Cannot release the mempool module global mutex");
 
 	return _pools[idx];
@@ -470,14 +470,14 @@ static inline int _add_on_exit_callback(_on_exit_callback_t callback, void* data
 	obj->func = callback;
 	obj->data = data;
 
-	if(pthread_mutex_lock(&_on_exit_mutex) < 0)
+	if((errno = pthread_mutex_lock(&_on_exit_mutex)) != 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot acquire the on exit list mutex");
 
 	/* This is actually a stack */
 	obj->next = _on_exit_list;
 	_on_exit_list = obj;
 
-	if(pthread_mutex_unlock(&_on_exit_mutex) < 0)
+	if((errno = pthread_mutex_unlock(&_on_exit_mutex)) != 0)
 	    LOG_WARNING("Cannot release the on exit list mutex");
 
 	return 0;

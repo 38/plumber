@@ -178,7 +178,7 @@ static inline int _init_conn_info(module_tcp_pool_t* pool, uint32_t capacity)
 
 	pool->conn_info.q_mask = q_size - 1;
 
-	if(pthread_mutex_init(&pool->conn_info.q_mutex, NULL) < 0)
+	if((errno = pthread_mutex_init(&pool->conn_info.q_mutex, NULL)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "cannot initialize the message queue mutex");
 
 	pool->conn_info.heap_limit = pool->conn_info.active_limit = pool->conn_info.wait_limit = 0;
@@ -243,11 +243,11 @@ static inline module_tcp_pool_t* _pool_new(int master)
 
 	if(master)
 	{
-		if(pthread_mutex_init(&ret->master_mutex, NULL) < 0)
+		if((errno = pthread_mutex_init(&ret->master_mutex, NULL)) != 0)
 		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the master mutex");
 		else mutex_created = 1;
 
-		if(pthread_cond_init(&ret->master_cond, NULL) < 0)
+		if((errno = pthread_cond_init(&ret->master_cond, NULL)) != 0)
 		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the master condvar");
 		else cond_created = 1;
 	}
@@ -317,9 +317,9 @@ int module_tcp_pool_free(module_tcp_pool_t* pool)
 
 	if(pool->master == NULL)
 	{
-		if(pthread_mutex_destroy(&pool->master_mutex) < 0)
+		if((errno = pthread_mutex_destroy(&pool->master_mutex)) != 0)
 		    rc = ERROR_CODE(int);
-		if(pthread_cond_destroy(&pool->master_cond) < 0)
+		if((errno = pthread_cond_destroy(&pool->master_cond)) != 0)
 		    rc = ERROR_CODE(int);
 	}
 
@@ -430,7 +430,7 @@ int module_tcp_pool_configure(module_tcp_pool_t* pool, const module_tcp_pool_con
 	if(pool->master == NULL)
 	{
 		pool->conf = *conf;
-		if(pthread_mutex_lock(&pool->master_mutex) < 0)
+		if((errno = pthread_mutex_lock(&pool->master_mutex)) != 0)
 		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot acquire the master mutex for the master connection pool");
 
 		if(_init_socket(pool) == ERROR_CODE(int)) goto MASTER_ERR;
@@ -438,11 +438,11 @@ int module_tcp_pool_configure(module_tcp_pool_t* pool, const module_tcp_pool_con
 		if(pool->master == NULL)
 		{
 			LOG_DEBUG("Notifying the forks");
-			if(pthread_cond_broadcast(&pool->master_cond) < 0)
+			if((errno = pthread_cond_broadcast(&pool->master_cond)) != 0)
 			    ERROR_LOG_ERRNO_GOTO(MASTER_ERR, "Cannot broadcast the master connected signal");
 		}
 
-		if(pthread_mutex_unlock(&pool->master_mutex) < 0)
+		if((errno = pthread_mutex_unlock(&pool->master_mutex)) != 0)
 		    LOG_WARNING_ERRNO("Cannot reloase the master mutex");
 
 		goto CONT;
@@ -453,7 +453,7 @@ MASTER_ERR:
 	else
 	{
 		LOG_DEBUG("Waiting for the master pool gets ready");
-		if(pthread_mutex_lock(&pool->master->master_mutex) < 0)
+		if((errno = pthread_mutex_lock(&pool->master->master_mutex)) != 0)
 		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot acquire the master mutex for the forked connection pool");
 
 		int cond_rc = 0;
@@ -462,7 +462,7 @@ MASTER_ERR:
 		if(cond_rc < 0) ERROR_LOG_ERRNO_GOTO(SLAVE_ERR, "Cannot wait for the master");
 
 
-		if(pthread_mutex_unlock(&pool->master->master_mutex) < 0)
+		if((errno = pthread_mutex_unlock(&pool->master->master_mutex)) != 0)
 		    LOG_WARNING_ERRNO("Cannot reloase the master mutex");
 
 		LOG_DEBUG("The master connection pool gets ready");
@@ -1102,12 +1102,12 @@ int module_tcp_pool_connection_release(module_tcp_pool_t* pool, uint32_t id, voi
 {
 	if(NULL == pool) ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	if(pthread_mutex_lock(&pool->conn_info.q_mutex) < 0)
+	if((errno = pthread_mutex_lock(&pool->conn_info.q_mutex)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the global message queue mutex");
 
 	if(_init_connection_release_message(pool, pool->conn_info.queue + (pool->conn_info.q_rear & pool->conn_info.q_mask), id, data, mode) == ERROR_CODE(int))
 	{
-		if(pthread_mutex_unlock(&pool->conn_info.q_mutex) < 0)
+		if((errno = pthread_mutex_unlock(&pool->conn_info.q_mutex)) != 0)
 		    LOG_ERROR_ERRNO("Cannot release the global message queue mutex");
 		ERROR_RETURN_LOG(int, "Cannot initialize the connection release message");
 	}
@@ -1116,7 +1116,7 @@ int module_tcp_pool_connection_release(module_tcp_pool_t* pool, uint32_t id, voi
 
 	arch_atomic_sw_increment_u32(&pool->conn_info.q_rear);
 
-	if(pthread_mutex_unlock(&pool->conn_info.q_mutex) < 0)
+	if((errno = pthread_mutex_unlock(&pool->conn_info.q_mutex)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot release the global message queue mutex");
 
 	uint64_t val = 1;

@@ -217,7 +217,7 @@ static inline int _notify_compeleted_awaiters(itc_equeue_token_t token, int set_
 {
 	int rc = 0;
 	/* the first thing we need to do is to clean the awaiting list */
-	if(pthread_mutex_lock(&_ctx.al_mutex) < 0)
+	if((errno = pthread_mutex_lock(&_ctx.al_mutex)) != 0)
 	    ERROR_RETURN_LOG(int, "Cannot acquire the async task awaiting list mutex");
 	else
 	{
@@ -249,7 +249,7 @@ static inline int _notify_compeleted_awaiters(itc_equeue_token_t token, int set_
 			_ctx.al_unused = cur;
 			_ctx.al_done = ptr;
 		}
-		if(pthread_mutex_unlock(&_ctx.al_mutex) < 0)
+		if((errno = pthread_mutex_unlock(&_ctx.al_mutex)) != 0)
 		    ERROR_RETURN_LOG(int, "Cannot release the async task awaiting list mutex");
 	}
 
@@ -290,7 +290,7 @@ static void* _async_processor_main(void* data)
 		    LOG_ERROR("Cannot notify the completed awaiters");
 
 		/* Then we need to make sure that we have work to do */
-		if(pthread_mutex_lock(&_ctx.q_mutex) < 0)
+		if((errno = pthread_mutex_lock(&_ctx.q_mutex)) != 0)
 		    ERROR_PTR_RETURN_LOG("Cannot acquire the async task queue mutex");
 
 		struct timespec abstime;
@@ -301,7 +301,7 @@ static void* _async_processor_main(void* data)
 
 		while(_ctx.q_front == _ctx.q_rear && !_ctx.killed)
 		{
-			if(pthread_cond_timedwait(&_ctx.q_cond, &_ctx.q_mutex, &abstime) < 0 && errno != EINTR && errno != ETIMEDOUT)
+			if((errno = pthread_cond_timedwait(&_ctx.q_cond, &_ctx.q_mutex, &abstime)) != 0 && errno != EINTR && errno != ETIMEDOUT)
 			    ERROR_LOG_ERRNO_GOTO(UNLOCK, "Cannot wait for the reader cond var");
 
 			/* Because it's possible that all the async processing thread is being blocked here, so we need to have a way
@@ -318,11 +318,11 @@ static void* _async_processor_main(void* data)
 		thread_data->task = _ctx.q_data[(_ctx.q_front ++) & (_ctx.q_cap - 1)];
 
 		/* At the same time, we need to check if this operation unblocks the writer */
-		if(_ctx.q_rear - _ctx.q_front == _ctx.q_cap - 1 && pthread_cond_signal(&_ctx.q_cond) < 0)
+		if(_ctx.q_rear - _ctx.q_front == _ctx.q_cap - 1 && (errno = pthread_cond_signal(&_ctx.q_cond)) != 0)
 		    ERROR_LOG_ERRNO_GOTO(UNLOCK, "Cannot disp notify the writer");
 
 UNLOCK:
-		if(pthread_mutex_unlock(&_ctx.q_mutex) < 0)
+		if((errno = pthread_mutex_unlock(&_ctx.q_mutex)) != 0)
 		    LOG_ERROR("Cannot release the async task queue mutex");
 
 		/* Then we need check if we have picked up a task, if not, we need to wait for another one */
@@ -471,17 +471,17 @@ int sched_async_start()
 	/* First thing, let's initialze the queue */
 	_ctx.q_front = _ctx.q_rear = 0;
 
-	if(pthread_mutex_init(&_ctx.q_mutex, NULL) < 0)
+	if((errno = pthread_mutex_init(&_ctx.q_mutex, NULL)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot intialize the queue mutex");
 
 	_ctx.q_mutex_init = 1;
 
-	if(pthread_cond_init(&_ctx.q_cond, NULL) < 0)
+	if((errno = pthread_cond_init(&_ctx.q_cond, NULL)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the queue cond variable");
 
 	_ctx.q_cond_init = 1;
 
-	if(pthread_mutex_init(&_ctx.al_mutex, NULL) < 0)
+	if((errno = pthread_mutex_init(&_ctx.al_mutex, NULL)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the awaiting list mutex");
 
 	_ctx.al_mutex_init = 1;
@@ -599,21 +599,21 @@ int sched_async_kill()
 	_ctx.q_data = NULL;
 	_ctx.q_front = _ctx.q_rear = 0;
 
-	if(_ctx.q_mutex_init && pthread_mutex_destroy(&_ctx.q_mutex) < 0)
+	if(_ctx.q_mutex_init && (errno = pthread_mutex_destroy(&_ctx.q_mutex)) != 0)
 	{
 		LOG_ERROR_ERRNO("Cannot destory the queue mutex");
 		rc = ERROR_CODE(int);
 	}
 	else _ctx.q_mutex_init = 0;
 
-	if(_ctx.al_mutex_init && pthread_mutex_destroy(&_ctx.al_mutex) < 0)
+	if(_ctx.al_mutex_init && (errno = pthread_mutex_destroy(&_ctx.al_mutex)) != 0)
 	{
 		LOG_ERROR_ERRNO("Cannot destory the waiting list mutex");
 		rc = ERROR_CODE(int);
 	}
 	else _ctx.al_mutex_init = 0;
 
-	if(_ctx.q_cond_init && pthread_cond_destroy(&_ctx.q_cond) < 0)
+	if(_ctx.q_cond_init && (errno = pthread_cond_destroy(&_ctx.q_cond)) != 0)
 	{
 		LOG_ERROR_ERRNO("Cannot destory the queue cond var");
 		rc = ERROR_CODE(int);
@@ -690,7 +690,7 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	handle->state = _STATE_EXEC;
 
 
-	if(pthread_mutex_lock(&_ctx.q_mutex) < 0)
+	if((errno = pthread_mutex_lock(&_ctx.q_mutex)) != 0)
 	    ERROR_RETURN_LOG(int, "Cannot acquire the queue mutex");
 
 	/* At this point, we need avoid the dead lock, because the worst case, we have async processing thread waiting for
@@ -699,7 +699,7 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	if(_ctx.q_rear - _ctx.q_front >= _ctx.q_cap)
 	{
 		LOG_WARNING("Async task queue is full, discarding the task");
-		if(pthread_mutex_unlock(&_ctx.q_mutex) < 0)
+		if((errno = pthread_mutex_unlock(&_ctx.q_mutex)) != 0)
 		    ERROR_RETURN_LOG(int, "Cannot reliease the queue mutex");
 		goto ERR;
 	}
@@ -719,11 +719,11 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	_ctx.q_data[(_ctx.q_rear ++) & (_ctx.q_cap - 1)] = handle;
 
 	/* If this queue is previously empty, then we need to notify the reader */
-	if(_ctx.q_rear - _ctx.q_front == 1 && pthread_cond_signal(&_ctx.q_cond) < 0)
+	if(_ctx.q_rear - _ctx.q_front == 1 && (errno = pthread_cond_signal(&_ctx.q_cond)) != 0)
 	    ERROR_RETURN_LOG(int, "Cannot notify the reader about the incoming task");
 
 RET:
-	if(pthread_mutex_unlock(&_ctx.q_mutex) < 0)
+	if((errno = pthread_mutex_unlock(&_ctx.q_mutex)) != 0)
 	    ERROR_RETURN_LOG(int, "Cannot reliease the queue mutex");
 
 
@@ -771,7 +771,7 @@ int sched_async_handle_set_await(runtime_api_async_handle_t* handle)
 	if(task->await_id != ERROR_CODE(uint32_t))
 	    ERROR_RETURN_LOG(int, "Cannot set the task to wait mode twice");
 
-	if(pthread_mutex_lock(&_ctx.al_mutex) < 0)
+	if((errno = pthread_mutex_lock(&_ctx.al_mutex)) != 0)
 	    ERROR_RETURN_LOG(int, "Cannot acquire the async task waiting list mutex");
 
 	if(ERROR_CODE(uint32_t) == _ctx.al_unused)
@@ -791,7 +791,7 @@ int sched_async_handle_set_await(runtime_api_async_handle_t* handle)
 	rc = 0;
 
 EXIT:
-	if(pthread_mutex_unlock(&_ctx.al_mutex) < 0)
+	if((errno = pthread_mutex_unlock(&_ctx.al_mutex)) != 0)
 	    ERROR_RETURN_LOG(int, "Cannot release the async task waiting list mutex");
 
 	return rc;
@@ -808,7 +808,7 @@ int sched_async_handle_await_complete(runtime_api_async_handle_t* handle, int st
 	if(task->await_id == ERROR_CODE(uint32_t))
 	    ERROR_RETURN_LOG(int, "Invalid arguments: The async task is not in the wait mode");
 
-	if(pthread_mutex_lock(&_ctx.al_mutex) < 0)
+	if((errno = pthread_mutex_lock(&_ctx.al_mutex)) != 0)
 	    ERROR_RETURN_LOG(int, "Cannot acquire the async task waiting list mutex");
 
 	uint32_t slot = task->await_id;
@@ -834,19 +834,19 @@ int sched_async_handle_await_complete(runtime_api_async_handle_t* handle, int st
 
 	rc = 0;
 EXIT:
-	if(pthread_mutex_unlock(&_ctx.al_mutex) < 0)
+	if((errno = pthread_mutex_unlock(&_ctx.al_mutex)) != 0)
 	    ERROR_RETURN_LOG(int, "Cannot release the async task waiting list mutex");
 
 	if(rc == 0)
 	{
 		/* Let's notify the async thread on this */
-		if(pthread_mutex_lock(&_ctx.q_mutex) < 0)
+		if((errno = pthread_mutex_lock(&_ctx.q_mutex)) != 0)
 		    ERROR_RETURN_LOG(int, "Cannot acquire the async processor queue mutex");
 
-		if(pthread_cond_signal(&_ctx.q_cond) < 0)
+		if((errno = pthread_cond_signal(&_ctx.q_cond)) != 0)
 		    ERROR_RETURN_LOG(int, "Cannot notify the async processing thread on the task ready event");
 
-		if(pthread_mutex_unlock(&_ctx.q_mutex) < 0)
+		if((errno = pthread_mutex_unlock(&_ctx.q_mutex)) != 0)
 		    ERROR_RETURN_LOG(int, "Cannot release the async processor queue mutex");
 	}
 

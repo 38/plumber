@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #include <error.h>
 #include <barrier.h>
@@ -48,7 +49,7 @@ int log_init()
 		return ERROR_CODE(int);
 	}
 
-	if(pthread_mutex_init(&_log_mutex, NULL) < 0)
+	if((errno = pthread_mutex_init(&_log_mutex, NULL)) != 0)
 	{
 		perror("mutex error");
 		return ERROR_CODE(int);
@@ -208,7 +209,7 @@ int log_redirect(int level, const char* dest, const char* mode)
 
 	BARRIER();
 
-	if(pthread_mutex_lock(&_log_mutex) < 0)
+	if((errno = pthread_mutex_lock(&_log_mutex)) != 0)
 	    return ERROR_CODE(int);
 
 	FILE* fp = dest != NULL ? fopen(dest, mode) : &_fp_off;
@@ -228,7 +229,7 @@ int log_redirect(int level, const char* dest, const char* mode)
 	snprintf(_log_path[level], sizeof(_log_path[level]), "%s", dest);
 	snprintf(_log_mode[level], sizeof(_log_mode[level]), "%s", mode);
 
-	if(pthread_mutex_unlock(&_log_mutex) < 0)
+	if((errno = pthread_mutex_unlock(&_log_mutex)) != 0)
 	    return ERROR_CODE(int);
 
 	BARRIER();
@@ -305,7 +306,7 @@ void log_write_va(int level, const char* file, const char* function, int line, c
 	int locked = 0;
 	if(_log_mutex_active)
 	{
-		if(pthread_mutex_lock(&_log_mutex) < 0)
+		if((errno = pthread_mutex_lock(&_log_mutex)) != 0)
 		{
 			perror("mutex error");
 			return;
@@ -367,6 +368,6 @@ void log_write_va(int level, const char* file, const char* function, int line, c
 	funlockfile(fp);
 
 UNLOCK:
-	if(locked && pthread_mutex_unlock(&_log_mutex) < 0)
+	if(locked && (errno = pthread_mutex_unlock(&_log_mutex)) != 0)
 	    perror("mutex error");
 }

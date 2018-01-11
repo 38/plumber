@@ -161,15 +161,15 @@ static inline sched_loop_t* _context_new(uint32_t tid)
 	ret->size = _queue_size;
 	ret->thread = NULL;
 
-	if(pthread_mutex_init(&ret->mutex, NULL) < 0) ERROR_LOG_ERRNO_GOTO(MUTEX_ERR, "Cannot initialize the shceduler local mutex");
-	if(pthread_cond_init(&ret->cond, NULL) < 0) ERROR_LOG_ERRNO_GOTO(COND_ERR, "Cannot initialize the scheduler local condvar");
+	if((errno = pthread_mutex_init(&ret->mutex, NULL)) != 0) ERROR_LOG_ERRNO_GOTO(MUTEX_ERR, "Cannot initialize the shceduler local mutex");
+	if((errno = pthread_cond_init(&ret->cond, NULL)) != 0) ERROR_LOG_ERRNO_GOTO(COND_ERR, "Cannot initialize the scheduler local condvar");
 
 	ret->next = _scheds;
 	_scheds = ret;
 
 	return ret;
 COND_ERR:
-	if(pthread_mutex_destroy(&ret->mutex) < 0)
+	if((errno = pthread_mutex_destroy(&ret->mutex)) != 0)
 	    LOG_WARNING_ERRNO("Cannot dispose the pthread mutex");
 MUTEX_ERR:
 	free(ret);
@@ -184,13 +184,13 @@ MUTEX_ERR:
 static inline int _context_free(sched_loop_t* ctx)
 {
 	int rc = 0;
-	if(pthread_mutex_destroy(&ctx->mutex) < 0)
+	if((errno = pthread_mutex_destroy(&ctx->mutex)) != 0)
 	{
 		LOG_ERROR_ERRNO("Cannot dispose the pthread mutex");
 		rc = ERROR_CODE(int);
 	}
 
-	if(pthread_cond_destroy(&ctx->cond) < 0)
+	if((errno = pthread_cond_destroy(&ctx->cond)) != 0)
 	{
 		LOG_ERROR_ERRNO("Cannot dispose the pthread condvar");
 		rc = ERROR_CODE(int);
@@ -274,7 +274,7 @@ static inline void* _sched_main(void* data)
 			abstime.tv_sec = now.tv_sec+1;
 			abstime.tv_nsec = 0;
 
-			if(pthread_mutex_lock(&context->mutex) < 0) LOG_WARNING_ERRNO("Cannot acquire the scheduler event mutex");
+			if((errno = pthread_mutex_lock(&context->mutex)) != 0) LOG_WARNING_ERRNO("Cannot acquire the scheduler event mutex");
 			for(;;)
 			{
 				if(_deploying_service != NULL && current_service != _deploying_service)
@@ -297,13 +297,18 @@ static inline void* _sched_main(void* data)
 					}
 				}
 				if(context->rear != context->front) break;
-				if(pthread_cond_timedwait(&context->cond, &context->mutex, &abstime) < 0 && errno != ETIMEDOUT && errno != EINTR)
+				if((errno = pthread_cond_timedwait(&context->cond, &context->mutex, &abstime)) != 0 && errno != ETIMEDOUT && errno != EINTR)
 				    LOG_WARNING_ERRNO("Cannot finish pthread_cond_timedwait");
-				if(_killed) goto KILLED;
+				if(_killed) 
+				{
+					if((errno = pthread_mutex_unlock(&context->mutex)) != 0) 
+						LOG_WARNING_ERRNO("Cannot release the scheduler event mutex");
+					goto KILLED;
+				}
 				abstime.tv_sec ++;
 			}
 
-			if(pthread_mutex_unlock(&context->mutex) < 0) LOG_WARNING_ERRNO("Cannot release the scheduler event mutex");
+			if((errno = pthread_mutex_unlock(&context->mutex)) != 0) LOG_WARNING_ERRNO("Cannot release the scheduler event mutex");
 		}
 
 		LOG_TRACE("Scheduler Thread %u: new event acquired", context->thread_id);
@@ -327,13 +332,13 @@ static inline void* _sched_main(void* data)
 
 		if(_dispatcher_waiting)
 		{
-			if(pthread_mutex_lock(&_dispatcher_mutex) < 0)
+			if((errno = pthread_mutex_lock(&_dispatcher_mutex)) != 0)
 			    LOG_WARNING_ERRNO("Cannot lock the dispatcher mutex");
 
-			if(pthread_cond_signal(&_dispatcher_cond) < 0)
+			if((errno = pthread_cond_signal(&_dispatcher_cond)) != 0)
 			    LOG_WARNING_ERRNO("Cannot notify the dispatcher for the avaliable space");
 
-			if(pthread_mutex_unlock(&_dispatcher_mutex) < 0)
+			if((errno = pthread_mutex_unlock(&_dispatcher_mutex)) != 0)
 			    LOG_WARNING_ERRNO("Cannot unlock the dispatcher mutex");
 		}
 
@@ -397,13 +402,13 @@ static inline void* _sched_main(void* data)
 
 		if(_dispatcher_waiting)
 		{
-			if(pthread_mutex_lock(&_dispatcher_mutex) < 0)
+			if((errno = pthread_mutex_lock(&_dispatcher_mutex)) != 0)
 			    LOG_WARNING_ERRNO("Cannot lock the dispatcher mutex");
 
-			if(pthread_cond_signal(&_dispatcher_cond) < 0)
+			if((errno = pthread_cond_signal(&_dispatcher_cond)) != 0)
 			    LOG_WARNING_ERRNO("Cannot notify the dispatcher for the avaliable space");
 
-			if(pthread_mutex_unlock(&_dispatcher_mutex) < 0)
+			if((errno = pthread_mutex_unlock(&_dispatcher_mutex)) != 0)
 			    LOG_WARNING_ERRNO("Cannot unlock the dispatcher mutex");
 		}
 
@@ -497,13 +502,13 @@ static itc_equeue_event_mask_t _interrupt_handler(void* pl)
 		BARRIER();
 		if(needs_notify)
 		{
-			if(pthread_mutex_lock(&target_loop->mutex) < 0)
+			if((errno = pthread_mutex_lock(&target_loop->mutex)) != 0)
 			    LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
 
-			if(pthread_cond_signal(&target_loop->cond) < 0)
+			if((errno = pthread_cond_signal(&target_loop->cond)) != 0)
 			    LOG_WARNING_ERRNO("Cannot notify new incoming event for the target_loop thread %u", target_loop->thread_id);
 
-			if(pthread_mutex_unlock(&target_loop->mutex) < 0)
+			if((errno = pthread_mutex_unlock(&target_loop->mutex)) != 0)
 			    LOG_WARNING_ERRNO("Cannot release the thread local mutex");
 		}
 
@@ -652,14 +657,14 @@ SCHED_WAIT:
 			{
 				int need_lock = !_dispatcher_waiting;
 				arch_atomic_sw_assignment_u32(&_dispatcher_waiting, 1);
-				if(need_lock && pthread_mutex_lock(&_dispatcher_mutex) < 0)
+				if(need_lock && (errno = pthread_mutex_lock(&_dispatcher_mutex)) != 0)
 				    LOG_WARNING_ERRNO("Cannot acquire the dispatcher mutex");
 			}
 
 			if(scheduler->rear - scheduler->front >= scheduler->size ||
 			   (event.type == ITC_EQUEUE_EVENT_TYPE_IO && _scheduler_saturated(scheduler)))
 			{
-				if(pthread_cond_timedwait(&_dispatcher_cond, &_dispatcher_mutex, &abstime) < 0 && errno != ETIMEDOUT && errno != EINTR)
+				if((errno = pthread_cond_timedwait(&_dispatcher_cond, &_dispatcher_mutex, &abstime)) != 0 && errno != ETIMEDOUT && errno != EINTR)
 				    LOG_WARNING_ERRNO("Cannot complete pthread_cond_timewait");
 
 				abstime.tv_sec ++;
@@ -672,7 +677,7 @@ EXIT_LOOP:
 				if(_dispatcher_waiting)
 				{
 					arch_atomic_sw_assignment_u32(&_dispatcher_waiting, 0);
-					if(pthread_mutex_unlock(&_dispatcher_mutex) < 0)
+					if((errno = pthread_mutex_unlock(&_dispatcher_mutex)) != 0)
 					    LOG_WARNING_ERRNO("Cannot rlease the dispatcher mutex");
 				}
 
@@ -696,13 +701,13 @@ EXIT_LOOP:
 
 		if(needs_notify)
 		{
-			if(pthread_mutex_lock(&scheduler->mutex) < 0)
+			if((errno = pthread_mutex_lock(&scheduler->mutex)) != 0)
 			    LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
 
-			if(pthread_cond_signal(&scheduler->cond) < 0)
+			if((errno = pthread_cond_signal(&scheduler->cond)) != 0)
 			    LOG_WARNING_ERRNO("Cannot notify new incoming event for the scheduler thread %u", scheduler->thread_id);
 
-			if(pthread_mutex_unlock(&scheduler->mutex) < 0)
+			if((errno = pthread_mutex_unlock(&scheduler->mutex)) != 0)
 			    LOG_WARNING_ERRNO("Cannot release the thread local mutex");
 		}
 NEXT_ITER:
@@ -764,10 +769,10 @@ int sched_loop_start(sched_service_t** service, int fork_twice)
 	_service = *service;
 	_deploying_service = NULL;
 
-	if(pthread_mutex_init(&_dispatcher_mutex, NULL) < 0)
+	if((errno = pthread_mutex_init(&_dispatcher_mutex, NULL)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot init the dispatcher mutex");
 
-	if(pthread_cond_init(&_dispatcher_cond, NULL) < 0)
+	if((errno = pthread_cond_init(&_dispatcher_cond, NULL)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot init the dispatcher condvar");
 
 

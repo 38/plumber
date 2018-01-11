@@ -239,7 +239,7 @@ static inline _async_handle_t* _async_handle_new(_module_context_t* ctx)
 	if(_async_mutex.created == 0)
 	{
 		LOG_DEBUG("the scheduler thread has no async mutex, creating one");
-		if(pthread_mutex_init(&_async_mutex.mutex, NULL) < 0)
+		if((errno = pthread_mutex_init(&_async_mutex.mutex, NULL)) != 0)
 		{
 			mempool_objpool_dealloc(_async_handle_pool, ret);
 			ERROR_PTR_RETURN_LOG_ERRNO("cannot create the mutex for the scheduler thread");
@@ -305,7 +305,7 @@ static inline size_t _async_handle_getdata(uint32_t conn, void* data, size_t siz
 	size_t ret = 0;
 	char*  buf = (char*)data;
 
-	if(pthread_mutex_lock(handle->mutex) < 0)
+	if((errno = pthread_mutex_lock(handle->mutex)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(size_t, "cannot acquire the async handle mutex");
 
 	for(;handle->page_begin != NULL && size > 0;)
@@ -400,7 +400,7 @@ PAGE_EXHAUSTED:
 		}
 	}
 
-	if(pthread_mutex_unlock(handle->mutex) < 0)
+	if((errno = pthread_mutex_unlock(handle->mutex)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(size_t, "cannot acquire the async handle mutex");
 
 	return ret;
@@ -851,7 +851,7 @@ static inline size_t _write_async_buf(_module_context_t* context, _handle_t* han
 	size_t bytes_written = 0;
 
 	LOG_DEBUG("writing %zu bytes to the async buffer", nbytes);
-	if(pthread_mutex_lock(handle->async_handle->mutex) < 0)
+	if((errno = pthread_mutex_lock(handle->async_handle->mutex)) != 0)
 	    ERROR_RETURN_LOG(size_t, "cannot acquire the async object mutex for connection %"PRIu32, handle->idx);
 
 	for(;nbytes > 0;)
@@ -881,7 +881,7 @@ static inline size_t _write_async_buf(_module_context_t* context, _handle_t* han
 ASYNC_ERR:
 	bytes_written = ERROR_CODE(size_t);
 ASYNC_RET:
-	if(pthread_mutex_unlock(handle->async_handle->mutex) < 0)
+	if((errno = pthread_mutex_unlock(handle->async_handle->mutex)) != 0)
 	    ERROR_RETURN_LOG(size_t, "cannot release the async object mutex for connection %"PRIu32, handle->idx);
 	if(bytes_written != ERROR_CODE(size_t) && module_tcp_async_write_data_ready(context->async_loop, handle->idx) == ERROR_CODE(int))
 	    ERROR_RETURN_LOG(size_t, "cannot notify the async IO loop");
@@ -1033,7 +1033,7 @@ static int _write_callback(void* __restrict ctx, itc_module_data_source_t data_s
 		}
 
 		LOG_DEBUG("The data source is not exhausted, write it to the async buffer");
-		if(pthread_mutex_lock(handle->async_handle->mutex) < 0)
+		if((errno = pthread_mutex_lock(handle->async_handle->mutex)) != 0)
 		    ERROR_RETURN_LOG(int, "cannot acquire the async object mutex for connection %"PRIu32, handle->idx);
 
 		_async_buf_page_t* page = _async_buf_data_source_page_new(data_source);
@@ -1049,7 +1049,7 @@ ASYNC_ERR:
 		rc = ERROR_CODE_OT(int);
 		data_source.close(data_source.data_handle);
 ASYNC_RET:
-		if(pthread_mutex_unlock(handle->async_handle->mutex) < 0)
+		if((errno = pthread_mutex_unlock(handle->async_handle->mutex)) != 0)
 		{
 			LOG_ERROR("cannot release the async object mutex for connection %"PRIu32, handle->idx);
 			rc = ERROR_CODE_OT(int);

@@ -671,7 +671,7 @@ static inline int _process_queue_message(module_tcp_async_loop_t* loop)
 	    ERROR_RETURN_LOG(int, "Cannot consume user event");
 
 	LOG_DEBUG("New incoming queue message");
-	if(pthread_mutex_lock(&loop->q_mutex) < 0)
+	if((errno = pthread_mutex_lock(&loop->q_mutex)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "cannot acquire the global queue mutex");
 
 	for(;loop->q_front != loop->q_rear; loop->q_front ++)
@@ -735,7 +735,7 @@ static inline int _process_queue_message(module_tcp_async_loop_t* loop)
 		else if(current->type == _MT_KILL) LOG_WARNING("kill message can not be handled at this point");
 		else LOG_WARNING("unknown type of queue message");
 	}
-	if(pthread_mutex_unlock(&loop->q_mutex) < 0)
+	if((errno = pthread_mutex_unlock(&loop->q_mutex)) != 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "cannot release the global queue mutex");
 
 	return 0;
@@ -847,14 +847,14 @@ static inline void* _async_main(void* arg)
 	thread_set_name("PbTCPAIO");
 	module_tcp_async_loop_t* loop = (module_tcp_async_loop_t*)arg;
 	LOG_DEBUG("async loop is started!");
-	if(pthread_mutex_lock(&loop->s_mutex) < 0)
+	if((errno = pthread_mutex_lock(&loop->s_mutex)) != 0)
 	    ERROR_PTR_RETURN_LOG_ERRNO("cannot acquire the startup mutex");
 
 	loop->started = 1;
-	if(pthread_cond_signal(&loop->s_cond) < 0)
+	if((errno = pthread_cond_signal(&loop->s_cond)) != 0)
 	    ERROR_PTR_RETURN_LOG_ERRNO("cannot notify the scheduler thread");
 
-	if(pthread_mutex_unlock(&loop->s_mutex) < 0)
+	if((errno = pthread_mutex_unlock(&loop->s_mutex)) != 0)
 	    ERROR_PTR_RETURN_LOG_ERRNO("cannot release the startup mutex");
 
 
@@ -900,15 +900,15 @@ module_tcp_async_loop_t* module_tcp_async_loop_new(uint32_t pool_size, uint32_t 
 	if((ret->poll = os_event_poll_new()) == NULL)
 	    ERROR_LOG_GOTO(ERR, "cannot create poll object");
 
-	if(pthread_mutex_init(&ret->q_mutex, NULL) < 0)
+	if((errno = pthread_mutex_init(&ret->q_mutex, NULL)) != 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot initialize the queue mutex");
 	ret->i_q_mutex = 1;
 
-	if(pthread_mutex_init(&ret->s_mutex, NULL) < 0)
+	if((errno = pthread_mutex_init(&ret->s_mutex, NULL)) != 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot initialize the startup mutex");
 	ret->i_s_mutex = 1;
 
-	if(pthread_cond_init(&ret->s_cond, NULL) < 0)
+	if((errno = pthread_cond_init(&ret->s_cond, NULL)) != 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot initialize the startup cond var");
 	ret->i_s_cond = 1;
 
@@ -926,14 +926,14 @@ module_tcp_async_loop_t* module_tcp_async_loop_new(uint32_t pool_size, uint32_t 
 	if(NULL == (ret->loop = thread_new(_async_main, ret, THREAD_TYPE_IO)))
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot spawn the async loop thread");
 
-	if(pthread_mutex_lock(&ret->s_mutex) < 0)
+	if((errno = pthread_mutex_lock(&ret->s_mutex)) != 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot acquire the startup mutex");
 
 	while(!ret->started)
-	    if(pthread_cond_wait(&ret->s_cond, &ret->s_mutex) < 0)
+	    if((errno = pthread_cond_wait(&ret->s_cond, &ret->s_mutex)) != 0)
 	        LOG_ERROR_ERRNO("cannot performe pthread wait");
 
-	if(pthread_mutex_unlock(&ret->s_mutex) < 0)
+	if((errno = pthread_mutex_unlock(&ret->s_mutex)) != 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot acquire the startup mutex");
 
 	return ret;
@@ -966,7 +966,7 @@ ERR:
  **/
 static inline int _post_message(module_tcp_async_loop_t* loop, _message_type_t type, uint32_t conn_id)
 {
-	if(pthread_mutex_lock(&loop->q_mutex) < 0)
+	if((errno = pthread_mutex_lock(&loop->q_mutex)) != 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot acquire the global queue mutex");
 
 	if(type == _MT_CREATE)
@@ -995,7 +995,7 @@ static inline int _post_message(module_tcp_async_loop_t* loop, _message_type_t t
 	}
 	else LOG_DEBUG("Ignored duplicate %s message on connection object %"PRIu32, _message_str[type], conn_id);
 
-	if(pthread_mutex_unlock(&loop->q_mutex) < 0)
+	if((errno = pthread_mutex_unlock(&loop->q_mutex)) != 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot release the global queue mutex");
 
 
@@ -1116,19 +1116,19 @@ int module_tcp_async_loop_free(module_tcp_async_loop_t* loop)
 	    rc = ERROR_CODE(int);
 
 	if(loop->event_fd >= 0) close(loop->event_fd);
-	if(loop->i_q_mutex && pthread_mutex_destroy(&loop->q_mutex) < 0)
+	if(loop->i_q_mutex && (errno = pthread_mutex_destroy(&loop->q_mutex)) != 0)
 	{
 		LOG_ERROR_ERRNO("Cannot dispose the global queue mutex");
 		rc = ERROR_CODE(int);
 	}
 
-	if(loop->i_s_mutex && pthread_mutex_destroy(&loop->s_mutex) < 0)
+	if(loop->i_s_mutex && (errno = pthread_mutex_destroy(&loop->s_mutex)) != 0)
 	{
 		LOG_ERROR_ERRNO("Cannot dispose the startup mutex");
 		rc = ERROR_CODE(int);
 	}
 
-	if(loop->i_s_cond && pthread_cond_destroy(&loop->s_cond) < 0)
+	if(loop->i_s_cond && (errno = pthread_cond_destroy(&loop->s_cond)) != 0)
 	{
 		LOG_ERROR_ERRNO("Cannot dispose the startup cond variable");
 		rc = ERROR_CODE(int);
