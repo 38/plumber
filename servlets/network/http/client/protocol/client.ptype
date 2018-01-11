@@ -1,13 +1,9 @@
 package plumber.std_servlet.network.http.client.v0;
 type MethodCode {
-	uint32 OPTIONS = 0;    /*!< OPTIONS */
-	uint32 GET     = 1;    /*!< GET */
-	uint32 HEAD    = 2;    /*!< HEAD */
-	uint32 POST    = 3;    /*!< POST */
-	uint32 PUT     = 4;    /*!< PUT */
-	uint32 DELETE  = 5;    /*!< DELETE */
-	uint32 TRACE   = 6;    /*!< TRACE */
-	uint32 CONNECT = 7;    /*!< CONNECT */
+	uint32 GET     = 0;    /*!< GET */
+	uint32 HEAD    = 1;    /*!< HEAD */
+	uint32 POST    = 2;    /*!< POST */
+	uint32 PUT     = 3;    /*!< PUT */
 };
 
 type Request : MethodCode {
@@ -16,4 +12,10 @@ type Request : MethodCode {
 	int32                            priority; /*!< The priorty of this request */
 	uint32                           method;   /*!< The request method we want to use (only used by HTTP) */
 	/* TODO: Cookies, etc */
+};
+
+type Response {
+	plumber.std.request_local.String body;   /*!< The response body string. TODO: what if this is too large, so we need a RLS token */
+	plumber.std.request_local.String header; /*!< The raw header strings if the servlet supposed to return one */
+	int32                            status; /*!< The status code if applied */
 };

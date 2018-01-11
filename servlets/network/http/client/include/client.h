@@ -8,6 +8,7 @@
 #ifndef __NETWORK_HTTP_CLIENT_CLIENT_H__
 #define __NETWORK_HTTP_CLIENT_CLIENT_H__
 
+
 /**
  * @brief The function used to setup the CURL object for the request
  * @note This function actually calls from the client thread, since the
@@ -19,6 +20,27 @@
  * @return status code
  **/
 typedef int (*client_request_setup_func_t)(CURL* handle, void* data);
+
+typedef struct {
+	const char*                  uri;        /*!< The URI to the resource to request */
+	int                          priority;   /*!< The priority of the request */
+	client_request_setup_func_t  setup;      /*!< The setup callback function */
+	void*                        setup_data; /*!< The setup data */
+
+	uint32_t                     save_header:1;  /*!< If we want to save header for the request */
+
+	async_handle_t*              async_handle;   /*!< The async handle */
+	
+	char*                        result;     /*!< The buffer to return result */
+	size_t                       result_sz; /*!< The result size buffer */
+
+	char*                        header;    /*!< The buffer to return header */
+	size_t                       header_sz; /*!< The header size buffer */
+
+	CURLcode                     curl_rc;    /*!< The CURL return code buffer */
+
+	int                          status_code; /*!< THe status code */
+} client_request_t;
 
 /**
  * @brief Initialize the client
@@ -43,19 +65,10 @@ int client_finalize(void);
 
 /**
  * @brief Add a new request to the request queue
- * @param url The url to request
- * @param handle The async processing handle
- * @param block If the funtion would block the execution of current thread.
- * @param setup The setup callback, NULL if there's no need for setup
- * @param setup_data The data needs to be pass in to the setup callback
- * @param priority The priority of this request
- * @param res_buf The result buffer
- * @param size_buf The result size buffer
- * @param curl_rc The result code for the CURL handle
- * @return status code
+ * @param req The request to add
+ * @param block If we need wait until the request being success fully added
+ * @return number of request has been enqueued, or error code
  **/
-int client_add_request(const char* url, async_handle_t* handle, int priority, int block, 
-		               client_request_setup_func_t setup, void* setup_data, char** res_buf, 
-					   size_t* size_buf, CURLcode* curl_rc);
+int client_add_request(client_request_t* req, int block);
 
 #endif /* __NETWORK_HTTP_CLIENT_CLIENT_H__ */

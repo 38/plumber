@@ -41,8 +41,12 @@ typedef struct {
 	void*                       setup_data;    /*!< The data used by the setup callback */
 	char**                      result_buf;    /*!< The result buffer */
 	size_t*                     result_size_buf; /*!< The result size buffer */
-	CURLcode*                   curl_rc_buf;   /*!< The curl result code buffer */
-	size_t                      buf_cap;       /*!< The buffer capacity */
+	size_t                      result_buf_cap;  /*!< The buffer capacity */
+	char**                      header_buf;      /*!< The header buffer */
+	size_t*                     header_size_buf; /*!< The result size buffer */
+	size_t                      header_buf_cap;  /*!< The header buffer capacity */
+	CURLcode*                   curl_rc_buf;     /*!< The curl result code buffer */
+	int*                        status_buf;      /*!< The status buffer */
 } _req_t;
 
 /**
@@ -170,39 +174,50 @@ static inline uint32_t _req_heap_pop(_thread_ctx_t* ctx)
 	return ret;
 }
 
-static int _curl_write_func(char* data, size_t size, size_t count, void* up)
+static inline int _write_buffer(const char* data, size_t size, size_t count, char** resbuf, size_t* sizebuf, size_t* capbuf)
 {
-	_req_t* req = (_req_t*)up;
 	size_t required = size * count;
 
-	if(*(req->result_buf) == NULL)
+	if(*resbuf == NULL)
 	{
-		req->buf_cap = ((required + 1) & ~(size_t)(4096 - 1));
-		if(req->buf_cap < size) req->buf_cap += 4096;
-		*(req->result_size_buf) = 0;
-		if(NULL == (*(req->result_buf) = (char*)malloc(req->buf_cap)))
+		*capbuf = ((required + 1) & ~(size_t)(4096 - 1));
+		if(*capbuf < required + 1) *capbuf += 4096;
+		*sizebuf = 0;
+		if(NULL == (*resbuf = (char*)malloc(*capbuf)))
 			ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the result buffer");
 	}
 
-	if(req->buf_cap < *(req->result_size_buf) + required + 1)
+	if(*capbuf < *sizebuf + required + 1)
 	{
-		size_t new_size = *(req->result_size_buf) + required + 1;
+		size_t new_size = *sizebuf + required + 1;
 
 		new_size = (new_size & ~(size_t)(4096 - 1));
 
-		if(new_size < *(req->result_size_buf) + required + 1) new_size += 4096;
+		if(new_size < *sizebuf + required + 1) new_size += 4096;
 		
-		char* buf = realloc(*(req->result_buf), new_size);
+		char* buf = realloc(*resbuf, new_size);
 		if(NULL == buf) ERROR_RETURN_LOG_ERRNO(int, "Cannot resize the result buffer");
 
-		*req->result_buf = buf;
-		req->buf_cap = new_size;
+		*resbuf = buf;
+		*capbuf = new_size;
 	}
 
-	memcpy(*req->result_buf + *req->result_size_buf, data, required);
-	(*req->result_buf)[(*req->result_size_buf) += required] = 0;
+	memcpy(*resbuf + *sizebuf, data, required);
+	(*resbuf)[(*sizebuf) += required] = 0;
 
 	return (int)required;
+}
+
+static int _curl_write_func(const char* data, size_t size, size_t count, void* up)
+{
+	_req_t* req = (_req_t*)up;
+	return _write_buffer(data, size, count, req->result_buf, req->result_size_buf, &req->result_buf_cap);
+}
+
+static int _curl_header_func(const char* data, size_t size, size_t count, void* up)
+{
+	_req_t* req = (_req_t*)up;
+	return _write_buffer(data, size, count, req->header_buf, req->header_size_buf, &req->header_buf_cap);
 }
 
 static int _curl_timeout_func(CURLM* handle, long timeout, void* up)
@@ -300,6 +315,10 @@ static inline int _event_post_process(_thread_ctx_t* ctx)
 				 * the async_cleanup task should be responsible to decide if this is a success 
 				 * situation */
 				*cur_req->curl_rc_buf = msg->data.result;
+				CURLcode curl_rc = curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, cur_req->status_buf);
+
+				if(CURLE_OK != curl_rc)
+					LOG_WARNING("Cannot get the status code from the curl object: %s", curl_easy_strerror(curl_rc));
 
 				if(ERROR_CODE(int) == async_cntl(cur_req->async_handle, ASYNC_CNTL_NOTIFY_WAIT, 0))
 					LOG_WARNING("Cannot notify the completion state");
@@ -414,6 +433,17 @@ static void* _client_main(void* data)
 			rc = curl_easy_setopt(buf->curl_handle, CURLOPT_WRITEDATA, buf);
 			if(rc != CURLE_OK)
 				ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot set the write function data: %s", curl_easy_strerror(rc));
+
+			if(buf->header_buf != NULL && buf->header_size_buf != NULL)
+			{
+				rc = curl_easy_setopt(buf->curl_handle, CURLOPT_HEADERFUNCTION, _curl_header_func);
+				if(rc != CURLE_OK)
+					ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot set the header function: %s", curl_easy_strerror(rc));
+
+				rc = curl_easy_setopt(buf->curl_handle, CURLOPT_HEADERDATA, buf);
+				if(rc != CURLE_OK)
+					ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot set the user defined data for header fucntion %s", curl_easy_strerror(rc));
+			}
 			
 			if(buf->setup_cb != NULL && ERROR_CODE(int) == buf->setup_cb(buf->curl_handle, buf->setup_data))
 				ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot configure the CURL handle");
@@ -724,12 +754,10 @@ int client_finalize(void)
 	return ret;
 }
 
-int client_add_request(const char* url, async_handle_t* handle, int priority, int block, 
-		               client_request_setup_func_t setup, void* setup_data, char** res_buf, 
-					   size_t* size_buf, CURLcode* curl_rc)
+int client_add_request(client_request_t* req, int block)
 {
 	int ret = 0;
-	if(NULL == url || NULL == handle || priority < 0 || res_buf == NULL || size_buf == NULL || curl_rc == NULL)
+	if(NULL == req || NULL == req->uri || NULL == req->async_handle || req->priority < 0)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(ERROR_CODE(int) == _ensure_threads_started())
@@ -767,24 +795,38 @@ int client_add_request(const char* url, async_handle_t* handle, int priority, in
 			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot wait for the condition variable");
 
 	uint32_t idx = thread->unused;
-	_req_t* req = thread->req_buf + idx;
-	thread->unused = req->next_unused;
+	_req_t* req_obj = thread->req_buf + idx;
+	thread->unused = req_obj->next_unused;
 
-	req->setup_cb = setup;
-	req->setup_data = setup_data;
-	req->in_use = 1;
-	req->priority = priority;
-	req->url = url;
-	req->curl_handle = NULL;
-	req->result_buf = res_buf;
-	req->result_size_buf = size_buf;
-	req->curl_rc_buf = curl_rc;
-	req->async_handle = handle;
+	req_obj->setup_cb = req->setup;
+	req_obj->setup_data = req->setup_data;
+	req_obj->in_use = 1;
+	req_obj->priority = req->priority;
+	req_obj->url = req->uri;
+	req_obj->curl_handle = NULL;
+	req_obj->result_buf = &req->result;
+	req_obj->result_size_buf = &req->result_sz;
+	req_obj->curl_rc_buf = &req->curl_rc;
+	req_obj->async_handle = req->async_handle;
+	req_obj->status_buf = &req->status_code;
 
-	*size_buf = 0;
-	*res_buf  = NULL;
-	req->buf_cap = 0;
-	*curl_rc = CURLE_GOT_NOTHING;
+	req->result_sz = 0;
+	req_obj->result_buf_cap = 0;
+
+	if(req->save_header)
+	{
+		req_obj->header_buf = &req->header;
+		req_obj->header_size_buf = &req->header_sz;
+		req->header_sz = 0;
+		req_obj->result_buf_cap = 0;
+	}
+	else 
+	{
+		req_obj->header_buf = NULL;
+		req_obj->header_size_buf = NULL;
+	}
+
+	req->curl_rc = CURLE_GOT_NOTHING;
 
 	thread->add_queue[thread->add_queue_rear] = idx;
 
