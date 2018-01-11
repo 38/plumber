@@ -18,7 +18,8 @@ typedef struct {
 	uint32_t                num_threads;    /*!< The number of threads  this servlet requested for */
 	uint32_t                num_parallel;   /*!< The number parallel requests the client can do */
 	uint32_t                queue_size;     /*!< The size of the request queue */
-	uint32_t                save_header;  /*!< If we need to save the header or metadata */
+	uint32_t                save_header;    /*!< If we need to save the header or metadata */
+	uint32_t                follow_redir;   /*!< If we need follow the HTTP redirect */
 	pipe_t                  request;        /*!< The request data */
 	pipe_t                  response;       /*!< The response data */
 	pstd_type_accessor_t    url_acc;        /*!< The string token accessor for the URL */
@@ -44,6 +45,7 @@ typedef struct {
  **/
 typedef struct {
 	int              posted;    /*!< If the task is posted */
+	uint32_t         follow:1;  /*!< Follow redirect */
 	const char*      data;      /*!< The data payload */
 	client_request_t request;   /*!< The request data */
 	enum {
@@ -65,6 +67,7 @@ static inline int _opt_callback(pstd_option_data_t data)
 			*(uint32_t*)((char*)data.current_option->args + (uintptr_t)data.cb_data) = (uint32_t)data.param_array[0].intval;
 			break;
 		case 'H':
+		case 'f':
 			*(uint32_t*)((char*)data.current_option->args + (uintptr_t)data.cb_data) = 1;
 			break;
 		default:
@@ -83,6 +86,7 @@ static int _init(uint32_t argc, char const* const* argv, void* data)
 	ctx->num_parallel = 128;
 	ctx->queue_size   = 1024;
 	ctx->save_header  = 0;
+	ctx->follow_redir = 0;
 	
 	static pstd_option_t opts[] = {
 		{
@@ -124,6 +128,14 @@ static int _init(uint32_t argc, char const* const* argv, void* data)
 			.description = "Indicates we need to save the header as well",
 			.handler     = _opt_callback,
 			.args        = &((ctx_t*)0)->save_header
+		},
+		{
+			.long_opt    = "follow-redir",
+			.short_opt   = 'f',
+			.pattern     = "",
+			.description = "Indicates we need to follow the redirection",
+			.handler     = _opt_callback,
+			.args        = &((ctx_t*)0)->follow_redir
 		}
 	};
 
@@ -210,7 +222,11 @@ static int _setup_request(CURL* handle, void* data)
 	{
 		if(CURLE_OK != (curl_rc = curl_easy_setopt(handle, CURLOPT_POSTFIELDS, buf->data)))
 			ERROR_RETURN_LOG(int, "Cannot set the POST data fields: %s", curl_easy_strerror(curl_rc));
+
 	}
+
+	if(buf->follow && CURLE_OK != (curl_rc = curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1)))
+		ERROR_RETURN_LOG(int, "Cannot set the follow redirection option: %s", curl_easy_strerror(curl_rc));
 
 	switch(buf->method)
 	{
@@ -291,6 +307,8 @@ static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 	abuf->request.async_handle = handle;
 	abuf->request.setup = _setup_request;
 	abuf->request.setup_data = abuf;
+
+	abuf->follow = (ctx->follow_redir != 0);
 
 	int rc = client_add_request(&abuf->request, 0);
 
