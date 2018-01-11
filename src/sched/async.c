@@ -237,6 +237,8 @@ static inline int _notify_compeleted_awaiters(itc_equeue_token_t token, int set_
 				rc = ERROR_CODE(int);
 			}
 
+			LOG_DEBUG("Awaiting async task completion event has been posted, await_id: %u, handle: %p", cur, this->task);
+
 			/* Since we have passed the task handle to the event queue, so we should not dispose it
 			 * The worst case of this is the event queue can not accept the handle, but in this case
 			 * the _post_task_complete_event function will be responsible for disposing the handle */
@@ -784,7 +786,7 @@ int sched_async_handle_set_await(runtime_api_async_handle_t* handle)
 	task->await_id = claimed;
 	task->state = _STATE_AWAITING;
 
-	LOG_DEBUG("The task has been added to the waiting list as waiting task #%u", claimed);
+	LOG_DEBUG("The task (async_handle = %p) has been added to the waiting list as waiting task #%u", handle, claimed);
 
 	rc = 0;
 
@@ -827,6 +829,8 @@ int sched_async_handle_await_complete(runtime_api_async_handle_t* handle, int st
 		LOG_DEBUG("Setting the task status to failure");
 		task->status_code = ERROR_CODE(int);
 	}
+
+	LOG_DEBUG("Awaiting async task (handle = %p, wait_id = %u) has been notified", handle, slot);
 
 	rc = 0;
 EXIT:

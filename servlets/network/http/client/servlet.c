@@ -309,8 +309,13 @@ static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 	abuf->request.setup_data = abuf;
 
 	abuf->follow = (ctx->follow_redir != 0);
+		
+	if(ERROR_CODE(int) == async_cntl(handle, ASYNC_CNTL_SET_WAIT))
+		ERROR_LOG_GOTO(ERR, "Cannot make the async task into wait mode");
 
 	int rc = client_add_request(&abuf->request, 0);
+
+	LOG_DEBUG("Client servlet started processing request %s async_handle = %p", abuf->request.uri, handle);
 
 	if(rc == ERROR_CODE(int))
 		ERROR_LOG_GOTO(ERR, "Cannot add request to the request queue");
@@ -320,8 +325,6 @@ static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 	{
 		LOG_DEBUG("The request has been added to the queue successfully");
 		abuf->posted = 1;
-		if(ERROR_CODE(int) == async_cntl(handle, ASYNC_CNTL_SET_WAIT))
-			ERROR_LOG_GOTO(ERR, "Cannot make the async task into wait mode");
 	}
 
 	return 0;
@@ -362,6 +365,8 @@ static int _async_cleanup(async_handle_t* handle, void* data, void* ctxbuf)
 	ctx_t* ctx = (ctx_t*)ctxbuf;
 	async_buf_t* abuf = (async_buf_t*)data;
 	int async_rc = 0;
+	
+	LOG_DEBUG("Client servlet finished processing request %s (handle = %p)", abuf->request.uri, handle);
 
 	pstd_type_instance_t* inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model);
 
@@ -373,6 +378,9 @@ static int _async_cleanup(async_handle_t* handle, void* data, void* ctxbuf)
 
 	if(async_rc == ERROR_CODE(int))
 		ERROR_LOG_GOTO(ERR, "The async task returns an error");
+
+	if(abuf->request.curl_rc != CURLE_OK)
+		ERROR_LOG_GOTO(ERR, "The curl returns an error: %s", curl_easy_strerror(abuf->request.curl_rc));
 
 	int rc = _write_string(inst, ctx->res_body_acc, abuf->request.result, abuf->request.result_sz);
 	abuf->request.result = NULL;
@@ -403,9 +411,6 @@ static int _async_exec(async_handle_t* handle, void* data)
 	async_buf_t* abuf = (async_buf_t*)data;
 
 	if(abuf->posted == 1) return 0;
-
-	if(client_add_request(&abuf->request, 1) == ERROR_CODE(int))
-		ERROR_RETURN_LOG(int, "Cannot add the request to the request queue");
 
 	if(ERROR_CODE(int) == async_cntl(handle, ASYNC_CNTL_SET_WAIT))
 		ERROR_RETURN_LOG(int, "Cannot make the async task into wait mode");
