@@ -1,0 +1,31 @@
+language: c
+compiler: 
+    - gcc
+    - clang
+
+os:
+    - linux
+#   - osx
+
+env:
+    - L=6 O=5
+    - L=0 O=5
+
+#apt-get install -y  --allow-unauthenticated git cmake gcc g++ uuid-dev libssl-dev doxygen pkg-config python2.7 libpython2.7-dev libreadline-dev zsh
+addons:
+    apt:
+        packages:
+            - libcurl3
+            - cmake
+            - g++
+            - uuid-dev
+            - pkg-config
+            - libpython2.7-dev
+            - libreadline-dev
+            - libssl-dev
+            - wget
+            - git
+
+script:
+    - cmake . && make && make test
+
