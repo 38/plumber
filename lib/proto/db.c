@@ -1127,7 +1127,7 @@ int proto_db_type_traverse(const char* type_name, proto_db_field_callback_t func
 		uint32_t k;
 		for(k = 0; k < info.ndims; k ++)
 		    memcpy(namebuf + namelen + k * 3, "[0]", 3);
-		namebuf[buflen] = 0;
+		namebuf[buflen - 1] = 0;
 
 		if(ERROR_CODE(proto_db_field_prop_t) == (info.primitive_prop = proto_db_field_type_info(type_name, namebuf)))
 		    PROTO_ERR_RAISE_GOTO(ITER_ERR, FAIL);

@@ -51,8 +51,11 @@ int client_finalize(void);
  * @param priority The priority of this request
  * @param res_buf The result buffer
  * @param size_buf The result size buffer
+ * @param curl_rc The result code for the CURL handle
  * @return status code
  **/
-int client_add_request(const char* url, async_handle_t* handle, int priority, int block, client_request_setup_func_t setup, void* setup_data, char** res_buf, size_t* size_buf);
+int client_add_request(const char* url, async_handle_t* handle, int priority, int block, 
+		               client_request_setup_func_t setup, void* setup_data, char** res_buf, 
+					   size_t* size_buf, CURLcode* curl_rc);
 
 #endif /* __NETWORK_HTTP_CLIENT_CLIENT_H__ */

@@ -39,11 +39,13 @@ typedef struct {
  * @brief The async buffer
  **/
 typedef struct {
+	int         posted;  /*!< If the task is posted */
 	const char* url;     /*!< The URL we are requesting */
 	const char* data;    /*!< The data payload */
 	int32_t     priority;/*!< The priorty of this request */
 	size_t      result_sz; /*!< The size of the result */
 	char*       result;  /*!< The result buffer (TODO: what if the result is too large) */
+	CURLcode    curl_rc; /*!< The CURL return code */
 	enum {
 		NONE,            /*!< For the request that is not a HTTP request */
 		GET,             /*!< The GET HTTP method */
@@ -151,6 +153,7 @@ static int _init(uint32_t argc, char const* const* argv, void* data)
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->priority_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->request, "priority")))
 		ERROR_RETURN_LOG(int, "Cannot get the field accessor for request.priority");
 
+	/* Load the constants */
 	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->request, "GET", &ctx->methods.GET))
 		ERROR_RETURN_LOG(int, "Cannot get the constant for method GET");
 
@@ -177,15 +180,13 @@ static int _setup_request(CURL* handle, void* data)
 	async_buf_t* buf = (async_buf_t*)data;
 	CURLcode curl_rc;
 
-	if(CURLE_OK != (curl_rc = curl_easy_setopt(handle, CURLOPT_URL, buf->url)))
-		ERROR_RETURN_LOG(int, "Cannot set the request URL: %s", curl_easy_strerror(curl_rc));
-
 	if(buf->method == POST && buf->data != NULL && buf->data[0] != 0)
 	{
 		if(CURLE_OK != (curl_rc = curl_easy_setopt(handle, CURLOPT_POSTFIELDS, buf->data)))
 			ERROR_RETURN_LOG(int, "Cannot set the POST data fields: %s", curl_easy_strerror(curl_rc));
 
 	}
+
 	switch(buf->method)
 	{
 		case POST:
@@ -209,6 +210,8 @@ static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 	ctx_t* ctx = (ctx_t*)ctxbuf;
 	async_buf_t* abuf = (async_buf_t*)data;
 
+	abuf->posted = 0;
+
 	pstd_type_instance_t* inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model);
 	if(NULL == inst) 
 		ERROR_RETURN_LOG(int, "Cannot create new type instance from the type model");
@@ -218,9 +221,7 @@ static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 		ERROR_LOG_GOTO(ERR, "Cannot read URL token");
 
 	const pstd_string_t* str = pstd_string_from_rls(url_tok);
-	if(NULL == str) ERROR_RETURN_LOG(int, "Cannot get the string from the request local scope");
-	
-	if(NULL == (abuf->url = pstd_string_value(str)))
+	if(NULL == str || NULL == (abuf->url = pstd_string_value(str)))
 		ERROR_LOG_GOTO(ERR, "Cannot get the value of tstring for the URL");
 
 	scope_token_t data_tok = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->data_acc);
@@ -252,8 +253,9 @@ static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 
 	abuf->result = NULL;
 
-	int rc = client_add_request(abuf->url, handle, abuf->priority, 0, _setup_request, 
-			                    abuf, &abuf->result, &abuf->result_sz);
+	int rc = client_add_request(abuf->url, handle, abuf->priority, 
+			                    0, _setup_request, abuf, &abuf->result, 
+								&abuf->result_sz, &abuf->curl_rc);
 
 	if(rc == ERROR_CODE(int))
 		ERROR_LOG_GOTO(ERR, "Cannot add request to the request queue");
@@ -262,8 +264,7 @@ static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 	else
 	{
 		LOG_DEBUG("The request has been added to the queue successfully");
-		if(ERROR_CODE(int) == async_cntl(handle, ASYNC_CNTL_CANCEL))
-			ERROR_LOG_GOTO(ERR, "Cannot cancel the async_exec callback");
+		abuf->posted = 1;
 		if(ERROR_CODE(int) == async_cntl(handle, ASYNC_CNTL_SET_WAIT))
 			ERROR_LOG_GOTO(ERR, "Cannot make the async task into wait mode");
 	}
@@ -330,9 +331,15 @@ static int _async_exec(async_handle_t* handle, void* data)
 {
 	async_buf_t* abuf = (async_buf_t*)data;
 
+	if(abuf->posted == 1) return 0;
+
 	if(client_add_request(abuf->url, handle, abuf->priority, 1, 
-				          _setup_request, abuf, &abuf->result, &abuf->result_sz) == ERROR_CODE(int))
+				          _setup_request, abuf, &abuf->result, 
+						  &abuf->result_sz, &abuf->curl_rc) == ERROR_CODE(int))
 		ERROR_RETURN_LOG(int, "Cannot add the request to the request queue");
+
+	if(ERROR_CODE(int) == async_cntl(handle, ASYNC_CNTL_SET_WAIT))
+		ERROR_RETURN_LOG(int, "Cannot make the async task into wait mode");
 
 	return 0;
 }

@@ -251,18 +251,29 @@ size_t pstd_bio_write(pstd_bio_t* pstd_bio, const void* ptr, size_t size)
 
 size_t pstd_bio_vprintf(pstd_bio_t* pstd_bio, const char* fmt, va_list ap)
 {
-	char _b[1024];
-	size_t _bsz = sizeof(_b);
+	char _lb[1024];
+	size_t _bsz = sizeof(_lb);
+	char* _b = _lb;
 	size_t ret = 0;
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-nonliteral"
 #endif
+	va_list ap_copy;
+	va_copy(ap_copy, ap);
 	int rc = vsnprintf(_b, _bsz, fmt, ap);
+	if(rc >= 0 && (size_t)rc > _bsz)
+	{
+		if(NULL == (_b = (char*)malloc((size_t)rc + 1)))
+			ERROR_RETURN_LOG_ERRNO(size_t, "Cannot allocate memory for the result buffer");
+		rc = vsnprintf(_b, (size_t)rc + 1, fmt, ap_copy);
+	}
+	va_end(ap_copy);
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-	if(rc < 0) ERROR_RETURN_LOG_ERRNO(size_t, "vsnprintf returns an error");
+	if(rc < 0) 
+		ERROR_LOG_ERRNO_GOTO(ERR, "vsnprintf returns an error");
 
 	if(ret != ERROR_CODE(size_t))
 	{
@@ -271,14 +282,21 @@ size_t pstd_bio_vprintf(pstd_bio_t* pstd_bio, const char* fmt, va_list ap)
 		while(bytes_to_write > 0)
 		{
 			size_t wrc = pstd_bio_write(pstd_bio, p, bytes_to_write);
-			if(ERROR_CODE(size_t) == wrc) ERROR_RETURN_LOG(size_t, "Cannot write to the BIO object");
+			if(ERROR_CODE(size_t) == wrc) 
+				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot write to the BIO object");
 			bytes_to_write -= wrc;
 			p += wrc;
 		}
 	}
+	
+	if(_b != _lb && _b != NULL)
+		free(_b);
 
 	return ret;
-
+ERR:
+	if(_b != _lb && _b != NULL)
+		free(_b);
+	return ERROR_CODE(size_t);
 }
 
 size_t pstd_bio_printf(pstd_bio_t* pstd_bio, const char* fmt, ...)

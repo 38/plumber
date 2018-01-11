@@ -456,7 +456,7 @@ int _program(int argc, char** argv)
 
 	if(plumber_finalize() == ERROR_CODE(int))
 	{
-		LOG_WARNING("Cannot finalize libplumber");
+		fprintf(stderr,"error: Cannot finalize libplumber");
 		properly_exit(1);
 	}
 

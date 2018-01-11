@@ -28,7 +28,6 @@ typedef struct _thread_ctx_t _thread_ctx_t;
  **/
 typedef struct {
 	uint32_t                    in_use:1;      /*!< indicates if this request buffer is being used */
-	uint32_t                    epolled:1;     /*!< If this request is already managed by epoll */
 	union {
 		int                     priority;      /*!< The priority of this request */
 		uint32_t                next_unused;   /*!< The next element unused request buffer list */
@@ -42,8 +41,8 @@ typedef struct {
 	void*                       setup_data;    /*!< The data used by the setup callback */
 	char**                      result_buf;    /*!< The result buffer */
 	size_t*                     result_size_buf; /*!< The result size buffer */
+	CURLcode*                   curl_rc_buf;   /*!< The curl result code buffer */
 	size_t                      buf_cap;       /*!< The buffer capacity */
-	int                         fd;            /*!< The underlying conmmunication fd */
 } _req_t;
 
 /**
@@ -53,10 +52,11 @@ typedef struct {
  **/
 struct _thread_ctx_t {
 	/***** The global resources ********/
-	uint32_t  started:1;    /*!< Indicates if the client thread has been started */
-	uint32_t  killed:1;     /*!< Indicates if this client has been killed */
+	volatile uint32_t  started:1;    /*!< Indicates if the client thread has been started */
+	volatile uint32_t  killed:1;     /*!< Indicates if this client has been killed */
 	uint32_t  tid:30;       /*!< The thread ID */
 	int       epoll_fd;     /*!< The epoll fd */
+	long      timeout;      /*!< The timeout value required by libcurl */
 	CURLM*    curlm;        /*!< The CURL Multi interface */
 	_req_t*   req_buf;      /*!< The buffer for the request data */
 	pthread_t thread;       /*!< Current pthread object */
@@ -89,7 +89,7 @@ static struct {
 	uint32_t        thread_cap;         /*!< The capacity of the thread context array */
 	uint32_t        num_started_threads;/*!< The number of started client threads */
 	_thread_ctx_t*  thread_ctx;         /*!< The thread context objects */
-} _ctx;
+} _global;
 
 static inline int _req_cmp(_thread_ctx_t* ctx, uint32_t a, uint32_t b)
 {
@@ -116,9 +116,9 @@ static inline void _req_heapify(_thread_ctx_t* ctx, uint32_t root)
 	for(;;)
 	{
 		uint32_t idx = root;
-		if(root * 2 + 1 < ctx->req_heap_size && _req_cmp(ctx, idx, root * 2 + 1) == -1)
+		if(root * 2 + 1 < ctx->req_heap_size && _req_cmp(ctx, idx, root * 2 + 1) < 0)
 			idx = root * 2 + 1;
-		if(root * 2 + 2 < ctx->req_heap_size && _req_cmp(ctx, idx, root * 2 + 2) == -1)
+		if(root * 2 + 2 < ctx->req_heap_size && _req_cmp(ctx, idx, root * 2 + 2) < 0)
 			idx = root * 2 + 2;
 
 		if(idx == root) return;
@@ -147,7 +147,7 @@ static inline void _req_heap_add(_thread_ctx_t* ctx, uint32_t req_idx)
 
 	uint32_t root = ctx->req_heap_size - 1;
 
-	for(;root > 0 && _req_cmp(ctx, (root - 1) / 2, root) == 1; root = (root - 1) / 2)
+	for(;root > 0 && _req_cmp(ctx, (root - 1) / 2, root) > 0; root = (root - 1) / 2)
 	{
 		uint32_t tmp = ctx->req_heap[root];
 		ctx->req_heap[root] = ctx->req_heap[(root - 1) / 2];
@@ -173,21 +173,24 @@ static inline uint32_t _req_heap_pop(_thread_ctx_t* ctx)
 static int _curl_write_func(char* data, size_t size, size_t count, void* up)
 {
 	_req_t* req = (_req_t*)up;
+	size_t required = size * count;
 
 	if(*(req->result_buf) == NULL)
 	{
-		req->buf_cap = 4096;
+		req->buf_cap = ((required + 1) & ~(size_t)(4096 - 1));
+		if(req->buf_cap < size) req->buf_cap += 4096;
 		*(req->result_size_buf) = 0;
 		if(NULL == (*(req->result_buf) = (char*)malloc(req->buf_cap)))
 			ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the result buffer");
 	}
 
-	size_t required = size * count;
-	if(req->buf_cap <= *(req->result_size_buf) + required)
+	if(req->buf_cap < *(req->result_size_buf) + required + 1)
 	{
-		size_t new_size = *(req->result_size_buf) + required;
-		
-		new_size = (new_size & ~(size_t)(4096 - 1)) + 4096;
+		size_t new_size = *(req->result_size_buf) + required + 1;
+
+		new_size = (new_size & ~(size_t)(4096 - 1));
+
+		if(new_size < *(req->result_size_buf) + required + 1) new_size += 4096;
 		
 		char* buf = realloc(*(req->result_buf), new_size);
 		if(NULL == buf) ERROR_RETURN_LOG_ERRNO(int, "Cannot resize the result buffer");
@@ -200,6 +203,14 @@ static int _curl_write_func(char* data, size_t size, size_t count, void* up)
 	(*req->result_buf)[(*req->result_size_buf) += required] = 0;
 
 	return (int)required;
+}
+
+static int _curl_timeout_func(CURLM* handle, long timeout, void* up)
+{
+	(void)handle;
+	_thread_ctx_t* ctx = (_thread_ctx_t*)up;
+	ctx->timeout = timeout;
+	return 0;
 }
 
 static int _curl_socket_func(CURL* handle, int fd, int action, void* up, void* sp)
@@ -217,7 +228,7 @@ static int _curl_socket_func(CURL* handle, int fd, int action, void* up, void* s
 	struct epoll_event event = {
 		.events = 0,
 		.data = {
-			.ptr = req
+			.fd = fd
 		}
 	};
 
@@ -242,13 +253,11 @@ static int _curl_socket_func(CURL* handle, int fd, int action, void* up, void* s
 			return 0;
 	}
 
-	if(opcode == EPOLL_CTL_ADD && req->epolled)
-		opcode = EPOLL_CTL_MOD;
-
 	if(epoll_ctl(req->thread_ctx->epoll_fd, opcode, fd, &event) < 0)
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot invoke epoll_ctl: op(%x), fd(%x)", fd, opcode);
-
-	req->fd = fd;
+	{
+		if(opcode != EPOLL_CTL_ADD || errno != EEXIST || epoll_ctl(req->thread_ctx->epoll_fd, EPOLL_CTL_MOD, fd, &event) < 0)
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot invoke epoll_ctl: op(%x), fd(%x)", fd, opcode);
+	}
 
 	return 0;
 }
@@ -271,18 +280,49 @@ static inline int _dispose_req(_thread_ctx_t* ctx, uint32_t idx)
 	return 0;
 }
 
+static inline int _event_post_process(_thread_ctx_t* ctx)
+{
+	int n_msg = 0;
+	for(;;)
+	{
+		CURLMsg* msg = curl_multi_info_read(ctx->curlm, &n_msg);
+		if(msg == NULL) break;
+		if(msg->msg == CURLMSG_DONE)
+		{
+			CURL* handle = msg->easy_handle;
+			_req_t* cur_req;
+			CURLcode get_info_rc = curl_easy_getinfo(handle, CURLINFO_PRIVATE, &cur_req);
+			if(CURLE_OK != get_info_rc)
+				LOG_WARNING("Cannot get the curl private data: %s", curl_easy_strerror(get_info_rc));
+			else
+			{
+				/* No matter what result code we got from CURL, we mark the task as success and
+				 * the async_cleanup task should be responsible to decide if this is a success 
+				 * situation */
+				*cur_req->curl_rc_buf = msg->data.result;
+
+				if(ERROR_CODE(int) == async_cntl(cur_req->async_handle, ASYNC_CNTL_NOTIFY_WAIT, 0))
+					LOG_WARNING("Cannot notify the completion state");
+
+				if(ERROR_CODE(int) == _dispose_req(ctx, (uint32_t)(cur_req - ctx->req_buf)))
+					LOG_WARNING("Cannot dispose the request buffer");
+			}
+		}
+	}
+
+	return 0;
+}
+
 static void* _client_main(void* data)
 {
 	_thread_ctx_t* ctx = (_thread_ctx_t*)data;
 
-	if(pthread_mutex_lock(&_ctx.mutex) != 0)
-		ERROR_PTR_RETURN_LOG_ERRNO("Cannot acquire the global client lock");
-
+	uint32_t new_val;
+	do {
+		new_val = _global.num_started_threads + 1;
+	} while(!__sync_bool_compare_and_swap(&_global.num_started_threads, new_val - 1, new_val));
+	
 	ctx->started = 1;
-	_ctx.num_started_threads ++;
-
-	if(pthread_mutex_unlock(&_ctx.mutex) != 0)
-		ERROR_PTR_RETURN_LOG_ERRNO("Cannot release the global client lock");
 
 	LOG_NOTICE("Client thread #%u is started", ctx->tid);
 
@@ -290,58 +330,52 @@ static void* _client_main(void* data)
 	{
 		struct epoll_event events[128];
 
-		int eprc = epoll_wait(ctx->epoll_fd, events, sizeof(events) / sizeof(events[0]), 1000);
+		int eprc = epoll_wait(ctx->epoll_fd, events, sizeof(events) / sizeof(events[0]), (int)ctx->timeout);
 
-		if(eprc < 0) 
+		if(eprc < 0 && errno != EINTR && errno != ETIME) 
 		{
 			LOG_WARNING_ERRNO("Cannot epoll the event");
 			continue;
 		}
+		
+		int i, num_running_handle = 0;
+
+		if(eprc == 0)
+		{
+			if(CURLM_OK != curl_multi_socket_action(ctx->curlm, CURL_SOCKET_TIMEOUT, 0, &num_running_handle))
+				LOG_WARNING("Cannot notify libcurl to run");
+			
+			LOG_DEBUG("Client thread %u: Current running request %d", ctx->tid, num_running_handle);
+
+			if(ERROR_CODE(int) == _event_post_process(ctx))
+				LOG_WARNING("Cannot post process event");
+		}
 
 		/* Then we need to handle all the epoll events */
-		int i, num_running_handle = 0;
 		for(i = 0; i < eprc; i ++)
 			if(events[i].data.ptr != NULL)
 			{
 				/* If this is an communication FD */
-				_req_t* req = (_req_t*)events[i].data.ptr;
+				int fd = events[i].data.fd;
 
-
-				CURLMcode rc = curl_multi_socket_action(ctx->curlm, req->fd, 0, &num_running_handle);
+				CURLMcode rc = curl_multi_socket_action(ctx->curlm, fd, 0, &num_running_handle);
 				if(rc != CURLM_OK)
 				{
 					LOG_WARNING("Cannot send the socket ready event to libcurl: %s", curl_multi_strerror(rc));
 					continue;
 				}
-
-				int n_msg = 0;
-				for(;;)
-				{
-					CURLMsg* msg = curl_multi_info_read(ctx->curlm, &n_msg);
-					if(msg == NULL) break;
-					if(msg->msg == CURLMSG_DONE)
-					{
-						CURL* handle = msg->easy_handle;
-						_req_t* cur_req;
-						CURLcode get_info_rc = curl_easy_getinfo(handle, CURLINFO_PRIVATE, &cur_req);
-						if(CURLE_OK != get_info_rc)
-							LOG_WARNING("Cannot get the curl private data: %s", curl_easy_strerror(rc));
-						else
-						{
-							if(ERROR_CODE(int) == async_cntl(cur_req->async_handle, ASYNC_CNTL_NOTIFY_WAIT, 0))
-								LOG_WARNING("Cannot notify the completion state");
-
-							if(ERROR_CODE(int) == _dispose_req(ctx, (uint32_t)(cur_req - ctx->req_buf)))
-								LOG_WARNING("Cannot dispose the request buffer");
-						}
-					}
-				}
+			
+				LOG_DEBUG("Client thread %u: Current running request %d", ctx->tid, num_running_handle);
+				
+				if(ERROR_CODE(int) == _event_post_process(ctx))
+					LOG_WARNING("Cannot post process event");
 			}
 
 		/* Then we need to add the pending-to-add queue to the request heap */
-		while(((ctx->add_queue_rear - ctx->add_queue_front) & (_ctx.queue_size - 1)) > 0)
+		while(((ctx->add_queue_rear - ctx->add_queue_front) & (_global.queue_size - 1)) > 0)
 		{
 			_req_heap_add(ctx, ctx->add_queue[ctx->add_queue_front]);
+
 			BARRIER();
 			ctx->add_queue_front ++;
 
@@ -357,10 +391,11 @@ static void* _client_main(void* data)
 
 		/* After that we should create new running request if the number of running handle is less than the 
 		 * parallel limit */
-		while((uint32_t)num_running_handle < _ctx.pr_limit && ctx->req_heap_size > 0)
+		while((uint32_t)num_running_handle < _global.pr_limit && ctx->req_heap_size > 0)
 		{
 			uint32_t idx = _req_heap_pop(ctx);
 			_req_t* buf = ctx->req_buf + idx;
+
 			if(NULL == (buf->curl_handle = curl_easy_init()))
 				ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot initialize the libcurl handle object");
 			
@@ -387,7 +422,7 @@ static void* _client_main(void* data)
 			if(rc != CURLE_OK)
 				ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot add the handle to CURL: %s", curl_multi_strerror(rc));
 
-			num_running_handle ++;
+
 			continue;
 
 CURL_INIT_ERR:
@@ -408,9 +443,22 @@ CURL_INIT_ERR:
 	}
 
 	uint32_t i;
-	for(i = 0; i < _ctx.queue_size; i ++)
+	for(i = 0; i < _global.queue_size; i ++)
 	{
 		if(!ctx->req_buf[i].in_use) continue;
+
+		if(ctx->req_buf[i].curl_handle != NULL)
+		{
+			CURLcode curl_rc = curl_multi_remove_handle(ctx->curlm, ctx->req_buf[i].curl_handle);
+			if(curl_rc != CURLE_OK)
+				LOG_WARNING("Cannot remove the CURL easy handle from CURL multi object: %s", curl_multi_strerror(curl_rc));
+		}
+
+		if(*ctx->req_buf[i].result_buf != NULL)
+			free(*ctx->req_buf[i].result_buf);
+
+		*ctx->req_buf[i].result_buf = NULL;
+
 		if(ERROR_CODE(int) == _dispose_req(ctx, i))
 			LOG_ERROR("Cannot dispose the currently running request");
 	}
@@ -428,59 +476,61 @@ CURL_INIT_ERR:
 static inline int _ensure_threads_started(void)
 {
 	int rc = 0;
-	if(_ctx.num_threads != _ctx.num_started_threads)
+	if(_global.num_threads != _global.num_started_threads)
 	{
-		if(pthread_mutex_lock(&_ctx.mutex) != 0)
+		if(pthread_mutex_lock(&_global.mutex) != 0)
 			ERROR_RETURN_LOG(int, "Cannot lock the global client mutex");
 		uint32_t i;
-		for(i = 0; i < _ctx.num_threads; i ++)
+		for(i = 0; i < _global.num_threads; i ++)
 		{
-			if(!_ctx.thread_ctx[i].started)
+			if(!_global.thread_ctx[i].started)
 			{
 				LOG_NOTICE("Starting client thread #%u", i);
 
-				if(0 != pthread_mutex_init(&_ctx.thread_ctx[i].writer_mutex, NULL))
+				if(0 != pthread_mutex_init(&_global.thread_ctx[i].writer_mutex, NULL))
 					ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the writer mutex for client thread #%u", i);
 
-				if(NULL == (_ctx.thread_ctx[i].req_buf = (_req_t*)malloc(sizeof(_req_t) * _ctx.queue_size)))
+				if(NULL == (_global.thread_ctx[i].req_buf = (_req_t*)malloc(sizeof(_req_t) * _global.queue_size)))
 					ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the request buffer for client thread #%u", i);
 
 				uint32_t j;
-				for(j = 0; j < _ctx.queue_size; j ++)
+				for(j = 0; j < _global.queue_size; j ++)
 				{
-					_ctx.thread_ctx[i].req_buf[j].in_use = 0;
-					_ctx.thread_ctx[i].req_buf[j].next_unused = (j == _ctx.queue_size - 1) ? ERROR_CODE(uint32_t) : (j + 1);
+					_global.thread_ctx[i].req_buf[j].in_use = 0;
+					_global.thread_ctx[i].req_buf[j].next_unused = (j == _global.queue_size - 1) ? ERROR_CODE(uint32_t) : (j + 1);
 				}
 
-				_ctx.thread_ctx[i].unused = 0;
+				_global.thread_ctx[i].unused = 0;
 
-				if(NULL == (_ctx.thread_ctx[i].add_queue = (uint32_t*)malloc(sizeof(uint32_t) * _ctx.queue_size)))
+				if(NULL == (_global.thread_ctx[i].add_queue = (uint32_t*)malloc(sizeof(uint32_t) * _global.queue_size)))
 					ERROR_LOG_ERRNO_GOTO(THREAD_ERR, "Cannot allocate memory for the add queue for client thread #%u", i);
 
-				_ctx.thread_ctx[i].add_queue_front = 0;
-				_ctx.thread_ctx[i].add_queue_rear  = 0;
+				_global.thread_ctx[i].add_queue_front = 0;
+				_global.thread_ctx[i].add_queue_rear  = 0;
 
-				if(NULL == (_ctx.thread_ctx[i].req_heap = (uint32_t*)malloc(sizeof(uint32_t) * _ctx.queue_size)))
+				if(NULL == (_global.thread_ctx[i].req_heap = (uint32_t*)malloc(sizeof(uint32_t) * _global.queue_size)))
 					ERROR_LOG_ERRNO_GOTO(THREAD_ERR, "Cannot allocate memory for the request priority queue for client thread #%u", i);
-				_ctx.thread_ctx[i].req_heap_size = 0;
+				_global.thread_ctx[i].req_heap_size = 0;
 
-				if(pthread_create(&_ctx.thread_ctx[i].thread, NULL, _client_main, _ctx.thread_ctx + i) != 0)
+				if(pthread_create(&_global.thread_ctx[i].thread, NULL, _client_main, _global.thread_ctx + i) != 0)
 					ERROR_LOG_ERRNO_GOTO(THREAD_ERR, "Cannot start the new client thread #%u", i);
 
+				while(!_global.thread_ctx[i].started);
+				
 				continue;
 THREAD_ERR:
-				if(NULL != _ctx.thread_ctx[i].req_buf) free(_ctx.thread_ctx[i].req_buf);
-				if(NULL != _ctx.thread_ctx[i].add_queue) free(_ctx.thread_ctx[i].add_queue);
-				if(NULL != _ctx.thread_ctx[i].req_heap) free(_ctx.thread_ctx[i].req_heap);
+				if(NULL != _global.thread_ctx[i].req_buf) free(_global.thread_ctx[i].req_buf);
+				if(NULL != _global.thread_ctx[i].add_queue) free(_global.thread_ctx[i].add_queue);
+				if(NULL != _global.thread_ctx[i].req_heap) free(_global.thread_ctx[i].req_heap);
 
-				_ctx.thread_ctx[i].req_buf = NULL;
-				_ctx.thread_ctx[i].add_queue = NULL;
-				_ctx.thread_ctx[i].req_heap = NULL;
+				_global.thread_ctx[i].req_buf = NULL;
+				_global.thread_ctx[i].add_queue = NULL;
+				_global.thread_ctx[i].req_heap = NULL;
 				rc = ERROR_CODE(int);
 				break;
 			}
 		}
-		if(pthread_mutex_unlock(&_ctx.mutex) != 0)
+		if(pthread_mutex_unlock(&_global.mutex) != 0)
 			LOG_WARNING_ERRNO("Cannot reloase the global mutex lock");
 	}
 
@@ -499,21 +549,21 @@ static inline int _thread_cleanup(void)
 	int rc = 0;
 	uint32_t i;
 
-	for(i = 0; i < _ctx.num_threads; i ++)
+	for(i = 0; i < _global.num_threads; i ++)
 	{
-		if(_ctx.thread_ctx[i].started)
+		if(_global.thread_ctx[i].started)
 		{
-			_ctx.thread_ctx[i].killed = 1;
+			_global.thread_ctx[i].killed = 1;
 
 			uint64_t val = 1;
 			int term_rc = 0;
-			if(write(_ctx.thread_ctx[i].event_fd, &val, sizeof(val)) != sizeof(uint64_t))
+			if(write(_global.thread_ctx[i].event_fd, &val, sizeof(val)) != sizeof(uint64_t))
 			{
 				LOG_ERROR_ERRNO("Cannot write event to the event FD for client thread #%u", i);
 				term_rc = ERROR_CODE(int);
 			}
 
-			if(term_rc == 0 && pthread_join(_ctx.thread_ctx[i].thread, NULL) != 0)
+			if(term_rc == 0 && pthread_join(_global.thread_ctx[i].thread, NULL) != 0)
 			{
 				LOG_ERROR_ERRNO("Cannot join the client thread #%u", i);
 				term_rc = ERROR_CODE(int);
@@ -522,23 +572,22 @@ static inline int _thread_cleanup(void)
 			if(term_rc == ERROR_CODE(int)) rc = ERROR_CODE(int);
 		}
 
-		if(NULL != _ctx.thread_ctx[i].req_buf) free(_ctx.thread_ctx[i].req_buf);
-		if(NULL != _ctx.thread_ctx[i].add_queue) free(_ctx.thread_ctx[i].add_queue);
-		if(NULL != _ctx.thread_ctx[i].req_heap) free(_ctx.thread_ctx[i].req_heap);
+		if(NULL != _global.thread_ctx[i].req_buf) free(_global.thread_ctx[i].req_buf);
+		if(NULL != _global.thread_ctx[i].add_queue) free(_global.thread_ctx[i].add_queue);
+		if(NULL != _global.thread_ctx[i].req_heap) free(_global.thread_ctx[i].req_heap);
 
-		if(NULL != _ctx.thread_ctx[i].curlm) curl_multi_cleanup(_ctx.thread_ctx[i].curlm);
-		if(_ctx.thread_ctx[i].event_fd > 0 && close(_ctx.thread_ctx[i].event_fd) < 0)
+		if(NULL != _global.thread_ctx[i].curlm) curl_multi_cleanup(_global.thread_ctx[i].curlm);
+		if(_global.thread_ctx[i].event_fd > 0 && close(_global.thread_ctx[i].event_fd) < 0)
 		{
 			LOG_ERROR_ERRNO("Cannot close the event FD for the client thread #%u", i);
 			rc = ERROR_CODE(int);
 		}
-		if(_ctx.thread_ctx[i].epoll_fd > 0 && close(_ctx.thread_ctx[i].epoll_fd) < 0)
+		if(_global.thread_ctx[i].epoll_fd > 0 && close(_global.thread_ctx[i].epoll_fd) < 0)
 		{
 			LOG_ERROR_ERRNO("Cannot close the epoll FD for the client thread #%u", i);
 			rc = ERROR_CODE(int);
 		}
-
-		if(0 != pthread_mutex_destroy(&_ctx.thread_ctx[i].writer_mutex))
+		if(0 != (errno = pthread_mutex_destroy(&_global.thread_ctx[i].writer_mutex)))
 		{
 			LOG_ERROR_ERRNO("Cannot dispose the writer mutex for client thread #%u", i);
 			rc = ERROR_CODE(int);
@@ -557,31 +606,39 @@ static inline int _thread_cleanup(void)
  **/
 static inline int _thread_init(void)
 {
-	_thread_ctx_t* buf = _ctx.thread_ctx;
+	_thread_ctx_t* buf = _global.thread_ctx;
 
-	if(_ctx.thread_ctx == NULL)
-		buf = _ctx.thread_ctx = (_thread_ctx_t*)malloc(sizeof(*_ctx.thread_ctx));
-	else if(_ctx.num_threads == _ctx.thread_cap)
-		buf = (_thread_ctx_t*)realloc(_ctx.thread_ctx, sizeof(*_ctx.thread_ctx) * (1 + _ctx.thread_cap));
+	if(_global.thread_ctx == NULL)
+		buf = _global.thread_ctx = (_thread_ctx_t*)malloc(sizeof(*_global.thread_ctx));
+	else if(_global.num_threads == _global.thread_cap)
+		buf = (_thread_ctx_t*)realloc(_global.thread_ctx, sizeof(*_global.thread_ctx) * (1 + _global.thread_cap));
 
 	if(buf == NULL) ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the new thread context");
 
-	_ctx.thread_ctx = buf;
+	_global.thread_ctx = buf;
 
-	if(_ctx.num_threads == _ctx.thread_cap)
-		_ctx.thread_cap ++;
+	if(_global.num_threads == _global.thread_cap)
+		_global.thread_cap ++;
 
-	memset(_ctx.thread_ctx + _ctx.num_threads, 0, sizeof(*_ctx.thread_ctx));
+	memset(_global.thread_ctx + _global.num_threads, 0, sizeof(*_global.thread_ctx));
 
-	_thread_ctx_t* current = _ctx.thread_ctx + _ctx.num_threads;
+	_thread_ctx_t* current = _global.thread_ctx + _global.num_threads;
 
-	current->tid = (_ctx.num_threads & 0x3fffffffu);
+	current->tid = (_global.num_threads & 0x3fffffffu);
 
 	if(NULL == (current->curlm = curl_multi_init()))
 		ERROR_LOG_GOTO(ERR, "Cannot initialize the CURL Multi interface");
 
 	if(CURLM_OK != curl_multi_setopt(current->curlm, CURLMOPT_SOCKETFUNCTION, _curl_socket_func))
 		ERROR_LOG_GOTO(ERR, "Cannot setup the socket callback function for the CURLM");
+
+	if(CURLM_OK != curl_multi_setopt(current->curlm, CURLMOPT_TIMERFUNCTION, _curl_timeout_func))
+		ERROR_LOG_GOTO(ERR, "Cannot setup the timer function for the CURLM");
+
+	if(CURLM_OK != curl_multi_setopt(current->curlm, CURLMOPT_TIMERDATA, current))
+		ERROR_LOG_GOTO(ERR, "Cannot set the data used by timer callback function");
+
+	current->timeout = 0;
 
 	if(-1 == (current->epoll_fd = epoll_create1(0)))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create epoll for the HTTP client thread");
@@ -599,7 +656,7 @@ static inline int _thread_init(void)
 	if(-1 == epoll_ctl(current->epoll_fd, EPOLL_CTL_ADD, current->event_fd, &event))
 		ERROR_LOG_GOTO(ERR, "Cannot add event FD to the HTTP client thread");
 
-	_ctx.num_threads ++;
+	_global.num_threads ++;
 
 	return 0;
 ERR:
@@ -611,33 +668,33 @@ ERR:
 
 int client_init(uint32_t queue_size, uint32_t parallel_limit, uint32_t num_threads)
 {
-	if(_ctx.ref_cnt == 0)
+	if(_global.ref_cnt == 0)
 	{
 		LOG_DEBUG("Initializing libcurl");
 		CURLcode rc;
 		if(0 != (rc = curl_global_init(CURL_GLOBAL_ALL)))
 			ERROR_RETURN_LOG(int, "Cannnot initialize libcurl: %s", curl_easy_strerror(rc));
 
-		if(0 != pthread_mutex_init(&_ctx.mutex, NULL))
+		if(0 != pthread_mutex_init(&_global.mutex, NULL))
 			ERROR_RETURN_LOG_ERRNO(int, "Cannot intialize the global client mutex");
 
-		_ctx.queue_size = 128;
-		_ctx.pr_limit = 32;
-		_ctx.num_threads = 0;
+		_global.queue_size = 128;
+		_global.pr_limit = 32;
+		_global.num_threads = 0;
 	}
 
-	while(_ctx.num_threads < num_threads)
+	while(_global.num_threads < num_threads)
 		if(ERROR_CODE(int) == _thread_init())
 		{
-			if(_ctx.ref_cnt == 0) curl_global_cleanup();
+			if(_global.ref_cnt == 0) curl_global_cleanup();
 			ERROR_RETURN_LOG(int, "Cannot initialize the new thread");
 		}
 
-	if(_ctx.pr_limit < parallel_limit) _ctx.pr_limit = parallel_limit;
+	if(_global.pr_limit < parallel_limit) _global.pr_limit = parallel_limit;
 
-	for(;_ctx.queue_size < queue_size; _ctx.queue_size <<= 1);
+	for(;_global.queue_size < queue_size; _global.queue_size <<= 1);
 	
-	_ctx.ref_cnt ++;
+	_global.ref_cnt ++;
 	
 	return 0;
 }
@@ -645,11 +702,9 @@ int client_init(uint32_t queue_size, uint32_t parallel_limit, uint32_t num_threa
 int client_finalize(void)
 {
 	int ret = 0;
-	if(_ctx.ref_cnt > 0 && --_ctx.ref_cnt == 0)
+	if(_global.ref_cnt > 0 && --_global.ref_cnt == 0)
 	{
-		curl_global_cleanup();
-		
-		if(NULL != _ctx.thread_ctx)
+		if(NULL != _global.thread_ctx)
 		{
 			if(ERROR_CODE(int) == _thread_cleanup())
 			{
@@ -657,21 +712,24 @@ int client_finalize(void)
 				LOG_ERROR("Cannot cleanup the thread local data");
 			}
 
-			free(_ctx.thread_ctx);
+			free(_global.thread_ctx);
 		}
 
-		if(0 != pthread_mutex_destroy(&_ctx.mutex))
+		if(0 != pthread_mutex_destroy(&_global.mutex))
 			ERROR_RETURN_LOG_ERRNO(int, "Cannot dispose the global client mutex");
-
+		
+		curl_global_cleanup();
 	}
 
 	return ret;
 }
 
-int client_add_request(const char* url, async_handle_t* handle, int priority, int block, client_request_setup_func_t setup, void* setup_data, char** res_buf, size_t* size_buf)
+int client_add_request(const char* url, async_handle_t* handle, int priority, int block, 
+		               client_request_setup_func_t setup, void* setup_data, char** res_buf, 
+					   size_t* size_buf, CURLcode* curl_rc)
 {
 	int ret = 0;
-	if(NULL == url || NULL == handle || priority < 0 || res_buf == NULL || size_buf == NULL)
+	if(NULL == url || NULL == handle || priority < 0 || res_buf == NULL || size_buf == NULL || curl_rc == NULL)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(ERROR_CODE(int) == _ensure_threads_started())
@@ -679,28 +737,32 @@ int client_add_request(const char* url, async_handle_t* handle, int priority, in
 
 	static __thread uint32_t round_ronbin_next = 0;
 
-	_thread_ctx_t* thread = _ctx.thread_ctx + (round_ronbin_next ++);
+	_thread_ctx_t* thread = _global.thread_ctx + (round_ronbin_next ++);
 
-	if(round_ronbin_next >= _ctx.num_threads) round_ronbin_next = 0;
+	if(round_ronbin_next >= _global.num_threads) round_ronbin_next = 0;
 
 	if(!block)
 	{
-		if(((thread->add_queue_rear - thread->add_queue_front) & (_ctx.queue_size - 1)) == _ctx.queue_size)
+		if(((thread->add_queue_rear - thread->add_queue_front) & (_global.queue_size - 1)) == _global.queue_size)
 			return 0;
 
-		if(pthread_mutex_trylock(&thread->writer_mutex) < 0)
+		if((errno = pthread_mutex_trylock(&thread->writer_mutex)) != 0)
 		{
 			/* Detect the case that the mutex has been used, thus non-blocking posting failed */
 			if(errno == EBUSY) 
 				return 0;
 			else
-				ERROR_RETURN_LOG(int, "Cannot acquire the writer mutex for client thread #%u", thread->tid);
+				ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the writer mutex for client thread #%u", thread->tid);
 		}
+
+		/* Well if at this time it's blocked, then we should exit directly since is non-blocking mode */
+		if(((thread->add_queue_rear - thread->add_queue_front) & (_global.queue_size - 1)) == _global.queue_size)
+			goto EXIT;
 	}
-	else if(pthread_mutex_lock(&thread->writer_mutex) < 0)
+	else if(pthread_mutex_lock(&thread->writer_mutex) != 0)
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the writer mutex for client thread #%u", thread->tid);
 
-	for(;((thread->add_queue_rear - thread->add_queue_front) & (_ctx.queue_size - 1)) == _ctx.queue_size;)
+	for(;((thread->add_queue_rear - thread->add_queue_front) & (_global.queue_size - 1)) == _global.queue_size;)
 		if(pthread_cond_wait(&thread->writer_cond, &thread->writer_mutex) < 0)
 			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot wait for the condition variable");
 
@@ -708,31 +770,39 @@ int client_add_request(const char* url, async_handle_t* handle, int priority, in
 	_req_t* req = thread->req_buf + idx;
 	thread->unused = req->next_unused;
 
-	/* TODO: fill all the fields for that request */
 	req->setup_cb = setup;
 	req->setup_data = setup_data;
 	req->in_use = 1;
-	req->epolled = 0;
 	req->priority = priority;
 	req->url = url;
 	req->curl_handle = NULL;
 	req->result_buf = res_buf;
 	req->result_size_buf = size_buf;
+	req->curl_rc_buf = curl_rc;
+	req->async_handle = handle;
 
 	*size_buf = 0;
 	*res_buf  = NULL;
 	req->buf_cap = 0;
+	*curl_rc = CURLE_GOT_NOTHING;
+
+	thread->add_queue[thread->add_queue_rear] = idx;
+
+	BARRIER();
+	thread->add_queue_rear ++;
 
 	/* Finally wake up the epoll */
 	uint64_t val = 1;
 	if(write(thread->event_fd, &val, sizeof(val)) < 0)
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot write event FD for thread #%u", thread->tid);
 
+	ret = 1;
+
 	goto EXIT;
 ERR:
 	ret = ERROR_CODE(int);
 EXIT:
-	if(pthread_mutex_unlock(&thread->writer_mutex) < 0)
+	if(pthread_mutex_unlock(&thread->writer_mutex) != 0)
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the writer mutex for client thread #%u", thread->tid);
 
 	return ret;
