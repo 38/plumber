@@ -1,0 +1,91 @@
+.TEXT test_case_1
+{
+	"request": {
+		"url": "http://plumberserver.com/index.html",
+		"data": "",
+		"priority": 0,
+		"method": 0
+	}
+}
+.END
+.TEXT test_case_2
+{
+	"request": {
+		"url": "http://plumberserver.com/",
+		"data": "",
+		"priority": 0,
+		"method": 0
+	}
+}
+.END
+.TEXT test_case_3
+{
+	"request": {
+		"url": "https://google.com/",
+		"data": "",
+		"priority": 0,
+		"method": 0
+	}
+}
+.END
+.TEXT test_case_4
+{
+	"request": {
+		"url": "http://localhost:8080/",
+		"data": "",
+		"priority": 0,
+		"method": 0
+	}
+}
+.END
+.TEXT test_case_5
+{
+	"request": {
+		"url": "http://utah.edu/index.html",
+		"data": "",
+		"priority": 0,
+		"method": 0
+	}
+}
+.END
+.TEXT test_case_6
+{
+	"request": {
+		"url": "ftp://mirror.cs.utah.edu/apache.org/HEADER.html",
+		"data": "",
+		"priority": "",
+		"method": 0
+	}
+}
+.END
+.TEXT test_case_7
+{
+	"request": {
+		"url": "file:///tmp/a.vim",
+		"data": "",
+		"priority": "",
+		"method": 0
+	}
+}
+.END
+.TEXT test_case_8
+{
+	"request": {
+		"url": "badscheme://bad.url",
+		"data": "",
+		"priority": 0,
+		"method": 0
+	}
+}
+.END
+.TEXT test_case_9
+{
+	"request": {
+		"url": "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_175k.mov",
+		"data": "",
+		"priority": 0,
+		"method": 0
+	}
+}
+.END
+.STOP

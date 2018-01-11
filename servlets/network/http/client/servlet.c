@@ -380,7 +380,7 @@ static int _async_cleanup(async_handle_t* handle, void* data, void* ctxbuf)
 		ERROR_LOG_GOTO(ERR, "The async task returns an error");
 
 	if(abuf->request.curl_rc != CURLE_OK)
-		ERROR_LOG_GOTO(ERR, "The curl returns an error: %s", curl_easy_strerror(abuf->request.curl_rc));
+		ERROR_LOG_GOTO(ERR, "Curl returns an error: %s (URI: %s)", curl_easy_strerror(abuf->request.curl_rc), abuf->request.uri);
 
 	int rc = _write_string(inst, ctx->res_body_acc, abuf->request.result, abuf->request.result_sz);
 	abuf->request.result = NULL;
