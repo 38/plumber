@@ -299,10 +299,10 @@ static inline void* _sched_main(void* data)
 				if(context->rear != context->front) break;
 				if((errno = pthread_cond_timedwait(&context->cond, &context->mutex, &abstime)) != 0 && errno != ETIMEDOUT && errno != EINTR)
 				    LOG_WARNING_ERRNO("Cannot finish pthread_cond_timedwait");
-				if(_killed) 
+				if(_killed)
 				{
-					if((errno = pthread_mutex_unlock(&context->mutex)) != 0) 
-						LOG_WARNING_ERRNO("Cannot release the scheduler event mutex");
+					if((errno = pthread_mutex_unlock(&context->mutex)) != 0)
+					    LOG_WARNING_ERRNO("Cannot release the scheduler event mutex");
 					goto KILLED;
 				}
 				abstime.tv_sec ++;

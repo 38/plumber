@@ -30,7 +30,7 @@ typedef struct {
 	uint32_t                     save_header:1;  /*!< If we want to save header for the request */
 
 	async_handle_t*              async_handle;   /*!< The async handle */
-	
+
 	char*                        result;     /*!< The buffer to return result */
 	size_t                       result_sz; /*!< The result size buffer */
 
@@ -50,7 +50,7 @@ typedef struct {
  * @param num_threads The lower bound of the number of threads
  * @return status code
  * @note Since the client threads are shared among all the client servlet instances, and each of the
- *       servlet might request for different queue size, parallel limit and number of threads. 
+ *       servlet might request for different queue size, parallel limit and number of threads.
  *       In this case, the client library will satisify requests of all the threads
  **/
 int client_init(uint32_t queue_size, uint32_t parallel_limit, uint32_t num_threads);

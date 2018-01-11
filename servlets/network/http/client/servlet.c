@@ -64,14 +64,14 @@ static inline int _opt_callback(pstd_option_data_t data)
 		case 'T':
 		case 'Q':
 		case 'P':
-			*(uint32_t*)((char*)data.current_option->args + (uintptr_t)data.cb_data) = (uint32_t)data.param_array[0].intval;
-			break;
+		    *(uint32_t*)((char*)data.current_option->args + (uintptr_t)data.cb_data) = (uint32_t)data.param_array[0].intval;
+		    break;
 		case 'H':
 		case 'f':
-			*(uint32_t*)((char*)data.current_option->args + (uintptr_t)data.cb_data) = 1;
-			break;
+		    *(uint32_t*)((char*)data.current_option->args + (uintptr_t)data.cb_data) = 1;
+		    break;
 		default:
-			ERROR_RETURN_LOG(int, "Invalid options");
+		    ERROR_RETURN_LOG(int, "Invalid options");
 	}
 
 	return 0;
@@ -87,7 +87,7 @@ static int _init(uint32_t argc, char const* const* argv, void* data)
 	ctx->queue_size   = 1024;
 	ctx->save_header  = 0;
 	ctx->follow_redir = 0;
-	
+
 	static pstd_option_t opts[] = {
 		{
 			.long_opt    = "help",
@@ -140,10 +140,10 @@ static int _init(uint32_t argc, char const* const* argv, void* data)
 	};
 
 	if(ERROR_CODE(int) == pstd_option_sort(opts, sizeof(opts) / sizeof(opts[0])))
-		ERROR_RETURN_LOG(int, "Cannot sort the options array");
+	    ERROR_RETURN_LOG(int, "Cannot sort the options array");
 
 	if(ERROR_CODE(uint32_t) == pstd_option_parse(opts, sizeof(opts) / sizeof(opts[0]), argc, argv, ctx))
-		ERROR_RETURN_LOG(int, "Cannot parse the servlet initialization string");
+	    ERROR_RETURN_LOG(int, "Cannot parse the servlet initialization string");
 
 	/**
 	 * TODO: What if the data payload is extermely large ? We need to make the data section be a file token as well
@@ -151,52 +151,52 @@ static int _init(uint32_t argc, char const* const* argv, void* data)
 	ctx->request = pipe_define("request", PIPE_INPUT, "plumber/std_servlet/network/http/client/v0/Request");
 
 	/**
-	 * TODO: even though returning a string might be an option when the response is small. 
-	 *       However for the larger response we finally needs to wrap the CURL object into a 
+	 * TODO: even though returning a string might be an option when the response is small.
+	 *       However for the larger response we finally needs to wrap the CURL object into a
 	 *       request local token. Thus we can read the result whever we need them
 	 **/
 	ctx->response = pipe_define("response", PIPE_OUTPUT, "plumber/std_servlet/network/http/client/v0/Response");
 
 	if(ERROR_CODE(int) == client_init(ctx->queue_size, ctx->num_parallel, ctx->num_threads))
-		ERROR_RETURN_LOG(int, "Cannot intialize the client library");
+	    ERROR_RETURN_LOG(int, "Cannot intialize the client library");
 
 	if(NULL == (ctx->type_model = pstd_type_model_new()))
-		ERROR_RETURN_LOG(int, "Cannot create the type model for this servlet");
+	    ERROR_RETURN_LOG(int, "Cannot create the type model for this servlet");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->url_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->request, "url.token")))
-		ERROR_RETURN_LOG(int, "Cannot get the field accessor for request.url.token");
+	    ERROR_RETURN_LOG(int, "Cannot get the field accessor for request.url.token");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->method_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->request, "method")))
-		ERROR_RETURN_LOG(int, "Cannot get the field accessor for request.method");
+	    ERROR_RETURN_LOG(int, "Cannot get the field accessor for request.method");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->data_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->request, "data.token")))
-		ERROR_RETURN_LOG(int, "Cannot get the field accessor for request.data.token");
+	    ERROR_RETURN_LOG(int, "Cannot get the field accessor for request.data.token");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->priority_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->request, "priority")))
-		ERROR_RETURN_LOG(int, "Cannot get the field accessor for request.priority");
+	    ERROR_RETURN_LOG(int, "Cannot get the field accessor for request.priority");
 
 	/* TODO: handle the larger response at this point */
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->res_body_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->response, "body.token")))
-		ERROR_RETURN_LOG(int, "Cannot get the field accessor for response.body.token");
+	    ERROR_RETURN_LOG(int, "Cannot get the field accessor for response.body.token");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->res_header_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->response, "header.token")))
-		ERROR_RETURN_LOG(int, "Cannot get the field accessor for response.header.token");
+	    ERROR_RETURN_LOG(int, "Cannot get the field accessor for response.header.token");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->res_status_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->response, "status")))
-		ERROR_RETURN_LOG(int, "Cannot get the field accessor for response.header.status");
+	    ERROR_RETURN_LOG(int, "Cannot get the field accessor for response.header.status");
 
 	/* Load the constants */
 	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->request, "GET", &ctx->methods.GET))
-		ERROR_RETURN_LOG(int, "Cannot get the constant for method GET");
+	    ERROR_RETURN_LOG(int, "Cannot get the constant for method GET");
 
 	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->request, "POST", &ctx->methods.POST))
-		ERROR_RETURN_LOG(int, "Cannot get the constant for method POST");
-	
+	    ERROR_RETURN_LOG(int, "Cannot get the constant for method POST");
+
 	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->request, "PUT", &ctx->methods.PUT))
-		ERROR_RETURN_LOG(int, "Cannot get the constant for method POST");
-	
+	    ERROR_RETURN_LOG(int, "Cannot get the constant for method POST");
+
 	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->request, "HEAD", &ctx->methods.HEAD))
-		ERROR_RETURN_LOG(int, "Cannot get the constant for method POST");
+	    ERROR_RETURN_LOG(int, "Cannot get the constant for method POST");
 
 	return 1;
 }
@@ -205,10 +205,10 @@ static int _cleanup(void* data)
 {
 	ctx_t* ctx = (ctx_t*)data;
 	if(ERROR_CODE(int) == client_finalize())
-		ERROR_RETURN_LOG(int, "Cannot finalize the client library");
+	    ERROR_RETURN_LOG(int, "Cannot finalize the client library");
 
 	if(NULL != ctx->type_model && ERROR_CODE(int) == pstd_type_model_free(ctx->type_model))
-		ERROR_RETURN_LOG(int, "Cannot dispose the type model");
+	    ERROR_RETURN_LOG(int, "Cannot dispose the type model");
 
 	return 0;
 }
@@ -221,33 +221,33 @@ static int _setup_request(CURL* handle, void* data)
 	if(buf->data != NULL && buf->data[0] != 0)
 	{
 		if(CURLE_OK != (curl_rc = curl_easy_setopt(handle, CURLOPT_POSTFIELDS, buf->data)))
-			ERROR_RETURN_LOG(int, "Cannot set the POST data fields: %s", curl_easy_strerror(curl_rc));
+		    ERROR_RETURN_LOG(int, "Cannot set the POST data fields: %s", curl_easy_strerror(curl_rc));
 
 	}
 
 	if(buf->follow && CURLE_OK != (curl_rc = curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1)))
-		ERROR_RETURN_LOG(int, "Cannot set the follow redirection option: %s", curl_easy_strerror(curl_rc));
+	    ERROR_RETURN_LOG(int, "Cannot set the follow redirection option: %s", curl_easy_strerror(curl_rc));
 
 	switch(buf->method)
 	{
 		case POST:
-			curl_rc = curl_easy_setopt(handle, CURLOPT_HTTPPOST, 1);
-			break;
+		    curl_rc = curl_easy_setopt(handle, CURLOPT_HTTPPOST, 1);
+		    break;
 		case GET:
-			curl_rc = curl_easy_setopt(handle, CURLOPT_HTTPGET, 1);
-			break;
+		    curl_rc = curl_easy_setopt(handle, CURLOPT_HTTPGET, 1);
+		    break;
 		case PUT:
-			curl_rc = curl_easy_setopt(handle, CURLOPT_PUT, 1);
-			break;
+		    curl_rc = curl_easy_setopt(handle, CURLOPT_PUT, 1);
+		    break;
 		case HEAD:
-			curl_rc = curl_easy_setopt(handle, CURLOPT_NOBODY, 1);
-			break;
+		    curl_rc = curl_easy_setopt(handle, CURLOPT_NOBODY, 1);
+		    break;
 		default:
-			curl_rc = CURLE_OK;
+		    curl_rc = CURLE_OK;
 	}
 
 	if(CURLE_OK != curl_rc)
-		ERROR_RETURN_LOG(int, "Cannot set HTTP request method: %s", curl_easy_strerror(curl_rc));
+	    ERROR_RETURN_LOG(int, "Cannot set HTTP request method: %s", curl_easy_strerror(curl_rc));
 
 	return 0;
 }
@@ -260,24 +260,24 @@ static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 	memset(abuf, 0, sizeof(*abuf));
 
 	pstd_type_instance_t* inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model);
-	if(NULL == inst) 
-		ERROR_RETURN_LOG(int, "Cannot create new type instance from the type model");
+	if(NULL == inst)
+	    ERROR_RETURN_LOG(int, "Cannot create new type instance from the type model");
 
 	scope_token_t url_tok = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->url_acc);
-	if(ERROR_CODE(scope_token_t) == url_tok) 
-		ERROR_LOG_GOTO(ERR, "Cannot read URL token");
+	if(ERROR_CODE(scope_token_t) == url_tok)
+	    ERROR_LOG_GOTO(ERR, "Cannot read URL token");
 
 	const pstd_string_t* str = pstd_string_from_rls(url_tok);
 	if(NULL == str || NULL == (abuf->request.uri = pstd_string_value(str)))
-		ERROR_LOG_GOTO(ERR, "Cannot get the value of tstring for the URL");
+	    ERROR_LOG_GOTO(ERR, "Cannot get the value of tstring for the URL");
 
 	scope_token_t data_tok = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->data_acc);
 	if(ERROR_CODE(scope_token_t) == data_tok)
-		ERROR_LOG_GOTO(ERR, "Cannot read data token");
+	    ERROR_LOG_GOTO(ERR, "Cannot read data token");
 
 	str = pstd_string_from_rls(data_tok);
 	if(NULL == str || NULL == (abuf->data = pstd_string_value(str)))
-		ERROR_LOG_GOTO(ERR, "Cannot get the value of the data string for the request");
+	    ERROR_LOG_GOTO(ERR, "Cannot get the value of the data string for the request");
 
 
 	uint32_t method = PSTD_TYPE_INST_READ_PRIMITIVE(uint32_t, inst, ctx->method_acc);
@@ -287,20 +287,20 @@ static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 	if(strncmp(abuf->request.uri, "http", 4) == 0 && (abuf->request.uri[4] == ':' || (abuf->request.uri[4] == 's' && abuf->request.uri[5] == ':')))
 	{
 		if(ctx->methods.GET == method)
-			abuf->method = GET;
+		    abuf->method = GET;
 		else if(ctx->methods.POST == method)
-			abuf->method = POST;
+		    abuf->method = POST;
 		else if(ctx->methods.PUT == method)
-			abuf->method = PUT;
+		    abuf->method = PUT;
 		else if(ctx->methods.HEAD == method)
-			abuf->method = HEAD;
+		    abuf->method = HEAD;
 		else
-			ERROR_LOG_GOTO(ERR, "Invalid method code");
+		    ERROR_LOG_GOTO(ERR, "Invalid method code");
 	}
 
 	/* Finally we need to read the priority */
 	if(ERROR_CODE(int32_t) == (abuf->request.priority = PSTD_TYPE_INST_READ_PRIMITIVE(int32_t, inst, ctx->priority_acc)))
-		ERROR_LOG_GOTO(ERR, "Cannot read the priority from the input");
+	    ERROR_LOG_GOTO(ERR, "Cannot read the priority from the input");
 
 	abuf->request.save_header = (ctx->save_header != 0);
 
@@ -309,18 +309,18 @@ static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 	abuf->request.setup_data = abuf;
 
 	abuf->follow = (ctx->follow_redir != 0);
-		
+
 	if(ERROR_CODE(int) == async_cntl(handle, ASYNC_CNTL_SET_WAIT))
-		ERROR_LOG_GOTO(ERR, "Cannot make the async task into wait mode");
+	    ERROR_LOG_GOTO(ERR, "Cannot make the async task into wait mode");
 
 	int rc = client_add_request(&abuf->request, 0);
 
 	LOG_DEBUG("Client servlet started processing request %s async_handle = %p", abuf->request.uri, handle);
 
 	if(rc == ERROR_CODE(int))
-		ERROR_LOG_GOTO(ERR, "Cannot add request to the request queue");
-	else if(rc == 0) 
-		LOG_DEBUG("The queue is currently full, try to add request asynchronously");
+	    ERROR_LOG_GOTO(ERR, "Cannot add request to the request queue");
+	else if(rc == 0)
+	    LOG_DEBUG("The queue is currently full, try to add request asynchronously");
 	else
 	{
 		LOG_DEBUG("The request has been added to the queue successfully");
@@ -339,7 +339,7 @@ static inline int _write_string(pstd_type_instance_t* inst, pstd_type_accessor_t
 	{
 		pstd_string_t* rls_obj = pstd_string_from_onwership_pointer(str, sz);
 
-		if(rls_obj == NULL) 
+		if(rls_obj == NULL)
 		{
 			free(str);
 			ERROR_RETURN_LOG(int, "Cannot create RLS object from the string");
@@ -347,14 +347,14 @@ static inline int _write_string(pstd_type_instance_t* inst, pstd_type_accessor_t
 
 		scope_token_t tok = pstd_string_commit(rls_obj);
 
-		if(ERROR_CODE(scope_token_t) == tok) 
+		if(ERROR_CODE(scope_token_t) == tok)
 		{
 			pstd_string_free(rls_obj);
 			ERROR_RETURN_LOG(int, "Cannot dispose the RLS object to the scope");
 		}
 
 		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, acc, tok))
-			ERROR_RETURN_LOG(int, "Cannot write the token to pipe");
+		    ERROR_RETURN_LOG(int, "Cannot write the token to pipe");
 	}
 
 	return 0;
@@ -365,22 +365,22 @@ static int _async_cleanup(async_handle_t* handle, void* data, void* ctxbuf)
 	ctx_t* ctx = (ctx_t*)ctxbuf;
 	async_buf_t* abuf = (async_buf_t*)data;
 	int async_rc = 0;
-	
+
 	LOG_DEBUG("Client servlet finished processing request %s (handle = %p)", abuf->request.uri, handle);
 
 	pstd_type_instance_t* inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model);
 
-	if(NULL == inst) 
-		ERROR_RETURN_LOG(int, "Cannot create type instance from the type model");
+	if(NULL == inst)
+	    ERROR_RETURN_LOG(int, "Cannot create type instance from the type model");
 
 	if(ERROR_CODE(int) == async_cntl(handle, ASYNC_CNTL_RETCODE, &async_rc))
-		ERROR_LOG_GOTO(ERR, "Cannot access the return code of the async task");
+	    ERROR_LOG_GOTO(ERR, "Cannot access the return code of the async task");
 
 	if(async_rc == ERROR_CODE(int))
-		ERROR_LOG_GOTO(ERR, "The async task returns an error");
+	    ERROR_LOG_GOTO(ERR, "The async task returns an error");
 
 	if(abuf->request.curl_rc != CURLE_OK)
-		ERROR_LOG_GOTO(ERR, "Curl returns an error: %s (URI: %s)", curl_easy_strerror(abuf->request.curl_rc), abuf->request.uri);
+	    ERROR_LOG_GOTO(ERR, "Curl returns an error: %s (URI: %s)", curl_easy_strerror(abuf->request.curl_rc), abuf->request.uri);
 
 	int rc = _write_string(inst, ctx->res_body_acc, abuf->request.result, abuf->request.result_sz);
 	abuf->request.result = NULL;
@@ -391,12 +391,12 @@ static int _async_cleanup(async_handle_t* handle, void* data, void* ctxbuf)
 	abuf->request.header = NULL;
 
 	if(ERROR_CODE(int) == rc) ERROR_LOG_GOTO(ERR, "Cannot write result header to output");
-	
+
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, ctx->res_status_acc, abuf->request.status_code))
-		ERROR_LOG_GOTO(ERR, "Cannot write status code to the output");
+	    ERROR_LOG_GOTO(ERR, "Cannot write status code to the output");
 
 	if(ERROR_CODE(int) == pstd_type_instance_free(inst))
-		ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
+	    ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
 
 	return 0;
 ERR:
@@ -413,7 +413,7 @@ static int _async_exec(async_handle_t* handle, void* data)
 	if(abuf->posted == 1) return 0;
 
 	if(ERROR_CODE(int) == async_cntl(handle, ASYNC_CNTL_SET_WAIT))
-		ERROR_RETURN_LOG(int, "Cannot make the async task into wait mode");
+	    ERROR_RETURN_LOG(int, "Cannot make the async task into wait mode");
 
 	return 0;
 }
