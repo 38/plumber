@@ -27,5 +27,5 @@ addons:
             - git
 
 script:
-    - cmake . && make && make test
+    - lsb_release -a && cmake . && make && make test
 
