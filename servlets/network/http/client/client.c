@@ -461,9 +461,9 @@ static void* _client_main(void* data)
 			if(buf->setup_cb != NULL && ERROR_CODE(int) == buf->setup_cb(buf->curl_handle, buf->setup_data))
 			    ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot configure the CURL handle");
 
-			rc = curl_multi_add_handle(ctx->curlm, buf->curl_handle);
-			if(rc != CURLE_OK)
-			    ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot add the handle to CURL: %s", curl_multi_strerror(rc));
+			CURLMcode mrc = curl_multi_add_handle(ctx->curlm, buf->curl_handle);
+			if(mrc != CURLE_OK)
+			    ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot add the handle to CURL: %s", curl_multi_strerror(mrc));
 
 			num_running_handle ++;
 
@@ -497,7 +497,7 @@ CURL_INIT_ERR:
 
 		if(ctx->req_buf[i].curl_handle != NULL)
 		{
-			CURLcode curl_rc = curl_multi_remove_handle(ctx->curlm, ctx->req_buf[i].curl_handle);
+			CURLMcode curl_rc = curl_multi_remove_handle(ctx->curlm, ctx->req_buf[i].curl_handle);
 			if(curl_rc != CURLE_OK)
 			    LOG_WARNING("Cannot remove the CURL easy handle from CURL multi object: %s", curl_multi_strerror(curl_rc));
 		}
