@@ -1,10 +1,10 @@
 /* 
 CaseBegin
 	Name: church_encoding_test
-	Expected: <1024>
+	Expected: <256>
 			  <1>
 			  <3>
-			  <1033>
+			  <265>
 			  <2>
 CaseEnd
 */
@@ -128,7 +128,7 @@ var ch_8 = ch_inc(ch_7);
 var ch_9 = ch_inc(ch_8);
 var ch_10 = ch_inc(ch_9);
 
-var ch_1k = ch_pow(ch_2, ch_10)
+var ch_1k = ch_pow(ch_2, ch_8)
 print(ch_get_val(ch_1k));
 print(ch_get_val(ch_mod(ch_mul(ch_5, ch_3), ch_7)));
 print(ch_get_val(ch_div(ch_10, ch_3)));
