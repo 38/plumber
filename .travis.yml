@@ -14,6 +14,7 @@ env:
 #apt-get install -y  --allow-unauthenticated git cmake gcc g++ uuid-dev libssl-dev doxygen pkg-config python2.7 libpython2.7-dev libreadline-dev zsh
 addons:
     apt:
+        sourceline: 0k53d-karl-f830m/openssl
         packages:
             - libcurl3
             - cmake
