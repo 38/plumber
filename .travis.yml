@@ -15,6 +15,7 @@ env:
 addons:
     apt:
         packages:
+            - valgrind
             - libcurl3
             - cmake
             - g++
