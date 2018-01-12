@@ -498,7 +498,7 @@ CURL_INIT_ERR:
 		if(ctx->req_buf[i].curl_handle != NULL)
 		{
 			CURLMcode curl_rc = curl_multi_remove_handle(ctx->curlm, ctx->req_buf[i].curl_handle);
-			if(curl_rc != CURLE_OK)
+			if(curl_rc != CURLM_OK)
 			    LOG_WARNING("Cannot remove the CURL easy handle from CURL multi object: %s", curl_multi_strerror(curl_rc));
 		}
 
