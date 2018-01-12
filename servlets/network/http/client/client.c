@@ -462,7 +462,7 @@ static void* _client_main(void* data)
 			    ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot configure the CURL handle");
 
 			CURLMcode mrc = curl_multi_add_handle(ctx->curlm, buf->curl_handle);
-			if(mrc != CURLE_OK)
+			if(mrc != CURLM_OK)
 			    ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot add the handle to CURL: %s", curl_multi_strerror(mrc));
 
 			num_running_handle ++;
