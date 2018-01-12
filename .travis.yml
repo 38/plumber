@@ -27,7 +27,7 @@ addons:
             - wget
             - git
 before_install:
-    - apt-get update && apt-get upgrade -y
+    - sudo apt-get update && sudo apt-get upgrade -y
 script:
     - lsb_release -a && cmake . && make && make test
 
