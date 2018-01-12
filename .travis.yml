@@ -26,6 +26,7 @@ addons:
             - libssl-dev
             - wget
             - git
+            - libc++-dev
 script:
     - lsb_release -a && cmake . && make && make test
 
