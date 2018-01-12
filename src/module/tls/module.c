@@ -33,6 +33,7 @@
 #include <module/tls/api.h>
 #include <module/tls/dra.h>
 
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
 /**
  * @brief The supported ALPN protocol names, it should be the NULL terminated strings
  **/
@@ -55,6 +56,7 @@ STATIC_ASSERTION_SIZE(_alpn_protocol_t, length, 1);
 STATIC_ASSERTION_SIZE(_alpn_protocol_t, name, 0);
 STATIC_ASSERTION_LAST(_alpn_protocol_t, name);
 STATIC_ASSERTION_FOLLOWS(_alpn_protocol_t, length, name);
+#endif
 
 /**
  * @brief the type describes the direction of the handle
@@ -112,10 +114,12 @@ typedef struct {
  **/
 struct _module_context_t{
 	SSL_CTX*                       ssl_context;   /*!< the SSL Context */
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
 	union {
 		_alpn_protocol_t*          alpn_protos;   /*!< The list of ALPN protocols */
 		uint8_t*                   alpn_data;     /*!< The ALPN protocol data */
 	};
+#endif
 	itc_module_type_t              transport_mod; /*!< the transportation layer module type */
 	uint32_t                       async_write;   /*!< indicates if we want to enable the asnyc write in the transportation layer */
 	mempool_objpool_t*             tls_pool;      /*!< the SSL context pool */
@@ -322,7 +326,9 @@ static int _init(void* __restrict ctx, uint32_t argc, char const* __restrict con
 	}
 
 
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
 	context->alpn_protos = NULL;
+#endif
 
 	LOG_TRACE("TLS context has been initialized!");
 
@@ -341,8 +347,10 @@ static int _cleanup(void* __restrict ctx)
 
 	SSL_CTX_free(context->ssl_context);
 
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
 	if(NULL !=  context->alpn_protos)
 	    free(context->alpn_protos);
+#endif
 
 	if(ERROR_CODE(int) == mempool_objpool_free(context->tls_pool))
 	{
@@ -1028,6 +1036,7 @@ RET:
 }
 
 
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
 /**
  * @brief Get the next ALPN protocol in the ALPN protocol list format
  * @param prev The previous protocl
@@ -1156,6 +1165,7 @@ static inline int _setup_alpn_support(_module_context_t* context, const char* or
 
 	return 1;
 }
+#endif
 
 /**
  * @brief the callback function to get the property
@@ -1299,6 +1309,7 @@ DHPARAM_ERR:
 			if(NULL != dh) DH_free(dh);
 			return ERROR_CODE(int);
 		}
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
 		_SYMBOL(_IS("ecdh_curve"))
 		{
 			const char* name = value.str;
@@ -1332,6 +1343,7 @@ DHPARAM_ERR:
 			    return ERROR_CODE(int);
 			return 1;
 		}
+#endif
 		else return 0;
 	}
 	else return 0;
@@ -1368,6 +1380,7 @@ static int  _cntl(void* __restrict context, void* __restrict pipe, uint32_t opco
 			}
 			break;
 		}
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
 		case MODULE_TLS_CNTL_ALPNPROTO:
 		{
 			char*  buf = va_arg(va_args, char*);
@@ -1390,6 +1403,7 @@ static int  _cntl(void* __restrict context, void* __restrict pipe, uint32_t opco
 
 			break;
 		}
+#endif
 		default:
 		    ERROR_RETURN_LOG(int, "Invalid opcode");
 	}
