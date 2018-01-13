@@ -29,7 +29,7 @@ addons:
             - libc++-dev
 before_install:
     - if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then brew update; fi
-    - if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then brew install cmake python@2 pkg-config openssl@1.1 ossp-uuid readline; fi
+    - if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then brew install cmake python pkg-config openssl ossp-uuid readline; fi
 script:
     - lsb_release -a && cmake . && make && make test
 
