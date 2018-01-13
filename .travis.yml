@@ -5,7 +5,7 @@ compiler:
 
 os:
     - linux
-    - osx
+#    - osx
 
 env:
     - L=6 O=5
