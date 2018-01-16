@@ -8,7 +8,7 @@ proto_inst   = r"@CMAKE_CURRENT_BINARY_DIR@/install-prototype.sh"
 
 servlet_name = sys.argv[1]
 
-proto_name   = r"/home/haohou/source/plumber/servlets/{name}/test/test.ptype".format(name = servlet_name)
+proto_name   = r"@CMAKE_CURRENT_SOURCE_DIR@/servlets/{name}/test/test.ptype".format(name = servlet_name)
 
 case_name = sys.argv[2]
 
