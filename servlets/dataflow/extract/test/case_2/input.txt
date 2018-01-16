@@ -1,0 +1,19 @@
+.TEXT test_case_1
+{
+	"input": {
+		"my_val": "this_is_expected",
+		"num_val": 3
+	}
+}
+.END
+
+.TEXT test_case_2
+{
+	"input": {
+		"my_val": "this_is_expected",
+		"num_val": 4
+	}
+}
+.END
+
+.STOP

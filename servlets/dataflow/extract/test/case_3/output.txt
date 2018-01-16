@@ -1,0 +1,8 @@
+.OUTPUT test_case_1
+{
+	"output": {
+		"my_val": "this_is_expected",
+		"num_val": 3
+	}
+}
+.END

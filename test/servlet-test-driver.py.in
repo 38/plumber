@@ -8,6 +8,8 @@ proto_inst   = r"@CMAKE_CURRENT_BINARY_DIR@/install-prototype.sh"
 
 servlet_name = sys.argv[1]
 
+proto_name   = r"/home/haohou/source/plumber/servlets/{name}/test/test.ptype".format(name = servlet_name)
+
 case_name = sys.argv[2]
 
 env = os.environ.copy()
@@ -15,6 +17,11 @@ env['PROTO_DB_ROOT'] = r"@CMAKE_CURRENT_BINARY_DIR@/bin/test/protodb.root"
 devnull = open(os.devnull, "wb");
 pi = subprocess.Popen(["/bin/sh", proto_inst], env = env, stdout = devnull, stderr = devnull)
 pi.wait()
+
+if os.path.exists(proto_name):
+    pi = subprocess.Popen([r"@CMAKE_CURRENT_BINARY_DIR@/bin/protoman", "-R", env['PROTO_DB_ROOT'], "--update", "--yes", "--force", proto_name], stdout = devnull, stderr = devnull)
+    pi.wait()
+
 
 valgrind = []
 

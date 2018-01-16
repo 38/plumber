@@ -1,0 +1,10 @@
+.OUTPUT test_case_1
+{
+	"output": 3
+}
+.END
+.OUTPUT test_case_2
+{
+	"output": 4
+}
+.END

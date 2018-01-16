@@ -1,0 +1,10 @@
+.OUTPUT test_case_1
+{
+	"output": "this_is_expected"
+}
+.END
+.OUTPUT test_case_2
+{
+	"output": "this_is_expected"
+}
+.END

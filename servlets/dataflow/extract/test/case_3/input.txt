@@ -1,0 +1,22 @@
+.TEXT test_case_1
+{
+	"input": {
+		"array": [
+			{
+				"my_val": "this_is_not_expected",
+				"num_val": 0
+			}, 
+			{
+				"my_val": "this_is_expected",
+				"num_val": 3
+			}, 
+			{
+				"my_val": "this_is_not_expected",
+				"num_val": 0
+			} 
+		]
+    }
+}
+.END
+
+.STOP

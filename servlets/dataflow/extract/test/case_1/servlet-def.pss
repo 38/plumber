@@ -1,0 +1,9 @@
+servlet_name = "dataflow/extract my_val";
+
+servlet_input = {
+	"input": "testing/dataflow/extract/test_type"
+};
+
+servlet_output = {
+	"output": "plumber/std/request_local/String"
+};

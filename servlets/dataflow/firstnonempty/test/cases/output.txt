@@ -1,0 +1,15 @@
+.OUTPUT test_case_1
+{
+	"out": 3
+}
+.END
+.OUTPUT test_case_2
+{
+	"out": 0
+}
+.END
+.OUTPUT test_case_3
+{
+	"out": 4
+}
+.END

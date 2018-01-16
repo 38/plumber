@@ -1,0 +1,9 @@
+servlet_name = "dataflow/extract array[1]";
+
+servlet_input = {
+	"input": "testing/dataflow/extract/test_array"
+};
+
+servlet_output = {
+	"output": "testing/dataflow/extract/test_type"
+};

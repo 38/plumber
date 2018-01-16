@@ -1,0 +1,19 @@
+.TEXT test_case_1
+{
+	"in3": 3,
+	"in4": 4
+}
+.END
+.TEXT test_case_2
+{
+	"in0": 0,
+	"in3": 3,
+	"in4": 4
+}
+.END
+.TEXT test_case_3
+{
+	"in4": 4
+}
+.END
+.STOP

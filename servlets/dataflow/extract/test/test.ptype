@@ -1,0 +1,13 @@
+package testing.dataflow.extract;
+
+type test_type_base {
+	plumber.std.request_local.String my_val;
+};
+
+type test_type : test_type_base {
+	int32 num_val;
+};
+
+type test_array {
+	test_type array[3];
+};
