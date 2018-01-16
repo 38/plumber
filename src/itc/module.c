@@ -1237,9 +1237,9 @@ int itc_module_pipe_is_touched(const itc_module_pipe_t* handle)
 
 	if((handle->pipe_flags & RUNTIME_API_PIPE_SHADOW) > 0)
 	   return !(handle->pipe_flags & RUNTIME_API_PIPE_DISABLED);
-		
+
 	if(handle->stat.type != _PSTAT_TYPE_OUTPUT)
-		ERROR_RETURN_LOG(int, "Wrong pipe types, expected output, got input");
+	    ERROR_RETURN_LOG(int, "Wrong pipe types, expected output, got input");
 
 	return handle->stat.o_touched && !handle->stat.error;
 }

@@ -160,8 +160,8 @@ static int parse_args(int argc, char** argv)
 			    eval_str = optarg;
 			    break;
 			case 'P':
-				proto_db_root = optarg;
-				break;
+			    proto_db_root = optarg;
+			    break;
 			default:
 			    display_help();
 			    properly_exit(1);
