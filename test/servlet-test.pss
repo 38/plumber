@@ -1,0 +1,65 @@
+#!/usr/bin/env pscript
+/**
+ * Copyright (C) 2018, Hao Hou
+ **/
+// The servlet testing framework
+import("service");
+import("testbed");
+import("options");
+
+insmod("pssm");
+insmod("mem_pipe");
+
+var template = Options.empty_template();
+Options.add_option(template, "--servlet-def", "-s", "The servlet definition file", 1, 1);
+Options.add_option(template, "--input", "-i", "The input event file", 1, 1);
+Options.add_option(template, "--output", "-o", "The output event file", 1, 1);
+Options.add_option(template, "--help", "-h", "Print the help message");
+
+var options = Options.parse(template, argv);
+
+var print_help = function() 
+{
+	print("The servlet test framework");
+	print("Usage: ", options["program"], " [arguments]");
+	print("Arguments:");
+	Options.print_help(template);
+}
+
+if(options["parsed"]["--help"] != undefined || 
+   len(options["unparsed"]) > 0 ||
+   options["parsed"]["--servlet-def"] == undefined ||
+   options["parsed"]["--input"] == undefined ||
+   options["parsed"]["--output"] == undefined)
+{
+	print_help();
+	exit(0);
+}
+
+import(options["parsed"]["--servlet-def"][0]);
+insmod("simulate input=" + options["parsed"]["--input"][0] + " output=" + options["parsed"]["--output"][0] + " label=test_events");
+
+var test_graph = {};
+
+Service.add_node(test_graph, "servlet", servlet_name);
+
+for(var name in servlet_input)
+{
+	Service.add_in_port(test_graph, name, "servlet", name);
+}
+
+for(var name in servlet_output)
+{
+	Service.add_out_port(test_graph, name, "servlet", name); 
+}
+
+Service.add_out_port(test_graph, "error", "servlet", "__error__");
+Service.add_out_port(test_graph, "null", "servlet", "__null__");
+
+servlet_output["error"] = "plumber/base/Raw";
+servlet_output["null"] = "plumber/base/Raw";
+
+scheduler.worker.nthreads = 1;
+scheduler.async.nthreads = 1;
+
+Service.start(Testbed.embed(test_graph, servlet_input, servlet_output));

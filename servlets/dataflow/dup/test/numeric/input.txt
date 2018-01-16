@@ -1,0 +1,13 @@
+.TEXT test_case_1
+{
+	"in": 1234
+}
+.END
+
+.TEXT test_case_2
+{
+	"in": 4321
+}
+.END
+
+.STOP

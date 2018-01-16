@@ -40,6 +40,15 @@ foreach(servlet_cmake ${servlet_cmakes})
 				install(TARGETS ${servlet_logical_name} DESTINATION lib/plumber/servlet/${NAMESPACE})
 			endif("${INSTALL}" STREQUAL "yes")
 			set(build_${servlet_config_name} "yes")
+			file(GLOB_RECURSE servlet_tests RELATIVE "${SOURCE_PATH}/test" "${SOURCE_PATH}/test/*/servlet-def.pss")
+			if(NOT "${servlet_tests}" STREQUAL "")
+				set(servlet_test_name ${NAMESPACE}/${servlet})
+				foreach(case_dir ${servlet_tests})
+					get_filename_component(servlet_test_case ${case_dir} DIRECTORY)
+					add_test("servlet_${servlet_config_name}_${servlet_test_case}" 
+						     python ${CMAKE_CURRENT_BINARY_DIR}/servlet-test-driver.py ${servlet_test_name} ${servlet_test_case})
+				endforeach(case_dir in ${servlet_tests})
+			endif(NOT "${servlet_tests}" STREQUAL "")
 		else(NOT "${build_${servlet_config_name}}" STREQUAL "no")
 			set(package_status "${package_status} -Dbuild_${servlet_config_name}=no")
 			set(build_${servlet_config_name} "no")
@@ -61,3 +70,8 @@ else("${SYSNAME}" STREQUAL "Darwin")
 endif("${SYSNAME}" STREQUAL "Darwin")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/servlet.mk" DESTINATION lib/plumber/)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/misc/servlet.cmake" DESTINATION lib/plumber/cmake/)
+
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/test/servlet-test-driver.py.in"
+	           "${CMAKE_CURRENT_BINARY_DIR}/servlet-test-driver.py")
+
+	

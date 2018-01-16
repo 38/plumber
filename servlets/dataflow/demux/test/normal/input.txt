@@ -1,0 +1,29 @@
+.TEXT test_case_1
+{
+	"cond": "first",
+	"data": "this should redirected to 0"
+}
+.END
+
+.TEXT test_case_2
+{
+	"cond": "second",
+	"data": "this should redirected to 1"
+}
+.END
+
+.TEXT test_case_3
+{
+	"cond": "third",
+	"data": "this should redirected to 2"
+}
+.END
+
+.TEXT test_case_4
+{
+	"cond": "none",
+	"data": "this should redirected to default"
+}
+.END
+
+.STOP

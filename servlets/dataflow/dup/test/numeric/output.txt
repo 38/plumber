@@ -1,0 +1,18 @@
+.OUTPUT test_case_1
+{
+	"out0": 1234, 
+	"out1": 1234, 
+	"out2": 1234, 
+	"out3": 1234, 
+	"out4": 1234
+}
+.END
+.OUTPUT test_case_2
+{
+	"out0": 4321, 
+	"out1": 4321, 
+	"out2": 4321, 
+	"out3": 4321, 
+	"out4": 4321
+}
+.END

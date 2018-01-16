@@ -1,0 +1,12 @@
+.OUTPUT test_case_1
+{"out0":"this should redirected to 0"}
+.END
+.OUTPUT test_case_2
+{"out1":"this should redirected to 1"}
+.END
+.OUTPUT test_case_3
+{"out2":"this should redirected to 2"}
+.END
+.OUTPUT test_case_4
+{"default":"this should redirected to default"}
+.END

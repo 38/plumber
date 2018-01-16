@@ -368,7 +368,11 @@ static inline int _exec_regex(context_t* ctx, pstd_type_instance_t* inst)
 	for(i = 0; i < ctx->ncond; i ++)
 	{
 		int rc = regexec(ctx->pattern_table.regex + i, str, 0, NULL, 0);
-		if(rc == 0) break;
+		if(rc == 0) 
+		{
+			picked = ctx->output[i];
+			break;
+		}
 		else if(rc != REG_NOMATCH)
 		{
 #ifdef LOG_ERROR_ENABLED

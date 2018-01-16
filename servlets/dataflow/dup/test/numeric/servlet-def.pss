@@ -1,0 +1,13 @@
+servlet_name = "dataflow/dup 5";
+
+servlet_input = {
+	"in": "int32"
+};
+
+servlet_output = {
+	"out0": "int32",
+	"out1": "int32",
+	"out2": "int32",
+	"out3": "int32",
+	"out4": "int32"
+};

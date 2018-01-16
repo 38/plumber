@@ -1,0 +1,29 @@
+.TEXT test_case_1
+{
+	"cond": "http://www.google.com/",
+	"data": "this should redirected to 0"
+}
+.END
+
+.TEXT test_case_2
+{
+	"cond": "https://www.google.com/",
+	"data": "this should redirected to 1"
+}
+.END
+
+.TEXT test_case_3
+{
+	"cond": "ftp://cs.utah.edu",
+	"data": "this should redirected to 2"
+}
+.END
+
+.TEXT test_case_4
+{
+	"cond": "something else http:// https:// ftp://",
+	"data": "this should redirected to default"
+}
+.END
+
+.STOP

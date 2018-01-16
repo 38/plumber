@@ -2,6 +2,11 @@
 export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:@CMAKE_INSTALL_PREFIX@/lib"
 for prototype in `echo "@PROTO_FILES_TO_INSTALL@" | awk 'BEGIN{RS = ";"; ORS="\n"}{print $1}'`
 do
-	@CMAKE_CURRENT_BINARY_DIR@/bin/protoman --update --yes --force ${prototype}
+	if [ -z "${PROTO_DB_ROOT}" ]
+	then
+		@CMAKE_CURRENT_BINARY_DIR@/bin/protoman --update --yes --force ${prototype}
+	else
+		@CMAKE_CURRENT_BINARY_DIR@/bin/protoman --db-prefix ${PROTO_DB_ROOT} --update --yes --force ${prototype}
+	fi
 done
 

@@ -22,6 +22,8 @@
 #include <module.h>
 #include <builtin.h>
 
+#include <proto.h>
+
 #ifdef GPROFTOOLS
 #include <gperftools/profiler.h>
 #endif
@@ -39,6 +41,8 @@ int           log_level = 4;
 const char*   compiled_output = NULL;
 
 const char*   eval_str = NULL;
+
+const char*   proto_db_root = NULL;
 
 int           exit_code = 0;
 
@@ -59,6 +63,7 @@ static void display_help(void)
 	_MESSAGE("  -L  --log-level     Set the log level");
 	_MESSAGE("  -e  --eval          Evalute the string and exit");
 	_MESSAGE("  -v  --version       Show version information");
+	_MESSAGE("  -P  --proto-db-root Set the protocol database root");
 }
 
 static void display_version(void)
@@ -92,6 +97,7 @@ static int parse_args(int argc, char** argv)
 		{"log-level",   required_argument,  0,  'L'},
 		{"version",     no_argument,        0,  'v'},
 		{"eval",        required_argument,  0,  'e'},
+		{"proto-db-root", required_argument, 0, 'P'},
 		{NULL,          0,                  0,   0}
 	};
 
@@ -105,7 +111,7 @@ static int parse_args(int argc, char** argv)
 
 	int opt_idx, c, last_optind = 1;
 	opterr = 0;
-	for(;(c = getopt_long(argc, argv, "hvNM:S:r:co:dBnL:e:", _options, &opt_idx)) >= 0;)
+	for(;(c = getopt_long(argc, argv, "hvNM:S:r:co:dBnL:e:P:", _options, &opt_idx)) >= 0;)
 	{
 		if(argv[last_optind][0] != '-')
 		{
@@ -153,6 +159,9 @@ static int parse_args(int argc, char** argv)
 			case 'e':
 			    eval_str = optarg;
 			    break;
+			case 'P':
+				proto_db_root = optarg;
+				break;
 			default:
 			    display_help();
 			    properly_exit(1);
@@ -415,6 +424,12 @@ int _program(int argc, char** argv)
 	if(plumber_init() == ERROR_CODE(int))
 	{
 		LOG_FATAL("Cannot initialize libplumber");
+		properly_exit(1);
+	}
+
+	if(proto_db_root != NULL && ERROR_CODE(int) == proto_cache_set_root(proto_db_root))
+	{
+		LOG_FATAL("Cannot set the protocol database root");
 		properly_exit(1);
 	}
 

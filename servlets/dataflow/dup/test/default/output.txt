@@ -1,0 +1,18 @@
+.OUTPUT test_case_1
+{
+	"out0": "This is test 1", 
+	"out1": "This is test 1", 
+	"out2": "This is test 1", 
+	"out3": "This is test 1", 
+	"out4": "This is test 1"
+}
+.END
+.OUTPUT test_case_2
+{
+	"out0": "This is test 2", 
+	"out1": "This is test 2", 
+	"out2": "This is test 2", 
+	"out3": "This is test 2", 
+	"out4": "This is test 2"
+}
+.END

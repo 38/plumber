@@ -1,0 +1,13 @@
+servlet_name = "dataflow/dup 5";
+
+servlet_input = {
+	"in": "plumber/std/request_local/String"
+};
+
+servlet_output = {
+	"out0": "plumber/std/request_local/String",
+	"out1": "plumber/std/request_local/String",
+	"out2": "plumber/std/request_local/String",
+	"out3": "plumber/std/request_local/String",
+	"out4": "plumber/std/request_local/String"
+};
