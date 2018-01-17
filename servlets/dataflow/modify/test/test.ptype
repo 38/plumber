@@ -1,0 +1,13 @@
+package testing.dataflow.modify;
+
+type Color {
+	double R;
+	double G;
+	double B;
+};
+
+type ColoredPoint {
+	double x;
+	double y;
+	Color  c;
+};

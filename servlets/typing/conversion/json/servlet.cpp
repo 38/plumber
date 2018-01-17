@@ -195,6 +195,7 @@ static int _cleanup(void* ctxbuf)
 	return rc;
 }
 
+ __attribute__((format(printf, 3, 4)))
 static inline int _write(pstd_string_t* str, pstd_bio_t* bio, const char* fmt, ...)
 {
 	if(NULL == fmt) return 0;
@@ -223,8 +224,11 @@ static inline int _write_name(pstd_string_t* str, pstd_bio_t* bio, const char* f
 	stream.Put(0);
 	const char* name_repr = stream.GetBuffer();
 	if(NULL == name_repr) ERROR_RETURN_LOG(int, "Cannot get the JSON representation of the pipe name %s", name);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
 	if(ERROR_CODE(int) == _write(str, bio, fmt, name_repr))
 	    ERROR_RETURN_LOG(int, "Cannot write JSON string to the pipe");
+#pragma GCC diagnostic pop
 	return 0;
 }
 
@@ -293,7 +297,7 @@ static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
 				    if(state == _O2) stack[sp++] = "]";
 				    break;
 				case JSON_MODEL_OPCODE_CLOSE:
-				    if(state == _C2 && (sp == 0 || ERROR_CODE(int) == _write(str, bio, stack[--sp])))
+				    if(state == _C2 && (sp == 0 || ERROR_CODE(int) == _write(str, bio, "%s", stack[--sp])))
 				        ERROR_LOG_GOTO(ERR, "Cannote write the end of block");
 				    break;
 				case JSON_MODEL_OPCODE_WRITE:
@@ -330,7 +334,7 @@ static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
 
 						    if(sizeof(double) == op->size)
 						    {
-							    if(ERROR_CODE(int) == _write(str, bio, "%llg", val.d))
+							    if(ERROR_CODE(int) == _write(str, bio, "%lg", val.d))
 							        ERROR_LOG_GOTO(ERR, "Cannot write the JSON value");
 						    }
 						    else if(ERROR_CODE(int) == _write(str, bio, "%g", val.f))
@@ -364,7 +368,7 @@ static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
 
 		if(jm->nops == 0) _write(str, bio, "null");
 
-		if(sp == 1) _write(str, bio, stack[0]);
+		if(sp == 1) _write(str, bio, "%s", stack[0]);
 	}
 	_write(str, bio, "}");
 
@@ -534,10 +538,12 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 					    case JSON_MODEL_TYPE_FLOAT:
 					    {
 						    double d_value = 0;
-						    if(!cur_obj->IsDouble())
-						        LOG_NOTICE("Missing double field, using default 0");
-						    else
+						    if(cur_obj->IsDouble())
 						        d_value = cur_obj->GetDouble();
+							else if(cur_obj->IsInt64())
+								d_value = (double)cur_obj->GetInt64();
+						    else
+						        LOG_NOTICE("Missing double field, using default 0");
 						    float  f_value = (float)d_value;
 						    void* data_to_write = op->size == sizeof(double) ? (void*)&d_value : (void*)&f_value;
 						    if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, data_to_write, op->size))

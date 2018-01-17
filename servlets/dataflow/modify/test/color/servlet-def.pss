@@ -1,0 +1,12 @@
+servlet_name = "dataflow/modify R G B";
+
+servlet_input = {
+	"base": "testing/dataflow/modify/Color",
+	"R": "double",
+	"G": "double",
+	"B": "double"
+};
+
+servlet_output = {
+	"output": "testing/dataflow/modify/Color"
+};

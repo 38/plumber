@@ -1,0 +1,35 @@
+.TEXT test_case_1
+{
+	"base": {
+		"R": 1.0,
+		"G": 2.0,
+		"B": 3.0
+	},
+	"R": 3.0
+}
+.END
+
+.TEXT test_case_2
+{
+	"base": {
+		"R": 1.0,
+		"G": 2.0,
+		"B": 3.0
+	},
+	"R": -1,
+	"G": -2,
+	"B": -3
+}
+.END
+
+.TEXT test_case_3
+{
+	"base": {
+		"R": 1.0,
+		"G": 2.0,
+		"B": 3.0
+	}
+}
+.END
+
+.STOP

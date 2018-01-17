@@ -1,0 +1,39 @@
+.OUTPUT test_case_1
+{
+	"output": {
+		"x": 100,
+		"y": 200,
+		"c": {
+			"R": 3,
+			"G": 2,
+			"B": 3
+		}
+	}
+}
+.END
+.OUTPUT test_case_2
+{
+	"output": {
+		"x": 100,
+		"y": 200,
+		"c": {
+			"R": -1,
+			"G": -2,
+			"B": -3
+		}
+	}
+}
+.END
+.OUTPUT test_case_3
+{
+	"output": {
+		"x": 100,
+		"y": 200,
+		"c": {
+			"R": 1,
+			"G": 2,
+			"B": 3
+		}
+	}
+}
+.END

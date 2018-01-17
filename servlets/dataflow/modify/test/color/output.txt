@@ -1,0 +1,27 @@
+.OUTPUT test_case_1
+{
+	"output": {
+		"R": 3,
+		"G": 2,
+		"B": 3
+	}
+}
+.END
+.OUTPUT test_case_2
+{
+	"output": {
+		"R": -1,
+		"G": -2,
+		"B": -3
+	}
+}
+.END
+.OUTPUT test_case_3
+{
+	"output": {
+		"R": 1,
+		"G": 2,
+		"B": 3
+	}
+}
+.END
