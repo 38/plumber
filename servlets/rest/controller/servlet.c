@@ -93,7 +93,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 {
 	if(argc < 2)
 	    ERROR_RETURN_LOG(int, "Usage: %s [parent:resource] | [resource]", argv[0]);
-	
+
 	context_t* ctx = (context_t*)ctxbuf;
 
 	memset(ctx, 0, sizeof(context_t));
@@ -104,7 +104,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 		argv ++;
 		argc --;
 		if(argc < 2)
-			ERROR_RETURN_LOG(int, "Usage: %s [parent:resource] | [resource]", argv[-1]);
+		    ERROR_RETURN_LOG(int, "Usage: %s [parent:resource] | [resource]", argv[-1]);
 	}
 
 	ctx->model    = NULL;
@@ -345,9 +345,9 @@ static int _exec(void* ctxbuf)
 
 			}
 			if(ctx->no_random)
-				memset(object_id_buf.uuid, 255, sizeof(object_id_buf.uuid));
+			    memset(object_id_buf.uuid, 255, sizeof(object_id_buf.uuid));
 			else
-				uuid_generate(object_id_buf.uuid);
+			    uuid_generate(object_id_buf.uuid);
 		}
 		else
 		{

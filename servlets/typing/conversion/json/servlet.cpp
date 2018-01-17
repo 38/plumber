@@ -540,8 +540,8 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 						    double d_value = 0;
 						    if(cur_obj->IsDouble())
 						        d_value = cur_obj->GetDouble();
-							else if(cur_obj->IsInt64())
-								d_value = (double)cur_obj->GetInt64();
+						    else if(cur_obj->IsInt64())
+						        d_value = (double)cur_obj->GetInt64();
 						    else
 						        LOG_NOTICE("Missing double field, using default 0");
 						    float  f_value = (float)d_value;
