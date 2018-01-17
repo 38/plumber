@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017-2018, Hao Hou
  **/
 
 #include <utils/utils.h>
@@ -23,7 +23,7 @@ int plumber_init()
 {
 	int rc = INIT_DO_INITIALIZATION(modules);
 
-	if(rc >= 0)
+	if(rc != ERROR_CODE(int))
 	{
 		LOG_INFO("_____________________________________________");
 		LOG_INFO("| ______ _                 _                |");
@@ -33,9 +33,8 @@ int plumber_init()
 		LOG_INFO("| | |   | | |_| | | | | | | |_) |  __/ |    |");
 		LOG_INFO("| \\_|   |_|\\__,_|_| |_| |_|_.__/ \\___|_|    |");
 		LOG_INFO("|___________________________________________|");
+		LOG_INFO("libplumber %s is initialized", PLUMBER_VERSION);
 	}
-
-	LOG_INFO("libplumber %s is initialized", PLUMBER_VERSION);
 
 	return rc;
 

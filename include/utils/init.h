@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017-2018, Hao Hou
  **/
 
 /**
@@ -25,7 +25,7 @@ typedef struct {
  * @brief do initialization
  * @param sz the size of the vector
  * @param init_vec the initlaization vector
- * @return < 0 when it fails
+ * @return error code when it fails
  **/
 int init_do_initialization(size_t sz, init_vec_entry_t* init_vec);
 
@@ -33,7 +33,7 @@ int init_do_initialization(size_t sz, init_vec_entry_t* init_vec);
  * @brief do finalization
  * @param sz the size of the vector
  * @param init_vec the intialization vector
- * @return < 0 when it fails
+ * @return error code when it fails
  **/
 int init_do_finalization(size_t sz, init_vec_entry_t* init_vec);
 
