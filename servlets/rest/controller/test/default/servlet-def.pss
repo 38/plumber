@@ -1,0 +1,11 @@
+servlet_name = "rest/controller --no-random user user:post post:comment";
+
+servlet_input = {
+	"request" : "plumber/std_servlet/network/http/httpreq/v0/Request"
+};
+
+servlet_output = {
+	"post" : "plumber/std_servlet/rest/controller/v0/Command"
+	"comment" : "plumber/std_servlet/rest/controller/v0/Command"
+	"user" : "plumber/std_servlet/rest/controller/v0/Command",
+};

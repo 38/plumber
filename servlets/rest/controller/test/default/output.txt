@@ -1,0 +1,30 @@
+.OUTPUT test_case_add
+{"user":{"opcode":0,"object_id":{"data":[255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255]},"parent_id":{"data":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"content":"dummy_data","param":null,"path":null}}
+.END
+.OUTPUT test_case_add_child
+{"post":{"opcode":0,"object_id":{"data":[255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255]},"parent_id":{"data":[48,49,50,51,52,53,54,55,56,57,48,97,98,99,100,101]},"content":"dummy_data","param":null,"path":null},"user":{"opcode":5,"object_id":{"data":[48,49,50,51,52,53,54,55,56,57,48,97,98,99,100,101]},"parent_id":{"data":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"content":null,"param":null,"path":null}}
+.END
+.OUTPUT test_case_delete
+{"post":{"opcode":1,"object_id":{"data":[48,49,50,51,52,53,54,55,56,57,48,97,98,99,100,101]},"parent_id":{"data":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"content":null,"param":null,"path":null}}
+.END
+.OUTPUT test_case_modify
+{"post":{"opcode":3,"object_id":{"data":[48,49,50,51,52,53,54,55,56,57,48,97,98,99,100,101]},"parent_id":{"data":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"content":"overrided","param":null,"path":"/like"}}
+.END
+.OUTPUT test_case_query_posts
+{"post":{"opcode":2,"object_id":{"data":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"parent_id":{"data":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"content":null,"param":"keyword=zelda&limit=10","path":null}}
+.END
+.OUTPUT test_case_query_child
+{"post":{"opcode":2,"object_id":{"data":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"parent_id":{"data":[48,49,50,51,52,53,54,55,56,57,48,97,98,99,100,101]},"content":null,"param":"limit=20&from=0","path":null},"user":{"opcode":5,"object_id":{"data":[48,49,50,51,52,53,54,55,56,57,48,97,98,99,100,101]},"parent_id":{"data":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"content":null,"param":null,"path":null}}
+.END
+.OUTPUT test_case_get_content
+{"user":{"opcode":4,"object_id":{"data":[48,49,50,51,52,53,54,55,56,57,48,97,98,99,100,101]},"parent_id":{"data":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"content":null,"param":null,"path":null}}
+.END
+.OUTPUT test_case_ignore_create_user_under_resource
+{"null":null}
+.END
+.OUTPUT test_case_ignore_create_user_isolated
+{"null":null}
+.END
+.OUTPUT test_case_ignore_undefined_resource
+{"null":null}
+.END

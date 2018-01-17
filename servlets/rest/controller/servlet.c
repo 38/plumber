@@ -50,6 +50,7 @@ STATIC_ASSERTION_SIZE(object_id_t, u8,   sizeof(object_id_t));
  * @param The servlet context
  **/
 typedef struct {
+	uint32_t               no_random:1;     /*!< Do not randomize the ID */
 	pipe_t                 request;         /*!< The request used to analyze */
 	resource_ctx_t*        resources;       /*!< The storage command to perfome */
 	uint32_t count;                         /*!< The number of outputs */
@@ -92,8 +93,20 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 {
 	if(argc < 2)
 	    ERROR_RETURN_LOG(int, "Usage: %s [parent:resource] | [resource]", argv[0]);
+	
 	context_t* ctx = (context_t*)ctxbuf;
+
 	memset(ctx, 0, sizeof(context_t));
+
+	if(strcmp(argv[1], "--no-random") == 0)
+	{
+		ctx->no_random = 1;
+		argv ++;
+		argc --;
+		if(argc < 2)
+			ERROR_RETURN_LOG(int, "Usage: %s [parent:resource] | [resource]", argv[-1]);
+	}
+
 	ctx->model    = NULL;
 	ctx->count = argc - 1;
 
@@ -331,7 +344,10 @@ static int _exec(void* ctxbuf)
 				goto EXIT_NORMALLY;
 
 			}
-			uuid_generate(object_id_buf.uuid);
+			if(ctx->no_random)
+				memset(object_id_buf.uuid, 255, sizeof(object_id_buf.uuid));
+			else
+				uuid_generate(object_id_buf.uuid);
 		}
 		else
 		{
