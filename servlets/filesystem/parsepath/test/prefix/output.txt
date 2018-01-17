@@ -1,0 +1,34 @@
+.OUTPUT test_case_1
+{
+	"prefix": "/path",
+	"relative": "/to/file"
+}
+.END
+.OUTPUT test_case_2
+{
+	"prefix": "/file",
+	"relative": "/"
+}
+.END
+.OUTPUT test_case_3
+{
+	"prefix": "/",
+	"relative": "/"
+}
+.END
+.OUTPUT test_case_4
+{
+	"null": null
+}
+.END
+.OUTPUT test_case_5
+{
+	"null": null
+}
+.END
+.OUTPUT test_case_6
+{
+	"prefix": "/test",
+	"relative": "/"
+}
+.END

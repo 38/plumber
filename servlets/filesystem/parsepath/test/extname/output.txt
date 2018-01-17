@@ -1,0 +1,38 @@
+.OUTPUT test_case_1
+{
+	"prefix": "/path",
+	"relative": "/to/file.txt",
+	"extname": "txt"
+}
+.END
+.OUTPUT test_case_2
+{
+	"prefix": "/file.tar.gz",
+	"relative": "/",
+	"extname": "gz"
+}
+.END
+.OUTPUT test_case_3
+{
+	"prefix": "/",
+	"relative": "/",
+	"extname": ""
+}
+.END
+.OUTPUT test_case_4
+{
+	"null": null
+}
+.END
+.OUTPUT test_case_5
+{
+	"null": null
+}
+.END
+.OUTPUT test_case_6
+{
+	"prefix": "/.test",
+	"relative": "/",
+	"extname": "test"
+}
+.END

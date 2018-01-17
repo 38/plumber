@@ -1,0 +1,10 @@
+servlet_name = "filesystem/parsepath --prefix-level 1"
+
+servlet_input = {
+	"origin": "plumber/std/request_local/String"
+};
+
+servlet_output = {
+	"prefix": "plumber/std/request_local/String",
+	"relative": "plumber/std/request_local/String"
+};
