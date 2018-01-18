@@ -586,7 +586,7 @@ static inline int _ensure_header_read(pstd_type_instance_t* inst, pipe_t pipe, s
 	size_t bytes_can_read = typeinfo->used_size - buffer->valid_size;
 
 	/* First try to use direct buffer access */
-	if(buffer->valid_size == 0 && bytes_can_read > sizeof(void*))
+	if(buffer->valid_size == 0 && bytes_can_read >= sizeof(void*))
 	{
 		int rc = pipe_hdr_get_buf(pipe, bytes_can_read, (void const**)buffer->data);
 

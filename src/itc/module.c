@@ -353,6 +353,63 @@ ERR:
 	    }\
     }while(0)
 
+/**
+ * @brief Skip all the header in this pipe
+ * @param handle The pipe handle
+ * @param mod The pipe module
+ * @return 0 indicates the pipe is not able to read temporarily. 1 indicates the pipe header 
+ *         is already stripped. error code for error cases
+ **/
+static inline int _skip_header(itc_module_pipe_t* handle, const itc_modtab_instance_t* mod)
+{
+	if(handle->actual_header_size > handle->processed_header_size)
+	{
+		int rc = 0;
+		size_t bytes_to_ignore = handle->actual_header_size - handle->processed_header_size;
+
+		if(mod->module->get_internal_buf != NULL)
+		{
+			/* At this point we try to use direct buffer access for header skipping */
+			size_t header_min_size =  bytes_to_ignore;
+			const void* skipped = NULL;
+
+			_INVOKE_MODULE(int, rc, mod, get_internal_buf, &skipped, &header_min_size, &bytes_to_ignore, handle->data);
+
+			if(ERROR_CODE(int) == rc) 
+				ERROR_RETURN_LOG(int, "Cannot get the header buffer");
+		}
+
+		if(rc == 0)
+		{
+			LOG_DEBUG("The typed header buffer is not able to consumed by direct buffer access, try to performe normal IO");
+			
+			while(bytes_to_ignore > 0)
+			{
+				size_t read_rc;
+				size_t bytes_to_read = bytes_to_ignore;
+				if(bytes_to_read > sizeof(_junk_buf))
+					bytes_to_read = sizeof(_junk_buf);
+				_INVOKE_MODULE(size_t, read_rc, mod, read, _junk_buf, bytes_to_read, handle->data);
+
+				if(read_rc == ERROR_CODE(size_t))
+				{
+					handle->stat.error = 1;
+					return ERROR_CODE(int);
+				}
+
+				/* If there's no data avaiable for the header, do not polling the pipe */
+				if(0 == read_rc) return 0;
+
+				bytes_to_ignore -= read_rc;
+				handle->processed_header_size += read_rc;
+			}
+		}
+		else handle->processed_header_size = handle->actual_header_size;
+	}
+	return 1;
+}
+
+
 int itc_module_pipe_deallocate(itc_module_pipe_t* handle)
 {
 	_GET_MODULE(mod, handle, 0);
@@ -451,33 +508,12 @@ size_t itc_module_pipe_read(void* buffer, size_t nbytes, itc_module_pipe_t* hand
 	if(handle->stat.type != _PSTAT_TYPE_INPUT) ERROR_RETURN_LOG(size_t, "Wrong pipe type");
 
 	size_t rc = 0;
-	size_t bytes_to_drop = handle->actual_header_size - handle->processed_header_size;
+	int src = 0;
 
-	if(bytes_to_drop > 0)
-	    LOG_DEBUG("There are %zu bytes unprocessed header data, dropping them", handle->actual_header_size -  handle->processed_header_size);
+	if((src = _skip_header(handle, mod)) == ERROR_CODE(int))
+		ERROR_RETURN_LOG(size_t, "Cannot skip the header");
 
-	while(bytes_to_drop > 0)
-	{
-		size_t bytes_to_read = bytes_to_drop;
-		if(bytes_to_read > sizeof(_junk_buf))
-		    bytes_to_read = sizeof(_junk_buf);
-		_INVOKE_MODULE(size_t, rc, mod, read, _junk_buf, bytes_to_read, handle->data);
-
-		if(rc == ERROR_CODE(size_t))
-		{
-			handle->stat.error = 1;
-			return rc;
-		}
-
-		/* If there's no data avaiable for the header, do not polling the pipe */
-		if(0 == rc) break;
-
-		bytes_to_drop -= rc;
-		handle->processed_header_size += rc;
-	}
-
-	/* This means we are not able to get the full header, so we need wait */
-	if(bytes_to_drop > 0)
+	if(src == 0) 
 	{
 		LOG_DEBUG("Header data is not avaiable, the pipe is waiting for the header data");
 		return 0;
@@ -900,6 +936,7 @@ static inline int _get_header_buf(void const** result, size_t nbytes, itc_module
 	return 1;
 }
 
+
 static inline int _get_data_body_buf(void const** result, size_t* min_size, size_t* max_size, itc_module_pipe_t* handle)
 {
 	if(NULL == result || NULL == min_size || NULL == max_size) 
@@ -917,45 +954,13 @@ static inline int _get_data_body_buf(void const** result, size_t* min_size, size
 		return 0;
 	}
 
-	if(handle->actual_header_size > handle->processed_header_size)
-	{
-		size_t bytes_to_ignore = handle->actual_header_size - handle->processed_header_size;
+	int rc = _skip_header(handle, mod);
 
-		const void* skipped = NULL;
+	if(rc == 0) return 0;
+	else if(rc == ERROR_CODE(int))
+		ERROR_RETURN_LOG(int, "Cannot skip the header");
 
-		int rc = _get_header_buf(&skipped, bytes_to_ignore, handle);
-
-		if(ERROR_CODE(int) == rc) 
-			ERROR_RETURN_LOG(int, "Cannot get the header buffer");
-
-		if(rc == 0)
-		{
-			LOG_DEBUG("The typed header buffer is not able to consumed by direct buffer access, try to performe normal IO");
-			
-			while(bytes_to_ignore > 0)
-			{
-				size_t read_rc;
-				size_t bytes_to_read = bytes_to_ignore;
-				if(bytes_to_read > sizeof(_junk_buf))
-					bytes_to_read = sizeof(_junk_buf);
-				_INVOKE_MODULE(size_t, read_rc, mod, read, _junk_buf, bytes_to_read, handle->data);
-
-				if(read_rc == ERROR_CODE(size_t))
-				{
-					handle->stat.error = 1;
-					return ERROR_CODE(int);
-				}
-
-				/* If there's no data avaiable for the header, do not polling the pipe */
-				if(0 == read_rc) return 0;
-
-				bytes_to_ignore -= read_rc;
-				handle->processed_header_size += read_rc;
-			}
-		}
-	}
-
-	int rc = 0;
+	rc = 0;
 	
 	_INVOKE_MODULE(int, rc, mod, get_internal_buf, result, min_size, max_size, handle->data);
 	
