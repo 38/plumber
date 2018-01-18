@@ -370,13 +370,19 @@ static inline int _skip_header(itc_module_pipe_t* handle, const itc_modtab_insta
 		if(mod->module->get_internal_buf != NULL)
 		{
 			/* At this point we try to use direct buffer access for header skipping */
-			size_t header_min_size =  bytes_to_ignore;
+			size_t header_min_size = bytes_to_ignore;
+			size_t header_max_size = bytes_to_ignore;
 			const void* skipped = NULL;
 
-			_INVOKE_MODULE(int, rc, mod, get_internal_buf, &skipped, &header_min_size, &bytes_to_ignore, handle->data);
+			_INVOKE_MODULE(int, rc, mod, get_internal_buf, &skipped, &header_min_size, &header_max_size, handle->data);
 
 			if(ERROR_CODE(int) == rc) 
 				ERROR_RETURN_LOG(int, "Cannot get the header buffer");
+
+#ifndef FULL_OPTIMIZATION
+			if(rc > 0 && (header_min_size != bytes_to_ignore || header_max_size != bytes_to_ignore))
+				ERROR_RETURN_LOG(int, "Module function bug: unexpected memory region size");
+#endif
 		}
 
 		if(rc == 0)
@@ -899,7 +905,7 @@ static inline int _get_header_buf(void const** result, size_t nbytes, itc_module
 		return 0;
 	}
 
-	if(nbytes > handle->expected_header_size - handle->processed_header_size)
+	if(handle->expected_header_size > nbytes + handle->processed_header_size)
 	{
 		LOG_DEBUG("The pipe header doesn't contains enough data");
 		return 0;
