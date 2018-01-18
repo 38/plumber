@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017-2018, Hao Hou
  **/
 
 /**
@@ -207,6 +207,39 @@ typedef struct {
 	 * @return number of bytes has been read or an negative error code
 	 **/
 	size_t   (*read)(void* __restrict context, void* __restrict buffer, size_t bytes_to_read, void* __restrict handle);
+
+	/**
+	 * @brief   The direct buffer access function
+	 * @details The direct buffer access interface provides the application layer code a way to access the pipe handle internal
+	 *          buffer directly. This helps the code reduce the number of copies that is needs to consume the pipe data.
+	 *          For some cases, the pipe resource might contains more than one IO event and the size of the event is unknown
+	 *          unless the data is fully parsed. (For example HTTP requests over persistent connections). 
+	 *          To avoid the memory copy in this case, we actually doesn't provides the actual size of the returned memory
+	 *          region, but an estimation of the size of the returned memory region. 
+	 *          On the other hand the application layer code might request for the buffer in specific size. 
+	 *          If the size requirement cannot meet the function returns empty. Otherwise the max_size and min_size will be
+	 *          set to the module's estimation of the size of the buffer.
+	 * @note    This function may return empty for no reason and it's not required for all the module to implement this. 
+	 * @param   context The module context 
+	 * @param   result  The pointer buffer that carries the result
+	 * @param   min_size The pointer to the min_size variable
+	 * @param   max_size The pointer to the max_size variable
+	 * @param   handle The pipe handle
+	 * @return  Number of regions that has been returned or error code
+	 **/
+	int (*get_internal_buf)(void* __restrict context, void const** __restrict result, size_t* __restrict min_size, size_t* __restrict max_size, void* __restrict handle);
+
+	/**
+	 * @brief   Release a direct buffer access region
+	 * @details This is not required if the module knows the actual size of the region, because the stream pointer can move on.
+	 *          How ever if the region's actual size is unknown, this function is required to move on.
+	 * @param   context The module context
+	 * @param   buffer The pipe buffer to release
+	 * @param   actual_size The actual size of the buffer
+	 * @param   handle      THe pipe handle
+	 * @return  status code
+	 **/
+	int (*release_internal_buf)(void* __restrict context, void const* __restrict buffer, size_t actual_size, void* __restrict handle);
 
 	/**
 	 * @brief write bytes to pipe

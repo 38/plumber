@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017-2018, Hao Hou
  **/
 
 #include <stdint.h>
@@ -84,6 +84,35 @@ static inline pipe_t pipe_array_get(const pipe_array_t* array, uint32_t n)
 size_t pipe_read(pipe_t pipe, void* buffer, size_t nbytes);
 
 /**
+ * @brief Get the internal buffer that contains the data body for this pipe
+ * @note  Like mmap, this function reduces the number of memcpy that used for read the data.
+ *        Since the handle doesn't actually know where the data section ends (For example, HTTP
+ *        request.) Thus the result size is a range instead of a exact value. 
+ * @param pipe            The pipe to read
+ * @param requested_size  The maximum size to return (size_t)-1 indicates unlimited
+ * @param min_size        The buffer used to return the minimal size
+ * @param max_size        The buffer used to return the maximum size
+ * @param result          The result buffer
+ * @return Numer of memory regions has been returned. When it's not possible to return the
+ *         memory region, 0 will be returned. 
+ *         When there's a memory region 1 will be returned.
+ *         For error cases error code is returned.
+ **/
+int pipe_data_get_buf(pipe_t pipe, size_t requested_size, void const** result, size_t* min_size, size_t* max_size);
+
+/**
+ * @brief Release an exposed internal buffer
+ * @param pipe    The target pipe
+ * @param actual_size The actual size to release
+ * @param buffer  The memory region to release
+ * @note  This function is required only when pipe_data_get_buf returns an undetermined size memory region,
+ *        And this function will provide the framework a hint about how large of the memory region actually is.
+ *        If the size of the memory region previously acquired is determined, this function will have no effect.
+ * @return status code
+ **/
+int pipe_data_release_buf(pipe_t pipe, void const* buffer, size_t actual_size);
+
+/**
  * @brief write data to pipe
  * @param pipe the pipe to write
  * @param data data to write
@@ -100,6 +129,18 @@ size_t pipe_write(pipe_t pipe, const void* data, size_t count);
  * @return size or error code
  **/
 size_t pipe_hdr_read(pipe_t pipe, void* buffer, size_t nbytes);
+
+/**
+ * @brief Get the internal buffer that contains typed header buffer
+ * @note This function is used to eliminate the memcpy during the IO
+ * @param pipe The pipe to read
+ * @param resbuf The result buffer
+ * @param nbytes The minmum size of the buffer
+ * @return The size of the buffer which contains the full typed header for this pipe
+ *         If it's impossible to return such memory region, return 0 size and  NULL pointer
+ *         Error code indicates errors
+ **/
+size_t pipe_hdr_get_buf(pipe_t pipe, size_t nbytes, void const** resbuf);
 
 /**
  * @brief write the typed header to the pipe

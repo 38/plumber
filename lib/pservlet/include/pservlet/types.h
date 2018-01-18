@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017-2018, Hao Hou
  **/
 
 /**
@@ -83,6 +83,15 @@ typedef runtime_api_async_handle_t async_handle_t;
 
 /** @brief Get the module path that operates the given pipe */
 #define PIPE_CNTL_MODPATH  RUNTIME_API_PIPE_CNTL_OPCODE_MODPATH
+
+/** @brief Get the internal header buffer */
+#define PIPE_CNTL_GET_HDR_BUF RUNTIME_API_PIPE_CNTL_OPCODE_GET_HDR_BUF 
+
+/** @brief Get the internal data buffer */
+#define PIPE_CNTL_GET_DATA_BUF RUNTIME_API_PIPE_CNTL_OPCODE_GET_DATA_BUF
+
+/** @brief Release the exposed internal data buffer */
+#define PIPE_CNTL_PUT_DATA_BUF RUNTIME_API_PIPE_CNTL_OPCODE_PUT_DATA_BUF
 
 /** @brief no operation */
 #define PIPE_CNTL_NOP RUNTIME_API_PIPE_CNTL_OPCODE_NOP

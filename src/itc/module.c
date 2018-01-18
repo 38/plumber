@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017-2018, Hao Hou
  **/
 
 /**
@@ -846,6 +846,133 @@ int itc_module_pipe_eof(itc_module_pipe_t* handle)
 	return 0;
 }
 
+static inline int _get_header_buf(void const** result, size_t nbytes, itc_module_pipe_t* handle)
+{
+	if(NULL == result)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	_GET_MODULE(mod, handle, 0);
+
+	if(handle->stat.s_hold) ERROR_RETURN_LOG(int, "Cannot read from a shadow output pipe");
+
+	if(handle->stat.type != _PSTAT_TYPE_INPUT) ERROR_RETURN_LOG(int, "Wrong pipe type");
+
+	if(mod->module->get_internal_buf == NULL)
+	{
+		LOG_DEBUG("The module doesn't support direct buffer access");
+		return 0;
+	}
+
+	if(nbytes > handle->expected_header_size - handle->processed_header_size)
+	{
+		LOG_DEBUG("The pipe header doesn't contains enough data");
+		return 0;
+	}
+
+	int rc = 0;
+	size_t max_size, min_size;
+	max_size = min_size = nbytes;
+
+	_INVOKE_MODULE(int, rc, mod, get_internal_buf, result, &min_size, &max_size, handle->data);
+
+	if(rc == ERROR_CODE(int))
+	{
+		handle->stat.error = 1;
+		return ERROR_CODE(int);
+	}
+	else if(rc == 0)
+	{
+		LOG_DEBUG("Getting header buffer in such size is not possible, returning empty");
+		return 0;
+	}
+
+	if(min_size != max_size || min_size != nbytes)
+	{
+		LOG_ERROR("Code bug: unexpected module behavior: (module:%s, function: get_internal_buf) returns unexpected range", 
+				   mod->path);
+		/* TODO: In this case if we need to go ahead ? */
+		handle->stat.error = 1;
+		return ERROR_CODE(int);
+	}
+
+	handle->processed_header_size += nbytes;
+
+	return 1;
+}
+
+static inline int _get_data_body_buf(void const** result, size_t* min_size, size_t* max_size, itc_module_pipe_t* handle)
+{
+	if(NULL == result || NULL == min_size || NULL == max_size) 
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+	
+	_GET_MODULE(mod, handle, 0);
+
+	if(handle->stat.s_hold) ERROR_RETURN_LOG(int, "Cannot read from a shadow output pipe");
+
+	if(handle->stat.type != _PSTAT_TYPE_INPUT) ERROR_RETURN_LOG(int, "Wrong pipe type");
+
+	if(mod->module->get_internal_buf == NULL)
+	{
+		LOG_DEBUG("The module doesn't support direct buffer access");
+		return 0;
+	}
+
+	if(handle->expected_header_size > handle->processed_header_size)
+	{
+		size_t bytes_to_ignore = handle->expected_header_size - handle->processed_header_size;
+
+		const void* skipped = NULL;
+
+		int rc = _get_header_buf(&skipped, bytes_to_ignore, handle);
+
+		if(ERROR_CODE(int) == rc) 
+			ERROR_RETURN_LOG(int, "Cannot get the header buffer");
+
+		if(rc == 0)
+		{
+			LOG_DEBUG("The typed header buffer is not able to consumed by direct buffer access, try to performe normal IO");
+			
+			while(bytes_to_ignore > 0)
+			{
+				size_t read_rc;
+				size_t bytes_to_read = bytes_to_ignore;
+				if(bytes_to_read > sizeof(_junk_buf))
+					bytes_to_read = sizeof(_junk_buf);
+				_INVOKE_MODULE(size_t, read_rc, mod, read, _junk_buf, bytes_to_read, handle->data);
+
+				if(read_rc == ERROR_CODE(size_t))
+				{
+					handle->stat.error = 1;
+					return ERROR_CODE(int);
+				}
+
+				/* If there's no data avaiable for the header, do not polling the pipe */
+				if(0 == read_rc) return 0;
+
+				bytes_to_ignore -= read_rc;
+				handle->processed_header_size += read_rc;
+			}
+		}
+	}
+
+	int rc = 0;
+	
+	_INVOKE_MODULE(int, rc, mod, get_internal_buf, result, min_size, max_size, handle->data);
+	
+	if(rc == ERROR_CODE(int))
+	{
+		handle->stat.error = 1;
+		return ERROR_CODE(int);
+	}
+	else if(rc == 0)
+	{
+		LOG_DEBUG("Getting header buffer in such size is not possible, returning empty");
+		return 0;
+	}
+
+	return 1;
+}
+
 static inline size_t _read_header(void* buffer, size_t nbytes, itc_module_pipe_t* handle)
 {
 	if(NULL == buffer || nbytes == ERROR_CODE(size_t))
@@ -868,8 +995,6 @@ static inline size_t _read_header(void* buffer, size_t nbytes, itc_module_pipe_t
 	    bytes_to_read = nbytes;
 
 	size_t rc = 0;
-
-	rc = 0;
 
 	/* If we have processed all the typed header, so we can safely go ahead */
 	_INVOKE_MODULE(size_t, rc, mod, read, buffer, bytes_to_read, handle->data);
@@ -1028,6 +1153,59 @@ int itc_module_pipe_cntl(itc_module_pipe_t* handle, uint32_t opcode, va_list ap)
 
 				*buf = mod->path;
 				return 0;
+			}
+			case RUNTIME_API_PIPE_CNTL_OPCODE_GET_HDR_BUF:
+			{
+				size_t nbytes = va_arg(ap, size_t);
+				void const** buf = va_arg(ap, void const**);
+
+				int rc = _get_header_buf(buf, nbytes, handle);
+
+				if(rc == ERROR_CODE(int))
+					ERROR_RETURN_LOG(int, "Cannot get the header buffer from the pipe");
+
+				if(rc == 0) *buf = NULL;
+
+				return 0;
+			}
+			case RUNTIME_API_PIPE_CNTL_OPCODE_GET_DATA_BUF:
+			{
+				size_t min_size = 0;
+				size_t max_size = va_arg(ap, size_t);
+				void const** buf = va_arg(ap, void const**);
+				size_t* min_size_buf = va_arg(ap, size_t*);
+				size_t* max_size_buf = va_arg(ap, size_t*);
+
+				if(NULL == min_size_buf || NULL == max_size_buf || min_size_buf == max_size_buf)
+					ERROR_RETURN_LOG(int, "Invalid arguments");
+
+				int rc = _get_data_body_buf(buf, &min_size, &max_size, handle);
+
+				if(rc == ERROR_CODE(int))
+					ERROR_RETURN_LOG(int, "Cannot get the data body buffer from the pipe");
+
+				if(rc == 0) 
+					*buf = NULL;
+
+				*min_size_buf = min_size;
+				*max_size_buf = max_size;
+
+				return 0;
+			}
+			case RUNTIME_API_PIPE_CNTL_OPCODE_PUT_DATA_BUF:
+			{
+				const void* buf = va_arg(ap, const void*);
+				size_t actual_size = va_arg(ap, size_t);
+
+				if(NULL == buf) ERROR_RETURN_LOG(int, "Invalid arguments");
+
+				int rc;
+				
+				_GET_MODULE(mod, handle, 0);
+
+				_INVOKE_MODULE(int, rc, mod, release_internal_buf, buf, actual_size, handle->data);
+
+				return rc;
 			}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_NOP:
 			{

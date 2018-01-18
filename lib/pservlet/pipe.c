@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017-2018, Hao Hou
  **/
 
 #include <pservlet.h>
@@ -183,4 +183,44 @@ int pipe_array_free(pipe_array_t* arr)
 int pipe_set_type_callback(pipe_t pipe, pipe_type_callback_t callback, void* data)
 {
 	return RUNTIME_ADDRESS_TABLE_SYM->set_type_hook(pipe, callback, data);
+}
+
+int pipe_data_get_buf(pipe_t pipe, size_t requested_size, void const** result, size_t* min_size, size_t* max_size)
+{
+	if(NULL == result || NULL == min_size || NULL == max_size)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	int rc = pipe_cntl(pipe, PIPE_CNTL_GET_DATA_BUF, requested_size, result, min_size, max_size);
+
+	if(ERROR_CODE(int) == rc)
+		return ERROR_CODE(int);
+
+	if(*result == NULL)
+	{
+		LOG_DEBUG("The pipe %x doesn't support PIPE_CNTL_GET_DATA_BUF operation");
+		return 0;
+	}
+
+	return 1;
+}
+
+int pipe_data_release_buf(pipe_t pipe, void const* buffer, size_t actual_size)
+{
+	return pipe_cntl(pipe, PIPE_CNTL_PUT_DATA_BUF, buffer, actual_size);
+}
+
+size_t pipe_hdr_get_buf(pipe_t pipe, size_t nbytes, void const** resbuf)
+{
+	size_t rc = 0;
+
+	if(ERROR_CODE(int) == pipe_cntl(pipe, PIPE_CNTL_GET_HDR_BUF, nbytes, resbuf))
+		ERROR_RETURN_LOG(size_t, "Cannot get header buffer for the pipe");
+
+	if(resbuf == NULL)
+	{
+		LOG_DEBUG("Direct buffer access on pipe %x isn't possible", pipe);
+		return 0;
+	}
+
+	return rc;
 }
