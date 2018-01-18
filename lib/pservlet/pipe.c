@@ -197,7 +197,7 @@ int pipe_data_get_buf(pipe_t pipe, size_t requested_size, void const** result, s
 
 	if(*result == NULL)
 	{
-		LOG_DEBUG("The pipe %x doesn't support PIPE_CNTL_GET_DATA_BUF operation");
+		LOG_DEBUG("The pipe %x doesn't support PIPE_CNTL_GET_DATA_BUF operation", pipe);
 		return 0;
 	}
 
