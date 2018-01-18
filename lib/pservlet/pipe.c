@@ -209,18 +209,16 @@ int pipe_data_release_buf(pipe_t pipe, void const* buffer, size_t actual_size)
 	return pipe_cntl(pipe, PIPE_CNTL_PUT_DATA_BUF, buffer, actual_size);
 }
 
-size_t pipe_hdr_get_buf(pipe_t pipe, size_t nbytes, void const** resbuf)
+int pipe_hdr_get_buf(pipe_t pipe, size_t nbytes, void const** resbuf)
 {
-	size_t rc = 0;
-
 	if(ERROR_CODE(int) == pipe_cntl(pipe, PIPE_CNTL_GET_HDR_BUF, nbytes, resbuf))
-		ERROR_RETURN_LOG(size_t, "Cannot get header buffer for the pipe");
+		ERROR_RETURN_LOG(int, "Cannot get header buffer for the pipe");
 
-	if(resbuf == NULL)
+	if(*resbuf == NULL)
 	{
 		LOG_DEBUG("Direct buffer access on pipe %x isn't possible", pipe);
 		return 0;
 	}
 
-	return rc;
+	return 1;
 }

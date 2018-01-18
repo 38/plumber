@@ -136,11 +136,10 @@ size_t pipe_hdr_read(pipe_t pipe, void* buffer, size_t nbytes);
  * @param pipe The pipe to read
  * @param resbuf The result buffer
  * @param nbytes The minmum size of the buffer
- * @return The size of the buffer which contains the full typed header for this pipe
- *         If it's impossible to return such memory region, return 0 size and  NULL pointer
+ * @return The number of memory region has been pulled out either 1 or 0
  *         Error code indicates errors
  **/
-size_t pipe_hdr_get_buf(pipe_t pipe, size_t nbytes, void const** resbuf);
+int pipe_hdr_get_buf(pipe_t pipe, size_t nbytes, void const** resbuf);
 
 /**
  * @brief write the typed header to the pipe

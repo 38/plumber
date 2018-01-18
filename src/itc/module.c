@@ -917,9 +917,9 @@ static inline int _get_data_body_buf(void const** result, size_t* min_size, size
 		return 0;
 	}
 
-	if(handle->expected_header_size > handle->processed_header_size)
+	if(handle->actual_header_size > handle->processed_header_size)
 	{
-		size_t bytes_to_ignore = handle->expected_header_size - handle->processed_header_size;
+		size_t bytes_to_ignore = handle->actual_header_size - handle->processed_header_size;
 
 		const void* skipped = NULL;
 

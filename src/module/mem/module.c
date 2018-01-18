@@ -137,13 +137,67 @@ static int _deallocate(void* __restrict ctx, void* __restrict pipe, int error, i
 	return 0;
 }
 
+static int _get_internal_buf(void* __restrict ctx, void const** __restrict result, size_t* __restrict min_size, size_t* __restrict max_size, void* __restrict pipe)
+{
+	(void) ctx;
+	if(NULL == result || NULL == min_size || NULL == max_size)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+	
+	module_handle_t* handle = (module_handle_t*)pipe;
+	uint32_t actual_size;
+
+	if(handle->type != _INPUT)
+		ERROR_RETURN_LOG(int, "Invalid type of pipe, a output pipe cannot be read");
+
+
+	if(handle->current_page != NULL)
+	{
+		 actual_size = handle->current_page->size - handle->page_offset;
+
+		 if(actual_size == 0 && handle->current_page->next != NULL) 
+		 {
+			 handle->page_offset = 0;
+			 handle->current_page = handle->current_page->next;
+			 actual_size = handle->current_page->size;
+		 }
+
+		if(actual_size < *min_size) goto RET_EMPTY;
+
+		if(actual_size < *max_size) *max_size = actual_size;
+	}
+	else
+	{
+RET_EMPTY:
+		LOG_DEBUG("The size limit cannot satisfied, returning empty");
+		*max_size = *min_size = 0;
+		result = NULL;
+		return 0;
+	}
+
+	*result = handle->current_page->data + handle->page_offset;
+
+	*min_size = *max_size;
+
+	return 1;
+}
+
+static int _release_internal_buf(void* __restrict context, void const* __restrict buffer, size_t actual_size, void* __restrict handle)
+{
+	/* Since in any case we are returning determined-length memory regions, so just do nothing here */
+	(void)context;
+	(void)buffer;
+	(void)actual_size;
+	(void)handle;
+	return 0;
+}
+
 static size_t _read(void* __restrict ctx, void* __restrict buffer, size_t nbytes, void* __restrict pipe)
 {
 	(void) ctx;
 	module_handle_t* handle = (module_handle_t*)pipe;
 
 	if(handle->type != _INPUT)
-	    ERROR_RETURN_LOG(size_t, "Invalid type of pipe, a read function cannot take output pipe");
+		ERROR_RETURN_LOG(size_t, "Invalid type of pipe, a output pipe cannot be read");
 
 	size_t ret = 0;
 	char * b = (char*)buffer;
@@ -255,5 +309,7 @@ itc_module_t module_mem_module_def = {
 	.write = _write,
 	.fork = _fork,
 	.has_unread_data = _has_unread_data,
-	.get_path = _get_path
+	.get_path = _get_path,
+	.get_internal_buf = _get_internal_buf,
+	.release_internal_buf = _release_internal_buf
 };

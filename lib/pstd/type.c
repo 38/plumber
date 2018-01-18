@@ -87,7 +87,8 @@ struct _pstd_type_model_t {
  **/
 typedef struct __attribute__((packed)) {
 	size_t valid_size;   /*!< The valid size */
-	char   data[0];
+	char   data[0];      /*!< The data buffer */
+	char*  bufptr[0];    /*!< The buffer pointer */
 } _header_buf_t;
 
 /**
@@ -578,7 +579,29 @@ static inline int _ensure_header_read(pstd_type_instance_t* inst, pipe_t pipe, s
 {
 	const _typeinfo_t* typeinfo = inst->model->type_info + PIPE_GET_ID(pipe);
 	_header_buf_t* buffer = (_header_buf_t*)(inst->buffer + typeinfo->buf_begin);
+
+	/* If there are a buffer assocated with this type instance, just do nothing */
+	if(buffer->valid_size == ERROR_CODE(uint32_t)) return 0;
+
 	size_t bytes_can_read = typeinfo->used_size - buffer->valid_size;
+
+	/* First try to use direct buffer access */
+	if(buffer->valid_size == 0 && bytes_can_read > sizeof(void*))
+	{
+		int rc = pipe_hdr_get_buf(pipe, bytes_can_read, (void const**)buffer->data);
+
+		if(rc == ERROR_CODE(int))
+			ERROR_RETURN_LOG(int, "Cannot acquire the header internal buffer");
+
+		if(rc == 0)
+			LOG_DEBUG("The direct buffer access is not possible, try to read directly");
+		else
+		{
+			LOG_DEBUG("The direct buffer access has returned a buffer, use the buffer directly");
+			buffer->valid_size = ERROR_CODE(uint32_t);
+			return 0;
+		}
+	}
 
 	while(buffer->valid_size < nbytes)
 	{
@@ -639,8 +662,11 @@ size_t pstd_type_instance_read(pstd_type_instance_t* inst, pstd_type_accessor_t 
 
 	const _header_buf_t* buffer = (const _header_buf_t*)(inst->buffer + inst->model->type_info[PIPE_GET_ID(obj->pipe)].buf_begin);
 
-	if(buffer->valid_size > 0)
+
+	if(buffer->valid_size > 0 && buffer->valid_size != ERROR_CODE(uint32_t))
 	    memcpy(buf, buffer->data + obj->offset, bufsize);
+	else if(buffer->valid_size == ERROR_CODE(uint32_t))
+		memcpy(buf, buffer->bufptr[0] + obj->offset, bufsize);
 	else
 	    return 0;
 
