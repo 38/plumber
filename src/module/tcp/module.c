@@ -57,6 +57,7 @@ typedef struct {
 	size_t                          total_bytes;            /*!< the total number of bytes in the buffer */
 	size_t                          unread_bytes;           /*!< the unread bytes */
 	void*                           user_space_data;        /*!< the user space data attached to this connection pool object */
+	uint32_t                        buffer_exposed:1;       /*!< Indicates if we have a buffer exposed */
 	uint32_t                        user_state_pending:1;   /*!< indicates if we have user space data pending to push */
 	itc_module_state_dispose_func_t disp;                   /*!< the dispose function for the case the connection object must be killed */
 	uintpad_t __padding__[0];
@@ -695,13 +696,13 @@ static int _accept(void* __restrict ctx, const void* __restrict args, void* __re
 		stat->total_bytes = 0;
 		stat->unread_bytes = 0;
 		stat->user_space_data = NULL;
-
 		stat->disp = NULL;
 	}
 
 	in->disp = out->disp = stat->disp;
 	in->has_more = 1;
 	stat->user_state_pending = 0;
+	stat->buffer_exposed = 0;
 	in->fd = out->fd = conn.fd;
 	in->idx = out->idx = conn.idx;
 	in->async_handle = out->async_handle = NULL;
@@ -751,9 +752,12 @@ static size_t _read(void* __restrict ctx, void* __restrict buffer, size_t bytes_
 	(void) ctx;
 	_handle_t* handle = (_handle_t*)in;
 	if(handle->dir != _DIR_IN)
+		ERROR_RETURN_LOG(size_t, "Invalid type of handle, expected read, but get write");
+
+	if(handle->state->buffer_exposed) 
 	{
-		LOG_ERROR("Invalid type of handle, expected read, but get write");
-		return ERROR_CODE(size_t);
+		LOG_DEBUG("Since we exposed the read buffer already, thus we are no able to go ahead");
+		return 0;
 	}
 
 	if(_read_to_buffer(handle) == ERROR_CODE(int)) return 0;
@@ -773,6 +777,72 @@ static size_t _read(void* __restrict ctx, void* __restrict buffer, size_t bytes_
 
 
 	return bytes_from_buffer;
+}
+
+static int _get_internal_buf(void* __restrict ctx, void const** __restrict result, size_t* __restrict min, size_t* __restrict max, void* __restrict in)
+{
+	(void)ctx;
+	_handle_t* handle = (_handle_t*)in;
+
+	if(NULL == result || NULL == min || NULL == max) 
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+	
+	if(handle->dir != _DIR_IN)
+		ERROR_RETURN_LOG(int, "Invalid type of handle, expected read, but get write");
+	
+	if(handle->state->buffer_exposed) 
+	{
+		LOG_DEBUG("Since we exposed the read buffer already, thus we are no able to go ahead");
+		return 0;
+	}
+
+	if(_read_to_buffer(handle) == ERROR_CODE(int)) return 0;
+
+	size_t bytes_avaiable = handle->state->unread_bytes;
+
+	if(*min != 0 || *max == 0) 
+	{
+		/* Since the TCP connection might be persistent, it's not clear if the current event
+		 * contains that much of data. Thus if min size isn't 0, the buffer could not be returned.
+		 * Since the module can not guareentee all the next *min bytes are belongs to current 
+		 * event */
+		LOG_DEBUG("Unable to fetch a buffer with minimal size %zu, returning empty", *min);
+		
+		return 0;
+	}
+
+	if(bytes_avaiable < *max) 
+		*max = bytes_avaiable;
+
+	*result = ((char*)handle->state->buffer) + handle->state->total_bytes - handle->state->unread_bytes;
+
+	handle->state->buffer_exposed = 1;
+
+	return 1;
+}
+
+static int _release_internal_buf(void* __restrict ctx, void const* __restrict buf, size_t actual_size, void* __restrict in)
+{
+	(void)ctx;
+	_handle_t* handle = (_handle_t*)in;
+
+	if(NULL == buf || actual_size > handle->state->unread_bytes) 
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+	
+	if(handle->dir != _DIR_IN)
+		ERROR_RETURN_LOG(int, "Invalid type of handle, expected read, but get write");
+
+	if(((const char*)handle->state->buffer) + handle->state->total_bytes - handle->state->unread_bytes != (const char*)buf)
+	{
+		LOG_DEBUG("Disposing another buffer, thus we just ignore this call");
+
+		return 0;
+	}
+
+	handle->state->buffer_exposed = 0;
+	handle->state->unread_bytes -= actual_size;
+
+	return 0;
 }
 
 /**
@@ -1439,6 +1509,8 @@ itc_module_t module_tcp_module_def = {
 	.get_property = _get_prop,
 	.set_property = _set_prop,
 	.get_path = _get_path,
-	.get_flags = _get_flags
+	.get_flags = _get_flags,
+	.get_internal_buf = _get_internal_buf,
+	.release_internal_buf = _release_internal_buf
 };
 
