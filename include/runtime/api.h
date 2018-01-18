@@ -225,12 +225,12 @@ STATIC_ASSERTION_EQ_ID(flags_persist, RUNTIME_API_PIPE_PERSIST, (RUNTIME_API_PIP
  * @brief Get the header buffer directly from the underlying module
  * @note  This function is similar to mmap in UNIX operating system. It actually
  *        returns a memory address that contains expected data (which can be the
- *        internal buffer or mmapped memory) directly. In this way, we are able 
+ *        internal buffer or mmapped memory) directly. In this way, we are able
  *        to avoid the memcpy during the time of reading. But this makes the pipe
- *        can not dispose the buffer until the pipe handle is completed disposed. 
+ *        can not dispose the buffer until the pipe handle is completed disposed.
  *        Since once we expose the address of internal buffer to the application
- *        space code, the buffer needs to be accessible during the entire life 
- *        time of the handle. 
+ *        space code, the buffer needs to be accessible during the entire life
+ *        time of the handle.
  *        example: pipe_cntl(pipe, PIPE_CNTL_GET_HDR_BUF, nbytes, &hdr_buf);
  *
  *        It's possible that the header isn't carried completely by a continous memory
@@ -238,14 +238,14 @@ STATIC_ASSERTION_EQ_ID(flags_persist, RUNTIME_API_PIPE_PERSIST, (RUNTIME_API_PIP
  *        the caller should use READHDR operation instead.
  *
  *        Note: there's no guareentee that the call will successfully pull out the buffer.
- *              It may fail for no reason or simplely because the module doesn't support 
+ *              It may fail for no reason or simplely because the module doesn't support
  *              this inerface, or even because the header is too large for a continuous
  *              memor region. In any case, we should have READHDR as "backup plan".
  *
  *        The hdr_buf = NULL indicates that we don't successfully pull out the expected buffer.
  *        Otherwise the returned buffer should contain at least nbytes of data to consume.
  *
- *        In this case, the handle's read pointer will be moved forward. 
+ *        In this case, the handle's read pointer will be moved forward.
  **/
 #define RUNTIME_API_PIPE_CNTL_OPCODE_GET_HDR_BUF 0xff00000au
 
@@ -255,19 +255,19 @@ STATIC_ASSERTION_EQ_ID(flags_persist, RUNTIME_API_PIPE_PERSIST, (RUNTIME_API_PIP
  *        This function is similar to mmap in UNIX, which directly returns the memory region
  *        that contains the expected data. This call also doesn't guareentee successfully pulled
  *        out. And once we did this the exposed internal buffer should not be disposed until the
- *        pipe handle is dead. 
- *        Since it's possible that the handle actually have no idea about when this request body 
- *        ends (For example a HTTP request, or a line based text file). Thus we can not always 
+ *        pipe handle is dead.
+ *        Since it's possible that the handle actually have no idea about when this request body
+ *        ends (For example a HTTP request, or a line based text file). Thus we can not always
  *        get the correct data length. Instead it returns the upper bound of the availble size.
  *        Thus, accessing the memory beyond the boundary should be definitely an error.
  *
  *        When the module doesn't know how long the region is the lower_bould will be 0, otherwise
- *        the upper_bound and lower_bound are the same. 
+ *        the upper_bound and lower_bound are the same.
  *
  *        At anytime the memory region will be at most required bytes in size.
  *
- *        Once the module returns the internal buffer that have undetermined size, any other read 
- *        operation (including the get data buf operation) will return 0, until the end of the 
+ *        Once the module returns the internal buffer that have undetermined size, any other read
+ *        operation (including the get data buf operation) will return 0, until the end of the
  *        memory region has been determined by the applicatoin code by PUT_DATA_BUF cntl operation
  **/
 #define RUNTIME_API_PIPE_CNTL_OPCODE_GET_DATA_BUF 0xff00000bu
@@ -278,7 +278,7 @@ STATIC_ASSERTION_EQ_ID(flags_persist, RUNTIME_API_PIPE_PERSIST, (RUNTIME_API_PIP
  *        This will inform the module about the actual size of the data that contains in the
  *        memory region. This is useful when we are dealing with line based text file.
  *        Since the buffer may contains the data from other lines, thus we can not determine
- *        the end point of the buffer. This give us a chance to inform the end of the data 
+ *        the end point of the buffer. This give us a chance to inform the end of the data
  *        for this request in buffer without actuall scanning it.
  *
  *        This indicates the handle is currently has an undermined memory region result has

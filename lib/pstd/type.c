@@ -591,10 +591,10 @@ static inline int _ensure_header_read(pstd_type_instance_t* inst, pipe_t pipe, s
 		int rc = pipe_hdr_get_buf(pipe, bytes_can_read, (void const**)buffer->data);
 
 		if(rc == ERROR_CODE(int))
-			ERROR_RETURN_LOG(int, "Cannot acquire the header internal buffer");
+		    ERROR_RETURN_LOG(int, "Cannot acquire the header internal buffer");
 
 		if(rc == 0)
-			LOG_DEBUG("The direct buffer access is not possible, try to read directly");
+		    LOG_DEBUG("The direct buffer access is not possible, try to read directly");
 		else
 		{
 			LOG_DEBUG("The direct buffer access has returned a buffer, use the buffer directly");
@@ -666,7 +666,7 @@ size_t pstd_type_instance_read(pstd_type_instance_t* inst, pstd_type_accessor_t 
 	if(buffer->valid_size > 0 && buffer->valid_size != ERROR_CODE(uint32_t))
 	    memcpy(buf, buffer->data + obj->offset, bufsize);
 	else if(buffer->valid_size == ERROR_CODE(uint32_t))
-		memcpy(buf, buffer->bufptr[0] + obj->offset, bufsize);
+	    memcpy(buf, buffer->bufptr[0] + obj->offset, bufsize);
 	else
 	    return 0;
 

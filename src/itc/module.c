@@ -357,7 +357,7 @@ ERR:
  * @brief Skip all the header in this pipe
  * @param handle The pipe handle
  * @param mod The pipe module
- * @return 0 indicates the pipe is not able to read temporarily. 1 indicates the pipe header 
+ * @return 0 indicates the pipe is not able to read temporarily. 1 indicates the pipe header
  *         is already stripped. error code for error cases
  **/
 static inline int _skip_header(itc_module_pipe_t* handle, const itc_modtab_instance_t* mod)
@@ -376,25 +376,25 @@ static inline int _skip_header(itc_module_pipe_t* handle, const itc_modtab_insta
 
 			_INVOKE_MODULE(int, rc, mod, get_internal_buf, &skipped, &header_min_size, &header_max_size, handle->data);
 
-			if(ERROR_CODE(int) == rc) 
-				ERROR_RETURN_LOG(int, "Cannot get the header buffer");
+			if(ERROR_CODE(int) == rc)
+			    ERROR_RETURN_LOG(int, "Cannot get the header buffer");
 
 #ifndef FULL_OPTIMIZATION
 			if(rc > 0 && (header_min_size != bytes_to_ignore || header_max_size != bytes_to_ignore))
-				ERROR_RETURN_LOG(int, "Module function bug: unexpected memory region size");
+			    ERROR_RETURN_LOG(int, "Module function bug: unexpected memory region size");
 #endif
 		}
 
 		if(rc == 0)
 		{
 			LOG_DEBUG("The typed header buffer is not able to consumed by direct buffer access, try to performe normal IO");
-			
+
 			while(bytes_to_ignore > 0)
 			{
 				size_t read_rc;
 				size_t bytes_to_read = bytes_to_ignore;
 				if(bytes_to_read > sizeof(_junk_buf))
-					bytes_to_read = sizeof(_junk_buf);
+				    bytes_to_read = sizeof(_junk_buf);
 				_INVOKE_MODULE(size_t, read_rc, mod, read, _junk_buf, bytes_to_read, handle->data);
 
 				if(read_rc == ERROR_CODE(size_t))
@@ -517,9 +517,9 @@ size_t itc_module_pipe_read(void* buffer, size_t nbytes, itc_module_pipe_t* hand
 	int src = 0;
 
 	if((src = _skip_header(handle, mod)) == ERROR_CODE(int))
-		ERROR_RETURN_LOG(size_t, "Cannot skip the header");
+	    ERROR_RETURN_LOG(size_t, "Cannot skip the header");
 
-	if(src == 0) 
+	if(src == 0)
 	{
 		LOG_DEBUG("Header data is not avaiable, the pipe is waiting for the header data");
 		return 0;
@@ -891,7 +891,7 @@ int itc_module_pipe_eof(itc_module_pipe_t* handle)
 static inline int _get_header_buf(void const** result, size_t nbytes, itc_module_pipe_t* handle)
 {
 	if(NULL == result)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_GET_MODULE(mod, handle, 0);
 
@@ -930,8 +930,8 @@ static inline int _get_header_buf(void const** result, size_t nbytes, itc_module
 
 	if(min_size != max_size || min_size != nbytes)
 	{
-		LOG_ERROR("Code bug: unexpected module behavior: (module:%s, function: get_internal_buf) returns unexpected range", 
-				   mod->path);
+		LOG_ERROR("Code bug: unexpected module behavior: (module:%s, function: get_internal_buf) returns unexpected range",
+		           mod->path);
 		/* TODO: In this case if we need to go ahead ? */
 		handle->stat.error = 1;
 		return ERROR_CODE(int);
@@ -945,9 +945,9 @@ static inline int _get_header_buf(void const** result, size_t nbytes, itc_module
 
 static inline int _get_data_body_buf(void const** result, size_t* min_size, size_t* max_size, itc_module_pipe_t* handle)
 {
-	if(NULL == result || NULL == min_size || NULL == max_size) 
-		ERROR_RETURN_LOG(int, "Invalid arguments");
-	
+	if(NULL == result || NULL == min_size || NULL == max_size)
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+
 	_GET_MODULE(mod, handle, 0);
 
 	if(handle->stat.s_hold) ERROR_RETURN_LOG(int, "Cannot read from a shadow output pipe");
@@ -964,12 +964,12 @@ static inline int _get_data_body_buf(void const** result, size_t* min_size, size
 
 	if(rc == 0) return 0;
 	else if(rc == ERROR_CODE(int))
-		ERROR_RETURN_LOG(int, "Cannot skip the header");
+	    ERROR_RETURN_LOG(int, "Cannot skip the header");
 
 	rc = 0;
-	
+
 	_INVOKE_MODULE(int, rc, mod, get_internal_buf, result, min_size, max_size, handle->data);
-	
+
 	if(rc == ERROR_CODE(int))
 	{
 		handle->stat.error = 1;
@@ -1173,7 +1173,7 @@ int itc_module_pipe_cntl(itc_module_pipe_t* handle, uint32_t opcode, va_list ap)
 				int rc = _get_header_buf(buf, nbytes, handle);
 
 				if(rc == ERROR_CODE(int))
-					ERROR_RETURN_LOG(int, "Cannot get the header buffer from the pipe");
+				    ERROR_RETURN_LOG(int, "Cannot get the header buffer from the pipe");
 
 				if(rc == 0) *buf = NULL;
 
@@ -1188,15 +1188,15 @@ int itc_module_pipe_cntl(itc_module_pipe_t* handle, uint32_t opcode, va_list ap)
 				size_t* max_size_buf = va_arg(ap, size_t*);
 
 				if(NULL == min_size_buf || NULL == max_size_buf || min_size_buf == max_size_buf)
-					ERROR_RETURN_LOG(int, "Invalid arguments");
+				    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 				int rc = _get_data_body_buf(buf, &min_size, &max_size, handle);
 
 				if(rc == ERROR_CODE(int))
-					ERROR_RETURN_LOG(int, "Cannot get the data body buffer from the pipe");
+				    ERROR_RETURN_LOG(int, "Cannot get the data body buffer from the pipe");
 
-				if(rc == 0) 
-					*buf = NULL;
+				if(rc == 0)
+				    *buf = NULL;
 
 				*min_size_buf = min_size;
 				*max_size_buf = max_size;
@@ -1211,7 +1211,7 @@ int itc_module_pipe_cntl(itc_module_pipe_t* handle, uint32_t opcode, va_list ap)
 				if(NULL == buf) ERROR_RETURN_LOG(int, "Invalid arguments");
 
 				int rc;
-				
+
 				_GET_MODULE(mod, handle, 0);
 
 				_INVOKE_MODULE(int, rc, mod, release_internal_buf, buf, actual_size, handle->data);

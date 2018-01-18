@@ -87,14 +87,14 @@ size_t pipe_read(pipe_t pipe, void* buffer, size_t nbytes);
  * @brief Get the internal buffer that contains the data body for this pipe
  * @note  Like mmap, this function reduces the number of memcpy that used for read the data.
  *        Since the handle doesn't actually know where the data section ends (For example, HTTP
- *        request.) Thus the result size is a range instead of a exact value. 
+ *        request.) Thus the result size is a range instead of a exact value.
  * @param pipe            The pipe to read
  * @param requested_size  The maximum size to return (size_t)-1 indicates unlimited
  * @param min_size        The buffer used to return the minimal size
  * @param max_size        The buffer used to return the maximum size
  * @param result          The result buffer
  * @return Numer of memory regions has been returned. When it's not possible to return the
- *         memory region, 0 will be returned. 
+ *         memory region, 0 will be returned.
  *         When there's a memory region 1 will be returned.
  *         For error cases error code is returned.
  **/

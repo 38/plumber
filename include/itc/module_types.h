@@ -213,14 +213,14 @@ typedef struct {
 	 * @details The direct buffer access interface provides the application layer code a way to access the pipe handle internal
 	 *          buffer directly. This helps the code reduce the number of copies that is needs to consume the pipe data.
 	 *          For some cases, the pipe resource might contains more than one IO event and the size of the event is unknown
-	 *          unless the data is fully parsed. (For example HTTP requests over persistent connections). 
+	 *          unless the data is fully parsed. (For example HTTP requests over persistent connections).
 	 *          To avoid the memory copy in this case, we actually doesn't provides the actual size of the returned memory
-	 *          region, but an estimation of the size of the returned memory region. 
-	 *          On the other hand the application layer code might request for the buffer in specific size. 
+	 *          region, but an estimation of the size of the returned memory region.
+	 *          On the other hand the application layer code might request for the buffer in specific size.
 	 *          If the size requirement cannot meet the function returns empty. Otherwise the max_size and min_size will be
 	 *          set to the module's estimation of the size of the buffer.
-	 * @note    This function may return empty for no reason and it's not required for all the module to implement this. 
-	 * @param   context The module context 
+	 * @note    This function may return empty for no reason and it's not required for all the module to implement this.
+	 * @param   context The module context
 	 * @param   result  The pointer buffer that carries the result
 	 * @param   min_size The pointer to the min_size variable
 	 * @param   max_size The pointer to the max_size variable

@@ -141,20 +141,20 @@ static int _get_internal_buf(void* __restrict ctx, void const** __restrict resul
 {
 	(void) ctx;
 	if(NULL == result || NULL == min_size || NULL == max_size)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
-	
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+
 	module_handle_t* handle = (module_handle_t*)pipe;
 	uint32_t actual_size;
 
 	if(handle->type != _INPUT)
-		ERROR_RETURN_LOG(int, "Invalid type of pipe, a output pipe cannot be read");
+	    ERROR_RETURN_LOG(int, "Invalid type of pipe, a output pipe cannot be read");
 
 
 	if(handle->current_page != NULL)
 	{
 		 actual_size = handle->current_page->size - handle->page_offset;
 
-		 if(actual_size == 0 && handle->current_page->next != NULL) 
+		 if(actual_size == 0 && handle->current_page->next != NULL)
 		 {
 			 handle->page_offset = 0;
 			 handle->current_page = handle->current_page->next;
@@ -197,7 +197,7 @@ static size_t _read(void* __restrict ctx, void* __restrict buffer, size_t nbytes
 	module_handle_t* handle = (module_handle_t*)pipe;
 
 	if(handle->type != _INPUT)
-		ERROR_RETURN_LOG(size_t, "Invalid type of pipe, a output pipe cannot be read");
+	    ERROR_RETURN_LOG(size_t, "Invalid type of pipe, a output pipe cannot be read");
 
 	size_t ret = 0;
 	char * b = (char*)buffer;

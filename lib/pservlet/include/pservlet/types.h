@@ -85,7 +85,7 @@ typedef runtime_api_async_handle_t async_handle_t;
 #define PIPE_CNTL_MODPATH  RUNTIME_API_PIPE_CNTL_OPCODE_MODPATH
 
 /** @brief Get the internal header buffer */
-#define PIPE_CNTL_GET_HDR_BUF RUNTIME_API_PIPE_CNTL_OPCODE_GET_HDR_BUF 
+#define PIPE_CNTL_GET_HDR_BUF RUNTIME_API_PIPE_CNTL_OPCODE_GET_HDR_BUF
 
 /** @brief Get the internal data buffer */
 #define PIPE_CNTL_GET_DATA_BUF RUNTIME_API_PIPE_CNTL_OPCODE_GET_DATA_BUF

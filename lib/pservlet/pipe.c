@@ -188,12 +188,12 @@ int pipe_set_type_callback(pipe_t pipe, pipe_type_callback_t callback, void* dat
 int pipe_data_get_buf(pipe_t pipe, size_t requested_size, void const** result, size_t* min_size, size_t* max_size)
 {
 	if(NULL == result || NULL == min_size || NULL == max_size)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	int rc = pipe_cntl(pipe, PIPE_CNTL_GET_DATA_BUF, requested_size, result, min_size, max_size);
 
 	if(ERROR_CODE(int) == rc)
-		return ERROR_CODE(int);
+	    return ERROR_CODE(int);
 
 	if(*result == NULL)
 	{
@@ -212,7 +212,7 @@ int pipe_data_release_buf(pipe_t pipe, void const* buffer, size_t actual_size)
 int pipe_hdr_get_buf(pipe_t pipe, size_t nbytes, void const** resbuf)
 {
 	if(ERROR_CODE(int) == pipe_cntl(pipe, PIPE_CNTL_GET_HDR_BUF, nbytes, resbuf))
-		ERROR_RETURN_LOG(int, "Cannot get header buffer for the pipe");
+	    ERROR_RETURN_LOG(int, "Cannot get header buffer for the pipe");
 
 	if(*resbuf == NULL)
 	{

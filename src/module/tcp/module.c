@@ -752,9 +752,9 @@ static size_t _read(void* __restrict ctx, void* __restrict buffer, size_t bytes_
 	(void) ctx;
 	_handle_t* handle = (_handle_t*)in;
 	if(handle->dir != _DIR_IN)
-		ERROR_RETURN_LOG(size_t, "Invalid type of handle, expected read, but get write");
+	    ERROR_RETURN_LOG(size_t, "Invalid type of handle, expected read, but get write");
 
-	if(handle->state->buffer_exposed) 
+	if(handle->state->buffer_exposed)
 	{
 		LOG_DEBUG("Since we exposed the read buffer already, thus we are no able to go ahead");
 		return 0;
@@ -784,13 +784,13 @@ static int _get_internal_buf(void* __restrict ctx, void const** __restrict resul
 	(void)ctx;
 	_handle_t* handle = (_handle_t*)in;
 
-	if(NULL == result || NULL == min || NULL == max) 
-		ERROR_RETURN_LOG(int, "Invalid arguments");
-	
+	if(NULL == result || NULL == min || NULL == max)
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+
 	if(handle->dir != _DIR_IN)
-		ERROR_RETURN_LOG(int, "Invalid type of handle, expected read, but get write");
-	
-	if(handle->state->buffer_exposed) 
+	    ERROR_RETURN_LOG(int, "Invalid type of handle, expected read, but get write");
+
+	if(handle->state->buffer_exposed)
 	{
 		LOG_DEBUG("Since we exposed the read buffer already, thus we are no able to go ahead");
 		return 0;
@@ -800,19 +800,19 @@ static int _get_internal_buf(void* __restrict ctx, void const** __restrict resul
 
 	size_t bytes_avaiable = handle->state->unread_bytes;
 
-	if(*min != 0 || *max == 0) 
+	if(*min != 0 || *max == 0)
 	{
 		/* Since the TCP connection might be persistent, it's not clear if the current event
 		 * contains that much of data. Thus if min size isn't 0, the buffer could not be returned.
-		 * Since the module can not guareentee all the next *min bytes are belongs to current 
+		 * Since the module can not guareentee all the next *min bytes are belongs to current
 		 * event */
 		LOG_DEBUG("Unable to fetch a buffer with minimal size %zu, returning empty", *min);
-		
+
 		return 0;
 	}
 
-	if(bytes_avaiable < *max) 
-		*max = bytes_avaiable;
+	if(bytes_avaiable < *max)
+	    *max = bytes_avaiable;
 
 	*result = ((char*)handle->state->buffer) + handle->state->total_bytes - handle->state->unread_bytes;
 
@@ -826,11 +826,11 @@ static int _release_internal_buf(void* __restrict ctx, void const* __restrict bu
 	(void)ctx;
 	_handle_t* handle = (_handle_t*)in;
 
-	if(NULL == buf || actual_size > handle->state->unread_bytes) 
-		ERROR_RETURN_LOG(int, "Invalid arguments");
-	
+	if(NULL == buf || actual_size > handle->state->unread_bytes)
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+
 	if(handle->dir != _DIR_IN)
-		ERROR_RETURN_LOG(int, "Invalid type of handle, expected read, but get write");
+	    ERROR_RETURN_LOG(int, "Invalid type of handle, expected read, but get write");
 
 	if(((const char*)handle->state->buffer) + handle->state->total_bytes - handle->state->unread_bytes != (const char*)buf)
 	{
