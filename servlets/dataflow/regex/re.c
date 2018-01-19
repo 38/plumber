@@ -76,9 +76,11 @@ int re_free(re_t* obj)
 
 	return 0;
 }
+
+
    
 #if PCRE_MAJOR >= 8 && PCRE_MINOR >= 32
-#	define PCRE_EXEC pcre_jit_exec
+#	define PCRE_EXEC(args...) pcre_jit_exec(args, NULL)
 #else
 #	define PCRE_EXEC pcre_exec
 #endif
@@ -90,7 +92,7 @@ int re_match_full(re_t* obj, const char* text, size_t len)
 
 	int ovec[30];
 
-	int match_rc = pcre_exec(obj->regex, obj->extra, text, (int)len, 0, 0, ovec, sizeof(ovec) / sizeof(ovec[0]));
+	int match_rc = PCRE_EXEC(obj->regex, obj->extra, text, (int)len, 0, 0, ovec, sizeof(ovec) / sizeof(ovec[0]));
 
 	switch(match_rc)
 	{
@@ -116,7 +118,7 @@ int re_match_partial(re_t* obj, const char* text, size_t len)
 	
 	int ovec[30];
 
-	int match_rc = pcre_exec(obj->regex, obj->extra, text, (int)len, 0, PCRE_PARTIAL_SOFT, ovec, sizeof(ovec) / sizeof(ovec[0]));
+	int match_rc = PCRE_EXEC(obj->regex, obj->extra, text, (int)len, 0, PCRE_PARTIAL_SOFT, ovec, sizeof(ovec) / sizeof(ovec[0]));
 
 	switch(match_rc)
 	{
