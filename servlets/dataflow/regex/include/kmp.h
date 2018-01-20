@@ -35,17 +35,27 @@ int kmp_pattern_free(kmp_pattern_t* kmp);
  * @param maxlen The maximum length of the string
  * @param eol_marker A char that indicates this is end of line, -1 indicates the matcher
  *                   should scan everything inside buffer
+ * @param  state The state variabe
  * @return The location for the first match, or maxlen if no match found. error code for error cases
  **/
-size_t kmp_partial_match(const kmp_pattern_t* kmp, const char* text, size_t maxlen, int eol_marker);
+size_t kmp_partial_match(const kmp_pattern_t* kmp, const char* text, size_t maxlen, int eol_marker, size_t* state);
 
 /**
  * @brief Performe a full text match
  * @param kmp The KMP object
  * @param text The text object
- * @param len The length of the text
- * @return status code
+ * @param eol_marker The marker for the End-Of-Line, this will interrupt the match
+ * @param start The offset in the pattern string where we start matching
+ * @param len The length of the text buffer
+ * @return The size of matched string in this round or error code
  **/
-int kmp_full_match(const kmp_pattern_t* kmp, const char* text, size_t len);
+size_t kmp_full_match(const kmp_pattern_t* kmp, const char* text, int eol_marker, size_t start, size_t len);
+
+/**
+ * @brief Get the length of the pattern string
+ * @param kmp The KMP object
+ * @return the size
+ **/
+size_t kmp_pattern_length(const kmp_pattern_t* kmp);
 
 #endif

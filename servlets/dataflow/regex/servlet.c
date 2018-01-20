@@ -2,6 +2,7 @@
  * Copyright (C) 2018, Hao Hou
  **/
 #include <string.h>
+#include <errno.h>
 
 #include <pservlet.h>
 #include <proto.h>
@@ -21,6 +22,7 @@ typedef struct {
 	uint32_t     full_match:1;     /*!< Performe full-line match */
 	uint32_t     simple_mode:1;    /*!< Instead of regex, using simple KMP algorithm for matching */
 	char         eol_marker;       /*!< The end-of-line marker, by default is \n */
+	uint32_t     line_buf_size;    /*!< The maximum size of the line buffer */
 
 	union {
 		re_t*            regex;    /*!< The regular expression object */
@@ -35,7 +37,88 @@ typedef struct {
 	pstd_type_accessor_t  in_tok;  /*!< The accessor to access the token of input string */
 	pstd_type_accessor_t  out_tok; /*!< The accessor to access the token of output string */
 	pstd_type_model_t*    model;   /*!< The type model for this servlet */
+
+	/********** Thread locals ***************/
+	pstd_thread_local_t*  thread_buffer;   /*!< The thread local data buffer */
 } ctx_t;
+
+typedef struct {
+	uint32_t capacity;    /*!< The capacity of the buffer */
+	char*    data;        /*!< The actual data buffer address */
+} text_buffer_t;
+
+static void* _text_buffer_alloc(uint32_t tid, const void* data)
+{
+	(void)tid;
+	(void)data;
+	text_buffer_t* ret = (text_buffer_t*)malloc(sizeof(text_buffer_t));
+	if(NULL == ret)
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the thread local text buffer");
+
+	ret->capacity = 4096;
+	if((ret->data = (char*)malloc(ret->capacity)) == NULL)
+	{
+		free(ret);
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate meory for the text buffer memory for thread");
+	}
+
+	return ret;
+}
+
+static int _text_buffer_free(void* mem, const void* data)
+{
+	(void)data;
+	text_buffer_t* buf = (text_buffer_t*)mem;
+	
+	if(NULL != buf)
+	{
+		if(NULL != buf->data) free(buf->data);
+		free(buf);
+	}
+
+	return 0;
+}
+
+static void* _get_line_buffer(text_buffer_t* buf, uint32_t required_size, int preserve_data, ctx_t* ctx)
+{
+	uint32_t new_size = buf->capacity;
+
+	while(new_size < required_size)
+		new_size *= 2;
+
+	if(new_size > ctx->line_buf_size)
+		new_size = ctx->line_buf_size;
+
+	if(required_size > ctx->line_buf_size) 
+	{
+		LOG_WARNING("The size of current line is larger than the maximum size allowed, stopping");
+		return NULL;
+	}
+
+	if(!preserve_data)
+	{
+		char* new_buf = (char*)malloc(new_size);
+
+		if(NULL == new_buf)
+			ERROR_PTR_RETURN_LOG("Cannot allocate new buffer");
+
+		free(buf->data);
+
+		buf->data = new_buf;
+	}
+	else
+	{
+		char* new_buf = (char*)realloc(buf->data, new_size);
+		if(NULL == new_buf)
+			ERROR_PTR_RETURN_LOG("Cannot resize the existing buffer");
+
+		buf->data = new_buf;
+	}
+
+	buf->capacity = new_size;
+
+	return buf->data;
+}
 
 static int _escape_sequence(const char* text, char* out)
 {
@@ -87,6 +170,11 @@ static int _option_callback(pstd_option_data_t data)
 			break;
 		case 's':
 			ctx->simple_mode = 1;
+			break;
+		case 'L':
+			if(data.param_array[0].intval < 0 || data.param_array[0].intval >= (1ll<<32))
+				ERROR_RETURN_LOG(int, "Invalid line buffer size"); 
+			ctx->line_buf_size = (uint32_t)data.param_array[0].intval;
 			break;
 		default:
 			ERROR_RETURN_LOG(int, "Invalid command line options");
@@ -151,10 +239,19 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 			.long_opt    = "simple",
 			.short_opt   = 's',
 			.pattern     = "",
-			.description = "Set the end-of-line marker",
+			.description = "Simple mode, do simple string match with KMP algorithm",
+			.handler     = _option_callback,
+			.args        = NULL
+		},
+		{
+			.long_opt    = "max-line-size",
+			.short_opt   = 'L',
+			.pattern     = "I",
+			.description = "Set the maximum line buffer size in kilobytes (Default: 4096k)",
 			.handler     = _option_callback,
 			.args        = NULL
 		}
+
 	};
 
 	if(ERROR_CODE(int) == pstd_option_sort(options, sizeof(options) / sizeof(options[0])))
@@ -173,7 +270,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	if(ERROR_CODE(pipe_t) == (ctx->input = pipe_define("input", PIPE_INPUT, ctx->raw_input ? NULL : "plumber/std/request_local/String")))
 		ERROR_RETURN_LOG(int, "Cannot define the input pipe");
 
-	if(ERROR_CODE(pipe_t) == (ctx->output = pipe_define("output", PIPE_OUTPUT, "plumber/std/request_local/String")))
+	if(ERROR_CODE(pipe_t) == (ctx->output = pipe_define("output", PIPE_MAKE_SHADOW(ctx->input) | PIPE_DISABLED, ctx->raw_input ? NULL : "plumber/std/request_local/String")))
 		ERROR_RETURN_LOG(int, "Cannot define the output pipe");
 
 	if(NULL == (ctx->model = pstd_type_model_new()))
@@ -192,6 +289,12 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	}
 	else if(NULL == (ctx->regex = re_new(argv[next_opt])))
 		ERROR_RETURN_LOG(int, "Cannot compile the regular expression");
+
+	if(NULL == (ctx->thread_buffer = pstd_thread_local_new(_text_buffer_alloc, _text_buffer_free, ctx)))
+		ERROR_RETURN_LOG(int, "Cannot create new thread local");
+
+	/* For the string input, we do not need to think about the concept of line */
+	if(!ctx->raw_input) ctx->eol_marker = '\0';
 
 	LOG_DEBUG("Regex servlet has been initialized successfully");
 
@@ -217,7 +320,69 @@ static int _cleanup(void* ctxmem)
 			rc = ERROR_CODE(int);
 	}
 
+	if(ERROR_CODE(int) == pstd_thread_local_free(ctx->thread_buffer))
+		rc = ERROR_CODE(int);
+
 	return rc;
+}
+
+static inline int _read_next_buffer(ctx_t* ctx, pstd_type_instance_t* ti, char* local_buf, size_t local_buf_size, const char** result, size_t* max_size)
+{
+	if(ctx->raw_input)
+	{
+		/* If this is a raw input, do the actual IO */
+		size_t max_size_buf;
+		size_t min_size_buf;
+		int rc;
+		if(ERROR_CODE(int) == (rc = pipe_data_get_buf(ctx->input, (size_t)-1, (void const**)result, &min_size_buf, &max_size_buf)))
+			ERROR_RETURN_LOG(int, "The direct buffer access returns an error");
+
+		if(rc == 0)
+		{
+			size_t read_rc = pipe_read(ctx->input, local_buf, local_buf_size);
+			if(read_rc == 0)
+			{
+				int eof_rc = pipe_eof(ctx->input);
+				if(eof_rc == ERROR_CODE(int))
+					ERROR_RETURN_LOG(int, "Cannot check if the input pipe reached the end");
+				
+				*result = NULL;
+				*max_size = 0;
+
+				if(eof_rc == 1) return 0;
+				return 1;
+			}
+
+			*result = local_buf;
+			*max_size = read_rc;
+
+			return 1;
+		}
+		else
+		{
+			*max_size = max_size_buf;
+			return 1;
+		}
+	}
+	else
+	{
+		scope_token_t tok = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, ti, ctx->in_tok);
+		if(ERROR_CODE(scope_token_t) == tok) 
+			ERROR_RETURN_LOG(int, "Cannot read the string header");
+
+		const pstd_string_t* str = pstd_string_from_rls(tok);
+
+		if(NULL == str)
+			ERROR_RETURN_LOG(int, "Cannot get the RLS string object from RLS");
+
+		if(NULL == (*result = pstd_string_value(str)))
+			ERROR_RETURN_LOG(int, "Cannot get the string buffer from the RLS string object");
+
+		if(ERROR_CODE(size_t) == (*max_size = pstd_string_length(str)))
+			ERROR_RETURN_LOG(int, "Cannot get the maximum size of the string");
+		
+		return 0;
+	}
 }
 
 static int _exec(void* ctxmem)
@@ -230,78 +395,146 @@ static int _exec(void* ctxmem)
 
 	if(NULL == ti) ERROR_RETURN_LOG(int, "Cannot create new type instance");
 
-	for(;;)
+	char local_buf[4096];
+	size_t kmp_state = 0;
+	int has_more_data = 1;
+
+	const char* line_buffer = NULL;
+	size_t line_size = 0;
+
+	int matched = 0;
+	text_buffer_t* tb = NULL;
+
+	if(!ctx->simple_mode && NULL == (tb = pstd_thread_local_get(ctx->thread_buffer)))
+		ERROR_LOG_GOTO(RET, "Cannot get the thead local buffer");
+
+	for(;has_more_data;)
 	{
-		char _local_buf[4096];
-		
 		const char* buffer;
-		size_t max_buffer_size;
-		int has_more = 1;
+		size_t total_size;
+		has_more_data = _read_next_buffer(ctx, ti, local_buf, sizeof(local_buf), &buffer, &total_size);
+		if(ERROR_CODE(int) == has_more_data) goto RET;
 
-		if(ctx->raw_input)
+		size_t used_size = 0;
+
+		if(ctx->simple_mode)
 		{
-			size_t max_size;
-			size_t min_size;
-			int brc;
-			if(ERROR_CODE(int) == (brc = pipe_data_get_buf(ctx->input, sizeof(_local_buf), (const void**)&buffer, &min_size, &max_size)))
-				ERROR_LOG_GOTO(RET, "Direct buffer access function returns an error");
-
-			if(brc == 0)
+			/* If this is the simple mode, we do not need to buffer any line */
+			if(matched == 0)
 			{
-				size_t read_rc = pipe_read(ctx->input, _local_buf, sizeof(_local_buf));
-
-				if(read_rc == 0) 
+				/* If we still have chance to match */
+				if(ctx->full_match)
 				{
-					int eof_rc = pipe_eof(ctx->input);
+					size_t new_state = kmp_full_match(ctx->kmp, buffer, ctx->eol_marker, kmp_state, total_size);
 
-					if(eof_rc == ERROR_CODE(int))
-						ERROR_LOG_GOTO(RET, "Cannot check if the input stream reached end");
+					if(ERROR_CODE(size_t) == new_state)
+						ERROR_LOG_GOTO(RET, "Cannot match the next text buffer");
 
-					if(eof_rc == 1) 
-					{
-						has_more = 0;
-						break;
-					}
+					/* If it can not match, we lost the chance to match forever */
+					if(new_state == 0)
+						matched = -1;
+
+					used_size = new_state - kmp_state;
 				}
+				else
+				{
+					size_t match_result = kmp_partial_match(ctx->kmp, buffer, total_size, ctx->eol_marker, &kmp_state);
 
-				max_buffer_size = read_rc;
-				has_more = 1;
-				buffer = _local_buf;
+					if(ERROR_CODE(size_t) == match_result)
+						ERROR_LOG_GOTO(RET, "Cannot do KMP partial match");
+
+					if(match_result < total_size && buffer[match_result] != ctx->eol_marker)
+					{
+						matched = 1;
+
+						used_size = match_result + kmp_pattern_length(ctx->kmp);
+
+						goto SKIP_LINE;
+					}
+					else if(match_result < total_size && buffer[match_result] == ctx->eol_marker)
+						used_size = match_result + 1;
+					else
+						used_size = total_size;
+				}
 			}
 			else
 			{
-				max_buffer_size = max_size;
-				has_more = 1;
+SKIP_LINE:
+				for(;used_size < total_size && buffer[used_size] != ctx->eol_marker; used_size ++);
 			}
 		}
 		else
 		{
-			scope_token_t tok = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, ti, ctx->in_tok);
-			if(ERROR_CODE(scope_token_t) == tok) 
-				ERROR_LOG_GOTO(RET, "Cannot access the RLS token");
+			if(line_buffer == NULL) 
+			{
+				for(used_size = 0; used_size < total_size && buffer[used_size] != ctx->eol_marker; used_size ++);
 
-			const pstd_string_t* str = pstd_string_from_rls(tok);
+				if(used_size < total_size)
+				{
+					used_size ++;
+					has_more_data = 0;
+					line_buffer = buffer; 
+				}
+				else 
+				{
+					/* We don't have meet EOL, thus we need to copy */
+					char* next_buf;
+					if(NULL == (line_buffer  = next_buf = _get_line_buffer(tb, (uint32_t)total_size, 0, ctx)))
+						ERROR_LOG_GOTO(RET, "Cannot get the line buffer");
 
-			if(NULL == str)
-				ERROR_LOG_GOTO(RET, "Cannot get the string object from the RLS");
+					memcpy(next_buf, buffer, total_size);
+					line_size += total_size;
+				}
+			}
+			else
+			{
+				for(used_size = 0; used_size < total_size && buffer[used_size] != ctx->eol_marker; used_size ++)
+				{
+					char* next_buf;
+					line_size ++;
+					if(tb->capacity < line_size && NULL == (line_buffer = next_buf = _get_line_buffer(tb, (uint32_t)line_size, 1, ctx)))
+						ERROR_LOG_GOTO(RET, "Cannot resize the line buffer");
 
-			if(NULL == (buffer = pstd_string_value(str)))
-				ERROR_LOG_GOTO(RET, "Cannot get the string value of the RLS");
+					next_buf[line_size - 1] = buffer[used_size];
+				}
 
-			if(ERROR_CODE(size_t) == (max_buffer_size = pstd_string_length(str)))
-				ERROR_LOG_GOTO(RET, "Cannot get the length of the string");
+				if(used_size < total_size) 
+				{
+					used_size ++;
+					has_more_data = 0;
+				}
+			}
 		}
 
-		size_t used_size = 0;
 
-		/* TODO: match the content inside the buffer and mantain used size */
-
-		if(_local_buf != buffer  && ctx->raw_input && pipe_data_release_buf(ctx->input, buffer, used_size) == ERROR_CODE(int))
+		if(buffer != local_buf  && ctx->raw_input && pipe_data_release_buf(ctx->input, buffer, used_size) == ERROR_CODE(int))
 			ERROR_LOG_GOTO(RET, "Cannot release the buffer");
-
-		if(!has_more) break;
+		
+		/* If we haven't use up the buffer yet, this indicates that we are getting the end of line */
+		if(used_size < total_size) has_more_data = 0;
 	}
 
+	if(ctx->simple_mode && matched == 0)
+		matched = (kmp_state == kmp_pattern_length(ctx->kmp)) ? 1 : -1;
+
+	if(!ctx->simple_mode)
+	{
+		int match_rc;
+		if(ctx->full_match)
+			match_rc = re_match_partial(ctx->regex, line_buffer, line_size);
+		else
+			match_rc = re_match_full(ctx->regex, line_buffer, line_size);
+
+		if(ERROR_CODE(int) == match_rc)
+			ERROR_LOG_GOTO(RET, "Cannot match the regular expression");
+
+		matched = match_rc > 0 ? 1 : -1;
+	}
+
+	if((ctx->inverse_match && matched < 0) || (!ctx->inverse_match && matched > 0))
+	{
+
+	}
 
 	rc = 0;
 RET:

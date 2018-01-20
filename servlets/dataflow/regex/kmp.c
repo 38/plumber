@@ -77,12 +77,12 @@ int kmp_pattern_free(kmp_pattern_t* kmp)
 	return 0;
 }
 
-size_t kmp_partial_match(const kmp_pattern_t* kmp, const char* text, size_t maxlen, int eol_marker)
+size_t kmp_partial_match(const kmp_pattern_t* kmp, const char* text, size_t maxlen, int eol_marker, size_t* state)
 {
 	if(NULL == kmp || NULL == text)
 		ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
-	size_t matched = 0;
+	size_t matched = state == NULL ? 0 : *state;
 	size_t i;
 
 	for(i = 0; i < maxlen && text[i] != eol_marker && matched < kmp->size; i ++)
@@ -93,19 +93,34 @@ size_t kmp_partial_match(const kmp_pattern_t* kmp, const char* text, size_t maxl
 			matched ++;
 	}
 
-	if(matched != kmp->size) return maxlen;
+	if(NULL != state) *state = matched;
+
+	if(matched != kmp->size) 
+		return i;
 
 	return i - kmp->size;
 }
 
-int kmp_full_match(const kmp_pattern_t* kmp, const char* text, size_t len)
+size_t kmp_full_match(const kmp_pattern_t* kmp, const char* text, int eol_marker, size_t start, size_t len)
 {
 	if(NULL == kmp || NULL == text)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
-	
-	if(len == kmp->size && memcmp(kmp->pattern, text, len) == 0) 
-		return 1;
+	size_t i;
+	for(i = start; i < kmp->size && i < start + len && 
+				   text[i - start] != eol_marker && 
+				   text[i - start] == kmp->pattern[i]; i ++);
+
+	if(len + start == i || text[i - start] == eol_marker)
+		return i;
 
 	return 0;
+}
+
+size_t kmp_pattern_length(const kmp_pattern_t* kmp)
+{
+	if(NULL == kmp) 
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
+
+	return kmp->size;
 }

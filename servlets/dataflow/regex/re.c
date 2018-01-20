@@ -39,7 +39,7 @@ re_t* re_new(const char* regex)
 	if(NULL == (ret->regex = pcre_compile(regex, 0, &pcre_err_msg, &pcre_err_ofs, NULL)))
 		ERROR_LOG_GOTO(ERR, "Cannot compile regular expression: %s at %d", pcre_err_msg, pcre_err_ofs);
 
-	if(NULL == (ret->extra = pcre_study(ret->regex, 0, &pcre_err_msg)))
+	if(NULL == (ret->extra = pcre_study(ret->regex, 0, &pcre_err_msg)) && pcre_err_msg != NULL)
 		ERROR_LOG_GOTO(ERR, "Cannot optimize the regular expression: %s", pcre_err_msg);
 
 	return ret;
@@ -94,6 +94,8 @@ int re_match_full(re_t* obj, const char* text, size_t len)
 
 	int match_rc = PCRE_EXEC(obj->regex, obj->extra, text, (int)len, 0, 0, ovec, sizeof(ovec) / sizeof(ovec[0]));
 
+	if(match_rc >= 0) return 1;
+
 	switch(match_rc)
 	{
 		case PCRE_ERROR_NOMATCH:
@@ -119,6 +121,8 @@ int re_match_partial(re_t* obj, const char* text, size_t len)
 	int ovec[30];
 
 	int match_rc = PCRE_EXEC(obj->regex, obj->extra, text, (int)len, 0, PCRE_PARTIAL_SOFT, ovec, sizeof(ovec) / sizeof(ovec[0]));
+
+	if(match_rc >= 0)  return 1;
 
 	switch(match_rc)
 	{
