@@ -172,9 +172,9 @@ static int _option_callback(pstd_option_data_t data)
 			ctx->simple_mode = 1;
 			break;
 		case 'L':
-			if(data.param_array[0].intval < 0 || data.param_array[0].intval >= (1ll<<32))
+			if(data.param_array[0].intval < 0 || data.param_array[0].intval >= (1ll<<22))
 				ERROR_RETURN_LOG(int, "Invalid line buffer size"); 
-			ctx->line_buf_size = (uint32_t)data.param_array[0].intval;
+			ctx->line_buf_size = (uint32_t)data.param_array[0].intval * 1024;
 			break;
 		default:
 			ERROR_RETURN_LOG(int, "Invalid command line options");
@@ -193,6 +193,8 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	ctx->full_match = 0;
 	ctx->model = NULL;
 	ctx->regex = NULL;
+	ctx->line_buf_size = 4096 * 1024;
+	ctx->thread_buffer = NULL;
 
 	static pstd_option_t options[] = {
 		{
@@ -270,6 +272,9 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	if(ERROR_CODE(pipe_t) == (ctx->input = pipe_define("input", PIPE_INPUT, ctx->raw_input ? NULL : "plumber/std/request_local/String")))
 		ERROR_RETURN_LOG(int, "Cannot define the input pipe");
 
+	if(NULL == (ctx->model = pstd_type_model_new()))
+		ERROR_RETURN_LOG(int, "Cannot create new type model");
+
 	if(ctx->raw_input)
 	{
 		/* In this case, we just need to do the shadow */
@@ -284,14 +289,11 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 		
 		if(ERROR_CODE(pstd_type_accessor_t) == (ctx->in_tok = pstd_type_model_get_accessor(ctx->model, ctx->input, "token")))
 			ERROR_RETURN_LOG(int, "Cannot get the type accessor for input.token");
+
+		if(ERROR_CODE(pstd_type_accessor_t) == (ctx->out_tok = pstd_type_model_get_accessor(ctx->model, ctx->output, "token")))
+			ERROR_RETURN_LOG(int, "Cannot get the type accessor for output.token");
 	}
 
-	if(NULL == (ctx->model = pstd_type_model_new()))
-		ERROR_RETURN_LOG(int, "Cannot create new type model");
-
-
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->out_tok = pstd_type_model_get_accessor(ctx->model, ctx->output, "token")))
-		ERROR_RETURN_LOG(int, "Cannot get the type accessor for output.token");
 
 	if(ctx->simple_mode && NULL == (ctx->kmp = kmp_pattern_new(argv[next_opt], strlen(argv[next_opt]))))
 		ERROR_RETURN_LOG(int, "Cannot compile KMP pattern");
@@ -329,7 +331,7 @@ static int _cleanup(void* ctxmem)
 			rc = ERROR_CODE(int);
 	}
 
-	if(ERROR_CODE(int) == pstd_thread_local_free(ctx->thread_buffer))
+	if(NULL != ctx->thread_buffer && ERROR_CODE(int) == pstd_thread_local_free(ctx->thread_buffer))
 		rc = ERROR_CODE(int);
 
 	return rc;
@@ -552,7 +554,7 @@ SKIP_LINE:
 	if(!ctx->simple_mode)
 	{
 		int match_rc;
-		if(ctx->full_match)
+		if(!ctx->full_match)
 			match_rc = re_match_partial(ctx->regex, line_buffer, line_size);
 		else
 			match_rc = re_match_full(ctx->regex, line_buffer, line_size);
@@ -563,7 +565,7 @@ SKIP_LINE:
 		matched = match_rc > 0 ? MATCHED : UNMATCHED;
 	}
 
-	if((ctx->inverse_match && matched < 0) || (!ctx->inverse_match && matched > 0))
+	if((ctx->inverse_match && matched == UNMATCHED) || (!ctx->inverse_match && matched == MATCHED))
 	{
 		/* Only in this case we need to produce the output */
 		if(ctx->raw_input)

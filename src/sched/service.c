@@ -816,7 +816,7 @@ int sched_service_set_pipe_type(const sched_service_t* service, sched_service_no
 	    ERROR_RETURN_LOG(int, "Cannot get the callback function from PDT");
 
 	if(NULL != callback && ERROR_CODE(int) == callback(RUNTIME_API_PIPE_FROM_ID(pid), type_name, data))
-	    ERROR_RETURN_LOG(int, "The callbak function returns an error, PID = %u, type_name = %s, data = %p", pid, type_name, data);
+	    ERROR_RETURN_LOG(int, "The callbak function returns an error, NID = %u, PID = %u, type_name = %s, data = %p", node, pid, type_name, data);
 
 	return 0;
 }

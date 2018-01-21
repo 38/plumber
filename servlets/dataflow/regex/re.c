@@ -79,7 +79,7 @@ int re_free(re_t* obj)
 
 
    
-#if PCRE_MAJOR >= 8 && PCRE_MINOR >= 32
+#if PCRE_MAJOR >= 8 && PCRE_MINOR >= 32 && 0
 #	define PCRE_EXEC(args...) pcre_jit_exec(args, NULL)
 #else
 #	define PCRE_EXEC pcre_exec

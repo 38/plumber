@@ -465,6 +465,46 @@ static size_t _read(void* __restrict ctxbuf, void* __restrict buffer, size_t nby
 	return bytes_to_read;
 }
 
+static int _get_internal_buf(void* __restrict ctx, void const** __restrict result, size_t* __restrict min_size, size_t* __restrict max_size, void* __restrict pipe)
+{
+	(void)ctx;
+	if(NULL == result || NULL == min_size || NULL == max_size)
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+	
+	_handle_t *handle = (_handle_t*)pipe;
+
+	/* We read the buffer agressively */
+	size_t bytes_to_read = *max_size;
+
+	if(bytes_to_read > handle->event->size - handle->offset)
+		bytes_to_read = handle->event->size - handle->offset;
+
+	if(bytes_to_read < *min_size || bytes_to_read == 0) 
+	{
+		/* Well, we are unable to fulfill the requirement */
+		*max_size = *min_size = 0;
+		*result = NULL;
+		return 0;
+	}
+
+	*result = handle->event->data + handle->offset;
+	*max_size = *min_size = bytes_to_read;
+
+	handle->offset += bytes_to_read;
+
+	return 1;
+}
+
+static int _release_internal_buf(void* __restrict context, void const* __restrict buffer, size_t actual_size, void* __restrict handle)
+{
+	/* Since in any case we are returning determined-length memory regions, so just do nothing here */
+	(void)context;
+	(void)buffer;
+	(void)actual_size;
+	(void)handle;
+	return 0;
+}
+
 static size_t _write(void* __restrict ctx, const void* __restrict buffer, size_t nbytes, void* __restrict pipe)
 {
 	(void)ctx;
@@ -607,5 +647,7 @@ itc_module_t module_simulate_module_def = {
 	.get_flags       = _get_flags,
 	.set_property    = _set_prop,
 	.get_property    = _get_prop,
-	.cntl            = _cntl
+	.cntl            = _cntl,
+	.get_internal_buf = _get_internal_buf,
+	.release_internal_buf = _release_internal_buf
 };
