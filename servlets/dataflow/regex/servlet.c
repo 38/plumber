@@ -17,7 +17,7 @@
  **/
 typedef struct {
 	/********** Servlet Options *************/
-	uint32_t     raw_input:1;      /*!< If this servlet consumes the raw input */
+	uint32_t     raw_input:1;      /*!< If this servlet consumes raw input */
 	uint32_t     inverse_match:1;  /*!< Inverse matching, let all string that doesn't match pass */
 	uint32_t     full_match:1;     /*!< Performe full-line match */
 	uint32_t     simple_mode:1;    /*!< Instead of regex, using simple KMP algorithm for matching */
@@ -270,27 +270,36 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	if(ERROR_CODE(pipe_t) == (ctx->input = pipe_define("input", PIPE_INPUT, ctx->raw_input ? NULL : "plumber/std/request_local/String")))
 		ERROR_RETURN_LOG(int, "Cannot define the input pipe");
 
-	if(ERROR_CODE(pipe_t) == (ctx->output = pipe_define("output", PIPE_MAKE_SHADOW(ctx->input) | PIPE_DISABLED, ctx->raw_input ? NULL : "plumber/std/request_local/String")))
-		ERROR_RETURN_LOG(int, "Cannot define the output pipe");
+	if(ctx->raw_input)
+	{
+		/* In this case, we just need to do the shadow */
+		if(ERROR_CODE(pipe_t) == (ctx->output = pipe_define("output", PIPE_MAKE_SHADOW(ctx->input) | PIPE_DISABLED, NULL)))
+			ERROR_RETURN_LOG(int, "Cannot define the output pipe");
+	}
+	else
+	{
+		/* Otherwise we use the reular pipe */
+		if(ERROR_CODE(pipe_t) == (ctx->output = pipe_define("output", PIPE_OUTPUT, "plumber/std/request_local/String")))
+			ERROR_RETURN_LOG(int, "Cannot deine the output pipe");
+		
+		if(ERROR_CODE(pstd_type_accessor_t) == (ctx->in_tok = pstd_type_model_get_accessor(ctx->model, ctx->input, "token")))
+			ERROR_RETURN_LOG(int, "Cannot get the type accessor for input.token");
+	}
 
 	if(NULL == (ctx->model = pstd_type_model_new()))
 		ERROR_RETURN_LOG(int, "Cannot create new type model");
 
-	if(ctx->raw_input == 0 && ERROR_CODE(pstd_type_accessor_t) == (ctx->in_tok = pstd_type_model_get_accessor(ctx->model, ctx->input, "token")))
-		ERROR_RETURN_LOG(int, "Cannot get the type accessor for input.token");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->out_tok = pstd_type_model_get_accessor(ctx->model, ctx->output, "token")))
 		ERROR_RETURN_LOG(int, "Cannot get the type accessor for output.token");
 
-	if(ctx->simple_mode)
-	{
-		if(NULL == (ctx->kmp = kmp_pattern_new(argv[next_opt], strlen(argv[next_opt]))))
-			ERROR_RETURN_LOG(int, "Cannot compile KMP pattern");
-	}
-	else if(NULL == (ctx->regex = re_new(argv[next_opt])))
+	if(ctx->simple_mode && NULL == (ctx->kmp = kmp_pattern_new(argv[next_opt], strlen(argv[next_opt]))))
+		ERROR_RETURN_LOG(int, "Cannot compile KMP pattern");
+
+	if(!ctx->simple_mode && NULL == (ctx->regex = re_new(argv[next_opt])))
 		ERROR_RETURN_LOG(int, "Cannot compile the regular expression");
 
-	if(NULL == (ctx->thread_buffer = pstd_thread_local_new(_text_buffer_alloc, _text_buffer_free, ctx)))
+	if(!ctx->simple_mode && NULL == (ctx->thread_buffer = pstd_thread_local_new(_text_buffer_alloc, _text_buffer_free, ctx)))
 		ERROR_RETURN_LOG(int, "Cannot create new thread local");
 
 	/* For the string input, we do not need to think about the concept of line */
@@ -331,58 +340,53 @@ static inline int _read_next_buffer(ctx_t* ctx, pstd_type_instance_t* ti, char* 
 	if(ctx->raw_input)
 	{
 		/* If this is a raw input, do the actual IO */
-		size_t max_size_buf;
 		size_t min_size_buf;
 		int rc;
-		if(ERROR_CODE(int) == (rc = pipe_data_get_buf(ctx->input, (size_t)-1, (void const**)result, &min_size_buf, &max_size_buf)))
+		if(ERROR_CODE(int) == (rc = pipe_data_get_buf(ctx->input, (size_t)-1, (void const**)result, &min_size_buf, max_size)))
 			ERROR_RETURN_LOG(int, "The direct buffer access returns an error");
 
 		if(rc == 0)
 		{
+			/* Note: This actually assumes the pipe_read call never beyond the line range, so HTTP request might not fit the assumption 
+			 * and we don't need to provide EOM feedback to module as well
+			 **/
 			size_t read_rc = pipe_read(ctx->input, local_buf, local_buf_size);
+
+			*max_size = read_rc;
+			*result = local_buf;
+
 			if(read_rc == 0)
 			{
 				int eof_rc = pipe_eof(ctx->input);
+
 				if(eof_rc == ERROR_CODE(int))
 					ERROR_RETURN_LOG(int, "Cannot check if the input pipe reached the end");
-				
-				*result = NULL;
-				*max_size = 0;
 
 				if(eof_rc == 1) return 0;
-				return 1;
 			}
 
-			*result = local_buf;
-			*max_size = read_rc;
-
-			return 1;
 		}
-		else
-		{
-			*max_size = max_size_buf;
-			return 1;
-		}
+
+		return 1;
 	}
-	else
-	{
-		scope_token_t tok = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, ti, ctx->in_tok);
-		if(ERROR_CODE(scope_token_t) == tok) 
-			ERROR_RETURN_LOG(int, "Cannot read the string header");
 
-		const pstd_string_t* str = pstd_string_from_rls(tok);
 
-		if(NULL == str)
-			ERROR_RETURN_LOG(int, "Cannot get the RLS string object from RLS");
+	scope_token_t tok = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, ti, ctx->in_tok);
+	if(ERROR_CODE(scope_token_t) == tok) 
+		ERROR_RETURN_LOG(int, "Cannot read the string header");
 
-		if(NULL == (*result = pstd_string_value(str)))
-			ERROR_RETURN_LOG(int, "Cannot get the string buffer from the RLS string object");
+	const pstd_string_t* str = pstd_string_from_rls(tok);
 
-		if(ERROR_CODE(size_t) == (*max_size = pstd_string_length(str)))
-			ERROR_RETURN_LOG(int, "Cannot get the maximum size of the string");
-		
-		return 0;
-	}
+	if(NULL == str)
+		ERROR_RETURN_LOG(int, "Cannot get the RLS string object from RLS");
+
+	if(NULL == (*result = pstd_string_value(str)))
+		ERROR_RETURN_LOG(int, "Cannot get the string buffer from the RLS string object");
+
+	if(ERROR_CODE(size_t) == (*max_size = pstd_string_length(str)))
+		ERROR_RETURN_LOG(int, "Cannot get the maximum size of the string");
+	
+	return 0;
 }
 
 static int _exec(void* ctxmem)
@@ -402,7 +406,12 @@ static int _exec(void* ctxmem)
 	const char* line_buffer = NULL;
 	size_t line_size = 0;
 
-	int matched = 0;
+	enum {
+		UNMATCHED = 0,
+		MATCHED   = 1,
+		UNKNOWN   = 2
+	} matched = UNKNOWN;
+
 	text_buffer_t* tb = NULL;
 
 	if(!ctx->simple_mode && NULL == (tb = pstd_thread_local_get(ctx->thread_buffer)))
@@ -410,8 +419,8 @@ static int _exec(void* ctxmem)
 
 	for(;has_more_data;)
 	{
-		const char* buffer;
-		size_t total_size;
+		const char* buffer;   /* The buffer contains data to process */
+		size_t total_size;    /* The total size of the buffer */
 		has_more_data = _read_next_buffer(ctx, ti, local_buf, sizeof(local_buf), &buffer, &total_size);
 		if(ERROR_CODE(int) == has_more_data) goto RET;
 
@@ -419,10 +428,8 @@ static int _exec(void* ctxmem)
 
 		if(ctx->simple_mode)
 		{
-			/* If this is the simple mode, we do not need to buffer any line */
-			if(matched == 0)
+			if(matched == UNKNOWN)
 			{
-				/* If we still have chance to match */
 				if(ctx->full_match)
 				{
 					size_t new_state = kmp_full_match(ctx->kmp, buffer, ctx->eol_marker, kmp_state, total_size);
@@ -430,11 +437,24 @@ static int _exec(void* ctxmem)
 					if(ERROR_CODE(size_t) == new_state)
 						ERROR_LOG_GOTO(RET, "Cannot match the next text buffer");
 
-					/* If it can not match, we lost the chance to match forever */
-					if(new_state == 0)
-						matched = -1;
+					if(new_state == 0) 
+					{
+						matched = UNMATCHED; 
+						used_size = 0;
+						goto SKIP_LINE;
+					}
+					else 
+					{
+						used_size = new_state - kmp_state;
+						/* Strip the EOL marker as well */
+						if(total_size < used_size) 
+						{
+							used_size ++;
+							has_more_data = 0;
+						}
+						kmp_state = new_state;
+					}
 
-					used_size = new_state - kmp_state;
 				}
 				else
 				{
@@ -445,14 +465,17 @@ static int _exec(void* ctxmem)
 
 					if(match_result < total_size && buffer[match_result] != ctx->eol_marker)
 					{
-						matched = 1;
+						matched = MATCHED;
 
 						used_size = match_result + kmp_pattern_length(ctx->kmp);
 
 						goto SKIP_LINE;
 					}
 					else if(match_result < total_size && buffer[match_result] == ctx->eol_marker)
+					{
 						used_size = match_result + 1;
+						has_more_data = 0;
+					}
 					else
 						used_size = total_size;
 				}
@@ -461,6 +484,13 @@ static int _exec(void* ctxmem)
 			{
 SKIP_LINE:
 				for(;used_size < total_size && buffer[used_size] != ctx->eol_marker; used_size ++);
+
+				/* Finally we need to strip the EOL marker as well */
+				if(used_size < total_size) 
+				{
+					used_size ++;
+					has_more_data = 0;
+				}
 			}
 		}
 		else
@@ -471,6 +501,7 @@ SKIP_LINE:
 
 				if(used_size < total_size)
 				{
+					/* If we have a EOL marker  in buffer, it means we can use the returned buffer */
 					used_size ++;
 					has_more_data = 0;
 					line_buffer = buffer; 
@@ -514,9 +545,10 @@ SKIP_LINE:
 		if(used_size < total_size) has_more_data = 0;
 	}
 
-	if(ctx->simple_mode && matched == 0)
-		matched = (kmp_state == kmp_pattern_length(ctx->kmp)) ? 1 : -1;
+	if(ctx->simple_mode && matched == UNKNOWN)
+		matched = (kmp_state == kmp_pattern_length(ctx->kmp)) ? MATCHED : UNMATCHED;
 
+	/* If this is not a simple mode servlet, we need to performe reular expression on the full line buffer */
 	if(!ctx->simple_mode)
 	{
 		int match_rc;
@@ -528,12 +560,28 @@ SKIP_LINE:
 		if(ERROR_CODE(int) == match_rc)
 			ERROR_LOG_GOTO(RET, "Cannot match the regular expression");
 
-		matched = match_rc > 0 ? 1 : -1;
+		matched = match_rc > 0 ? MATCHED : UNMATCHED;
 	}
 
 	if((ctx->inverse_match && matched < 0) || (!ctx->inverse_match && matched > 0))
 	{
+		/* Only in this case we need to produce the output */
+		if(ctx->raw_input)
+		{
+			/* If this is the raw input, what we need is simply enable the shadow output */
+			if(ERROR_CODE(int) == pipe_cntl(ctx->output, PIPE_CNTL_CLR_FLAG, PIPE_DISABLED))
+				ERROR_RETURN_LOG(int, "Cannot remove the disabled flag");
+		}
+		else
+		{
+			/* Otherwise this should be a string output */
+			scope_token_t tok = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, ti, ctx->in_tok);
 
+			if(ERROR_CODE(scope_token_t) == tok) ERROR_RETURN_LOG(int, "Cannot read the input token");
+
+			if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(ti, ctx->out_tok, tok))
+				ERROR_RETURN_LOG(int, "Cannot write the input token");
+		}
 	}
 
 	rc = 0;
