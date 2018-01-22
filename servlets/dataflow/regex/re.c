@@ -14,6 +14,19 @@
 #include <pservlet.h>
 
 #include <re.h>
+   
+#if PCRE_MAJOR >= 8 && PCRE_MINOR >= 32 && 0
+/* TODO: figure out if we need to use the pcre_jit_exec, but it now cause crash */
+#	define PCRE_EXEC(args...) pcre_jit_exec(args, NULL)
+#else
+#	define PCRE_EXEC pcre_exec
+#endif
+
+#ifdef PCRE_CONFIG_JIT
+#	define PCRE_FREE_STUDY pcre_free_study
+#else
+#	define PCRE_FREE_STUDY pcre_free
+#endif
 
 /**
  * @brief The actual data structure for the regex 
@@ -45,12 +58,7 @@ re_t* re_new(const char* regex)
 	return ret;
 
 ERR:
-	if(NULL != ret->extra) 
-#ifdef PCRE_CONFIG_JIT
-		pcre_free_study(ret->extra);
-#else
-		pcre_free(ret->extra);
-#endif
+	if(NULL != ret->extra) PCRE_FREE_STUDY(ret->extra);
 	if(NULL != ret->regex) pcre_free(ret->regex);
 
 	free(ret);
@@ -62,28 +70,32 @@ int re_free(re_t* obj)
 {
 	if(NULL == obj) ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	if(obj->extra != NULL)
-#ifdef PCRE_CONFIG_JIT
-		pcre_free_study(obj->extra);
-#else
-		pcre_free(obj->extra);
-#endif
-
-	if(NULL != obj->regex) 
-		pcre_free(obj->regex);
+	if(obj->extra != NULL) PCRE_FREE_STUDY(obj->extra);
+	if(NULL != obj->regex) pcre_free(obj->regex);
 
 	free(obj);
 
 	return 0;
 }
 
-
-   
-#if PCRE_MAJOR >= 8 && PCRE_MINOR >= 32 && 0
-#	define PCRE_EXEC(args...) pcre_jit_exec(args, NULL)
-#else
-#	define PCRE_EXEC pcre_exec
-#endif
+static inline int _process_pcre_error_code(const char* msg, int code)
+{
+	switch(code)
+	{
+		case PCRE_ERROR_NOMATCH:
+			return 0;
+		case PCRE_ERROR_NULL:
+			ERROR_RETURN_LOG(int, "%s: Invalid arguments", msg);
+		case PCRE_ERROR_BADOPTION:
+			ERROR_RETURN_LOG(int, "%s: Bad options", msg);
+		case PCRE_ERROR_BADMAGIC:
+			ERROR_RETURN_LOG(int, "%s: Invalid regex object", msg);
+		case PCRE_ERROR_NOMEMORY:
+			ERROR_RETURN_LOG(int, "%s: Out of meomry", msg);
+		default:
+			ERROR_RETURN_LOG(int, "%s: generic error", msg);
+	}
+}
 
 int re_match_full(re_t* obj, const char* text, size_t len)
 {
@@ -96,21 +108,7 @@ int re_match_full(re_t* obj, const char* text, size_t len)
 
 	if(match_rc >= 0) return 1;
 
-	switch(match_rc)
-	{
-		case PCRE_ERROR_NOMATCH:
-			return 0;
-		case PCRE_ERROR_NULL:
-			ERROR_RETURN_LOG(int, "pcre_exec: Invalid arguments");
-		case PCRE_ERROR_BADOPTION:
-			ERROR_RETURN_LOG(int, "pcre_exec: Bad options");
-		case PCRE_ERROR_BADMAGIC:
-			ERROR_RETURN_LOG(int, "pcre_exec: Invalid regex object");
-		case PCRE_ERROR_NOMEMORY:
-			ERROR_RETURN_LOG(int, "pcre_exec: Out of meomry");
-		default:
-			ERROR_RETURN_LOG(int, "pcre_exec: generic error");
-	}
+	return _process_pcre_error_code("pcre_exec", match_rc);
 }
 
 int re_match_partial(re_t* obj, const char* text, size_t len)
@@ -124,22 +122,6 @@ int re_match_partial(re_t* obj, const char* text, size_t len)
 
 	if(match_rc >= 0)  return 1;
 
-	switch(match_rc)
-	{
-		case PCRE_ERROR_NOMATCH:
-			return 0;
-		case PCRE_ERROR_NULL:
-			ERROR_RETURN_LOG(int, "pcre_exec: Invalid arguments");
-		case PCRE_ERROR_BADOPTION:
-			ERROR_RETURN_LOG(int, "pcre_exec: Bad options");
-		case PCRE_ERROR_BADMAGIC:
-			ERROR_RETURN_LOG(int, "pcre_exec: Invalid regex object");
-		case PCRE_ERROR_NOMEMORY:
-			ERROR_RETURN_LOG(int, "pcre_exec: Out of meomry");
-		default:
-			ERROR_RETURN_LOG(int, "pcre_exec: generic error");
-	}
-
-	return 0;
+	return _process_pcre_error_code("pcre_exec", match_rc);
 }
 

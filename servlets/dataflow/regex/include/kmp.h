@@ -35,8 +35,11 @@ int kmp_pattern_free(kmp_pattern_t* kmp);
  * @param maxlen The maximum length of the string
  * @param eol_marker A char that indicates this is end of line, -1 indicates the matcher
  *                   should scan everything inside buffer
- * @param  state The state variabe
- * @return The location for the first match, or maxlen if no match found. error code for error cases
+ * @param  state The state variabe. The state variable records how many bytes the KMP matcher has been matched
+ *               until the function returns. It's used in multiple parts match and when the state is NULL, we
+ *               just start over.
+ * @return The location for the first match, or maxlen or position of eol_marker when no match found.
+ *         error code for error cases. For all the cases the state variable will be stored. 
  **/
 size_t kmp_partial_match(const kmp_pattern_t* kmp, const char* text, size_t maxlen, int eol_marker, size_t* state);
 
@@ -45,9 +48,10 @@ size_t kmp_partial_match(const kmp_pattern_t* kmp, const char* text, size_t maxl
  * @param kmp The KMP object
  * @param text The text object
  * @param eol_marker The marker for the End-Of-Line, this will interrupt the match
- * @param start The offset in the pattern string where we start matching
+ * @param start The offset *in the pattern string* where we start matching
  * @param len The length of the text buffer
- * @return The size of matched string in this round or error code
+ * @return The size of matched string in this round (the next state varible). 0 indicates it's impossible to match. error code for
+ *         all error cases
  **/
 size_t kmp_full_match(const kmp_pattern_t* kmp, const char* text, int eol_marker, size_t start, size_t len);
 

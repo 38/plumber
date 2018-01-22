@@ -42,6 +42,9 @@ typedef struct {
 	pstd_thread_local_t*  thread_buffer;   /*!< The thread local data buffer */
 } ctx_t;
 
+/**
+ * @brief The data structure for a reusable thread local text buffer
+ **/
 typedef struct {
 	uint32_t capacity;    /*!< The capacity of the buffer */
 	char*    data;        /*!< The actual data buffer address */
@@ -79,47 +82,64 @@ static int _text_buffer_free(void* mem, const void* data)
 	return 0;
 }
 
+/**
+ * @brief Get the a memory buffer larger than the required size from the text buffer
+ * @param buf The text buffer
+ * @param required_size How many bytes we want to ensure
+ * @param preserve_data Indicates if we want to preserve the data in the preivous memory buffer if we 
+ *                      need to resize them
+ * @param ctx The servlet context
+ * @return The memory buffer or NULL on error cases
+ **/
 static void* _get_line_buffer(text_buffer_t* buf, uint32_t required_size, int preserve_data, ctx_t* ctx)
 {
-	uint32_t new_size = buf->capacity;
-
-	while(new_size < required_size)
-		new_size *= 2;
-
-	if(new_size > ctx->line_buf_size)
-		new_size = ctx->line_buf_size;
-
-	if(required_size > ctx->line_buf_size) 
+	if(required_size > buf->capacity)
 	{
-		LOG_WARNING("The size of current line is larger than the maximum size allowed, stopping");
-		return NULL;
+		uint32_t new_size = buf->capacity;
+
+		for(;new_size < required_size; new_size <<= 1);
+
+		if(new_size > ctx->line_buf_size)
+			new_size = ctx->line_buf_size;
+		
+		if(required_size > ctx->line_buf_size) 
+		{
+			LOG_WARNING("The size of current line is larger than the maximum size allowed, stopping");
+			return NULL;
+		}
+
+		if(!preserve_data)
+		{
+			char* new_buf = (char*)malloc(new_size);
+
+			if(NULL == new_buf)
+				ERROR_PTR_RETURN_LOG("Cannot allocate new buffer");
+
+			free(buf->data);
+
+			buf->data = new_buf;
+		}
+		else
+		{
+			char* new_buf = (char*)realloc(buf->data, new_size);
+			if(NULL == new_buf)
+				ERROR_PTR_RETURN_LOG("Cannot resize the existing buffer");
+
+			buf->data = new_buf;
+		}
+
+		buf->capacity = new_size;
 	}
-
-	if(!preserve_data)
-	{
-		char* new_buf = (char*)malloc(new_size);
-
-		if(NULL == new_buf)
-			ERROR_PTR_RETURN_LOG("Cannot allocate new buffer");
-
-		free(buf->data);
-
-		buf->data = new_buf;
-	}
-	else
-	{
-		char* new_buf = (char*)realloc(buf->data, new_size);
-		if(NULL == new_buf)
-			ERROR_PTR_RETURN_LOG("Cannot resize the existing buffer");
-
-		buf->data = new_buf;
-	}
-
-	buf->capacity = new_size;
 
 	return buf->data;
 }
 
+/**
+ * @brief Convert the escape sequence string to the actual char it stands for
+ * @param text The text to convert
+ * @param out The output char
+ * @return stauts code
+ **/
 static int _escape_sequence(const char* text, char* out)
 {
 	if(text[0] == 0)
@@ -150,6 +170,11 @@ static int _escape_sequence(const char* text, char* out)
 	return 0;
 }
 
+/**
+ * @brief The callback function which handles the servlet init string options
+ * @param data The option data
+ * @return status
+ **/
 static int _option_callback(pstd_option_data_t data)
 {
 	ctx_t* ctx = (ctx_t*)data.cb_data;
@@ -337,10 +362,29 @@ static int _cleanup(void* ctxmem)
 	return rc;
 }
 
-static inline int _read_next_buffer(ctx_t* ctx, pstd_type_instance_t* ti, char* local_buf, size_t local_buf_size, const char** result, size_t* max_size)
+/**
+ * @brief Read the next block of data from the input
+ * @note This function handles multiple cases: 
+ *       (a) Read from a raw pipe, which supports Direct Buffer Access: We are able to return a buffer contains data, but 
+ *           the module probably not sure on the length of the data
+ *       (b) Read from a raw pipe, which only supports standard pipe_read call: We just use the local buffer and the number 
+ *           of the bytes in the line is determined by the IO module
+ *       (c) A string pipe, which we are able to return a char* contains all data
+ * @param ctx The servlet context
+ * @param ti  The type instance
+ * @param local_buf The local buffer, which will be used for pipe_read
+ * @param local_buf_size The size of the local buffer
+ * @param result The buffer used to pass the result pointer out
+ * @param max_size The buffer used to return the *possible* maximum size. For case (a) the size is undetermined and this 
+ *        is the upper bound of the size
+ * @param determined_size The buffer used to return if the size has been determined
+ * @return A integer indicates if the pipe contains more data, error code for error cases
+ **/
+static inline int _read_next_buffer(ctx_t* ctx, pstd_type_instance_t* ti, char* local_buf, size_t local_buf_size, const char** result, size_t* max_size, int* determined_size)
 {
 	if(ctx->raw_input)
 	{
+		*determined_size = 1;
 		/* If this is a raw input, do the actual IO */
 		size_t min_size_buf;
 		int rc;
@@ -366,12 +410,13 @@ static inline int _read_next_buffer(ctx_t* ctx, pstd_type_instance_t* ti, char* 
 
 				if(eof_rc == 1) return 0;
 			}
-
 		}
+		else *determined_size = (min_size_buf == *max_size);
 
 		return 1;
 	}
 
+	*determined_size = 0;
 
 	scope_token_t tok = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, ti, ctx->in_tok);
 	if(ERROR_CODE(scope_token_t) == tok) 
@@ -408,6 +453,7 @@ static int _exec(void* ctxmem)
 	const char* line_buffer = NULL;
 	char* thread_buffer = NULL;
 	size_t line_size = 0;
+	int needs_release_buffer = 0;
 
 	enum {
 		UNMATCHED = 0,
@@ -424,7 +470,7 @@ static int _exec(void* ctxmem)
 	{
 		const char* buffer;   /* The buffer contains data to process */
 		size_t total_size;    /* The total size of the buffer */
-		has_more_data = _read_next_buffer(ctx, ti, local_buf, sizeof(local_buf), &buffer, &total_size);
+		has_more_data = _read_next_buffer(ctx, ti, local_buf, sizeof(local_buf), &buffer, &total_size, &needs_release_buffer);
 		if(ERROR_CODE(int) == has_more_data) goto RET;
 
 		size_t used_size = 0;
@@ -541,7 +587,7 @@ SKIP_LINE:
 		}
 
 
-		if(buffer != local_buf  && ctx->raw_input && pipe_data_release_buf(ctx->input, buffer, used_size) == ERROR_CODE(int))
+		if(needs_release_buffer && pipe_data_release_buf(ctx->input, buffer, used_size) == ERROR_CODE(int))
 			ERROR_LOG_GOTO(RET, "Cannot release the buffer");
 		
 		/* If we haven't use up the buffer yet, this indicates that we are getting the end of line */

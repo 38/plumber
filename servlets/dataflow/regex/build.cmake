@@ -1,7 +1,7 @@
 find_package(PkgConfig)
 pkg_check_modules(PC_PCRE libpcre)
 if(NOT "${PC_PCRE_FOUND}" STREQUAL "1")
-	message("libre2 not found, dataflow.regex servlet has been disabled")
+	message("libpcre not found, dataflow.regex servlet has been disabled")
 	set(build_dataflow_regex "no")
 else(NOT "${PC_PCRE_FOUND}" STREQUAL "1")
 	find_library(LIBPCRE_LIBRARIES NAMES ${PC_PCRE_LIBRARIES} PATHS ${PC_PCRE_LIBRARIES_DIRS})

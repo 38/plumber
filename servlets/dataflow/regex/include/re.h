@@ -2,7 +2,7 @@
  * Copyright (C) 2017, Hao Hou
  **/
 /**
- * @brief The wrapper for the libre2 library in C
+ * @brief The wrapper for the libpcre library
  * @file servelt/dataflow/regex/include/re.h
  **/
 #ifndef __RE_H__
