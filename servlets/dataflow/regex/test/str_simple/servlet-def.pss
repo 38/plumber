@@ -1,0 +1,5 @@
+servlet = "dataflow/regex --simple apple\\ application";
+
+servlet_input = { "input": "plumber/std/request_local/String" };
+
+servlet_output = { "output": "plumber/std/request_local/String" };

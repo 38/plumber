@@ -1,4 +1,4 @@
-servlet_name = "dataflow/demux -r http://.* https://.* ftp://.*";
+servlet = "dataflow/demux -r http://.* https://.* ftp://.*";
 
 servlet_input = {
 	"cond" : "plumber/std/request_local/String",

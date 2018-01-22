@@ -1,0 +1,13 @@
+.TEXT test_case_1
+{"input":"this is an apple application that  ..."}
+.END
+.TEXT test_case_2
+{"input":"this is an application that ..."}
+.END
+.TEXT test_case_3
+{"input":"this shouldn't match ..."}
+.END
+.TEXT test_case_4
+{"input":"let's do make some apple application\nlet's do make some apple application\nlet's do make some apple application\nlet's do make some apple application\nlet's do make some apple application\nlet's do make some apple application"}
+.END
+.STOP

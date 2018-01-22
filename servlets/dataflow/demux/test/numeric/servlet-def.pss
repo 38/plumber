@@ -1,4 +1,4 @@
-servlet_name = "dataflow/demux -n value 3";
+servlet = "dataflow/demux -n value 3";
 
 servlet_input = {
 	"cond" : "int32",

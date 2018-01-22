@@ -1,4 +1,4 @@
-servlet_name = "dataflow/dup 5";
+servlet = "dataflow/dup 5";
 
 servlet_input = {
 	"in": "plumber/std/request_local/String"

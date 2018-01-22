@@ -1,4 +1,4 @@
-servlet_name = "dataflow/extract num_val";
+servlet = "dataflow/extract num_val";
 
 servlet_input = {
 	"input": "testing/dataflow/extract/test_type"

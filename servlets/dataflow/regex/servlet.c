@@ -504,9 +504,10 @@ SKIP_LINE:
 				if(used_size < total_size)
 				{
 					/* If we have a EOL marker  in buffer, it means we can use the returned buffer */
+					line_size = used_size;
 					used_size ++;
 					has_more_data = 0;
-					line_buffer = buffer; 
+					line_buffer = buffer;
 				}
 				else 
 				{

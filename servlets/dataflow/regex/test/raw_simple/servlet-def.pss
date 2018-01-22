@@ -1,0 +1,7 @@
+raw_mode = 1;
+
+servlet = "dataflow/regex --raw-input --simple apple\\ application";
+
+servlet_input = "input";
+
+servlet_output = "output";
