@@ -406,6 +406,7 @@ static int _exec(void* ctxmem)
 	int has_more_data = 1;
 
 	const char* line_buffer = NULL;
+	char* thread_buffer = NULL;
 	size_t line_size = 0;
 
 	enum {
@@ -512,11 +513,10 @@ SKIP_LINE:
 				else 
 				{
 					/* We don't have meet EOL, thus we need to copy */
-					char* next_buf;
-					if(NULL == (line_buffer  = next_buf = _get_line_buffer(tb, (uint32_t)total_size, 0, ctx)))
+					if(NULL == (line_buffer  = thread_buffer = _get_line_buffer(tb, (uint32_t)total_size, 0, ctx)))
 						ERROR_LOG_GOTO(RET, "Cannot get the line buffer");
 
-					memcpy(next_buf, buffer, total_size);
+					memcpy(thread_buffer, buffer, total_size);
 					line_size += total_size;
 				}
 			}
@@ -524,12 +524,12 @@ SKIP_LINE:
 			{
 				for(used_size = 0; used_size < total_size && buffer[used_size] != ctx->eol_marker; used_size ++)
 				{
-					char* next_buf;
 					line_size ++;
-					if(tb->capacity < line_size && NULL == (line_buffer = next_buf = _get_line_buffer(tb, (uint32_t)line_size, 1, ctx)))
+
+					if(tb->capacity < line_size && NULL == (line_buffer = thread_buffer = _get_line_buffer(tb, (uint32_t)line_size, 1, ctx)))
 						ERROR_LOG_GOTO(RET, "Cannot resize the line buffer");
 
-					next_buf[line_size - 1] = buffer[used_size];
+					thread_buffer[line_size - 1] = buffer[used_size];
 				}
 
 				if(used_size < total_size) 

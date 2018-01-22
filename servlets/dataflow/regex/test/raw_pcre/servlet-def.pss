@@ -1,6 +1,6 @@
 raw_mode = 1;
 
-servlet = "dataflow/regex --raw-input ([Aa]pple\\ [Aa]pp(lication)?)";
+servlet = @"dataflow/regex --raw-input ([Aa]pple\ [Aa]pp(lication)?)";
 
 servlet_input = "input";
 

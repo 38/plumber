@@ -248,9 +248,10 @@ static inline int _num(pss_comp_lex_t* lex, int32_t* result)
 			/* hex */
 			_consume(lex, 2);
 			*result = 0;
+			int valid = 0;
 			for(;(current = _hex_digit_to_val(_peek(lex, 0))) != ERROR_CODE(int); _consume(lex, 1))
-			    *result = (*result) * 16 + current;
-			return 0;
+			    *result = (*result) * 16 + current, valid = 1;
+			return valid ? 0 : ERROR_CODE(int);
 		}
 		else if((current = _oct_digit_to_val(_peek(lex, 1))) != ERROR_CODE(int))
 		{
@@ -278,7 +279,7 @@ static inline int _num(pss_comp_lex_t* lex, int32_t* result)
 	return 0;
 }
 
-static inline int _str(pss_comp_lex_t* lex, char* buf, size_t sz)
+static inline int _str(pss_comp_lex_t* lex, char* buf, size_t sz, int esc)
 {
 	if(_peek(lex, 0) != '"') return ERROR_CODE(int);
 	_consume(lex, 1);
@@ -306,7 +307,7 @@ PARSE:
 		switch(state)
 		{
 			case _NORMAL_STR:
-			    if(ch == '\\') state = _ESC_BEGIN;
+			    if(ch == '\\' && esc) state = _ESC_BEGIN;
 			    else if(ch == '"') state = _STR_END;
 			    else underlying_char = ch;
 			    break;
@@ -575,6 +576,17 @@ int pss_comp_lex_next_token(pss_comp_lex_t* lexer, pss_comp_lex_token_t* buffer)
 					lexer->errstr = "Invalid Graphviz property";
 				}
 			}
+			else if(_peek(lexer, 1) == '"')
+			{
+				buffer->type = PSS_COMP_LEX_TOKEN_STRING;
+				_consume(lexer, 1);
+				if(_str(lexer, buffer->value.s, sizeof(buffer->value.s), 0) == ERROR_CODE(int))
+				{
+					lexer->error = 1;
+					lexer->errstr = "Invalid string";
+				}
+				break;
+			}
 			else
 			{
 				lexer->error = 1;
@@ -672,7 +684,7 @@ int pss_comp_lex_next_token(pss_comp_lex_t* lexer, pss_comp_lex_token_t* buffer)
 		}
 		_LEX_CASE('"', PSS_COMP_LEX_TOKEN_STRING)
 		{
-			if(_str(lexer, buffer->value.s, sizeof(buffer->value.s)) == ERROR_CODE(int))
+			if(_str(lexer, buffer->value.s, sizeof(buffer->value.s), 1) == ERROR_CODE(int))
 			{
 				lexer->error = 1;
 				lexer->errstr = "Invalid string";
