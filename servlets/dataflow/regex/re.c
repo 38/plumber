@@ -80,6 +80,9 @@ int re_free(re_t* obj)
 
 static inline int _process_pcre_error_code(const char* msg, int code)
 {
+#ifndef LOG_ERROR_ENABLED
+	(void)msg;
+#endif
 	switch(code)
 	{
 		case PCRE_ERROR_NOMATCH:
