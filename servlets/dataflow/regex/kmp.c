@@ -77,6 +77,11 @@ int kmp_pattern_free(kmp_pattern_t* kmp)
 	return 0;
 }
 
+/**
+ * todo: Optimize this. This is not optimal and much slower than grep in a lot of cases. 
+ *       What we need to do is use BM algorithm to get rid of the obviously unmatched string as early
+ *       as possible. See misc/kmp.c for details
+ **/
 size_t kmp_partial_match(const kmp_pattern_t* kmp, const char* text, size_t maxlen, int eol_marker, size_t* state)
 {
 	if(NULL == kmp || NULL == text)
