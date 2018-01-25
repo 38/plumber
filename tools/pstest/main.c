@@ -407,7 +407,7 @@ int _program(int argc, char** argv)
 		return 1;
 	}
 
-	mod_file = itc_modtab_get_module_type_from_path("pipe.file");
+	mod_file = itc_modtab_get_module_type_from_path("pipe.legacy_file");
 	if(mod_file == ERROR_CODE(itc_module_type_t))
 	{
 		LOG_FATAL("Cannot get file pipe type");

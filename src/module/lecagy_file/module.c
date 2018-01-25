@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017-2018, Hao Hou
  **/
 
 #include <stddef.h>
@@ -161,11 +161,11 @@ static const char* _get_path(void* __restrict ctx, char* buf, size_t sz)
 	return buf;
 }
 
-itc_module_t module_file_module_def = {
+itc_module_t module_legacy_file_module_def = {
 	.handle_size = sizeof(_handle_t),
 	.context_size = 0,
 	.module_init = _init,
-	.mod_prefix = "pipe.file",
+	.mod_prefix = "pipe.legacy_file",
 	.module_cleanup = _cleanup,
 	.allocate = _allocate,
 	.deallocate = _deallocate,
