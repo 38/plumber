@@ -31,6 +31,17 @@ typedef enum {
 } _read_mode_t;
 
 /**
+ * @brief Describe a input file
+ **/
+typedef struct {
+	char*         path;      /*!< The input path */
+	int           fd;        /*!< The input file file descriptor */
+	off_t         size;      /*!< The size of the input file */
+	void*         map_begin; /*!< The input memoroy only used when the mmap mode is enabled */
+	void*         map_end;   /*!< The end pointer of the mapped region */
+} _input_file_t;
+
+/**
  * @brief The module isntance context
  * @details parallel_num: For a line based text file, we don't know where the next line begins
  *                        unless we see the line deliminator. Thus this limit us unable to do
@@ -44,19 +55,20 @@ typedef enum {
  *       we do need this some times. So how we support that ?
  **/
 typedef struct {
-	/************** Input related field **************/
+
 	_read_mode_t  read_mode;    /*!< What mode we are using */
-	uint32_t      parallel_num; /*!< How many parallel reading can happen at the same time. (See struct doc for details) */
-	char*         in_path;      /*!< The input path */
-	int           in_fd;        /*!< The input file file descriptor */
-	void*         in_mem;       /*!< The input memoroy only used when the mmap mode is enabled */
+	int           create_mode;  /*!< The mode for newly created file */
+
+	/************** Input related field **************/
+	uint32_t       parallel_num; /*!< How many parallel reading can happen at the same time (For a single file). (See struct doc for details) */
+	uint32_t       num_inputs;   /*!< The number of input file */
+	_input_file_t* inputs;       /*!< The input file list */
 
 	/************** Output related fields ************/
 	char*         out_path;     /*!< The output path */
 	int           out_fd;       /*!< The output file descriptor */
 	char*         label;        /*!< The label for this file */
 	_write_mode_t write_mode;   /*!< Which mode we want to use for the output file */
-	int           create_mode;  /*!< The mode for newly created file */
 
 	/************** Module state *********************/
 	uint32_t  exhuasted:1;  /*!< Indicates if this module have no events */
@@ -85,7 +97,7 @@ static int _init(void* __restrict ctxbuf, uint32_t argc, char const* __restrict 
 	context_t* ctx = (context_t*)ctxbuf;
 	
 	memset(ctx, 0, sizeof(context_t));
-	ctx->in_fd = ctx->out_fd = -1;
+	ctx->out_fd = -1;
 	ctx->line_param.delim = '\n';
 
 	const char* arguments[3]  = {};
@@ -112,9 +124,35 @@ static int _init(void* __restrict ctxbuf, uint32_t argc, char const* __restrict 
 			ERROR_RETURN_LOG(int, "Missing argument string %s, expected: file input=<input-file> output=<output-file> label=<label>", names[i]);
 		else 
 			LOG_DEBUG("Parsed argument string %s%s", names[i], arguments[i]);
-
+#if 0
 	if(NULL == (ctx->in_path = strdup(arguments[0])))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the input path");
+#endif
+	j = 0;
+	for(i = 0;; i ++)
+	{
+		if((arguments[0][i] == ',' || arguments[0][i] == 0) && i > j)
+		{
+			_input_file_t* tmp = realloc(ctx->inputs, (ctx->num_inputs + 1) * sizeof(_input_file_t));
+			if(NULL == tmp) 
+				ERROR_RETURN_LOG_ERRNO(int, "Cannot resize the input array");
+			tmp[ctx->num_inputs].fd = -1;
+			tmp[ctx->num_inputs].map_begin = NULL;
+			tmp[ctx->num_inputs].map_end = NULL;
+			tmp[ctx->num_inputs].size = 0;
+
+			ctx->inputs = tmp;
+
+			if(NULL == (tmp[ctx->num_inputs].path = malloc(i - j + 1)))
+				ERROR_RETURN_LOG_ERRNO(int, "Cannot allocae memory for the path");
+
+			memcpy(tmp[ctx->num_inputs].path, arguments[0] + j, i - j);
+			ctx->num_inputs ++;
+			j = i + 1;
+		}
+
+		if(arguments[0][i] == 0) break;
+	}
 
 	if(NULL == (ctx->out_path = strdup(arguments[1])))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot dpilicate the output path");
@@ -123,6 +161,7 @@ static int _init(void* __restrict ctxbuf, uint32_t argc, char const* __restrict 
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the label name");
 
 	return 0;
+
 }
 
 static inline int _cleanup(void* __restrict ctxbuf)
@@ -130,16 +169,25 @@ static inline int _cleanup(void* __restrict ctxbuf)
 	int rc = 0;
 	context_t* ctx = (context_t*)ctxbuf;
 
-	if(NULL != ctx->in_path) free(ctx->in_path);
-
 	if(NULL != ctx->out_path) free(ctx->out_path);
 
 	if(NULL != ctx->label) free(ctx->label);
 
-	if(ctx->in_fd >= 0 && close(ctx->in_fd) < 0)
+	if(ctx->inputs != NULL)
 	{
-		LOG_ERROR_ERRNO("Cannot close the input file");
-		rc = ERROR_CODE(int);
+		uint32_t i;
+		for(i = 0; i < ctx->num_inputs; i ++)
+		{
+			if(ctx->inputs[i].fd >= 0 && close(ctx->inputs[i].fd) < 0)
+			{
+				LOG_ERROR_ERRNO("Cannot close the input file %u", i);
+				rc = ERROR_CODE(int);
+			}
+
+			if(NULL != ctx->inputs[i].path) 
+				free(ctx->inputs[i].path);
+		}
+		free(ctx->inputs);
 	}
 
 	if(ctx->out_fd >= 0 && close(ctx->out_fd) < 0)
@@ -209,7 +257,16 @@ static itc_module_property_value_t _get_prop(void* __restrict ctxmem, const char
 	};
 
 
-	if(strcmp(sym, "input_path") == 0) return _make_str(ctx->in_path);
+	if(strlen(sym) > 11 && memcmp(sym, "input_path$", 11) == 0) 
+	{
+		uint32_t num = (uint32_t)atol(sym + 11);
+		if(ctx->num_inputs <= num) return ret;
+		return _make_str(ctx->inputs[num].path);
+	}
+	else if(strcmp(sym, "input_count") == 0)
+	{
+		return _make_int(ctx->num_inputs);
+	}
 	else if(strcmp(sym, "output_path") == 0) return _make_str(ctx->out_path);
 	else if(strcmp(sym, "write_mode") == 0) return _make_str(_write_mode_name[ctx->write_mode]);
 	else if(strcmp(sym, "read_mode") == 0) return _make_str(_read_mode_name[ctx->read_mode]);
