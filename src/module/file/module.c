@@ -10,6 +10,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
 #include <error.h>
 
@@ -30,15 +31,19 @@ typedef enum {
 	_READ_MODE_VS_BLK         /*!< A variant size block (TODO: how to determine the size? since different file might do this differently)*/
 } _read_mode_t;
 
+typedef struct {
+	void* begin;
+	void* end;
+} _mem_region_t;
+
 /**
  * @brief Describe a input file
  **/
 typedef struct {
-	char*         path;      /*!< The input path */
-	int           fd;        /*!< The input file file descriptor */
-	off_t         size;      /*!< The size of the input file */
-	void*         map_begin; /*!< The input memoroy only used when the mmap mode is enabled */
-	void*         map_end;   /*!< The end pointer of the mapped region */
+	char*          path;      /*!< The input path */
+	int            fd;        /*!< The input file file descriptor */
+	off_t          size;      /*!< The size of the input file */
+	_mem_region_t* regions;   /*!< Each of the access regions */
 } _input_file_t;
 
 /**
@@ -92,8 +97,15 @@ typedef struct {
 	size_t  offset;    /*!< Current read offset */
 } handle_t;
 
+static size_t _pagesize = 0;
+
+#define _ROUND_PAGE(sz) ((sz + _pagesize - 1) & ~(_pagesize - 1))
+
 static int _init(void* __restrict ctxbuf, uint32_t argc, char const* __restrict const* __restrict argv)
 {
+	if(_pagesize == 0)
+		_pagesize = (size_t)getpagesize();
+
 	context_t* ctx = (context_t*)ctxbuf;
 	
 	memset(ctx, 0, sizeof(context_t));
@@ -137,8 +149,7 @@ static int _init(void* __restrict ctxbuf, uint32_t argc, char const* __restrict 
 			if(NULL == tmp) 
 				ERROR_RETURN_LOG_ERRNO(int, "Cannot resize the input array");
 			tmp[ctx->num_inputs].fd = -1;
-			tmp[ctx->num_inputs].map_begin = NULL;
-			tmp[ctx->num_inputs].map_end = NULL;
+			tmp[ctx->num_inputs].regions = NULL;
 			tmp[ctx->num_inputs].size = 0;
 
 			ctx->inputs = tmp;
@@ -186,6 +197,22 @@ static inline int _cleanup(void* __restrict ctxbuf)
 
 			if(NULL != ctx->inputs[i].path) 
 				free(ctx->inputs[i].path);
+
+			if(NULL != ctx->inputs[i].regions)
+			{
+				uint32_t j;
+				for(j = 0; j < ctx->parallel_num; j ++)
+				{
+					size_t region_size = _ROUND_PAGE((size_t)((char*)ctx->inputs[i].regions[j].end - (char*)ctx->inputs[i].regions[j].begin)); 
+
+					if(region_size > 0 && munmap(ctx->inputs[i].regions[j].begin, region_size) < 0)
+					{
+						LOG_ERROR_ERRNO("Cannot unmap the region [%p,%p)", ctx->inputs[i].regions[j].begin, ctx->inputs[i].regions[j].end);
+						rc = ERROR_CODE(int);
+					}
+				}
+			}
+
 		}
 		free(ctx->inputs);
 	}
