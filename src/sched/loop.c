@@ -46,6 +46,11 @@ static uint32_t _nthreads = 1;
 static uint32_t _queue_size = SCHED_LOOP_EVENT_QUEUE_SIZE;
 
 /**
+ * @brief The threshold that makes the round robin load balancer move ahead
+ **/
+static uint32_t _round_robin_move_threshold = 0;
+
+/**
  * @brief a scheduler loop context
  **/
 struct _sched_loop_t {
@@ -624,7 +629,10 @@ static inline int _dispatcher_main(void)
 				     _scheduler_saturated(scheduler));
 				     scheduler = scheduler->next == NULL ? _scheds : scheduler->next)
 				    first = 0;
-				round_robin_start = scheduler->next == NULL ? _scheds : scheduler->next;
+				if(scheduler->rear - scheduler->front < _round_robin_move_threshold)
+					round_robin_start = scheduler;
+				else
+					round_robin_start = scheduler->next == NULL ? _scheds : scheduler->next;
 			}
 
 			if((scheduler->rear - scheduler->front >= scheduler->size ||
@@ -905,6 +913,11 @@ static inline int _set_prop(const char* symbol, lang_prop_value_t value, const v
 		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
 		_max_worker_concurrency = (uint32_t)value.num;
 	}
+	else if(strcmp(symbol, "round_robin_move_threshold") == 0)
+	{
+		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
+		_round_robin_move_threshold = (uint32_t)value.num;
+	}
 	else
 	{
 		LOG_WARNING("Unrecognized symbol name %s", symbol);
@@ -958,6 +971,11 @@ static lang_prop_value_t _get_prop(const char* symbol, const void* param)
 	{
 		ret.type = LANG_PROP_TYPE_INTEGER;
 		ret.num = _max_worker_concurrency;
+	}
+	else if(strcmp(symbol, "round_robin_move_threshold") == 0)
+	{
+		ret.type = LANG_PROP_TYPE_INTEGER;
+		ret.num = _round_robin_move_threshold;
 	}
 
 	return ret;

@@ -37,14 +37,33 @@ static char request_buffer[TEST_BUFFER_SIZE];
  **/
 static char response_buffer[TEST_BUFFER_SIZE];
 
+typedef struct {
+	const char* name;
+	uint32_t    event_loop:1;
+} context_t;
+
 static int module_init(void* __restrict ctx, uint32_t argc, char const* __restrict const* __restrict argv)
 {
-	(void)ctx;
+	context_t* context = (context_t*)ctx;
 	(void)argc;
 	(void)argv;
 	LOG_DEBUG("Test ITC Module is initialized");
-	if(argc > 0) *(const char**)ctx = argv[0];
-	else *(const char**)ctx = "__default__";
+	
+	context->name = NULL;
+	context->event_loop = 0;
+
+	uint32_t i;
+	for(i = 0; i < argc; i ++)
+	{
+		if(strcmp(argv[i], "--event-loop") == 0)
+			context->event_loop = 1;
+		else if(context->name == NULL)
+			context->name = argv[i];
+	}
+
+	if(context->name == NULL) 
+		context->name = "__default__";
+
 	return 0;
 }
 
@@ -203,8 +222,8 @@ static int _cntl(void* __restrict ctx, void* __restrict handle, uint32_t opcode,
 
 static const char* _get_path(void* __restrict ctx, char* buf, size_t sz)
 {
-	(void) ctx;
-	snprintf(buf, sz, "%s", *(const char**)ctx);
+	context_t* context = (context_t*)ctx;
+	snprintf(buf, sz, "%s", context->name);
 	return buf;
 }
 
@@ -229,6 +248,12 @@ static int _fork(void* __restrict ctx, void* __restrict dest, void* __restrict s
 	return 0;
 }
 
+static itc_module_flags_t _get_flags(void* __restrict ctxmem)
+{
+	context_t* ctx = (context_t*)ctxmem;
+	return ctx->event_loop ? ITC_MODULE_FLAGS_EVENT_LOOP : 0;
+}
+
 itc_module_t module_test_module_def = {
 	.mod_prefix = "pipe.test",
 	.handle_size = sizeof(module_handle_t),
@@ -244,6 +269,7 @@ itc_module_t module_test_module_def = {
 	.cntl = _cntl,
 	.get_path = _get_path,
 	.get_opcode = _get_opcode,
+	.get_flags = _get_flags,
 	.fork = _fork
 };
 
