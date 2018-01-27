@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017-2018, Hao Hou
  **/
 /**
  * @brief the header for the module related APIs
@@ -14,15 +14,16 @@
  * @param func the function name
  * @return the pipe_t reference to the that function
  **/
-pipe_t module_require_function(const char* mod_name, const char* func);
-
+pipe_t module_require_function(const char* mod_name, const char* func)
+	__attribute__((visibility ("hidden")));
 
 /**
  * @brief open a module and return the module code
  * @param path the path to the module
  * @return the module code
  **/
-uint8_t module_open(const char* path);
+uint8_t module_open(const char* path)
+	__attribute__((visibility ("hidden")));
 
 /**
  * @brief get module sepecified opcode

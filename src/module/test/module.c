@@ -257,7 +257,7 @@ static itc_module_flags_t _get_flags(void* __restrict ctxmem)
 itc_module_t module_test_module_def = {
 	.mod_prefix = "pipe.test",
 	.handle_size = sizeof(module_handle_t),
-	.context_size = sizeof(const char*),
+	.context_size = sizeof(context_t),
 	.module_init = module_init,
 	.module_cleanup = module_cleanup,
 	.allocate = allocate,
