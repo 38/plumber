@@ -641,30 +641,34 @@ static inline int _dispatcher_main(void)
 				}
 
 				if((scheduler->rear - scheduler->front >= scheduler->size ||
-					(event.type == ITC_EQUEUE_EVENT_TYPE_IO && _scheduler_saturated(scheduler)))
-					&& pending_list.size < SCHED_LOOP_MAX_PENDING_TASKS)
+					(event.type == ITC_EQUEUE_EVENT_TYPE_IO && _scheduler_saturated(scheduler))))
 				{
-					LOG_DEBUG("The target scheduler is currently busy, add the event to the pending task list and try it later");
-
-					_pending_event_t* pe = (_pending_event_t*)malloc(sizeof(*pe));
-					if(NULL == pe)
+					if(pending_list.size < SCHED_LOOP_MAX_PENDING_TASKS)
 					{
-						LOG_WARNING_ERRNO("Cannot allocate memory for the pending event, waiting for the scheduler");
-						goto SCHED_WAIT;
+						LOG_DEBUG("The target scheduler is currently busy, add the event to the pending task list and try it later");
+
+						_pending_event_t* pe = (_pending_event_t*)malloc(sizeof(*pe));
+						if(NULL == pe)
+						{
+							LOG_WARNING_ERRNO("Cannot allocate memory for the pending event, waiting for the scheduler");
+							goto SCHED_WAIT;
+						}
+
+						pe->next = pending_list.list;
+						pe->event = event;
+						pending_list.list = pe;
+
+						pending_list.size ++;
+
+						LOG_DEBUG("Added the event to the pending list(new pending list size: %u)", pending_list.size);
+
+						goto NEXT_ITER;
 					}
-
-					pe->next = pending_list.list;
-					pe->event = event;
-					pending_list.list = pe;
-
-					pending_list.size ++;
-
-					LOG_DEBUG("Added the event to the pending list(new pending list size: %u)", pending_list.size);
-
-					goto NEXT_ITER;
+					else goto SCHED_WAIT;
 				}
 
 				LOG_DEBUG("Sending the event to the scheduler");
+				break;
 
 SCHED_WAIT:
 				{
