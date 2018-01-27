@@ -181,9 +181,11 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event);
  * @param token the thread token
  * @param buffer the buffer used to return the result
  * @param type_mask Indicates which type of event we are looking for
- * @return status code
+ * @param buffer_size The size of the buffer
+ * @return The number of event that has been copied to the buffer or status code </br>
+ *         0 events copied also counted as error
  **/
-int itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t type_mask, itc_equeue_event_t* buffer);
+uint32_t itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t type_mask, itc_equeue_event_t* buffer, uint32_t buffer_size);
 
 /**
  * @brief check if the equeue is empty

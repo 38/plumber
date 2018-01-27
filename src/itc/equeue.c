@@ -352,14 +352,15 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 	return 0;
 }
 
-int itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t mask, itc_equeue_event_t* buffer)
+uint32_t itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t type_mask, itc_equeue_event_t* buffer, uint32_t buffer_size)
 {
+	uint32_t ret = 0;
 	size_t i;
 	_queue_t* queue = NULL;
 
-	if(NULL == buffer) ERROR_RETURN_LOG(int, "Invalid arguments");
+	if(NULL == buffer) ERROR_RETURN_LOG(uint32_t, "Invalid arguments");
 
-	if(token != _SCHED_TOKEN) ERROR_RETURN_LOG(int, "Cannot call the take method from event thread");
+	if(token != _SCHED_TOKEN) ERROR_RETURN_LOG(uint32_t, "Cannot call the take method from event thread");
 
 	/* Find the first queue that is not empty */
 	for(i = 0; i < vector_length(_queues); i ++)
@@ -372,7 +373,7 @@ int itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t mask, itc_
 			continue;
 		}
 
-		if(ITC_EQUEUE_EVENT_MASK_ALLOWS(mask, queue->type) && queue->front != queue->rear)
+		if(ITC_EQUEUE_EVENT_MASK_ALLOWS(type_mask, queue->type) && queue->front != queue->rear)
 		{
 			LOG_DEBUG("found queue %zu contains avalible events", i);
 			break;
@@ -380,21 +381,26 @@ int itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t mask, itc_
 	}
 
 	if(i == vector_length(_queues))
-	    ERROR_RETURN_LOG(int, "Cannot find the event mask = %x", mask);
+	    ERROR_RETURN_LOG(uint32_t, "Cannot find the event mask = %x", type_mask);
 	else LOG_DEBUG("Found events in queue #%zu, take the first one", i);
 
-	*buffer = queue->events[queue->front & (queue->size - 1)];
+
+	for(ret = 0; ret < buffer_size && (queue->rear - queue->front - ret) != 0; ret ++)
+		buffer[ret] = queue->events[(queue->front + ret) & (queue->size - 1)];
+
+	BARRIER();
+
 	LOG_DEBUG("scheduler thread: notifying the more free space in the queue to token %zu", i);
 	if((errno = pthread_mutex_lock(&queue->mutex)) != 0)
-	    LOG_WARNING_ERRNO("cannot acquire the queue mutex for token %zu", i);
+		LOG_WARNING_ERRNO("cannot acquire the queue mutex for token %zu", i);
+	
+	queue->front += ret;
 
-	queue->front ++;
-
-	if((errno = pthread_cond_signal(&queue->put_cond)) != 0)
-	    LOG_WARNING_ERRNO("cannot notify the queue cond variable for token %zu", i);
+	if((queue->rear - queue->front + ret) == queue->size && (errno = pthread_cond_signal(&queue->put_cond)) != 0)
+		LOG_WARNING_ERRNO("cannot notify the queue cond variable for token %zu", i);
 
 	if((errno = pthread_mutex_unlock(&queue->mutex)) != 0)
-	    LOG_WARNING_ERRNO("cannot notify release the queue mutex for token %zu", i);
+		LOG_WARNING_ERRNO("cannot notify release the queue mutex for token %zu", i);
 
 	if((errno = pthread_mutex_lock(&_take_mutex)) != 0)
 	    LOG_WARNING_ERRNO("cannot acquire the reader mutex");
@@ -402,7 +408,7 @@ int itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t mask, itc_
 	if((errno = pthread_mutex_unlock(&_take_mutex)) != 0)
 	    LOG_WARNING_ERRNO("cannot release the reader mutex");
 
-	return 0;
+	return ret;
 }
 
 int itc_equeue_empty(itc_equeue_token_t token)
