@@ -319,6 +319,8 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 		if(itc_eloop_thread_killed == 1)
 		{
 			LOG_INFO("event thread gets killed");
+			if((errno = pthread_mutex_unlock(&queue->mutex)) != 0)
+				LOG_WARNING_ERRNO("cannot release the queue mutex");
 			return 0;
 		}
 
