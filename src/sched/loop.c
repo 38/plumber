@@ -775,7 +775,7 @@ int sched_loop_start(sched_service_t** service, int fork_twice)
 
 	/* If we are in fork twice mode, return true directly, since it's going to handle the
 	 * service in another process */
-	if(daemon_rc == 0 && fork_twice) return 0;
+	if(daemon_rc == 2) return 0;
 
 	uint32_t i;
 	sched_loop_t* ptr = NULL;
