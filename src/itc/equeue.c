@@ -314,7 +314,6 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 
 	if(queue->rear == queue->front + queue->size)
 	{
-
 		if((errno = pthread_mutex_lock(&queue->mutex)) != 0)
 			ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the queue mutex");
 
@@ -347,7 +346,7 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 	BARRIER();
 	arch_atomic_sw_increment_u32(&queue->rear);
 
-	if(_sched_waiting)
+	if(_sched_waiting && __sync_bool_compare_and_swap(&_sched_waiting, 1, 0))
 	{
 		LOG_DEBUG("token %u: notifiying the schduler thread to read this element", token);
 
@@ -493,10 +492,6 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
 		gettimeofday(&now,NULL);
 		abstime.tv_sec = now.tv_sec + 1;
 	}
-
-	BARRIER();
-	_sched_waiting = 0;
-	BARRIER();
 
 	if(locked && (errno = pthread_mutex_unlock(&_take_mutex)) != 0)
 	    LOG_WARNING_ERRNO("cannot release the reader mutex");
