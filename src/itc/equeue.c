@@ -65,6 +65,11 @@ static pthread_mutex_t _take_mutex;
  **/
 static pthread_cond_t  _take_cond;
 
+/**
+ * @biref Indicates if the scheduler is waiting 
+ **/
+volatile uint32_t _sched_waiting;
+
 
 /**
  * @todo using larger initial size when there's such need for that
@@ -307,28 +312,32 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 	abstime.tv_sec = now.tv_sec+1;
 	abstime.tv_nsec = 0;
 
-	if((errno = pthread_mutex_lock(&queue->mutex)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the queue mutex");
-
-	/* If the queue is currently full, we should make the event loop wait until the scheduler consume at least one event in the queue */
-	while(queue->rear == queue->front + queue->size)
+	if(queue->rear == queue->front + queue->size)
 	{
-		if((errno = pthread_cond_timedwait(&queue->put_cond, &queue->mutex, &abstime)) != 0 && errno != ETIMEDOUT && errno != EINTR)
-		    LOG_WARNING_ERRNO("failed to wait for the cond variable get ready");
 
-		if(itc_eloop_thread_killed == 1)
+		if((errno = pthread_mutex_lock(&queue->mutex)) != 0)
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the queue mutex");
+
+		/* If the queue is currently full, we should make the event loop wait until the scheduler consume at least one event in the queue */
+		while(queue->rear == queue->front + queue->size)
 		{
-			LOG_INFO("event thread gets killed");
-			if((errno = pthread_mutex_unlock(&queue->mutex)) != 0)
-				LOG_WARNING_ERRNO("cannot release the queue mutex");
-			return 0;
+			if((errno = pthread_cond_timedwait(&queue->put_cond, &queue->mutex, &abstime)) != 0 && errno != ETIMEDOUT && errno != EINTR)
+				LOG_WARNING_ERRNO("failed to wait for the cond variable get ready");
+
+			if(itc_eloop_thread_killed == 1)
+			{
+				LOG_INFO("event thread gets killed");
+				if((errno = pthread_mutex_unlock(&queue->mutex)) != 0)
+					LOG_WARNING_ERRNO("cannot release the queue mutex");
+				return 0;
+			}
+
+			abstime.tv_sec ++;
 		}
 
-		abstime.tv_sec ++;
+		if((errno = pthread_mutex_unlock(&queue->mutex)) != 0)
+			LOG_WARNING_ERRNO("cannot release the queue mutex");
 	}
-
-	if((errno = pthread_mutex_unlock(&queue->mutex)) != 0)
-	    LOG_WARNING_ERRNO("cannot release the queue mutex");
 
 	LOG_DEBUG("token %u: now the queue have sufficent space for the new event", token);
 
@@ -338,19 +347,23 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 	BARRIER();
 	arch_atomic_sw_increment_u32(&queue->rear);
 
-	LOG_DEBUG("token %u: notifiying the schduler thread to read this element", token);
+	if(_sched_waiting)
+	{
+		LOG_DEBUG("token %u: notifiying the schduler thread to read this element", token);
 
-	/* Signal the take part */
-	if((errno = pthread_mutex_lock(&_take_mutex)) != 0)
-	    LOG_WARNING_ERRNO("cannot acquire the reader mutex");
+		/* Signal the take part */
+		if((errno = pthread_mutex_lock(&_take_mutex)) != 0)
+			LOG_WARNING_ERRNO("cannot acquire the reader mutex");
 
-	if((errno = pthread_cond_signal(&_take_cond)) != 0)
-	    LOG_WARNING_ERRNO("cannot send signal to the scheduler thread");
+		if((errno = pthread_cond_signal(&_take_cond)) != 0)
+			LOG_WARNING_ERRNO("cannot send signal to the scheduler thread");
 
-	if((errno = pthread_mutex_unlock(&_take_mutex)) != 0)
-	    LOG_WARNING_ERRNO("cannot release the reader mutex");
+		if((errno = pthread_mutex_unlock(&_take_mutex)) != 0)
+			LOG_WARNING_ERRNO("cannot release the reader mutex");
 
-	LOG_DEBUG("token %u: event message notified", token);
+		LOG_DEBUG("token %u: event message notified", token);
+	}
+
 	return 0;
 }
 
@@ -446,7 +459,7 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
 	while(killed == NULL || *killed == 0)
 	{
 		size_t i;
-
+		
 		if(interrupt != NULL && ITC_EQUEUE_EVENT_MASK_NONE == (mask = interrupt->func(interrupt->data)))
 		    ERROR_RETURN_LOG(int, "The equeue wait interrupt callback returns an error");
 
@@ -463,6 +476,10 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
 		
 		if(!locked)
 		{
+			_sched_waiting = 1;
+
+			BARRIER();
+			
 			if((errno = pthread_mutex_lock(&_take_mutex)) != 0) 
 				ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the reader mutex");
 			locked = 1;
@@ -476,6 +493,11 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
 		gettimeofday(&now,NULL);
 		abstime.tv_sec = now.tv_sec + 1;
 	}
+
+	BARRIER();
+	_sched_waiting = 0;
+	BARRIER();
+
 	if(locked && (errno = pthread_mutex_unlock(&_take_mutex)) != 0)
 	    LOG_WARNING_ERRNO("cannot release the reader mutex");
 

@@ -1,6 +1,6 @@
 set(TYPE shared-library)
 set(LOCAL_CFLAGS "-fPIC")
-set(LOCAL_LIBS pservlet)
+set(LOCAL_LIBS pservlet proto)
 set(LOCAL_SOURCE types)
 set(INSTALL "yes")
 set(PACKAGE_CONF_INSTALL_PATH "include/pstd")

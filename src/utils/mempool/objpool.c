@@ -74,7 +74,7 @@ static int _pool_disabled = 0;
 /**
  * @brief we have 65536 thread local cache at most
  **/
-static uint32_t _thread_object_max = 0x10000;
+static const uint32_t _thread_object_max = 0x10000;
 
 #ifndef FULL_OPTIMIZATION
 /**

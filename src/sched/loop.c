@@ -587,7 +587,7 @@ static inline int _dispatcher_main(void)
 			LOG_WARNING("Cannot wait for the the event queue gets ready");
 			continue;
 		}
-
+		
 		BARRIER();
 
 		_dispatcher_waiting_event = 0;
