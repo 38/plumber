@@ -15,7 +15,7 @@
  * @return status code
  **/
 int async_cntl(async_handle_t* handle, uint32_t opcode, ...)
-	__attribute__((visibility ("hidden")));
+    __attribute__((visibility ("hidden")));
 
 
 #endif /*__PSERVLET_ASYNC_H__*/

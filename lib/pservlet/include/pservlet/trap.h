@@ -15,6 +15,6 @@
  * @return nothing
  **/
 void trap(int id)
-	__attribute__((visibility ("hidden")));
+    __attribute__((visibility ("hidden")));
 
 #endif /* __TRAP_H__ */

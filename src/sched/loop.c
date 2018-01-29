@@ -587,7 +587,7 @@ static inline int _dispatcher_main(void)
 			LOG_WARNING("Cannot wait for the the event queue gets ready");
 			continue;
 		}
-		
+
 		BARRIER();
 
 		_dispatcher_waiting_event = 0;
@@ -602,7 +602,7 @@ static inline int _dispatcher_main(void)
 			LOG_ERROR("Cannot take next event from the event queue");
 			continue;
 		}
-		
+
 		for(i = 0; i < n_events; i ++)
 		{
 			const itc_equeue_event_t event = events[i];
@@ -617,9 +617,9 @@ static inline int _dispatcher_main(void)
 			abstime.tv_nsec = 0;
 
 			if(event.type == ITC_EQUEUE_EVENT_TYPE_TASK)
-				scheduler = event.task.loop;
+			    scheduler = event.task.loop;
 			else
-				scheduler = NULL;
+			    scheduler = NULL;
 
 
 			/* The round-robin scheduler try to pick up next worker */
@@ -631,18 +631,18 @@ static inline int _dispatcher_main(void)
 					first = 1;
 					scheduler = round_robin_start;
 					for(;(first || scheduler != round_robin_start) &&
-						 (scheduler->rear - scheduler->front >= scheduler->size ||
-						 _scheduler_saturated(scheduler));
-						 scheduler = scheduler->next == NULL ? _scheds : scheduler->next)
-						first = 0;
+					     (scheduler->rear - scheduler->front >= scheduler->size ||
+					     _scheduler_saturated(scheduler));
+					     scheduler = scheduler->next == NULL ? _scheds : scheduler->next)
+					    first = 0;
 					if(scheduler->rear - scheduler->front < _round_robin_move_threshold)
-						round_robin_start = scheduler;
+					    round_robin_start = scheduler;
 					else
-						round_robin_start = scheduler->next == NULL ? _scheds : scheduler->next;
+					    round_robin_start = scheduler->next == NULL ? _scheds : scheduler->next;
 				}
 
 				if((scheduler->rear - scheduler->front >= scheduler->size ||
-					(event.type == ITC_EQUEUE_EVENT_TYPE_IO && _scheduler_saturated(scheduler))))
+				    (event.type == ITC_EQUEUE_EVENT_TYPE_IO && _scheduler_saturated(scheduler))))
 				{
 					if(pending_list.size < SCHED_LOOP_MAX_PENDING_TASKS)
 					{
@@ -676,14 +676,14 @@ SCHED_WAIT:
 					int need_lock = !_dispatcher_waiting;
 					arch_atomic_sw_assignment_u32(&_dispatcher_waiting, 1);
 					if(need_lock && (errno = pthread_mutex_lock(&_dispatcher_mutex)) != 0)
-						LOG_WARNING_ERRNO("Cannot acquire the dispatcher mutex");
+					    LOG_WARNING_ERRNO("Cannot acquire the dispatcher mutex");
 				}
 
 				if(scheduler->rear - scheduler->front >= scheduler->size ||
 				   (event.type == ITC_EQUEUE_EVENT_TYPE_IO && _scheduler_saturated(scheduler)))
 				{
 					if((errno = pthread_cond_timedwait(&_dispatcher_cond, &_dispatcher_mutex, &abstime)) != 0 && errno != ETIMEDOUT && errno != EINTR)
-						LOG_WARNING_ERRNO("Cannot complete pthread_cond_timewait");
+					    LOG_WARNING_ERRNO("Cannot complete pthread_cond_timewait");
 
 					abstime.tv_sec ++;
 
@@ -696,7 +696,7 @@ EXIT_LOOP:
 					{
 						arch_atomic_sw_assignment_u32(&_dispatcher_waiting, 0);
 						if((errno = pthread_mutex_unlock(&_dispatcher_mutex)) != 0)
-							LOG_WARNING_ERRNO("Cannot rlease the dispatcher mutex");
+						    LOG_WARNING_ERRNO("Cannot rlease the dispatcher mutex");
 					}
 
 					break;
@@ -711,7 +711,7 @@ EXIT_LOOP:
 			memcpy(scheduler->events + p, &event, sizeof(event));
 
 			if(event.type == ITC_EQUEUE_EVENT_TYPE_IO)
-				arch_atomic_sw_increment_u32(&scheduler->pending_reqs_id_end);
+			    arch_atomic_sw_increment_u32(&scheduler->pending_reqs_id_end);
 
 			BARRIER();
 			/* We only needs notify the worker when all the dispatching are done with this one */
@@ -721,13 +721,13 @@ EXIT_LOOP:
 			if(needs_notify)
 			{
 				if((errno = pthread_mutex_lock(&scheduler->mutex)) != 0)
-					LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
+				    LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
 
 				if((errno = pthread_cond_signal(&scheduler->cond)) != 0)
-					LOG_WARNING_ERRNO("Cannot notify new incoming event for the scheduler thread %u", scheduler->thread_id);
+				    LOG_WARNING_ERRNO("Cannot notify new incoming event for the scheduler thread %u", scheduler->thread_id);
 
 				if((errno = pthread_mutex_unlock(&scheduler->mutex)) != 0)
-					LOG_WARNING_ERRNO("Cannot release the thread local mutex");
+				    LOG_WARNING_ERRNO("Cannot release the thread local mutex");
 			}
 NEXT_ITER:
 			(void)0;

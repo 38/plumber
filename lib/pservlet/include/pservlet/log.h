@@ -20,7 +20,7 @@
  */
 void log_write(int level, const char* file, const char* function, int line, const char* fmt, ...)
     __attribute__((format (printf, 5, 6)))
-	__attribute__((visibility ("hidden")));
+    __attribute__((visibility ("hidden")));
 
 #define __LOG_WRITE__ log_write
 #include <utils/log_macro.h>

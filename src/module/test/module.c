@@ -48,7 +48,7 @@ static int module_init(void* __restrict ctx, uint32_t argc, char const* __restri
 	(void)argc;
 	(void)argv;
 	LOG_DEBUG("Test ITC Module is initialized");
-	
+
 	context->name = NULL;
 	context->event_loop = 0;
 
@@ -56,13 +56,13 @@ static int module_init(void* __restrict ctx, uint32_t argc, char const* __restri
 	for(i = 0; i < argc; i ++)
 	{
 		if(strcmp(argv[i], "--event-loop") == 0)
-			context->event_loop = 1;
+		    context->event_loop = 1;
 		else if(context->name == NULL)
-			context->name = argv[i];
+		    context->name = argv[i];
 	}
 
-	if(context->name == NULL) 
-		context->name = "__default__";
+	if(context->name == NULL)
+	    context->name = "__default__";
 
 	return 0;
 }

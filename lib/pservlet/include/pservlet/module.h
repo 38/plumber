@@ -15,7 +15,7 @@
  * @return the pipe_t reference to the that function
  **/
 pipe_t module_require_function(const char* mod_name, const char* func)
-	__attribute__((visibility ("hidden")));
+    __attribute__((visibility ("hidden")));
 
 /**
  * @brief open a module and return the module code
@@ -23,7 +23,7 @@ pipe_t module_require_function(const char* mod_name, const char* func)
  * @return the module code
  **/
 uint8_t module_open(const char* path)
-	__attribute__((visibility ("hidden")));
+    __attribute__((visibility ("hidden")));
 
 /**
  * @brief get module sepecified opcode

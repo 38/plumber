@@ -12,5 +12,5 @@
  * @return the plumber version number string, NULL incidates an error
  **/
 const char* runtime_version(void)
-	__attribute__((visibility ("hidden")));
+    __attribute__((visibility ("hidden")));
 #endif /* __PSERVLET_PLUMBER_H__ */
