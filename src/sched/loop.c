@@ -46,6 +46,11 @@ static uint32_t _nthreads = 1;
 static uint32_t _queue_size = SCHED_LOOP_EVENT_QUEUE_SIZE;
 
 /**
+ * @brief The threshold that makes the round robin load balancer move ahead
+ **/
+static uint32_t _round_robin_move_threshold = 0;
+
+/**
  * @brief a scheduler loop context
  **/
 struct _sched_loop_t {
@@ -589,129 +594,144 @@ static inline int _dispatcher_main(void)
 
 		if(_killed) break;
 
-		itc_equeue_event_t event;
+		itc_equeue_event_t events[32];
+		uint32_t n_events, i;
 
-		if(itc_equeue_take(sched_token, _last_mask, &event) == ERROR_CODE(int))
+		if((n_events = itc_equeue_take(sched_token, _last_mask, events, sizeof(events) / sizeof(events[0]))) == ERROR_CODE(uint32_t))
 		{
 			LOG_ERROR("Cannot take next event from the event queue");
 			continue;
 		}
 
-		sched_loop_t* scheduler = round_robin_start;
-		int first;
-
-		struct timespec abstime;
-		struct timeval now;
-		gettimeofday(&now, NULL);
-		abstime.tv_sec = now.tv_sec+1;
-		abstime.tv_nsec = 0;
-
-		if(event.type == ITC_EQUEUE_EVENT_TYPE_TASK)
-		    scheduler = event.task.loop;
-		else
-		    scheduler = NULL;
-
-		/* The round-robin scheduler try to pick up next worker */
-		for(;;)
+		for(i = 0; i < n_events; i ++)
 		{
-			if(scheduler == NULL)
-			{
-				LOG_DEBUG("The event is not associated with any scheduler, use the round-robin dispatcher");
-				first = 1;
-				scheduler = round_robin_start;
-				for(;(first || scheduler != round_robin_start) &&
-				     (scheduler->rear - scheduler->front >= scheduler->size ||
-				     _scheduler_saturated(scheduler));
-				     scheduler = scheduler->next == NULL ? _scheds : scheduler->next)
-				    first = 0;
-				round_robin_start = scheduler->next == NULL ? _scheds : scheduler->next;
-			}
+			const itc_equeue_event_t event = events[i];
 
-			if((scheduler->rear - scheduler->front >= scheduler->size ||
-			    (event.type == ITC_EQUEUE_EVENT_TYPE_IO && _scheduler_saturated(scheduler)))
-			    && pending_list.size < SCHED_LOOP_MAX_PENDING_TASKS)
-			{
-				LOG_DEBUG("The target scheduler is currently busy, add the event to the pending task list and try it later");
+			sched_loop_t* scheduler = round_robin_start;
+			int first;
 
-				_pending_event_t* pe = (_pending_event_t*)malloc(sizeof(*pe));
-				if(NULL == pe)
+			struct timespec abstime;
+			struct timeval now;
+			gettimeofday(&now, NULL);
+			abstime.tv_sec = now.tv_sec+1;
+			abstime.tv_nsec = 0;
+
+			if(event.type == ITC_EQUEUE_EVENT_TYPE_TASK)
+			    scheduler = event.task.loop;
+			else
+			    scheduler = NULL;
+
+
+			/* The round-robin scheduler try to pick up next worker */
+			for(;;)
+			{
+				if(scheduler == NULL)
 				{
-					LOG_WARNING_ERRNO("Cannot allocate memory for the pending event, waiting for the scheduler");
-					goto SCHED_WAIT;
+					LOG_DEBUG("The event is not associated with any scheduler, use the round-robin dispatcher");
+					first = 1;
+					scheduler = round_robin_start;
+					for(;(first || scheduler != round_robin_start) &&
+					     (scheduler->rear - scheduler->front >= scheduler->size ||
+					     _scheduler_saturated(scheduler));
+					     scheduler = scheduler->next == NULL ? _scheds : scheduler->next)
+					    first = 0;
+					if(scheduler->rear - scheduler->front < _round_robin_move_threshold)
+					    round_robin_start = scheduler;
+					else
+					    round_robin_start = scheduler->next == NULL ? _scheds : scheduler->next;
 				}
 
-				pe->next = pending_list.list;
-				pe->event = event;
-				pending_list.list = pe;
+				if((scheduler->rear - scheduler->front >= scheduler->size ||
+				    (event.type == ITC_EQUEUE_EVENT_TYPE_IO && _scheduler_saturated(scheduler))))
+				{
+					if(pending_list.size < SCHED_LOOP_MAX_PENDING_TASKS)
+					{
+						LOG_DEBUG("The target scheduler is currently busy, add the event to the pending task list and try it later");
 
-				pending_list.size ++;
+						_pending_event_t* pe = (_pending_event_t*)malloc(sizeof(*pe));
+						if(NULL == pe)
+						{
+							LOG_WARNING_ERRNO("Cannot allocate memory for the pending event, waiting for the scheduler");
+							goto SCHED_WAIT;
+						}
 
-				LOG_DEBUG("Added the event to the pending list(new pending list size: %u)", pending_list.size);
+						pe->next = pending_list.list;
+						pe->event = event;
+						pending_list.list = pe;
 
-				goto NEXT_ITER;
-			}
+						pending_list.size ++;
 
-			LOG_DEBUG("Sending the event to the scheduler");
+						LOG_DEBUG("Added the event to the pending list(new pending list size: %u)", pending_list.size);
+
+						goto NEXT_ITER;
+					}
+					else goto SCHED_WAIT;
+				}
+
+				LOG_DEBUG("Sending the event to the scheduler");
+				break;
 
 SCHED_WAIT:
-			{
-				int need_lock = !_dispatcher_waiting;
-				arch_atomic_sw_assignment_u32(&_dispatcher_waiting, 1);
-				if(need_lock && (errno = pthread_mutex_lock(&_dispatcher_mutex)) != 0)
-				    LOG_WARNING_ERRNO("Cannot acquire the dispatcher mutex");
-			}
-
-			if(scheduler->rear - scheduler->front >= scheduler->size ||
-			   (event.type == ITC_EQUEUE_EVENT_TYPE_IO && _scheduler_saturated(scheduler)))
-			{
-				if((errno = pthread_cond_timedwait(&_dispatcher_cond, &_dispatcher_mutex, &abstime)) != 0 && errno != ETIMEDOUT && errno != EINTR)
-				    LOG_WARNING_ERRNO("Cannot complete pthread_cond_timewait");
-
-				abstime.tv_sec ++;
-
-				if(_killed) goto EXIT_LOOP;
-			}
-			else
-			{
-EXIT_LOOP:
-				if(_dispatcher_waiting)
 				{
-					arch_atomic_sw_assignment_u32(&_dispatcher_waiting, 0);
-					if((errno = pthread_mutex_unlock(&_dispatcher_mutex)) != 0)
-					    LOG_WARNING_ERRNO("Cannot rlease the dispatcher mutex");
+					int need_lock = !_dispatcher_waiting;
+					arch_atomic_sw_assignment_u32(&_dispatcher_waiting, 1);
+					if(need_lock && (errno = pthread_mutex_lock(&_dispatcher_mutex)) != 0)
+					    LOG_WARNING_ERRNO("Cannot acquire the dispatcher mutex");
 				}
 
-				break;
+				if(scheduler->rear - scheduler->front >= scheduler->size ||
+				   (event.type == ITC_EQUEUE_EVENT_TYPE_IO && _scheduler_saturated(scheduler)))
+				{
+					if((errno = pthread_cond_timedwait(&_dispatcher_cond, &_dispatcher_mutex, &abstime)) != 0 && errno != ETIMEDOUT && errno != EINTR)
+					    LOG_WARNING_ERRNO("Cannot complete pthread_cond_timewait");
+
+					abstime.tv_sec ++;
+
+					if(_killed) goto EXIT_LOOP;
+				}
+				else
+				{
+EXIT_LOOP:
+					if(_dispatcher_waiting)
+					{
+						arch_atomic_sw_assignment_u32(&_dispatcher_waiting, 0);
+						if((errno = pthread_mutex_unlock(&_dispatcher_mutex)) != 0)
+						    LOG_WARNING_ERRNO("Cannot rlease the dispatcher mutex");
+					}
+
+					break;
+				}
 			}
-		}
 
-		if(_killed) break;
+			if(_killed) break;
 
-		LOG_DEBUG("Round robin dispatcher picked up thread %u", scheduler->thread_id);
+			LOG_DEBUG("Round robin dispatcher picked up thread %u", scheduler->thread_id);
 
-		uint32_t p = scheduler->rear & (scheduler->size - 1);
-		scheduler->events[p] = event;
+			uint32_t p = scheduler->rear & (scheduler->size - 1);
+			memcpy(scheduler->events + p, &event, sizeof(event));
 
-		if(event.type == ITC_EQUEUE_EVENT_TYPE_IO)
-		    arch_atomic_sw_increment_u32(&scheduler->pending_reqs_id_end);
+			if(event.type == ITC_EQUEUE_EVENT_TYPE_IO)
+			    arch_atomic_sw_increment_u32(&scheduler->pending_reqs_id_end);
 
-		BARRIER();
-		int needs_notify = (scheduler->front == scheduler->rear);
-		arch_atomic_sw_increment_u32(&scheduler->rear);
+			BARRIER();
+			/* We only needs notify the worker when all the dispatching are done with this one */
+			int needs_notify = scheduler->front == scheduler->rear;
+			arch_atomic_sw_increment_u32(&scheduler->rear);
 
-		if(needs_notify)
-		{
-			if((errno = pthread_mutex_lock(&scheduler->mutex)) != 0)
-			    LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
+			if(needs_notify)
+			{
+				if((errno = pthread_mutex_lock(&scheduler->mutex)) != 0)
+				    LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
 
-			if((errno = pthread_cond_signal(&scheduler->cond)) != 0)
-			    LOG_WARNING_ERRNO("Cannot notify new incoming event for the scheduler thread %u", scheduler->thread_id);
+				if((errno = pthread_cond_signal(&scheduler->cond)) != 0)
+				    LOG_WARNING_ERRNO("Cannot notify new incoming event for the scheduler thread %u", scheduler->thread_id);
 
-			if((errno = pthread_mutex_unlock(&scheduler->mutex)) != 0)
-			    LOG_WARNING_ERRNO("Cannot release the thread local mutex");
-		}
+				if((errno = pthread_mutex_unlock(&scheduler->mutex)) != 0)
+				    LOG_WARNING_ERRNO("Cannot release the thread local mutex");
+			}
 NEXT_ITER:
-		(void)0;
+			(void)0;
+		}
 	}
 
 	/* Let's cleanup all the unprocessed pending event at this point */
@@ -757,7 +777,7 @@ int sched_loop_start(sched_service_t** service, int fork_twice)
 
 	/* If we are in fork twice mode, return true directly, since it's going to handle the
 	 * service in another process */
-	if(daemon_rc == 0 && fork_twice) return 0;
+	if(daemon_rc == 2) return 0;
 
 	uint32_t i;
 	sched_loop_t* ptr = NULL;
@@ -905,6 +925,11 @@ static inline int _set_prop(const char* symbol, lang_prop_value_t value, const v
 		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
 		_max_worker_concurrency = (uint32_t)value.num;
 	}
+	else if(strcmp(symbol, "round_robin_move_threshold") == 0)
+	{
+		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
+		_round_robin_move_threshold = (uint32_t)value.num;
+	}
 	else
 	{
 		LOG_WARNING("Unrecognized symbol name %s", symbol);
@@ -958,6 +983,11 @@ static lang_prop_value_t _get_prop(const char* symbol, const void* param)
 	{
 		ret.type = LANG_PROP_TYPE_INTEGER;
 		ret.num = _max_worker_concurrency;
+	}
+	else if(strcmp(symbol, "round_robin_move_threshold") == 0)
+	{
+		ret.type = LANG_PROP_TYPE_INTEGER;
+		ret.num = _round_robin_move_threshold;
 	}
 
 	return ret;

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017-2018, Hao Hou
  **/
 
 /**
@@ -14,6 +14,7 @@
  * @param id the trap id
  * @return nothing
  **/
-void trap(int id);
+void trap(int id)
+    __attribute__((visibility ("hidden")));
 
 #endif /* __TRAP_H__ */

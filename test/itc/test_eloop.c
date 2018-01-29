@@ -112,7 +112,7 @@ int eloop_test(void)
 
 	itc_equeue_event_t e;
 
-	ASSERT_OK(itc_equeue_take(token, mask, &e), CLEANUP_NOP);
+	ASSERT_RETOK(uint32_t, itc_equeue_take(token, mask, &e, 1), CLEANUP_NOP);
 
 	ASSERT_PTR(e.io.in, CLEANUP_NOP);
 	ASSERT_PTR(e.io.out, CLEANUP_NOP);

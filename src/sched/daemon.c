@@ -459,7 +459,7 @@ int sched_daemon_daemonize(int fork_twice)
 	if(fork_twice && (starter_pid = fork()) < 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot fork the daemon starter");
 
-	if(fork_twice && starter_pid > 0) return 0;
+	if(fork_twice && starter_pid > 0) return 2;
 
 	char lock_path[PATH_MAX];
 	char sock_path[PATH_MAX];
