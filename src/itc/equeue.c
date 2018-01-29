@@ -346,8 +346,9 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 	BARRIER();
 	arch_atomic_sw_increment_u32(&queue->rear);
 
-	if(_sched_waiting && __sync_bool_compare_and_swap(&_sched_waiting, 1, 0))
+	if(_sched_waiting)
 	{
+		_sched_waiting = 0;
 		LOG_DEBUG("token %u: notifiying the schduler thread to read this element", token);
 
 		/* Signal the take part */
@@ -475,13 +476,11 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
 		
 		if(!locked)
 		{
-			_sched_waiting = 1;
 
-			BARRIER();
-			
 			if((errno = pthread_mutex_lock(&_take_mutex)) != 0) 
 				ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the reader mutex");
 			locked = 1;
+			_sched_waiting = 1;
 
 			continue;
 		}
