@@ -602,10 +602,12 @@ static inline int _dispatcher_main(void)
 			LOG_ERROR("Cannot take next event from the event queue");
 			continue;
 		}
+		
+		sched_loop_t* pending_notify_target = NULL;
 
 		for(i = 0; i < n_events; i ++)
 		{
-			itc_equeue_event_t event = events[i];
+			const itc_equeue_event_t event = events[i];
 
 			sched_loop_t* scheduler = round_robin_start;
 			int first;
@@ -620,6 +622,7 @@ static inline int _dispatcher_main(void)
 				scheduler = event.task.loop;
 			else
 				scheduler = NULL;
+
 
 			/* The round-robin scheduler try to pick up next worker */
 			for(;;)
@@ -707,28 +710,45 @@ EXIT_LOOP:
 			LOG_DEBUG("Round robin dispatcher picked up thread %u", scheduler->thread_id);
 
 			uint32_t p = scheduler->rear & (scheduler->size - 1);
-			scheduler->events[p] = event;
+			memcpy(scheduler->events + p, &event, sizeof(event));
 
 			if(event.type == ITC_EQUEUE_EVENT_TYPE_IO)
 				arch_atomic_sw_increment_u32(&scheduler->pending_reqs_id_end);
 
 			BARRIER();
-			int needs_notify = (scheduler->front == scheduler->rear);
+			/* We only needs notify the worker when all the dispatching are done with this one */
+			int needs_notify = scheduler->front == scheduler->rear;
 			arch_atomic_sw_increment_u32(&scheduler->rear);
 
 			if(needs_notify)
 			{
-				if((errno = pthread_mutex_lock(&scheduler->mutex)) != 0)
-					LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
+				if(NULL != pending_notify_target && pending_notify_target != scheduler)
+				{
+					if((errno = pthread_mutex_lock(&pending_notify_target->mutex)) != 0)
+						LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
 
-				if((errno = pthread_cond_signal(&scheduler->cond)) != 0)
-					LOG_WARNING_ERRNO("Cannot notify new incoming event for the scheduler thread %u", scheduler->thread_id);
+					if((errno = pthread_cond_signal(&pending_notify_target->cond)) != 0)
+						LOG_WARNING_ERRNO("Cannot notify new incoming event for the scheduler thread %u", pending_notify_target->thread_id);
 
-				if((errno = pthread_mutex_unlock(&scheduler->mutex)) != 0)
-					LOG_WARNING_ERRNO("Cannot release the thread local mutex");
+					if((errno = pthread_mutex_unlock(&pending_notify_target->mutex)) != 0)
+						LOG_WARNING_ERRNO("Cannot release the thread local mutex");
+				}
+				pending_notify_target = scheduler;
 			}
 NEXT_ITER:
 			(void)0;
+		}
+
+		if(pending_notify_target != NULL)
+		{
+			if((errno = pthread_mutex_lock(&pending_notify_target->mutex)) != 0)
+				LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
+
+			if((errno = pthread_cond_signal(&pending_notify_target->cond)) != 0)
+				LOG_WARNING_ERRNO("Cannot notify new incoming event for the scheduler thread %u", pending_notify_target->thread_id);
+
+			if((errno = pthread_mutex_unlock(&pending_notify_target->mutex)) != 0)
+				LOG_WARNING_ERRNO("Cannot release the thread local mutex");
 		}
 	}
 
