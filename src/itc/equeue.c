@@ -477,16 +477,15 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
 
 		if(!locked)
 		{
-
 			if((errno = pthread_mutex_lock(&_take_mutex)) != 0)
 			    ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the reader mutex");
-
-			_sched_waiting = mask;
 
 			locked = 1;
 
 			continue;
 		}
+		
+		_sched_waiting = mask;
 
 		if((errno = pthread_cond_timedwait(&_take_cond, &_take_mutex, &abstime)) != 0 && errno != EINTR && errno != ETIMEDOUT)
 		    ERROR_RETURN_LOG_ERRNO(int, "Cannot wait for the reader condition variable");
