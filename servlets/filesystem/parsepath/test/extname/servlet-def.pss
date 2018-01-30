@@ -1,4 +1,4 @@
-servlet_name = "filesystem/parsepath --prefix-level 1 --ext-name"
+servlet = "filesystem/parsepath --prefix-level 1 --ext-name"
 
 servlet_input = {
 	"origin": "plumber/std/request_local/String"

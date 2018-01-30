@@ -1,4 +1,4 @@
-servlet_name = "dataflow/demux first second third";
+servlet = "dataflow/demux first second third";
 
 servlet_input = {
 	"cond" : "plumber/std/request_local/String",

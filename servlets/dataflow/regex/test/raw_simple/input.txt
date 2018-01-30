@@ -1,0 +1,18 @@
+.TEXT test_case_1
+this is an apple application that  ...
+.END
+.TEXT test_case_3
+this is an application that ...
+.END
+.TEXT test_case_3
+this shouldn't match ...
+.END
+.TEXT test_case_4
+let's do make some apple application
+let's do make some apple application
+let's do make some apple application
+let's do make some apple application
+let's do make some apple application
+let's do make some apple application
+.END
+.STOP

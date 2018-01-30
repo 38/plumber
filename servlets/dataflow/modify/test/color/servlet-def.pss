@@ -1,4 +1,4 @@
-servlet_name = "dataflow/modify R G B";
+servlet = "dataflow/modify R G B";
 
 servlet_input = {
 	"base": "testing/dataflow/modify/Color",

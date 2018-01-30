@@ -1,4 +1,4 @@
-servlet_name = "dataflow/firstnonempty 5";
+servlet = "dataflow/firstnonempty 5";
 
 servlet_input = {
 	"in0": "int32",

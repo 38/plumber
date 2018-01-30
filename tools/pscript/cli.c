@@ -125,9 +125,11 @@ static int _scan_brackets(pss_comp_lex_t* lexer)
 				    b_index --;
 				    break;
 			    }
-			    FALLTHROUGH("Error case");
+				b_index = 0;
+				ERROR_RETURN_LOG(int, "Syntax error: unexpected token");
 			case PSS_COMP_LEX_TOKEN_ERROR:
-			    ERROR_RETURN_ACTION(int, b_index = 0);
+				b_index = 0;
+				ERROR_RETURN_LOG(int, "Lexical error %u:%u: %s", token.line + 1, token.offset + 1, token.value.e);
 			case PSS_COMP_LEX_TOKEN_EOF:
 			    return b_index;
 			default:
@@ -379,7 +381,7 @@ int cli_interactive(uint32_t debug)
 
 			int scan_ret = _scan_brackets(lexer);
 			if(ERROR_CODE(int) == scan_ret)
-			    ERROR_LOG_GOTO(_ADD_HISTORY, "Syntax error");
+				goto _ADD_HISTORY;
 
 			pss_comp_lex_free(lexer);
 			lexer = NULL;

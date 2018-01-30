@@ -1,0 +1,12 @@
+.OUTPUT test_case_1
+{"output": "this is an apple application that  ..."}
+.END
+.OUTPUT test_case_4
+{"output": "let's do make some apple application\nlet's do make some apple application\nlet's do make some apple application\nlet's do make some apple application\nlet's do make some apple application\nlet's do make some apple application"}
+.END
+.OUTPUT test_case_2
+ {"null": null}
+.END
+.OUTPUT test_case_3
+ {"null": null}
+.END

@@ -1359,7 +1359,11 @@ itc_module_pipe_t* itc_module_pipe_fork(itc_module_pipe_t* handle, runtime_api_p
 	ret->stat_flags = 0;
 	ret->stat.type = _PSTAT_TYPE_INPUT;
 	ret->pipe_flags = pipe_flags;
-	ret->stat.accepted = 0;
+
+	/* We need to inherit the accepted bit from the source, because the handle
+	 * is actually the same, if we don't do this forking an accepted pipe will
+	 * cause infinite loop */
+	ret->stat.accepted = source_handle->stat.accepted;
 	ret->stat.error = 0;
 
 	ret->stat.s_hold = 1;

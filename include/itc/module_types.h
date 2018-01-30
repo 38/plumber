@@ -421,7 +421,9 @@ typedef struct {
 	 * @details the concept of forking a pipe, is make a reference to a pipe and create a new handle, the handle will contains the identical data
 	 *         as the source pipe <br/>
 	 *         This is used as the implementation of a shadow pipe, which is the light weight way to copy all the data from one pipe to another <br/>
-	 *         The detailed description about the shadow pipe, see the documentation for the RUNTIME_API_PIPE_SHADOW
+	 *         The detailed description about the shadow pipe, see the documentation for the RUNTIME_API_PIPE_SHADOW <br/>
+	 *         Since for some module, the size of the input is determined by the application layer (For example, a persistent TCP connection for
+	 *         a HTTP server). In this case, the forked handle SHOULD CONTAINS EXACTLY THE SAME NUMBER OF BYTES THE INPUT SERVLET HAS READ.
 	 * @param context the context for this module instance
 	 * @param dest_data the dest memory for the result pipe handle
 	 * @param sour_data the source pipe handle to fork
