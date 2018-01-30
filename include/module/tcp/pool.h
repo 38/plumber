@@ -54,6 +54,7 @@ typedef struct {
 	uint32_t    size;       /*!< the maximum number of connections the pool can hold*/
 	const char* bind_addr;  /*!< the bind address */
 	size_t      event_size; /*!< the size for the event array */
+	uint32_t    accept_retry_interval;  /*!< The most time we sleep if we can not accept the socket (This is useful when we used up the FD) */
 	int         (*dispose_data)(void*); /* the callback function used to dispose the unused data */
 } module_tcp_pool_configure_t;
 

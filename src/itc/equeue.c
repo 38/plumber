@@ -484,7 +484,7 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
 
 			continue;
 		}
-		
+
 		_sched_waiting = mask;
 
 		if((errno = pthread_cond_timedwait(&_take_cond, &_take_mutex, &abstime)) != 0 && errno != EINTR && errno != ETIMEDOUT)

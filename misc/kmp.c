@@ -5,7 +5,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
-#include <sys/stat.h> 
+#include <sys/stat.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -25,12 +25,12 @@ static void match(const char* __restrict buf, size_t n, const char* __restrict p
 
 	for(j = start - buf; j < n - 8; j ++)
 	{
-		/* This is the key part to the optimization: it compres the first 
+		/* This is the key part to the optimization: it compres the first
 		 * 8 bytes from current location and determine if the ffirst 8 bytes
 		 * is matching. If yes, then we are able to start with matched length 8.
 		 * If it's not, current match should be 0 */
 		if(matched < 1 && *(uint64_t*)(buf + j - matched) == *(uint64_t*)pattern)
-			matched = 8, j += 8; 
+		    matched = 8, j += 8;
 
 		char ch = buf[j];
 
@@ -38,16 +38,16 @@ static void match(const char* __restrict buf, size_t n, const char* __restrict p
 		 * since the first 8 bytes has been matched by the BM matcher */
 		if(matched >= 8 && matched < len)
 		{
-			for(;matched > 0 && ch != pattern[matched]; 
-				 matched = prefix[matched - 1]);
+			for(;matched > 0 && ch != pattern[matched];
+			     matched = prefix[matched - 1]);
 			if(matched != 0 || (ch == pattern[0]))
-				matched ++;
+			    matched ++;
 		}
 
 		if(ch == '\n')
 		{
-			if(matched == len) 
-				fwrite(buf + line_start, 1, j - line_start + 1, stdout);
+			if(matched == len)
+			    fwrite(buf + line_start, 1, j - line_start + 1, stdout);
 			matched = 0;
 			line_start = j + 1;
 		}
@@ -60,12 +60,12 @@ int main(int argc, char** argv)
 	prefix[0] = 0;
 	for(i = 1; i < len; i ++)
 	{
-		for(prefix[i] = prefix[i - 1] + 1; 
-			prefix[i] > 1 && 
-			pattern[prefix[i] - 1] != pattern[i];
-			prefix[i] = prefix[prefix[i] - 2] + 1);
+		for(prefix[i] = prefix[i - 1] + 1;
+		    prefix[i] > 1 &&
+		    pattern[prefix[i] - 1] != pattern[i];
+		    prefix[i] = prefix[prefix[i] - 2] + 1);
 		if(prefix[i] == 1 && pattern[0] != pattern[i])
-			prefix[i] = 0;
+		    prefix[i] = 0;
 	}
 
 #if 1
@@ -81,7 +81,7 @@ int main(int argc, char** argv)
 	FILE* fp = fopen(argv[1], "r");
 	struct stat st;
 	while(NULL != fgets(buf, sizeof(buf), fp))
-		match(buf, strlen(buf), pattern, prefix);
+	    match(buf, strlen(buf), pattern, prefix);
 #endif
 	return 0;
 }

@@ -16,7 +16,7 @@ typedef struct _kmp_pattern_t kmp_pattern_t;
 /**
  * @brief Create a new KMP object
  * @param pattern The pattern to search
- * @param len The size of the string 
+ * @param len The size of the string
  * @return The KMP object
  **/
 kmp_pattern_t* kmp_pattern_new(const char* pattern, size_t len);
@@ -39,7 +39,7 @@ int kmp_pattern_free(kmp_pattern_t* kmp);
  *               until the function returns. It's used in multiple parts match and when the state is NULL, we
  *               just start over.
  * @return The location for the first match, or maxlen or position of eol_marker when no match found.
- *         error code for error cases. For all the cases the state variable will be stored. 
+ *         error code for error cases. For all the cases the state variable will be stored.
  **/
 size_t kmp_partial_match(const kmp_pattern_t* kmp, const char* text, size_t maxlen, int eol_marker, size_t* state);
 
