@@ -1,4 +1,9 @@
 #Build the main library
+set(CONF "System: ${SYSNAME}\nCC=${CMAKE_C_COMPILER}\nCFLAGS=${CFLAGS}\nCXXFLAGS=${CXXFLAGS}")
+set(CONF "${CONF}\n--------------------------------------------------------------------------------")
+append_pakage_configure("package" "type" "build" "install")
+set(CONF "${CONF}\n--------------------------------------------------------------------------------")
+
 set(src_files )
 file(GLOB_RECURSE src_files "${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE_DIR}/*.c")
 
@@ -12,9 +17,12 @@ endif("${MODULE_TLS_ENABLED}" EQUAL "1")
 
 set_source_files_properties(${src_files} PROPERTIES COMPILE_FLAGS "${CFLAGS} ${OPENSSL_INCLUDE_DIR}")
 
+
 if("${SHARED_LIBPLUMBER}" STREQUAL "yes")
+	set(plumber_type "shared-library")
 	add_library(plumber SHARED ${src_files})
 else("${SHARED_LIBPLUMBER}" STREQUAL "yes")
+	set(plumber_type "static-library")
 	add_library(plumber ${src_files})
 endif("${SHARED_LIBPLUMBER}" STREQUAL "yes")
 
@@ -50,3 +58,5 @@ macro(install_plumber_logging_utils prefix)
 	endforeach(header ${api_headers})
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/config.h DESTINATION "${prefix}")
 endmacro(install_plumber_logging_utils prefix)
+
+append_pakage_configure("plumber-core" "${plumber_type}" "yes" "yes")

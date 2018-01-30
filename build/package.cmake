@@ -1,9 +1,5 @@
 set(package_status "" )
 
-set(CONF "System: ${SYSNAME}\nCC=${CMAKE_C_COMPILER}\nCFLAGS=${CFLAGS}\nCXXFLAGS=${CXXFLAGS}")
-set(CONF "${CONF}\n--------------------------------------------------------------------------------")
-append_pakage_configure("package" "type" "build" "install")
-set(CONF "${CONF}\n--------------------------------------------------------------------------------")
 macro(build_tool_dir dir)
 	file(GLOB targets RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/${dir} "${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*")
 	foreach(target ${targets})
