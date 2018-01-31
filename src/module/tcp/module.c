@@ -601,6 +601,7 @@ static int _init(void* __restrict ctx, uint32_t argc, char const* __restrict con
 	context->pool_conf.tcp_backlog  = 512;
 	context->pool_conf.reuseaddr    = 0;
 	context->pool_conf.ipv6         = 0;
+	context->pool_conf.accept_retry_interval = 5;
 	context->pool_conf.dispose_data = _dispose_state;
 	context->slave_mode = 0;
 
@@ -1387,6 +1388,7 @@ static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* s
 	else if(strcmp(sym, "ipv6") == 0) return _make_num(context->pool_conf.ipv6);
 	else if(strcmp(sym, "reuseaddr") == 0) return _make_num((long long)context->pool_conf.reuseaddr);
 	else if(strcmp(sym, "async_buf_size") == 0) return _make_num((long long)context->async_buf_size);
+	else if(strcmp(sym, "accept_retry_interval") == 0) return _make_num((long long)context->pool_conf.accept_retry_interval);
 	else if(strcmp(sym, "bindaddr") == 0) //*(const char**)data = context->pool_conf.bind_addr;
 	{
 		size_t len;
@@ -1426,6 +1428,7 @@ static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_
 		else if(strcmp(sym, "backlog") == 0) context->pool_conf.tcp_backlog = (int)value.num;
 		else if(strcmp(sym, "ipv6") == 0) context->pool_conf.ipv6 = (int)value.num;
 		else if(strcmp(sym, "reuseaddr") == 0) context->pool_conf.reuseaddr = (int)value.num;
+		else if(strcmp(sym, "accept_retry_interval") == 0) context->pool_conf.accept_retry_interval = (uint32_t)value.num;
 		else if(strcmp(sym, "async_buf_size") == 0)
 		{
 			context->async_buf_size = (uint32_t)value.num;

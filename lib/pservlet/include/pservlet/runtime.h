@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017-2018, Hao Hou
  **/
 /**
  * @brief the functions related to the plumber runtime
@@ -11,5 +11,6 @@
  * @brief get the plumber version number
  * @return the plumber version number string, NULL incidates an error
  **/
-const char* runtime_version(void);
+const char* runtime_version(void)
+    __attribute__((visibility ("hidden")));
 #endif /* __PSERVLET_PLUMBER_H__ */

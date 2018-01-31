@@ -31,7 +31,8 @@ STATIC_ASSERTION_LAST(pipe_array_t, pipes);
  *        system details at the documentation for the PDT insert (runtime_pdt_insert)
  * @return the newly defined pipe
  **/
-pipe_t pipe_define(const char* name, pipe_flags_t flag, const char* type_expr);
+pipe_t pipe_define(const char* name, pipe_flags_t flag, const char* type_expr)
+    __attribute__((visibility ("hidden")));
 
 /**
  * @brief create a named pipe with the pattern
@@ -41,7 +42,10 @@ pipe_t pipe_define(const char* name, pipe_flags_t flag, const char* type_expr);
  * @return the newly defined pipe
  **/
 pipe_t pipe_define_pattern(const char* pattern, pipe_flags_t flag, const char* type_expr, ...)
-    __attribute__((format (printf, 1, 4)));
+    __attribute__((format (printf, 1, 4)))
+    __attribute__((visibility ("hidden")));
+
+
 
 /**
  * @brief create a pipe list
@@ -53,14 +57,16 @@ pipe_t pipe_define_pattern(const char* pattern, pipe_flags_t flag, const char* t
  * @note in the pattern use charecter '#' represents the current serial number and ## for '#'
  * @return newly created pipe array
  **/
-pipe_array_t* pipe_array_new(const char* pattern, pipe_flags_t flag, const char* type_expr, int serial_begin, int serial_end);
+pipe_array_t* pipe_array_new(const char* pattern, pipe_flags_t flag, const char* type_expr, int serial_begin, int serial_end)
+    __attribute__((visibility ("hidden")));
 
 /**
  * @brief dispose a pipe array
  * @param array the pipe array
  * @return  the status code
  **/
-int pipe_array_free(pipe_array_t* array);
+int pipe_array_free(pipe_array_t* array)
+    __attribute__((visibility ("hidden")));
 
 /**
  * @brief get the pipe from the pipe array
@@ -81,7 +87,8 @@ static inline pipe_t pipe_array_get(const pipe_array_t* array, uint32_t n)
  * @param buffer the buffer which the data will be copied to
  * @return number of bytes has been read or error code
  **/
-size_t pipe_read(pipe_t pipe, void* buffer, size_t nbytes);
+size_t pipe_read(pipe_t pipe, void* buffer, size_t nbytes)
+    __attribute__((visibility ("hidden")));
 
 /**
  * @brief Get the internal buffer that contains the data body for this pipe
@@ -98,7 +105,8 @@ size_t pipe_read(pipe_t pipe, void* buffer, size_t nbytes);
  *         When there's a memory region 1 will be returned.
  *         For error cases error code is returned.
  **/
-int pipe_data_get_buf(pipe_t pipe, size_t requested_size, void const** result, size_t* min_size, size_t* max_size);
+int pipe_data_get_buf(pipe_t pipe, size_t requested_size, void const** result, size_t* min_size, size_t* max_size)
+    __attribute__((visibility ("hidden")));
 
 /**
  * @brief Release an exposed internal buffer
@@ -110,7 +118,8 @@ int pipe_data_get_buf(pipe_t pipe, size_t requested_size, void const** result, s
  *        If the size of the memory region previously acquired is determined, this function will have no effect.
  * @return status code
  **/
-int pipe_data_release_buf(pipe_t pipe, void const* buffer, size_t actual_size);
+int pipe_data_release_buf(pipe_t pipe, void const* buffer, size_t actual_size)
+    __attribute__((visibility ("hidden")));
 
 /**
  * @brief write data to pipe
@@ -119,7 +128,8 @@ int pipe_data_release_buf(pipe_t pipe, void const* buffer, size_t actual_size);
  * @param count number of bytes that needs to be written
  * @return size or error code
  **/
-size_t pipe_write(pipe_t pipe, const void* data, size_t count);
+size_t pipe_write(pipe_t pipe, const void* data, size_t count)
+    __attribute__((visibility ("hidden")));
 
 /**
  * @brief read the typed header from the pipe
@@ -128,7 +138,8 @@ size_t pipe_write(pipe_t pipe, const void* data, size_t count);
  * @param nbytes how many bytes we want to read
  * @return size or error code
  **/
-size_t pipe_hdr_read(pipe_t pipe, void* buffer, size_t nbytes);
+size_t pipe_hdr_read(pipe_t pipe, void* buffer, size_t nbytes)
+    __attribute__((visibility ("hidden")));
 
 /**
  * @brief Get the internal buffer that contains typed header buffer
@@ -139,7 +150,8 @@ size_t pipe_hdr_read(pipe_t pipe, void* buffer, size_t nbytes);
  * @return The number of memory region has been pulled out either 1 or 0
  *         Error code indicates errors
  **/
-int pipe_hdr_get_buf(pipe_t pipe, size_t nbytes, void const** resbuf);
+int pipe_hdr_get_buf(pipe_t pipe, size_t nbytes, void const** resbuf)
+    __attribute__((visibility ("hidden")));
 
 /**
  * @brief write the typed header to the pipe
@@ -148,7 +160,8 @@ int pipe_hdr_get_buf(pipe_t pipe, size_t nbytes, void const** resbuf);
  * @param nbytes how many bytes we want to write
  * @return bytes actually written or error code
  **/
-size_t pipe_hdr_write(pipe_t pipe, const void* buffer, size_t nbytes);
+size_t pipe_hdr_write(pipe_t pipe, const void* buffer, size_t nbytes)
+    __attribute__((visibility ("hidden")));
 
 /**
  * @brief write the scope tokenj to the pipe
@@ -158,14 +171,16 @@ size_t pipe_hdr_write(pipe_t pipe, const void* buffer, size_t nbytes);
  * @param datareq the data request descriptor, NULL if it's not needed
  * @return status code
  **/
-int pipe_write_scope_token(pipe_t pipe, scope_token_t token, const scope_token_data_req_t* datareq);
+int pipe_write_scope_token(pipe_t pipe, scope_token_t token, const scope_token_data_req_t* datareq)
+    __attribute__((visibility ("hidden")));
 
 /**
  * @brief check if this pipe has definitely no data in it
  * @param pipe the pipe id
  * @return error code or the check result
  **/
-int pipe_eof(pipe_t pipe);
+int pipe_eof(pipe_t pipe)
+    __attribute__((visibility ("hidden")));
 
 /**
  * @brief the pipe control function
@@ -173,7 +188,8 @@ int pipe_eof(pipe_t pipe);
  * @param opcode what kinds of operation to perform
  * @return the status code
  **/
-int pipe_cntl(pipe_t pipe, uint32_t opcode, ...);
+int pipe_cntl(pipe_t pipe, uint32_t opcode, ...)
+    __attribute__((visibility ("hidden")));
 
 /**
  * @brief get the the module specified module prefix for opcode
@@ -181,7 +197,8 @@ int pipe_cntl(pipe_t pipe, uint32_t opcode, ...);
  * @param result the result buffer
  * @return the prefix or status code
  **/
-int pipe_cntl_mod_prefix(const char* path, uint8_t* result);
+int pipe_cntl_mod_prefix(const char* path, uint8_t* result)
+    __attribute__((visibility ("hidden")));
 
 /**
  * @brief Set the callback function that will be called after the type of the pipe is determined by the framework
@@ -190,7 +207,8 @@ int pipe_cntl_mod_prefix(const char* path, uint8_t* result);
  * @param data the data that would be passed into the callback function
  * @return status code
  **/
-int pipe_set_type_callback(pipe_t pipe, pipe_type_callback_t callback, void* data);
+int pipe_set_type_callback(pipe_t pipe, pipe_type_callback_t callback, void* data)
+    __attribute__((visibility ("hidden")));
 
 
 /**

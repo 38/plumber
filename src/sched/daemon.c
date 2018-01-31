@@ -337,6 +337,11 @@ int sched_daemon_read_control_sock()
 			LOG_DEBUG("Control socket gets nothing");
 			return 0;
 		}
+		if(errno == EMFILE || errno == ENFILE)
+		{
+			LOG_DEBUG("The system has used up FDs, do not react to the command socket right now");
+			return 0;
+		}
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot accept command from the control socket");
 	}
 
@@ -459,7 +464,7 @@ int sched_daemon_daemonize(int fork_twice)
 	if(fork_twice && (starter_pid = fork()) < 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot fork the daemon starter");
 
-	if(fork_twice && starter_pid > 0) return 0;
+	if(fork_twice && starter_pid > 0) return 2;
 
 	char lock_path[PATH_MAX];
 	char sock_path[PATH_MAX];

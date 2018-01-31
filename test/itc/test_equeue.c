@@ -194,7 +194,7 @@ int test_put(void)
 	{
 		itc_equeue_event_mask_t mask = ITC_EQUEUE_EVENT_MASK_NONE;
 		ITC_EQUEUE_EVENT_MASK_ADD(mask, ITC_EQUEUE_EVENT_TYPE_IO);
-		ASSERT_OK(itc_equeue_take(sched_token, mask ,&e), CLEANUP_NOP);
+		ASSERT_RETOK(uint32_t, itc_equeue_take(sched_token, mask ,&e, 1), CLEANUP_NOP);
 		ASSERT(e.io.in == e.io.out, CLEANUP_NOP);
 		long int n = ((thread_data_t*)e.io.in) - data;
 		ASSERT(n >= 0 && n < NTHREADS, CLEANUP_NOP);
@@ -216,7 +216,7 @@ int test_writer_wait(void)
 		itc_equeue_event_mask_t mask = ITC_EQUEUE_EVENT_MASK_NONE;
 		ITC_EQUEUE_EVENT_MASK_ADD(mask, ITC_EQUEUE_EVENT_TYPE_IO);
 		ASSERT_OK(itc_equeue_wait(sched_token, NULL, NULL), CLEANUP_NOP);
-		ASSERT_OK(itc_equeue_take(sched_token, mask, &e), CLEANUP_NOP);
+		ASSERT_RETOK(uint32_t, itc_equeue_take(sched_token, mask, &e, 1), CLEANUP_NOP);
 		ASSERT(e.io.in == e.io.out, CLEANUP_NOP);
 		long int n = ((thread_data_t*)e.io.in) - data;
 		ASSERT(n >= 0 && n < NTHREADS, CLEANUP_NOP);
@@ -240,7 +240,7 @@ int full_test(void)
 		for(;!itc_equeue_empty(sched_token); i ++)
 		{
 			itc_equeue_event_t e;
-			ASSERT_OK(itc_equeue_take(sched_token, mask, &e), CLEANUP_NOP);
+			ASSERT_RETOK(uint32_t, itc_equeue_take(sched_token, mask, &e, 1), CLEANUP_NOP);
 			uintptr_t j = (uintptr_t)e.io.in;
 			ASSERT(e.io.in == e.io.out, CLEANUP_NOP);
 			ASSERT_OK(F[j - 1], CLEANUP_NOP);
@@ -266,7 +266,7 @@ int random_test(void)
 		for(;!itc_equeue_empty(sched_token); i ++)
 		{
 			itc_equeue_event_t e;
-			ASSERT_OK(itc_equeue_take(sched_token, mask, &e), CLEANUP_NOP);
+			ASSERT_RETOK(uint32_t, itc_equeue_take(sched_token, mask, &e, 1), CLEANUP_NOP);
 			uintptr_t j = (uintptr_t)e.io.in;
 			ASSERT(e.io.in == e.io.out, CLEANUP_NOP);
 			ASSERT_OK(F[j - 1], CLEANUP_NOP);

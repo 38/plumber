@@ -505,7 +505,7 @@ enum {
 STATIC_ASSERTION_EQ(RUNTIME_API_INIT_RESULT_SYNC, 0);
 
 /**
- * @brief This is the dummy type we used to make the compilter aware we are dealing with a async task handle
+ * @brief This is the dummy type we used to make the compiler aware we are dealing with a async task handle
  **/
 typedef struct _runtime_api_async_task_handle_t runtime_api_async_handle_t;
 

@@ -470,16 +470,16 @@ static int _get_internal_buf(void* __restrict ctx, void const** __restrict resul
 	(void)ctx;
 	if(NULL == result || NULL == min_size || NULL == max_size)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
-	
+
 	_handle_t *handle = (_handle_t*)pipe;
 
 	/* We read the buffer agressively */
 	size_t bytes_to_read = *max_size;
 
 	if(bytes_to_read > handle->event->size - handle->offset)
-		bytes_to_read = handle->event->size - handle->offset;
+	    bytes_to_read = handle->event->size - handle->offset;
 
-	if(bytes_to_read < *min_size || bytes_to_read == 0) 
+	if(bytes_to_read < *min_size || bytes_to_read == 0)
 	{
 		/* Well, we are unable to fulfill the requirement */
 		*max_size = *min_size = 0;

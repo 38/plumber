@@ -80,18 +80,19 @@ typedef struct {
  * @brief represents a pool instance
  **/
 struct _module_tcp_pool_t{
-	os_event_poll_t*            poll_obj;    /*!< The poll object */
-	int                         socket_fd;   /*!< the listening fd */
-	int                         event_fd;    /*!< the event fd for the release queue */
-	pthread_mutex_t             master_mutex;/*!< This mutex is used when the pool gets configured. It make sure that the master pool gets configured before forks */
-	pthread_cond_t              master_cond; /*!< Used with master_mutex for event loop synchronization */
-	int                         num_forks;  /*!< How many forks module it have, master pool only */
-	module_tcp_pool_t*          master;      /*!< The master pool is the onwer of the socket, NULL if this pool is the master */
-	module_tcp_pool_configure_t conf;        /*!< the module confiuration */
-	_conn_info_t                conn_info;   /*!< the connection info object */
-	struct sockaddr_in          saddr;       /*!< The socket addr */
-	struct sockaddr_in6         saddr6;      /*!< The ipv6 socket addr */
-	int                         loop_killed; /*!< indicates if the loop is gets killed */
+	os_event_poll_t*            poll_obj;     /*!< The poll object */
+	int                         socket_fd;    /*!< the listening fd */
+	int                         event_fd;     /*!< the event fd for the release queue */
+	pthread_mutex_t             master_mutex; /*!< This mutex is used when the pool gets configured. It make sure that the master pool gets configured before forks */
+	pthread_cond_t              master_cond;  /*!< Used with master_mutex for event loop synchronization */
+	int                         num_forks;    /*!< How many forks module it have, master pool only */
+	module_tcp_pool_t*          master;       /*!< The master pool is the onwer of the socket, NULL if this pool is the master */
+	module_tcp_pool_configure_t conf;         /*!< the module confiuration */
+	_conn_info_t                conn_info;    /*!< the connection info object */
+	struct sockaddr_in          saddr;        /*!< The socket addr */
+	struct sockaddr_in6         saddr6;       /*!< The ipv6 socket addr */
+	uint32_t                    loop_killed:1;/*!< indicates if the loop is gets killed */
+	uint32_t                    unaccepted_conn:1; /*!< Indicates if the socket has unaccepted connection (Caused by some reason, thus we can not accept them right away) */
 	char                        addr_str_buf[INET6_ADDRSTRLEN];/*!< the buffer used to convert the network address to string */
 };
 
@@ -841,7 +842,30 @@ ERR:
 		if(data_fd >= 0) close(data_fd);
 	}
 	if(errno != EAGAIN && errno != EWOULDBLOCK)
-	    LOG_ERROR("unexpected error code: %s", strerror(errno));
+	{
+		if(errno != ENFILE && errno != EMFILE)
+		    LOG_ERROR("unexpected error code: %s", strerror(errno));
+		else
+		{
+#ifdef LOG_WARNING_ENABLED
+			static int warned = 0;
+			if(!warned)
+			{
+				LOG_WARNING("Reached the system limit for open files, try to adjust the ulimit");
+				warned = 1;
+			}
+#endif
+		}
+		/* We actually have a bug in here, once we can not accept the next FD here,
+		 * we cannot simply just as the socket is fully consumed. (For example we got
+		 * too many open files)
+		 * Since the epoll is edge triggered in our case, however exiting at this point
+		 * can not eliminate all the sockets in the backlog. Thus the epoll won't trigger
+		 * another time. This basically makes the thread pool can not accept any other thread
+		 * after that. (Because the socket fd is not exhuasted at this point). */
+		pool->unaccepted_conn = 1;
+	}
+	else pool->unaccepted_conn = 0;
 	return 0;
 }
 /**
@@ -960,12 +984,20 @@ static inline int _poll_event(module_tcp_pool_t* pool)
 	int timeout = (time_to_sleep > 0) ? (int)time_to_sleep * 1000 : -1;
 	int i, incoming = 0;
 
+	if(pool->unaccepted_conn && (timeout == -1 || timeout > 50))
+	{
+		LOG_DEBUG("There may be some unaccepted connection is waiting, so sleep only 50 ms at most");
+		timeout = (int)pool->conf.accept_retry_interval;
+	}
+
 	if(timeout > 0)
 	    LOG_DEBUG("waiting for socket events for up to %d ms", timeout);
 	else
 	    LOG_DEBUG("waiting for socket event");
 
 	int result = os_event_poll_wait(pool->poll_obj, pool->conf.event_size, timeout);
+
+	if(pool->unaccepted_conn) incoming = 1;
 
 	if(result == ERROR_CODE(int))
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot poll event");
