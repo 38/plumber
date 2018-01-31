@@ -10,8 +10,9 @@ add_custom_target(docs
 
 add_custom_target(distclean
 	COMMAND ${CMAKE_MAKE_PROGRAM} clean
-	COMMAND rm -rf CMakeFiles CMakeCache.txt Testing doc/doxygen cmake_install.cmake CTestTestfile.cmake Makefile tags bin config.h cmake_uninstall.cmake install_manifest.txt servlet.mk CMakeDoxygenDefaults.cmake CMakeDoxygenfile.in cscope.*
-	COMMAND rm -rf tools/*/package_config.h lib/*/package_config.h install-prototype.sh
+	COMMAND rm -rf CMakeFiles CMakeCache.txt Testing doc/doxygen cmake_install.cmake CTestTestfile.cmake Makefile tags bin config.h cmake_uninstall.cmake install_manifest.txt servlet.mk CMakeDoxygenDefaults.cmake CMakeDoxygenfile.in cscope.* servlet-test-driver.py
+	COMMAND rm -rf tools/*/package_config.h lib/*/package_config.h install-prototype.sh Doxyfile
+	COMMAND [ `readlink -f ${CMAKE_CURRENT_BINARY_DIR}` = `readlink -f ${CMAKE_CURRENT_SOURCE_DIR}` ] || rm -rf lib tools
 	COMMAND rm -rf ${CMAKE_CURRENT_SOURCE_DIR}/vimrc
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
@@ -61,7 +62,7 @@ add_custom_target(show-flags
 			echo "CXX Compiler Flags = ${CXXFLAGS}" &&
 			echo "Linker Flags   = ${LIBS}" &&
 			echo "Shared Libplumber = ${SHARED_LIBPLUMBER}" &&
-			echo "Config CommandLine: CFLAGS=$ENV{CFLAGS} CXXFLAGS=$ENV{CXXFLAGS} CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} cmake -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DPLUMBER_V8_PREFIX=${PLUMBER_V8_PREFIX} -DLOG=${LOG} -DOPTLEVEL=${OPTLEVEL} ${package_status} ${option_status} ${CMAKE_SOURCE_DIR}" )	
+			echo "Config CommandLine: CFLAGS=$ENV{CFLAGS} CXXFLAGS=$ENV{CXXFLAGS} CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} LTO=$ENV{LTO} cmake -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DPLUMBER_V8_PREFIX=${PLUMBER_V8_PREFIX} -DLOG=${LOG} -DOPTLEVEL=${OPTLEVEL} ${package_status} ${option_status} ${CMAKE_SOURCE_DIR}" )	
 
 add_custom_target(book
 	COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/bin/book
