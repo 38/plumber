@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(plumber)
 
-include(CTest)
-
 include("${CMAKE_CURRENT_SOURCE_DIR}/build/macros.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/build/setup.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/build/config.cmake")

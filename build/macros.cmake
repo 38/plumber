@@ -1,3 +1,5 @@
+find_program(VALGRIND_PROGRAM NAMES valgrind PATH ${VALGRIND_PREFIX})
+
 macro(tablify str wide output)
 	string(LENGTH ${str} string_length)
 	set(${output} ${str})
@@ -60,3 +62,24 @@ macro(get_default_compiler_flags target compiler type)
 	include("${CMAKE_CURRENT_SOURCE_DIR}/build/compiler/${best_conf_file}")
 	set(${target} "${${target}} ${COMPILER_${type}FLAGS}")
 endmacro(get_default_compiler_flags target compiler type)
+
+macro(add_binary_test test_name test_command)
+	set(time_out_factor 1)
+	if("${MEMCHECK_TEST}" STREQUAL "yes" AND NOT "${VALGRIND_PROGRAM}" STREQUAL "VALGRIND_PROGRAM-NOTFOUND")
+		add_test(${test_name} 
+				 ${VALGRIND_PROGRAM} 
+				 --leak-check=full 
+				 --errors-for-leak-kinds=definite,possible,indirect 
+				 --error-exitcode=1
+				 ${test_command})
+		set(time_out_factor 10)
+ 	else("${MEMCHECK_TEST}" STREQUAL "yes" AND NOT "${VALGRIND_PROGRAM}" STREQUAL "VALGRIND_PROGRAM-NOTFOUND")
+		add_test(${test_name} ${test_command})
+	endif("${MEMCHECK_TEST}" STREQUAL "yes" AND NOT "${VALGRIND_PROGRAM}" STREQUAL "VALGRIND_PROGRAM-NOTFOUND")
+	if(NOT "${ARGN}" STREQUAL "")
+		set(actual_test_timeout ${ARGN})
+		math(EXPR actual_test_timeout "${actual_test_timeout}*${time_out_factor}")
+		set_tests_properties(${test_name} PROPERTIES TIMEOUT ${actual_test_timeout})
+	endif(NOT "${ARGN}" STREQUAL "")
+endmacro(add_binary_test test_name test_command)
+
