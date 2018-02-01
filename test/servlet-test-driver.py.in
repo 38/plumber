@@ -23,7 +23,7 @@ if os.path.exists(proto_name):
     pi.wait()
 
 
-valgrind = []
+valgrind = filter(lambda x: x, "@SERVLET_VALGRIND_PARAM@".split(";"))
 
 cmdline = [pscript_path, "-P", env['PROTO_DB_ROOT'], 
            "-M", pscript_lib, "-S", servlet_path, testing_pss,

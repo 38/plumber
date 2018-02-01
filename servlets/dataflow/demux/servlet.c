@@ -429,8 +429,13 @@ static inline int _unload(void* ctxbuf)
 	if(ctx->pattern_table.generic != NULL)
 	{
 		if(ctx->mode == MODE_REGEX)
+		{
 		    for(i = 0; i < ctx->ncond; i ++)
+			{
 		        regfree(ctx->pattern_table.regex + i);
+			}
+			free(ctx->pattern_table.regex);
+		}
 		else if(ctx->mode == MODE_MATCH)
 		{
 			for(i = 0; i < HASH_SIZE; i ++)

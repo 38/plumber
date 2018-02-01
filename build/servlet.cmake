@@ -71,7 +71,16 @@ endif("${SYSNAME}" STREQUAL "Darwin")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/servlet.mk" DESTINATION lib/plumber/)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/misc/servlet.cmake" DESTINATION lib/plumber/cmake/)
 
+find_program(VALGRIND_PROGRAM NAMES valgrind PATH ${VALGRIND_PREFIX})
+
+if("${servlet_test_memcheck}" STREQUAL "yes" AND NOT "${VALGRIND_PROGRAM}" STREQUAL "VALGRIND_PROGRAM-NOTFOUND")
+	set(SERVLET_VALGRIND_PARAM )
+	list(APPEND SERVLET_VALGRIND_PARAM ${VALGRIND_PROGRAM})
+	list(APPEND SERVLET_VALGRIND_PARAM --errors-for-leak-kinds=definite,possible,indirect)
+	list(APPEND SERVLET_VALGRIND_PARAM --leak-check=full)
+	list(APPEND SERVLET_VALGRIND_PARAM --error-exitcode=1)
+endif("${servlet_test_memcheck}" STREQUAL "yes" AND NOT "${VALGRIND_PROGRAM}" STREQUAL "VALGRIND_PROGRAM-NOTFOUND")
+
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/test/servlet-test-driver.py.in"
 	           "${CMAKE_CURRENT_BINARY_DIR}/servlet-test-driver.py")
 
-	
