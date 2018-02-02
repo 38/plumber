@@ -39,7 +39,7 @@ static inline int _load_default_module(void)
 	if(itc_modtab_insmod(&module_mem_module_def, 0, NULL) == ERROR_CODE(int))
 	    rc = ERROR_CODE(int);
 
-	if(itc_modtab_insmod(&module_file_module_def, 0, NULL) == ERROR_CODE(int))
+	if(itc_modtab_insmod(&module_legacy_file_module_def, 0, NULL) == ERROR_CODE(int))
 	    rc = ERROR_CODE(int);
 
 	if(itc_modtab_insmod(&module_pssm_module_def, 0, NULL) == ERROR_CODE(int))
@@ -407,7 +407,7 @@ int _program(int argc, char** argv)
 		return 1;
 	}
 
-	mod_file = itc_modtab_get_module_type_from_path("pipe.file");
+	mod_file = itc_modtab_get_module_type_from_path("pipe.legacy_file");
 	if(mod_file == ERROR_CODE(itc_module_type_t))
 	{
 		LOG_FATAL("Cannot get file pipe type");

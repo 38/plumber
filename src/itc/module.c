@@ -32,7 +32,7 @@
 
 #include <module/tcp/module.h>
 #include <module/mem/module.h>
-#include <module/file/module.h>
+#include <module/legacy_file/module.h>
 
 #include <error.h>
 

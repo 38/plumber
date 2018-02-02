@@ -44,7 +44,7 @@ static inline int _load_default_module(uint16_t port)
 	if(itc_modtab_insmod(&module_mem_module_def, 0, NULL) == ERROR_CODE(int))
 	    rc = ERROR_CODE(int);
 
-	if(itc_modtab_insmod(&module_file_module_def, 0, NULL) == ERROR_CODE(int))
+	if(itc_modtab_insmod(&module_legacy_file_module_def, 0, NULL) == ERROR_CODE(int))
 	    rc = ERROR_CODE(int);
 
 	if(itc_modtab_insmod(&module_pssm_module_def, 0, NULL) == ERROR_CODE(int))
