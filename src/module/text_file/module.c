@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <fcntl.h>
 
+#include <sys/stat.h>
 #include <sys/mman.h>
 
 #include <itc/module_types.h>
@@ -19,6 +20,15 @@
 #include <utils/log.h>
 
 #include <module/text_file/module.h>
+
+/**
+ * @brief Indicates one or serveral continous page that has been used togther
+ **/
+typedef struct {
+	void*    start_addr;   /*!< The start point of the memory region */
+	uint32_t n_pages;      /*!< The number of pages for this region */
+	uint32_t refcnt;       /*!< The referecen counter for this region */
+} _mapped_region_t;
 
 /**
  * @brief The module context
@@ -37,21 +47,17 @@ typedef struct {
 	int    out_file_perm;  /*!< The permission code if we need to create a new output */
 	uint32_t create_only:1;/*!< If we only allow newly created output */
 
+	uint32_t is_init:1;    /*!< Indicates if we have fully intialized the servlet */
+
 	int    in_fd;          /*!< The input file descriptor */
 	int    out_fd;         /*!< The output file descriptor */
 
 	void*  in_mapped;      /*!< The base address for the input file has been mapped to the memory */
 	size_t in_mapped_size; /*!< The size of the memory region (Not page aligned yet) */
-} _context_t;
 
-/**
- * @brief Indicates one or serveral continous page that has been used togther
- **/
-typedef struct {
-	void*    start_addr;   /*!< The start point of the memory region */
-	uint32_t n_pages;      /*!< The number of pages for this region */
-	uint32_t refcnt;       /*!< The referecen counter for this region */
-} _mapped_region_t;
+	_mapped_region_t* last_region; /*!< The last region we have read */
+	char*       unread;      /*!< The start point of the unread memory */
+} _context_t;
 
 /**
  * @brief Describes a single line 
@@ -67,7 +73,7 @@ typedef struct {
  **/
 typedef struct {
 	uint32_t  is_in:1; /*!< If this is the input side of the IO event */
-	_line_t*  line;    /*!< The actual line data for this IO event */
+	_line_t   line;    /*!< The actual line data for this IO event */
 	size_t    offset;  /*!< The offset for the read side */
 } _handle_t;
 
@@ -258,8 +264,168 @@ static int _set_prop(void* __restrict ctxmem, const char* __restrict sym, itc_mo
 static itc_module_flags_t _get_flags(void* __restrict ctx)
 {
 	_context_t* context = (_context_t*)ctx;
-	return ITC_MODULE_FLAGS_EVENT_LOOP | (context->in_mapped == NULL ? ITC_MODULE_FLAGS_EVENT_EXHUASTED : 0);
+	return ITC_MODULE_FLAGS_EVENT_LOOP | 
+		   (context->in_mapped == NULL && 
+			context->last_region == NULL && 
+			context->is_init ? ITC_MODULE_FLAGS_EVENT_EXHUASTED : 0);
 }
+
+static inline int _ensure_init(_context_t* ctx)
+{
+	if(ctx->is_init) return 0;
+
+	ctx->is_init = 1;
+
+	if((ctx->in_fd = open(ctx->in_file_path, O_RDONLY)) < 0)
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot open the input file");
+
+	if(ctx->create_only && access(ctx->out_file_path, F_OK) == 0)
+		ERROR_RETURN_LOG(int, "Output file %s already exists", ctx->out_file_path);
+
+	if(ctx->create_only && errno != ENOENT)
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot access the output file");
+
+	if((ctx->out_fd == open(ctx->out_file_path, ctx->out_file_flag, ctx->out_file_perm)) < 0)
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot open the output file");
+
+	struct stat buf;
+
+	if(fstat(ctx->in_fd, &buf) < 0)
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot access the metadata of the input file");
+
+	ctx->in_mapped_size = (size_t)buf.st_size;
+
+	if(NULL == (ctx->in_mapped = mmap(NULL, ((ctx->in_mapped_size + _pagesize - 1) / _pagesize) * _pagesize, 
+					                  PROT_READ, MAP_PRIVATE, ctx->in_fd, 0)))
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot map the file to address");
+
+	LOG_INFO("Mapped address [%p, %p)", ctx->in_mapped, (char*)ctx->in_mapped + ctx->in_mapped_size);
+
+	return 0;
+}
+
+static inline void _incref_region(_mapped_region_t* region)
+{
+	uint32_t old;
+	do{
+		old = region->refcnt;
+	}while(__sync_bool_compare_and_swap(&region->refcnt, old, old + 1));
+}
+
+static inline void _decref_region(_mapped_region_t* region)
+{
+	if(region->refcnt == 0)
+		LOG_ERROR("Code bug: decref a zero referenced region");
+
+	uint32_t old;
+	do {
+		old = region->refcnt;
+	} while(__sync_bool_compare_and_swap(&region->refcnt, old, old - 1));
+
+	if(old == 1)
+	{
+		if(munmap(region->start_addr, _pagesize * region->n_pages) < 0)
+			LOG_WARNING_ERRNO("Cannot unmap the mapped region [%p, %p)", 
+					           region->start_addr, 
+							   (char*)region->start_addr + _pagesize * region->n_pages);
+		else
+			LOG_INFO("Mapped memory page [%p, %p) has been ummaped", 
+					 region->start_addr,
+					 (char*)region->start_addr + _pagesize * region->n_pages);
+	}
+}
+
+static inline int _region_new(_context_t* ctx, char* begin, size_t size)
+{
+	_mapped_region_t* prev_region = ctx->last_region;
+	/* TODO: use the memory pool */
+	if(NULL == (ctx->last_region = (_mapped_region_t*)malloc(sizeof(_mapped_region_t))))
+		ERROR_RETURN_LOG(int, "Cannot allocate memory for the region object");
+	ctx->last_region->start_addr = (void*)begin;
+	ctx->last_region->n_pages = (uint32_t)((size + _pagesize - 1) / _pagesize);
+	/* By default our module holds a reference to the last region */
+	ctx->last_region->refcnt = 1;
+	ctx->in_mapped = (void*)(begin + ctx->last_region->n_pages * _pagesize);
+	if(ctx->last_region->n_pages * _pagesize >= ctx->in_mapped_size)
+	{
+		/* If this is the last page */
+		ctx->in_mapped_size = 0;
+		ctx->in_mapped = NULL;
+	}
+	else ctx->in_mapped_size -= ctx->last_region->n_pages * _pagesize;
+
+	if(NULL != prev_region) _decref_region(prev_region);
+
+	return 0;
+}
+
+static inline int _ensure_region(_context_t* ctx, _mapped_region_t** region1, _mapped_region_t** region2, char* begin, char* end)
+{
+	/* If we don't have the last region, we need to create a new region */
+	if(NULL == ctx->last_region && ERROR_CODE(int) ==  _region_new(ctx, begin, (size_t)(end - begin)))
+		ERROR_RETURN_LOG(int, "Cannot allocate memory for the next region object");
+
+	*region1 = ctx->last_region;
+	_incref_region(ctx->last_region);
+
+	char* region_end = (char*)ctx->last_region->start_addr + _pagesize * ctx->last_region->n_pages;
+
+	/* If the memory region is outside of the last region, we need to make a new one */
+	if(region_end < end)
+	{
+		if(ERROR_CODE(int) == _region_new(ctx, region_end, (size_t)(end - region_end)))
+			ERROR_RETURN_LOG(int, "Cannot create a new region");
+		*region2 = ctx->last_region;
+		region_end = (char*)ctx->last_region->start_addr + _pagesize * ctx->last_region->n_pages;
+	}
+	else *region2 = NULL;
+
+	/* If the region is used up by current line, just dereference the current region */
+	if(region_end == end || ctx->last_region->n_pages * _pagesize >= ctx->in_mapped_size)
+	{
+		_decref_region(ctx->last_region);
+		ctx->last_region = NULL;
+	}
+
+	return 0;
+}
+
+static int _accept(void* __restrict ctxmem, const void* __restrict args, void* __restrict inmem, void* __restrict outmem)
+{
+	(void)args;
+
+	_context_t* ctx = (_context_t*)ctxmem;
+
+	if(ERROR_CODE(int) == _ensure_init(ctx))
+		ERROR_RETURN_LOG(int, "Cannot initialize the context");
+
+	_handle_t* in = (_handle_t*)inmem;
+	_handle_t* out = (_handle_t*)outmem;
+
+	in->is_in = 1;
+	out->is_in = 0;
+
+	char* begin = ctx->unread;
+	char* end   = memchr(ctx->unread, ctx->in_line_delim, ctx->in_mapped_size);
+
+	if(NULL == end) end = ctx->unread + ctx->in_mapped_size;
+	else end ++;
+
+	if(ERROR_CODE(int) == _ensure_region(ctx, in->line.regions, in->line.regions + 1, begin, end))
+		ERROR_RETURN_LOG(int, "Cannot initialize the region object");
+
+	ctx->unread = end;
+
+	in->line.line = begin;
+	in->line.size = (size_t)(end - begin);
+	in->offset = 0;
+
+	out->offset = 0;
+	out->line = in->line;
+
+	return 0;
+}
+
 
 itc_module_t module_text_file_module_def = {
 	.mod_prefix     = "pipe.text_file",
@@ -270,6 +436,7 @@ itc_module_t module_text_file_module_def = {
 	.get_path       = _get_path,
 	.get_property   = _get_prop,
 	.set_property   = _set_prop,
-	.get_flags      = _get_flags
+	.get_flags      = _get_flags,
+	.accept         = _accept
 };
 
