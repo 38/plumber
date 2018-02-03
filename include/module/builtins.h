@@ -18,6 +18,7 @@
 #include <module/tls/module.h>
 #include <module/simulate/module.h>
 #include <module/legacy_file/module.h>
+#include <module/text_file/module.h>
 
 #if MODULE_TLS_ENABLED
 #	define _TLS_MODULE_DEF {"tls_pipe", &module_tls_module_def},
@@ -33,7 +34,8 @@
 	_TLS_MODULE_DEF \
 	{"pssm",      &module_pssm_module_def},\
 	{"simulate",  &module_simulate_module_def},\
-	{"legacy_file",  &module_legacy_file_module_def} \
+	{"legacy_file",  &module_legacy_file_module_def}, \
+	{"text_file", &module_text_file_module_def} \
 }
 
 #endif /* __PLUMBER_MODULE_BUILTINS__ */
