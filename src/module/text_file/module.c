@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 
 #include <sys/stat.h>
 #include <sys/mman.h>
@@ -27,7 +28,8 @@
 typedef struct {
 	void*    start_addr;   /*!< The start point of the memory region */
 	uint32_t n_pages;      /*!< The number of pages for this region */
-	uint32_t refcnt;       /*!< The referecen counter for this region */
+	uint16_t refcnt;       /*!< The referecen counter for this region */
+	uint32_t last:1;       /*!< Indicates this is the last region */
 } _mapped_region_t;
 
 /**
@@ -53,6 +55,7 @@ typedef struct {
 	int    out_fd;         /*!< The output file descriptor */
 
 	void*  in_mapped;      /*!< The base address for the input file has been mapped to the memory */
+	void*  in_mapped_end;  /*!< The end point for the mapped memory */
 	size_t in_mapped_size; /*!< The size of the memory region (Not page aligned yet) */
 
 	_mapped_region_t* last_region; /*!< The last region we have read */
@@ -301,15 +304,18 @@ static inline int _ensure_init(_context_t* ctx)
 
 	LOG_INFO("Mapped address [%p, %p)", ctx->in_mapped, (char*)ctx->in_mapped + ctx->in_mapped_size);
 
+	ctx->unread = ctx->in_mapped;
+	ctx->in_mapped_end = (char*)ctx->in_mapped + ctx->in_mapped_size;
+
 	return 0;
 }
 
 static inline void _incref_region(_mapped_region_t* region)
 {
-	uint32_t old;
+	uint16_t old;
 	do{
 		old = region->refcnt;
-	}while(__sync_bool_compare_and_swap(&region->refcnt, old, old + 1));
+	}while(!__sync_bool_compare_and_swap(&region->refcnt, old, old + 1));
 }
 
 static inline void _decref_region(_mapped_region_t* region)
@@ -317,10 +323,10 @@ static inline void _decref_region(_mapped_region_t* region)
 	if(region->refcnt == 0)
 		LOG_ERROR("Code bug: decref a zero referenced region");
 
-	uint32_t old;
+	uint16_t old;
 	do {
 		old = region->refcnt;
-	} while(__sync_bool_compare_and_swap(&region->refcnt, old, old - 1));
+	} while(!__sync_bool_compare_and_swap(&region->refcnt, old, old - 1));
 
 	if(old == 1)
 	{
@@ -332,6 +338,9 @@ static inline void _decref_region(_mapped_region_t* region)
 			LOG_INFO("Mapped memory page [%p, %p) has been ummaped", 
 					 region->start_addr,
 					 (char*)region->start_addr + _pagesize * region->n_pages);
+		if(region->last) 
+			kill(0, SIGINT);
+		free(region);
 	}
 }
 
@@ -354,6 +363,10 @@ static inline int _region_new(_context_t* ctx, char* begin, size_t size)
 	}
 	else ctx->in_mapped_size -= ctx->last_region->n_pages * _pagesize;
 
+	/* TODO: We need to check if we need this bit as well, which means we want to send terminate signal after done */
+	if((uintptr_t)ctx->last_region->start_addr + ctx->last_region->n_pages * _pagesize >= (uintptr_t)ctx->in_mapped_end)
+		ctx->last_region->last = 1u;
+
 	if(NULL != prev_region) _decref_region(prev_region);
 
 	return 0;
@@ -365,8 +378,8 @@ static inline int _ensure_region(_context_t* ctx, _mapped_region_t** region1, _m
 	if(NULL == ctx->last_region && ERROR_CODE(int) ==  _region_new(ctx, begin, (size_t)(end - begin)))
 		ERROR_RETURN_LOG(int, "Cannot allocate memory for the next region object");
 
-	*region1 = ctx->last_region;
 	_incref_region(ctx->last_region);
+	*region1 = ctx->last_region;
 
 	char* region_end = (char*)ctx->last_region->start_addr + _pagesize * ctx->last_region->n_pages;
 
@@ -375,13 +388,14 @@ static inline int _ensure_region(_context_t* ctx, _mapped_region_t** region1, _m
 	{
 		if(ERROR_CODE(int) == _region_new(ctx, region_end, (size_t)(end - region_end)))
 			ERROR_RETURN_LOG(int, "Cannot create a new region");
+		_incref_region(ctx->last_region);
 		*region2 = ctx->last_region;
 		region_end = (char*)ctx->last_region->start_addr + _pagesize * ctx->last_region->n_pages;
 	}
 	else *region2 = NULL;
 
 	/* If the region is used up by current line, just dereference the current region */
-	if(region_end == end || ctx->last_region->n_pages * _pagesize >= ctx->in_mapped_size)
+	if(region_end == end || end == ctx->in_mapped_end)
 	{
 		_decref_region(ctx->last_region);
 		ctx->last_region = NULL;
@@ -406,13 +420,19 @@ static int _accept(void* __restrict ctxmem, const void* __restrict args, void* _
 	out->is_in = 0;
 
 	char* begin = ctx->unread;
-	char* end   = memchr(ctx->unread, ctx->in_line_delim, ctx->in_mapped_size);
+	char* end   = memchr(ctx->unread, ctx->in_line_delim, (size_t)((char*)ctx->in_mapped_end - begin));
 
 	if(NULL == end) end = ctx->unread + ctx->in_mapped_size;
 	else end ++;
 
+	if(end - begin == 0) 
+	{
+		LOG_NOTICE("End of file reached, terminating the event loop");
+		return ERROR_CODE(int);
+	}
+
 	if(ERROR_CODE(int) == _ensure_region(ctx, in->line.regions, in->line.regions + 1, begin, end))
-		ERROR_RETURN_LOG(int, "Cannot initialize the region object");
+		ERROR_RETURN_LOG(int, "Cannot make region for next line");
 
 	ctx->unread = end;
 
@@ -426,17 +446,144 @@ static int _accept(void* __restrict ctxmem, const void* __restrict args, void* _
 	return 0;
 }
 
+static int _dealloc(void* __restrict ctxmem, void* __restrict pipe, int error, int purge)
+{
+	(void)error;
+	(void)ctxmem;
+	_handle_t* handle = (_handle_t*)pipe;
+
+	if(NULL == pipe || handle->line.regions[0] == NULL)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(purge)
+	{
+		uint32_t i;
+		for(i = 0; i < 2; i ++)
+		{
+			if(handle->line.regions[i] != NULL)
+				_decref_region(handle->line.regions[i]);
+		}
+	}
+
+	return 0;
+}
+
+static int _fork(void* __restrict ctxmem, void* __restrict dest, void* __restrict src, const void* __restrict args)
+{
+	(void) ctxmem;
+	(void) args;
+
+	_handle_t* from = (_handle_t*)src;
+	_handle_t* to   = (_handle_t*)dest;
+
+	if(!from->is_in)
+		ERROR_RETURN_LOG(int, "Invalid pipe direction");
+
+	to->offset = 0;
+	to->line = from->line;
+	to->is_in = 1;
+
+	return 0;
+}
+
+static size_t _read(void* __restrict ctxmem, void* __restrict buf, size_t n, void* __restrict pipe)
+{
+	(void)ctxmem;
+
+	_handle_t* handle = (_handle_t*)pipe;
+
+	if(!handle->is_in)
+		ERROR_RETURN_LOG(size_t, "Input pipe port expected");
+
+	size_t bytes_to_read = n;
+	if(bytes_to_read > handle->line.size - handle->offset)
+		bytes_to_read = handle->line.size - handle->offset;
+
+	memcpy(buf, handle->line.line + handle->offset, bytes_to_read);
+
+	handle->offset += bytes_to_read;
+
+	return bytes_to_read;
+}
+
+static size_t _write(void* __restrict ctxmem, const void* __restrict buf, size_t n, void* __restrict pipe)
+{
+	(void)ctxmem;
+	(void)buf;
+	(void)pipe;
+
+	LOG_INFO("FIXME: write is not implemented");
+
+	return n;
+}
+
+static int _has_unread(void* __restrict ctxmem, void* __restrict pipe)
+{
+	(void)ctxmem;
+
+	_handle_t* handle = (_handle_t*)pipe;
+
+	if(!handle->is_in)
+		ERROR_RETURN_LOG(int, "Input pipe port expected");
+
+	return handle->offset < handle->line.size;
+}
+
+static int _get_internal_buf(void* __restrict ctx, void const** __restrict result, size_t* __restrict min_size, size_t* __restrict max_size, void* __restrict pipe)
+{
+	(void)ctx;
+	if(NULL == result || NULL == min_size || NULL == max_size)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	_handle_t* handle = (_handle_t*)pipe;
+
+	size_t bytes_to_read = *max_size;
+
+	if(bytes_to_read > handle->line.size - handle->offset)
+		bytes_to_read = handle->line.size - handle->offset;
+
+	if(bytes_to_read < *min_size)
+	{
+		*max_size = *min_size = 0;
+		*result = NULL;
+		return 0;
+	}
+
+	*result = handle->line.line + handle->offset;
+
+	*max_size = *min_size = bytes_to_read;
+
+	handle->offset += bytes_to_read;
+
+	return 1;
+}
+
+static int _release_internal_buf(void* __restrict context, void const* __restrict buffer, size_t actual_size, void* __restrict handle)
+{
+	(void)context;
+	(void)buffer;
+	(void)actual_size;
+	(void)handle;
+	return 0;
+}
 
 itc_module_t module_text_file_module_def = {
-	.mod_prefix     = "pipe.text_file",
-	.handle_size    = sizeof(_handle_t),
-	.context_size   = sizeof(_context_t),
-	.module_init    = _init,
-	.module_cleanup = _cleanup,
-	.get_path       = _get_path,
-	.get_property   = _get_prop,
-	.set_property   = _set_prop,
-	.get_flags      = _get_flags,
-	.accept         = _accept
+	.mod_prefix      = "pipe.text_file",
+	.handle_size     = sizeof(_handle_t),
+	.context_size    = sizeof(_context_t),
+	.module_init     = _init,
+	.module_cleanup  = _cleanup,
+	.get_path        = _get_path,
+	.get_property    = _get_prop,
+	.set_property    = _set_prop,
+	.get_flags       = _get_flags,
+	.accept          = _accept,
+	.deallocate      = _dealloc,
+	.fork            = _fork,
+	.read            = _read,
+	.write           = _write,
+	.has_unread_data = _has_unread,
+	.get_internal_buf = _get_internal_buf,
+	.release_internal_buf = _release_internal_buf
 };
 
