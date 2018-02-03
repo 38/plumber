@@ -155,7 +155,7 @@ static int _cleanup(void* __restrict ctxmem)
 	if(ctx->out_fd > 0 && close(ctx->out_fd) < 0)
 		rc = ERROR_CODE(int);
 
-	if(NULL != ctx->in_mapped)
+	if((void*)-1 != ctx->in_mapped && NULL != ctx->in_mapped)
 	{
 		if(munmap(ctx->in_mapped, ((ctx->in_mapped_size + _pagesize - 1) / _pagesize) * _pagesize) < 0)
 			rc = ERROR_CODE(int);
@@ -298,7 +298,7 @@ static inline int _ensure_init(_context_t* ctx)
 
 	ctx->in_mapped_size = (size_t)buf.st_size;
 
-	if(NULL == (ctx->in_mapped = mmap(NULL, ((ctx->in_mapped_size + _pagesize - 1) / _pagesize) * _pagesize, 
+	if((void*)-1 == (ctx->in_mapped = mmap(NULL, ((ctx->in_mapped_size + _pagesize - 1) / _pagesize) * _pagesize, 
 					                  PROT_READ, MAP_PRIVATE, ctx->in_fd, 0)))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot map the file to address");
 
@@ -366,6 +366,8 @@ static inline int _region_new(_context_t* ctx, char* begin, size_t size)
 	/* TODO: We need to check if we need this bit as well, which means we want to send terminate signal after done */
 	if((uintptr_t)ctx->last_region->start_addr + ctx->last_region->n_pages * _pagesize >= (uintptr_t)ctx->in_mapped_end)
 		ctx->last_region->last = 1u;
+	else 
+		ctx->last_region->last = 0u;
 
 	if(NULL != prev_region) _decref_region(prev_region);
 
