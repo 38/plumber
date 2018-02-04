@@ -129,6 +129,7 @@ __thread struct {
  **/
 typedef struct {
 	module_tcp_pool_configure_t pool_conf;            /*!< the TCP pool configuration */
+	int                         retry_interval;       /*!< When the TCP pool cannot be configured, how much time we want to sleep before retry */
 	int                         pool_initialized;     /*!< indicates if the pool has been initialized */
 	int                         sync_write_attempt;   /*!< If do a synchronized write attempt before initialize a async operation */
 	int                         slave_mode;           /*!< The slave working mode, which means the module should not start the event loop */
@@ -521,7 +522,9 @@ static inline int _init_connection_pool(_module_context_t* __restrict context)
 {
 	if(!context->pool_initialized && module_tcp_pool_configure(context->conn_pool, &context->pool_conf) == ERROR_CODE(int))
 	{
-		LOG_ERROR("Cannot configure the connection pool");
+		LOG_ERROR("Cannot configure the connection pool, retry after %d seconds", context->retry_interval);
+		usleep((uint32_t)(context->retry_interval * 1000000));
+		context->retry_interval *= 2;
 		return ERROR_CODE(int);
 	}
 
@@ -604,6 +607,7 @@ static int _init(void* __restrict ctx, uint32_t argc, char const* __restrict con
 	context->pool_conf.accept_retry_interval = 5;
 	context->pool_conf.dispose_data = _dispose_state;
 	context->slave_mode = 0;
+	context->retry_interval = 1;
 
 	uint32_t i = 0;
 	if(argc > 0)
