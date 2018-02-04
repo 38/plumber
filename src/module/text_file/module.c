@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <pthread.h>
 
 #include <sys/stat.h>
 #include <sys/mman.h>
@@ -19,6 +20,7 @@
 #include <error.h>
 
 #include <utils/log.h>
+#include <utils/thread.h>
 
 #include <module/text_file/module.h>
 
@@ -29,7 +31,6 @@ typedef struct {
 	void*    start_addr;   /*!< The start point of the memory region */
 	uint32_t n_pages;      /*!< The number of pages for this region */
 	uint16_t refcnt;       /*!< The referecen counter for this region */
-	uint32_t last:1;       /*!< Indicates this is the last region */
 } _mapped_region_t;
 
 /**
@@ -59,8 +60,18 @@ typedef struct {
 	size_t in_mapped_size; /*!< The size of the memory region (Not page aligned yet) */
 
 	_mapped_region_t* last_region; /*!< The last region we have read */
-	char*       unread;      /*!< The start point of the unread memory */
+	char*             unread;      /*!< The start point of the unread memory */
+
+	pthread_mutex_t   write_mutex; /*!< The mutex used for write */
+	thread_pset_t*    lw_buf;      /*!< The local write buffer */
 } _context_t;
+
+typedef struct {
+	size_t capacity;   /*!< The capacity of this buffer */
+	size_t used;       /*!< The used size of this buffer */
+	uintpad_t __padding__[0]; 
+	char   buffer[0];     /*!< The actual buffer address */
+} _local_write_buf_t;
 
 /**
  * @brief Describes a single line 
@@ -81,6 +92,48 @@ typedef struct {
 } _handle_t;
 
 static size_t _pagesize = 0;
+
+static void* _lw_buf_alloc(uint32_t tid, const void* data)
+{
+	(void)tid;
+	(void)data;
+
+	_local_write_buf_t* ret = (_local_write_buf_t*)malloc(sizeof(_local_write_buf_t) + 4096);
+	if(NULL == ret)
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the local buffer");
+
+	ret->capacity = 4096;
+	ret->used = 0;
+
+	return ret;
+}
+
+static int _lw_buf_dealloc(void* mem, const void* data)
+{
+	int rc = 0;
+	const _context_t* ctx = (const _context_t*)data;
+	_local_write_buf_t* buf = (_local_write_buf_t*)mem;
+
+	if(ctx->out_fd > 0)
+	{
+		size_t start = 0;
+		while(buf->used > start)
+		{
+			ssize_t write_rc = write(ctx->out_fd, buf->buffer + start, buf->used - start);
+			if(write_rc < 0)
+			{
+				LOG_ERROR_ERRNO("Cannot write the data to the target file");
+				rc = ERROR_CODE(int);
+				break;
+			}
+			start += (size_t) write_rc;
+		}
+	}
+
+	free(buf);
+
+	return rc;
+}
 
 static int _init(void* __restrict ctxmem, uint32_t argc, char const* __restrict const* __restrict argv)
 {
@@ -126,11 +179,19 @@ static int _init(void* __restrict ctxmem, uint32_t argc, char const* __restrict 
 	ctx->out_file_perm = 0644;
 	ctx->out_file_flag = O_WRONLY | O_CREAT | O_TRUNC;
 
+	if(NULL == (ctx->lw_buf = thread_pset_new(32, _lw_buf_alloc, _lw_buf_dealloc, ctx)))
+		ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the thread local write buffer");
+
+	if(0 != (errno = pthread_mutex_init(&ctx->write_mutex, NULL)))
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the write mutex");
 
 	return 0;
 ERR:
 	for(i = 0; i < sizeof(arguments) / sizeof(arguments[0]); i ++)
 		if(NULL != arguments[i]) free(arguments[i]);
+
+	if(NULL != ctx->lw_buf)
+		thread_pset_free(ctx->lw_buf);
 
 	return ERROR_CODE(int);
 }
@@ -139,6 +200,9 @@ static int _cleanup(void* __restrict ctxmem)
 {
 	int rc = 0;
 	_context_t* ctx = (_context_t*)ctxmem;
+	
+	if(NULL != ctx->lw_buf && ERROR_CODE(int) == thread_pset_free(ctx->lw_buf))
+		rc = ERROR_CODE(int);
 
 	if(NULL != ctx->in_file_path) 
 		free(ctx->in_file_path);
@@ -160,6 +224,9 @@ static int _cleanup(void* __restrict ctxmem)
 		if(munmap(ctx->in_mapped, ((ctx->in_mapped_size + _pagesize - 1) / _pagesize) * _pagesize) < 0)
 			rc = ERROR_CODE(int);
 	}
+
+	if(0 != (errno = pthread_mutex_destroy(&ctx->write_mutex)))
+		rc = ERROR_CODE(int);
 
 	return rc;
 }
@@ -288,7 +355,7 @@ static inline int _ensure_init(_context_t* ctx)
 	if(ctx->create_only && errno != ENOENT)
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot access the output file");
 
-	if((ctx->out_fd == open(ctx->out_file_path, ctx->out_file_flag, ctx->out_file_perm)) < 0)
+	if((ctx->out_fd = open(ctx->out_file_path, ctx->out_file_flag, ctx->out_file_perm)) < 0)
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot open the output file");
 
 	struct stat buf;
@@ -338,8 +405,6 @@ static inline void _decref_region(_mapped_region_t* region)
 			LOG_INFO("Mapped memory page [%p, %p) has been ummaped", 
 					 region->start_addr,
 					 (char*)region->start_addr + _pagesize * region->n_pages);
-		if(region->last) 
-			kill(0, SIGINT);
 		free(region);
 	}
 }
@@ -362,12 +427,6 @@ static inline int _region_new(_context_t* ctx, char* begin, size_t size)
 		ctx->in_mapped = NULL;
 	}
 	else ctx->in_mapped_size -= ctx->last_region->n_pages * _pagesize;
-
-	/* TODO: We need to check if we need this bit as well, which means we want to send terminate signal after done */
-	if((uintptr_t)ctx->last_region->start_addr + ctx->last_region->n_pages * _pagesize >= (uintptr_t)ctx->in_mapped_end)
-		ctx->last_region->last = 1u;
-	else 
-		ctx->last_region->last = 0u;
 
 	if(NULL != prev_region) _decref_region(prev_region);
 
@@ -508,13 +567,55 @@ static size_t _read(void* __restrict ctxmem, void* __restrict buf, size_t n, voi
 	return bytes_to_read;
 }
 
-static size_t _write(void* __restrict ctxmem, const void* __restrict buf, size_t n, void* __restrict pipe)
+static inline int _write_fd(_context_t* ctx, const void* __restrict buf, size_t n)
 {
-	(void)ctxmem;
-	(void)buf;
-	(void)pipe;
+	int rc = 0;
+	if((errno = pthread_mutex_lock(&ctx->write_mutex)) != 0)
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot lock the write mutex");
 
-	LOG_INFO("FIXME: write is not implemented");
+	if(write(ctx->out_fd, buf, n) < 0)
+	{
+		rc = ERROR_CODE(int);
+		LOG_ERROR_ERRNO("Cannot write data to the output file");
+	}
+
+	if((errno = pthread_mutex_unlock(&ctx->write_mutex)) != 0)
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot release the write mutex");
+
+	return rc;
+}
+
+static size_t _write(void* __restrict ctxmem, const void* __restrict data, size_t n, void* __restrict pipe)
+{
+	(void)pipe;
+	_context_t* ctx = (_context_t*)ctxmem;
+
+	_local_write_buf_t* buf = (_local_write_buf_t*)thread_pset_acquire(ctx->lw_buf);
+
+	if(NULL == buf) ERROR_RETURN_LOG(size_t, "Cannot get the thread local buffer");
+
+	size_t buf_size = buf->capacity - buf->used;
+
+	if(buf_size < n)
+	{
+		if(_write_fd(ctx, buf->buffer, buf->used) == ERROR_CODE(int))
+			ERROR_RETURN_LOG(size_t, "Cannot write the bufferred data to the file");
+
+		buf->used = 0;
+	}
+
+	if(buf->capacity < n)
+	{
+		LOG_DEBUG("The buffer is smaller than the data to write");
+
+		if(ERROR_CODE(int) == _write_fd(ctx, data, n))
+			ERROR_RETURN_LOG(size_t, "Cannot write the required data to the file");
+	}
+	else
+	{
+		memcpy(buf->buffer + buf->used, data, n);
+		buf->used += n;
+	}
 
 	return n;
 }
