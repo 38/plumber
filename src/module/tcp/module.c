@@ -59,6 +59,7 @@ typedef struct {
 	void*                           user_space_data;        /*!< the user space data attached to this connection pool object */
 	uint32_t                        buffer_exposed:1;       /*!< Indicates if we have a buffer exposed */
 	uint32_t                        user_state_pending:1;   /*!< indicates if we have user space data pending to push */
+	uint32_t                        kern_buffer_empty:1;    /*!< Indicates if we have seen EAGAIN or EWOULDBLOCK when we read the socket last time */
 	itc_module_state_dispose_func_t disp;                   /*!< the dispose function for the case the connection object must be killed */
 	uintpad_t __padding__[0];
 	char                            buffer[0];              /*!< the read buffer */
@@ -704,10 +705,12 @@ static int _accept(void* __restrict ctx, const void* __restrict args, void* __re
 		stat->disp = NULL;
 	}
 
+
 	in->disp = out->disp = stat->disp;
 	in->has_more = 1;
 	stat->user_state_pending = 0;
 	stat->buffer_exposed = 0;
+	stat->kern_buffer_empty = 0;
 	in->fd = out->fd = conn.fd;
 	in->idx = out->idx = conn.idx;
 	in->async_handle = out->async_handle = NULL;
@@ -728,10 +731,12 @@ static int  _read_to_buffer(_handle_t* handle)
 				LOG_DEBUG("The socket is waiting for more data");
 				handle->state->unread_bytes = 0;
 				handle->state->total_bytes = 0;
+				handle->state->kern_buffer_empty = 1;
 				return 0;
 			}
 			else
 			{
+				handle->state->kern_buffer_empty = 0;
 				if(errno != ECONNRESET)
 				    LOG_ERROR_ERRNO("Socket error");
 				else
@@ -742,11 +747,13 @@ static int  _read_to_buffer(_handle_t* handle)
 		else if(rc == 0)
 		{
 			handle->has_more = 0;
+			handle->state->kern_buffer_empty = 1;
 		}
 		else
 		{
 			handle->state->unread_bytes = (size_t)rc;
 			handle->state->total_bytes = (size_t)rc;
+			handle->state->kern_buffer_empty = 0;
 		}
 	}
 
@@ -1239,7 +1246,7 @@ static int _dealloc(void* __restrict ctx, void* __restrict pipe, int error, int 
 		if((flags & RUNTIME_API_PIPE_PERSIST) && !error)
 		{
 			int mode;
-			if(handle->state->unread_bytes > 0)
+			if(handle->state->unread_bytes > 0 || !handle->state->kern_buffer_empty)
 			{
 				LOG_DEBUG("there's some more bytes to read, mark the connection to ready to read state");
 				mode = MODULE_TCP_POOL_RELEASE_MODE_WAIT_FOR_READ;

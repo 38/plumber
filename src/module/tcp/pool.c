@@ -637,10 +637,6 @@ static inline int _connection_activate(module_tcp_pool_t* pool, uint32_t idx)
 		ERROR_RETURN_LOG(int, "Invalid argument connection object index %"PRIu32" is out of the heap_limit", idx);
 	}
 
-	/** Remove it from the poll_obj's list, so that it won't trigger poll awake since then */
-	if(ERROR_CODE(int) == os_event_poll_del(pool->poll_obj, pool->conn_info.conn[idx].fd, 1))
-	    ERROR_RETURN_LOG(int, "Cannot remove the connection object %"PRIu32" from the poll object list", pool->conn_info.conn[idx].id);
-
 	/* Remove it from the inactive heap */
 	_swap(pool, idx, --pool->conn_info.heap_limit);
 	_heapify(pool, idx);
@@ -699,29 +695,6 @@ static inline int _connection_deactivate(module_tcp_pool_t* pool, uint32_t idx, 
 		_print_stat(pool);
 		ERROR_RETURN_LOG(int, "Invalid argument connection object index %"PRIu32" is out of the active list", idx);
 		return ERROR_CODE(int);
-	}
-
-#if 0
-	/* We do not do this any more, because we allow deactivated connection preseve state.
-	 * And this won't have memory leak, because the user-space code wants to dispose it properly
-	 * And if the user-space code dosen't do so, this won't help any way */
-	/* Note: caller should make sure the pointer has been free'd properly */
-	_conn_info.conn[idx].data = NULL;
-#endif
-
-	os_event_desc_t event = {
-		.type = OS_EVENT_TYPE_KERNEL,
-		.kernel = {
-			.event = OS_EVENT_KERNEL_EVENT_IN,
-			.fd   = pool->conn_info.conn[idx].fd,
-			.data = pool->conn_info.index + pool->conn_info.conn[idx].id
-		}
-	};
-
-	if(ERROR_CODE(int) == os_event_poll_add(pool->poll_obj, &event))
-	{
-		LOG_ERROR("Cannot add the connection to the poll list");
-		rc = ERROR_CODE(int);
 	}
 
 	pool->conn_info.conn[idx].ts = now;
@@ -1020,7 +993,7 @@ static inline int _poll_event(module_tcp_pool_t* pool)
 			else if(NULL != data)
 			{
 				uint32_t idx = *(uint32_t*)data;
-				if(_connection_activate(pool, idx) < 0)
+				if(idx < pool->conn_info.heap_limit && _connection_activate(pool, idx) < 0)
 				{
 					LOG_WARNING("cannot activate the connection");
 					continue;
