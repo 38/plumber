@@ -36,7 +36,7 @@ typedef struct {
 /**
  * @brief The module context
  * @note Since we can rely on the framework to make sure all the poped up lines regions are properly disposed.
- *       So the mapped address in here, only records the next page that is going to be used next time. 
+ *       So the mapped address in here, only records the next page that is going to be used next time.
  *       Thus the same thing for the in_mapped_size.
  **/
 typedef struct {
@@ -69,12 +69,12 @@ typedef struct {
 typedef struct {
 	size_t capacity;   /*!< The capacity of this buffer */
 	size_t used;       /*!< The used size of this buffer */
-	uintpad_t __padding__[0]; 
+	uintpad_t __padding__[0];
 	char   buffer[0];     /*!< The actual buffer address */
 } _local_write_buf_t;
 
 /**
- * @brief Describes a single line 
+ * @brief Describes a single line
  **/
 typedef struct {
 	const char*       line;       /*!< The line text */
@@ -100,7 +100,7 @@ static void* _lw_buf_alloc(uint32_t tid, const void* data)
 
 	_local_write_buf_t* ret = (_local_write_buf_t*)malloc(sizeof(_local_write_buf_t) + 4096);
 	if(NULL == ret)
-		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the local buffer");
+	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the local buffer");
 
 	ret->capacity = 4096;
 	ret->used = 0;
@@ -138,7 +138,7 @@ static int _lw_buf_dealloc(void* mem, const void* data)
 static int _init(void* __restrict ctxmem, uint32_t argc, char const* __restrict const* __restrict argv)
 {
 	if(0 == _pagesize)
-		_pagesize = (size_t)getpagesize();
+	    _pagesize = (size_t)getpagesize();
 
 	_context_t* ctx = (_context_t*)ctxmem;
 
@@ -159,18 +159,18 @@ static int _init(void* __restrict ctxmem, uint32_t argc, char const* __restrict 
 		if(j < sizeof(param_name) / sizeof(param_name[0]))
 		{
 			if(arguments[j] != NULL)
-				ERROR_LOG_GOTO(ERR, "Duplicated module init parameter: %s", argv[i]);
+			    ERROR_LOG_GOTO(ERR, "Duplicated module init parameter: %s", argv[i]);
 			if(NULL == (arguments[j] = strdup(argv[i] + k)))
-				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the parameter string");
+			    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the parameter string");
 		}
 		else ERROR_LOG_GOTO(ERR, "Invalid module initialization param: %s. Expected "
-				                 "text_file input=<input> output=<output> label=<label>", argv[i]);
+		                         "text_file input=<input> output=<output> label=<label>", argv[i]);
 	}
 
 #define _ASSIGN_PARAM(idx, var, desc) do {\
-	if(NULL == (ctx->var = arguments[idx]))\
+		if(NULL == (ctx->var = arguments[idx]))\
 		ERROR_LOG_GOTO(ERR, "Missing "desc". Expected text_file input=<input> output=<output> label=<label>");\
-} while(0)
+	} while(0)
 	_ASSIGN_PARAM(0, in_file_path, "input file");
 	_ASSIGN_PARAM(1, out_file_path, "output file");
 	_ASSIGN_PARAM(2, label, "label name");
@@ -180,18 +180,18 @@ static int _init(void* __restrict ctxmem, uint32_t argc, char const* __restrict 
 	ctx->out_file_flag = O_WRONLY | O_CREAT | O_TRUNC;
 
 	if(NULL == (ctx->lw_buf = thread_pset_new(32, _lw_buf_alloc, _lw_buf_dealloc, ctx)))
-		ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the thread local write buffer");
+	    ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the thread local write buffer");
 
 	if(0 != (errno = pthread_mutex_init(&ctx->write_mutex, NULL)))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the write mutex");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the write mutex");
 
 	return 0;
 ERR:
 	for(i = 0; i < sizeof(arguments) / sizeof(arguments[0]); i ++)
-		if(NULL != arguments[i]) free(arguments[i]);
+	    if(NULL != arguments[i]) free(arguments[i]);
 
 	if(NULL != ctx->lw_buf)
-		thread_pset_free(ctx->lw_buf);
+	    thread_pset_free(ctx->lw_buf);
 
 	return ERROR_CODE(int);
 }
@@ -200,33 +200,33 @@ static int _cleanup(void* __restrict ctxmem)
 {
 	int rc = 0;
 	_context_t* ctx = (_context_t*)ctxmem;
-	
-	if(NULL != ctx->lw_buf && ERROR_CODE(int) == thread_pset_free(ctx->lw_buf))
-		rc = ERROR_CODE(int);
 
-	if(NULL != ctx->in_file_path) 
-		free(ctx->in_file_path);
+	if(NULL != ctx->lw_buf && ERROR_CODE(int) == thread_pset_free(ctx->lw_buf))
+	    rc = ERROR_CODE(int);
+
+	if(NULL != ctx->in_file_path)
+	    free(ctx->in_file_path);
 
 	if(NULL != ctx->out_file_path)
-		free(ctx->out_file_path);
+	    free(ctx->out_file_path);
 
 	if(NULL != ctx->label)
-		free(ctx->label);
+	    free(ctx->label);
 
 	if(ctx->in_fd > 0 && close(ctx->in_fd) < 0)
-		rc = ERROR_CODE(int);
+	    rc = ERROR_CODE(int);
 
 	if(ctx->out_fd > 0 && close(ctx->out_fd) < 0)
-		rc = ERROR_CODE(int);
+	    rc = ERROR_CODE(int);
 
 	if((void*)-1 != ctx->in_mapped && NULL != ctx->in_mapped)
 	{
 		if(munmap(ctx->in_mapped, ((ctx->in_mapped_size + _pagesize - 1) / _pagesize) * _pagesize) < 0)
-			rc = ERROR_CODE(int);
+		    rc = ERROR_CODE(int);
 	}
 
 	if(0 != (errno = pthread_mutex_destroy(&ctx->write_mutex)))
-		rc = ERROR_CODE(int);
+	    rc = ERROR_CODE(int);
 
 	return rc;
 }
@@ -272,15 +272,15 @@ static itc_module_property_value_t _get_prop(void* __restrict ctxmem, const char
 	if(strcmp(sym, "output_mode") == 0)
 	{
 		if(ctx->create_only)
-			return _make_str("create");
+		    return _make_str("create");
 		switch(ctx->out_file_flag)
 		{
 			case O_WRONLY | O_CREAT | O_TRUNC:
-				return _make_str("override");
+			    return _make_str("override");
 			case O_WRONLY | O_CREAT | O_APPEND:
-				return _make_str("append");
+			    return _make_str("append");
 			default:
-				return _make_str("invalid mode");
+			    return _make_str("invalid mode");
 		}
 	}
 	if(strcmp(sym, "delimitor") == 0)
@@ -311,11 +311,11 @@ static int _set_prop(void* __restrict ctxmem, const char* __restrict sym, itc_mo
 		{
 			ctx->create_only = 0;
 			if(strcmp(val.str, "create") == 0)
-				ctx->create_only = 1;
+			    ctx->create_only = 1;
 			else if(strcmp(val.str, "override") == 0)
-				ctx->out_file_flag = O_WRONLY | O_CREAT | O_TRUNC;
+			    ctx->out_file_flag = O_WRONLY | O_CREAT | O_TRUNC;
 			else if(strcmp(val.str, "append") == 0)
-				ctx->out_file_flag = O_WRONLY | O_CREAT | O_APPEND;
+			    ctx->out_file_flag = O_WRONLY | O_CREAT | O_APPEND;
 			else ERROR_RETURN_LOG(int, "Invalid type string, acceptable type: create, override, append");
 			return 1;
 		}
@@ -334,10 +334,10 @@ static int _set_prop(void* __restrict ctxmem, const char* __restrict sym, itc_mo
 static itc_module_flags_t _get_flags(void* __restrict ctx)
 {
 	_context_t* context = (_context_t*)ctx;
-	return ITC_MODULE_FLAGS_EVENT_LOOP | 
-		   (context->in_mapped == NULL && 
-			context->last_region == NULL && 
-			context->is_init ? ITC_MODULE_FLAGS_EVENT_EXHUASTED : 0);
+	return ITC_MODULE_FLAGS_EVENT_LOOP |
+	       (context->in_mapped == NULL &&
+	        context->last_region == NULL &&
+	        context->is_init ? ITC_MODULE_FLAGS_EVENT_EXHUASTED : 0);
 }
 
 static inline int _ensure_init(_context_t* ctx)
@@ -347,27 +347,27 @@ static inline int _ensure_init(_context_t* ctx)
 	ctx->is_init = 1;
 
 	if((ctx->in_fd = open(ctx->in_file_path, O_RDONLY)) < 0)
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot open the input file");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot open the input file");
 
 	if(ctx->create_only && access(ctx->out_file_path, F_OK) == 0)
-		ERROR_RETURN_LOG(int, "Output file %s already exists", ctx->out_file_path);
+	    ERROR_RETURN_LOG(int, "Output file %s already exists", ctx->out_file_path);
 
 	if(ctx->create_only && errno != ENOENT)
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot access the output file");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot access the output file");
 
 	if((ctx->out_fd = open(ctx->out_file_path, ctx->out_file_flag, ctx->out_file_perm)) < 0)
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot open the output file");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot open the output file");
 
 	struct stat buf;
 
 	if(fstat(ctx->in_fd, &buf) < 0)
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot access the metadata of the input file");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot access the metadata of the input file");
 
 	ctx->in_mapped_size = (size_t)buf.st_size;
 
-	if((void*)-1 == (ctx->in_mapped = mmap(NULL, ((ctx->in_mapped_size + _pagesize - 1) / _pagesize) * _pagesize, 
-					                  PROT_READ, MAP_PRIVATE, ctx->in_fd, 0)))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot map the file to address");
+	if((void*)-1 == (ctx->in_mapped = mmap(NULL, ((ctx->in_mapped_size + _pagesize - 1) / _pagesize) * _pagesize,
+	                                  PROT_READ, MAP_PRIVATE, ctx->in_fd, 0)))
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot map the file to address");
 
 	LOG_INFO("Mapped address [%p, %p)", ctx->in_mapped, (char*)ctx->in_mapped + ctx->in_mapped_size);
 
@@ -388,7 +388,7 @@ static inline void _incref_region(_mapped_region_t* region)
 static inline void _decref_region(_mapped_region_t* region)
 {
 	if(region->refcnt == 0)
-		LOG_ERROR("Code bug: decref a zero referenced region");
+	    LOG_ERROR("Code bug: decref a zero referenced region");
 
 	uint16_t old;
 	do {
@@ -398,13 +398,13 @@ static inline void _decref_region(_mapped_region_t* region)
 	if(old == 1)
 	{
 		if(munmap(region->start_addr, _pagesize * region->n_pages) < 0)
-			LOG_WARNING_ERRNO("Cannot unmap the mapped region [%p, %p)", 
-					           region->start_addr, 
-							   (char*)region->start_addr + _pagesize * region->n_pages);
+		    LOG_WARNING_ERRNO("Cannot unmap the mapped region [%p, %p)",
+		                       region->start_addr,
+		                       (char*)region->start_addr + _pagesize * region->n_pages);
 		else
-			LOG_INFO("Mapped memory page [%p, %p) has been ummaped", 
-					 region->start_addr,
-					 (char*)region->start_addr + _pagesize * region->n_pages);
+		    LOG_INFO("Mapped memory page [%p, %p) has been ummaped",
+		             region->start_addr,
+		             (char*)region->start_addr + _pagesize * region->n_pages);
 		free(region);
 	}
 }
@@ -414,7 +414,7 @@ static inline int _region_new(_context_t* ctx, char* begin, size_t size)
 	_mapped_region_t* prev_region = ctx->last_region;
 	/* TODO: use the memory pool */
 	if(NULL == (ctx->last_region = (_mapped_region_t*)malloc(sizeof(_mapped_region_t))))
-		ERROR_RETURN_LOG(int, "Cannot allocate memory for the region object");
+	    ERROR_RETURN_LOG(int, "Cannot allocate memory for the region object");
 	ctx->last_region->start_addr = (void*)begin;
 	ctx->last_region->n_pages = (uint32_t)((size + _pagesize - 1) / _pagesize);
 	/* By default our module holds a reference to the last region */
@@ -437,7 +437,7 @@ static inline int _ensure_region(_context_t* ctx, _mapped_region_t** region1, _m
 {
 	/* If we don't have the last region, we need to create a new region */
 	if(NULL == ctx->last_region && ERROR_CODE(int) ==  _region_new(ctx, begin, (size_t)(end - begin)))
-		ERROR_RETURN_LOG(int, "Cannot allocate memory for the next region object");
+	    ERROR_RETURN_LOG(int, "Cannot allocate memory for the next region object");
 
 	_incref_region(ctx->last_region);
 	*region1 = ctx->last_region;
@@ -448,7 +448,7 @@ static inline int _ensure_region(_context_t* ctx, _mapped_region_t** region1, _m
 	if(region_end < end)
 	{
 		if(ERROR_CODE(int) == _region_new(ctx, region_end, (size_t)(end - region_end)))
-			ERROR_RETURN_LOG(int, "Cannot create a new region");
+		    ERROR_RETURN_LOG(int, "Cannot create a new region");
 		_incref_region(ctx->last_region);
 		*region2 = ctx->last_region;
 		region_end = (char*)ctx->last_region->start_addr + _pagesize * ctx->last_region->n_pages;
@@ -472,7 +472,7 @@ static int _accept(void* __restrict ctxmem, const void* __restrict args, void* _
 	_context_t* ctx = (_context_t*)ctxmem;
 
 	if(ERROR_CODE(int) == _ensure_init(ctx))
-		ERROR_RETURN_LOG(int, "Cannot initialize the context");
+	    ERROR_RETURN_LOG(int, "Cannot initialize the context");
 
 	_handle_t* in = (_handle_t*)inmem;
 	_handle_t* out = (_handle_t*)outmem;
@@ -486,14 +486,14 @@ static int _accept(void* __restrict ctxmem, const void* __restrict args, void* _
 	if(NULL == end) end = ctx->unread + ctx->in_mapped_size;
 	else end ++;
 
-	if(end - begin == 0) 
+	if(end - begin == 0)
 	{
 		LOG_NOTICE("End of file reached, terminating the event loop");
 		return ERROR_CODE(int);
 	}
 
 	if(ERROR_CODE(int) == _ensure_region(ctx, in->line.regions, in->line.regions + 1, begin, end))
-		ERROR_RETURN_LOG(int, "Cannot make region for next line");
+	    ERROR_RETURN_LOG(int, "Cannot make region for next line");
 
 	ctx->unread = end;
 
@@ -514,7 +514,7 @@ static int _dealloc(void* __restrict ctxmem, void* __restrict pipe, int error, i
 	_handle_t* handle = (_handle_t*)pipe;
 
 	if(NULL == pipe || handle->line.regions[0] == NULL)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(purge)
 	{
@@ -522,7 +522,7 @@ static int _dealloc(void* __restrict ctxmem, void* __restrict pipe, int error, i
 		for(i = 0; i < 2; i ++)
 		{
 			if(handle->line.regions[i] != NULL)
-				_decref_region(handle->line.regions[i]);
+			    _decref_region(handle->line.regions[i]);
 		}
 	}
 
@@ -538,7 +538,7 @@ static int _fork(void* __restrict ctxmem, void* __restrict dest, void* __restric
 	_handle_t* to   = (_handle_t*)dest;
 
 	if(!from->is_in)
-		ERROR_RETURN_LOG(int, "Invalid pipe direction");
+	    ERROR_RETURN_LOG(int, "Invalid pipe direction");
 
 	to->offset = 0;
 	to->line = from->line;
@@ -554,11 +554,11 @@ static size_t _read(void* __restrict ctxmem, void* __restrict buf, size_t n, voi
 	_handle_t* handle = (_handle_t*)pipe;
 
 	if(!handle->is_in)
-		ERROR_RETURN_LOG(size_t, "Input pipe port expected");
+	    ERROR_RETURN_LOG(size_t, "Input pipe port expected");
 
 	size_t bytes_to_read = n;
 	if(bytes_to_read > handle->line.size - handle->offset)
-		bytes_to_read = handle->line.size - handle->offset;
+	    bytes_to_read = handle->line.size - handle->offset;
 
 	memcpy(buf, handle->line.line + handle->offset, bytes_to_read);
 
@@ -571,7 +571,7 @@ static inline int _write_fd(_context_t* ctx, const void* __restrict buf, size_t 
 {
 	int rc = 0;
 	if((errno = pthread_mutex_lock(&ctx->write_mutex)) != 0)
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot lock the write mutex");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot lock the write mutex");
 
 	if(write(ctx->out_fd, buf, n) < 0)
 	{
@@ -580,7 +580,7 @@ static inline int _write_fd(_context_t* ctx, const void* __restrict buf, size_t 
 	}
 
 	if((errno = pthread_mutex_unlock(&ctx->write_mutex)) != 0)
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot release the write mutex");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot release the write mutex");
 
 	return rc;
 }
@@ -599,7 +599,7 @@ static size_t _write(void* __restrict ctxmem, const void* __restrict data, size_
 	if(buf_size < n)
 	{
 		if(_write_fd(ctx, buf->buffer, buf->used) == ERROR_CODE(int))
-			ERROR_RETURN_LOG(size_t, "Cannot write the bufferred data to the file");
+		    ERROR_RETURN_LOG(size_t, "Cannot write the bufferred data to the file");
 
 		buf->used = 0;
 	}
@@ -609,7 +609,7 @@ static size_t _write(void* __restrict ctxmem, const void* __restrict data, size_
 		LOG_DEBUG("The buffer is smaller than the data to write");
 
 		if(ERROR_CODE(int) == _write_fd(ctx, data, n))
-			ERROR_RETURN_LOG(size_t, "Cannot write the required data to the file");
+		    ERROR_RETURN_LOG(size_t, "Cannot write the required data to the file");
 	}
 	else
 	{
@@ -627,7 +627,7 @@ static int _has_unread(void* __restrict ctxmem, void* __restrict pipe)
 	_handle_t* handle = (_handle_t*)pipe;
 
 	if(!handle->is_in)
-		ERROR_RETURN_LOG(int, "Input pipe port expected");
+	    ERROR_RETURN_LOG(int, "Input pipe port expected");
 
 	return handle->offset < handle->line.size;
 }
@@ -636,14 +636,14 @@ static int _get_internal_buf(void* __restrict ctx, void const** __restrict resul
 {
 	(void)ctx;
 	if(NULL == result || NULL == min_size || NULL == max_size)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_handle_t* handle = (_handle_t*)pipe;
 
 	size_t bytes_to_read = *max_size;
 
 	if(bytes_to_read > handle->line.size - handle->offset)
-		bytes_to_read = handle->line.size - handle->offset;
+	    bytes_to_read = handle->line.size - handle->offset;
 
 	if(bytes_to_read < *min_size)
 	{

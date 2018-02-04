@@ -430,9 +430,9 @@ static inline int _unload(void* ctxbuf)
 	{
 		if(ctx->mode == MODE_REGEX)
 		{
-		    for(i = 0; i < ctx->ncond; i ++)
+			for(i = 0; i < ctx->ncond; i ++)
 			{
-		        regfree(ctx->pattern_table.regex + i);
+				regfree(ctx->pattern_table.regex + i);
 			}
 			free(ctx->pattern_table.regex);
 		}
