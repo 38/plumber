@@ -252,6 +252,13 @@ static int _setup_request(CURL* handle, void* data)
 	return 0;
 }
 
+static int _before_request_started(void* data)
+{
+	async_handle_t* handle = (async_handle_t*)data;
+
+	return async_cntl(handle, ASYNC_CNTL_SET_WAIT);
+}
+
 static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 {
 	ctx_t* ctx = (ctx_t*)ctxbuf;
@@ -275,9 +282,13 @@ static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 	if(ERROR_CODE(scope_token_t) == data_tok)
 	    ERROR_LOG_GOTO(ERR, "Cannot read data token");
 
-	str = pstd_string_from_rls(data_tok);
-	if(NULL == str || NULL == (abuf->data = pstd_string_value(str)))
-	    ERROR_LOG_GOTO(ERR, "Cannot get the value of the data string for the request");
+	if(data_tok > 0)
+	{
+		str = pstd_string_from_rls(data_tok);
+		if(NULL == str || NULL == (abuf->data = pstd_string_value(str)))
+		    ERROR_LOG_GOTO(ERR, "Cannot get the value of the data string for the request");
+	}
+	else abuf->data= "";
 
 
 	uint32_t method = PSTD_TYPE_INST_READ_PRIMITIVE(uint32_t, inst, ctx->method_acc);
@@ -310,10 +321,7 @@ static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 
 	abuf->follow = (ctx->follow_redir != 0);
 
-	if(ERROR_CODE(int) == async_cntl(handle, ASYNC_CNTL_SET_WAIT))
-	    ERROR_LOG_GOTO(ERR, "Cannot make the async task into wait mode");
-
-	int rc = client_add_request(&abuf->request, 0);
+	int rc = client_add_request(&abuf->request, 0, _before_request_started, handle);
 
 	LOG_DEBUG("Client servlet started processing request %s async_handle = %p", abuf->request.uri, handle);
 
@@ -413,8 +421,10 @@ static int _async_exec(async_handle_t* handle, void* data)
 	if(abuf->posted == 1) return 0;
 
 	if(ERROR_CODE(int) == async_cntl(handle, ASYNC_CNTL_SET_WAIT))
-	    ERROR_RETURN_LOG(int, "Cannot make the async task into wait mode");
+	    ERROR_RETURN_LOG(int, "Cannot set the async task to wait mode");
 
+	if(ERROR_CODE(int) == client_add_request(&abuf->request, 1, NULL, NULL))
+	    ERROR_RETURN_LOG(int, "Cannot add the request to the client queue");
 	return 0;
 }
 

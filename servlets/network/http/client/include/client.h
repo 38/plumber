@@ -67,8 +67,10 @@ int client_finalize(void);
  * @brief Add a new request to the request queue
  * @param req The request to add
  * @param block If we need wait until the request being success fully added
+ * @param before_add_cb The callback function called before we eventually add the request
+ * @param cb_data The callback data
  * @return number of request has been enqueued, or error code
  **/
-int client_add_request(client_request_t* req, int block);
+int client_add_request(client_request_t* req, int block, int (*before_add_cb)(void*), void* cb_data);
 
 #endif /* __NETWORK_HTTP_CLIENT_CLIENT_H__ */

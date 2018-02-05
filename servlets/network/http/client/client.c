@@ -10,6 +10,7 @@
 
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
+#include <sys/prctl.h>
 
 #include <curl/curl.h>
 
@@ -75,6 +76,7 @@ struct _thread_ctx_t {
 	volatile uint32_t  add_queue_front; /*!< The front pointer of the add queue */
 	volatile uint32_t  add_queue_rear;  /*!< The rear pointer of the add queue */
 	uint32_t*          add_queue;       /*!< The actual pending queue */
+	volatile uint32_t  add_queue_blk:1; /*!< Indicates the thread has been blocked by the add queue */
 
 	/******** The pending request heap ***********/
 	uint32_t* req_heap;            /*!< The pending request heap */
@@ -289,9 +291,12 @@ static inline int _dispose_req(_thread_ctx_t* ctx, uint32_t idx)
 		ctx->req_buf[idx].curl_handle = NULL;
 	}
 
+	pthread_mutex_lock(&ctx->writer_mutex);
 	ctx->req_buf[idx].next_unused = ctx->unused;
 	ctx->unused = idx;
 	ctx->req_buf[idx].in_use = 0;
+	pthread_mutex_unlock(&ctx->writer_mutex);
+
 	return 0;
 }
 
@@ -328,6 +333,9 @@ static inline int _event_post_process(_thread_ctx_t* ctx, int num_running_handle
 				if(CURLE_OK != curl_rc)
 				    LOG_WARNING("Cannot get the status code from the curl object: %s", curl_easy_strerror(curl_rc));
 
+				if(CURLE_OK != msg->data.result)
+				    LOG_WARNING("Curl connection returns abnormal result: %s", curl_easy_strerror(msg->data.result));
+
 				if(ERROR_CODE(int) == async_cntl(cur_req->async_handle, ASYNC_CNTL_NOTIFY_WAIT, 0))
 				    LOG_WARNING("Cannot notify the completion state");
 
@@ -349,6 +357,10 @@ static inline int _event_post_process(_thread_ctx_t* ctx, int num_running_handle
 
 static void* _client_main(void* data)
 {
+#ifdef __LINUX__
+	prctl(PR_SET_NAME, "PlumbCurl", 0, 0, 0);
+#endif
+
 	_thread_ctx_t* ctx = (_thread_ctx_t*)data;
 
 	uint32_t new_val;
@@ -364,7 +376,12 @@ static void* _client_main(void* data)
 	{
 		struct epoll_event events[128];
 
+		ctx->add_queue_blk = 1u;
+
 		int eprc = epoll_wait(ctx->epoll_fd, events, sizeof(events) / sizeof(events[0]), (int)ctx->timeout);
+
+		ctx->add_queue_blk = 0u;
+
 
 		if(eprc < 0 && errno != EINTR && errno != ETIME)
 		{
@@ -406,13 +423,12 @@ static void* _client_main(void* data)
 		/* Then we need to add the pending-to-add queue to the request heap */
 		while(((ctx->add_queue_rear - ctx->add_queue_front) & (_global.queue_size - 1)) > 0)
 		{
-			_req_heap_add(ctx, ctx->add_queue[ctx->add_queue_front]);
-
-			BARRIER();
-			ctx->add_queue_front ++;
+			_req_heap_add(ctx, ctx->add_queue[ctx->add_queue_front & (_global.queue_size - 1)]);
 
 			if((errno = pthread_mutex_lock(&ctx->writer_mutex)) != 0)
 			    LOG_WARNING_ERRNO("Cannot acquire the writer mutex for client thread #%u", ctx->tid);
+
+			ctx->add_queue_front ++;
 
 			if((errno = pthread_cond_signal(&ctx->writer_cond)) != 0)
 			    LOG_WARNING_ERRNO("Cannot notify the writer for queue avibilitiy(thread #%u)", ctx->tid);
@@ -782,7 +798,7 @@ int client_finalize(void)
 	return ret;
 }
 
-static inline int _post_request(client_request_t* req, int block, _thread_ctx_t* thread)
+static inline int _post_request(client_request_t* req, int block, _thread_ctx_t* thread, int (*before_add_cb)(void*), void* cb_data)
 {
 	int ret = 0;
 
@@ -845,14 +861,17 @@ static inline int _post_request(client_request_t* req, int block, _thread_ctx_t*
 
 	req->curl_rc = CURLE_GOT_NOTHING;
 
-	thread->add_queue[thread->add_queue_rear] = idx;
+	if(before_add_cb != NULL && before_add_cb(cb_data) == ERROR_CODE(int))
+	    ERROR_LOG_ERRNO_GOTO(ERR, "The before add callback function returns an error");
+
+	thread->add_queue[thread->add_queue_rear & (_global.queue_size - 1)] = idx;
 
 	BARRIER();
 	thread->add_queue_rear ++;
 
 	/* Finally wake up the epoll */
 	uint64_t val = 1;
-	if(write(thread->event_fd, &val, sizeof(val)) < 0)
+	if(thread->add_queue_blk && write(thread->event_fd, &val, sizeof(val)) < 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot write event FD for thread #%u", thread->tid);
 
 	ret = 1;
@@ -868,7 +887,7 @@ EXIT:
 
 }
 
-int client_add_request(client_request_t* req, int block)
+int client_add_request(client_request_t* req, int block, int (*before_add_cb)(void*), void* cb_data)
 {
 	if(NULL == req || NULL == req->uri || NULL == req->async_handle || req->priority < 0)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
@@ -881,7 +900,7 @@ int client_add_request(client_request_t* req, int block)
 	uint32_t i;
 	for(i = 0; i < _global.num_threads; i++)
 	{
-		int rc = _post_request(req, 0, _global.thread_ctx[(round_ronbin_next + i) % _global.num_threads]);
+		int rc = _post_request(req, 0, _global.thread_ctx[(round_ronbin_next + i) % _global.num_threads], before_add_cb, cb_data);
 		if(rc == ERROR_CODE(int))
 		    ERROR_RETURN_LOG(int, "Cannot post request to the client thread");
 
@@ -896,7 +915,7 @@ int client_add_request(client_request_t* req, int block)
 	{
 		uint32_t tid = round_ronbin_next;
 		round_ronbin_next = (round_ronbin_next + 1) % _global.num_threads;
-		return _post_request(req, 1, _global.thread_ctx[tid]);
+		return _post_request(req, 1, _global.thread_ctx[tid], before_add_cb, cb_data);
 	}
 
 	return 0;

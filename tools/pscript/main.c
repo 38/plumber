@@ -469,15 +469,15 @@ int _program(int argc, char** argv)
 	if(pss_finalize() == ERROR_CODE(int))
 	    LOG_WARNING("Cannot finalize libpss");
 
+#ifdef GPROFTOOLS
+	ProfilerStop();
+#endif
+
 	if(plumber_finalize() == ERROR_CODE(int))
 	{
 		fprintf(stderr,"error: Cannot finalize libplumber");
 		properly_exit(1);
 	}
-
-#ifdef GPROFTOOLS
-	ProfilerStop();
-#endif
 
 	properly_exit(rc);
 }

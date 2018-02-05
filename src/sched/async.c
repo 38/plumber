@@ -676,15 +676,19 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 
 	handle->exec_task = async_exec;
 
-	if(handle->state == _STATE_CANCELED)
+	if(handle->state == _STATE_CANCELED || handle->state == _STATE_AWAITING)
 	{
-		LOG_DEBUG("Not going to post the task to the async processor, because it has been canceled");
+		if(handle->state == _STATE_CANCELED)
+		    LOG_DEBUG("Not going to post the task to the async processor, because it has been canceled");
+		else
+		    LOG_DEBUG("The async task has been set to awaiting state during initalization, execute step is cancelled");
+
 		if(ERROR_CODE(int) == runtime_task_free(handle->exec_task))
 		    ERROR_LOG_GOTO(ERR, "Cannot dispose the async exec task");
 		handle->exec_task = NULL;
 		async_exec = NULL;
 		/* At this point, the handle could be owned by the cleanup task already, so it's ok to return directly */
-		return 0;
+		return handle->state == _STATE_CANCELED ? 0 : 1;
 	}
 
 	handle->state = _STATE_EXEC;
@@ -813,7 +817,7 @@ int sched_async_handle_await_complete(runtime_api_async_handle_t* handle, int st
 
 	uint32_t slot = task->await_id;
 
-	if(_ctx.al_list[slot].next != ERROR_CODE(uint32_t))
+	if(task->state == _STATE_DONE)
 	{
 		LOG_DEBUG("The task has already been notified");
 		rc = 0;
