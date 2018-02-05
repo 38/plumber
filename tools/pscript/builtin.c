@@ -27,6 +27,8 @@ extern char const* const* module_paths;
 
 static int _service_running;
 
+static int _module_importing;
+
 static pss_value_t _pscript_builtin_lsdaemon(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 {
 	(void)vm;
@@ -300,12 +302,16 @@ static pss_value_t _pscript_builtin_import(pss_vm_t* vm, uint32_t argc, pss_valu
 			return ret;
 		}
 
+		_module_importing ++;
+
 		if(ERROR_CODE(int) == pss_vm_run_module(vm, module, NULL))
 		{
+			_module_importing --;
 			LOG_ERROR("Module error: The module returns with an error code");
 			ret.num = PSS_VM_ERROR_SECONDARY;
 			return ret;
 		}
+		_module_importing --;
 	}
 
 	ret.kind = PSS_VALUE_KIND_UNDEF;
@@ -1269,6 +1275,20 @@ static pss_value_t _pscript_builtin_exit(pss_vm_t* vm, uint32_t argc, pss_value_
 	return ret;
 }
 
+static pss_value_t _pscript_builtin_import_level(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
+{
+	(void)vm;
+	(void)argv;
+	(void)argc;
+
+	pss_value_t ret;
+
+	ret.kind = PSS_VALUE_KIND_NUM;
+	ret.num  = _module_importing;
+
+	return ret;
+}
+
 
 
 static pss_value_t _external_get(const char* name)
@@ -1324,6 +1344,8 @@ static int _external_set(const char* name, pss_value_t data)
 	}
 }
 
+
+
 #define _B(f,  p, d)  {.func = _pscript_builtin_##f, .name = #f, .desc = d, .proto = #f p}
 #define _P(f, p, d) {.func = _pscript_builtin_##f, .name = "__"#f, .desc = d, .proto = "__" #f p}
 static struct {
@@ -1337,6 +1359,7 @@ static struct {
 	_B(dict,   "()",   "Create a new dictionary"),
 	_B(getcwd, "()", "Get the current working directory"),
 	_B(import, "(name)", "Import the PSS module specified by the name"),
+	_B(import_level, "()", "Get the depth of the module import stack for current code"),
 	_B(insmod, "(init_str)", "Install a module specified by init_str to Plumber runtime system"),
 	_B(len,    "(obj)", "Get the length of the object"),
 	_B(log,    "(level, msg)", "Log a message to the logging system"),
