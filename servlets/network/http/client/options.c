@@ -95,6 +95,7 @@ static pstd_option_t _opts[] = {
 		.long_opt    = "sync",
 		.short_opt   = 's',
 		.pattern     = "",
+		.description = "Use the synchronous servlet model instead of asynchronous model",
 		.handler     = _opt_callback,
 		.args        = NULL
 	},
@@ -102,6 +103,7 @@ static pstd_option_t _opts[] = {
 		.long_opt   = "string",
 		.short_opt  = 'S',
 		.pattern    = "I?",
+		.description = "Use string instead of cusomized RLS object for result",
 		.handler    = _opt_callback,
 		.args       = NULL
 	}
