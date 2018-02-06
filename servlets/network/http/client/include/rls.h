@@ -42,4 +42,11 @@ int rls_obj_free(rls_obj_t* obj, int from_curl);
  **/
 int rls_obj_write(rls_obj_t* obj, const void* data, size_t count);
 
+/**
+ * @brief Commit the RLS object to the RLS 
+ * @param obj The object to commit
+ * @return The scope token or error code
+ **/
+scope_token_t rls_obj_commit(rls_obj_t* obj);
+
 #endif /* __RLS_H__ */

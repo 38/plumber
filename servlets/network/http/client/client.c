@@ -21,6 +21,7 @@
 #include <arch/arch.h>
 
 #include <client.h>
+#include <rls.h>
 
 typedef struct _thread_ctx_t _thread_ctx_t;
 
@@ -29,6 +30,7 @@ typedef struct _thread_ctx_t _thread_ctx_t;
  **/
 typedef struct {
 	uint32_t                    in_use:1;      /*!< indicates if this request buffer is being used */
+	uint32_t                    str_mode:1;    /*!< Indicates this CURL request is in string mode */
 	union {
 		int                     priority;      /*!< The priority of this request */
 		uint32_t                next_unused;   /*!< The next element unused request buffer list */
@@ -40,12 +42,20 @@ typedef struct {
 	async_handle_t*             async_handle;  /*!< The servlet asynchronous handle, used for completion notification */
 	client_request_setup_func_t setup_cb;      /*!< The setup callback */
 	void*                       setup_data;    /*!< The data used by the setup callback */
-	char**                      result_buf;    /*!< The result buffer */
-	size_t*                     result_size_buf; /*!< The result size buffer */
-	size_t                      result_buf_cap;  /*!< The buffer capacity */
-	char**                      header_buf;      /*!< The header buffer */
-	size_t*                     header_size_buf; /*!< The result size buffer */
-	size_t                      header_buf_cap;  /*!< The header buffer capacity */
+	union {
+		struct {
+			char**              body_buf;        /*!< The result buffer */
+			size_t*             body_size_buf;   /*!< The result size buffer */
+			size_t              body_buf_cap;    /*!< The buffer capacity */
+			char**              header_buf;      /*!< The header buffer */
+			size_t*             header_size_buf; /*!< The result size buffer */
+			size_t              header_buf_cap;  /*!< The header buffer capacity */
+		} result_buffer;                         /*!< The buffer used for the result */
+		struct {
+			rls_obj_t*          body;            /*!< The body object */
+			rls_obj_t*          header;          /*!< The header object */
+		} result_rls_obj;                        /*!< The RLS token used for the result */
+	};
 	CURLcode*                   curl_rc_buf;     /*!< The curl result code buffer */
 	int*                        status_buf;      /*!< The status buffer */
 } _req_t;
@@ -213,13 +223,13 @@ static inline int _write_buffer(const char* data, size_t size, size_t count, cha
 static int _curl_write_func(const char* data, size_t size, size_t count, void* up)
 {
 	_req_t* req = (_req_t*)up;
-	return _write_buffer(data, size, count, req->result_buf, req->result_size_buf, &req->result_buf_cap);
+	return _write_buffer(data, size, count, req->result_buffer.body_buf, req->result_buffer.body_size_buf, &req->result_buffer.body_buf_cap);
 }
 
 static int _curl_header_func(const char* data, size_t size, size_t count, void* up)
 {
 	_req_t* req = (_req_t*)up;
-	return _write_buffer(data, size, count, req->header_buf, req->header_size_buf, &req->header_buf_cap);
+	return _write_buffer(data, size, count, req->result_buffer.header_buf, req->result_buffer.header_size_buf, &req->result_buffer.header_buf_cap);
 }
 
 static int _curl_timeout_func(CURLM* handle, long timeout, void* up)
@@ -455,23 +465,37 @@ static void* _client_main(void* data)
 			if(rc != CURLE_OK)
 			    ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot set the URL: %s", curl_easy_strerror(rc));
 
-			rc = curl_easy_setopt(buf->curl_handle, CURLOPT_WRITEFUNCTION, _curl_write_func);
-			if(rc != CURLE_OK)
-			    ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot set the write function callback: %s", curl_easy_strerror(rc));
+			if(buf->str_mode)
+			{
+				rc = curl_easy_setopt(buf->curl_handle, CURLOPT_WRITEFUNCTION, _curl_write_func);
+				if(rc != CURLE_OK)
+					ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot set the write function callback: %s", curl_easy_strerror(rc));
+			}
+			else
+			{
+				/* TODO: handle the callback mode */
+			}
 
 			rc = curl_easy_setopt(buf->curl_handle, CURLOPT_WRITEDATA, buf);
 			if(rc != CURLE_OK)
 			    ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot set the write function data: %s", curl_easy_strerror(rc));
 
-			if(buf->header_buf != NULL && buf->header_size_buf != NULL)
+			if(buf->str_mode)
 			{
-				rc = curl_easy_setopt(buf->curl_handle, CURLOPT_HEADERFUNCTION, _curl_header_func);
-				if(rc != CURLE_OK)
-				    ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot set the header function: %s", curl_easy_strerror(rc));
+				if(buf->result_buffer.header_buf != NULL && buf->result_buffer.header_size_buf != NULL)
+				{
+					rc = curl_easy_setopt(buf->curl_handle, CURLOPT_HEADERFUNCTION, _curl_header_func);
+					if(rc != CURLE_OK)
+						ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot set the header function: %s", curl_easy_strerror(rc));
 
-				rc = curl_easy_setopt(buf->curl_handle, CURLOPT_HEADERDATA, buf);
-				if(rc != CURLE_OK)
-				    ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot set the user defined data for header fucntion %s", curl_easy_strerror(rc));
+					rc = curl_easy_setopt(buf->curl_handle, CURLOPT_HEADERDATA, buf);
+					if(rc != CURLE_OK)
+						ERROR_LOG_GOTO(CURL_INIT_ERR, "Cannot set the user defined data for header fucntion %s", curl_easy_strerror(rc));
+				}
+			}
+			else
+			{
+				/* TODO: handle the callback mode */
 			}
 
 			if(buf->setup_cb != NULL && ERROR_CODE(int) == buf->setup_cb(buf->curl_handle, buf->setup_data))
@@ -518,10 +542,19 @@ CURL_INIT_ERR:
 			    LOG_WARNING("Cannot remove the CURL easy handle from CURL multi object: %s", curl_multi_strerror(curl_rc));
 		}
 
-		if(*ctx->req_buf[i].result_buf != NULL)
-		    free(*ctx->req_buf[i].result_buf);
+		if(ctx->req_buf[i].str_mode)
+		{
 
-		*ctx->req_buf[i].result_buf = NULL;
+			if(*ctx->req_buf[i].result_buffer.body_buf != NULL)
+				free(*ctx->req_buf[i].result_buffer.body_buf);
+
+			*ctx->req_buf[i].result_buffer.body_buf = NULL;
+		}
+		else
+		{
+			/* TODO: dispose the callback mode */
+
+		}
 
 		if(ERROR_CODE(int) == _dispose_req(ctx, i))
 		    LOG_ERROR("Cannot dispose the currently running request");
@@ -837,26 +870,37 @@ static inline int _post_request(client_request_t* req, int block, _thread_ctx_t*
 	req_obj->priority = req->priority;
 	req_obj->url = req->uri;
 	req_obj->curl_handle = NULL;
-	req_obj->result_buf = &req->result;
-	req_obj->result_size_buf = &req->result_sz;
-	req_obj->curl_rc_buf = &req->curl_rc;
-	req_obj->async_handle = req->async_handle;
-	req_obj->status_buf = &req->status_code;
+	req_obj->str_mode = 1;  /* TODO: handle str mode = 0 */
 
-	req->result_sz = 0;
-	req_obj->result_buf_cap = 0;
 
-	if(req->save_header)
+	if(req_obj->str_mode)
 	{
-		req_obj->header_buf = &req->header;
-		req_obj->header_size_buf = &req->header_sz;
-		req->header_sz = 0;
-		req_obj->result_buf_cap = 0;
+		req_obj->result_buffer.body_buf = &req->result;
+		req_obj->result_buffer.body_size_buf = &req->result_sz;
+		req_obj->curl_rc_buf = &req->curl_rc;
+		req_obj->async_handle = req->async_handle;
+		req_obj->status_buf = &req->status_code;
+
+		req->result_sz = 0;
+		req_obj->result_buffer.body_buf_cap = 0;
+
+		if(req->save_header)
+		{
+			req_obj->result_buffer.header_buf = &req->header;
+			req_obj->result_buffer.header_size_buf = &req->header_sz;
+			req->header_sz = 0;
+			req_obj->result_buffer.header_buf_cap = 0;
+		}
+		else
+		{
+			req_obj->result_buffer.header_buf = NULL;
+			req_obj->result_buffer.header_size_buf = NULL;
+		}
 	}
 	else
 	{
-		req_obj->header_buf = NULL;
-		req_obj->header_size_buf = NULL;
+		/* TODO: handle the string mode */
+
 	}
 
 	req->curl_rc = CURLE_GOT_NOTHING;
@@ -920,3 +964,5 @@ int client_add_request(client_request_t* req, int block, int (*before_add_cb)(vo
 
 	return 0;
 }
+
+/* TODO: how to wake up the paused CURL request? */
