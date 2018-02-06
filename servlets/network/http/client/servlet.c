@@ -13,13 +13,11 @@
 #include <curl/curl.h>
 
 #include <client.h>
+#include <options.h>
 
 typedef struct {
-	uint32_t                num_threads;    /*!< The number of threads  this servlet requested for */
-	uint32_t                num_parallel;   /*!< The number parallel requests the client can do */
-	uint32_t                queue_size;     /*!< The size of the request queue */
-	uint32_t                save_header;    /*!< If we need to save the header or metadata */
-	uint32_t                follow_redir;   /*!< If we need follow the HTTP redirect */
+	options_t               options;        /*!< The servlet options */
+
 	pipe_t                  request;        /*!< The request data */
 	pipe_t                  response;       /*!< The response data */
 	pstd_type_accessor_t    url_acc;        /*!< The string token accessor for the URL */
@@ -57,107 +55,25 @@ typedef struct {
 	}           method;    /*!< The method code, only valid for HTTP and will be NONE for all other protocol */
 } async_buf_t;
 
-static inline int _opt_callback(pstd_option_data_t data)
-{
-	switch(data.current_option->short_opt)
-	{
-		case 'T':
-		case 'Q':
-		case 'P':
-		    *(uint32_t*)((char*)data.current_option->args + (uintptr_t)data.cb_data) = (uint32_t)data.param_array[0].intval;
-		    break;
-		case 'H':
-		case 'f':
-		    *(uint32_t*)((char*)data.current_option->args + (uintptr_t)data.cb_data) = 1;
-		    break;
-		default:
-		    ERROR_RETURN_LOG(int, "Invalid options");
-	}
-
-	return 0;
-}
-
 
 static int _init(uint32_t argc, char const* const* argv, void* data)
 {
 	ctx_t* ctx = (ctx_t*)data;
 
-	ctx->num_threads  = 1;
-	ctx->num_parallel = 128;
-	ctx->queue_size   = 1024;
-	ctx->save_header  = 0;
-	ctx->follow_redir = 0;
-
-	static pstd_option_t opts[] = {
-		{
-			.long_opt    = "help",
-			.short_opt   = 'h',
-			.pattern     = "",
-			.description = "Show this help message",
-			.handler     = pstd_option_handler_print_help,
-			.args        = NULL
-		},
-		{
-			.long_opt    = "nthreads",
-			.short_opt   = 'T',
-			.pattern     = "I",
-			.description = "Set the number of client threads can be used by the servlet [default value: 1]",
-			.handler     = _opt_callback,
-			.args        = &((ctx_t*)0)->num_threads
-		},
-		{
-			.long_opt    = "parallel",
-			.short_opt   = 'P',
-			.pattern     = "I",
-			.description = "Set the number of parallel request a thread can handle [default value: 128]",
-			.handler     = _opt_callback,
-			.args        = &((ctx_t*)0)->num_parallel
-		},
-		{
-			.long_opt    = "queue-size",
-			.short_opt   = 'Q',
-			.pattern     = "I",
-			.description = "Set the maximum size of the request queue [default value: 1024]",
-			.handler     = _opt_callback,
-			.args        = &((ctx_t*)0)->queue_size
-		},
-		{
-			.long_opt    = "save-header",
-			.short_opt   = 'H',
-			.pattern     = "",
-			.description = "Indicates we need to save the header as well",
-			.handler     = _opt_callback,
-			.args        = &((ctx_t*)0)->save_header
-		},
-		{
-			.long_opt    = "follow-redir",
-			.short_opt   = 'f',
-			.pattern     = "",
-			.description = "Indicates we need to follow the redirection",
-			.handler     = _opt_callback,
-			.args        = &((ctx_t*)0)->follow_redir
-		}
-	};
-
-	if(ERROR_CODE(int) == pstd_option_sort(opts, sizeof(opts) / sizeof(opts[0])))
-	    ERROR_RETURN_LOG(int, "Cannot sort the options array");
-
-	if(ERROR_CODE(uint32_t) == pstd_option_parse(opts, sizeof(opts) / sizeof(opts[0]), argc, argv, ctx))
-	    ERROR_RETURN_LOG(int, "Cannot parse the servlet initialization string");
+	if(ERROR_CODE(int) == options_parse(argc, argv, &ctx->options))
+		ERROR_RETURN_LOG(int, "Cannot parse the servlet initialization options");
 
 	/**
 	 * TODO: What if the data payload is extermely large ? We need to make the data section be a file token as well
 	 **/
 	ctx->request = pipe_define("request", PIPE_INPUT, "plumber/std_servlet/network/http/client/v0/Request");
 
-	/**
-	 * TODO: even though returning a string might be an option when the response is small.
-	 *       However for the larger response we finally needs to wrap the CURL object into a
-	 *       request local token. Thus we can read the result whever we need them
-	 **/
-	ctx->response = pipe_define("response", PIPE_OUTPUT, "plumber/std_servlet/network/http/client/v0/Response");
+	if(ctx->options.string)
+		ctx->response = pipe_define("response", PIPE_OUTPUT, "plumber/std_servlet/network/http/client/v0/StringResponse");
+	else 
+		ctx->response = pipe_define("response", PIPE_OUTPUT, "plumber/std_servlet/network/http/client/v0/ObjectResponse");
 
-	if(ERROR_CODE(int) == client_init(ctx->queue_size, ctx->num_parallel, ctx->num_threads))
+	if(ERROR_CODE(int) == client_init(ctx->options.queue_size, ctx->options.num_parallel, ctx->options.num_threads))
 	    ERROR_RETURN_LOG(int, "Cannot intialize the client library");
 
 	if(NULL == (ctx->type_model = pstd_type_model_new()))
@@ -175,14 +91,14 @@ static int _init(uint32_t argc, char const* const* argv, void* data)
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->priority_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->request, "priority")))
 	    ERROR_RETURN_LOG(int, "Cannot get the field accessor for request.priority");
 
-	/* TODO: handle the larger response at this point */
+	/* Since both string mode and object mode uses body.token for the RLS token, so there's no difference */
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->res_body_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->response, "body.token")))
 	    ERROR_RETURN_LOG(int, "Cannot get the field accessor for response.body.token");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->res_header_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->response, "header.token")))
 	    ERROR_RETURN_LOG(int, "Cannot get the field accessor for response.header.token");
 
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->res_status_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->response, "status")))
+	if(ctx->options.string && ERROR_CODE(pstd_type_accessor_t) == (ctx->res_status_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->response, "status")))
 	    ERROR_RETURN_LOG(int, "Cannot get the field accessor for response.header.status");
 
 	/* Load the constants */
@@ -288,7 +204,7 @@ static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 		if(NULL == str || NULL == (abuf->data = pstd_string_value(str)))
 		    ERROR_LOG_GOTO(ERR, "Cannot get the value of the data string for the request");
 	}
-	else abuf->data= "";
+	else abuf->data = NULL;
 
 
 	uint32_t method = PSTD_TYPE_INST_READ_PRIMITIVE(uint32_t, inst, ctx->method_acc);
@@ -313,14 +229,15 @@ static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 	if(ERROR_CODE(int32_t) == (abuf->request.priority = PSTD_TYPE_INST_READ_PRIMITIVE(int32_t, inst, ctx->priority_acc)))
 	    ERROR_LOG_GOTO(ERR, "Cannot read the priority from the input");
 
-	abuf->request.save_header = (ctx->save_header != 0);
-
+	abuf->request.save_header = (ctx->options.save_header != 0);
 	abuf->request.async_handle = handle;
 	abuf->request.setup = _setup_request;
 	abuf->request.setup_data = abuf;
+	abuf->follow = (ctx->options.follow_redir != 0);
 
-	abuf->follow = (ctx->follow_redir != 0);
-
+	/* We cannot set the servlet mode to the synchronized mode at this point. Since once we failed to 
+	 * performe the nonblocking add, we need async_exec to run. But the wait mode will prevent the async_exec
+	 * task from running. So the state will be set only when the task is about to start  */
 	int rc = client_add_request(&abuf->request, 0, _before_request_started, handle);
 
 	LOG_DEBUG("Client servlet started processing request %s async_handle = %p", abuf->request.uri, handle);

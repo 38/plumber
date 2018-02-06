@@ -73,4 +73,12 @@ int client_finalize(void);
  **/
 int client_add_request(client_request_t* req, int block, int (*before_add_cb)(void*), void* cb_data);
 
+/**
+ * @biref Notify the curl handle when the RLS buffer gets ready
+ * @todo Impl
+ * @param curl_handle The curl handle to notify
+ * @return status code
+ **/
+int client_notify_write_ready(CURL* curl_handle);
+
 #endif /* __NETWORK_HTTP_CLIENT_CLIENT_H__ */

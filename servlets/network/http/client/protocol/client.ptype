@@ -14,8 +14,18 @@ type Request : MethodCode {
 	/* TODO: Cookies, etc */
 };
 
-type Response {
+type StringResponse {
 	plumber.std.request_local.String body;   /*!< The response body string. TODO: what if this is too large, so we need a RLS token */
 	plumber.std.request_local.String header; /*!< The raw header strings if the servlet supposed to return one */
 	int32                            status; /*!< The status code if applied */
 };
+
+type ResultObject {
+	request_local_token              token;  /*!< The request local token for either body or header */
+};
+
+type ObjectResponse {
+	ResultObject                     body;   /*!< The body of the response */
+	ResultObject                     header; /*!< The header of the response */
+};
+
