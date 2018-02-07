@@ -68,10 +68,7 @@ static int _init(uint32_t argc, char const* const* argv, void* data)
 	 **/
 	ctx->request = pipe_define("request", PIPE_INPUT, "plumber/std_servlet/network/http/client/v0/Request");
 
-	if(ctx->options.string)
-		ctx->response = pipe_define("response", PIPE_OUTPUT, "plumber/std_servlet/network/http/client/v0/StringResponse");
-	else 
-		ctx->response = pipe_define("response", PIPE_OUTPUT, "plumber/std_servlet/network/http/client/v0/ObjectResponse");
+	ctx->response = pipe_define("response", PIPE_OUTPUT, "plumber/std_servlet/network/http/client/v0/Response");
 
 	if(ERROR_CODE(int) == client_init(ctx->options.queue_size, ctx->options.num_parallel, ctx->options.num_threads))
 	    ERROR_RETURN_LOG(int, "Cannot intialize the client library");
@@ -91,14 +88,13 @@ static int _init(uint32_t argc, char const* const* argv, void* data)
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->priority_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->request, "priority")))
 	    ERROR_RETURN_LOG(int, "Cannot get the field accessor for request.priority");
 
-	/* Since both string mode and object mode uses body.token for the RLS token, so there's no difference */
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->res_body_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->response, "body.token")))
 	    ERROR_RETURN_LOG(int, "Cannot get the field accessor for response.body.token");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->res_header_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->response, "header.token")))
 	    ERROR_RETURN_LOG(int, "Cannot get the field accessor for response.header.token");
 
-	if(ctx->options.string && ERROR_CODE(pstd_type_accessor_t) == (ctx->res_status_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->response, "status")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->res_status_acc = pstd_type_model_get_accessor(ctx->type_model, ctx->response, "status")))
 	    ERROR_RETURN_LOG(int, "Cannot get the field accessor for response.header.status");
 
 	/* Load the constants */

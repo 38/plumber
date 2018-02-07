@@ -16,8 +16,6 @@ typedef struct {
 	uint32_t                queue_size;       /*!< The size of the request queue */
 	uint32_t                save_header:1;    /*!< If we need to save the header or metadata */
 	uint32_t                follow_redir:1;   /*!< If we need follow the HTTP redirect */
-	uint32_t                sync_mode:1;      /*!< Indicates this servlet is running under sync mode (which do not use the curl thread pool at all )*/
-	uint32_t                string:1;         /*!< Indicates this servlet should use string response rather than the object  response */
 } options_t;
 
 /**

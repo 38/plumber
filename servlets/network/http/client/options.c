@@ -26,15 +26,6 @@ static inline int _opt_callback(pstd_option_data_t data)
 		case 'f':
 			opt->follow_redir = 1;
 		    break;
-		case 's':
-			opt->sync_mode = 1;
-			break;
-		case 'S':
-			if(data.param_array_size > 0)
-				opt->string = (data.param_array[0].intval != 0);
-			else
-				opt->string = 1;
-			break;
 		default:
 		    ERROR_RETURN_LOG(int, "Invalid options");
 	}
@@ -90,22 +81,6 @@ static pstd_option_t _opts[] = {
 		.description = "Indicates we need to follow the redirection",
 		.handler     = _opt_callback,
 		.args        = NULL
-	},
-	{
-		.long_opt    = "sync",
-		.short_opt   = 's',
-		.pattern     = "",
-		.description = "Use the synchronous servlet model instead of asynchronous model",
-		.handler     = _opt_callback,
-		.args        = NULL
-	},
-	{
-		.long_opt   = "string",
-		.short_opt  = 'S',
-		.pattern    = "I?",
-		.description = "Use string instead of cusomized RLS object for result",
-		.handler    = _opt_callback,
-		.args       = NULL
 	}
 };
 
@@ -121,8 +96,6 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 	buf->queue_size   = 1024;
 	buf->save_header  = 0;
 	buf->follow_redir = 0;
-	buf->sync_mode    = 0;
-	buf->string       = 1; 
 
 	if(ERROR_CODE(int) == pstd_option_sort(_opts, sizeof(_opts) / sizeof(_opts[0])))
 	    ERROR_RETURN_LOG(int, "Cannot sort the options array");
