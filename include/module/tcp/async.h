@@ -119,5 +119,4 @@ int module_tcp_async_write_data_ends(module_tcp_async_loop_t* loop, uint32_t con
  * @return the data handle
  **/
 void* module_tcp_async_get_data_handle(module_tcp_async_loop_t* loop, uint32_t conn_id);
-
 #endif /*__MODULE_TCP_ASYNC__*/

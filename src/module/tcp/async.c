@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017-2018, Hao Hou
  **/
 
 #include <stddef.h>
@@ -21,6 +21,8 @@
 #include <module/tcp/async.h>
 #include <utils/mempool/page.h>
 #include <os/os.h>
+
+#define _DATA_SOURCE_TIMEOUT 30
 
 /**
  * @brief the state of an async object
@@ -331,7 +333,7 @@ static inline int  _async_obj_set_state(module_tcp_async_loop_t* loop, _async_ob
 			if(async->wait_conn)
 				async->kickout_ts = time(NULL) + loop->ttl;
 			else
-				async->kickout_ts = time(NULL) + 30;
+				async->kickout_ts = time(NULL) + _DATA_SOURCE_TIMEOUT;
 
 			/* if this connection is being adding to the wait state, maintain the heap property */
 			_async_wait_conn_decrease(loop, async->index);
@@ -830,22 +832,40 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 	{
 		_async_obj_t* async = _async_obj_get_from_index(loop, 0);
 
-		if(_async_obj_set_state(loop, async, _ST_RAISING) == ERROR_CODE(int))
+		if(async->wait_conn)
 		{
-			LOG_WARNING("Cannot set the timed out connection %"PRIu32" to %s state",
-			            _async_obj_conn_id(loop, async),
-			            _async_obj_state_str[_ST_RAISING]);
-			continue;
-		}
+			if(_async_obj_set_state(loop, async, _ST_RAISING) == ERROR_CODE(int))
+			{
+				LOG_WARNING("Cannot set the timed out connection %"PRIu32" to %s state",
+							_async_obj_conn_id(loop, async),
+							_async_obj_state_str[_ST_RAISING]);
+				continue;
+			}
 
-		if(async->wait_conn && _async_obj_del_poll(loop, async) == ERROR_CODE(int))
+			if(_async_obj_del_poll(loop, async) == ERROR_CODE(int))
+			{
+				LOG_WARNING("Cannot remove the async object from poll");
+				continue;
+			}
+		}
+		else if(async->data_end)
 		{
-			LOG_WARNING("Cannot remove the async object from poll");
-			continue;
+			if(_async_obj_set_state(loop, async, _ST_RAISING) == ERROR_CODE(int))
+			{
+				LOG_WARNING("Cannot set the timed out data source %"PRIu32" to %s state",
+						     _async_obj_conn_id(loop, async),
+							 _async_obj_state_str[_ST_RAISING]);
+				continue;
+			}
 		}
-
-		/* TODO: what if a data callback timeout ? */
-
+		else
+		{
+			/* Because if the async data source is still active, its possible that the timeout is
+			 * caused by the data source is working on other staff. In this case, we could wait 
+			 * for it until the data source becomes inactive */
+			async->kickout_ts = time(NULL) + _DATA_SOURCE_TIMEOUT;
+			_async_wait_conn_heapify(loop, async->index);
+		}
 		LOG_DEBUG("Timed out connection %"PRIu32" has been kicked out", _async_obj_conn_id(loop, async));
 	}
 
