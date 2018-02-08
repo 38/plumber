@@ -43,8 +43,11 @@
  *       _ST_WAIT_CONN =&gt; _ST_READY                //when connection gets ready at this moment <br/>
  **/
 typedef enum {
+#if 0
 	_ST_WAIT_CONN, /*!< the async object is waiting for connection, but data is ready */
 	_ST_WAIT_DATA, /*!< the async object is waiting for data, and FD status is unknown */
+#endif
+	_ST_WAIT,      /*!< The async object is either waiting for data or waiting for connection */
 	_ST_READY,     /*!< the async object is ready to perform IO operation */
 	_ST_RAISING,   /*!< the async object which has an unhandled error with it */
 	_ST_ERROR,     /*!< error state */
@@ -54,14 +57,13 @@ typedef enum {
 /* We assume that _ST_WAIT_CONN is the first state in the st_list, because it should maintain a
  * binary heap on that, and we basically want to make sure all the data moves into this section
  * is the final destination. */
-STATIC_ASSERTION_EQ(_ST_WAIT_CONN, 0);
+STATIC_ASSERTION_EQ(_ST_WAIT, 0);
 
 /**
  * @brief the human readable state string
  **/
 const char* _async_obj_state_str[] = {
-	[_ST_WAIT_DATA] = "WAIT_DATA",
-	[_ST_WAIT_CONN] = "WAIT_CONN",
+	[_ST_WAIT]      = "WAIT   ",
 	[_ST_READY]     = "READY  ",
 	[_ST_ERROR]     = "ERROR  ",
 	[_ST_FINISHED]  = "FINISHED",
@@ -83,8 +85,9 @@ typedef struct {
 	 *        For _MT_KILL, it doesn't matter anyway, since it's the last message this loop processes.
 	 */
 	uint32_t                                   rdy_posted:1; /*!< if the queue ready message is posted and in pending state */
+	uint32_t                                   wait_conn:1;  /*!< Indicates this connection is waiting for scoket but the data source is ready */
 	uint32_t                                   index;        /*!< the index in the async state list */
-	time_t                                     ts;           /*!< the timestamp when it entering _ST_WAIT_CONN state (only valid for _ST_WAIT_CONN state) */
+	time_t                                     kickout_ts;   /*!< The timestamp that the async object should be kicked out */
 	int                                        fd;           /*!< the coresponding fd */
 	int                                        data_end;     /*!< indicates if there's no more data ready events */
 	module_tcp_async_write_data_func_t         get_data;     /*!< the data source callback */
@@ -258,14 +261,14 @@ static inline uint32_t _async_obj_state_end(const module_tcp_async_loop_t* loop,
  **/
 static inline void _async_wait_conn_heapify(module_tcp_async_loop_t* loop, uint32_t idx)
 {
-	for(;idx < loop->limits[_ST_WAIT_CONN];)
+	for(;idx < loop->limits[_ST_WAIT];)
 	{
 		uint32_t m_idx = idx;
-		if(idx * 2 + 1 < loop->limits[_ST_WAIT_CONN] &&
-		   loop->objects[loop->st_list[idx * 2 + 1]].ts < loop->objects[loop->st_list[m_idx]].ts)
+		if(idx * 2 + 1 < loop->limits[_ST_WAIT] &&
+		   loop->objects[loop->st_list[idx * 2 + 1]].kickout_ts < loop->objects[loop->st_list[m_idx]].kickout_ts)
 		    m_idx = idx * 2 + 1;
-		if(idx * 2 + 2 < loop->limits[_ST_WAIT_CONN] &&
-		   loop->objects[loop->st_list[idx * 2 + 2]].ts < loop->objects[loop->st_list[m_idx]].ts)
+		if(idx * 2 + 2 < loop->limits[_ST_WAIT] &&
+		   loop->objects[loop->st_list[idx * 2 + 2]].kickout_ts < loop->objects[loop->st_list[m_idx]].kickout_ts)
 		    m_idx = idx * 2 + 2;
 		if(m_idx == idx) return;
 		_swap(loop, m_idx, idx);
@@ -280,7 +283,7 @@ static inline void _async_wait_conn_heapify(module_tcp_async_loop_t* loop, uint3
  **/
 static inline void _async_wait_conn_decrease(module_tcp_async_loop_t* loop, uint32_t idx)
 {
-	for(;idx > 0 && loop->objects[loop->st_list[(idx - 1)/2]].ts > loop->objects[loop->st_list[idx]].ts; idx = (idx - 1) / 2)
+	for(;idx > 0 && loop->objects[loop->st_list[(idx - 1)/2]].kickout_ts > loop->objects[loop->st_list[idx]].kickout_ts; idx = (idx - 1) / 2)
 	    _swap(loop, idx, (idx - 1) / 2);
 }
 
@@ -323,21 +326,25 @@ static inline int  _async_obj_set_state(module_tcp_async_loop_t* loop, _async_ob
 			loop->limits[prev_st] ++;
 		}
 
-		if(state == _ST_WAIT_CONN)
+		if(state == _ST_WAIT)
 		{
-			/* if this connection is being adding to the wait connection state, maintain the heap property */
-			async->ts = time(NULL);
+			if(async->wait_conn)
+				async->kickout_ts = time(NULL) + loop->ttl;
+			else
+				async->kickout_ts = time(NULL) + 30;
+
+			/* if this connection is being adding to the wait state, maintain the heap property */
 			_async_wait_conn_decrease(loop, async->index);
 		}
 	}
 	else
 	{
-		if(cur_st == _ST_WAIT_CONN)
+		if(cur_st == _ST_WAIT)
 		{
 			/* if this connection is in wait connection state, remove it from the heap */
 			uint32_t cur_idx = async->index;
-			_swap(loop, cur_idx, loop->limits[_ST_WAIT_CONN] - 1);
-			loop->limits[_ST_WAIT_CONN] --;
+			_swap(loop, cur_idx, loop->limits[_ST_WAIT] - 1);
+			loop->limits[_ST_WAIT] --;
 			_async_wait_conn_heapify(loop, cur_idx);
 			cur_st ++;
 		}
@@ -414,7 +421,8 @@ static inline _async_obj_state_t _io_ops(module_tcp_async_loop_t* loop, _async_o
 			LOG_DEBUG("data is not available for connection object %"PRIu32", "
 			          "updating the state of async object to WAIT_FOR_DATA",
 			          _async_obj_conn_id(loop, obj));
-			return _ST_WAIT_DATA;
+			obj->wait_conn = 0;
+			return _ST_WAIT;
 		}
 		else
 		{
@@ -437,7 +445,9 @@ static inline _async_obj_state_t _io_ops(module_tcp_async_loop_t* loop, _async_o
 			LOG_DEBUG("connection object %"PRIu32" is busy, "
 			          "update the state to WAIT_FOR_CONNECTION",
 			          _async_obj_conn_id(loop, obj));
-			return _ST_WAIT_CONN;
+
+			obj->wait_conn = 1;
+			return _ST_WAIT;
 		}
 		else
 		{
@@ -555,7 +565,7 @@ static inline int _process_async_objs(module_tcp_async_loop_t* loop)
 		if(next_st > _ST_READY) i --;
 
 		/* If the new state incidates the connection is not ready, add it to the wait list */
-		if(next_st == _ST_WAIT_CONN && _async_obj_add_poll(loop, this) == ERROR_CODE(int))
+		if(next_st == _ST_WAIT && this->wait_conn && _async_obj_add_poll(loop, this) == ERROR_CODE(int))
 		    LOG_WARNING("cannot add the async object to the waiting list");
 	}
 
@@ -691,7 +701,7 @@ static inline int _process_queue_message(module_tcp_async_loop_t* loop)
 		if(current->type == _MT_READY)
 		{
 			LOG_DEBUG("QM: data ready notification on connection object %"PRIu32, current->conn_id);
-			if(_async_obj_get_state(loop, async) == _ST_WAIT_DATA &&
+			if(_async_obj_get_state(loop, async) == _ST_WAIT && !async->wait_conn &&
 			   _async_obj_set_state(loop, async, _ST_READY) == ERROR_CODE(int))
 			    LOG_WARNING("cannot set the connection object %"PRIu32" to ready state", current->conn_id);
 			async->rdy_posted = 0;
@@ -702,7 +712,7 @@ static inline int _process_queue_message(module_tcp_async_loop_t* loop)
 			if(async->data_end) LOG_WARNING("connection object %"PRIu32" has been released twice!", current->conn_id);
 			async->data_end = 1;
 			_async_obj_state_t st = _async_obj_get_state(loop, async);
-			if(st == _ST_WAIT_DATA || st == _ST_ERROR)
+			if((st == _ST_WAIT && !async->wait_conn) || st == _ST_ERROR)
 			{
 				LOG_DEBUG("connection object %"PRIu32" is currently in %s state, QM %s triggers moving this object to finished list",
 				          current->conn_id, _async_obj_state_str[st] ,_message_str[_MT_END]);
@@ -729,8 +739,9 @@ static inline int _process_queue_message(module_tcp_async_loop_t* loop)
 
 			async->index = loop->limits[_NUM_OF_STATES - 1]++;
 			loop->st_list[async->index] = current->conn_id;
-			if(_async_obj_set_state(loop, async, _ST_WAIT_DATA) == ERROR_CODE(int))
-			    LOG_WARNING("cannot set the newly created async object to %s", _async_obj_state_str[_ST_WAIT_DATA]);
+			async->wait_conn = 0;
+			if(_async_obj_set_state(loop, async, _ST_WAIT) == ERROR_CODE(int))
+			    LOG_WARNING("cannot set the newly created async object to %s", _async_obj_state_str[_ST_WAIT]);
 		}
 		else if(current->type == _MT_KILL) LOG_WARNING("kill message can not be handled at this point");
 		else LOG_WARNING("unknown type of queue message");
@@ -755,13 +766,13 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 	/* Check if we have something to write, we do not want the poll block us */
 	if(_get_num_async_in_state(loop, _ST_READY) > 0)
 	    timeout = 0;
-	else if(_get_num_async_in_state(loop, _ST_WAIT_CONN) > 0)
+	else if(_get_num_async_in_state(loop, _ST_WAIT) > 0)
 	{
 		/* In this case, even though we do not have any connection becomes ready
 		 * the thread needs to wake up and kick out the timed out connections */
-		time_t min_ts = loop->objects[loop->st_list[0]].ts;
-		if(min_ts + loop->ttl > now)
-		    timeout = ((int)(loop->ttl + min_ts - now)) * 1000;
+		time_t min_ts = loop->objects[loop->st_list[0]].kickout_ts;
+		if(min_ts > now)
+		    timeout = ((int)(min_ts - now)) * 1000;
 		else
 		    timeout = 0;
 	}
@@ -799,7 +810,7 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 
 				_async_obj_state_t state = _async_obj_get_state(loop, async);
 
-				if(_ST_WAIT_CONN == state)
+				if(_ST_WAIT == state && async->wait_conn)
 				{
 					if(_async_obj_set_state(loop, async, _ST_READY) == ERROR_CODE(int))
 					    ERROR_RETURN_LOG(int, "Cannot set the state of the async object to _ST_READY");
@@ -815,7 +826,7 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 	}
 
 	/* Kick out all the timed out connections, and put them to raising state */
-	for(;loop->limits[_ST_WAIT_CONN] > 0 && loop->objects[loop->st_list[0]].ts + loop->ttl <= now;)
+	for(;loop->limits[_ST_WAIT] > 0 && loop->objects[loop->st_list[0]].kickout_ts <= now;)
 	{
 		_async_obj_t* async = _async_obj_get_from_index(loop, 0);
 
@@ -827,11 +838,13 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 			continue;
 		}
 
-		if(_async_obj_del_poll(loop, async) == ERROR_CODE(int))
+		if(async->wait_conn && _async_obj_del_poll(loop, async) == ERROR_CODE(int))
 		{
 			LOG_WARNING("Cannot remove the async object from poll");
 			continue;
 		}
+
+		/* TODO: what if a data callback timeout ? */
 
 		LOG_DEBUG("Timed out connection %"PRIu32" has been kicked out", _async_obj_conn_id(loop, async));
 	}
