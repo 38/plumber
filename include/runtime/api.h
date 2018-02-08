@@ -376,43 +376,6 @@ STATIC_ASSERTION_EQ_ID(__non_module_related_pop_state__, 0xff, RUNTIME_API_PIPE_
 typedef uint32_t runtime_api_scope_token_t;
 
 /**
- * @brief Describe the type of the event that should be listened
- **/
-typedef enum {
-	RUNTIME_API_SCOPE_EVENT_TYPE_NONE,      /*!< No event, the data should be availble all the time */
-	RUNTIME_API_SCOPE_EVENT_TYPE_R,         /*!< The event is a FD is becoming ready to read */
-	RUNTIME_API_SCOPE_EVENT_TYPE_W,         /*!< The event is a FD is becoming ready to write */ 
-	RUNTIME_API_SCOPE_EVENT_TYPE_WR         /*!< Indicates both Read and write can trigger data_ready event */
-} runtime_api_scope_event_type_t;
-
-/**
- * @brief The description of a RLS scope event
- * @details When we are modeling a reverse proxy, it's not effecient to use the servlet network/http/client, which buffers
- *          all the result as a string in RLS object. (Although this is useful when we are requesting another service and
- *          take next steps based on whatever the server responded.) The difference of a service that dependes on an external
- *          service and a reverse proxy is that the reverse proxy, unlike the normal server, in which the external service
- *          response is important to the service, is just a tunnel between the actual client and the actual server. 
- *          This property means the reverse proxy doesn't really care about what the server response is. Thus we are able to
- *          use a RLS token as an abstraction of the entire service request process, and dereference by the async IO thread 
- *          whenever the write_token pipe call is invoked on this RLS. <br/>
- *          However, The problem is currently we don't have any ability for a RLS to performe operation in event driven flavor. 
- *          For example, if the async IO thread needs to read from a RLS callback which is waiting, it will polling until the
- *          data is avaiable. Thus we need another mechanism that make sure it won't polling in this case and performe such 
- *          slow RLS token in a event driven flavor. Which means, once the read_func callback returns 0 bytes, it should make
- *          the async IO turn the resouce (for TCP module the Socket FD) in to "waiting for data" state. <br/>
- *          Unlike what we currently have, the state only gets changed only when there are new data page or DRA callback function
- *          appending to the pending list. We should have another way to make the RLS itself notify the async IO thread about the
- *          data availibility once it get data. <br/>
- *          This data structure is desgined for this purpose. Once a event description is defined, the async IO loop should be wake
- *          up when the slow RLS token is ready to read (Just as the data_ready notification has been posted).
- * @todo We actually should allow the RLS stream object wake up the async loop by calling a wake up function rather than just epoll
- **/
-typedef struct {
-	runtime_api_scope_event_type_t       type;    /*!< The type of the scope */
-	int                                  fd;      /*!< The file descriptor for event */
-} runtime_api_scope_event_desc_t;
-
-/**
  * @brief Represent an entity in the scope. It's actually a group of callback function for the opeartion
  *        that is supported by the scope entity and a memory address which represent the entity data
  **/
@@ -452,7 +415,6 @@ typedef struct {
 	 **/
 	void* (*open_func)(const void* ptr);
 
-
 	/**
 	 * @brief read bytes from the byte stream representation of the RLS pointer
 	 * @param handle the byte stream handle
@@ -461,16 +423,6 @@ typedef struct {
 	 * @return the bytes has been read to buffer, or error code
 	 **/
 	size_t (*read_func)(void* __restrict handle, void* __restrict buffer, size_t bufsize);
-
-	/**
-	 * @brief Get the event description for this RLS object
-	 * @note  For the details about this function, see the documentation of runtime_api_scope_event_desc_t. <br/>
-	 * @param handle The byte stream handle
-	 * @param desc_buf The buffer for the event description
-	 * @return The number of desciprtion has been populated. 0 if the event descprtion doesn't needs to be changed,
-	 *         1 if the event descprtion needs to be changed. Error code for all the error cases
-	 **/
-	int (*get_event_desc)(void* __restrict handle, runtime_api_scope_event_desc_t* desc_buf);
 
 	/**
 	 * @brief check if the byte stream representation of the RLS pointer has reached the end of stream (EOS)

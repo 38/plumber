@@ -637,7 +637,7 @@ int itc_module_pipe_write_scope_token(runtime_api_scope_token_t token, const run
 {
 	sched_rscope_stream_t* stream = NULL;
 
-	stream = sched_rscope_stream_open(token);
+	stream = sched_rscope_stream_open(token, handle);
 	if(NULL == stream)
 	    ERROR_RETURN_LOG(int, "Cannot open the token stream for read");
 

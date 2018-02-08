@@ -184,10 +184,10 @@ int test_stream_interface(void)
 	ASSERT_RETOK(runtime_api_scope_token_t, t2 = sched_rscope_add(scope, &p2), CLEANUP_NOP);
 
 	sched_rscope_stream_t* s1[2], *s2[2];
-	ASSERT_PTR(s1[0] = sched_rscope_stream_open(t1), CLEANUP_NOP);
-	ASSERT_PTR(s2[0] = sched_rscope_stream_open(t2), CLEANUP_NOP);
-	ASSERT_PTR(s1[1] = sched_rscope_stream_open(t1), CLEANUP_NOP);
-	ASSERT_PTR(s2[1] = sched_rscope_stream_open(t2), CLEANUP_NOP);
+	ASSERT_PTR(s1[0] = sched_rscope_stream_open(t1, NULL), CLEANUP_NOP);
+	ASSERT_PTR(s2[0] = sched_rscope_stream_open(t2, NULL), CLEANUP_NOP);
+	ASSERT_PTR(s1[1] = sched_rscope_stream_open(t1, NULL), CLEANUP_NOP);
+	ASSERT_PTR(s2[1] = sched_rscope_stream_open(t2, NULL), CLEANUP_NOP);
 
 	char b1[11] = {}, b2[11] = {};
 	char bb1[6] = {}, bb2[6] = {};

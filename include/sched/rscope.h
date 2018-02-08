@@ -101,10 +101,11 @@ const void* sched_rscope_get(const sched_rscope_t* scope, runtime_api_scope_toke
  * @brief open a byte stream for the given token
  * @details this is the interface for the RLS byte stream representation, see the docs sched_rscope_open_func_t
  *          to learn the details about this concept
- * @param token the token we want to open
+ * @param token The token we want to open
+ * @param data The additional data that is associated to this stream
  * @return the stream object has been created for the token, NULL on error case
  **/
-sched_rscope_stream_t* sched_rscope_stream_open(runtime_api_scope_token_t token);
+sched_rscope_stream_t* sched_rscope_stream_open(runtime_api_scope_token_t token, void* user_data);
 
 /**
  * @brief close the byte stream
@@ -129,5 +130,13 @@ int sched_rscope_stream_eos(const sched_rscope_stream_t* stream);
  * @return the number of bytes that has been read actually, or error code when error happens
  **/
 size_t sched_rscope_stream_read(sched_rscope_stream_t* stream, void* buffer, size_t count);
+
+/**
+ * @brief Get the user data from the DRA object
+ * @param stream The stream
+ * @return The additonal user data associated to this stream or NULL on error 
+ **/
+void* sched_rscope_stream_get_user_data(const sched_rscope_stream_t* stream);
+
 
 #endif /* __SCHED_RSCOPE_H__ */
