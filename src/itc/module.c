@@ -606,12 +606,42 @@ size_t itc_module_pipe_write(const void* data, size_t nbytes, itc_module_pipe_t*
  * @param handle the RLS stream
  * @param buffer the buffer to return the result
  * @param count how many bytes we want to read
+ * @param event_buf THe buffer  used to describe the event
  * @return the number of bytes we actually read
  **/
-static inline size_t _rls_stream_read(void* __restrict handle, void* __restrict buffer, size_t count, itc_module_data_source_event_t* ebuf)
+static inline size_t _rls_stream_read(void* __restrict handle, void* __restrict buffer, size_t count, itc_module_data_source_event_t* event_buf)
 {
-	(void)ebuf;
-	return sched_rscope_stream_read((sched_rscope_stream_t*)handle, buffer, count);
+	sched_rscope_stream_t* stream = (sched_rscope_stream_t*)handle;
+	size_t sz = sched_rscope_stream_read(stream, buffer, count);
+
+	if(sz == 0 && NULL != event_buf)
+	{
+		LOG_DEBUG("The RLS stream has return 0 byte, try to ask the stream for event information");
+
+		int rc;
+
+		runtime_api_scope_ready_event_t event;
+
+		if(ERROR_CODE(int) == (rc = sched_rscope_stream_get_event(stream, &event)))
+			ERROR_RETURN_LOG(size_t, "Cannot acquire the event buffer");
+
+		if(rc == 0) 
+		{
+			event_buf->fd = -1;
+			event_buf->read_event = 0;
+			event_buf->write_event = 0;
+			event_buf->timeout = 0;
+		}
+		else
+		{
+			event_buf->fd = event.fd;
+			event_buf->read_event = event.read;
+			event_buf->write_event = event.write;
+			event_buf->timeout = event.timeout;
+		}
+	}
+
+	return sz;
 }
 
 /**

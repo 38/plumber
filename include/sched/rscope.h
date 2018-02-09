@@ -138,5 +138,11 @@ size_t sched_rscope_stream_read(sched_rscope_stream_t* stream, void* buffer, siz
  **/
 void* sched_rscope_stream_get_user_data(const sched_rscope_stream_t* stream);
 
-
+/**
+ * @brief Get the stream ready event description for this stream
+ * @param stram The stream object
+ * @param buf The buffer used to return the event
+ * @return The number of events has been returned, or error code
+ **/
+int sched_rscope_stream_get_event(sched_rscope_stream_t* stream, runtime_api_scope_ready_event_t* buf);
 #endif /* __SCHED_RSCOPE_H__ */

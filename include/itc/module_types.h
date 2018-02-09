@@ -75,7 +75,7 @@ typedef struct {
 	uint32_t     read_event:1;  /*!< Indicates the module should listen to the read event */
 	uint32_t     write_event:1; /*!< Indicates the module should listen to the write event */
 	int          fd;            /*!< The FD that is used as the event source */
-	int32_t     timeout;        /*!< The promise the data source will gets notified in this amount of time (in seconds) */
+	int32_t      timeout;       /*!< The promise the data source will gets notified in this amount of time (in seconds) */
 } itc_module_data_source_event_t;
 
 

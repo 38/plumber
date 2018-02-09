@@ -1212,18 +1212,13 @@ int module_tcp_async_loop_free(module_tcp_async_loop_t* loop)
 
 static inline int _get_read_flag(const itc_module_data_source_event_t* event)
 {
-	int read_flag;
-	
 	if(event->read_event && event->write_event)
-		read_flag = 2;
+		return 2;
 	else if(event->read_event)
-		read_flag = 1;
+		return 1;
 	else if(event->write_event)
-		read_flag = 0;
-	else
-		ERROR_RETURN_LOG(int, "Empty event description");
-
-	return read_flag;
+		return 0;
+	else return -1;
 }
 
 int module_tcp_async_set_data_event(module_tcp_async_loop_t* loop, uint32_t conn_id, itc_module_data_source_event_t event)
@@ -1239,7 +1234,7 @@ int module_tcp_async_set_data_event(module_tcp_async_loop_t* loop, uint32_t conn
 		ERROR_RETURN_LOG(int, "Cannot add the same FD as the data event FD");
 #endif
 
-	if(NULL == loop || conn_id == ERROR_CODE(uint32_t) || event.fd < 0)
+	if(NULL == loop || conn_id == ERROR_CODE(uint32_t))
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	int flag = _get_read_flag(&event);
@@ -1248,6 +1243,9 @@ int module_tcp_async_set_data_event(module_tcp_async_loop_t* loop, uint32_t conn
 
 	if(async->data_event.fd == event.fd && flag == _get_read_flag(&async->data_event))
 		return 0;
+
+	if(async->data_event.fd == event.fd && -1 == _get_read_flag(&async->data_event))
+		return module_tcp_async_clear_data_event(loop, conn_id);
 
 	if(async->data_event.fd != event.fd && ERROR_CODE(int) == os_event_poll_del(loop->poll, async->data_event.fd, _get_read_flag(&async->data_event)))
 		ERROR_RETURN_LOG(int, "Cannot remove the previous registered data event FD");

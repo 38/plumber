@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017-2018, Hao Hou
  **/
 
 #include <stddef.h>
@@ -328,11 +328,28 @@ static inline size_t _async_handle_getdata(uint32_t conn, void* data, size_t siz
 				goto PAGE_EXHAUSTED;
 			}
 
-			size_t bytes_read = handle->page_begin->data_source->read(handle->page_begin->data_source->data_handle, buf, size, /*TODO: change this */ NULL);
+			itc_module_data_source_event_t event;
+
+			size_t bytes_read = handle->page_begin->data_source->read(handle->page_begin->data_source->data_handle, buf, size, &event);
 			if(ERROR_CODE(size_t) == bytes_read || bytes_read > size)
 			{
 				LOG_WARNING("The data source page will be ignored because the read call returns an error");
 				goto PAGE_EXHAUSTED;
+			}
+
+			if(bytes_read == 0)
+			{
+				LOG_DEBUG("The data source callback function returns empty, try to register the event");
+
+				if(event.fd >= 0)
+				{
+					if(ERROR_CODE(int) == module_tcp_async_set_data_event(loop, conn, event))
+					{
+						LOG_WARNING("Cannot setup the event source FD for the connection, transmission may be delayed");
+					}
+				}
+
+				break;
 			}
 
 			ret += bytes_read;
@@ -1047,6 +1064,9 @@ static int _write_callback(void* __restrict ctx, itc_module_data_source_t data_s
 			 * data size to 0 here anyway */
 			sync_data_size = 0;
 			sync_data = NULL;
+
+			int data_source_wait = 0;
+
 			if(context->sync_write_attempt)
 			{
 				LOG_DEBUG("The sync write attempt option is enabled, so try the sync write before we start async write process");
@@ -1058,7 +1078,14 @@ static int _write_callback(void* __restrict ctx, itc_module_data_source_t data_s
 
 					if(eos_rc) break;
 
-					size_t bytes_read = data_source.read(data_source.data_handle, sync_buf + sync_data_size, sync_buf_size, /*TODO: change this*/ NULL);
+					size_t bytes_read = data_source.read(data_source.data_handle, sync_buf + sync_data_size, sync_buf_size, NULL);
+
+					if(bytes_read == 0)
+					{
+						data_source_wait = 1;
+						break;
+					}
+
 					if(ERROR_CODE(size_t) == bytes_read)
 					    ERROR_RETURN_LOG(int, "Cannot read the data source");
 					sync_data_size += bytes_read;
@@ -1073,7 +1100,7 @@ static int _write_callback(void* __restrict ctx, itc_module_data_source_t data_s
 			 * sync write attempt, then we may want to try it as many time as possible.
 			 * So the force create option only needs to be turned on when the sync write attempt is off
 			 **/
-			size_t written = _ensure_async_handle(context, handle, sync_data, sync_data_size, !context->sync_write_attempt);
+			size_t written = _ensure_async_handle(context, handle, sync_data, sync_data_size, data_source_wait || !context->sync_write_attempt);
 
 			if(ERROR_CODE(size_t) == written)
 			    ERROR_RETURN_LOG(int, "Cannot create async handle for the pipe");
@@ -1148,7 +1175,7 @@ ASYNC_RET:
 			if(eos_rc) break;
 
 			/* TODO: use async buf size doesn't make sense at this point */
-			size_t nbytes = data_source.read(data_source.data_handle, sync_buf, context->async_buf_size, /*TODO: change this*/ NULL);
+			size_t nbytes = data_source.read(data_source.data_handle, sync_buf, context->async_buf_size, NULL);
 			if(ERROR_CODE(size_t) == nbytes)
 			    ERROR_RETURN_LOG(int, "Cannot read the data_source");
 

@@ -376,6 +376,18 @@ STATIC_ASSERTION_EQ_ID(__non_module_related_pop_state__, 0xff, RUNTIME_API_PIPE_
 typedef uint32_t runtime_api_scope_token_t;
 
 /**
+ * @brief The event description of the event driven scope stream. Which is actually a file descriptor and
+ *        when the file descriptor should be treated as the stream gets ready
+ *        If both read and write is 0, it means we want to remove the event from the module
+ **/
+typedef struct {
+	int       fd;     /*!< The FD that is used for event notification */
+	uint32_t  read:1; /*!< Is the ready-for-read event a read event */
+	uint32_t  write:1;/*!< Is the ready-for-write event a write event */
+	int32_t  timeout; /*!< The time limit for the RLS token not gets ready */
+} runtime_api_scope_ready_event_t;
+
+/**
  * @brief Represent an entity in the scope. It's actually a group of callback function for the opeartion
  *        that is supported by the scope entity and a memory address which represent the entity data
  **/
@@ -430,6 +442,15 @@ typedef struct {
 	 * @return the check result, 1 for true, 0 for false, error code on error cases
 	 **/
 	int (*eos_func)(const void* handle);
+
+	/**
+	 * @brief Get the event that should be used as the notification for the readiness of the stream
+	 * @param handle The stream handle
+	 * @param event_buf The buffer used to return the event
+	 * @return Number of event has been registered, 0 if no event should be registered, 1 for needs to register one 
+	 *         event and error code for all the error cases
+	 **/
+	int (*event_func)(void* __restrict handle, runtime_api_scope_ready_event_t* event_buf);
 
 	/**
 	 * @brief close a used stream handle
