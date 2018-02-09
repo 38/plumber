@@ -25,6 +25,13 @@
 #ifndef __MODULE_TCP_ASYNC__
 #define __MODULE_TCP_ASYNC__
 
+
+typedef enum {
+	MODULE_TCP_ASYNC_ASSOCIATED_FD_MODE_READ,    /*!< The ready-for-read event from the associated FD will be translated to data source gets ready */
+	MODULE_TCP_ASYNC_ASSOCIATED_FD_MODE_WRITE,   /*!< The ready-for-write event from the associated FD will be translated to data source gets ready */
+	MODULE_TCP_ASYNC_ASSOCIATED_FD_MODE_BOTH     /*!< Both ready event from the associated FD will be translated to data source gets ready */
+} module_tcp_async_associated_fd_mode_t;
+
 /**
  * @brief the incompete type for an asnyc loop
  **/
@@ -119,4 +126,35 @@ int module_tcp_async_write_data_ends(module_tcp_async_loop_t* loop, uint32_t con
  * @return the data handle
  **/
 void* module_tcp_async_get_data_handle(module_tcp_async_loop_t* loop, uint32_t conn_id);
+
+/**
+ * @brief Set the associated FD with the async handle for specific assocaiated ID
+ * @details This function associate a external FD, which can be epolled/kqueued. And whenever the
+ *          external FD triggers the event specified by the flags. This is treated as an indicator
+ *          of the data source of async handle for connection gets ready. <br/>
+ *          This is useful when we have a slower data source for example a RLS token that is a wrapper
+ *          of a socket, thus the socket FD can make the data source goes into wait_for_data state
+ *          without actually exhuasting all the data from the socket. In this case, we need the async loop
+ *          epoll/kqueue also listen to the readiness of that socket as well. And this is the function
+ *          that provides the functionality of this. <br/>
+ *          PLEASE NOTE: This function MUST CALLED INSIDE THE GET_DATA CALLBACK. Otherwise the behavior is not well defined.
+ * @param   loop The event loop
+ * @param   conn_id The connection Id
+ * @param   external_id The external Id we should listen to
+ * @param   flags The flags for the FD (When it should trigger the data_ready event?)
+ * @return  status code
+ **/
+int module_tcp_async_set_associated_fd(module_tcp_async_loop_t* loop, uint32_t conn_id, int external_fd, module_tcp_async_associated_fd_mode_t mode);
+
+/**
+ * @brief Clear the associated FD with the async handle
+ * @details This is the counter part of the module_tcp_async_set_associated_fd. It deregister the external FD when the
+ *          callback needs to do so. 
+ *          PLEASE NOTE: This function MUST CALLED INSIDE THE GET_DATA CALLBACK. Otherwise the behavior is not well-defined.
+ * @param   loop The event loop
+ * @param   conn_id The connection ID
+ * @return status code
+ **/
+int module_tcp_async_clear_associated_fd(module_tcp_async_loop_t* loop, uint32_t conn_id);
+
 #endif /*__MODULE_TCP_ASYNC__*/

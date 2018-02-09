@@ -18,6 +18,7 @@ typedef enum {
 typedef enum {
 	OS_EVENT_KERNEL_EVENT_IN,      /*!< The kernel event that indicates a FD is current readable */
 	OS_EVENT_KERNEL_EVENT_OUT,     /*!< The kernel event that indicates a FD is current writeable */
+	OS_EVENT_KERNEL_EVENT_BIDIR,   /*!< The kernel event that indicates a FD is either readable or writable */
 	OS_EVENT_KERNEL_EVENT_CONNECT  /*!< The kernel event for establishing a scoket */
 } os_event_kernel_type_t;
 
@@ -80,7 +81,7 @@ int os_event_poll_add(os_event_poll_t* poll, os_event_desc_t* desc);
  * @brief remove the event from the poll object
  * @param poll the target poll
  * @param fd The FD returned from the add (For the kernel event, it should be the target event, for user event, it should be os_event_poll_add return value)
- * @param read indicates if this is a read FD, otherwise it's a write FD
+ * @param read indicates if this is a read FD, otherwise it's a write FD, if read = 2 it means it's a bi-directional event
  * @note The read param is not actually used by Linux epoll, but this hint is ncessary for the KQueue
  * @return status code
  **/

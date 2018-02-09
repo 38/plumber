@@ -87,6 +87,9 @@ int os_event_poll_add(os_event_poll_t* poll, os_event_desc_t* desc)
 			    case OS_EVENT_KERNEL_EVENT_OUT:
 			        epoll_flags = EPOLLOUT | EPOLLET;
 			        break;
+				case OS_EVENT_KERNEL_EVENT_BIDIR:
+					epoll_flags = EPOLLIN | EPOLLOUT | EPOLLET;
+					break;
 			    default:
 			        ERROR_RETURN_LOG(int, "Invalid kernel event type");
 		    }

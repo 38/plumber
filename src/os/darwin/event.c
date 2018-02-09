@@ -165,8 +165,10 @@ int os_event_poll_add(os_event_poll_t* poll, os_event_desc_t* desc)
 		if(desc->kernel.event == OS_EVENT_KERNEL_EVENT_IN ||
 		   desc->kernel.event == OS_EVENT_KERNEL_EVENT_CONNECT)
 		    flags = EVFILT_READ;
-		else
+		else if(desc->kernel.event == OS_EVENT_KERNEL_EVENT_OUT)
 		    flags = EVFILT_WRITE;
+		else if(desc->kernel.event == OS_EVENT_KERNEL_EVENT_BIDIR)
+			flags = EVFILT_WRITE | EVFILT_READ;
 
 		ret = fd;
 	}
@@ -196,7 +198,23 @@ int os_event_poll_del(os_event_poll_t* poll, int fd, int read)
 {
 	if(NULL == poll || fd < 0) ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	int flags = read ? EVFILT_READ : EVFILT_WRITE;
+	//int flags = read ? EVFILT_READ : EVFILT_WRITE;
+	int flags;
+	
+	switch(read)
+	{
+		case 0:
+			flags = EVFILT_WRITE;
+			break;
+		case 1:
+			flags = EVFILT_READ;
+			break;
+		case 2:
+			flags = EVFILT_READ | EVFILT_WRITE;
+			break;
+		default:
+			ERROR_RETURN_LOG(int, "Invalid read flags");
+	}
 
 	size_t i;
 	for(i = 0; i < poll->nuenv && poll->uenv_pipes[i].out != fd ; i ++);
