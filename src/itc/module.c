@@ -608,8 +608,9 @@ size_t itc_module_pipe_write(const void* data, size_t nbytes, itc_module_pipe_t*
  * @param count how many bytes we want to read
  * @return the number of bytes we actually read
  **/
-static inline size_t _rls_stream_read(void* __restrict handle, void* __restrict buffer, size_t count)
+static inline size_t _rls_stream_read(void* __restrict handle, void* __restrict buffer, size_t count, itc_module_data_source_event_t* ebuf)
 {
+	(void)ebuf;
 	return sched_rscope_stream_read((sched_rscope_stream_t*)handle, buffer, count);
 }
 
@@ -694,7 +695,7 @@ int itc_module_pipe_write_data_source(itc_module_data_source_t data_source, cons
 				return 0;
 			}
 
-			size_t bytes_read = data_source.read(data_source.data_handle, buf, bytes_to_read);
+			size_t bytes_read = data_source.read(data_source.data_handle, buf, bytes_to_read, /*TODO: change this */NULL);
 			if(ERROR_CODE(size_t) == bytes_read || bytes_read > bytes_to_read)
 			    ERROR_RETURN_LOG(int, "Cannot read the token stream");
 
@@ -743,7 +744,7 @@ DR_END:
 			else if(1 == eos_rc) break;
 
 			char* begin;
-			size_t bytes_read = data_source.read(data_source.data_handle, begin = buf, sizeof(buf));
+			size_t bytes_read = data_source.read(data_source.data_handle, begin = buf, sizeof(buf), /*TODO: change this*/ NULL);
 			if(ERROR_CODE(size_t) == bytes_read)
 			    ERROR_RETURN_LOG(int, "Cannot read the token stream");
 

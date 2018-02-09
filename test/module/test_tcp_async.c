@@ -230,7 +230,7 @@ static inline void _unblock_async_thread(uint32_t cid)
 
 int create_loop(void)
 {
-	ASSERT_PTR(loop = module_tcp_async_loop_new(128, 32, 240, test_write), CLEANUP_NOP);
+	ASSERT_PTR(loop = module_tcp_async_loop_new(128, 32, 240, 240, test_write), CLEANUP_NOP);
 	return 0;
 }
 

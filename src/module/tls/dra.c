@@ -311,7 +311,7 @@ static inline size_t _write_ssl(SSL* ssl, const void* buffer, size_t size)
  * @param count how many bytes we are requiring
  * @return the number of bytes that is actually read
  **/
-static inline size_t _dra_read(void* __restrict handle, void* __restrict buffer, size_t count)
+static inline size_t _dra_read(void* __restrict handle, void* __restrict buffer, size_t count, itc_module_data_source_event_t* eb)
 {
 	_dra_t* dra = (_dra_t*)handle;
 
@@ -336,7 +336,7 @@ static inline size_t _dra_read(void* __restrict handle, void* __restrict buffer,
 			    LOG_DEBUG("Current data source DRA is exhausted, stopping");
 			else
 			{
-				size_t rc = dra->callback.read(dra->callback.data_handle, dra->buffer_page, _page_size);
+				size_t rc = dra->callback.read(dra->callback.data_handle, dra->buffer_page, _page_size, eb);
 				if(ERROR_CODE(size_t) == rc)
 				    ERROR_LOG_GOTO(ERR, "Cannot read data from the RLS byte stream");
 

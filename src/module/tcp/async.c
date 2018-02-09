@@ -14,15 +14,17 @@
 #include <inttypes.h>
 
 #include <barrier.h>
+
 #include <error.h>
 #include <utils/log.h>
 #include <utils/thread.h>
 #include <utils/static_assertion.h>
-#include <module/tcp/async.h>
 #include <utils/mempool/page.h>
 #include <os/os.h>
 
-#define _DATA_SOURCE_TIMEOUT 30
+#include <itc/module_types.h>
+#include <module/tcp/async.h>
+
 
 /**
  * @brief the state of an async object
@@ -85,29 +87,28 @@ typedef struct {
 	 *        For the same reason, unless the previous _MT_END message is processed, there shouldn't
 	 *        be any other _MT_END on the same connection object. <br/>
 	 *        For _MT_KILL, it doesn't matter anyway, since it's the last message this loop processes. <br/>
-	 *        The associated_fd is the concept that the data source might be wrapper of another FD, thus 
-	 *        the data will gets ready whenever the associated FD gets ready. And the event of readiness of 
-	 *        the associated FD is translated to the data source gets ready by the async loop. See related 
-	 *        function documentations: module_tcp_async_set_associated_fd and module_tcp_async_clear_associated_fd.
+	 *        The data_ev_fd is the concept that the data source might be wrapper of another FD, thus 
+	 *        the data will gets ready whenever the data event FD gets ready. And the event of readiness of 
+	 *        the data event FD is translated to the data source gets ready by the async loop. See related 
+	 *        function documentations: module_tcp_async_set_data_event and module_tcp_async_clear_data_event
 	 */
-	int                                        async_magic;  /*!< The magic number, which should be 0 */
-	uint32_t                                   rdy_posted:1; /*!< if the queue ready message is posted and in pending state */
-	uint32_t                                   wait_conn:1;  /*!< Indicates this connection is waiting for scoket but the data source is ready */
-	uint32_t                                   index;        /*!< the index in the async state list */
-	time_t                                     kickout_ts;   /*!< The timestamp that the async object should be kicked out */
-	int                                        fd;           /*!< the coresponding fd */
-	int                                        associated_magic; /*!< The associated magic which should be 1 */
-	int                                        associated_fd;/*!< The FD that is associated to this connection */
-	module_tcp_async_associated_fd_mode_t      associated_mode; /*!< Indicates the mode of the associated FD */
-	int                                        data_end;     /*!< indicates if there's no more data ready events */
-	module_tcp_async_write_data_func_t         get_data;     /*!< the data source callback */
-	module_tcp_async_write_cleanup_func_t      cleanup;      /*!< the cleanup callback */
-	module_tcp_async_write_error_func_t        onerror;      /*!< the error handler */
-	void*                                      handle;       /*!< the data handle */
-	size_t                                     b_size;       /*!< the buffer size */
-	size_t                                     b_begin;      /*!< the io buffer begin */
-	size_t                                     b_end;        /*!< the io buffer end */
-	char*                                      io_buffer;    /*!< the io buffer */
+	int                                        async_magic;   /*!< The magic number, which should be 0 */
+	uint32_t                                   rdy_posted:1;  /*!< if the queue ready message is posted and in pending state */
+	uint32_t                                   wait_conn:1;   /*!< Indicates this connection is waiting for scoket but the data source is ready */
+	uint32_t                                   index;         /*!< the index in the async state list */
+	time_t                                     kickout_ts;    /*!< The timestamp that the async object should be kicked out */
+	int                                        fd;            /*!< the coresponding fd */
+	int                                        data_event_magic; /*!< The magic number that indicates that we are getting a event source FD */
+	itc_module_data_source_event_t             data_event;    /*!< The data source event description */
+	int                                        data_end;      /*!< indicates if there's no more data ready events */
+	module_tcp_async_write_data_func_t         get_data;      /*!< the data source callback */
+	module_tcp_async_write_cleanup_func_t      cleanup;       /*!< the cleanup callback */
+	module_tcp_async_write_error_func_t        onerror;       /*!< the error handler */
+	void*                                      handle;        /*!< the data handle */
+	size_t                                     b_size;        /*!< the buffer size */
+	size_t                                     b_begin;       /*!< the io buffer begin */
+	size_t                                     b_end;         /*!< the io buffer end */
+	char*                                      io_buffer;     /*!< the io buffer */
 } _async_obj_t;
 
 /**
@@ -179,6 +180,7 @@ struct _module_tcp_async_loop_t {
 
 	/* connection options */
 	time_t          ttl;       /*!< the maximum time for a connection be busy state */
+	time_t          data_ttl;  /*!< The maximum time for a data source in the wait state */
 	/* mocked system calls */
 	ssize_t (*write)(int fd, const void* ptr, size_t sz);  /*!< the mocked write system call, only used for testing purpose */
 };
@@ -341,7 +343,7 @@ static inline int  _async_obj_set_state(module_tcp_async_loop_t* loop, _async_ob
 			if(async->wait_conn)
 				async->kickout_ts = time(NULL) + loop->ttl;
 			else
-				async->kickout_ts = time(NULL) + _DATA_SOURCE_TIMEOUT;
+				async->kickout_ts = time(NULL) + (async->data_event.timeout > loop->data_ttl ? loop->data_ttl : async->data_event.timeout);
 
 			/* if this connection is being adding to the wait state, maintain the heap property */
 			_async_wait_conn_decrease(loop, async->index);
@@ -644,9 +646,8 @@ static inline int _process_async_objs(module_tcp_async_loop_t* loop)
 
 		uint32_t conn_id = _async_obj_conn_id(loop, this);
 
-		/* Unregister the assocaited FD if there's any */
-		if(ERROR_CODE(int) == module_tcp_async_clear_associated_fd(loop, conn_id))
-			LOG_ERROR("Cannot remove the associated FD from the epoll list");
+		if(ERROR_CODE(int) == module_tcp_async_clear_data_event(loop, conn_id))
+			LOG_ERROR("Cannot remove the data event FD from the epoll list");
 
 		LOG_DEBUG("handling the async object in finished state for connection object %"PRIu32, conn_id);
 
@@ -748,9 +749,10 @@ static inline int _process_queue_message(module_tcp_async_loop_t* loop)
 				continue;
 			}
 
-			async->associated_fd = -1;
+			async->data_event.fd = -1;
+			async->data_event.timeout = (int32_t)loop->data_ttl;
 			async->async_magic = 0;
-			async->associated_magic = 1;
+			async->data_event_magic = 1;
 
 			async->b_begin = async->b_end = 0;
 			/* We initialize the rdy_posted flag when the message is posted, no need to reinitialize at this point */
@@ -843,9 +845,9 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 			{
 				if(NULL == data) ERROR_RETURN_LOG(int, "Unexpected poll_event data field, code bug!");
 
-				_async_obj_t* async = (_async_obj_t*)((uintptr_t)data - (uintptr_t)&((_async_obj_t*)0)->associated_magic);
+				_async_obj_t* async = (_async_obj_t*)((uintptr_t)data - (uintptr_t)&((_async_obj_t*)0)->data_event_magic);
 
-				LOG_DEBUG("Data source associated with connection object %"PRIu32" has more data to read", _async_obj_conn_id(loop, async));
+				LOG_DEBUG("Data source data event FD with connection object %"PRIu32" has more data to read", _async_obj_conn_id(loop, async));
 
 				_async_obj_state_t state = _async_obj_get_state(loop, async);
 
@@ -897,7 +899,8 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 			/* Because if the async data source is still active, its possible that the timeout is
 			 * caused by the data source is working on other staff. In this case, we could wait 
 			 * for it until the data source becomes inactive */
-			async->kickout_ts = time(NULL) + _DATA_SOURCE_TIMEOUT;
+			async->kickout_ts = time(NULL) + (async->data_event.timeout > loop->data_ttl ? loop->data_ttl : async->data_event.timeout);
+
 			_async_wait_conn_heapify(loop, async->index);
 		}
 		LOG_DEBUG("Timed out connection %"PRIu32" has been kicked out", _async_obj_conn_id(loop, async));
@@ -934,7 +937,7 @@ static inline void* _async_main(void* arg)
 	return NULL;
 }
 
-module_tcp_async_loop_t* module_tcp_async_loop_new(uint32_t pool_size, uint32_t event_size, time_t ttl, ssize_t (*write)(int, const void*, size_t))
+module_tcp_async_loop_t* module_tcp_async_loop_new(uint32_t pool_size, uint32_t event_size, time_t ttl, time_t data_ttl, ssize_t (*write)(int, const void*, size_t))
 {
 	uint32_t i, tmp, size;
 	module_tcp_async_loop_t* ret = (module_tcp_async_loop_t*)calloc(1, sizeof(module_tcp_async_loop_t));
@@ -945,6 +948,7 @@ module_tcp_async_loop_t* module_tcp_async_loop_new(uint32_t pool_size, uint32_t 
 	ret->max_events = event_size;
 	ret->write = write;
 	ret->ttl = ttl;
+	ret->data_ttl = data_ttl;
 
 	if(NULL == (ret->objects = (_async_obj_t*)malloc(sizeof(_async_obj_t) * ret->capacity)))
 	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot allocate memory for the async object array");
@@ -1206,25 +1210,23 @@ int module_tcp_async_loop_free(module_tcp_async_loop_t* loop)
 	return rc;
 }
 
-static inline int _get_read_flag(const _async_obj_t* async)
+static inline int _get_read_flag(const itc_module_data_source_event_t* event)
 {
 	int read_flag;
-	switch(async->associated_mode)
-	{
-		case MODULE_TCP_ASYNC_ASSOCIATED_FD_MODE_READ:
-			read_flag = 1;
-			break;
-		case MODULE_TCP_ASYNC_ASSOCIATED_FD_MODE_WRITE:
-			read_flag = 0;
-			break;
-		case MODULE_TCP_ASYNC_ASSOCIATED_FD_MODE_BOTH:
-			read_flag = 2;
-	}
+	
+	if(event->read_event && event->write_event)
+		read_flag = 2;
+	else if(event->read_event)
+		read_flag = 1;
+	else if(event->write_event)
+		read_flag = 0;
+	else
+		ERROR_RETURN_LOG(int, "Empty event description");
 
 	return read_flag;
 }
 
-int module_tcp_async_set_associated_fd(module_tcp_async_loop_t* loop, uint32_t conn_id, int external_fd, module_tcp_async_associated_fd_mode_t mode)
+int module_tcp_async_set_data_event(module_tcp_async_loop_t* loop, uint32_t conn_id, itc_module_data_source_event_t event)
 {
 	_async_obj_t* async = loop->objects + conn_id;
 
@@ -1233,60 +1235,64 @@ int module_tcp_async_set_associated_fd(module_tcp_async_loop_t* loop, uint32_t c
 	if(thread_get_current_type() != THREAD_TYPE_IO)
 		ERROR_RETURN_LOG(int, "The function shouldn't be called from thread other than IO loop");
 
-	if(external_fd == async->fd)
-		ERROR_RETURN_LOG(int, "Cannot add the same FD as the associated FD");
-
+	if(event.fd == async->fd)
+		ERROR_RETURN_LOG(int, "Cannot add the same FD as the data event FD");
 #endif
-	if(NULL == loop || conn_id == ERROR_CODE(uint32_t) || external_fd < 0)
+
+	if(NULL == loop || conn_id == ERROR_CODE(uint32_t) || event.fd < 0)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
+	int flag = _get_read_flag(&event);
+	if(ERROR_CODE(int) == flag)
+		ERROR_RETURN_LOG(int, "Invalid event description");
 
-	if(async->associated_fd == external_fd && mode == async->associated_mode)
+	if(async->data_event.fd == event.fd && flag == _get_read_flag(&async->data_event))
 		return 0;
 
-	if(async->associated_fd != external_fd && ERROR_CODE(int) == os_event_poll_del(loop->poll, async->associated_fd, _get_read_flag(async)))
-		ERROR_RETURN_LOG(int, "Cannot remove the previous registered associated FD");
+	if(async->data_event.fd != event.fd && ERROR_CODE(int) == os_event_poll_del(loop->poll, async->data_event.fd, _get_read_flag(&async->data_event)))
+		ERROR_RETURN_LOG(int, "Cannot remove the previous registered data event FD");
 
 	os_event_desc_t desc = {
 		.type = OS_EVENT_TYPE_KERNEL,
 		.kernel = {
-			.fd    = external_fd,
-			.data  = &async->associated_magic
+			.fd    = event.fd,
+			.data  = &async->data_event_magic
 		}
 	};
 
-	switch(mode)
+	switch(flag)
 	{
-		case MODULE_TCP_ASYNC_ASSOCIATED_FD_MODE_READ:
-			desc.kernel.event = OS_EVENT_KERNEL_EVENT_IN;
-			break;
-		case MODULE_TCP_ASYNC_ASSOCIATED_FD_MODE_WRITE:
+		case 0:
 			desc.kernel.event = OS_EVENT_KERNEL_EVENT_OUT;
 			break;
-		case MODULE_TCP_ASYNC_ASSOCIATED_FD_MODE_BOTH:
+		case 1:
+			desc.kernel.event = OS_EVENT_KERNEL_EVENT_IN;
+			break;
+		case 2:
 			desc.kernel.event = OS_EVENT_KERNEL_EVENT_BIDIR;
 			break;
+		default:
+			ERROR_RETURN_LOG(int, "Unexpected event flag");
 	}
 
-	if(async->associated_fd != external_fd)
+	if(async->data_event.fd != event.fd)
 	{
 		if(ERROR_CODE(int) == os_event_poll_add(loop->poll, &desc))
-			ERROR_RETURN_LOG(int, "Cannot add the associated FD to the poll list");
+			ERROR_RETURN_LOG(int, "Cannot add the data event FD to the poll list");
 	}
 	else
 	{
 		if(ERROR_CODE(int) == os_event_poll_modify(loop->poll, &desc))
-			ERROR_RETURN_LOG(int, "Cannot modify the associated FD in the poll list");
+			ERROR_RETURN_LOG(int, "Cannot modify the data event FD in the poll list");
 	}
 
-	async->associated_fd = external_fd;
-	async->associated_mode = mode;
+	async->data_event = event;
 
 	return 0;
 }
 
 
-int module_tcp_async_clear_associated_fd(module_tcp_async_loop_t* loop, uint32_t conn_id)
+int module_tcp_async_clear_data_event(module_tcp_async_loop_t* loop, uint32_t conn_id)
 {
 #ifndef FULL_OPTIMIZATION
 
@@ -1300,12 +1306,12 @@ int module_tcp_async_clear_associated_fd(module_tcp_async_loop_t* loop, uint32_t
 
 	_async_obj_t* async = loop->objects + conn_id;
 
-	if(async->associated_fd < 0) return 0;
+	if(async->data_event.fd < 0) return 0;
 
-	if(ERROR_CODE(int) == os_event_poll_del(loop->poll, async->associated_fd, _get_read_flag(async)))
+	if(ERROR_CODE(int) == os_event_poll_del(loop->poll, async->data_event.fd, _get_read_flag(&async->data_event)))
 		ERROR_RETURN_LOG(int, "Cannot remove the associated FD from the poll object");
 
-	async->associated_fd = -1;
+	async->data_event.fd = -1;
 
 	return 0;
 }

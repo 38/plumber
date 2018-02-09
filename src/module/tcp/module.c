@@ -328,7 +328,7 @@ static inline size_t _async_handle_getdata(uint32_t conn, void* data, size_t siz
 				goto PAGE_EXHAUSTED;
 			}
 
-			size_t bytes_read = handle->page_begin->data_source->read(handle->page_begin->data_source->data_handle, buf, size);
+			size_t bytes_read = handle->page_begin->data_source->read(handle->page_begin->data_source->data_handle, buf, size, /*TODO: change this */ NULL);
 			if(ERROR_CODE(size_t) == bytes_read || bytes_read > size)
 			{
 				LOG_WARNING("The data source page will be ignored because the read call returns an error");
@@ -872,7 +872,10 @@ static inline int _ensure_async_loop_init(_module_context_t* context)
 		{
 			if(NULL == (context->async_loop = module_tcp_async_loop_new(context->pool_conf.size,
 			                                                            (uint32_t)context->pool_conf.event_size,
-			                                                            context->pool_conf.ttl, NULL)))
+			                                                            context->pool_conf.ttl, 
+																		/* TODO: make a value for data TTL that make sense  */
+																		context->pool_conf.ttl,
+																		NULL)))
 			{
 				rc = ERROR_CODE(int);
 				LOG_ERROR("Cannot initialize the async loop");
@@ -1055,7 +1058,7 @@ static int _write_callback(void* __restrict ctx, itc_module_data_source_t data_s
 
 					if(eos_rc) break;
 
-					size_t bytes_read = data_source.read(data_source.data_handle, sync_buf + sync_data_size, sync_buf_size);
+					size_t bytes_read = data_source.read(data_source.data_handle, sync_buf + sync_data_size, sync_buf_size, /*TODO: change this*/ NULL);
 					if(ERROR_CODE(size_t) == bytes_read)
 					    ERROR_RETURN_LOG(int, "Cannot read the data source");
 					sync_data_size += bytes_read;
@@ -1145,7 +1148,7 @@ ASYNC_RET:
 			if(eos_rc) break;
 
 			/* TODO: use async buf size doesn't make sense at this point */
-			size_t nbytes = data_source.read(data_source.data_handle, sync_buf, context->async_buf_size);
+			size_t nbytes = data_source.read(data_source.data_handle, sync_buf, context->async_buf_size, /*TODO: change this*/ NULL);
 			if(ERROR_CODE(size_t) == nbytes)
 			    ERROR_RETURN_LOG(int, "Cannot read the data_source");
 

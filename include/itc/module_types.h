@@ -62,6 +62,24 @@ typedef enum {
 typedef int (*itc_module_state_dispose_func_t)(void*);
 
 /**
+ * @brief The data structure used to describe a event source of the event driven data source
+ * @note  This struct is an additional data returned from the data source callback. 
+ *        The data should be considered valid only when the data_source.read callback returns 0.
+ *        It indicates the data source now is short from data, but the module would be able to
+ *        examine the event source for data availibility. 
+ *        Please note the data availibitiy event just hint about the data availibility, but this
+ *        hint might be the exact case. <br/>
+ *        If there's no event is defined by this structure, fd should less than 0
+ **/
+typedef struct {
+	uint32_t     read_event:1;  /*!< Indicates the module should listen to the read event */
+	uint32_t     write_event:1; /*!< Indicates the module should listen to the write event */
+	int          fd;            /*!< The FD that is used as the event source */
+	int32_t     timeout;        /*!< The promise the data source will gets notified in this amount of time (in seconds) */
+} itc_module_data_source_event_t;
+
+
+/**
  * @brief represent a data source that provides data for the write_callback module call
  * @details this struct is used to describe an abstracted data source that provides a byte stream which can be
  *         written to the pipe using the write_callback module call
@@ -73,9 +91,10 @@ typedef struct {
 	 * @param handle the data handle
 	 * @param buffer the buffer used to return the result
 	 * @param count the number of bytes to read
+	 * @param event_buf The event buffer, which is used to return the event source when the function returns 0 length data
 	 * @return the nummber of bytes which has been actually read from the data source, or error code
 	 **/
-	size_t (*read)(void* __restrict handle, void* __restrict buffer, size_t count);
+	size_t (*read)(void* __restrict handle, void* __restrict buffer, size_t count, itc_module_data_source_event_t* event_buf);
 	/**
 	 * @brief check if the data source meets the end-of-stream
 	 * @param handle the handle for the data source to check
