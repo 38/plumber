@@ -119,6 +119,15 @@ ERR:
 	return ERROR_CODE(int);
 }
 
+int os_event_poll_modify(os_event_poll_t* poll, os_event_desc_t* desc)
+{
+	if(NULL != desc && desc->type != OS_EVENT_TYPE_KERNEL)
+		ERROR_RETURN_LOG(int, "Only kernel event is allowed");
+
+	/* For KQueue implementaiton, re-add the same event is sufficient */
+	return os_event_poll_add(poll, desc);
+}
+
 int os_event_poll_add(os_event_poll_t* poll, os_event_desc_t* desc)
 {
 	if(NULL == poll) ERROR_RETURN_LOG(int, "Invalid arguments");

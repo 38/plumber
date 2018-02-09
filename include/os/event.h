@@ -88,6 +88,19 @@ int os_event_poll_add(os_event_poll_t* poll, os_event_desc_t* desc);
 int os_event_poll_del(os_event_poll_t* poll, int fd, int read);
 
 /**
+ * @brief Modify the event in the poll
+ * @note This function assumes the event is already exists (For the same FD). <br/>
+ *       Also this only works with kernel event. If a user event is given it should be treated
+ *       as an error. <br/>
+ *       When the event description is not registered with the poll object, the function all automatically
+ *       add a new entry.
+ * @param poll The poll object
+ * @param desc The event description
+ * @return status code
+ **/
+int os_event_poll_modify(os_event_poll_t* poll, os_event_desc_t* desc);
+
+/**
  * @brief Wait for the event defined in the poll object
  * @param poll The poll object
  * @param max_events The maximum events we are accepting

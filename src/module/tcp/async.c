@@ -644,6 +644,10 @@ static inline int _process_async_objs(module_tcp_async_loop_t* loop)
 
 		uint32_t conn_id = _async_obj_conn_id(loop, this);
 
+		/* Unregister the assocaited FD if there's any */
+		if(ERROR_CODE(int) == module_tcp_async_clear_associated_fd(loop, conn_id))
+			LOG_ERROR("Cannot remove the associated FD from the epoll list");
+
 		LOG_DEBUG("handling the async object in finished state for connection object %"PRIu32, conn_id);
 
 		//free(this->io_buffer);
@@ -1202,6 +1206,24 @@ int module_tcp_async_loop_free(module_tcp_async_loop_t* loop)
 	return rc;
 }
 
+static inline int _get_read_flag(const _async_obj_t* async)
+{
+	int read_flag;
+	switch(async->associated_mode)
+	{
+		case MODULE_TCP_ASYNC_ASSOCIATED_FD_MODE_READ:
+			read_flag = 1;
+			break;
+		case MODULE_TCP_ASYNC_ASSOCIATED_FD_MODE_WRITE:
+			read_flag = 0;
+			break;
+		case MODULE_TCP_ASYNC_ASSOCIATED_FD_MODE_BOTH:
+			read_flag = 2;
+	}
+
+	return read_flag;
+}
+
 int module_tcp_async_set_associated_fd(module_tcp_async_loop_t* loop, uint32_t conn_id, int external_fd, module_tcp_async_associated_fd_mode_t mode)
 {
 	_async_obj_t* async = loop->objects + conn_id;
@@ -1219,8 +1241,11 @@ int module_tcp_async_set_associated_fd(module_tcp_async_loop_t* loop, uint32_t c
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 
-	if(async->associated_fd >= 0)
-		ERROR_RETURN_LOG(int, "The connection %"PRIu32" has associated to another FD", conn_id);
+	if(async->associated_fd == external_fd && mode == async->associated_mode)
+		return 0;
+
+	if(async->associated_fd != external_fd && ERROR_CODE(int) == os_event_poll_del(loop->poll, async->associated_fd, _get_read_flag(async)))
+		ERROR_RETURN_LOG(int, "Cannot remove the previous registered associated FD");
 
 	os_event_desc_t desc = {
 		.type = OS_EVENT_TYPE_KERNEL,
@@ -1243,8 +1268,16 @@ int module_tcp_async_set_associated_fd(module_tcp_async_loop_t* loop, uint32_t c
 			break;
 	}
 
-	if(ERROR_CODE(int) == os_event_poll_add(loop->poll, &desc))
-		ERROR_RETURN_LOG(int, "Cannot add the associated FD to the poll list");
+	if(async->associated_fd != external_fd)
+	{
+		if(ERROR_CODE(int) == os_event_poll_add(loop->poll, &desc))
+			ERROR_RETURN_LOG(int, "Cannot add the associated FD to the poll list");
+	}
+	else
+	{
+		if(ERROR_CODE(int) == os_event_poll_modify(loop->poll, &desc))
+			ERROR_RETURN_LOG(int, "Cannot modify the associated FD in the poll list");
+	}
 
 	async->associated_fd = external_fd;
 	async->associated_mode = mode;
@@ -1269,20 +1302,7 @@ int module_tcp_async_clear_associated_fd(module_tcp_async_loop_t* loop, uint32_t
 
 	if(async->associated_fd < 0) return 0;
 
-	int read_flag;
-	switch(async->associated_mode)
-	{
-		case MODULE_TCP_ASYNC_ASSOCIATED_FD_MODE_READ:
-			read_flag = 1;
-			break;
-		case MODULE_TCP_ASYNC_ASSOCIATED_FD_MODE_WRITE:
-			read_flag = 0;
-			break;
-		case MODULE_TCP_ASYNC_ASSOCIATED_FD_MODE_BOTH:
-			read_flag = 2;
-	}
-
-	if(ERROR_CODE(int) == os_event_poll_del(loop->poll, async->associated_fd, read_flag))
+	if(ERROR_CODE(int) == os_event_poll_del(loop->poll, async->associated_fd, _get_read_flag(async)))
 		ERROR_RETURN_LOG(int, "Cannot remove the associated FD from the poll object");
 
 	async->associated_fd = -1;
