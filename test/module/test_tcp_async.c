@@ -209,6 +209,13 @@ int _dispose_handler_1(uint32_t id, module_tcp_async_loop_t* loop)
 	return 0;
 }
 
+int _handler_empty_1(uint32_t id, module_tcp_async_loop_t* loop)
+{
+	(void)id;
+	(void)loop;
+	return 1;
+}
+
 static inline void _wait_async_thread(int func)
 {
 	LOG_DEBUG("main thread: waiting for the async thread gets ready");
@@ -257,7 +264,7 @@ int single_async_write(void)
 	uint32_t data;
 	/* Because the initial data state is wait, so nothing should happen here, so we can block every thing at this point */
 	_set_block_bits(0, 0xffffffffu);
-	ASSERT_OK(module_tcp_async_write_register(loop, 0, conn[0].efd, 16, _get_data_1, _dispose_handler_1, _error_handler_1, dh + 0), CLEANUP_NOP);
+	ASSERT_OK(module_tcp_async_write_register(loop, 0, conn[0].efd, 16, _get_data_1, _handler_empty_1, _dispose_handler_1, _error_handler_1, dh + 0), CLEANUP_NOP);
 	/* C:R D:W */
 	ASSERT_OK(module_tcp_async_write_data_ready(loop, 0), CLEANUP_NOP);
 	/* after we send this, the get data function should be called first */
@@ -345,7 +352,7 @@ static inline int _parallel_write(uint32_t n)
 	for(i = 0; i < n; i ++)
 	{
 		_set_block_bits(i, 0xffffffff);
-		ASSERT_OK(module_tcp_async_write_register(loop, i, conn[i].efd, 16, _get_data_1, _dispose_handler_1, _error_handler_1, dh + i), CLEANUP_NOP);
+		ASSERT_OK(module_tcp_async_write_register(loop, i, conn[i].efd, 16, _get_data_1, _handler_empty_1, _dispose_handler_1, _error_handler_1, dh + i), CLEANUP_NOP);
 	}
 
 	usleep(1000); /* make sure we do not have no operations, if this is not true, async thread will blocked */

@@ -36,6 +36,9 @@ typedef runtime_api_pipe_type_callback_t pipe_type_callback_t;
 /** @brief the type for the async task handle */
 typedef runtime_api_async_handle_t async_handle_t;
 
+/** @brief The type used to describe the scope stream ready event */
+typedef runtime_api_scope_ready_event_t scope_ready_event_t;
+
 /** @brief flag indicates that this is an input pipe */
 #define PIPE_INPUT RUNTIME_API_PIPE_INPUT
 

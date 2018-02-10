@@ -104,6 +104,7 @@ typedef struct {
 	module_tcp_async_write_data_func_t         get_data;      /*!< the data source callback */
 	module_tcp_async_write_cleanup_func_t      cleanup;       /*!< the cleanup callback */
 	module_tcp_async_write_error_func_t        onerror;       /*!< the error handler */
+	module_tcp_async_write_empty_func_t        empty;         /*!< The callback function used to check if the handle is empty (No pending bytes to write) */
 	void*                                      handle;        /*!< the data handle */
 	size_t                                     b_size;        /*!< the buffer size */
 	size_t                                     b_begin;       /*!< the io buffer begin */
@@ -430,7 +431,8 @@ static inline _async_obj_state_t _io_ops(module_tcp_async_loop_t* loop, _async_o
 	{
 		if(!obj->data_end)
 		{
-			LOG_DEBUG("data is not available for connection object %"PRIu32", "
+L_WAIT_DATA:
+			LOG_DEBUG("Data is not available for connection object %"PRIu32", "
 			          "updating the state of async object to WAIT_FOR_DATA",
 			          _async_obj_conn_id(loop, obj));
 			obj->wait_conn = 0;
@@ -438,10 +440,22 @@ static inline _async_obj_state_t _io_ops(module_tcp_async_loop_t* loop, _async_o
 		}
 		else
 		{
-			LOG_DEBUG("connection object %"PRIu32" has been released by the module "
-			          "and data buffer exhausted, updating the state to FINISHED",
-			          _async_obj_conn_id(loop, obj));
-			return _ST_FINISHED;
+			int is_empty = obj->empty(_async_obj_conn_id(loop, obj), loop);
+			if(ERROR_CODE(int) == is_empty)
+			{
+				LOG_ERROR("Connection object %"PRIu32" returns an error code"
+						  "when examing pending bytes, raising error", _async_obj_conn_id(loop, obj));
+				return _ST_RAISING;
+			}
+
+			if(is_empty)
+			{
+				LOG_DEBUG("Connection object %"PRIu32" has been released by the module "
+						  "and data buffer exhausted, updating the state to FINISHED",
+						  _async_obj_conn_id(loop, obj));
+				return _ST_FINISHED;
+			}
+			else goto L_WAIT_DATA;
 		}
 	}
 
@@ -727,7 +741,22 @@ static inline int _process_queue_message(module_tcp_async_loop_t* loop)
 			if(async->data_end) LOG_WARNING("connection object %"PRIu32" has been released twice!", current->conn_id);
 			async->data_end = 1;
 			_async_obj_state_t st = _async_obj_get_state(loop, async);
-			if((st == _ST_WAIT && !async->wait_conn) || st == _ST_ERROR)
+			int finished = 0;
+
+			if(st == _ST_ERROR) finished = 1;
+			else if(st == _ST_WAIT && !async->wait_conn)
+			{
+				int is_empty = async->empty(current->conn_id, loop);
+				if(ERROR_CODE(int) == is_empty)
+				{
+					LOG_ERROR("The connection object %"PRIu32" failed to return the empty state, raising an error", current->conn_id);
+					if(ERROR_CODE(int) == _async_obj_set_state(loop, async, _ST_RAISING))
+						LOG_WARNING("Cannot set the connection object %"PRIu32" to RAISING state", current->conn_id);
+				}
+
+				if(is_empty) finished = 1;
+			}
+			if(finished)
 			{
 				LOG_DEBUG("connection object %"PRIu32" is currently in %s state, QM %s triggers moving this object to finished list",
 				          current->conn_id, _async_obj_state_str[st] ,_message_str[_MT_END]);
@@ -1083,11 +1112,12 @@ ERR:
 int module_tcp_async_write_register(module_tcp_async_loop_t* loop,
                                     uint32_t conn_id, int fd, size_t buf_size,
                                     module_tcp_async_write_data_func_t get_data,
+									module_tcp_async_write_empty_func_t empty,
                                     module_tcp_async_write_cleanup_func_t cleanup,
                                     module_tcp_async_write_error_func_t on_error,
                                     void* handle)
 {
-	if(NULL == loop || conn_id >= loop->capacity || fd < 0 || get_data == NULL || cleanup == NULL || on_error == NULL || handle == NULL)
+	if(NULL == loop || conn_id >= loop->capacity || fd < 0 || get_data == NULL || cleanup == NULL || on_error == NULL || handle == NULL || empty == NULL)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(loop->objects[conn_id].index != ERROR_CODE(uint32_t))
@@ -1100,6 +1130,7 @@ int module_tcp_async_write_register(module_tcp_async_loop_t* loop,
 	loop->objects[conn_id].get_data = get_data;
 	loop->objects[conn_id].cleanup = cleanup;
 	loop->objects[conn_id].onerror = on_error;
+	loop->objects[conn_id].empty = empty;
 	loop->objects[conn_id].handle = handle;
 	loop->objects[conn_id].data_end = 0;
 	loop->objects[conn_id].b_size = buf_size;
@@ -1247,7 +1278,7 @@ int module_tcp_async_set_data_event(module_tcp_async_loop_t* loop, uint32_t conn
 	if(async->data_event.fd == event.fd && -1 == _get_read_flag(&async->data_event))
 		return module_tcp_async_clear_data_event(loop, conn_id);
 
-	if(async->data_event.fd != event.fd && ERROR_CODE(int) == os_event_poll_del(loop->poll, async->data_event.fd, _get_read_flag(&async->data_event)))
+	if(async->data_event.fd != event.fd && async->data_event.fd != -1 && ERROR_CODE(int) == os_event_poll_del(loop->poll, async->data_event.fd, _get_read_flag(&async->data_event)))
 		ERROR_RETURN_LOG(int, "Cannot remove the previous registered data event FD");
 
 	os_event_desc_t desc = {

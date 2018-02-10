@@ -57,6 +57,20 @@ typedef int (*module_tcp_async_write_cleanup_func_t)(uint32_t conn_id, module_tc
 typedef int (*module_tcp_async_write_error_func_t)(uint32_t conn_id, module_tcp_async_loop_t* caller);
 
 /**
+ * @brief The callback function that is used to examine if the callback is empty
+ * @note This function is important because since we allow the data source callback returns 0.
+ *       We can not say when the data source is waiting for data and the worker thread releases the 
+ *       connection, where shouldn't have data any more. Because it may caused by the slower data source
+ *       that blocks the data source callback. <br/>
+ *       At this time, we need a way to examine if there's more data pending in the list reliably.
+ *       So this is the function
+ * @param conn_id The connection ID
+ * @param caller The caller event loop
+ * @return The check result or error code
+ **/
+typedef int (*module_tcp_async_write_empty_func_t)(uint32_t conn_id, module_tcp_async_loop_t* callber);
+
+/**
  * @brief create and start a tcp asnyc loop
  * @param pool_size the connection pool size, which is used as the maximum size of the async object it can hold
  * @param event_size the size of the event buffer
@@ -89,6 +103,7 @@ int module_tcp_async_loop_free(module_tcp_async_loop_t* loop);
 int module_tcp_async_write_register(module_tcp_async_loop_t* loop,
                                     uint32_t conn_id, int fd, size_t buf_size,
                                     module_tcp_async_write_data_func_t get_data,
+									module_tcp_async_write_empty_func_t empty,
                                     module_tcp_async_write_cleanup_func_t cleanup,
                                     module_tcp_async_write_error_func_t onerror,
                                     void* handle);

@@ -404,6 +404,8 @@ PAGE_EXHAUSTED:
 
 			handle->page_off = 0;
 			handle->page_begin = handle->page_begin->next;
+			if(ERROR_CODE(int) == module_tcp_async_clear_data_event(loop, conn))
+				LOG_WARNING("Cannot clear the data event");
 			if(ERROR_CODE(int) == _async_buf_page_free(tmp))
 			    LOG_WARNING("Cannot deallocate the async buffer page");
 
@@ -436,11 +438,34 @@ static inline int _async_handle_onerror(uint32_t conn, module_tcp_async_loop_t* 
 	_async_handle_t* handle = (_async_handle_t*)module_tcp_async_get_data_handle(loop, conn);
 
 	if(NULL == handle)
-	    ERROR_RETURN_LOG_ERRNO(int, "cannot get the data handle for the connection object %"PRIu32, conn);
+	    ERROR_RETURN_LOG(int, "cannot get the data handle for the connection object %"PRIu32, conn);
 
 	handle->error = 1;
 
 	LOG_INFO("Connection object %"PRIu32" has been set to an error state", conn);
+
+	return 0;
+}
+
+/**
+ * @brief Check if the async handle is currently empty
+ * @param conn The connection ID
+ * @param loop The async loop
+ * @return check rsult or status code
+ * @note This function will called only after the data_end message has been sent, 
+ *       thus we don't need to care about the thread safety.
+ **/
+static inline int _async_handle_empty(uint32_t conn, module_tcp_async_loop_t* loop)
+{
+	_async_handle_t* handle = (_async_handle_t*)module_tcp_async_get_data_handle(loop, conn);
+
+	if(NULL == handle)
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot get the data handle for connection object %"PRIu32, conn);
+
+	if(handle->page_begin == NULL) return 1;
+
+	if(handle->page_begin->next == NULL && !_async_buf_page_is_data_source(handle->page_begin))
+		return handle->page_begin->nbytes <= handle->page_off;
 
 	return 0;
 }
@@ -483,6 +508,11 @@ static inline int _async_handle_dispose(uint32_t conn, module_tcp_async_loop_t* 
 	{
 		tmp = handle->page_begin;
 		handle->page_begin = handle->page_begin->next;
+		if(ERROR_CODE(int) == module_tcp_async_clear_data_event(loop, conn))
+		{
+			LOG_ERROR("Cannot clear the data event");
+			rc = ERROR_CODE(int);
+		}
 		if(ERROR_CODE(int) == _async_buf_page_free(tmp))
 		{
 			LOG_ERROR("Cannot dispoase the async buffer page");
@@ -922,7 +952,7 @@ static inline int _create_async_handle(_module_context_t* context, _handle_t* ha
 	    ERROR_RETURN_LOG(int, "cannot create async handle for the async object");
 
 	if(module_tcp_async_write_register(context->async_loop, handle->idx, handle->fd, context->async_buf_size,
-	                                   _async_handle_getdata, _async_handle_dispose,
+	                                   _async_handle_getdata, _async_handle_empty, _async_handle_dispose,
 	                                   _async_handle_onerror, handle->async_handle) == ERROR_CODE(int))
 	{
 		mempool_objpool_dealloc(_async_handle_pool, handle->async_handle);
