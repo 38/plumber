@@ -152,7 +152,7 @@ static void show_pipes(uint32_t argc, char const* const* argv)
 	{
 		const char* name = runtime_pdt_get_name(pdt, i);
 		size_t item_size = strlen(name) + 3 + strlen(runtime_pdt_type_expr(pdt, i));
-		if(name_max < size) name_max = item_size;
+		if(name_max < item_size) name_max = item_size;
 	}
 
 	printf("Pipes   : [ID]\tName");
