@@ -16,8 +16,9 @@
  * @brief the parameter we used to initialize the DRA
  **/
 typedef struct {
-	SSL*                      ssl;         /*!< The TLS context */
-	module_tls_bio_context_t* bio;         /*!< The context */
+	SSL*                            ssl;   /*!< The TLS context */
+	module_tls_bio_context_t*       bio;   /*!< The BIO context */
+	module_tls_module_conn_data_t*  conn;  /*!< The connection data */
 	uint32_t*                 dra_counter; /*!< A pointer to an 32-bit unsigned int, which used keep tracking the number of pending DRA */
 } module_tls_dra_param_t;
 

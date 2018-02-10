@@ -30,6 +30,7 @@
 #include <itc/module.h>
 
 #include <module/tls/api.h>
+#include <module/tls/module.h>
 #include <module/tls/bio.h>
 #include <module/tls/dra.h>
 
@@ -40,6 +41,7 @@
 typedef struct {
 	SSL*                         ssl;           /*!< The SSL context we should use */
 	module_tls_bio_context_t*    bio_ctx;       /*!< The BIO context for the current pipe we operate */
+	module_tls_module_conn_data_t* conn;        /*!< The connection data that we need to hold for data transfering */
 	uint32_t*                    dra_counter;   /*!< The variable that indicates how many DRA is going on */
 	enum {
 		_DATA_BUF,                              /*!< This DRA object is the wrapper for data buffer */
@@ -175,6 +177,7 @@ static inline _dra_t* _buffer_dra_new(module_tls_dra_param_t draparam, const voi
 	ret->ssl = draparam.ssl;
 	ret->bio_ctx = draparam.bio;
 	ret->dra_counter = draparam.dra_counter;
+	ret->conn = draparam.conn;
 
 	mempool_objpool_t* small_pool = _get_small_object_pool(size);
 
@@ -222,6 +225,7 @@ static inline _dra_t* _callback_dra_new(module_tls_dra_param_t draparam, itc_mod
 	ret->ssl = draparam.ssl;
 	ret->bio_ctx = draparam.bio;
 	ret->dra_counter = draparam.dra_counter;
+	ret->conn = draparam.conn;
 	if(NULL == (ret->buffer_page = (int8_t*)mempool_page_alloc()))
 	    ERROR_LOG_GOTO(ERR, "Cannot allocate the buffer page");
 
@@ -422,6 +426,12 @@ static inline int _dra_close(void* __restrict handle)
 		new_val = *dra->dra_counter - 1;
 	} while(!__sync_bool_compare_and_swap(dra->dra_counter, new_val + 1, new_val));
 
+	if(ERROR_CODE(int) == module_tls_module_conn_data_release(dra->conn))
+	{
+		rc = ERROR_CODE(int);
+		LOG_ERROR("Cannot releate the TLS connection data");
+	}
+
 	return rc;
 }
 
@@ -481,7 +491,7 @@ static inline int _start_dra(_dra_t* dra)
 
 int module_tls_dra_write_callback(module_tls_dra_param_t draparam, itc_module_data_source_t source)
 {
-	if(NULL == draparam.ssl || NULL == draparam.bio || NULL == draparam.dra_counter ||
+	if(NULL == draparam.ssl || NULL == draparam.bio || NULL == draparam.dra_counter || NULL == draparam.conn ||
 	   source.read == NULL || source.eos == NULL || source.close == NULL)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
@@ -495,13 +505,15 @@ int module_tls_dra_write_callback(module_tls_dra_param_t draparam, itc_module_da
 
 size_t module_tls_dra_write_buffer(module_tls_dra_param_t draparam, const char* data, size_t size)
 {
-	 if(NULL == data || NULL == draparam.ssl || NULL == draparam.bio || NULL == draparam.dra_counter)
+	 if(NULL == data || NULL == draparam.ssl || NULL == draparam.bio || NULL == draparam.dra_counter || NULL == draparam.conn)
 	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 
 	if(0 == *draparam.dra_counter)
 	{
 		LOG_DEBUG("There's no undergoing DRA, rejecting all the write request");
+		if(ERROR_CODE(int) == module_tls_module_conn_data_release(draparam.conn))
+			ERROR_RETURN_LOG(size_t, "Cannot release the DRA connection object");
 		return 0;
 	}
 

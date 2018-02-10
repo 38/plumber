@@ -83,27 +83,29 @@ typedef struct _module_context_t _module_context_t;
 /**
  * @brief the TLS context
  **/
-typedef struct {
-	_module_context_t* module_context;/*!< the module context used by this connection context */
-	_tls_state_t       state;         /*!< the state of the TLS connection */
-	SSL*               ssl;           /*!< the ssl context data */
-	uint32_t           user_state_to_push:1; /*!< indicate this is the user-space state to push */
-	uint32_t           pushed:1;      /*!< set when the state is already pushed */
-	void*              user_state;    /*!< the user space state */
-	itc_module_state_dispose_func_t dispose_user_state;  /*!< the callback function to dispose user defined state */
-	char*              unread_data;   /*!< unread data */
-	uint32_t           unread_data_size; /*!< the size of unread data */
-	uint32_t           unread_data_start; /*!< the data pointer for really unread data */
+typedef struct _module_tls_module_conn_data_t {
+	module_tls_bio_context_t        in_bio_ctx;           /*!< the BIO context used by this TLS context */
+	module_tls_bio_context_t        out_bio_ctx;          /*!< the BIO context used by this TLS context */
+	_module_context_t*              module_context;       /*!< the module context used by this connection context */
+	_tls_state_t                    state;                /*!< the state of the TLS connection */
+	SSL*                            ssl;                  /*!< the ssl context data */
+	uint32_t                        user_state_to_push:1; /*!< indicate this is the user-space state to push */
+	uint32_t                        pushed:1;             /*!< set when the state is already pushed */
+	uint32_t                        dra_counter;          /*!< The shared memory used by the DRA synchornization */
+	uint32_t                        refcnt;               /*!< The reference counter indicates when to dispose the context */
+	void*                           user_state;           /*!< the user space state */
+	itc_module_state_dispose_func_t dispose_user_state;   /*!< the callback function to dispose user defined state */
+	char*                           unread_data;          /*!< unread data */
+	uint32_t                        unread_data_size;     /*!< the size of unread data */
+	uint32_t                        unread_data_start;    /*!< the data pointer for really unread data */
 } _tls_context_t;
 
 /**
  * @brief the TLS pipe handle
  **/
 typedef struct {
-	module_tls_bio_context_t    bio_ctx;        /*!< the BIO context used by this TLS context */
 	_tls_context_t*             tls;            /*!< the TLS related data */
 	_handle_type_t              type;           /*!< the handle type */
-	uint32_t                    dra_counter;    /*!< The shared memory used by the DRA synchornization */
 	uint32_t                    last_read_size; /*!< the size of the last read call, only used in read pipes */
 	uint32_t                    no_more_input;  /*!< if the handle is *definitely* no more input */
 	itc_module_pipe_t*          t_pipe;         /*!< the transportation layer pipe */
@@ -408,8 +410,34 @@ static inline _tls_context_t* _tls_context_new(_module_context_t* context)
 	ret->unread_data_size = 0;
 	ret->unread_data_start = 0;
 	ret->pushed = 0;
+	ret->dra_counter = 0;
+	ret->refcnt = 1;
+	
+	/* Initialize the BIO which uses the pipe */
+	BIO* rbio = NULL;
+	BIO* wbio = NULL;
+
+	ret->in_bio_ctx.pipe = NULL;
+	ret->in_bio_ctx.buffer = NULL;
+	ret->in_bio_ctx.bufsize = 0;
+	rbio = module_tls_bio_new(&ret->in_bio_ctx);
+	if(NULL == rbio) ERROR_LOG_GOTO(L_ERR, "Cannot create the BIO for the input pipe");
+
+	ret->out_bio_ctx.pipe = NULL;
+	ret->out_bio_ctx.buffer = NULL;
+	ret->out_bio_ctx.bufsize = 0;
+	wbio = module_tls_bio_new(&ret->out_bio_ctx);
+	if(NULL == wbio) ERROR_LOG_GOTO(L_ERR, "Cannot create the BIO for the output pipe");
+
+	SSL_set_bio(ret->ssl, rbio, wbio);
 
 	return ret;
+L_ERR:
+	if(rbio != NULL) BIO_free(rbio);
+	if(wbio != NULL) BIO_free(wbio);
+	SSL_free(ret->ssl);
+	mempool_objpool_dealloc(context->tls_pool, ret);
+	return NULL;
 }
 
 /**
@@ -432,10 +460,8 @@ static inline int _user_space_state_dispose(_tls_context_t* tls)
  * @param ctx the context to dispose
  * @return the status code
  **/
-static inline int _tls_context_free(void* ctx)
+static inline int _tls_context_free(_tls_context_t* context)
 {
-	_tls_context_t* context = (_tls_context_t*)ctx;
-
 	if(NULL != context->ssl) SSL_free(context->ssl);
 
 	if(ERROR_CODE(int) == _user_space_state_dispose(context))
@@ -445,6 +471,40 @@ static inline int _tls_context_free(void* ctx)
 	    ERROR_RETURN_LOG(int, "Cannot dispose the used state");
 
 	if(context->unread_data != NULL) free(context->unread_data);
+
+	return 0;
+}
+
+/**
+ * @brief Decref the TLS context
+ * @param ctx The context
+ * @return status code
+ **/
+static inline int _tls_context_decref(void* ctx)
+{
+	_tls_context_t* context = (_tls_context_t*)ctx;
+	uint32_t old;
+
+	do {
+		old = context->refcnt;
+	} while(!__sync_bool_compare_and_swap(&context->refcnt, old, old - 1));
+
+	if(old == 1) return _tls_context_free(context);
+
+	return 0;
+}
+
+/**
+ * @brief Increase the reference counter of the TLS context
+ * @param context The context 
+ * @return status code
+ **/
+static inline int _tls_context_incref(_tls_context_t* context)
+{
+	uint32_t old;
+	do {
+		old = context->refcnt;
+	} while(!__sync_bool_compare_and_swap(&context->refcnt, old, old + 1));
 
 	return 0;
 }
@@ -527,8 +587,6 @@ static int _accept(void* __restrict ctx, const void* __restrict args, void* __re
 
 	itc_module_pipe_t *trans_in = NULL;
 	itc_module_pipe_t *trans_out = NULL;
-	BIO* rbio = NULL;
-	BIO* wbio = NULL;
 	_tls_context_t* tls_state = NULL;
 	/* Indicates if the TLS state is owned by this module */
 	uint32_t state_owned = 0;
@@ -549,20 +607,9 @@ static int _accept(void* __restrict ctx, const void* __restrict args, void* __re
 		state_owned = 1;
 	}
 
-	/* Initialize the BIO which uses the pipe */
-	in->bio_ctx.pipe = trans_in;
-	in->bio_ctx.buffer = NULL;
-	in->bio_ctx.bufsize = 0;
-	rbio = module_tls_bio_new(&in->bio_ctx);
-	if(NULL == rbio) ERROR_LOG_GOTO(L_ERR, "Cannot create the BIO for the input pipe");
-
-	out->bio_ctx.pipe = trans_out;
-	out->bio_ctx.buffer = NULL;
-	out->bio_ctx.bufsize = 0;
-	wbio = module_tls_bio_new(&out->bio_ctx);
-	if(NULL == wbio) ERROR_LOG_GOTO(L_ERR, "Cannot create the BIO for the output pipe");
-
-	SSL_set_bio(tls_state->ssl, rbio, wbio);
+	/* We need to update the BIO transporation layer pointer */
+	tls_state->in_bio_ctx.pipe = trans_in;
+	tls_state->out_bio_ctx.pipe = trans_out;
 
 	/* Popup the pipe to user-space code */
 	tls_state->user_state_to_push = 0;
@@ -579,8 +626,6 @@ static int _accept(void* __restrict ctx, const void* __restrict args, void* __re
 	out->type = _HANDLE_TYPE_OUT;
 	out->tls = tls_state;
 	out->t_pipe = trans_out;
-
-	in->dra_counter = out->dra_counter = 0;
 
 	return 0;
 
@@ -663,8 +708,7 @@ static int _dealloc(void* __restrict ctx, void* __restrict pipe, int error, int 
 		{
 			if(!handle->tls->user_state_to_push && ERROR_CODE(int) == _user_space_state_dispose(handle->tls))
 			    ERROR_RETURN_LOG(int, "Cannot dispose the user-space status");
-
-			if(_invoke_pipe_cntl(handle->t_pipe, RUNTIME_API_PIPE_CNTL_OPCODE_PUSH_STATE, handle->tls, _tls_context_free) == ERROR_CODE(int))
+			if(_invoke_pipe_cntl(handle->t_pipe, RUNTIME_API_PIPE_CNTL_OPCODE_PUSH_STATE, handle->tls, _tls_context_decref) == ERROR_CODE(int))
 			    ERROR_RETURN_LOG(int, "Cannot push TLS context to the transportation layer pipe");
 			else
 			    handle->tls->pushed = 1;
@@ -673,8 +717,7 @@ static int _dealloc(void* __restrict ctx, void* __restrict pipe, int error, int 
 		{
 			if(_invoke_pipe_cntl(handle->t_pipe, RUNTIME_API_PIPE_CNTL_OPCODE_CLR_FLAG, RUNTIME_API_PIPE_PERSIST) == ERROR_CODE(int))
 			    ERROR_RETURN_LOG(int, "Cannot clear the persist flag of the trans_pipe");
-
-			if(!handle->tls->pushed && _tls_context_free(handle->tls) == ERROR_CODE(int))
+			if(!handle->tls->pushed && _tls_context_decref(handle->tls) == ERROR_CODE(int))
 			    ERROR_RETURN_LOG(int, "Cannot dispose the TLS context");
 		}
 	}
@@ -794,10 +837,14 @@ static size_t _write(void* __restrict ctx, const void* __restrict data, size_t n
 			if(con_rc == ERROR_CODE(int)) ERROR_RETURN_LOG(size_t, "Cannot establish the TLS tunnel");
 			else if(con_rc == 0) return 0;
 
+			if(ERROR_CODE(int) == _tls_context_incref(handle->tls))
+				ERROR_RETURN_LOG(size_t, "Cannot increase the reference counter for the TLS context object");
+			
 			module_tls_dra_param_t draparam = {
 				.ssl = handle->tls->ssl,
-				.bio = &handle->bio_ctx,
-				.dra_counter = &handle->dra_counter
+				.bio = &handle->tls->out_bio_ctx,
+				.dra_counter = &handle->tls->dra_counter,
+				.conn = handle->tls
 			};
 			size_t dra_bytes = module_tls_dra_write_buffer(draparam, data, nbytes);
 
@@ -855,10 +902,14 @@ static inline int _write_callback(void* __restrict ctx, itc_module_data_source_t
 
 	if(_should_encrypt(handle))
 	{
+		if(ERROR_CODE(int) == _tls_context_incref(handle->tls))
+			ERROR_RETURN_LOG(int, "Cannot increase the reference counter for the TLS context object");
+		
 		module_tls_dra_param_t draparam = {
 			.ssl = handle->tls->ssl,
-			.bio = &handle->bio_ctx,
-			.dra_counter = &handle->dra_counter
+			.bio = &handle->tls->out_bio_ctx,
+			.dra_counter = &handle->tls->dra_counter,
+			.conn = handle->tls
 		};
 
 		return module_tls_dra_write_callback(draparam, source);
@@ -899,7 +950,7 @@ static int _push_state(void* __restrict ctx, void* __restrict pipe, void* __rest
 	(void) ctx;
 	_handle_t *handle = (_handle_t*) pipe;
 
-	if(NULL != handle->tls->user_state && handle->tls->user_state != state && _tls_context_free(handle->tls) != ERROR_CODE(int))
+	if(NULL != handle->tls->user_state && handle->tls->user_state != state && _user_space_state_dispose(handle->tls) != ERROR_CODE(int))
 	    ERROR_RETURN_LOG(int, "Cannot dispose the previous user-space state");
 
 	handle->tls->user_state = state;
@@ -1408,6 +1459,12 @@ static int  _cntl(void* __restrict context, void* __restrict pipe, uint32_t opco
 		    ERROR_RETURN_LOG(int, "Invalid opcode");
 	}
 	return 0;
+}
+
+int module_tls_module_conn_data_release(module_tls_module_conn_data_t* ctx)
+{
+	if(NULL == ctx) ERROR_RETURN_LOG(int, "Invalid arguments");
+	return _tls_context_decref(ctx);
 }
 
 /**
