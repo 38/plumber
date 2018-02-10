@@ -36,6 +36,19 @@
  *       we are able to mark it to ready whenever the data is ready, and have one more
  *       write failure. And then the async object will be set to _ST_WAIT_CONN. <br/>
  *       Possible state transition: <br/>
+ *       Previously we have two wait states: <br/>
+ *         1. _ST_WAIT_CONN: The async object is waiting for connection while the data source is ready 
+ *         2. _ST_WAIT_DATA: The async object is waiting for data source while the connection state is unknown
+ *       However, after we allow the data source wait for the external resource gets ready, 
+ *       we should have the _ST_WAIT_DATA state can have a timeout as well. Thus we need to 
+ *       make it in the heap. So we combined two state into a new state called _ST_WAIT, which
+ *       includes the both case.
+ *       In the async handle there's one additional field to distinguish those types of waiting. wait_conn
+ *
+ *       In addition, if the worker thread is still working on the connection, we should wait and not
+ *       allow the callback become timeout. However, once we got data_end message, it means the
+ *       async loop should determine if the connection should be hold. At this time we need to
+ *       consider the wait for data timeout.
  *
  *       (async object creation) =&gt; _ST_WAIT_DATA  //when async object is created <br/>
  *       _ST_WAIT_DATA =&gt; _ST_READY                //when data is ready <br/>
@@ -47,10 +60,6 @@
  *       _ST_WAIT_CONN =&gt; _ST_READY                //when connection gets ready at this moment <br/>
  **/
 typedef enum {
-#if 0
-	_ST_WAIT_CONN, /*!< the async object is waiting for connection, but data is ready */
-	_ST_WAIT_DATA, /*!< the async object is waiting for data, and FD status is unknown */
-#endif
 	_ST_WAIT,      /*!< The async object is either waiting for data or waiting for connection */
 	_ST_READY,     /*!< the async object is ready to perform IO operation */
 	_ST_RAISING,   /*!< the async object which has an unhandled error with it */

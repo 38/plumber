@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017-2018, Hao Hou
  **/
 #include <constants.h>
 #ifdef __DARWIN__
@@ -207,7 +207,6 @@ int os_event_poll_del(os_event_poll_t* poll, int fd, int read)
 {
 	if(NULL == poll || fd < 0) ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	//int flags = read ? EVFILT_READ : EVFILT_WRITE;
 	int flags;
 	
 	switch(read)

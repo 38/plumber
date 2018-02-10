@@ -668,7 +668,7 @@ int itc_module_pipe_write_scope_token(runtime_api_scope_token_t token, const run
 {
 	sched_rscope_stream_t* stream = NULL;
 
-	stream = sched_rscope_stream_open(token, handle);
+	stream = sched_rscope_stream_open(token);
 	if(NULL == stream)
 	    ERROR_RETURN_LOG(int, "Cannot open the token stream for read");
 
@@ -725,7 +725,7 @@ int itc_module_pipe_write_data_source(itc_module_data_source_t data_source, cons
 				return 0;
 			}
 
-			size_t bytes_read = data_source.read(data_source.data_handle, buf, bytes_to_read, /*TODO: change this */NULL);
+			size_t bytes_read = data_source.read(data_source.data_handle, buf, bytes_to_read, NULL);
 			if(ERROR_CODE(size_t) == bytes_read || bytes_read > bytes_to_read)
 			    ERROR_RETURN_LOG(int, "Cannot read the token stream");
 
@@ -774,7 +774,7 @@ DR_END:
 			else if(1 == eos_rc) break;
 
 			char* begin;
-			size_t bytes_read = data_source.read(data_source.data_handle, begin = buf, sizeof(buf), /*TODO: change this*/ NULL);
+			size_t bytes_read = data_source.read(data_source.data_handle, begin = buf, sizeof(buf), NULL);
 			if(ERROR_CODE(size_t) == bytes_read)
 			    ERROR_RETURN_LOG(int, "Cannot read the token stream");
 

@@ -384,7 +384,7 @@ typedef struct {
 	int       fd;     /*!< The FD that is used for event notification */
 	uint32_t  read:1; /*!< Is the ready-for-read event a read event */
 	uint32_t  write:1;/*!< Is the ready-for-write event a write event */
-	int32_t  timeout; /*!< The time limit for the RLS token not gets ready */
+	int32_t   timeout; /*!< The time limit for the RLS token not gets ready */
 } runtime_api_scope_ready_event_t;
 
 /**
@@ -433,6 +433,9 @@ typedef struct {
 	 * @param buffer the buffer to return the read result
 	 * @param bufsize the buffer size
 	 * @return the bytes has been read to buffer, or error code
+	 * @note If this function returns 0, it may indicates the stream is waiting for resource gets ready
+	 *       In this case, if the user supports event driven interface, it may call event_func for the 
+	 *       event description that hints the availibility of the stream.
 	 **/
 	size_t (*read_func)(void* __restrict handle, void* __restrict buffer, size_t bufsize);
 

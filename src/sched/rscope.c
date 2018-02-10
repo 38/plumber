@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017-2018, Hao Hou
  **/
 #include <inttypes.h>
 #include <stdint.h>
@@ -51,7 +51,6 @@ typedef struct {
 struct _sched_rscope_stream_t {
 	_scope_entity_t*          entity;   /*!< the underlying scope entity for this stream */
 	runtime_api_scope_token_t token;    /*!< the token id for this entity */
-	void*                     user_data;/*!< The additional user data assocaited to this stream */ 
 	void*                     handle;   /*!< the handle of the stream */
 };
 
@@ -350,7 +349,7 @@ const void* sched_rscope_get(const sched_rscope_t* scope, runtime_api_scope_toke
 	return _entry_table.data[token].data->entity.data;
 }
 
-sched_rscope_stream_t* sched_rscope_stream_open(runtime_api_scope_token_t token, void* user_data)
+sched_rscope_stream_t* sched_rscope_stream_open(runtime_api_scope_token_t token)
 {
 	if(_NULL_ENTRY == token || token >= _entry_table.capacity || _entry_table.data[token].data == NULL)
 	    ERROR_PTR_RETURN_LOG("Invalid arguments");
@@ -369,7 +368,6 @@ sched_rscope_stream_t* sched_rscope_stream_open(runtime_api_scope_token_t token,
 
 	ret->entity = target->data;
 	ret->token = token;
-	ret->user_data = user_data;
 	if(NULL == (ret->handle = target->data->entity.open_func(target->data->entity.data)))
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open the RLS token as a byte stream, RLS token: %u", token);
 
@@ -458,7 +456,3 @@ int sched_rscope_stream_get_event(sched_rscope_stream_t* stream, runtime_api_sco
 	return ent->entity.event_func(stream->handle, buf);
 }
 
-void* sched_rscope_stream_get_user_data(const sched_rscope_stream_t* stream)
-{
-	return stream->user_data;
-}
