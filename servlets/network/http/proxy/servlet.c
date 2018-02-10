@@ -4,16 +4,20 @@
 #include <pservlet.h>
 #include <pstd.h>
 
+#include <options.h>
+
 typedef struct {
-	pipe_t request;
-	pipe_t response;
+	options_t options;
+	pipe_t    request;
+	pipe_t    response;
 } _ctx_t;
 
 static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 {
-	(void)argc;
-	(void)argv;
 	_ctx_t* ctx = (_ctx_t*)ctxmem;
+
+	if(ERROR_CODE(int) == options_parse(argc, argv, &ctx->options))
+		ERROR_RETURN_LOG(int, "Invalid servlete initialization string");
 
 	if(ERROR_CODE(pipe_t) == (ctx->request = pipe_define("request", PIPE_INPUT, "plumber/std_servlet/network/http/proxy/v0/Request")))
 		ERROR_RETURN_LOG(int, "Cannot define the request pipe");
@@ -25,7 +29,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 }
 
 SERVLET_DEF = {
-	.desc    = NULL,
+	.desc    = "The HTTP Proxy Servlet",
 	.version = 0x0,
 	.size    = sizeof(_ctx_t),
 	.init    = _init
