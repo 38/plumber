@@ -63,10 +63,10 @@ typedef int (*itc_module_state_dispose_func_t)(void*);
 
 /**
  * @brief The data structure used to describe a event source of the event driven data source
- * @note  This struct is an additional data returned from the data source callback. 
+ * @note  This struct is an additional data returned from the data source callback.
  *        The data should be considered valid only when the data_source.read callback returns 0.
  *        It indicates the data source now is short from data, but the module would be able to
- *        examine the event source for data availibility. 
+ *        examine the event source for data availibility.
  *        Please note the data availibitiy event just hint about the data availibility, but this
  *        hint might be the exact case. <br/>
  *        If there's no event is defined by this structure, fd should less than 0

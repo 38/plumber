@@ -59,7 +59,7 @@ typedef int (*module_tcp_async_write_error_func_t)(uint32_t conn_id, module_tcp_
 /**
  * @brief The callback function that is used to examine if the callback is empty
  * @note This function is important because since we allow the data source callback returns 0.
- *       We can not say when the data source is waiting for data and the worker thread releases the 
+ *       We can not say when the data source is waiting for data and the worker thread releases the
  *       connection, where shouldn't have data any more. Because it may caused by the slower data source
  *       that blocks the data source callback. <br/>
  *       At this time, we need a way to examine if there's more data pending in the list reliably.
@@ -103,7 +103,7 @@ int module_tcp_async_loop_free(module_tcp_async_loop_t* loop);
 int module_tcp_async_write_register(module_tcp_async_loop_t* loop,
                                     uint32_t conn_id, int fd, size_t buf_size,
                                     module_tcp_async_write_data_func_t get_data,
-									module_tcp_async_write_empty_func_t empty,
+                                    module_tcp_async_write_empty_func_t empty,
                                     module_tcp_async_write_cleanup_func_t cleanup,
                                     module_tcp_async_write_error_func_t onerror,
                                     void* handle);
@@ -160,7 +160,7 @@ int module_tcp_async_set_data_event(module_tcp_async_loop_t* loop, uint32_t conn
 /**
  * @brief Clear the data event with the async handle
  * @details This is the counter part of the module_tcp_async_set_data_event. It deregister the external FD when the
- *          callback needs to do so. 
+ *          callback needs to do so.
  *          PLEASE NOTE: This function MUST CALLED INSIDE THE GET_DATA CALLBACK. Otherwise the behavior is not well-defined.
  * @param   loop The event loop
  * @param   conn_id The connection ID

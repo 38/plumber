@@ -513,7 +513,7 @@ size_t module_tls_dra_write_buffer(module_tls_dra_param_t draparam, const char* 
 	{
 		LOG_DEBUG("There's no undergoing DRA, rejecting all the write request");
 		if(ERROR_CODE(int) == module_tls_module_conn_data_release(draparam.conn))
-			ERROR_RETURN_LOG(size_t, "Cannot release the DRA connection object");
+		    ERROR_RETURN_LOG(size_t, "Cannot release the DRA connection object");
 		return 0;
 	}
 

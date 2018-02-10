@@ -405,7 +405,7 @@ PAGE_EXHAUSTED:
 			handle->page_off = 0;
 			handle->page_begin = handle->page_begin->next;
 			if(ERROR_CODE(int) == module_tcp_async_clear_data_event(loop, conn))
-				LOG_WARNING("Cannot clear the data event");
+			    LOG_WARNING("Cannot clear the data event");
 			if(ERROR_CODE(int) == _async_buf_page_free(tmp))
 			    LOG_WARNING("Cannot deallocate the async buffer page");
 
@@ -452,7 +452,7 @@ static inline int _async_handle_onerror(uint32_t conn, module_tcp_async_loop_t* 
  * @param conn The connection ID
  * @param loop The async loop
  * @return check rsult or status code
- * @note This function will called only after the data_end message has been sent, 
+ * @note This function will called only after the data_end message has been sent,
  *       thus we don't need to care about the thread safety.
  **/
 static inline int _async_handle_empty(uint32_t conn, module_tcp_async_loop_t* loop)
@@ -460,12 +460,12 @@ static inline int _async_handle_empty(uint32_t conn, module_tcp_async_loop_t* lo
 	_async_handle_t* handle = (_async_handle_t*)module_tcp_async_get_data_handle(loop, conn);
 
 	if(NULL == handle)
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot get the data handle for connection object %"PRIu32, conn);
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot get the data handle for connection object %"PRIu32, conn);
 
 	if(handle->page_begin == NULL) return 1;
 
 	if(handle->page_begin->next == NULL && !_async_buf_page_is_data_source(handle->page_begin))
-		return handle->page_begin->nbytes <= handle->page_off;
+	    return handle->page_begin->nbytes <= handle->page_off;
 
 	return 0;
 }
@@ -919,10 +919,10 @@ static inline int _ensure_async_loop_init(_module_context_t* context)
 		{
 			if(NULL == (context->async_loop = module_tcp_async_loop_new(context->pool_conf.size,
 			                                                            (uint32_t)context->pool_conf.event_size,
-			                                                            context->pool_conf.ttl, 
-																		/* TODO: make a value for data TTL that make sense  */
-																		context->pool_conf.ttl,
-																		NULL)))
+			                                                            context->pool_conf.ttl,
+			                                                            /* TODO: make a value for data TTL that make sense  */
+			                                                            context->pool_conf.ttl,
+			                                                            NULL)))
 			{
 				rc = ERROR_CODE(int);
 				LOG_ERROR("Cannot initialize the async loop");

@@ -446,12 +446,12 @@ size_t sched_rscope_stream_read(sched_rscope_stream_t* stream, void* buffer, siz
 int sched_rscope_stream_get_event(sched_rscope_stream_t* stream, runtime_api_scope_ready_event_t* buf)
 {
 	if(NULL == stream || NULL == buf)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_scope_entity_t* ent = stream->entity;
 
 	if(ent->entity.event_func == NULL)
-		return 0;
+	    return 0;
 
 	return ent->entity.event_func(stream->handle, buf);
 }

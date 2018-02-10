@@ -37,10 +37,10 @@
  *       write failure. And then the async object will be set to _ST_WAIT_CONN. <br/>
  *       Possible state transition: <br/>
  *       Previously we have two wait states: <br/>
- *         1. _ST_WAIT_CONN: The async object is waiting for connection while the data source is ready 
+ *         1. _ST_WAIT_CONN: The async object is waiting for connection while the data source is ready
  *         2. _ST_WAIT_DATA: The async object is waiting for data source while the connection state is unknown
- *       However, after we allow the data source wait for the external resource gets ready, 
- *       we should have the _ST_WAIT_DATA state can have a timeout as well. Thus we need to 
+ *       However, after we allow the data source wait for the external resource gets ready,
+ *       we should have the _ST_WAIT_DATA state can have a timeout as well. Thus we need to
  *       make it in the heap. So we combined two state into a new state called _ST_WAIT, which
  *       includes the both case.
  *       In the async handle there's one additional field to distinguish those types of waiting. wait_conn
@@ -96,9 +96,9 @@ typedef struct {
 	 *        For the same reason, unless the previous _MT_END message is processed, there shouldn't
 	 *        be any other _MT_END on the same connection object. <br/>
 	 *        For _MT_KILL, it doesn't matter anyway, since it's the last message this loop processes. <br/>
-	 *        The data_ev_fd is the concept that the data source might be wrapper of another FD, thus 
-	 *        the data will gets ready whenever the data event FD gets ready. And the event of readiness of 
-	 *        the data event FD is translated to the data source gets ready by the async loop. See related 
+	 *        The data_ev_fd is the concept that the data source might be wrapper of another FD, thus
+	 *        the data will gets ready whenever the data event FD gets ready. And the event of readiness of
+	 *        the data event FD is translated to the data source gets ready by the async loop. See related
 	 *        function documentations: module_tcp_async_set_data_event and module_tcp_async_clear_data_event
 	 */
 	int                                        async_magic;   /*!< The magic number, which should be 0 */
@@ -351,9 +351,9 @@ static inline int  _async_obj_set_state(module_tcp_async_loop_t* loop, _async_ob
 		if(state == _ST_WAIT)
 		{
 			if(async->wait_conn)
-				async->kickout_ts = time(NULL) + loop->ttl;
+			    async->kickout_ts = time(NULL) + loop->ttl;
 			else
-				async->kickout_ts = time(NULL) + (async->data_event.timeout > loop->data_ttl ? loop->data_ttl : async->data_event.timeout);
+			    async->kickout_ts = time(NULL) + (async->data_event.timeout > loop->data_ttl ? loop->data_ttl : async->data_event.timeout);
 
 			/* if this connection is being adding to the wait state, maintain the heap property */
 			_async_wait_conn_decrease(loop, async->index);
@@ -453,15 +453,15 @@ L_WAIT_DATA:
 			if(ERROR_CODE(int) == is_empty)
 			{
 				LOG_ERROR("Connection object %"PRIu32" returns an error code"
-						  "when examing pending bytes, raising error", _async_obj_conn_id(loop, obj));
+				          "when examing pending bytes, raising error", _async_obj_conn_id(loop, obj));
 				return _ST_RAISING;
 			}
 
 			if(is_empty)
 			{
 				LOG_DEBUG("Connection object %"PRIu32" has been released by the module "
-						  "and data buffer exhausted, updating the state to FINISHED",
-						  _async_obj_conn_id(loop, obj));
+				          "and data buffer exhausted, updating the state to FINISHED",
+				          _async_obj_conn_id(loop, obj));
 				return _ST_FINISHED;
 			}
 			else goto L_WAIT_DATA;
@@ -670,7 +670,7 @@ static inline int _process_async_objs(module_tcp_async_loop_t* loop)
 		uint32_t conn_id = _async_obj_conn_id(loop, this);
 
 		if(ERROR_CODE(int) == module_tcp_async_clear_data_event(loop, conn_id))
-			LOG_ERROR("Cannot remove the data event FD from the epoll list");
+		    LOG_ERROR("Cannot remove the data event FD from the epoll list");
 
 		LOG_DEBUG("handling the async object in finished state for connection object %"PRIu32, conn_id);
 
@@ -760,7 +760,7 @@ static inline int _process_queue_message(module_tcp_async_loop_t* loop)
 				{
 					LOG_ERROR("The connection object %"PRIu32" failed to return the empty state, raising an error", current->conn_id);
 					if(ERROR_CODE(int) == _async_obj_set_state(loop, async, _ST_RAISING))
-						LOG_WARNING("Cannot set the connection object %"PRIu32" to RAISING state", current->conn_id);
+					    LOG_WARNING("Cannot set the connection object %"PRIu32" to RAISING state", current->conn_id);
 				}
 
 				if(is_empty) finished = 1;
@@ -892,7 +892,7 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 				if(_ST_WAIT == state && !async->wait_conn)
 				{
 					if(_async_obj_set_state(loop, async, _ST_READY) == ERROR_CODE(int))
-						ERROR_RETURN_LOG(int, "Cannot set the state of the async object to _ST_READY");
+					    ERROR_RETURN_LOG(int, "Cannot set the state of the async object to _ST_READY");
 
 					LOG_DEBUG("Connection object %"PRIu32" has been set to _ST_READY state", _async_obj_conn_id(loop, async));
 				}
@@ -911,8 +911,8 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 			if(_async_obj_set_state(loop, async, _ST_RAISING) == ERROR_CODE(int))
 			{
 				LOG_WARNING("Cannot set the timed out connection %"PRIu32" to %s state",
-							_async_obj_conn_id(loop, async),
-							_async_obj_state_str[_ST_RAISING]);
+				            _async_obj_conn_id(loop, async),
+				            _async_obj_state_str[_ST_RAISING]);
 				continue;
 			}
 
@@ -927,15 +927,15 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 			if(_async_obj_set_state(loop, async, _ST_RAISING) == ERROR_CODE(int))
 			{
 				LOG_WARNING("Cannot set the timed out data source %"PRIu32" to %s state",
-						     _async_obj_conn_id(loop, async),
-							 _async_obj_state_str[_ST_RAISING]);
+				             _async_obj_conn_id(loop, async),
+				             _async_obj_state_str[_ST_RAISING]);
 				continue;
 			}
 		}
 		else
 		{
 			/* Because if the async data source is still active, its possible that the timeout is
-			 * caused by the data source is working on other staff. In this case, we could wait 
+			 * caused by the data source is working on other staff. In this case, we could wait
 			 * for it until the data source becomes inactive */
 			async->kickout_ts = time(NULL) + (async->data_event.timeout > loop->data_ttl ? loop->data_ttl : async->data_event.timeout);
 
@@ -1121,7 +1121,7 @@ ERR:
 int module_tcp_async_write_register(module_tcp_async_loop_t* loop,
                                     uint32_t conn_id, int fd, size_t buf_size,
                                     module_tcp_async_write_data_func_t get_data,
-									module_tcp_async_write_empty_func_t empty,
+                                    module_tcp_async_write_empty_func_t empty,
                                     module_tcp_async_write_cleanup_func_t cleanup,
                                     module_tcp_async_write_error_func_t on_error,
                                     void* handle)
@@ -1253,11 +1253,11 @@ int module_tcp_async_loop_free(module_tcp_async_loop_t* loop)
 static inline int _get_read_flag(const itc_module_data_source_event_t* event)
 {
 	if(event->read_event && event->write_event)
-		return 2;
+	    return 2;
 	else if(event->read_event)
-		return 1;
+	    return 1;
 	else if(event->write_event)
-		return 0;
+	    return 0;
 	else return -1;
 }
 
@@ -1268,27 +1268,27 @@ int module_tcp_async_set_data_event(module_tcp_async_loop_t* loop, uint32_t conn
 #ifndef FULL_OPTIMIZATION
 
 	if(thread_get_current_type() != THREAD_TYPE_IO)
-		ERROR_RETURN_LOG(int, "The function shouldn't be called from thread other than IO loop");
+	    ERROR_RETURN_LOG(int, "The function shouldn't be called from thread other than IO loop");
 
 	if(event.fd == async->fd)
-		ERROR_RETURN_LOG(int, "Cannot add the same FD as the data event FD");
+	    ERROR_RETURN_LOG(int, "Cannot add the same FD as the data event FD");
 #endif
 
 	if(NULL == loop || conn_id == ERROR_CODE(uint32_t))
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	int flag = _get_read_flag(&event);
 	if(ERROR_CODE(int) == flag)
-		ERROR_RETURN_LOG(int, "Invalid event description");
+	    ERROR_RETURN_LOG(int, "Invalid event description");
 
 	if(async->data_event.fd == event.fd && flag == _get_read_flag(&async->data_event))
-		return 0;
+	    return 0;
 
 	if(async->data_event.fd == event.fd && -1 == _get_read_flag(&async->data_event))
-		return module_tcp_async_clear_data_event(loop, conn_id);
+	    return module_tcp_async_clear_data_event(loop, conn_id);
 
 	if(async->data_event.fd != event.fd && async->data_event.fd != -1 && ERROR_CODE(int) == os_event_poll_del(loop->poll, async->data_event.fd, _get_read_flag(&async->data_event)))
-		ERROR_RETURN_LOG(int, "Cannot remove the previous registered data event FD");
+	    ERROR_RETURN_LOG(int, "Cannot remove the previous registered data event FD");
 
 	os_event_desc_t desc = {
 		.type = OS_EVENT_TYPE_KERNEL,
@@ -1301,27 +1301,27 @@ int module_tcp_async_set_data_event(module_tcp_async_loop_t* loop, uint32_t conn
 	switch(flag)
 	{
 		case 0:
-			desc.kernel.event = OS_EVENT_KERNEL_EVENT_OUT;
-			break;
+		    desc.kernel.event = OS_EVENT_KERNEL_EVENT_OUT;
+		    break;
 		case 1:
-			desc.kernel.event = OS_EVENT_KERNEL_EVENT_IN;
-			break;
+		    desc.kernel.event = OS_EVENT_KERNEL_EVENT_IN;
+		    break;
 		case 2:
-			desc.kernel.event = OS_EVENT_KERNEL_EVENT_BIDIR;
-			break;
+		    desc.kernel.event = OS_EVENT_KERNEL_EVENT_BIDIR;
+		    break;
 		default:
-			ERROR_RETURN_LOG(int, "Unexpected event flag");
+		    ERROR_RETURN_LOG(int, "Unexpected event flag");
 	}
 
 	if(async->data_event.fd != event.fd)
 	{
 		if(ERROR_CODE(int) == os_event_poll_add(loop->poll, &desc))
-			ERROR_RETURN_LOG(int, "Cannot add the data event FD to the poll list");
+		    ERROR_RETURN_LOG(int, "Cannot add the data event FD to the poll list");
 	}
 	else
 	{
 		if(ERROR_CODE(int) == os_event_poll_modify(loop->poll, &desc))
-			ERROR_RETURN_LOG(int, "Cannot modify the data event FD in the poll list");
+		    ERROR_RETURN_LOG(int, "Cannot modify the data event FD in the poll list");
 	}
 
 	async->data_event = event;
@@ -1335,19 +1335,19 @@ int module_tcp_async_clear_data_event(module_tcp_async_loop_t* loop, uint32_t co
 #ifndef FULL_OPTIMIZATION
 
 	if(thread_get_current_type() != THREAD_TYPE_IO)
-		ERROR_RETURN_LOG(int, "The function shouldn't be called from thread other than IO loop");
+	    ERROR_RETURN_LOG(int, "The function shouldn't be called from thread other than IO loop");
 
 #endif
 
 	if(NULL == loop || ERROR_CODE(uint32_t) == conn_id)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_async_obj_t* async = loop->objects + conn_id;
 
 	if(async->data_event.fd < 0) return 0;
 
 	if(ERROR_CODE(int) == os_event_poll_del(loop->poll, async->data_event.fd, _get_read_flag(&async->data_event)))
-		ERROR_RETURN_LOG(int, "Cannot remove the associated FD from the poll object");
+	    ERROR_RETURN_LOG(int, "Cannot remove the associated FD from the poll object");
 
 	async->data_event.fd = -1;
 

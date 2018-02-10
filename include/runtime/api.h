@@ -434,7 +434,7 @@ typedef struct {
 	 * @param bufsize the buffer size
 	 * @return the bytes has been read to buffer, or error code
 	 * @note If this function returns 0, it may indicates the stream is waiting for resource gets ready
-	 *       In this case, if the user supports event driven interface, it may call event_func for the 
+	 *       In this case, if the user supports event driven interface, it may call event_func for the
 	 *       event description that hints the availibility of the stream.
 	 **/
 	size_t (*read_func)(void* __restrict handle, void* __restrict buffer, size_t bufsize);
@@ -450,7 +450,7 @@ typedef struct {
 	 * @brief Get the event that should be used as the notification for the readiness of the stream
 	 * @param handle The stream handle
 	 * @param event_buf The buffer used to return the event
-	 * @return Number of event has been registered, 0 if no event should be registered, 1 for needs to register one 
+	 * @return Number of event has been registered, 0 if no event should be registered, 1 for needs to register one
 	 *         event and error code for all the error cases
 	 **/
 	int (*event_func)(void* __restrict handle, runtime_api_scope_ready_event_t* event_buf);

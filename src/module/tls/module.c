@@ -412,7 +412,7 @@ static inline _tls_context_t* _tls_context_new(_module_context_t* context)
 	ret->pushed = 0;
 	ret->dra_counter = 0;
 	ret->refcnt = 1;
-	
+
 	/* Initialize the BIO which uses the pipe */
 	BIO* rbio = NULL;
 	BIO* wbio = NULL;
@@ -496,7 +496,7 @@ static inline int _tls_context_decref(void* ctx)
 
 /**
  * @brief Increase the reference counter of the TLS context
- * @param context The context 
+ * @param context The context
  * @return status code
  **/
 static inline int _tls_context_incref(_tls_context_t* context)
@@ -838,8 +838,8 @@ static size_t _write(void* __restrict ctx, const void* __restrict data, size_t n
 			else if(con_rc == 0) return 0;
 
 			if(ERROR_CODE(int) == _tls_context_incref(handle->tls))
-				ERROR_RETURN_LOG(size_t, "Cannot increase the reference counter for the TLS context object");
-			
+			    ERROR_RETURN_LOG(size_t, "Cannot increase the reference counter for the TLS context object");
+
 			module_tls_dra_param_t draparam = {
 				.ssl = handle->tls->ssl,
 				.bio = &handle->tls->out_bio_ctx,
@@ -903,8 +903,8 @@ static inline int _write_callback(void* __restrict ctx, itc_module_data_source_t
 	if(_should_encrypt(handle))
 	{
 		if(ERROR_CODE(int) == _tls_context_incref(handle->tls))
-			ERROR_RETURN_LOG(int, "Cannot increase the reference counter for the TLS context object");
-		
+		    ERROR_RETURN_LOG(int, "Cannot increase the reference counter for the TLS context object");
+
 		module_tls_dra_param_t draparam = {
 			.ssl = handle->tls->ssl,
 			.bio = &handle->tls->out_bio_ctx,

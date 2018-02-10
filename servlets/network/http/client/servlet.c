@@ -61,7 +61,7 @@ static int _init(uint32_t argc, char const* const* argv, void* data)
 	ctx_t* ctx = (ctx_t*)data;
 
 	if(ERROR_CODE(int) == options_parse(argc, argv, &ctx->options))
-		ERROR_RETURN_LOG(int, "Cannot parse the servlet initialization options");
+	    ERROR_RETURN_LOG(int, "Cannot parse the servlet initialization options");
 
 	/**
 	 * TODO: What if the data payload is extermely large ? We need to make the data section be a file token as well
@@ -231,7 +231,7 @@ static int _async_setup(async_handle_t* handle, void* data, void* ctxbuf)
 	abuf->request.setup_data = abuf;
 	abuf->follow = (ctx->options.follow_redir != 0);
 
-	/* We cannot set the servlet mode to the synchronized mode at this point. Since once we failed to 
+	/* We cannot set the servlet mode to the synchronized mode at this point. Since once we failed to
 	 * performe the nonblocking add, we need async_exec to run. But the wait mode will prevent the async_exec
 	 * task from running. So the state will be set only when the task is about to start  */
 	int rc = client_add_request(&abuf->request, 0, _before_request_started, handle);

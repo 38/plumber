@@ -12,19 +12,19 @@ static inline int _opt_callback(pstd_option_data_t data)
 	switch(data.current_option->short_opt)
 	{
 		case 'T':
-			opt->num_threads = (uint32_t)data.param_array[0].intval;
-			break;
+		    opt->num_threads = (uint32_t)data.param_array[0].intval;
+		    break;
 		case 'Q':
-			opt->queue_size  = (uint32_t)data.param_array[0].intval;
-			break;
+		    opt->queue_size  = (uint32_t)data.param_array[0].intval;
+		    break;
 		case 'P':
-			opt->num_parallel = (uint32_t)data.param_array[0].intval;
-			break;
+		    opt->num_parallel = (uint32_t)data.param_array[0].intval;
+		    break;
 		case 'H':
-			opt->save_header = 1;
-			break;
+		    opt->save_header = 1;
+		    break;
 		case 'f':
-			opt->follow_redir = 1;
+		    opt->follow_redir = 1;
 		    break;
 		default:
 		    ERROR_RETURN_LOG(int, "Invalid options");
@@ -89,7 +89,7 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 {
 
 	if(ERROR_CODE(uint32_t) == argc || NULL == argv || NULL == buf)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	buf->num_threads  = 1;
 	buf->num_parallel = 128;

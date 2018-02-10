@@ -71,16 +71,16 @@ static inline unsigned _get_epoll_flags(os_event_kernel_event_desc_t* kev)
 	{
 		case OS_EVENT_KERNEL_EVENT_IN:
 		case OS_EVENT_KERNEL_EVENT_CONNECT:
-			epoll_flags = EPOLLIN | EPOLLET;
-			break;
+		    epoll_flags = EPOLLIN | EPOLLET;
+		    break;
 		case OS_EVENT_KERNEL_EVENT_OUT:
-			epoll_flags = EPOLLOUT | EPOLLET;
-			break;
+		    epoll_flags = EPOLLOUT | EPOLLET;
+		    break;
 		case OS_EVENT_KERNEL_EVENT_BIDIR:
-			epoll_flags = EPOLLIN | EPOLLOUT | EPOLLET;
-			break;
+		    epoll_flags = EPOLLIN | EPOLLOUT | EPOLLET;
+		    break;
 		default:
-			ERROR_RETURN_LOG(unsigned, "Invalid kernel event type");
+		    ERROR_RETURN_LOG(unsigned, "Invalid kernel event type");
 	}
 	return epoll_flags;
 }
@@ -88,15 +88,15 @@ static inline unsigned _get_epoll_flags(os_event_kernel_event_desc_t* kev)
 int os_event_poll_modify(os_event_poll_t* poll, os_event_desc_t* desc)
 {
 	if(NULL == poll || NULL == desc)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(desc->type != OS_EVENT_TYPE_KERNEL)
-		ERROR_RETURN_LOG(int, "Only kernel event is allowed");
+	    ERROR_RETURN_LOG(int, "Only kernel event is allowed");
 
 	unsigned epoll_flags = _get_epoll_flags(&desc->kernel);
 
 	if(ERROR_CODE(unsigned) == epoll_flags)
-		ERROR_RETURN_LOG(int, "Cannot determine the epoll flags");
+	    ERROR_RETURN_LOG(int, "Cannot determine the epoll flags");
 
 	struct epoll_event event = {
 		.events = epoll_flags,
@@ -106,13 +106,13 @@ int os_event_poll_modify(os_event_poll_t* poll, os_event_desc_t* desc)
 	};
 
 	if(epoll_ctl(poll->epoll_fd, EPOLL_CTL_MOD, desc->kernel.fd, &event) >= 0)
-		return 0;
+	    return 0;
 
 	if(errno == ENOENT)
 	{
 		/* If this epoll event is not exist, we could add a new one */
 		if(epoll_ctl(poll->epoll_fd, EPOLL_CTL_ADD, desc->kernel.fd, &event) < 0)
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot add FD to the epoll list");
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot add FD to the epoll list");
 		return 0;
 	}
 
@@ -132,8 +132,8 @@ int os_event_poll_add(os_event_poll_t* poll, os_event_desc_t* desc)
 		case OS_EVENT_TYPE_KERNEL:
 		    fd = desc->kernel.fd;
 		    data = desc->kernel.data;
-			if(ERROR_CODE(unsigned) == (epoll_flags = _get_epoll_flags(&desc->kernel)))
-				ERROR_RETURN_LOG(int, "Cannot determine the epoll flags");
+		    if(ERROR_CODE(unsigned) == (epoll_flags = _get_epoll_flags(&desc->kernel)))
+		        ERROR_RETURN_LOG(int, "Cannot determine the epoll flags");
 		    break;
 		case OS_EVENT_TYPE_USER:
 		    if((fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC)) < 0)

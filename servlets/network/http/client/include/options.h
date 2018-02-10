@@ -19,7 +19,7 @@ typedef struct {
 } options_t;
 
 /**
- * @brief Parse the servlet init options 
+ * @brief Parse the servlet init options
  * @param argc The count of the arguments
  * @param argv The actual values of the arguments
  * @param buf  The buffer for the parsed options

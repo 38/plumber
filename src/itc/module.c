@@ -623,9 +623,9 @@ static inline size_t _rls_stream_read(void* __restrict handle, void* __restrict 
 		runtime_api_scope_ready_event_t event;
 
 		if(ERROR_CODE(int) == (rc = sched_rscope_stream_get_event(stream, &event)))
-			ERROR_RETURN_LOG(size_t, "Cannot acquire the event buffer");
+		    ERROR_RETURN_LOG(size_t, "Cannot acquire the event buffer");
 
-		if(rc == 0) 
+		if(rc == 0)
 		{
 			event_buf->fd = -1;
 			event_buf->read_event = 0;

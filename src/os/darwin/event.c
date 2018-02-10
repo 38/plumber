@@ -122,7 +122,7 @@ ERR:
 int os_event_poll_modify(os_event_poll_t* poll, os_event_desc_t* desc)
 {
 	if(NULL != desc && desc->type != OS_EVENT_TYPE_KERNEL)
-		ERROR_RETURN_LOG(int, "Only kernel event is allowed");
+	    ERROR_RETURN_LOG(int, "Only kernel event is allowed");
 
 	/* For KQueue implementaiton, re-add the same event is sufficient */
 	return os_event_poll_add(poll, desc);
@@ -177,7 +177,7 @@ int os_event_poll_add(os_event_poll_t* poll, os_event_desc_t* desc)
 		else if(desc->kernel.event == OS_EVENT_KERNEL_EVENT_OUT)
 		    flags = EVFILT_WRITE;
 		else if(desc->kernel.event == OS_EVENT_KERNEL_EVENT_BIDIR)
-			flags = EVFILT_WRITE | EVFILT_READ;
+		    flags = EVFILT_WRITE | EVFILT_READ;
 
 		ret = fd;
 	}
@@ -208,20 +208,20 @@ int os_event_poll_del(os_event_poll_t* poll, int fd, int read)
 	if(NULL == poll || fd < 0) ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	int flags;
-	
+
 	switch(read)
 	{
 		case 0:
-			flags = EVFILT_WRITE;
-			break;
+		    flags = EVFILT_WRITE;
+		    break;
 		case 1:
-			flags = EVFILT_READ;
-			break;
+		    flags = EVFILT_READ;
+		    break;
 		case 2:
-			flags = EVFILT_READ | EVFILT_WRITE;
-			break;
+		    flags = EVFILT_READ | EVFILT_WRITE;
+		    break;
 		default:
-			ERROR_RETURN_LOG(int, "Invalid read flags");
+		    ERROR_RETURN_LOG(int, "Invalid read flags");
 	}
 
 	size_t i;
