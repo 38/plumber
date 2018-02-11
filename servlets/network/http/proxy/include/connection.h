@@ -21,7 +21,7 @@ int connection_pool_init(uint32_t size, uint32_t peer_pool_size);
  * @brief The connection pool finalization (Called from each servlet)
  * @return status code
  **/
-int connection_pool_finalize();
+int connection_pool_finalize(void);
 
 /**
  * @brief Acquire a connection from the connection pool
@@ -29,15 +29,16 @@ int connection_pool_finalize();
  * @param port The destination port
  * @return The socket FD that is connected the target
  **/
-int connection_pool_acquire(const char* hostname, uint16_t port);
+int connection_pool_checkout(const char* hostname, uint16_t port);
 
 /**
  * @brief Release the connection and return it to the connection pool
  * @param hostname The peer hostname
  * @param port The port 
  * @param fd The socket FD to release
+ * @param faulty Indicates if this fd is faulty and should be closed
  * @return status code
  **/
-int connection_pool_release(const char* hostname, uint16_t port, int fd);
+int connection_pool_checkin(const char* hostname, uint16_t port, int fd, int faulty);
 
 #endif
