@@ -46,8 +46,7 @@ typedef struct {
 	uint32_t   num_conn;     /*!< The number of connections in the pool */
 	_conn_t*   lru_list;     /*!< The least recently used list */
 	int        epoll;        /*!< The epoll that used to monitor the socket close event */
-	uintpad_t  __padding__[0];
-	_peer_t*   table[0];        /*!< The hash table used for the peer */
+	_peer_t**  table[0];        /*!< The hash table used for the peer */
 } _thread_conn_pool_t;
 
 /**
@@ -71,19 +70,14 @@ static void* _thread_init(uint32_t tid, const void* data)
 {
 	(void)tid;
 	(void)data;
-	_thread_conn_pool_t* ret = (_thread_conn_pool_t*)calloc(sizeof(_pool) + sizeof(_peer_t) * _pool.hash_size, 1);
+	_thread_conn_pool_t* ret = (_thread_conn_pool_t*)calloc(sizeof(_pool), 1);
 
 	if(NULL == ret) 
 		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the thread local");
 
-	if((ret->epoll = epoll_create1(0)) < 0)
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create epoll for socket closure detection");
+	/* This means we should make sure that the hash table and epoll are actually initialized before use */
 
 	return ret;
-
-ERR:
-	free(ret);
-	return NULL;
 
 }
 
