@@ -34,6 +34,13 @@ typedef struct _request_t request_t;
 request_t* request_new(request_method_t method, const char* url, const char* data);
 
 /**
+ * @brief Dispose a uncommited request
+ * @param req The request
+ * @return status code
+ **/
+int request_free(request_t* req);
+
+/**
  * @brief Commit the request to the RLS scope
  * @param request The request object 
  * @return The token that is used to refer the object

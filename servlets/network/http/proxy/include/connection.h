@@ -27,18 +27,18 @@ int connection_pool_finalize(void);
  * @brief Acquire a connection from the connection pool
  * @param hostname The destination host name
  * @param port The destination port
- * @return The socket FD that is connected the target
+ * @param fd The buffer used to return fd
+ * @return Number of connections has been checked out, or error code
  **/
-int connection_pool_checkout(const char* hostname, uint16_t port);
+int connection_pool_checkout(const char* hostname, size_t hostname_len, uint16_t port, int* fd);
 
 /**
  * @brief Release the connection and return it to the connection pool
  * @param hostname The peer hostname
  * @param port The port 
  * @param fd The socket FD to release
- * @param faulty Indicates if this fd is faulty and should be closed
  * @return status code
  **/
-int connection_pool_checkin(const char* hostname, uint16_t port, int fd, int faulty);
+int connection_pool_checkin(const char* hostname, size_t hostname_len, uint16_t port, int fd);
 
 #endif
