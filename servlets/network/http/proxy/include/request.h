@@ -31,7 +31,7 @@ typedef struct _request_t request_t;
  * @param data The addtional payload data
  * @return status code
  **/
-request_t* request_new(request_method_t method, const char* url, const char* data);
+request_t* request_new(request_method_t method, const char* url, const char* data, size_t data_len);
 
 /**
  * @brief Dispose a uncommited request
