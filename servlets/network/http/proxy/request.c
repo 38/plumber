@@ -341,14 +341,17 @@ static inline int _connect(_stream_t* stream)
 	{
 		char c;
 		LOG_DEBUG("The connection pool returns a socket, try to validate the socket is in good state");
-		if(recv(stream->sock, &c, 1, MSG_PEEK) < 0)
+		ssize_t sz = recv(stream->sock, &c, 1, MSG_PEEK);
+
+		if((sz < 0 && errno != EWOULDBLOCK && errno != EAGAIN) || sz == 0)
 		{
-			if(errno != EWOULDBLOCK && errno != EAGAIN)
-			{
-				LOG_DEBUG("The socket fd returns an unexpected FD, closing it and establish a new one");
-				close(stream->sock);
-				conn_rc = 0;
-			}
+			if(sz < 0)
+				LOG_DEBUG_ERRNO("The socket fd returns an unexpected FD, closing it and establish a new one");
+			else
+				LOG_DEBUG("The socket is in half-closed state, get rid of that one");
+			if(close(stream->sock) < 0)
+				LOG_WARNING_ERRNO("Cannot close the FD");
+			conn_rc = 0;
 		}
 	}
 
@@ -419,14 +422,54 @@ CONN_FAIL:
 
 static int _rls_close(void* obj)
 {
-	int  rc = 0;
+	int  rc = 0, needs_close = 0;
 	_stream_t* stream = (_stream_t*)obj;
 
-	if(stream->sock >= 0 && ERROR_CODE(int) == connection_pool_checkin(stream->req->domain, stream->req->domain_len, stream->req->port, stream->sock))
+	if(stream->sock >= 0)
 	{
-		rc = ERROR_CODE(int);
-		LOG_ERROR("Cannot checkin the connection to the connection pool");
-		close(stream->sock);
+
+		/* First of all, we need to shut down all the socket that is wrong */
+		if(stream->error) needs_close = 1;
+
+		/* Then we need to dealing with the socket that still have undergoing data transferring */
+		if(!http_response_complete(&stream->response))
+		{
+			
+			LOG_DEBUG("The stream has to be closed because client has shutted down");
+
+			/* Try to read at most once to see if we can see the end of message, if we can see the end of message, we saved this connection */
+			char buf[4096];
+
+			ssize_t sz = read(stream->sock, buf, sizeof(buf));
+
+			if(sz < 0 && errno != EWOULDBLOCK && errno != EAGAIN)
+			{
+				if(errno != EPIPE)
+					LOG_WARNING_ERRNO("The remote server peer socket is error");
+				else
+					LOG_TRACE_ERRNO("Could not read more data, because the socket is half-closed");
+
+				needs_close = 1;
+			}
+
+			if(1 == http_response_parse(&stream->response, buf, (size_t)sz) && http_response_complete(&stream->response))
+				LOG_DEBUG("We finally figured out where the message ends, checkin the socket instread of close");
+			else
+				needs_close = 1;
+		}
+
+		if(needs_close && close(stream->sock) < 0)
+		{
+			rc = ERROR_CODE(int);
+			LOG_ERROR_ERRNO("Cannot close the error socket");
+		}
+
+		if(!needs_close && ERROR_CODE(int) == connection_pool_checkin(stream->req->domain, stream->req->domain_len, stream->req->port, stream->sock))
+		{
+			rc = ERROR_CODE(int);
+			LOG_ERROR("Cannot checkin the connection to the connection pool");
+			close(stream->sock);
+		}
 	}
 
 	if(ERROR_CODE(int) == pstd_mempool_free(stream))
