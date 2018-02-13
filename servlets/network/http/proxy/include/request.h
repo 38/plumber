@@ -7,7 +7,7 @@
  **/
 
 #ifndef __REQUEST_H__
-#define __REEUEST_H__
+#define __REQUEST_H__
 /**
  * @brief The method of a HTTP request
  **/
