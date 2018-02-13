@@ -339,7 +339,7 @@ int http_response_parse(http_response_t* res, const char* data, size_t len)
 				if(res->parts == _CH) 
 				{
 					parsed = _parse_chunk_size(res, data, len);
-					if(ERROR_CODE(size_t) != parsed && res->chunk_remaining == 0)
+					if(ERROR_CODE(size_t) != parsed && res->parts != _CH && res->chunk_remaining == 0)
 					{
 						res->response_completed = 1;
 						return 1;

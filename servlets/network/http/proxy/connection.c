@@ -312,6 +312,7 @@ static inline int _conn_get(const char* domain_name, size_t domain_len, uint32_t
 		peer->conn_list->conn_prev = NULL;
 
 	_pool.num_conn --;
+	peer->count --;
 
 	int ret = this->fd;
 

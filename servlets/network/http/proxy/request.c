@@ -517,6 +517,12 @@ static size_t _rls_read(void* __restrict obj, void* __restrict buf, size_t count
 		LOG_TRACE_ERRNO("The socket cannot be read");
 		return ERROR_CODE(size_t);
 	}
+	else if(bytes_read == 0)
+	{
+		LOG_TRACE_ERRNO("The socket has ben closed");
+		stream->error = 1;
+		return 0;
+	}
 
 	int rc = http_response_parse(&stream->response, buf, (size_t)bytes_read);
 	if(rc == ERROR_CODE(int))
