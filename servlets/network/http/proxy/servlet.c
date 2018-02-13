@@ -45,7 +45,8 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	if(ERROR_CODE(pipe_t) == (ctx->request = pipe_define("request", PIPE_INPUT, "plumber/std_servlet/network/http/proxy/v0/Request")))
 		ERROR_RETURN_LOG(int, "Cannot define the request pipe");
 
-	if(ERROR_CODE(pipe_t) == (ctx->response = pipe_define("response", PIPE_OUTPUT, "plumber/std_servlet/network/http/proxy/v0/Response")))
+	//if(ERROR_CODE(pipe_t) == (ctx->response = pipe_define("response", PIPE_OUTPUT, "plumber/std_servlet/network/http/proxy/v0/Response")))
+	if(ERROR_CODE(pipe_t) == (ctx->response = pipe_define("response", PIPE_OUTPUT, "plumber/std/request_local/String")))
 		ERROR_RETURN_LOG(int, "Cannot define the response pipe");
 
 	if(ERROR_CODE(int) == connection_pool_init(ctx->options.conn_pool_size, ctx->options.conn_per_peer))
@@ -86,13 +87,17 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 
 static int _cleanup(void* ctxmem)
 {
+	int ret = 0;
+
 	_ctx_t* ctx = (_ctx_t*)ctxmem;
-	(void)ctx;
 
 	if(ERROR_CODE(int) == connection_pool_finalize())
-		ERROR_RETURN_LOG(int, "Cannot finalize the connection pool for this servlet instance");
+		ret = ERROR_CODE(int);
 
-	return 0;
+	if(ERROR_CODE(int) == pstd_type_model_free(ctx->type_model))
+		ret = ERROR_CODE(int);
+
+	return ret;
 }
 
 static inline int _read_string(pstd_type_instance_t* inst, pstd_type_accessor_t acc, const char** result, size_t* size)

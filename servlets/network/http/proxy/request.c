@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -15,9 +16,13 @@
 
 #include <request.h>
 #include <connection.h>
+#include <http.h>
 
 #define _PAGESIZE 4096
 
+/**
+ * @brief The name of the HTTP verb
+ **/
 const char* _method_verb[] = {
 	[REQUEST_METHOD_GET]  = "GET",
 	[REQUEST_METHOD_PUT]  = "PUT",
@@ -26,6 +31,9 @@ const char* _method_verb[] = {
 	[REQUEST_METHOD_DELETE] = "DELETE"
 };
 
+/**
+ * @brief The length of the HTTP verb
+ **/
 const size_t _method_verb_size[] = {
 	[REQUEST_METHOD_GET]  = 3,
 	[REQUEST_METHOD_PUT]  = 3,
@@ -61,9 +69,10 @@ struct _request_t {
 typedef struct {
 	const request_t*   req;                  /*!< The request data for this stream */
 	int                sock;                 /*!< The socket we are using */
-	uint32_t           error:1;              /*!< Indicates if we are encounter some socket error */
 	uint32_t           cur_request_page;     /*!< The current request page */
 	uint32_t           cur_request_page_ofs; /*!< The current request page offset */
+	uint32_t           error:1;              /*!< Indicates if we are encounter some socket error */
+	http_response_t    response;             /*!< The response state object */
 } _stream_t;
 
 static inline int _free_request_pages(request_t* req)
@@ -136,6 +145,7 @@ static inline int _request_buffer_write(request_t* req, const void* data, size_t
 		memcpy(req->req_pages[req->req_page_count - 1] + req->req_page_offset, data, bytes_to_write);
 
 		size -= bytes_to_write;
+		req->req_page_offset += (uint32_t)bytes_to_write;
 	}
 
 	return 0;
@@ -147,12 +157,12 @@ static inline int _populate_request_buffer(request_t* req, const char* path, con
 		[0] = NULL,       /* verb */
 		[1] = " ",
 		[2] = NULL,       /* URL */
-		[3] = "HTTP/1.1\r\n",
+		[3] = " HTTP/1.1\r\n",
 		[4] = "Host: ",
 		[5] = NULL,       /* Domain name */
-		[6] = "\r\nUser-Agent: plumber.network.http.proxy/0.1\r\nConnection: keep-alive\r\n",
+		[6] = "\r\nUser-Agent: Plumber(network.http.proxy)/0.1\r\nConnection: keep-alive\r\n",
 		[7] = NULL,       /* Content length */
-		[8] = "\r\n",
+		[8] = NULL,
 		[9] = NULL       /* body */
 	};
 
@@ -160,10 +170,10 @@ static inline int _populate_request_buffer(request_t* req, const char* path, con
 		[0] = 0,
 		[1] = 1,
 		[2] = 0,
-		[3] = 10,
+		[3] = 11,
 		[4] = 6,
 		[5] = 0,
-		[6] = 70,
+		[6] = 71,
 		[7] = 0,
 		[8] = 2,
 		[9] = 0
@@ -181,14 +191,19 @@ static inline int _populate_request_buffer(request_t* req, const char* path, con
 	char cl_buf[128];
 	if(req->data != NULL)
 	{
-		if((req_size[7] = (size_t)snprintf(cl_buf, sizeof(cl_buf), "Content-Length: %zu", data_len)) > sizeof(cl_buf) - 1)
+		if((req_size[7] = (size_t)snprintf(cl_buf, sizeof(cl_buf), "Content-Length: %zu\r\n", data_len)) > sizeof(cl_buf) - 1)
 			req_size[7] = sizeof(cl_buf) - 1;
 
 		req_data[7] = cl_buf;
 
+		req_data[8] = "\r\n";
+		req_size[8] = 2;
+
 		req_data[9] = data;
 		req_size[9] = data_len;
 	}
+	else
+		req_data[8] = "\r\n", req_size[8] = 2;
 
 	uint32_t i;
 
@@ -261,6 +276,8 @@ request_t* request_new(request_method_t method, const char* url, const char* dat
 		ERROR_LOG_ERRNO_GOTO(ERR, "Invalid URL");
 
 	ret->req_page_capcity = 4;
+	ret->req_page_count = 0;
+	ret->req_page_offset = _PAGESIZE;
 	ret->pooled_list = 1;
 	if(NULL == (ret->req_pages = (char**)pstd_mempool_alloc((uint32_t)(sizeof(char*) * ret->req_page_capcity))))
 		ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the req page list");
@@ -311,7 +328,6 @@ static int _rls_free(void* obj)
 	return _request_free(req);
 }
 
-#if 0
 static inline int _connect(_stream_t* stream)
 {
 	const request_t* req = stream->req;
@@ -372,13 +388,21 @@ static inline int _connect(_stream_t* stream)
 			if((stream->sock =socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol)) < 0)
 				LOG_TRACE_ERRNO("Cannot connect to the address %s", req->url);
 
-			if(connect(stream->sock, ptr->ai_addr, ptr->ai_addrlen) < 0)
+			if(connect(stream->sock, ptr->ai_addr, ptr->ai_addrlen) >= 0)
 			{
 				LOG_TRACE("The connection has been successfully established to %s", req->url);
+				int flags = fcntl(stream->sock, F_GETFL, 0);
+				if(flags == -1)
+					ERROR_LOG_ERRNO_GOTO(CONN_FAIL, "Cannot get the flags for the socket FD");
+
+				if(fcntl(stream->sock, F_SETFL, flags | O_NONBLOCK) < 0)
+					ERROR_LOG_ERRNO_GOTO(CONN_FAIL, "Cannot set the socket FD to nonblocking mode");
+
 				conn_rc = 1;
 				break;
 			}
-			else if(stream->sock >= 0 && close(stream->sock) < 0)
+CONN_FAIL:
+			if(stream->sock >= 0 && close(stream->sock) < 0)
 				LOG_WARNING("Cannot close the socket fd %d", stream->sock);
 		}
 
@@ -388,7 +412,6 @@ static inline int _connect(_stream_t* stream)
 
 	return 0;
 }
-#endif
 
 static int _rls_close(void* obj)
 {
@@ -423,15 +446,14 @@ static void* _rls_open(const void* obj)
 	stream->req = req;
 	stream->cur_request_page = 0;
 	stream->cur_request_page_ofs = 0;
-#if 0
+	memset(&stream->response, 0, sizeof(stream->response));
+
 	if(ERROR_CODE(int) == _connect(stream))
 		ERROR_LOG_GOTO(ERR, "Cannot connect to the server");
 
 	stream->error = 0;
-#endif
 
 	return stream;
-#if 0
 ERR:
 
 	if(stream->sock >= 0 && connection_pool_checkin(req->domain, req->domain_len, req->port, stream->sock) == ERROR_CODE(int))
@@ -442,7 +464,13 @@ ERR:
 
 	pstd_mempool_free(stream);
 	return NULL;
-#endif
+}
+
+static inline int _end_of_request(_stream_t* stream)
+{
+	return stream->cur_request_page + 1> stream->req->req_page_count ||
+		   (stream->cur_request_page == stream->req->req_page_count - 1 &&
+			stream->cur_request_page_ofs >= stream->req->req_page_offset);
 }
 
 static size_t _rls_read(void* __restrict obj, void* __restrict buf, size_t count)
@@ -450,29 +478,78 @@ static size_t _rls_read(void* __restrict obj, void* __restrict buf, size_t count
 	_stream_t* stream = (_stream_t*)obj;
 	const request_t* req = stream->req;
 
-	size_t bytes_to_read = count;
-	size_t current_page_size = req->req_page_count - 1 == stream->cur_request_page ? req->req_page_offset : _PAGESIZE;
+	while(!_end_of_request(stream))
+	{
+		size_t bytes_to_write = count;
+		size_t current_page_size = req->req_page_count - 1 == stream->cur_request_page ? req->req_page_offset : _PAGESIZE;
 
-	if(current_page_size - stream->cur_request_page_ofs > bytes_to_read)
-		bytes_to_read = current_page_size - stream->cur_request_page_ofs;
+		if(current_page_size - stream->cur_request_page_ofs < bytes_to_write)
+			bytes_to_write = current_page_size - stream->cur_request_page_ofs;
 
-	memcpy(buf, req->req_pages[stream->cur_request_page] + stream->cur_request_page_ofs, bytes_to_read);
+		ssize_t bytes_written = write(stream->sock,  req->req_pages[stream->cur_request_page] + stream->cur_request_page_ofs, bytes_to_write);
 
-	stream->cur_request_page_ofs += (uint32_t)bytes_to_read;
+		if(bytes_written == -1)
+		{
+			if(errno == EWOULDBLOCK || errno == EAGAIN)
+				return 0;
+			stream->error = 1;
+			LOG_TRACE_ERRNO("The socket cannot be written");
+			return ERROR_CODE(size_t);
+		}
 
-	if(stream->cur_request_page_ofs == _PAGESIZE)
-		stream->cur_request_page_ofs = 0, stream->cur_request_page ++;
+		stream->cur_request_page_ofs += (uint32_t)bytes_written;
 
-	return bytes_to_read;
+		if(stream->cur_request_page_ofs == _PAGESIZE)
+			stream->cur_request_page_ofs = 0, stream->cur_request_page ++;
+	}
+
+	ssize_t bytes_read = read(stream->sock, buf, count);
+
+	if(bytes_read == -1)
+	{
+		if(errno == EWOULDBLOCK || errno == EAGAIN)
+			return 0;
+		stream->error = 1;
+		LOG_TRACE_ERRNO("The socket cannot be read");
+		return ERROR_CODE(size_t);
+	}
+
+	int rc = http_response_parse(&stream->response, buf, (size_t)bytes_read);
+	if(rc == ERROR_CODE(int))
+		ERROR_RETURN_LOG(size_t, "Cannot parse the response");
+	else if(rc == 0)
+	{
+		LOG_TRACE("The response is not valid anymore, we need to purge the connection");
+		stream->error =1;
+		return ERROR_CODE(size_t);
+	}
+
+	return (size_t)bytes_read;
 }
 
 static inline int _rls_eos(const void* obj)
 {
 	const _stream_t* stream = (const _stream_t*)obj;
 
-	return stream->cur_request_page + 1> stream->req->req_page_count ||
-		   (stream->cur_request_page == stream->req->req_page_count - 1 &&
-			stream->cur_request_page_ofs >= stream->req->req_page_offset);
+	return stream->error || http_response_complete(&stream->response);
+}
+
+static int _rls_event(void* obj, scope_ready_event_t* buf)
+{
+	_stream_t* stream = (_stream_t*)obj;
+
+	buf->fd = stream->sock;
+	buf->timeout = 30;  /* TODO: set the timeout */
+
+	buf->read = 0;
+	buf->write = 0;
+
+	if(_end_of_request(stream))
+		buf->read = 1;
+	else
+		buf->write = 1;
+
+	return 1;
 }
 
 scope_token_t request_commit(request_t* request)
@@ -487,7 +564,8 @@ scope_token_t request_commit(request_t* request)
 		.open_func = _rls_open,
 		.close_func = _rls_close,
 		.eos_func = _rls_eos,
-		.read_func = _rls_read
+		.read_func = _rls_read,
+		.event_func = _rls_event
 	};
 
 	scope_token_t ret = pstd_scope_add(&ent);

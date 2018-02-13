@@ -301,7 +301,7 @@ static inline int _conn_get(const char* domain_name, size_t domain_len, uint32_t
 
 	for(peer = _pool.table[slot]; NULL != peer && !_peer_match(peer, port, domain_name, domain_len, hash) ; peer = peer->peer_next);
 
-	if(peer->conn_list == NULL)
+	if(NULL == peer || peer->conn_list == NULL)
 		return -1;
 
 	_conn_t* this = peer->conn_list;
