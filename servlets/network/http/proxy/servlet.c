@@ -169,7 +169,7 @@ static int _exec(void* ctxmem)
 	else 
 		goto RET;
 
-	request_t* req = request_new(method, url, data, data_size);
+	request_t* req = request_new(method, url, data, data_size, ctx->options.conn_timeout);
 
 	if(NULL == req)
 		ERROR_LOG_GOTO(ERR,  "Cannot create the request");

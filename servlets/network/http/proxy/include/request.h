@@ -29,9 +29,10 @@ typedef struct _request_t request_t;
  * @param method The request method
  * @param url The url for the request
  * @param data The addtional payload data
+ * @param timeout The time limit for connection wait
  * @return status code
  **/
-request_t* request_new(request_method_t method, const char* url, const char* data, size_t data_len);
+request_t* request_new(request_method_t method, const char* url, const char* data, size_t data_len, uint32_t timeout);
 
 /**
  * @brief Dispose a uncommited request

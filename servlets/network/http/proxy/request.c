@@ -46,20 +46,21 @@ const size_t _method_verb_size[] = {
  * @brief The actual data structure of a HTTP request
  **/
 struct _request_t {
-	char*             url;            /*!< The URL to request */
-	char*             data;           /*!< The payload data */
-	const char*       domain;         /*!< The begining of the domain name */
-	const char*       port_str;       /*!< The string reprentation of the port number */
-	uint16_t          port;           /*!< The port */
-	uint8_t           domain_len;     /*!< The length of the domain */
-	uint8_t           port_str_len:4; /*!< The length of the port string */
-	uint32_t          committed:1;    /*!< Indicates if this object has been commited */
-	uint32_t          pooled_list:1;  /*!< Indicates the pool list is allocated in the page */
-	request_method_t  method;         /*!< The method to use */
-	char**            req_pages;  /*!< The pages that contains the request data */
+	char*             url;              /*!< The URL to request */
+	char*             data;             /*!< The payload data */
+	const char*       domain;           /*!< The begining of the domain name */
+	const char*       port_str;         /*!< The string reprentation of the port number */
+	uint16_t          port;             /*!< The port */
+	uint8_t           domain_len;       /*!< The length of the domain */
+	uint8_t           port_str_len:4;   /*!< The length of the port string */
+	uint32_t          committed:1;      /*!< Indicates if this object has been commited */
+	uint32_t          pooled_list:1;    /*!< Indicates the pool list is allocated in the page */
+	request_method_t  method;           /*!< The method to use */
+	char**            req_pages;        /*!< The pages that contains the request data */
 	uint32_t          req_page_count;   /*!< The numer of request pages */
 	uint32_t          req_page_offset;  /*!< The offset of the last page we used */
 	uint32_t          req_page_capcity; /*!< The capacity of the page list */
+	uint32_t          timeout;          /*!< The timeout for this request */
 	/* TODO: add cookie, etc */
 };
 
@@ -214,7 +215,7 @@ static inline int _populate_request_buffer(request_t* req, const char* path, con
 	return 0;
 }
 
-request_t* request_new(request_method_t method, const char* url, const char* data, size_t data_len)
+request_t* request_new(request_method_t method, const char* url, const char* data, size_t data_len, uint32_t timeout)
 {
 	if(NULL == url)
 		ERROR_PTR_RETURN_LOG("Invalid arguments");
@@ -286,6 +287,8 @@ request_t* request_new(request_method_t method, const char* url, const char* dat
 
 	if(ERROR_CODE(int) == _populate_request_buffer(ret, next, data, data_len))
 		ERROR_LOG_GOTO(ERR, "Cannot populate the request buffer");
+
+	ret->timeout = timeout;
 
 	return ret;
 ERR:
@@ -539,6 +542,7 @@ static size_t _rls_read(void* __restrict obj, void* __restrict buf, size_t count
 		{
 			if(errno == EWOULDBLOCK || errno == EAGAIN)
 				return 0;
+			/* TODO: output the 503 message */
 			stream->error = 1;
 			LOG_TRACE_ERRNO("The socket cannot be written");
 			return ERROR_CODE(size_t);
@@ -592,7 +596,7 @@ static int _rls_event(void* obj, scope_ready_event_t* buf)
 	_stream_t* stream = (_stream_t*)obj;
 
 	buf->fd = stream->sock;
-	buf->timeout = 30;  /* TODO: set the timeout */
+	buf->timeout = 
 
 	buf->read = 0;
 	buf->write = 0;

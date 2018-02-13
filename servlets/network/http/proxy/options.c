@@ -68,6 +68,10 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 	if(NULL == argv || NULL == buf) 
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
+	buf->conn_pool_size = 1024;
+	buf->conn_per_peer = 32;
+	buf->conn_timeout = 30;
+
 	if(ERROR_CODE(int) == pstd_option_sort(_options, sizeof(_options) / sizeof(_options[0])))
 		ERROR_RETURN_LOG(int, "Cannot sort the options");
 
