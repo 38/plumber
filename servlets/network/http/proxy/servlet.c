@@ -92,10 +92,17 @@ static int _cleanup(void* ctxmem)
 	_ctx_t* ctx = (_ctx_t*)ctxmem;
 
 	if(ERROR_CODE(int) == connection_pool_finalize())
+	{
 		ret = ERROR_CODE(int);
+		LOG_ERROR("Cannot finalize the connection pool");
+	}
+
 
 	if(ERROR_CODE(int) == pstd_type_model_free(ctx->type_model))
+	{
 		ret = ERROR_CODE(int);
+		LOG_ERROR("Cannot finalize the type model");
+	}
 
 	return ret;
 }
@@ -140,11 +147,9 @@ static int _exec(void* ctxmem)
 
 	if(rc == 0) goto RET;
 
-	const char* data;
-	size_t data_size;
+	const char* data = NULL;
+	size_t data_size = 0;
 	rc = _read_string(inst, ctx->data_token_acc, &data, &data_size);
-
-	if(rc == 0) data = NULL;
 
 	request_method_t method;
 

@@ -200,6 +200,18 @@ static inline size_t _parse_content_length(http_response_t* res, const char* dat
 	return i;
 }
 
+static inline uint64_t _read_u64(const char* ptr)
+{
+	union {
+		const char* p8;
+		const uint64_t* p64; 
+	} cvt = {
+		.p8 = ptr
+	};
+
+	return cvt.p64[0];
+}
+
 static inline size_t _detect_header(http_response_t* res, const char* data, size_t len)
 {
 	size_t ret = 0;
@@ -242,7 +254,7 @@ static inline size_t _detect_header(http_response_t* res, const char* data, size
 			case 3: u64_data |= ((uint64_t)(uint8_t)data[ret + 2]) << 16; FALLTHROUGH();
 			case 2: u64_data |= ((uint64_t)(uint8_t)data[ret + 1]) << 8;  FALLTHROUGH();
 			case 1: u64_data |= ((uint64_t)(uint8_t)data[ret + 0]) ; break;
-			default: u64_data = *(const uint64_t*)(data + ret);
+			default: u64_data = _read_u64(data + ret);
 		}
 
 		u64_data |= 0x2020202020202020ull;
@@ -253,10 +265,10 @@ static inline size_t _detect_header(http_response_t* res, const char* data, size
 
 		if(!res->size_determined)
 		{
-			if(u64_data == (0x2020202020202020ull | *(const uint64_t*)_content_length_key))
+			if(u64_data == (0x2020202020202020ull | _read_u64(_content_length_key)))
 				key = _content_length_key, key_len = sizeof(_content_length_key) - 1, parts = _CL;
 
-			if(u64_data == (0x2020202020202020ull | *(const uint64_t*)_transfer_encodeing_key))
+			if(u64_data == (0x2020202020202020ull | _read_u64(_transfer_encodeing_key)))
 				key = _transfer_encodeing_key, key_len = sizeof(_transfer_encodeing_key) - 1, parts = _TE;
 		}
 

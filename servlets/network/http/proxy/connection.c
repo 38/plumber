@@ -97,7 +97,7 @@ INIT_DONE:
 
 int connection_pool_finalize(void)
 {
-	int rc;
+	int rc = 0;
 	if(_pool.init_count == 0) return 0;
 
 	if(0 == --_pool.init_count)
@@ -249,7 +249,7 @@ static inline int _conn_add(uint32_t port, const char* domain_name, size_t domai
 		if(NULL == (peer->domain_name = malloc(domain_len + 1)))
 			ERROR_LOG_ERRNO_GOTO(ALLOC_ERR, "Cannot allocate memory for the domain name");
 		memcpy(peer->domain_name, domain_name, domain_len);
-		peer->domain_name[domain_len + 1] = 0;
+		peer->domain_name[domain_len] = 0;
 
 		peer->hash[0] = hash[0];
 		peer->hash[1] = hash[1];

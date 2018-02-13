@@ -404,7 +404,11 @@ static inline int _connect(_stream_t* stream)
 CONN_FAIL:
 			if(stream->sock >= 0 && close(stream->sock) < 0)
 				LOG_WARNING("Cannot close the socket fd %d", stream->sock);
+
 		}
+
+		if(NULL != result)
+			freeaddrinfo(result);
 
 		if(conn_rc == 0)
 			ERROR_RETURN_LOG_ERRNO(int, "Cannot connect to the server");
