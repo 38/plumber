@@ -39,7 +39,7 @@ const size_t _method_verb_size[] = {
 	[REQUEST_METHOD_PUT]  = 3,
 	[REQUEST_METHOD_POST] = 4,
 	[REQUEST_METHOD_HEAD] = 4,
-	[REQUEST_METHOD_DELETE] 6
+	[REQUEST_METHOD_DELETE] = 6
 };
 
 /**
