@@ -445,17 +445,19 @@ static int _rls_close(void* obj)
 
 			ssize_t sz = read(stream->sock, buf, sizeof(buf));
 
-			if(sz < 0 && errno != EWOULDBLOCK && errno != EAGAIN)
+			if(sz < 0)
 			{
-				if(errno != EPIPE)
-					LOG_WARNING_ERRNO("The remote server peer socket is error");
-				else
+				if(errno == EPIPE)
 					LOG_TRACE_ERRNO("Could not read more data, because the socket is half-closed");
+				else if(errno == EWOULDBLOCK || errno == EAGAIN)
+					LOG_TRACE_ERRNO("We are waiting for the connection gets ready, stop");
+				else
+					LOG_WARNING_ERRNO("The remote server peer socket is error");
 
 				needs_close = 1;
 			}
 
-			if(1 == http_response_parse(&stream->response, buf, (size_t)sz) && http_response_complete(&stream->response))
+			if(sz > 0 && 1 == http_response_parse(&stream->response, buf, (size_t)sz) && http_response_complete(&stream->response))
 				LOG_DEBUG("We finally figured out where the message ends, checkin the socket instread of close");
 			else
 				needs_close = 1;
@@ -596,7 +598,7 @@ static int _rls_event(void* obj, scope_ready_event_t* buf)
 	_stream_t* stream = (_stream_t*)obj;
 
 	buf->fd = stream->sock;
-	buf->timeout = 
+	buf->timeout = (int32_t)stream->req->timeout; 
 
 	buf->read = 0;
 	buf->write = 0;

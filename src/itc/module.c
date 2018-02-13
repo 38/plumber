@@ -729,6 +729,13 @@ int itc_module_pipe_write_data_source(itc_module_data_source_t data_source, cons
 			if(ERROR_CODE(size_t) == bytes_read || bytes_read > bytes_to_read)
 			    ERROR_RETURN_LOG(int, "Cannot read the token stream");
 
+			/* Once the data source returns 0 bytes, we needs to hand it off, otherwise we just waste CPU */
+			if(bytes_read == 0)
+			{
+				LOG_DEBUG("RLS token stream has to be in the wait state, terminating data request");
+				goto DR_END;
+			}
+
 			size_rem -= bytes_read;
 
 			char* begin;
