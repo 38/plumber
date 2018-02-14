@@ -17,7 +17,8 @@ enum {
 	_NONE,/*!< Not a particular thing we are paring */
 	_CL,  /*!< Content-Length */
 	_TE,  /*!< Transfer-Encoding */
-	_CH   /*!< Chunck Header */
+	_CH,  /*!< Chunck Header */
+	_CE   /*!< We are waiting for the last \r\n for the chunked encoding */
 };
 
 
@@ -31,8 +32,14 @@ const char _content_length_key[] = "\r\ncontent-length:";
  **/
 const char _transfer_encodeing_key[] = "\r\ntransfer-encoding:";
 
+/**
+ * @brief The string that indicates we need to parse the chunked transfer encoding
+ **/
 const char _chunked[] = "chunked";
 
+/**
+ * @brief The string that indicates the body is started
+ **/
 const char _body_start[] = "\r\n\r\n";
 
 /**
@@ -59,6 +66,41 @@ static inline int _match(const char* a, const char* b, size_t n)
 	}
 
 	return 1;
+}
+
+static inline size_t _parse_chunk_trailer(http_response_t* res, const char* data, size_t len)
+{
+	size_t i;
+	for(i = 0; i < len && !res->response_completed; i ++)
+	{
+		switch(res->parser_state)
+		{
+			case 0:  /* We don't know if it has a trailer */
+				if(data[i] == '\r') res->parser_state = 1; /* No trailer just \r\n */
+				else res->parser_state = 2;
+				break;
+			case 1:  /* We need to parse the last \n */
+				if(data[i] == '\n') res->response_completed = 1;
+				else return ERROR_CODE(size_t);
+				break;
+			case 2: /* In this cases, we need to find \r\n\r\n */
+				if(data[i] == '\r') res->parser_state = 3;
+				break;
+			case 3:
+				if(data[i] == '\n') res->parser_state = 4;
+				else res->parser_state = 2;
+				break;
+			case 4:
+				if(data[i] == '\r') res->parser_state = 5;
+				else res->parser_state = 2;
+				break;
+			case 5:
+				if(data[i] == '\n') res->response_completed = 1;
+				else res->parser_state = 2;
+		}
+	}
+
+	return i;
 }
 
 static inline size_t _parse_transfer_encoding(http_response_t* res, const char* data, size_t len)
@@ -341,9 +383,17 @@ int http_response_parse(http_response_t* res, const char* data, size_t len)
 					parsed = _parse_chunk_size(res, data, len);
 					if(ERROR_CODE(size_t) != parsed && res->parts != _CH && res->chunk_remaining == 0)
 					{
-						res->response_completed = 1;
-						return 1;
+						//res->response_completed = 1;
+						res->parts = _CE;
+						res->parser_state = 0;
 					}
+				}
+				else if(res->parts == _CE)
+				{
+					parsed = _parse_chunk_trailer(res, data, len);
+
+					if(ERROR_CODE(size_t) != parsed && res->response_completed)
+						return 1;
 				}
 				else
 				{
