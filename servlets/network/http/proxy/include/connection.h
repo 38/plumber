@@ -35,7 +35,7 @@ int connection_pool_checkout(const char* hostname, size_t hostname_len, uint16_t
 /**
  * @brief Release the connection and return it to the connection pool
  * @param hostname The peer hostname
- * @param port The port 
+ * @param port The port
  * @param fd The socket FD to release
  * @return status code
  **/

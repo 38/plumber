@@ -43,7 +43,7 @@ int request_free(request_t* req);
 
 /**
  * @brief Commit the request to the RLS scope
- * @param request The request object 
+ * @param request The request object
  * @return The token that is used to refer the object
  **/
 scope_token_t request_commit(request_t* request);
