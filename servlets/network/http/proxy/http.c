@@ -68,6 +68,13 @@ static inline int _match(const char* a, const char* b, size_t n)
 	return 1;
 }
 
+/**
+ * @brief Parse the trailer headers in a chunked response
+ * @param res The response state object
+ * @param data The response data to parse
+ * @param len The length of the data section
+ * @return The number of bytes has been parsed or error code
+ **/
 static inline size_t _parse_chunk_trailer(http_response_t* res, const char* data, size_t len)
 {
 	size_t i;
@@ -103,6 +110,13 @@ static inline size_t _parse_chunk_trailer(http_response_t* res, const char* data
 	return i;
 }
 
+/**
+ * @brief Detect if we need to use chuncked transfer encoding
+ * @param res The response object
+ * @param data The data to parse
+ * @param len The length of the data buffer
+ * @return The number of bytes has been parsed or error code
+ **/
 static inline size_t _parse_transfer_encoding(http_response_t* res, const char* data, size_t len)
 {
 	size_t i = 0;
@@ -141,6 +155,13 @@ static inline size_t _parse_transfer_encoding(http_response_t* res, const char* 
 	return i;
 }
 
+/**
+ * @brief Parse the size of current chunk
+ * @param res The response object
+ * @param data The data buffer
+ * @param len The length of the data buffer
+ * @return Number of bytes has been parsed or error code
+ **/
 static inline size_t _parse_chunk_size(http_response_t* res, const char* data, size_t len)
 {
 	size_t i = 0;
@@ -205,6 +226,13 @@ static inline size_t _parse_chunk_size(http_response_t* res, const char* data, s
 	return i;
 }
 
+/**
+ * @brief Parse the content length field
+ * @param res The response object
+ * @param data The response data buffer
+ * @param len The length of the response data buffer
+ * @return Number of bytes has been parsed or error code
+ **/
 static inline size_t _parse_content_length(http_response_t* res, const char* data, size_t len)
 {
 	size_t i = 0;
@@ -242,6 +270,11 @@ static inline size_t _parse_content_length(http_response_t* res, const char* dat
 	return i;
 }
 
+/**
+ * @brief Read the char buffer into a uint64_t buffer
+ * @param ptr The address to read
+ * @return The uint64 value
+ **/
 static inline uint64_t _read_u64(const char* ptr)
 {
 	union {
@@ -254,6 +287,13 @@ static inline uint64_t _read_u64(const char* ptr)
 	return cvt.p64[0];
 }
 
+/**
+ * @brief The function that is used to detect the interesting HTTP header and begining of body
+ * @param res The response object
+ * @param data The response data buffer
+ * @param len The length of the buffer
+ * @return Number of bytes has been parsed or error code
+ **/
 static inline size_t _detect_header(http_response_t* res, const char* data, size_t len)
 {
 	size_t ret = 0;
