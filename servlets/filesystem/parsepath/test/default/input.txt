@@ -35,4 +35,16 @@
 }
 .END
 
+.TEXT test_case_7
+{
+	"origin": "/"
+}
+.END
+
+.TEXT test_case_8
+{
+	"origin": "this/is/a/../the/test/"
+}
+.END
+
 .STOP

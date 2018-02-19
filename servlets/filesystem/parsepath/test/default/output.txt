@@ -32,3 +32,15 @@
 	"relative": "/test"
 }
 .END
+.OUTPUT test_case_7
+{
+	"prefix": "/",
+	"relative": "/"
+}
+.END
+.OUTPUT test_case_8
+{
+	"prefix": "/",
+	"relative": "/this/is/the/test/"
+}
+.END

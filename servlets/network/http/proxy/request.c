@@ -49,9 +49,11 @@ struct _request_t {
 	char*             url;              /*!< The URL to request */
 	char*             data;             /*!< The payload data */
 	const char*       domain;           /*!< The begining of the domain name */
+	const char*       host;             /*!< The begining of the host name (Which includes port and domain) */
 	const char*       port_str;         /*!< The string reprentation of the port number */
 	uint16_t          port;             /*!< The port */
 	uint8_t           domain_len;       /*!< The length of the domain */
+	uint8_t           host_len;         /*!< The length of the host */
 	uint8_t           port_str_len:4;   /*!< The length of the port string */
 	uint32_t          committed:1;      /*!< Indicates if this object has been commited */
 	uint32_t          pooled_list:1;    /*!< Indicates the pool list is allocated in the page */
@@ -186,8 +188,8 @@ static inline int _populate_request_buffer(request_t* req, const char* path, con
 	req_data[2] = *path ? path : "/";
 	req_size[2] = strlen(req_data[2]);
 
-	req_data[5] = req->domain;
-	req_size[5] = req->domain_len;
+	req_data[5] = req->host;
+	req_size[5] = req->host_len;
 
 	char cl_buf[128];
 	if(req->data != NULL)
@@ -240,7 +242,7 @@ request_t* request_new(request_method_t method, const char* url, const char* dat
 
 	ret->method = method;
 
-	ret->domain = ret->url + 7;
+	ret->host = ret->domain = ret->url + 7;
 	for(ret->domain_len = 0;; ret->domain_len ++)
 	{
 		char ch = ret->domain[ret->domain_len];
@@ -269,7 +271,10 @@ request_t* request_new(request_method_t method, const char* url, const char* dat
 
 		ret->port = (uint16_t)port_num;
 		ret->port_str_len = 0xfu & (uint8_t)(i - ret->domain_len - 1);
+		ret->host_len = 0xffu & ((uint8_t)(ret->domain_len + ret->port_str_len) + 1u);
 	}
+	else
+		ret->host_len =ret->domain_len;
 
 	const char* next = &ret->domain[ret->domain_len + (ret->port_str == NULL ? 0 : ret->port_str_len + 1)];
 

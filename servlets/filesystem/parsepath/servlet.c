@@ -91,6 +91,10 @@ static inline int _simplify_path(scope_token_t path_token, const context_t* ctx,
 
 	/* If we pop the stack too much, this should not be allowed, so we produce zero output */
 	if(sp < 0) return 0;
+
+	/* Since we should preserve the last slash, so we need to check this case */
+	if(sp > 0 && es[sp - 1][0] == '/')
+		es[sp] = bs[sp] = "", sp ++;
 #pragma GCC diagnostic pop
 
 	uint32_t nprefix = (ctx->prefix_level > (uint32_t)sp) ? 0 : ctx->prefix_level;
