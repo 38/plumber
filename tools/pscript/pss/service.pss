@@ -268,6 +268,9 @@ Service.build = function(serv)
 		var ports = {};
 		var _deref_port = function _deref_port(node, port)
 		{
+			if(prefix != "" && node == "__dummy__" && port == "__dummy__")
+				return "__dummy__";
+
 			if(nodes[node] == undefined)
 				log("warning", "Could not find node named " + node);
 			var nid = nodes[node];
@@ -288,6 +291,10 @@ Service.build = function(serv)
 		{
 			var src = _deref_port(src_node, src_port);
 			var dst = _deref_port(dst_node, dst_port);
+
+			if(src == "__dummy__" || dst == "__dummy__") 
+				return undefined;
+
 			__service_pipe(obj, src["node"], src["port"], dst["node"], dst["port"]);
 		};
 		var port_handler = function _port_handler(name, node, port)
@@ -297,11 +304,19 @@ Service.build = function(serv)
 		var input_handler = function _input_handler(node, port)
 		{
 			var target = _deref_port(node, port);
+
+			if(target == "__dummy__")
+				log("warning", "Invalid use of dummy port as input");
+
 			__service_input(obj, target["node"], target["port"]);
 		};
 		var output_handler = function _output_handler(node, port)
 		{
 			var target = _deref_port(node, port);
+			
+			if(target == "__dummy__")
+				log("warning", "Invalid use of dummy port as output");
+			
 			__service_output(obj, target["node"], target["port"]);
 		};
 
