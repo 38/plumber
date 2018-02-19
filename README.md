@@ -1,4 +1,4 @@
-Plumber [![Build Status](http://plumberserver.com:8123/job/Plumber/badge/icon)](http://plumberserver.com:8123/job/Plumber/) 
+Plumber [![Build Status](http://plumberserver.com/jenkins/job/Plumber/badge/icon)](http://plumberserver.com/jenkins/job/Plumber/) 
 [![Build Status Travis](https://travis-ci.org/38/plumber.svg?branch=master)](https://travis-ci.org/38/plumber.svg?branch=master)
 ----
 
