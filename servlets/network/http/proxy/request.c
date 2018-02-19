@@ -274,7 +274,7 @@ request_t* request_new(request_method_t method, const char* url, const char* dat
 		ret->host_len = 0xffu & ((uint8_t)(ret->domain_len + ret->port_str_len) + 1u);
 	}
 	else
-		ret->host_len =ret->domain_len;
+	    ret->host_len =ret->domain_len;
 
 	const char* next = &ret->domain[ret->domain_len + (ret->port_str == NULL ? 0 : ret->port_str_len + 1)];
 
