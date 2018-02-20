@@ -82,8 +82,10 @@ Service.for_each_element = function Service.for_each_element(serv, handler)
 Service.add_node = function Service.add_node(serv, name, init_arg)
 {
 	serv[name] = init_arg;
-	serv["@" + name] = {};
-	serv["!@" + name] = {};
+	if(serv["@" + name] == undefined)
+		serv["@" + name] = {};
+	if(serv["!@" + name] == undefined)
+		serv["!@" + name] = {};
 }
 
 /**
