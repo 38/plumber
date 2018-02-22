@@ -4,11 +4,12 @@ Plumber [![Build Status](https://plumberserver.com/jenkins/job/Plumber/badge/ico
 
 # Quick start
 
-- [Plumber Project Site](http://plumberserver.com)
+- [Plumber Project Site](https://plumberserver.com)
 - [Plumber Main Project](https://github.com/38/plumber)
 - [Plumber Examples Repository](https://github.com/38/plumber_example)
-- [Introduction to Plumber (Slides)](http://plumberserver.com/slides/index.html?slideshow=plumber-intro)
-- [Explaination for the Plumber Based Static Content Server](http://plumberserver.com/fileserver_example/explained_fileserver_pss.html)
+- [Introduction to Plumber (Slides)](https://plumberserver.com/slides/index.html?slideshow=plumber-intro)
+- [Explaination for the Plumber Based Static Content Server](https://plumberserver.com/fileserver_example/explained_fileserver_pss.html)
+- [A Tutorial of Plumber](https://github.com/38/plumber-tutorial)
 
 # What is Plumber
 
