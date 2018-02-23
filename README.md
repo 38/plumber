@@ -13,20 +13,19 @@ Plumber [![Build Status](https://plumberserver.com/jenkins/job/Plumber/badge/ico
 
 # What is Plumber
 
-Plumber is a runtime environment which makes nanoservice feasible,
-it is a infrastructure based on the concept of "pipe". It provides a runtime environment 
+Plumber is a software infrastructure based on pipeline and data flow. It provides a runtime environment 
 for pipe based, asynchronized, ultra lightweight micro-service we called servlet and a high-level domain specific 
 language to describe the high-level software architecture. The Plumber framework has multiple language bindings,
-and user should be able to develop each part of their software in the language that fits the task most. Currently
+and developers are able to develop each part of their software in the language that fits the task most. Currently
 we support C, C++, Javascript and Python, and new language support is coming.
 
 # Try Plumber
 
 ## Docker (Linux)
 
-Thanks to the container techenoloy, you can explorer the Plumber environment without installing any dependencies
+Thanks to the container techenoloy, we can explorer the Plumber environment without installing any dependencies
 
-- You can also try the file server example with docker and open [http://localhost:8080/](http://localhost:8080/) in browser
+- To try the file server example with docker and open [http://localhost:8080/](http://localhost:8080/) in browser
 
 ```
 docker run --rm -t -i --network=host haohou/plumber-fileserver-example --port=8080
@@ -82,6 +81,13 @@ To start the static content server based on the Plumber framework
 	./fileserver.pss
 
 After the server starts, you will be able to access [http://localhost:8080/](http://localhost:8080)
+
+## Tutorial 
+
+Now we have a tutorial repository in which we demonstrate how we build a simple server software setp by step. 
+In this tutorial we are be able to go through most of the key concepts of Plumber software infrastructure.
+Follow the [link](https://github.com/38/plumber-tutorial) for the tutorial repository.
+
 
 # General Idea of Plumber
 Unlike traditional service framework, which modelling the component as a request-response based "service", 
