@@ -1,3 +1,5 @@
+// Copyright (C) 2017-2018, Hao Hou
+
 package plumber.std.request_local;
 
 /* Request local memory is the memory that is managed
@@ -7,18 +9,17 @@ type MemoryObject {
 };
 
 /* The type for the ditionary type */
-type Dictionary : MemoryObject {
-	uint32	key_size;  //The size of the key
-	uint32  val_size;  //The size of the value
-};
+type Dictionary : MemoryObject {};
+
+/* An array buffer */
+type Array : MemoryObject {};
+
+/* Sparse Array */
+type SparseArray: MemoryObject {};
 
 /* The type for managed string */
 type String : MemoryObject {};
 
+/* The type for RLS type */
 type File : MemoryObject {};
 
-/* An array buffer */
-type ArrayBuffer : MemoryObject {
-	uint32  elem_size;   //The element size
-	uint32  count;       //The number of elmeents
-};
