@@ -25,6 +25,20 @@ typedef uint32_t pstd_type_accessor_t;
 typedef struct _pstd_type_instance_t pstd_type_instance_t;
 
 /**
+ * @brief Represent the information to access a field 
+ **/
+typedef struct {
+	uint32_t              offset;                  /*!< The offeset of this field */
+	uint32_t              size;                    /*!< The size of memory region for this field */
+	uint32_t              is_numeric:1;            /*!< 1 when the field is a numeric value */
+	uint32_t              is_signed:1;             /*!< 1 when the field can represent negative value */
+	uint32_t              is_float:1;              /*!< 1 when the field represents a float point number */
+	uint32_t              is_token:1;              /*!< 1 when the field is a RLS token */
+	uint32_t              is_primitive_token:1;    /*!< 1 when the field is a primitive RLS token */
+	uint32_t              is_compound:1;           /*!< 1 when the field is a compound type */
+} pstd_type_field_t;
+
+/**
  * @brief The function used as the type assertion
  * @param pipe The pipe descriptor
  * @param type The type name
@@ -54,6 +68,27 @@ int pstd_type_model_free(pstd_type_model_t* model);
  * @return Status code
  **/
 pstd_type_accessor_t pstd_type_model_get_accessor(pstd_type_model_t* model, pipe_t pipe, const char* field_expr);
+
+/**
+ * @brief Get the field information about a field.
+ * @details This is similar to pstd_type_model_get_accessor, but instead of returning an accessor
+ *          it will set the type information to the given memory location. <br/>
+ *          This is not useful when we want to handle the actual pipe type, for example "plumber/std/request_local/String", etc.
+ *          However, this function is important for operating inner types of a ecapsulated type. 
+ *          Since a ecapsulated type, for example "plumber/std/request_local/Array SomeType"
+ *          If we want to access a field in SomeType, the accessor won't work.
+ *          The semantics of encapsulated type means the data from the pipe contains enough information to reconstruct a instance
+ *          of inner type. Which means, the inner type might be in some other memory buffer the servlet allocates.
+ *          Thus, we need type information instead of accessor to access the in memory data field, rather than from the pipe directly. <br/>
+ *          Another difference of this function is it allows the access of the inner type. For example, we want to access SomeType.some_field
+ *          from the array, we need to use "*some_field" for this purpose, the first star indicates we are asking about the inner type
+ * @param   model The type model to query
+ * @param   pipe  The pipe descriptor
+ * @param   field_expr The field epxression we want to query
+ * @param   buf The type buffer
+ * @return status code
+ **/
+int pstd_type_model_get_field_info(pstd_type_model_t* model, pipe_t pipe, const char* field_expr, pstd_type_field_t* buf);
 
 /**
  * @brief Add a type assertion to the given pipe

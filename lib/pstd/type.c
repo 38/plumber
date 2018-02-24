@@ -44,6 +44,16 @@ typedef struct _type_assertion_t {
 } _type_assertion_t;
 
 /**
+ * @brief Represent a request for the field information
+ **/
+typedef struct _field_req_t {
+	char*                 field;    /*!< The field expression for this field information request */
+	pstd_type_field_t*   info_buf; /*!< The buffer to return the information */
+	struct _field_req_t* next;  /*!< The next pointer in the linked list */
+} _field_req_t;
+
+
+/**
  * @brief The type const object
  **/
 typedef struct _const_t {
@@ -68,6 +78,7 @@ typedef struct {
 	uint32_t                accessor_list; /*!< The list of accessors related to this pipe */
 	_const_t*               const_list;    /*!< The list of the constant defined by this pipe */
 	_type_assertion_t*      assertion_list;/*!< The assertion list */
+	_field_req_t*           field_list;     /*!< The field request list */
 } _typeinfo_t;
 
 /**
@@ -121,6 +132,48 @@ static inline void _proto_err_stack(const proto_err_t* err)
 #endif /* LOG_ERROR_ENABLED */
 }
 
+static inline int _get_effective_field(const char* master_type, const char* encapsulated, 
+		                              const char* field_expr, 
+									  char* buffer, size_t buf_size, 
+									  char const* * effective_type, char const* * effective_field_expr)
+{
+	int encapsulate_level = 0;
+	for(;field_expr[encapsulate_level] == '*'; encapsulate_level ++);
+	if(encapsulate_level == 0)
+	{
+		*effective_type = master_type;
+		*effective_field_expr = field_expr;
+		return 0;
+	}
+	
+	*effective_field_expr = field_expr + encapsulate_level;
+
+	const char* begin = NULL;
+
+	for(;encapsulate_level > 0 && encapsulated && encapsulated[0]; encapsulate_level --)
+	{
+		begin = encapsulated + 1;
+		encapsulated = strchr(encapsulated + 1, ' ');
+	}
+
+	if(encapsulate_level > 0) 
+		ERROR_RETURN_LOG(int, "Not a encapsulated type");
+
+	if(NULL == encapsulated)
+		encapsulated = begin + strlen(begin);
+
+	if(buf_size < (size_t)(encapsulated - begin + 1))
+		ERROR_RETURN_LOG(int, "Type name is too long");
+
+	memcpy(buffer, begin, (size_t)(encapsulated - begin));
+
+	buffer[encapsulated - begin] = 0;
+
+	*effective_type = buffer;
+
+	return 0;
+}
+
 /**
  * @brief The callback function that fill up the type related data when the type is determined by
  *        the framework
@@ -161,11 +214,44 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 	    if(ERROR_CODE(int) == assertion->func(pipe, typename, assertion->data))
 	        ERROR_LOG_GOTO(ERR, "Type assertion failed");
 
+	/* Fetch all the field request */
+	_field_req_t* field_req;
+	for(field_req = typeinfo->field_list; NULL != field_req; field_req = field_req->next)
+	{
+		const char* effective_type = NULL;
+		const char* effective_field = NULL;
+		char buffer[PATH_MAX];
+		if(ERROR_CODE(int) == _get_effective_field(typeinfo->name, typename + namelen, field_req->field,
+					                               buffer, sizeof(buffer), &effective_type, &effective_field))
+			ERROR_LOG_GOTO(ERR, "Cannot parse the effective field name");
+		
+		proto_db_field_prop_t prop;
+		if(ERROR_CODE(int) == (prop = proto_db_field_type_info(effective_type, effective_field)))
+		    ERROR_LOG_GOTO(ERR, "Cannot query the field type property");
+
+		field_req->info_buf->is_numeric = ((prop & PROTO_DB_FIELD_PROP_NUMERIC) > 0);
+		field_req->info_buf->is_signed = ((prop & PROTO_DB_FIELD_PROP_SIGNED) > 0);
+		field_req->info_buf->is_float = ((prop & PROTO_DB_FIELD_PROP_REAL) > 0);
+		field_req->info_buf->is_token = ((prop & PROTO_DB_FIELD_PROP_SCOPE) > 0);
+		field_req->info_buf->is_primitive_token = ((prop & PROTO_DB_FIELD_PROP_PRIMITIVE_SCOPE) > 0);
+		field_req->info_buf->is_compound = (prop == 0);
+
+		if(ERROR_CODE(uint32_t) == (field_req->info_buf->offset = proto_db_type_offset(effective_type, effective_field, &field_req->info_buf->size)))
+			ERROR_LOG_GOTO(ERR, "Cannot query the offset of the field");
+	}
+
 	/* Then we need to fetch all the constants */
 	_const_t* constant;
 	for(constant = typeinfo->const_list; NULL != constant; constant = constant->next)
 	{
-		proto_db_field_prop_t prop = proto_db_field_type_info(typeinfo->name, constant->field);
+		const char* effective_type = NULL;
+		const char* effective_field = NULL;
+		char buffer[PATH_MAX];
+		if(ERROR_CODE(int) == _get_effective_field(typeinfo->name, typename + namelen, constant->field,
+					                               buffer, sizeof(buffer), &effective_type, &effective_field))
+			ERROR_LOG_GOTO(ERR, "Cannot parse the effective field name");
+
+		proto_db_field_prop_t prop = proto_db_field_type_info(effective_type, effective_field);
 		if(ERROR_CODE(int) == prop)
 		    ERROR_LOG_GOTO(ERR, "Cannot query the field type property");
 
@@ -175,7 +261,7 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 		const void* data_ptr;
 		size_t size;
 
-		if(1 != proto_db_field_get_default(typeinfo->name, constant->field, &data_ptr, &size))
+		if(1 != proto_db_field_get_default(effective_type, effective_field, &data_ptr, &size))
 		    ERROR_LOG_GOTO(ERR, "Cannot get the default value of the field");
 
 		if(!(prop & PROTO_DB_FIELD_PROP_REAL))
@@ -407,6 +493,16 @@ int pstd_type_model_free(pstd_type_model_t* model)
 				free(cur);
 			}
 
+			_field_req_t* req;
+			for(req = model->type_info[i].field_list; NULL != req;)
+			{
+				_field_req_t* cur = req;
+				req = req->next;
+
+				if(cur->field != NULL) free(cur->field);
+				free(cur);
+			}
+
 			if(NULL != model->type_info[i].name)
 			    free(model->type_info[i].name);
 		}
@@ -425,6 +521,9 @@ pstd_type_accessor_t pstd_type_model_get_accessor(pstd_type_model_t* model, pipe
 {
 	if(NULL == model || NULL == field_expr || RUNTIME_API_PIPE_IS_VIRTUAL(pipe) || ERROR_CODE(pipe_t) == pipe)
 	    ERROR_RETURN_LOG(pstd_type_accessor_t, "Invalid arguments");
+
+	if(*field_expr == '*')
+		ERROR_RETURN_LOG(pstd_type_accessor_t, "Encapsulated type doesn't support accessor");
 
 	return _accessor_alloc(model, pipe, field_expr);
 }
@@ -449,6 +548,37 @@ int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_asse
 	typeinfo->assertion_list = obj;
 
 	return 0;
+}
+
+int pstd_type_model_get_field_info(pstd_type_model_t* model, pipe_t pipe, const char* field_expr, pstd_type_field_t* buf)
+{
+	if(NULL == model || NULL == field_expr || NULL == buf || ERROR_CODE(pipe_t) == pipe || RUNTIME_API_PIPE_IS_VIRTUAL(pipe))
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(ERROR_CODE(int) == _ensure_pipe_typeinfo(model, pipe))
+		ERROR_RETURN_LOG(int, "Cannot resize the typeinfo array");
+
+	_typeinfo_t* typeinfo = model->type_info + PIPE_GET_ID(pipe);
+
+	_field_req_t* req = (_field_req_t*)malloc(sizeof(*req));
+	if(NULL == req)
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the field request object");
+	
+	req->field = NULL;
+
+	if(NULL == (req->field = strdup(field_expr)))
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the field string");
+
+	req->info_buf = buf;
+
+	req->next = typeinfo->field_list;
+	typeinfo->field_list = req;
+
+	return 0;
+ERR:
+	if(NULL != req->field) free(req->field);
+	free(req);
+	return ERROR_CODE(int);
 }
 
 int pstd_type_model_const(pstd_type_model_t* model, pipe_t pipe, const char* field, int is_signed, int is_real, void* buf, uint32_t bufsize)
