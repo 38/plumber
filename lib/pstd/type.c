@@ -135,11 +135,15 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 	_typeinfo_t* typeinfo = model->type_info + PIPE_GET_ID(pipe);
 
 	/* Duplicate the typename */
-	size_t namelen = strlen(typename) + 1;
-	if(NULL == (typeinfo->name = (char*)malloc(namelen)))
+	size_t namelen = 0;
+
+	for(;typename[namelen] && typename[namelen] != ' '; namelen ++);
+
+	if(NULL == (typeinfo->name = (char*)malloc(namelen + 1)))
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the type name");
 
 	memcpy(typeinfo->name, typename, namelen);
+	typeinfo->name[namelen] = 0;
 
 	int rc  = ERROR_CODE(int);
 
@@ -147,8 +151,8 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 	    ERROR_LOG_GOTO(ERR, "Cannot initialize libproto");
 
 	/* Get the full size of the header */
-	if(ERROR_CODE(uint32_t) == (typeinfo->full_size = proto_db_type_size(typename)))
-	    ERROR_LOG_GOTO(ERR, "Cannot get the full size of type %s", typename);
+	if(ERROR_CODE(uint32_t) == (typeinfo->full_size = proto_db_type_size(typeinfo->name)))
+	    ERROR_LOG_GOTO(ERR, "Cannot get the full size of type %s", typeinfo->name);
 
 
 	/* Check all the assertions */
@@ -161,7 +165,7 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 	_const_t* constant;
 	for(constant = typeinfo->const_list; NULL != constant; constant = constant->next)
 	{
-		proto_db_field_prop_t prop = proto_db_field_type_info(typename, constant->field);
+		proto_db_field_prop_t prop = proto_db_field_type_info(typeinfo->name, constant->field);
 		if(ERROR_CODE(int) == prop)
 		    ERROR_LOG_GOTO(ERR, "Cannot query the field type property");
 
@@ -171,7 +175,7 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 		const void* data_ptr;
 		size_t size;
 
-		if(1 != proto_db_field_get_default(typename, constant->field, &data_ptr, &size))
+		if(1 != proto_db_field_get_default(typeinfo->name, constant->field, &data_ptr, &size))
 		    ERROR_LOG_GOTO(ERR, "Cannot get the default value of the field");
 
 		if(!(prop & PROTO_DB_FIELD_PROP_REAL))
@@ -204,8 +208,8 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 	for(offset = typeinfo->accessor_list; ERROR_CODE(uint32_t) != offset; offset = accessor->next)
 	{
 		accessor = model->accessor + offset;
-		if(ERROR_CODE(uint32_t) == (accessor->offset = proto_db_type_offset(typename, accessor->field, &accessor->size)))
-		    ERROR_LOG_GOTO(ERR, "Cannot get the type param for %s.%s", typename, accessor->field);
+		if(ERROR_CODE(uint32_t) == (accessor->offset = proto_db_type_offset(typeinfo->name, accessor->field, &accessor->size)))
+		    ERROR_LOG_GOTO(ERR, "Cannot get the type param for %s.%s", typeinfo->name, accessor->field);
 		accessor->init = 1;
 
 		if(typeinfo->used_size < accessor->offset + accessor->size)
