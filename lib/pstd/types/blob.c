@@ -12,6 +12,7 @@
 
 #include <proto.h>
 #include <pstd/type.h>
+#include <pstd/scope.h>
 #include <pstd/types/blob.h>
 
 /**
@@ -33,6 +34,22 @@ typedef struct {
 	const char*         field_prefix; /*!< The field prefix use used to access current field */
 	const char*         root_type;    /*!< The root type of the field */
 } _traverse_data_t;
+
+/**
+ * @brief The actual data structure for a in-memory blob
+ **/
+struct _pstd_blob_t {
+	uint32_t   malloced;     /*!< Do we use malloc for this memory */
+	uint32_t   num_tokens:31;/*!< The number of tokens */
+	uint32_t   blob_size;    /*!< The size of the blob */
+	const pstd_blob_model_t* model;  /*!< The blob model */
+	uintptr_t __padding__[0];
+	char      data[0];       /*!< The actual data section */
+};
+
+#define _BLOB_DATA(blob) (((blob)->data) + sizeof(void*) * (blob)->num_tokens)
+#define _RLS_DATA(blob) ((void const* *)((blob)->data))
+#define _RLS_DATA_CONST(blob) ((void const* const*)((blob)->data))
 
 static int _traverse_type(proto_db_field_info_t info, void* data);
 
@@ -293,4 +310,136 @@ RET:
 		ERROR_RETURN_LOG(pstd_blob_token_idx_t, "Cannot finalize the protocol database");
 
 	return ret;
+}
+
+size_t pstd_blob_model_full_size(const pstd_blob_model_t* model)
+{
+	if(NULL == model)
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
+
+	return sizeof(pstd_blob_t) + model->blob_size + sizeof(void*) * model->num_tokens;
+}
+
+size_t pstd_blob_model_data_size(const pstd_blob_model_t* model)
+{
+	if(NULL == model)
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
+
+	return model->blob_size;
+}
+
+pstd_blob_t* pstd_blob_new(const pstd_blob_model_t* model, void* memory)
+{
+	if(NULL == model)
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+	size_t size = pstd_blob_model_full_size(model);
+
+	int malloced = (memory == NULL);
+
+	if(NULL == memory && NULL == (memory = malloc(size)))
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the next blob");
+
+	pstd_blob_t* ret = (pstd_blob_t*)memory;
+
+	ret->malloced = (uint32_t)malloced;
+	ret->blob_size = model->blob_size;
+	ret->num_tokens = model->num_tokens & 0x7fffffff;
+	ret->model = model;
+
+	return ret;
+}
+
+void* pstd_blob_get_data(pstd_blob_t* blob)
+{
+	if(NULL == blob)
+		ERROR_PTR_RETURN_LOG_ERRNO("Invalid arguments");
+
+	return _BLOB_DATA(blob);
+}
+
+const void* pstd_blob_get_data_const(const pstd_blob_t* blob)
+{
+	if(NULL == blob)
+		ERROR_PTR_RETURN_LOG_ERRNO("Invalid arguments");
+
+	return _BLOB_DATA(blob);
+}
+
+/**
+ * @todo We may want to add type checking at some point
+ **/
+int pstd_blob_read(const pstd_blob_t* blob, const pstd_type_field_t* field, void* data, size_t bufsize)
+{
+	if(NULL == blob || NULL == field || NULL == data || bufsize > field->size)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	size_t bytes_to_read = field->size; 
+
+	if(bytes_to_read > bufsize)
+		bytes_to_read = bufsize;
+
+	memcpy(data, _BLOB_DATA(blob) + field->offset, field->size);
+
+	return 0;
+}
+
+int pstd_blob_write(pstd_blob_t* blob, const pstd_type_field_t* field, const void* data, size_t size)
+{
+	if(NULL == blob || NULL == field || NULL == data || size > field->size)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	size_t bytes_to_write = size, bytes_to_fill_zero = 0;
+
+	if(size < field->size)
+		bytes_to_fill_zero = field->size - size;
+
+	memcpy(_BLOB_DATA(blob) + field->offset, data, bytes_to_write);
+
+	if(bytes_to_fill_zero > 0)
+		memset(_BLOB_DATA(blob) + field->offset + bytes_to_write, 0, bytes_to_fill_zero);
+
+	return 0;
+}
+
+int pstd_blob_read_token(const pstd_blob_t* blob, pstd_blob_token_idx_t idx, void const * * objbuf)
+{
+	if(NULL == blob || ERROR_CODE(pstd_blob_token_idx_t) == idx || NULL == objbuf || idx >= blob->num_tokens)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	*objbuf = _RLS_DATA_CONST(blob)[idx];
+
+	if(*objbuf != NULL) return 1;
+	else return 0;
+}
+
+int pstd_blob_write_token(pstd_blob_t* blob, pstd_blob_token_idx_t idx, scope_token_t token, const void* obj)
+{
+	if(NULL == blob || ERROR_CODE(pstd_blob_token_idx_t) == idx || ERROR_CODE(scope_token_t) == token || 0 == token || NULL == obj)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+#ifndef FULL_OPTIMIZATION
+	const void* rls_obj = pstd_scope_get(idx);
+	if(NULL == rls_obj || obj != rls_obj)
+		ERROR_RETURN_LOG(int, "Invalid arguments, scope token and obj pointer doesn't match");
+#endif
+
+	_RLS_DATA(blob)[idx] = obj;
+
+	uint32_t offset = blob->model->token_offset[idx];
+
+	memcpy(_BLOB_DATA(blob) + offset, &token, sizeof(scope_token_t));
+
+	return 0;
+}
+
+int pstd_blob_free(pstd_blob_t* blob)
+{
+	if(NULL == blob)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(blob->malloced)
+		free(blob);
+	
+	return 0;
 }
