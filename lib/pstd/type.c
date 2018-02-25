@@ -253,7 +253,7 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 
 		proto_db_field_prop_t prop = proto_db_field_type_info(effective_type, effective_field);
 		if(ERROR_CODE(int) == prop)
-		    ERROR_LOG_GOTO(ERR, "Cannot query the field type property");
+		    ERROR_LOG_GOTO(ERR, "Cannot query the field type property for field %s of type %s", effective_field, effective_type);
 
 		if(!(prop & PROTO_DB_FIELD_PROP_NUMERIC))
 		    ERROR_LOG_GOTO(ERR, "Type error: numeric type expected for a constant");

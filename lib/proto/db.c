@@ -1090,11 +1090,11 @@ int proto_db_type_traverse(const char* type_name, proto_db_field_callback_t func
 
 		if(ent->header.refkind == PROTO_TYPE_ENTITY_REF_TYPE && info.name == NULL)
 		{
+			/* This is a base type */
 			const char* rel_type = proto_ref_typeref_get_path(ent->type_ref);
 			if(NULL == rel_type) PROTO_ERR_RAISE_RETURN(int, FAIL);
 			const char* abs_type = proto_cache_full_name(rel_type, metadata->pwd);
 			if(NULL == rel_type) PROTO_ERR_RAISE_RETURN(int, FAIL);
-			/* This is a base type */
 			if(ERROR_CODE(int) == proto_db_type_traverse(abs_type, func, data))
 			    PROTO_ERR_RAISE_RETURN(int, FAIL);
 			continue;
