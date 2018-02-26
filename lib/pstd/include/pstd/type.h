@@ -25,7 +25,7 @@ typedef uint32_t pstd_type_accessor_t;
 typedef struct _pstd_type_instance_t pstd_type_instance_t;
 
 /**
- * @brief Represent the information to access a field 
+ * @brief Represent the information to access a field
  **/
 typedef struct {
 	uint32_t              offset;                  /*!< The offeset of this field */
@@ -74,7 +74,7 @@ pstd_type_accessor_t pstd_type_model_get_accessor(pstd_type_model_t* model, pipe
  * @details This is similar to pstd_type_model_get_accessor, but instead of returning an accessor
  *          it will set the type information to the given memory location. <br/>
  *          This is not useful when we want to handle the actual pipe type, for example "plumber/std/request_local/String", etc.
- *          However, this function is important for operating inner types of a ecapsulated type. 
+ *          However, this function is important for operating inner types of a ecapsulated type.
  *          Since a ecapsulated type, for example "plumber/std/request_local/Array SomeType"
  *          If we want to access a field in SomeType, the accessor won't work.
  *          The semantics of encapsulated type means the data from the pipe contains enough information to reconstruct a instance

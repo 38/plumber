@@ -4,10 +4,10 @@
 /**
  * @brief The in-memory blob that represents a protocol type
  * @details This is the utilies for all the container types which actually carries multiple
- *          protocol blob in memory. 
+ *          protocol blob in memory.
  *          In the blob we actaully memorize all the underlying object of the scope token, thus
  *          we can eliminate the cost for accessing RLS.
- * @file pstd/types/blob.h 
+ * @file pstd/types/blob.h
  **/
 #ifndef __PSTD_BLOB_H__
 #define __PSTD_BLOB_H__
@@ -77,13 +77,13 @@ size_t pstd_blob_model_data_size(const pstd_blob_model_t* model);
 /**
  * @brief Create a new in-memomry blob
  * @param model The model we want to query
- * @param memory If it's not NULL, use the memory address instead of allocate one 
+ * @param memory If it's not NULL, use the memory address instead of allocate one
  * @return the newly created memory blob
  **/
 pstd_blob_t* pstd_blob_new(const pstd_blob_model_t* model, void* memory);
 
 /**
- * @brief Get the actual blob memory pointer 
+ * @brief Get the actual blob memory pointer
  * @param blob The blob to get
  * @param model The blob model for this type
  * @return The memory pointer to the data section

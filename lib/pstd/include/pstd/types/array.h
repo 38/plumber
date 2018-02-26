@@ -29,7 +29,7 @@ pstd_array_t* pstd_array_new(const pstd_blob_model_t* blob_model, size_t init_ca
 /**
  * @brief Dispose a used array
  * @param array The array object to dispose
- * @note If the array object has been committed to the RLS, the function will reject the operation 
+ * @note If the array object has been committed to the RLS, the function will reject the operation
  * @return status code
  **/
 int pstd_array_free(pstd_array_t* array);
@@ -61,7 +61,7 @@ const pstd_blob_t* pstd_array_get(const pstd_array_t* array, uint32_t idx);
  * @param array The target array object
  * @param idx The index in the array
  * @note This function also used to append an element in the array, if this is the case
- *       use (uint32_t)-1 as the index to get a newly allocated memory blob for the next 
+ *       use (uint32_t)-1 as the index to get a newly allocated memory blob for the next
  *       element
  * @return the result memory blob, NULL on error cases
  **/

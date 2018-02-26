@@ -132,10 +132,10 @@ static inline void _proto_err_stack(const proto_err_t* err)
 #endif /* LOG_ERROR_ENABLED */
 }
 
-static inline int _get_effective_field(const char* master_type, const char* encapsulated, 
-		                              const char* field_expr, 
-									  char* buffer, size_t buf_size, 
-									  char const* * effective_type, char const* * effective_field_expr)
+static inline int _get_effective_field(const char* master_type, const char* encapsulated,
+                                      const char* field_expr,
+                                      char* buffer, size_t buf_size,
+                                      char const* * effective_type, char const* * effective_field_expr)
 {
 	int encapsulate_level = 0;
 	for(;field_expr[encapsulate_level] == '*'; encapsulate_level ++);
@@ -145,7 +145,7 @@ static inline int _get_effective_field(const char* master_type, const char* enca
 		*effective_field_expr = field_expr;
 		return 0;
 	}
-	
+
 	*effective_field_expr = field_expr + encapsulate_level;
 
 	const char* begin = NULL;
@@ -156,14 +156,14 @@ static inline int _get_effective_field(const char* master_type, const char* enca
 		encapsulated = strchr(encapsulated + 1, ' ');
 	}
 
-	if(encapsulate_level > 0) 
-		ERROR_RETURN_LOG(int, "Not a encapsulated type");
+	if(encapsulate_level > 0)
+	    ERROR_RETURN_LOG(int, "Not a encapsulated type");
 
 	if(NULL == encapsulated)
-		encapsulated = begin + strlen(begin);
+	    encapsulated = begin + strlen(begin);
 
 	if(buf_size < (size_t)(encapsulated - begin + 1))
-		ERROR_RETURN_LOG(int, "Type name is too long");
+	    ERROR_RETURN_LOG(int, "Type name is too long");
 
 	memcpy(buffer, begin, (size_t)(encapsulated - begin));
 
@@ -222,9 +222,9 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 		const char* effective_field = NULL;
 		char buffer[PATH_MAX];
 		if(ERROR_CODE(int) == _get_effective_field(typeinfo->name, typename + namelen, field_req->field,
-					                               buffer, sizeof(buffer), &effective_type, &effective_field))
-			ERROR_LOG_GOTO(ERR, "Cannot parse the effective field name");
-		
+		                                           buffer, sizeof(buffer), &effective_type, &effective_field))
+		    ERROR_LOG_GOTO(ERR, "Cannot parse the effective field name");
+
 		proto_db_field_prop_t prop;
 		if(ERROR_CODE(int) == (prop = proto_db_field_type_info(effective_type, effective_field)))
 		    ERROR_LOG_GOTO(ERR, "Cannot query the field type property");
@@ -237,7 +237,7 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 		field_req->info_buf->is_compound = (prop == 0);
 
 		if(ERROR_CODE(uint32_t) == (field_req->info_buf->offset = proto_db_type_offset(effective_type, effective_field, &field_req->info_buf->size)))
-			ERROR_LOG_GOTO(ERR, "Cannot query the offset of the field");
+		    ERROR_LOG_GOTO(ERR, "Cannot query the offset of the field");
 	}
 
 	/* Then we need to fetch all the constants */
@@ -248,8 +248,8 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 		const char* effective_field = NULL;
 		char buffer[PATH_MAX];
 		if(ERROR_CODE(int) == _get_effective_field(typeinfo->name, typename + namelen, constant->field,
-					                               buffer, sizeof(buffer), &effective_type, &effective_field))
-			ERROR_LOG_GOTO(ERR, "Cannot parse the effective field name");
+		                                           buffer, sizeof(buffer), &effective_type, &effective_field))
+		    ERROR_LOG_GOTO(ERR, "Cannot parse the effective field name");
 
 		proto_db_field_prop_t prop = proto_db_field_type_info(effective_type, effective_field);
 		if(ERROR_CODE(int) == prop)
@@ -523,7 +523,7 @@ pstd_type_accessor_t pstd_type_model_get_accessor(pstd_type_model_t* model, pipe
 	    ERROR_RETURN_LOG(pstd_type_accessor_t, "Invalid arguments");
 
 	if(*field_expr == '*')
-		ERROR_RETURN_LOG(pstd_type_accessor_t, "Encapsulated type doesn't support accessor");
+	    ERROR_RETURN_LOG(pstd_type_accessor_t, "Encapsulated type doesn't support accessor");
 
 	return _accessor_alloc(model, pipe, field_expr);
 }
@@ -553,21 +553,21 @@ int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_asse
 int pstd_type_model_get_field_info(pstd_type_model_t* model, pipe_t pipe, const char* field_expr, pstd_type_field_t* buf)
 {
 	if(NULL == model || NULL == field_expr || NULL == buf || ERROR_CODE(pipe_t) == pipe || RUNTIME_API_PIPE_IS_VIRTUAL(pipe))
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(ERROR_CODE(int) == _ensure_pipe_typeinfo(model, pipe))
-		ERROR_RETURN_LOG(int, "Cannot resize the typeinfo array");
+	    ERROR_RETURN_LOG(int, "Cannot resize the typeinfo array");
 
 	_typeinfo_t* typeinfo = model->type_info + PIPE_GET_ID(pipe);
 
 	_field_req_t* req = (_field_req_t*)malloc(sizeof(*req));
 	if(NULL == req)
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the field request object");
-	
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the field request object");
+
 	req->field = NULL;
 
 	if(NULL == (req->field = strdup(field_expr)))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the field string");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the field string");
 
 	req->info_buf = buf;
 
