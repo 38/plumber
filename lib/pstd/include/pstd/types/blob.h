@@ -85,6 +85,7 @@ pstd_blob_t* pstd_blob_new(const pstd_blob_model_t* model, void* memory);
 /**
  * @brief Get the actual blob memory pointer 
  * @param blob The blob to get
+ * @param model The blob model for this type
  * @return The memory pointer to the data section
  **/
 void* pstd_blob_get_data(pstd_blob_t* blob);
@@ -92,7 +93,7 @@ void* pstd_blob_get_data(pstd_blob_t* blob);
 /**
  * @brief Get the actual blob memory pointer with readonly access permission
  * @param blob The blob to get
- * @return THe memory pointer to the data secion
+ * @return The memory pointer to the data secion
  **/
 const void* pstd_blob_get_data_const(const pstd_blob_t* blob);
 
@@ -121,9 +122,10 @@ int pstd_blob_write(pstd_blob_t* blob, const pstd_type_field_t* field, const voi
  * @param blob The blob object
  * @param idx The index of the token
  * @param objbuf If this buffer is not NULL, return the actual object pointer to that object
+ * @param blob_model The blob model we want to use
  * @return number of objects has been returned or error code
  **/
-int pstd_blob_read_token(const pstd_blob_t* blob, pstd_blob_token_idx_t idx, void const * * objbuf);
+int pstd_blob_read_token(const pstd_blob_t* blob, const pstd_blob_model_t* blob_model, pstd_blob_token_idx_t idx, void const * * objbuf);
 
 /**
  * @brief Write a token to the memory blob
@@ -131,13 +133,14 @@ int pstd_blob_read_token(const pstd_blob_t* blob, pstd_blob_token_idx_t idx, voi
  * @param idx The index of of the scope token in the memory blob
  * @param token The actual token value
  * @param obj The object poiner, if given just use the pointer as the actual object pointer
+ * @param blob_model The blob model we want to use
  * @note The obj param is entirely for performance consideration, the caller should make sure
  *        the obj is exactly the same object described by the token.
  *        Otherwise the behavior is not well-defined.
  *        We actually enforce this when the FULL_OPTIMIZATION compile flag is off.
  * @return status code
  **/
-int pstd_blob_write_token(pstd_blob_t* blob, pstd_blob_token_idx_t idx, scope_token_t token, const void* obj);
+int pstd_blob_write_token(pstd_blob_t* blob, const pstd_blob_model_t* blob_model, pstd_blob_token_idx_t idx, scope_token_t token, const void* obj);
 
 /**
  * @brief Dispose a used blob

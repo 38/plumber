@@ -10,7 +10,8 @@
 #ifndef __PSTD_ARRAY_H__
 #define __PSTD_ARRAY_H__
 
-#include <types/blob.h>
+#include <pstd/type.h>
+#include <pstd/types/blob.h>
 
 /**
  * @brief The array object

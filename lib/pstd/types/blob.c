@@ -39,17 +39,12 @@ typedef struct {
  * @brief The actual data structure for a in-memory blob
  **/
 struct _pstd_blob_t {
-	uint32_t   malloced;     /*!< Do we use malloc for this memory */
-	uint32_t   num_tokens:31;/*!< The number of tokens */
-	uint32_t   blob_size;    /*!< The size of the blob */
-	const pstd_blob_model_t* model;  /*!< The blob model */
-	uintptr_t __padding__[0];
 	char      data[0];       /*!< The actual data section */
 };
 
-#define _BLOB_DATA(blob) (((blob)->data) + sizeof(void*) * (blob)->num_tokens)
-#define _RLS_DATA(blob) ((void const* *)((blob)->data))
-#define _RLS_DATA_CONST(blob) ((void const* const*)((blob)->data))
+#define _BLOB_DATA(blob) (((blob)->data))
+#define _RLS_DATA(blob, model) ((void const* *)((blob)->data + model->blob_size))
+#define _RLS_DATA_CONST(blob, model) ((void const* const*)((blob)->data + model->blob_size))
 
 static int _traverse_type(proto_db_field_info_t info, void* data);
 
@@ -330,22 +325,10 @@ size_t pstd_blob_model_data_size(const pstd_blob_model_t* model)
 
 pstd_blob_t* pstd_blob_new(const pstd_blob_model_t* model, void* memory)
 {
-	if(NULL == model)
+	if(NULL == model || NULL == memory)
 		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
-	size_t size = pstd_blob_model_full_size(model);
-
-	int malloced = (memory == NULL);
-
-	if(NULL == memory && NULL == (memory = malloc(size)))
-		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the next blob");
-
 	pstd_blob_t* ret = (pstd_blob_t*)memory;
-
-	ret->malloced = (uint32_t)malloced;
-	ret->blob_size = model->blob_size;
-	ret->num_tokens = model->num_tokens & 0x7fffffff;
-	ret->model = model;
 
 	return ret;
 }
@@ -402,20 +385,20 @@ int pstd_blob_write(pstd_blob_t* blob, const pstd_type_field_t* field, const voi
 	return 0;
 }
 
-int pstd_blob_read_token(const pstd_blob_t* blob, pstd_blob_token_idx_t idx, void const * * objbuf)
+int pstd_blob_read_token(const pstd_blob_t* blob, const pstd_blob_model_t* blob_model, pstd_blob_token_idx_t idx, void const * * objbuf)
 {
-	if(NULL == blob || ERROR_CODE(pstd_blob_token_idx_t) == idx || NULL == objbuf || idx >= blob->num_tokens)
+	if(NULL == blob || ERROR_CODE(pstd_blob_token_idx_t) == idx || NULL == objbuf || NULL == blob_model ||idx >= blob_model->num_tokens)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	*objbuf = _RLS_DATA_CONST(blob)[idx];
+	*objbuf = _RLS_DATA_CONST(blob, blob_model)[idx];
 
 	if(*objbuf != NULL) return 1;
 	else return 0;
 }
 
-int pstd_blob_write_token(pstd_blob_t* blob, pstd_blob_token_idx_t idx, scope_token_t token, const void* obj)
+int pstd_blob_write_token(pstd_blob_t* blob, const pstd_blob_model_t* blob_model, pstd_blob_token_idx_t idx, scope_token_t token, const void* obj)
 {
-	if(NULL == blob || ERROR_CODE(pstd_blob_token_idx_t) == idx || ERROR_CODE(scope_token_t) == token || 0 == token || NULL == obj)
+	if(NULL == blob || ERROR_CODE(pstd_blob_token_idx_t) == idx || ERROR_CODE(scope_token_t) == token || 0 == token || NULL == obj || NULL == blob_model)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 #ifndef FULL_OPTIMIZATION
@@ -424,9 +407,9 @@ int pstd_blob_write_token(pstd_blob_t* blob, pstd_blob_token_idx_t idx, scope_to
 		ERROR_RETURN_LOG(int, "Invalid arguments, scope token and obj pointer doesn't match");
 #endif
 
-	_RLS_DATA(blob)[idx] = obj;
+	_RLS_DATA(blob, blob_model)[idx] = obj;
 
-	uint32_t offset = blob->model->token_offset[idx];
+	uint32_t offset = blob_model->token_offset[idx];
 
 	memcpy(_BLOB_DATA(blob) + offset, &token, sizeof(scope_token_t));
 
@@ -438,8 +421,5 @@ int pstd_blob_free(pstd_blob_t* blob)
 	if(NULL == blob)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	if(blob->malloced)
-		free(blob);
-	
 	return 0;
 }
