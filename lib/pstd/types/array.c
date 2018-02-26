@@ -138,7 +138,7 @@ const pstd_blob_t* pstd_array_get(const pstd_array_t* array, uint32_t idx)
 
 pstd_blob_t* pstd_array_get_mutable(pstd_array_t* array, uint32_t idx)
 {
-	if(NULL == array  || idx >= array->size)
+	if(NULL == array  || (idx != (uint32_t) -1 && idx >= array->size))
 		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	if(idx == (uint32_t)-1)

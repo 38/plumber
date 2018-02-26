@@ -39,7 +39,7 @@ typedef struct _accessor_t {
  **/
 typedef struct _type_assertion_t {
 	pstd_type_assertion_t       func; /*!< The assertion function */
-	const void*                 data; /*!< The additional data for the assertion function */
+	void*                       data; /*!< The additional data for the assertion function */
 	struct _type_assertion_t*   next; /*!< The next pointer */
 } _type_assertion_t;
 
@@ -528,7 +528,7 @@ pstd_type_accessor_t pstd_type_model_get_accessor(pstd_type_model_t* model, pipe
 	return _accessor_alloc(model, pipe, field_expr);
 }
 
-int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_assertion_t assertion, const void* data)
+int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_assertion_t assertion, void* data)
 {
 	if(NULL == model || NULL == assertion || ERROR_CODE(pipe_t) == pipe || RUNTIME_API_PIPE_IS_VIRTUAL(pipe))
 	    ERROR_RETURN_LOG(int, "Invalid arguments");

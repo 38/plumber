@@ -45,7 +45,7 @@ typedef struct {
  * @param data The additional data to this assertion
  * @return status code
  **/
-typedef int (*pstd_type_assertion_t)(pipe_t pipe, const char* type, const void* data);
+typedef int (*pstd_type_assertion_t)(pipe_t pipe, const char* type, void* data);
 
 /**
  * @brief Create a new pipe type model object
@@ -99,7 +99,7 @@ int pstd_type_model_get_field_info(pstd_type_model_t* model, pipe_t pipe, const 
  * @param data      The additional data we want to pass
  * @return status code
  **/
-int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_assertion_t assertion, const void* data);
+int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_assertion_t assertion, void* data);
 
 /**
  * @brief Comput the size of the type context instance for the given type model

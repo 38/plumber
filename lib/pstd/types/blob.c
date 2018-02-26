@@ -402,7 +402,7 @@ int pstd_blob_write_token(pstd_blob_t* blob, const pstd_blob_model_t* blob_model
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 #ifndef FULL_OPTIMIZATION
-	const void* rls_obj = pstd_scope_get(idx);
+	const void* rls_obj = pstd_scope_get(token);
 	if(NULL == rls_obj || obj != rls_obj)
 		ERROR_RETURN_LOG(int, "Invalid arguments, scope token and obj pointer doesn't match");
 #endif
