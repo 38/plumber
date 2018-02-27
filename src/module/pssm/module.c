@@ -1,5 +1,5 @@
 /**
- * Copyright (C) Hao Hou, 2017
+ * Copyright (C) 2017-2018, Hao Hou
  **/
 /**
  * @todo split this file to smaller files
