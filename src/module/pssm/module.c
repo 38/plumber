@@ -533,6 +533,31 @@ static inline int _get_libconfig(const char* name, int* is_numeric, void const *
 	return 0;
 }
 
+static inline sched_rscope_stream_t* _rscope_stream_open(uint32_t token)
+{
+	return sched_rscope_stream_open(token);
+}
+
+static inline int _rscope_stream_close(sched_rscope_stream_t* stream)
+{
+	return sched_rscope_stream_close(stream);
+}
+
+static inline int _rscope_stream_eof(const sched_rscope_stream_t* stream)
+{
+	return sched_rscope_stream_eos(stream);
+}
+
+static inline size_t _rscope_stream_read(sched_rscope_stream_t* stream, void* buf, size_t size)
+{
+	return sched_rscope_stream_read(stream, buf, size);
+}
+
+static inline int _rscope_stream_ready_event(sched_rscope_stream_t* stream, runtime_api_scope_ready_event_t* buf)
+{
+	return sched_rscope_stream_get_event(stream, buf);
+}
+
 static int _invoke(void* __restrict ctx, uint32_t opcode, va_list args)
 {
 	(void)ctx;
@@ -612,6 +637,54 @@ static int _invoke(void* __restrict ctx, uint32_t opcode, va_list args)
 			void const** value_ptr = va_arg(args, void const**);
 			return _get_libconfig(name, is_numeric, value_ptr);
 		}
+		case MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_OPEN:
+		{
+			uint32_t token = va_arg(args, uint32_t);
+			void** ret = va_arg(args, void**);
+			if(NULL == ret)
+				ERROR_RETURN_LOG(int, "Invalid arguments");
+			if(NULL == (*ret = _rscope_stream_open(token)))
+				return ERROR_CODE(int);
+			return 0;
+		}
+		case MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_CLOSE:
+		{
+			sched_rscope_stream_t* stream = va_arg(args, sched_rscope_stream_t*);
+			return _rscope_stream_close(stream);
+		}
+		case MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_READ:
+		{
+			sched_rscope_stream_t* stream = va_arg(args, sched_rscope_stream_t*);
+			void* buf = va_arg(args, void*);
+			size_t bufsize = va_arg(args, size_t);
+			size_t* ret = va_arg(args, size_t*);
+			if(NULL == ret)
+				ERROR_RETURN_LOG(int, "Invalid arguments");
+			if(ERROR_CODE(size_t) == (*ret = _rscope_stream_read(stream, buf, bufsize)))
+				return ERROR_CODE(int);
+			return 0;
+		}
+		case MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_EOF:
+		{
+			const sched_rscope_stream_t* stream = va_arg(args, const sched_rscope_stream_t*);
+			int* ret = va_arg(args, int*);
+			if(NULL == ret)
+				ERROR_RETURN_LOG(int, "Invalid arguments");
+			if(ERROR_CODE(int) == (*ret = _rscope_stream_eof(stream)))
+				return ERROR_CODE(int);
+			return 0;
+		}
+		case MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_READY_EVENT:
+		{
+			sched_rscope_stream_t* stream = va_arg(args, sched_rscope_stream_t*);
+			runtime_api_scope_ready_event_t* buf = va_arg(args, runtime_api_scope_ready_event_t*);
+			int* ret = va_arg(args, int*);
+			if(NULL == ret)
+				ERROR_RETURN_LOG(int, "Invalid arguments");
+			if(ERROR_CODE(int) == (*ret = _rscope_stream_ready_event(stream, buf)))
+				return ERROR_CODE(int);
+			return 0;
+		}
 		default:
 		    ERROR_RETURN_LOG(int, "Invalid opcode 0x%x", opcode);
 	}
@@ -633,6 +706,11 @@ static uint32_t _get_opcode(void* __restrict ctx, const char* name)
 	if(strcmp(name, "page_allocate") == 0) return MODULE_PSSM_MODULE_OPCODE_PAGE_ALLOCATE;
 	if(strcmp(name, "page_deallocate") == 0) return MODULE_PSSM_MODULE_OPCODE_PAGE_DEALLOCATE;
 	if(strcmp(name, "get_libconfig") == 0) return MODULE_PSSM_MODULE_OPCODE_GET_LIBCONFIG;
+	if(strcmp(name, "scope_stream_open") == 0) return MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_OPEN;
+	if(strcmp(name, "scope_stream_close") == 0) return MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_CLOSE;
+	if(strcmp(name, "scope_stream_eof") == 0) return MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_EOF;
+	if(strcmp(name, "scope_stream_read") == 0) return MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_READ;
+	if(strcmp(name, "scope_stream_ready_event") == 0) return MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_READY_EVENT;
 
 	ERROR_RETURN_LOG(uint32_t, "Invalid method name %s", name);
 }

@@ -11,6 +11,11 @@
 #define __PSTD_SCOPE_H__
 
 /**
+ * @brief The dummy type that is for compiler knowing we are talking about the RLS stream
+ **/
+typedef struct _pstd_scope_stream_t pstd_scope_stream_t;
+
+/**
  * @brief add a new pointer to the scope managed pointer infrastructure
  * @details Once this function gets called, the memory will be assigned with an integer token, then the servlet
  *          will be able to write the token to pipe, and the downstream servlet will be able to get the pointer
@@ -45,5 +50,43 @@ scope_token_t pstd_scope_copy(scope_token_t token, void** resbuf);
  * @return the pointer, NULL on error case
  **/
 const void* pstd_scope_get(scope_token_t token);
+
+/**
+ * @brief Open a RLS scope as a DRA stream
+ * @param token The RLS token to open
+ * @return The newly create stream object
+ **/
+pstd_scope_stream_t* pstd_scope_stream_open(scope_token_t token);
+
+/**
+ * @brief Read bytes from the RLS stream
+ * @param stream The stream to read
+ * @param buf The buffer 
+ * @param size The size of buffer
+ * @return number of bytes has been read
+ **/
+size_t pstd_scope_stream_read(pstd_scope_stream_t* stream, void* buf, size_t size);
+
+/**
+ * @brief Check if the stream has reached the end
+ * @param stream The stream to check
+ * @param if the stream has reached end or error code
+ **/
+int pstd_scope_stream_eof(const pstd_scope_stream_t* stream);
+
+/**
+ * @brief Close a stream that is no longer used
+ * @param stream The stream to close
+ * @param status code
+ **/
+int pstd_scope_stream_close(pstd_scope_stream_t* stream);
+
+/**
+ * @brief Get the ready event
+ * @param stream The stream to query
+ * @param buf The buffer for the result event
+ * @return number of event has been returned
+ **/
+int pstd_scope_stream_ready_event(pstd_scope_stream_t* stream, scope_ready_event_t* buf);
 
 #endif /* __PSTD_SCOPE_H__ */
