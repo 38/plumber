@@ -6,7 +6,11 @@
  * @details The stream RLS object is the object that accepts other RLS token or string and
  *          concatenate all the RLS tokens and strings into a single RLS.
  *          This is typically useful when we want to generate a gziped TCP result which we 
- *          have to write in multiple times
+ *          have to write in multiple times. <br/>
+ *          Since we can not make sure that all the inner token can be opened as stream twice,
+ *          thus for this kinds of token, we can only DRA it one time. </br>
+ *          If try to DRA a token that has been opened already, it should return an error. <br/>
+ *          This behavior also prevent the cyclic reference inside this token.
  * @file include/pstd/types/ostream.h
  **/
 #ifndef __PSTD_OSTREAM_T__
