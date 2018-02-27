@@ -535,7 +535,12 @@ static inline int _get_libconfig(const char* name, int* is_numeric, void const *
 
 static inline sched_rscope_stream_t* _rscope_stream_open(uint32_t token)
 {
-	return sched_rscope_stream_open(token);
+	if(ERROR_CODE(runtime_api_scope_token_t) == token)
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+	runtime_api_scope_token_t internal_token = token - 1;
+
+	return sched_rscope_stream_open(internal_token);
 }
 
 static inline int _rscope_stream_close(sched_rscope_stream_t* stream)

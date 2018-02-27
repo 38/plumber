@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdio.h>
 
 #include <utils/static_assertion.h>
 
@@ -240,7 +241,8 @@ int pstd_ostream_write(pstd_ostream_t* stream, const void* buf, size_t sz)
 			if(stream->list_end != NULL)
 				stream->list_end->next = new_block;
 			else
-				stream->list_begin = stream->list_end = new_block;
+				stream->list_begin = new_block;
+			stream->list_end = new_block;
 		}
 
 		uint32_t bytes_to_write = (uint32_t)_page_block_bytes_availiable(stream->list_end);
@@ -256,6 +258,102 @@ int pstd_ostream_write(pstd_ostream_t* stream, const void* buf, size_t sz)
 	}
 
 	return 0;
+}
+
+int pstd_ostream_write_owner_pointer(pstd_ostream_t* stream, void* buf, int (*free_func)(void*), size_t sz)
+{
+	if(NULL == stream || NULL == buf)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(stream->list_end != NULL && stream->list_end->type == _BLOCK_TYPE_PAGE && sz <= _page_block_bytes_availiable(stream->list_end))
+	{
+		LOG_DEBUG("The last data page is larger than the buffer to write, copy it to the last buffer");
+		memcpy(stream->list_end->page->data + stream->list_end->page->size, buf, sz);
+
+		if(NULL != free_func && ERROR_CODE(int) == free_func(buf))
+			ERROR_RETURN_LOG(int, "Cannot dispose the used memory buffer");
+
+		return 0;
+	}
+
+	_block_t* new_block = _memory_block_new(buf, sz, free_func);
+	if(new_block == NULL)
+		ERROR_RETURN_LOG(int, "Cannot allocate next memory block");
+
+	if(stream->list_end != NULL)
+		stream->list_end->next = new_block;
+	else
+		stream->list_begin = new_block;
+	stream->list_end = new_block;
+
+	return 0;
+}
+
+int pstd_ostream_write_scope_token(pstd_ostream_t* stream, scope_token_t token)
+{
+	if(NULL == stream || 0 == token || ERROR_CODE(scope_token_t) == token)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	_block_t* new_block = _stream_block_new(token);
+
+	if(NULL == new_block)
+		ERROR_RETURN_LOG(int, "Cannot allocate next stream block");
+
+	if(stream->list_end != NULL)
+		stream->list_end->next = new_block;
+	else
+		stream->list_begin = new_block;
+	stream->list_end = new_block;
+
+	return 0;
+}
+
+static int _printf_buf_free(void* buf)
+{
+	free(buf);
+	return 0;
+}
+
+int pstd_ostream_printf(pstd_ostream_t* stream, const char* fmt, ...)
+{
+	char _lb[1024];
+	size_t _bsz = sizeof(_lb);
+	char* _b = _lb;
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
+	va_list ap;
+	va_start(ap, fmt);
+	int rc = vsnprintf(_b, _bsz, fmt, ap);
+	if(rc >= 0 && (size_t)rc > _bsz)
+	{
+		if(NULL == (_b = (char*)malloc((size_t)rc + 1)))
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the result buffer");
+		rc = vsnprintf(_b, (size_t)rc + 1, fmt, ap);
+	}
+	va_end(ap);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+	if(rc < 0)
+	    ERROR_LOG_ERRNO_GOTO(ERR, "vsnprintf returns an error");
+
+	if(_b == _lb)
+	{
+		if(ERROR_CODE(int) == pstd_ostream_write(stream, _lb, (size_t)rc))
+			ERROR_LOG_GOTO(ERR, "Cannot write the result data to buffer");
+	}
+	else
+	{
+		if(ERROR_CODE(int) == pstd_ostream_write_owner_pointer(stream, _b, _printf_buf_free, (size_t)rc))
+			ERROR_LOG_GOTO(ERR, "Cannot write pass the data buffer to the stream");
+	}
+
+	return 0;
+ERR:
+	if(_b != _lb) free(_b);
+	return ERROR_CODE(int);
 }
 
 scope_token_t pstd_ostream_commit(pstd_ostream_t* stream);
