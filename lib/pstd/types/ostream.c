@@ -356,4 +356,169 @@ ERR:
 	return ERROR_CODE(int);
 }
 
-scope_token_t pstd_ostream_commit(pstd_ostream_t* stream);
+static int _free(void* mem)
+{
+	pstd_ostream_t* stream = (pstd_ostream_t*)mem;
+
+	return _ostream_free(stream, 0);
+}
+
+static void* _open(const void* ostream)
+{
+	union {
+		const pstd_ostream_t* cos;
+		pstd_ostream_t* ret;
+	} cvt = {
+		.cos = (const pstd_ostream_t*)ostream
+	};
+
+	if(cvt.cos->opened == 1)
+		ERROR_PTR_RETURN_LOG("Cannot open an ostream twice");
+
+	cvt.ret->opened = 1;
+
+	return cvt.ret;
+}
+
+static int _close(void* mem)
+{
+	(void)mem;
+	return 0;
+}
+
+static size_t _read(void* __restrict stream_mem, void* __restrict buf, size_t count)
+{
+	pstd_ostream_t* stream = (pstd_ostream_t*)stream_mem;
+
+	size_t ret = 0;
+
+	while(count > 0 && stream->list_begin != NULL)
+	{
+		size_t bytes_to_read = count;
+		size_t bytes_read = 0;
+		int block_exhuated = 0;
+
+		switch(stream->list_begin->type)
+		{
+			case _BLOCK_TYPE_PAGE:
+			{
+				if(bytes_to_read > stream->list_begin->page->size - stream->list_begin->page->read)
+				{
+					bytes_to_read = stream->list_begin->page->size - stream->list_begin->page->read;
+					block_exhuated = 1;
+				}
+				memcpy(buf, stream->list_begin->page->data + stream->list_begin->page->read, bytes_to_read);
+				bytes_read = bytes_to_read;
+				stream->list_begin->page->read += (uint32_t)bytes_read;
+				break;
+			}
+			case _BLOCK_TYPE_MEMORY:
+			{
+				if(bytes_to_read > stream->list_begin->memory->size - stream->list_begin->memory->read)
+				{
+					bytes_to_read = stream->list_begin->memory->size - stream->list_begin->memory->read;
+					block_exhuated = 1;
+				}
+				memcpy(buf, ((char*)stream->list_begin->memory->data) + stream->list_begin->memory->read, bytes_to_read);
+
+				bytes_read = bytes_to_read;
+
+				stream->list_begin->memory->read += (uint32_t)bytes_read;
+				break;
+
+			}
+			case _BLOCK_TYPE_STREAM:
+			{
+				bytes_read = pstd_scope_stream_read(stream->list_begin->stream->stream, buf, bytes_to_read);
+				if(ERROR_CODE(size_t) == bytes_read)
+					ERROR_RETURN_LOG(size_t, "Inner RLS returns a read error");
+
+				if(bytes_read == 0)
+				{
+					int eos_rc = pstd_scope_stream_eof(stream->list_begin->stream->stream);
+					if(ERROR_CODE(int) == eos_rc)
+						ERROR_RETURN_LOG(size_t, "Cannot check if the innter RLS reached end-of-stream");
+					block_exhuated = (eos_rc > 0);
+				}
+				break;
+			}
+		}
+
+		if(block_exhuated)
+		{
+			_block_t* this = stream->list_begin;
+			if(NULL == (stream->list_begin = stream->list_begin->next))
+				stream->list_end = NULL;
+			if(ERROR_CODE(int) == _block_free(this))
+				ERROR_RETURN_LOG(size_t, "Cannot dispose the exhuated data block");
+		}
+		else if(bytes_read == 0) break;  /* In this case the inner RLS is stall, thus we need to stop at this point */
+
+		ret += bytes_read;
+	}
+
+	return ret;
+}
+
+static int _eos(const void* stream_mem)
+{
+	const pstd_ostream_t* stream = (const pstd_ostream_t*)stream_mem;
+
+	if(stream->list_begin == NULL) return 1;
+
+	if(stream->list_begin == stream->list_end)
+	{
+		/* If this is the last page, we check this page */
+		switch(stream->list_begin->type)
+		{
+			case _BLOCK_TYPE_PAGE:
+				return stream->list_begin->page->read >= stream->list_begin->page->size;
+			case _BLOCK_TYPE_MEMORY:
+				return stream->list_begin->memory->read >= stream->list_begin->memory->size;
+			case _BLOCK_TYPE_STREAM:
+				return pstd_scope_stream_eof(stream->list_begin->stream->stream);
+		}
+
+		return  ERROR_CODE(int);
+	}
+
+	return 0;
+}
+
+static int _event(void* __restrict stream_mem, runtime_api_scope_ready_event_t* event_buf)
+{
+	const pstd_ostream_t* stream = (const pstd_ostream_t*)stream_mem;
+
+	if(stream->list_begin == NULL) return 0;
+
+	switch(stream->list_begin->type)
+	{
+		case _BLOCK_TYPE_PAGE:
+		case _BLOCK_TYPE_MEMORY:
+			return 0;
+		case _BLOCK_TYPE_STREAM:
+			return pstd_scope_stream_ready_event(stream->list_begin->stream->stream, event_buf);
+	}
+
+	return ERROR_CODE(int);
+}
+
+
+scope_token_t pstd_ostream_commit(pstd_ostream_t* stream)
+{
+	if(NULL == stream || stream->commited)
+		ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
+
+	scope_entity_t ent = {
+		.data = stream,
+		.free_func = _free,
+		.copy_func = NULL,
+		.open_func = _open,
+		.close_func = _close,
+		.eos_func = _eos,
+		.read_func = _read,
+		.event_func = _event
+	};
+	
+	return pstd_scope_add(&ent);
+}
