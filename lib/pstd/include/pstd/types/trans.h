@@ -26,20 +26,19 @@ typedef struct _pstd_trans_t pstd_trans_t;
  *        4. Repeat the step 2, util all data processed
  *        5. cleanup_func
  **/
-typedef struct _pstd_trans_proc_inst_t pstd_trans_proc_inst_t;
+typedef struct _pstd_trans_inst_t pstd_trans_inst_t;
 
 /**
  * @brief The data structure that is used to describe a data processor
  **/
 typedef struct {
-	scope_token_t   src_token;    /*!< The scope token used as data source */
 	const void*     data;         /*!< The additional data for the processor callbacks */
 	/**
 	 * @brief Initialize the stream processor
 	 * @param data The addtional data to pass in
 	 * @return The stream processor handle NULL on erro case
 	 **/
-	pstd_trans_proc_inst_t*  (*init_func)(const void* data);
+	pstd_trans_inst_t*  (*init_func)(const void* data);
 
 	/**
 	 * @brief Feed data to the stream processor
@@ -48,7 +47,7 @@ typedef struct {
 	 * @param size The size of input buffer
 	 * @return The number of bytes has been accepted
 	 **/
-	size_t (*feed_func)(pstd_trans_proc_inst_t* __restrict stream_proc, const void* __restrict in, size_t size);
+	size_t (*feed_func)(pstd_trans_inst_t* __restrict stream_proc, const void* __restrict in, size_t size);
 
 	/**
 	 * @brief Fetch the processed data from the stram processor
@@ -57,22 +56,31 @@ typedef struct {
 	 * @param size The size of the buffer
 	 * @return Actual bytes that has been read
 	 **/
-	size_t (*fetch_func)(pstd_trans_proc_inst_t* __restrict stream_proc, void* __restrict out, size_t size);
+	size_t (*fetch_func)(pstd_trans_inst_t* __restrict stream_proc, void* __restrict out, size_t size);
 
 	/**
 	 * @brief Dispose a used stream processor
 	 * @param stream_proc The stream processor
 	 * @return status code
 	 **/
-	int (*cleanup_func)(pstd_trans_proc_inst_t* stream_proc);
+	int (*cleanup_func)(pstd_trans_inst_t* stream_proc);
 } pstd_trans_desc_t;
 
 /**
  * @brief Create a new scope token
  * @param desc The stream processor description
+ * @param token The RLS token used as data source
  * @return The newly created stream transformer
  **/
-pstd_trans_t* pstd_trans_new(pstd_trans_desc_t desc);
+pstd_trans_t* pstd_trans_new(scope_token_t token, pstd_trans_desc_t desc);
+
+/**
+ * @brief Set the size of read buffer for this stream transformer
+ * @param trans The stream transformer to set
+ * @param size The new size for the buffer
+ * @return status code
+ **/
+int pstd_trans_set_buffer_size(pstd_trans_t* trans, size_t size);
 
 /**
  * @berif Commit a stream transformer to the RLS
