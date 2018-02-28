@@ -225,7 +225,7 @@ int pstd_ostream_free(pstd_ostream_t* ostream)
 int pstd_ostream_write(pstd_ostream_t* stream, const void* buf, size_t sz)
 {
 	/* Bascially once the ostream is commited, we can't change anything */
-	if(NULL == stream || NULL == buf || stream->commited)
+	if(NULL == stream || NULL == buf || stream->opened)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	while(sz > 0)
@@ -262,7 +262,7 @@ int pstd_ostream_write(pstd_ostream_t* stream, const void* buf, size_t sz)
 
 int pstd_ostream_write_owner_pointer(pstd_ostream_t* stream, void* buf, int (*free_func)(void*), size_t sz)
 {
-	if(NULL == stream || NULL == buf)
+	if(NULL == stream || NULL == buf || stream->opened)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(stream->list_end != NULL && stream->list_end->type == _BLOCK_TYPE_PAGE && sz <= _page_block_bytes_availiable(stream->list_end))
@@ -291,7 +291,7 @@ int pstd_ostream_write_owner_pointer(pstd_ostream_t* stream, void* buf, int (*fr
 
 int pstd_ostream_write_scope_token(pstd_ostream_t* stream, scope_token_t token)
 {
-	if(NULL == stream || 0 == token || ERROR_CODE(scope_token_t) == token)
+	if(NULL == stream || 0 == token || ERROR_CODE(scope_token_t) == token || stream->opened)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_block_t* new_block = _stream_block_new(token);
