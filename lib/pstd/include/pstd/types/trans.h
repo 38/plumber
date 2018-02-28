@@ -5,7 +5,7 @@
  * @breif The stream processor which takes another RLS stream and process on the fly.
  *        The token can not be reopened
  * @details This token is typically useful when we want to compress the data on the fly.
- * @file pstd/types/streamtrans.h
+ * @file pstd/types/trans.h
  **/
 #ifndef __PSTD_STREAMTRANS_H__
 #define __PSTD_STREAMTRANS_H__
@@ -15,7 +15,7 @@
 /**
  * @brief The RLS stream transformer object
  **/
-typedef struct _pstd_streamtrans_t pstd_streamtrans_t;
+typedef struct _pstd_trans_t pstd_trans_t;
 
 /**
  * @brief The dummy type stream transformer instance
@@ -26,7 +26,7 @@ typedef struct _pstd_streamtrans_t pstd_streamtrans_t;
  *        4. Repeat the step 2, util all data processed
  *        5. cleanup_func
  **/
-typedef struct _pstd_streamtrans_proc_inst_t pstd_streamtrans_proc_inst_t;
+typedef struct _pstd_trans_proc_inst_t pstd_trans_proc_inst_t;
 
 /**
  * @brief The data structure that is used to describe a data processor
@@ -39,7 +39,7 @@ typedef struct {
 	 * @param data The addtional data to pass in
 	 * @return The stream processor handle NULL on erro case
 	 **/
-	pstd_streamtrans_proc_inst_t*  (*init_func)(const void* data);
+	pstd_trans_proc_inst_t*  (*init_func)(const void* data);
 
 	/**
 	 * @brief Feed data to the stream processor
@@ -48,7 +48,7 @@ typedef struct {
 	 * @param size The size of input buffer
 	 * @return The number of bytes has been accepted
 	 **/
-	size_t (*feed_func)(pstd_streamtrans_proc_inst_t* __restrict stream_proc, const void* __restrict in, size_t size);
+	size_t (*feed_func)(pstd_trans_proc_inst_t* __restrict stream_proc, const void* __restrict in, size_t size);
 
 	/**
 	 * @brief Fetch the processed data from the stram processor
@@ -57,22 +57,22 @@ typedef struct {
 	 * @param size The size of the buffer
 	 * @return Actual bytes that has been read
 	 **/
-	size_t (*fetch_func)(pstd_streamtrans_proc_inst_t* __restrict stream_proc, void* __restrict out, size_t size);
+	size_t (*fetch_func)(pstd_trans_proc_inst_t* __restrict stream_proc, void* __restrict out, size_t size);
 
 	/**
 	 * @brief Dispose a used stream processor
 	 * @param stream_proc The stream processor
 	 * @return status code
 	 **/
-	int (*cleanup_func)(pstd_streamtrans_proc_inst_t* stream_proc);
-} pstd_streamtrans_desc_t;
+	int (*cleanup_func)(pstd_trans_proc_inst_t* stream_proc);
+} pstd_trans_desc_t;
 
 /**
  * @brief Create a new scope token
  * @param desc The stream processor description
  * @return The newly created stream transformer
  **/
-pstd_streamtrans_t* pstd_streamtrans_new(pstd_streamtrans_desc_t desc);
+pstd_trans_t* pstd_trans_new(pstd_trans_desc_t desc);
 
 /**
  * @berif Commit a stream transformer to the RLS
@@ -80,13 +80,13 @@ pstd_streamtrans_t* pstd_streamtrans_new(pstd_streamtrans_desc_t desc);
  * @return  The token for this RLS
  * @note Commit twice should  be an error
  **/
-scope_token_t pstd_streamtrans_commit(pstd_streamtrans_t* trans);
+scope_token_t pstd_trans_commit(pstd_trans_t* trans);
 
 /**
  * @brief Dispose a used stream transformer
  * @param trans The stream transformer
  * @return status code
  **/
-int pstd_streamtrans_free(pstd_streamtrans_t* trans);
+int pstd_trans_free(pstd_trans_t* trans);
 
 #endif /* __PSTD_STREAMTRANS_H__ */
