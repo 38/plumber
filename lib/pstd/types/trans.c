@@ -17,7 +17,8 @@
 struct _pstd_trans_t {
 	uint32_t             commited:1;      /*!< Indicates if the token is committed */
 	uint32_t             opened:1;        /*!< Indicats if this transformer has been opened alreadly */
-	uint32_t             readup:1;        /*!< The flags indicates if we readup all the result */
+	uint32_t             wait_feed:1;     /*!< Indicates if we are waiting for data feed */
+	uint32_t             data_source_eos:1; /*!< Indicates if we have seen the EOS from the data source */
 	pstd_trans_desc_t    ctx;             /*!< The transformer data */
 	scope_token_t        src_token;       /*!< The source RLS token */
 	void*                stream_proc;     /*!< The stream processor instance */
@@ -121,6 +122,7 @@ static void* _open(const void* trans)
 		ERROR_PTR_RETURN_LOG("Cannot open a stream transformer RLS twice");
 
 	ret->opened = 1;
+	ret->data_source_eos = 0;
 
 	if(ret->origin_buf_cap == _default_buf_size)
 		ret->origin_buf = pooled = (char*)pstd_mempool_page_alloc();
@@ -160,7 +162,7 @@ static size_t _read(void* __restrict trans_mem, void* __restrict buf, size_t cou
 	size_t ret = 0;
 
 	/* First we need to exhuast the previous unread data from the stream processor */
-	for(;count > 0;)
+	for(;count > 0 && !trans->wait_feed;)
 	{
 		size_t bytes_read = trans->ctx.fetch_func(trans->stream_proc, buf, count);
 
@@ -174,13 +176,16 @@ static size_t _read(void* __restrict trans_mem, void* __restrict buf, size_t cou
 		if(bytes_read == 0) break;
 	}
 
-	trans->readup = 1;
+	trans->wait_feed = 1;
 
 	/* Then we need to fetch original bytes from the data source to the origianl buffer and send them to the stream processor */
 	for(;count > 0;)
 	{
 		if(trans->origin_buf_size <= trans->origin_buf_used)
 		{
+			/* We waiting for feed plus we are in the data source end make us exit for now */
+			if(trans->data_source_eos) return ret;
+
 			/* If we don't have any original bytes, try to grab some */
 			size_t bytes_read = pstd_scope_stream_read(trans->stream_proc, trans->origin_buf, trans->origin_buf_cap);
 
@@ -189,9 +194,28 @@ static size_t _read(void* __restrict trans_mem, void* __restrict buf, size_t cou
 
 			/* If we cannot get anything, just return */
 			if(bytes_read == 0)
+			{
+				int eos_rc = pstd_scope_stream_eof(trans->data_source);
+				if(ERROR_CODE(int) == eos_rc)
+					ERROR_RETURN_LOG(size_t, "Cannot check if the data source reached the end");
+
+				/* If we may have more data, obviously we need to return 0 which indicates the wait state */
+				if(eos_rc)
+				{
+
+					trans->data_source_eos = 1;
+
+					if(ERROR_CODE(size_t) == trans->ctx.feed_func(trans->stream_proc, NULL, 0))
+						ERROR_RETURN_LOG(size_t, "Cannot send the end of data source message");
+
+					trans->wait_feed = 0;
+				}
+
+				/* So we just stop at this point and needs to wait for next iteration */
 				return ret;
+			}
+
 			trans->origin_buf_size = bytes_read;
-			trans->readup = 0;
 		}
 
 		size_t bytes_accepted = trans->ctx.feed_func(trans->stream_proc, 
@@ -215,12 +239,14 @@ static size_t _read(void* __restrict trans_mem, void* __restrict buf, size_t cou
 			if(ERROR_CODE(size_t) == bytes_fetched || bytes_fetched > count)
 				ERROR_RETURN_LOG(size_t, "The fetch callback returns unexpected value");
 
-			/* If the stream processor return 0, we are done for now */
+			/* If the stream processor return 0, we just grab more data and try again */
 			if(bytes_fetched == 0) 
 			{
-				trans->readup = 1;
-				return ret;
+				trans->wait_feed = 1;
+				break;
 			}
+
+			trans->wait_feed = 0;
 
 			count -= bytes_fetched;
 			buf = ((int8_t*)buf) + bytes_fetched;
@@ -234,16 +260,17 @@ static int _eos(const void* trans_mem)
 {
 	const pstd_trans_t* trans = (const pstd_trans_t*)trans_mem;
 
-	if(!trans->readup) return 0;
-
-	return pstd_scope_stream_eof(trans->data_source);
+	return !trans->wait_feed && trans->data_source_eos;
 }
 
 static int _event(void* __restrict trans_mem, runtime_api_scope_ready_event_t* event_buf)
 {
 	pstd_trans_t* trans = (pstd_trans_t*)trans_mem;
 
-	return pstd_scope_stream_ready_event(trans->data_source, event_buf);
+	if(trans->wait_feed) 
+		return pstd_scope_stream_ready_event(trans->data_source, event_buf);
+
+	return 0;
 }
 
 scope_token_t pstd_trans_commit(pstd_trans_t* trans)

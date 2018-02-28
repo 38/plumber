@@ -45,6 +45,7 @@ typedef struct {
 	 * @param stream_proc The stream processor to feed in
 	 * @param in The input buffer
 	 * @param size The size of input buffer
+	 * @note if this function called with a NULL in buffer, it indicates the data source has been exhuasted
 	 * @return The number of bytes has been accepted
 	 **/
 	size_t (*feed_func)(pstd_trans_inst_t* __restrict stream_proc, const void* __restrict in, size_t size);

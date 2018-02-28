@@ -149,6 +149,7 @@ static int _exec(void* ctxbuf)
 	{
 		if(len > 0 && pathbuf[len - 1] != '/') pathbuf[len ++] = '/';
 
+		/* TODO: make this configurable and should be able to disabled for other use cases */
 		static const char index_file[] = "index.html";
 		if(sizeof(pathbuf) < sizeof(index_file) + len) goto RET_404;
 		memcpy(pathbuf + len, index_file, sizeof(index_file));
