@@ -132,10 +132,23 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	return 0;
 }
 
+static int _unload(void* ctxmem)
+{
+	int rc = 0;
+	ctx_t* ctx = (ctx_t*)ctxmem;
+
+	if(NULL != ctx->opt.black_list) free(ctx->opt.black_list);
+
+	if(NULL != ctx->type_model && ERROR_CODE(int) == pstd_type_model_free(ctx->type_model))
+		rc = ERROR_CODE(int);
+	return rc;
+}
+
 
 SERVLET_DEF = {
 	.desc    = "The HTTP body encoder",
 	.version = 0x0,
 	.size    = sizeof(ctx_t),
-	.init    = _init
+	.init    = _init,
+	.unload  = _unload
 };
