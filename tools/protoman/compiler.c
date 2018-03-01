@@ -286,7 +286,7 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 		}
 		else if(tok->type == LEXER_TOKEN_NUMBER)
 		{
-			ival &= ((1ll << (8 * elem_size)) - 1);
+			ival &= (elem_size < 8 ? ((1ll << (8 * elem_size)) - 1) : -1ll);
 			metadata.numeric_default = &ival;
 			metadata.flags.numeric.default_size = elem_size & 0x1fffffffu;
 			elem_size = 0;
