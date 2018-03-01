@@ -171,12 +171,16 @@ static size_t _read(void* __restrict trans_mem, void* __restrict buf, size_t cou
 
 		buf = ((int8_t*)buf) + bytes_read;
 		count -= bytes_read;
+		ret += bytes_read;
 
 		/* The convention is once we see a 0 bytes returned we will assume the stream processor internal buffer is read up */
-		if(bytes_read == 0) break;
+		if(bytes_read == 0)
+		{
+			trans->wait_feed = 1;
+			break;
+		}
 	}
 
-	trans->wait_feed = 1;
 
 	/* Then we need to fetch original bytes from the data source to the origianl buffer and send them to the stream processor */
 	for(;count > 0;)
@@ -187,7 +191,7 @@ static size_t _read(void* __restrict trans_mem, void* __restrict buf, size_t cou
 			if(trans->data_source_eos) return ret;
 
 			/* If we don't have any original bytes, try to grab some */
-			size_t bytes_read = pstd_scope_stream_read(trans->stream_proc, trans->origin_buf, trans->origin_buf_cap);
+			size_t bytes_read = pstd_scope_stream_read(trans->data_source, trans->origin_buf, trans->origin_buf_cap);
 
 			if(bytes_read == ERROR_CODE(size_t))
 				ERROR_RETURN_LOG(size_t, "Cannot read original bytes from the RLS data source");
@@ -209,6 +213,9 @@ static size_t _read(void* __restrict trans_mem, void* __restrict buf, size_t cou
 						ERROR_RETURN_LOG(size_t, "Cannot send the end of data source message");
 
 					trans->wait_feed = 0;
+
+					/* Since we changed the state of the stream processor, let's try one more time */
+					goto FETCH;
 				}
 
 				/* So we just stop at this point and needs to wait for next iteration */
@@ -216,6 +223,7 @@ static size_t _read(void* __restrict trans_mem, void* __restrict buf, size_t cou
 			}
 
 			trans->origin_buf_size = bytes_read;
+			trans->origin_buf_used = 0;
 		}
 
 		size_t bytes_accepted = trans->ctx.feed_func(trans->stream_proc, 
@@ -230,6 +238,8 @@ static size_t _read(void* __restrict trans_mem, void* __restrict buf, size_t cou
 			return ret;
 		trans->origin_buf_used = 0;
 		trans->origin_buf_used += bytes_accepted;
+
+FETCH:
 
 		/* Then we need to fetch all the result bytes if possible */
 		for(;count > 0;)
@@ -250,6 +260,7 @@ static size_t _read(void* __restrict trans_mem, void* __restrict buf, size_t cou
 
 			count -= bytes_fetched;
 			buf = ((int8_t*)buf) + bytes_fetched;
+			ret += bytes_fetched;
 		}
 	}
 
@@ -260,7 +271,7 @@ static int _eos(const void* trans_mem)
 {
 	const pstd_trans_t* trans = (const pstd_trans_t*)trans_mem;
 
-	return !trans->wait_feed && trans->data_source_eos;
+	return trans->wait_feed && trans->data_source_eos;
 }
 
 static int _event(void* __restrict trans_mem, runtime_api_scope_ready_event_t* event_buf)

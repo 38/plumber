@@ -146,6 +146,9 @@ static int _unload(void* ctxmem)
 
 static inline uint32_t _determine_compression_algorithm(ctx_t *ctx, pstd_type_instance_t* inst)
 {
+	if(pipe_eof(ctx->p_accept) == 1)
+		return 0;
+
 	scope_token_t accept_token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->a_accept);
 
 	if(ERROR_CODE(scope_token_t) == accept_token)

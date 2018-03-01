@@ -455,6 +455,8 @@ static size_t _read(void* __restrict stream_mem, void* __restrict buf, size_t co
 		else if(bytes_read == 0) break;  /* In this case the inner RLS is stall, thus we need to stop at this point */
 
 		ret += bytes_read;
+		buf = ((char*)buf) + bytes_read;
+		count -= bytes_read;
 	}
 
 	return ret;

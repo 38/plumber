@@ -21,7 +21,7 @@ typedef struct {
 	uint8_t   size_written:4;  /*!< The written size string length */
 	uint8_t   page_limit;      /*!< The maximum number of pages we can use */
 	uint32_t  no_more:1;       /*!< The data source has no more data */
-	uint32_t  trailer_state:2; /*!< The trailer state */
+	uint32_t  trailer_state:7; /*!< The trailer state */
 	uint32_t  current_offset;  /*!< The page offset */
 	uintpad_t __padding__[0];
 	char*     pages[0];        /*!< The actual pages */
@@ -31,7 +31,7 @@ static uint32_t _page_size = 0;
 
 static pstd_trans_inst_t* _init(const void* data)
 {
-	uint8_t page_limit = *(const uint8_t*)data;
+	uint8_t page_limit = (uint8_t)(uintptr_t)data;
 
 	size_t size = sizeof(_processor_t) + sizeof(char*) * page_limit;
 
@@ -40,6 +40,8 @@ static pstd_trans_inst_t* _init(const void* data)
 		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the chuncked stream processor");
 
 	memset(proc, 0, size);
+
+	proc->page_limit = page_limit;
 
 	uint8_t i;
 	for(i = 0; i < page_limit; i ++)
@@ -119,14 +121,16 @@ static size_t _fetch(pstd_trans_inst_t* __restrict stream_proc, void* __restrict
 	size_t ret = 0;
 
 	for(;proc->size_length != proc->size_written && size > 0; out = ((char*)out) + 1, size --, ret ++)
-		*(char*)out = proc->size_buf[proc->size_length - proc->size_written - 1];
+		*(char*)out = proc->size_buf[proc->size_length - (proc->size_written ++) - 1];
 
-	while(size > 0)
+	while(size > 0 && proc->chunck_size > proc->current_offset)
 	{
 		uint32_t cur_block = proc->current_offset / _page_size;
 		uint32_t cur_offset = proc->current_offset % _page_size;
 
 		uint32_t bytes_to_copy = _page_size - cur_offset;
+		if(bytes_to_copy > proc->chunck_size - proc->current_offset)
+			bytes_to_copy = proc->chunck_size - proc->current_offset;
 		if(bytes_to_copy > size) bytes_to_copy = (uint32_t)size;
 
 		memcpy(out, proc->pages[cur_block] + cur_offset, bytes_to_copy);
@@ -143,21 +147,47 @@ static size_t _fetch(pstd_trans_inst_t* __restrict stream_proc, void* __restrict
 		   proc->pages[(proc->chunck_size - 2)/_page_size][(proc->chunck_size - 2)%_page_size] == '\r' &&
 		   proc->pages[(proc->chunck_size - 1)/_page_size][(proc->chunck_size - 1)%_page_size] == '\n')
 			proc->trailer_state = 2;
-		switch(proc->trailer_state)
+		while(size > 0)
 		{
-			case 0:
-				if(size > 0) *(char*)out = '\r', out = ((char*)out) + 1, proc->trailer_state ++;
-				break;
-			case 1:
-				if(size > 0) *(char*)out = '\n', out = ((char*)out) + 1, proc->trailer_state ++;
-				break;
-			default:
-				proc->chunck_size = 0;
-				proc->current_offset = 0;
-				proc->trailer_state = 0;
+			switch(proc->trailer_state)
+			{
+				case 0:
+				case 1:
+					*(char*)out = proc->trailer_state == 0 ? '\r' : '\n';
+					out = ((char*)out) + 1;
+					proc->trailer_state ++;
+					size --;
+					ret ++;
+					break;
+				case 2:
+				case 3:
+				case 4:
+				case 5:
+				case 6:
+					if(!proc->no_more) 
+						proc->trailer_state = 0x7f;
+					else
+					{
+						*(char*)out = "0\r\n\r\n"[proc->trailer_state - 2];
+						out = ((char*)out) + 1;
+						size --;
+						ret ++;
+						proc->trailer_state ++;
+					}
+					break;
+				default:
+					proc->chunck_size = 0;
+					proc->current_offset = 0;
+					proc->trailer_state = 0;
+					proc->size_length = 0;
+					proc->size_written = 0;
+					proc->no_more = 0;
+					goto EXIT;
+			}
 		}
 	}
 
+EXIT:
 	return ret;
 }
 
@@ -187,7 +217,7 @@ scope_token_t chuncked_encode(scope_token_t token, uint8_t chuncked_pages)
 	if(_page_size == 0) _page_size = (uint32_t)getpagesize();
 
 	pstd_trans_desc_t desc = {
-		.data = &chuncked_pages,
+		.data = ((char*)0) + chuncked_pages,
 		.init_func = _init,
 		.feed_func = _feed,
 		.fetch_func = _fetch,
