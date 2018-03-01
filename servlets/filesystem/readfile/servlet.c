@@ -19,8 +19,9 @@ typedef struct {
 	uint32_t token_ofs; /*!< The offset of the token */
 	char*    root;      /*!< The root directory */
 	size_t   root_len;  /*!< The length of the root */
-	pipe_t   path;      /*!< The path to the file to read */
-	pipe_t   result;    /*!< The read result of the file */
+	pipe_t   p_path;      /*!< The path to the file to read */
+	pipe_t   p_file;      /*!< The file result */
+	pipe_t   p_status;    /*!< The read result of the file */
 	pstd_type_model_t*   type_model;    /*!< The servlet type model */
 	pstd_type_accessor_t path_token;    /*!< The RLS token to the path */
 	pstd_type_accessor_t file_token;    /*!< The RLS token to the file */
@@ -48,10 +49,13 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 
 
 
-	if(ERROR_CODE(pipe_t) == (ctx->path = pipe_define("path", PIPE_INPUT, "plumber/std/request_local/String")))
+	if(ERROR_CODE(pipe_t) == (ctx->p_path = pipe_define("path", PIPE_INPUT, "plumber/std/request_local/String")))
 	    ERROR_RETURN_LOG(int, "Cannot create input pipe");
 
-	if(ERROR_CODE(pipe_t) == (ctx->result = pipe_define("result", PIPE_OUTPUT, "plumber/std_servlet/filesystem/readfile/v0/Result")))
+	if(ERROR_CODE(pipe_t) == (ctx->p_file   = pipe_define("file", PIPE_OUTPUT, "plumber/std/request_local/File")))
+		ERROR_RETURN_LOG(int, "Cannot create the file output pipe");
+
+	if(ERROR_CODE(pipe_t) == (ctx->p_status = pipe_define("result", PIPE_OUTPUT, "plumber/std_servlet/filesystem/readfile/v0/Result")))
 	    ERROR_RETURN_LOG(int, "Cannot create the output pipe");
 
 	ctx->type_model = NULL;
@@ -66,23 +70,23 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	if(NULL == (ctx->type_model = pstd_type_model_new()))
 	    ERROR_RETURN_LOG(int, "Cannot create type model for servlet");
 
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->path_token = pstd_type_model_get_accessor(ctx->type_model, ctx->path, "token")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->path_token = pstd_type_model_get_accessor(ctx->type_model, ctx->p_path, "token")))
 	    ERROR_LOG_GOTO(ERR, "Cannot get the accessor for path.token");
 
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->file_token = pstd_type_model_get_accessor(ctx->type_model, ctx->result, "file.token")))
-	    ERROR_LOG_GOTO(ERR, "Cannot get the accessor for result.file.token");
+	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->file_token = pstd_type_model_get_accessor(ctx->type_model, ctx->p_file, "token")))
+	    ERROR_LOG_GOTO(ERR, "Cannot get the accessor for file.token");
 
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->redirect_token = pstd_type_model_get_accessor(ctx->type_model, ctx->result, "redirect.token")))
-	    ERROR_LOG_GOTO(ERR, "Cannot get the accessor for result.redirect.token");
+	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->redirect_token = pstd_type_model_get_accessor(ctx->type_model, ctx->p_status, "redirect.token")))
+	    ERROR_LOG_GOTO(ERR, "Cannot get the accessor for status.redirect.token");
 
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->status = pstd_type_model_get_accessor(ctx->type_model, ctx->result, "status")))
-	    ERROR_LOG_GOTO(ERR, "Cannot get the accessor for result.status");
+	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->status = pstd_type_model_get_accessor(ctx->type_model, ctx->p_status, "status")))
+	    ERROR_LOG_GOTO(ERR, "Cannot get the accessor for status.status");
 
-	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->result, "STATUS_OK", &ctx->STATUS_OK))
+	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->p_status, "STATUS_OK", &ctx->STATUS_OK))
 	    ERROR_LOG_GOTO(ERR, "Cannot get the constant STATUS_OK");
-	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->result, "STATUS_MOVED", &ctx->STATUS_MOVED))
+	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->p_status, "STATUS_MOVED", &ctx->STATUS_MOVED))
 	    ERROR_LOG_GOTO(ERR, "Cannot get the constant STATUS_OK");
-	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->result, "STATUS_NOT_FOUND", &ctx->STATUS_NOT_FOUND))
+	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->p_status, "STATUS_NOT_FOUND", &ctx->STATUS_NOT_FOUND))
 	    ERROR_LOG_GOTO(ERR, "Cannot get the constant STATUS_OK");
 
 	ret = 0;
