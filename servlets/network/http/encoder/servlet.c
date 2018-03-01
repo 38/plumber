@@ -8,8 +8,10 @@
 
 #include <pservlet.h>
 #include <pstd.h>
+#include <pstd/types/string.h>
 
 #include <options.h>
+#include <chuncked.h>
 
 /**
  * @brief The servlet context
@@ -137,11 +139,130 @@ static int _unload(void* ctxmem)
 	int rc = 0;
 	ctx_t* ctx = (ctx_t*)ctxmem;
 
-	if(NULL != ctx->opt.black_list) free(ctx->opt.black_list);
-
 	if(NULL != ctx->type_model && ERROR_CODE(int) == pstd_type_model_free(ctx->type_model))
 		rc = ERROR_CODE(int);
 	return rc;
+}
+
+static inline uint32_t _determine_compression_algorithm(ctx_t *ctx, pstd_type_instance_t* inst)
+{
+	scope_token_t accept_token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->a_accept);
+
+	if(ERROR_CODE(scope_token_t) == accept_token)
+		ERROR_RETURN_LOG(uint32_t, "Cannot read the accept token from pipe");
+
+	const pstd_string_t* accept_obj = pstd_string_from_rls(accept_token);
+
+	if(NULL == accept_obj)
+		ERROR_RETURN_LOG(uint32_t, "Cannot get the RLS string object for the token");
+
+	const char* accepts = pstd_string_value(accept_obj);
+	const char* accepts_end = accepts + pstd_string_length(accept_obj);
+
+	if(NULL == accepts)
+		ERROR_RETURN_LOG(uint32_t, "Cannot get the accepts string");
+
+	unsigned current_len = 0;
+	const char* ptr;
+	for(ptr = accepts; *ptr; ptr ++)
+	{
+		if(current_len == 0)
+		{
+			if(*ptr == ' ' || *ptr == '\t')
+				continue;
+			else
+			{
+				switch(*ptr)
+				{
+					case 'g':
+						/* gzip */
+						if(ctx->opt.gzip && accepts_end - ptr >= 4 && memcmp("gzip", ptr, 4) == 0)
+							return ctx->encode_method.ENCODE_METHOD_GZIP;
+						break;
+					case 'd':
+						/* deflate */
+						if(ctx->opt.deflate && accepts_end - ptr >= 7 && memcmp("deflate", ptr, 7) == 0)
+							return ctx->encode_method.ENCODE_METHOD_DEFLATE;
+						break;
+					case 'c':
+						/* compress */
+						if(ctx->opt.compress && accepts_end - ptr >= 8 && memcmp("compress", ptr, 8) == 0)
+							return ctx->encode_method.ENCODE_METHOD_COMPRESS;
+						break;
+					case 'b':
+						/* br */
+						if(ctx->opt.br && accepts_end - ptr >= 2 && memcmp("br", ptr, 2) == 0)
+							return ctx->encode_method.ENCODE_METHOD_BR;
+						break;
+					default:
+						if(NULL == (ptr = strchr(ptr, ',')))
+							return ctx->encode_method.ENCODE_METHOD_IDENTITY;
+				}
+			}
+		}
+	}
+
+	return ctx->encode_method.ENCODE_METHOD_IDENTITY;
+}
+
+static int _exec(void* ctxmem)
+{
+	ctx_t* ctx = (ctx_t*)ctxmem;
+
+	pstd_type_instance_t* type_inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model);
+
+	if(NULL == type_inst) 
+		ERROR_RETURN_LOG(int, "Cannot  create type instance");
+
+	/* TODO: also consider the mime type as well */
+	
+	scope_token_t body = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, type_inst, ctx->a_body);
+	if(ERROR_CODE(scope_token_t) == body)
+		ERROR_LOG_GOTO(ERR, "Cannot read the body token");
+
+	uint32_t algorithm = _determine_compression_algorithm(ctx, type_inst);
+
+	if(ERROR_CODE(uint32_t) == algorithm)
+		ERROR_LOG_GOTO(ERR, "Cannot determine the compression algorithm");
+
+	uint64_t size = ctx->SIZE_UNKNOWN;
+	
+	if(ctx->encode_method.ENCODE_METHOD_IDENTITY == algorithm)
+	{
+		/* TODO: we need to determine the actual size */
+	}
+	
+	if(size == ctx->SIZE_UNKNOWN)
+	{
+		if(ctx->opt.chuncked)
+		{
+			algorithm |= ctx->encode_method.ENCODE_METHOD_CHUNCKED;
+
+			body = chuncked_encode(body, 4);
+			if(ERROR_CODE(scope_token_t) == body)
+				ERROR_LOG_GOTO(ERR, "Cannot encode the body");
+		}
+		else
+		{
+			/* TODO: what if we cannot use chuncked? */
+		}
+	}
+
+	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_encode_method, algorithm))
+		ERROR_LOG_GOTO(ERR, "Cannot write the algorithm field to output");
+	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_encode_size, size))
+		ERROR_LOG_GOTO(ERR, "Cannot write the size field to output");
+	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_encode_token, body))
+		ERROR_LOG_GOTO(ERR, "Cannot write the encoded token to output");
+
+	if(ERROR_CODE(int) == pstd_type_instance_free(type_inst))
+		ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
+
+	return 0;
+
+ERR:
+	pstd_type_instance_free(type_inst);
+	return ERROR_CODE(int);
 }
 
 
@@ -150,5 +271,6 @@ SERVLET_DEF = {
 	.version = 0x0,
 	.size    = sizeof(ctx_t),
 	.init    = _init,
-	.unload  = _unload
+	.unload  = _unload,
+	.exec    = _exec
 };
