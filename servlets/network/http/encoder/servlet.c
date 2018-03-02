@@ -13,7 +13,7 @@
 #include <pstd/types/file.h>
 
 #include <options.h>
-#include <chuncked.h>
+#include <chunked.h>
 #include <zlib_token.h>
 /**
  * @brief The servlet context
@@ -45,7 +45,7 @@ typedef struct {
 		uint32_t ENCODE_METHOD_COMPRESS;          /*!< Compress encoded */
 		uint32_t ENCODE_METHOD_BR;                /*!< BR Encoded */
 		uint32_t ENCODE_METHOD_DEFLATE;           /*!< Deflate encoded */
-		uint32_t ENCODE_METHOD_CHUNCKED;          /*!< Chuncked encoded */
+		uint32_t ENCODE_METHOD_CHUNKED;          /*!< Chuncked encoded */
 	}                    encode_method;  /*!< The constants for the encode method */
 
 	uint64_t SIZE_UNKNOWN;    /*!< The place holder for the unknown size */
@@ -120,8 +120,8 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->p_result, "DEFLATE", &ctx->encode_method.ENCODE_METHOD_DEFLATE))
 		ERROR_RETURN_LOG(int, "Cannot get constant result.DEFLATE");
 	
-	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->p_result, "CHUNCKED", &ctx->encode_method.ENCODE_METHOD_CHUNCKED))
-		ERROR_RETURN_LOG(int, "Cannot get constant result.CHUNCKED");
+	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->p_result, "CHUNKED", &ctx->encode_method.ENCODE_METHOD_CHUNKED))
+		ERROR_RETURN_LOG(int, "Cannot get constant result.CHUNKED");
 
 	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->p_result, "SIZE_UNKNOWN", &ctx->SIZE_UNKNOWN))
 		ERROR_RETURN_LOG(int, "Cannot get constant result.SIZE_UNKNOWN");
@@ -241,7 +241,7 @@ static int _exec(void* ctxmem)
 
 	uint64_t size = ctx->SIZE_UNKNOWN;
 	
-	if(ctx->encode_method.ENCODE_METHOD_IDENTITY == (algorithm & ~ctx->encode_method.ENCODE_METHOD_CHUNCKED))
+	if(ctx->encode_method.ENCODE_METHOD_IDENTITY == (algorithm & ~ctx->encode_method.ENCODE_METHOD_CHUNKED))
 	{
 		size_t actual_size = ERROR_CODE(size_t);
 		switch(ctx->body_type)
@@ -279,14 +279,14 @@ SIZE_DETERMINED:
 	
 	if(size == ctx->SIZE_UNKNOWN)
 	{
-		if(ctx->opt.chuncked)
+		if(ctx->opt.chunked)
 		{
-			algorithm |= ctx->encode_method.ENCODE_METHOD_CHUNCKED;
-			body = chuncked_encode(body, 4);
+			algorithm |= ctx->encode_method.ENCODE_METHOD_CHUNKED;
+			body = chunked_encode(body, 4);
 			if(ERROR_CODE(scope_token_t) == body)
 				ERROR_LOG_GOTO(ERR, "Cannot encode the body");
 		}
-		else ERROR_LOG_GOTO(ERR, "Misconfigured server: chuncked is not enabled, but compression does compression");
+		else ERROR_LOG_GOTO(ERR, "Misconfigured server: chunked is not enabled, but compression does compression");
 	}
 
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_encode_method, algorithm))

@@ -10,7 +10,7 @@
 typedef struct {
 	uint32_t           response_completed:1; /*!< If this repsonse is compeleted */
 	uint32_t           size_determined:1;    /*!< Indicates if the response has determined size or figured out it's a chunked response */
-	uint32_t           chunked:1;           /*!< Indicates this response is chuncked */
+	uint32_t           chunked:1;           /*!< Indicates this response is chunked */
 	uint32_t           body_started:1;       /*!< If the body has started */
 	uint8_t            parts;                /*!< Which of the parts we are parsing */
 	uint8_t            parser_state;         /*!< The internal parser state */

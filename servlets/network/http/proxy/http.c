@@ -111,7 +111,7 @@ static inline size_t _parse_chunk_trailer(http_response_t* res, const char* data
 }
 
 /**
- * @brief Detect if we need to use chuncked transfer encoding
+ * @brief Detect if we need to use chunked transfer encoding
  * @param res The response object
  * @param data The data to parse
  * @param len The length of the data buffer

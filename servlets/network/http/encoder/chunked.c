@@ -12,7 +12,7 @@
 #include <pstd/mempool.h>
 #include <pstd/types/trans.h>
 
-#include <chuncked.h>
+#include <chunked.h>
 
 typedef struct {
 	uint32_t  chunck_size;     /*!< The size of current chunck */
@@ -37,7 +37,7 @@ static pstd_trans_inst_t* _init(void* data)
 
 	_processor_t* proc = pstd_mempool_alloc((uint32_t)size);
 	if(NULL == proc)
-		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the chuncked stream processor");
+		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the chunked stream processor");
 
 	memset(proc, 0, size);
 
@@ -209,15 +209,15 @@ static int _cleanup(pstd_trans_inst_t* stream_proc)
 	return rc;
 }
 
-scope_token_t chuncked_encode(scope_token_t token, uint8_t chuncked_pages)
+scope_token_t chunked_encode(scope_token_t token, uint8_t chunked_pages)
 {
-	if(ERROR_CODE(scope_token_t) == token || 0 == chuncked_pages)
+	if(ERROR_CODE(scope_token_t) == token || 0 == chunked_pages)
 		ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
 
 	if(_page_size == 0) _page_size = (uint32_t)getpagesize();
 
 	pstd_trans_desc_t desc = {
-		.data = ((char*)0) + chuncked_pages,
+		.data = ((char*)0) + chunked_pages,
 		.init_func = _init,
 		.feed_func = _feed,
 		.fetch_func = _fetch,

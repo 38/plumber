@@ -12,7 +12,7 @@ typedef struct {
 	uint32_t    compress:1;  /*!< If we need to support LZW encoding */
 	uint32_t    deflate:1;   /*!< If we need to support deflate encoding */
 	uint32_t    br:1;        /*!< If we need to support BR encoding */
-	uint32_t    chuncked:1;  /*!< If we need to support chuncked transfer encoding */
+	uint32_t    chunked:1;  /*!< If we need to support chunked transfer encoding */
 } options_t;
 
 /**
