@@ -20,14 +20,13 @@
  **/
 typedef struct {
 	options_t opt;            /*!< The options for this servlet instance */
-	pipe_t    p_type;         /*!< The content type pipe */
+	pipe_t    p_compress;     /*!< The signal pipe indicates if we need to compress */
 	pipe_t    p_accept;       /*!< What encoding the client accepts */
 	pipe_t    p_body;         /*!< The body pipe */
 	pipe_t    p_result;       /*!< The result pipe */
 
 	pstd_type_model_t* type_model;   /*!< The type model for this servlet */
 
-	pstd_type_accessor_t a_type;           /*!< The accessor for type string */
 	pstd_type_accessor_t a_accept;         /*!< The accessor for accept string */
 	pstd_type_accessor_t a_body;           /*!< The accessor for the body */
 	pstd_type_accessor_t a_encode_method;  /*!< The accessor for encode method */
@@ -76,7 +75,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	if(ERROR_CODE(int) == options_parse(argc, argv, &ctx->opt))
 		ERROR_RETURN_LOG(int, "Cannot parse the servlet init string");
 
-	if(ERROR_CODE(pipe_t) == (ctx->p_type = pipe_define("type", PIPE_INPUT, "plumber/std/request_local/String")))
+	if(ERROR_CODE(pipe_t) == (ctx->p_compress = pipe_define("compress_enabled", PIPE_INPUT, NULL)))
 		ERROR_RETURN_LOG(int, "Cannot define the type input port");
 
 	if(ERROR_CODE(pipe_t) == (ctx->p_accept = pipe_define("accept", PIPE_INPUT, "plumber/std/request_local/String")))
@@ -90,9 +89,6 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 
 	if(NULL == (ctx->type_model = pstd_type_model_new()))
 		ERROR_RETURN_LOG(int, "Cannot create type model for the servlet");
-
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->a_type = pstd_type_model_get_accessor(ctx->type_model, ctx->p_type, "token")))
-		ERROR_RETURN_LOG(int, "Cannot get the accessor for type.token");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->a_accept = pstd_type_model_get_accessor(ctx->type_model, ctx->p_accept, "token")))
 		ERROR_RETURN_LOG(int, "Cannot get the accessor for accept.token");
@@ -146,7 +142,7 @@ static int _unload(void* ctxmem)
 	return rc;
 }
 
-static inline uint32_t _determine_compression_algorithm(ctx_t *ctx, pstd_type_instance_t* inst)
+static inline uint32_t _determine_compression_algorithm(ctx_t *ctx, pstd_type_instance_t* inst, int compress_enabled)
 {
 	if(pipe_eof(ctx->p_accept) == 1)
 		return 0;
@@ -170,8 +166,8 @@ static inline uint32_t _determine_compression_algorithm(ctx_t *ctx, pstd_type_in
 	unsigned current_len = 0;
 	const char* ptr;
 	uint32_t ret = ctx->encode_method.ENCODE_METHOD_IDENTITY;
-	uint32_t chuncked = !ctx->opt.chuncked, compressed = !(ctx->opt.gzip || ctx->opt.deflate || ctx->opt.compress || ctx->opt.br);
-	for(ptr = accepts; ptr < accepts_end && (!chuncked || !compressed); ptr ++)
+	uint32_t compressed = !compress_enabled || !(ctx->opt.gzip || ctx->opt.deflate || ctx->opt.compress || ctx->opt.br);
+	for(ptr = accepts; ptr < accepts_end && !compressed; ptr ++)
 	{
 		if(current_len == 0)
 		{
@@ -179,9 +175,7 @@ static inline uint32_t _determine_compression_algorithm(ctx_t *ctx, pstd_type_in
 				continue;
 			else
 			{
-				if(accepts_end - ptr >= 8 && !chuncked && memcmp("chuncked", ptr, 8) == 0)
-					ret |= ctx->encode_method.ENCODE_METHOD_CHUNCKED, ptr += 8, chuncked = 1;
-				else switch(compressed ? -1 : *ptr)
+				switch(compressed ? -1 : *ptr)
 				{
 					case 'g':
 						/* gzip */
@@ -220,16 +214,27 @@ static int _exec(void* ctxmem)
 
 	pstd_type_instance_t* type_inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model);
 
+	if(pipe_eof(ctx->p_body) != 0)
+		return 0;
+
 	if(NULL == type_inst) 
 		ERROR_RETURN_LOG(int, "Cannot  create type instance");
 
-	/* TODO: also consider the mime type as well */
-	
 	scope_token_t body = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, type_inst, ctx->a_body);
 	if(ERROR_CODE(scope_token_t) == body)
 		ERROR_LOG_GOTO(ERR, "Cannot read the body token");
 
-	uint32_t algorithm = _determine_compression_algorithm(ctx, type_inst);
+	uint32_t compress_enabled = 1;
+	int compress_enabled_signal_rc = pipe_eof(ctx->p_compress);
+
+	if(ERROR_CODE(int) == compress_enabled_signal_rc)
+		ERROR_LOG_GOTO(ERR, "Cannot check if we should enable compression");
+	else if(compress_enabled_signal_rc == 0)
+		compress_enabled = 1;
+	else
+		compress_enabled = 0;
+
+	uint32_t algorithm = _determine_compression_algorithm(ctx, type_inst, compress_enabled != 0);
 
 	if(ERROR_CODE(uint32_t) == algorithm)
 		ERROR_LOG_GOTO(ERR, "Cannot determine the compression algorithm");
@@ -254,18 +259,18 @@ static int _exec(void* ctxmem)
 		if(ERROR_CODE(size_t) == actual_size)
 			ERROR_LOG_GOTO(ERR, "Cannot determine the body size");
 
-		size = (uint64_t)size;
+		size = (uint64_t)actual_size;
 	}
 
 SIZE_DETERMINED:
 
-	if(algorithm && ctx->encode_method.ENCODE_METHOD_GZIP)
+	if(algorithm & ctx->encode_method.ENCODE_METHOD_GZIP)
 	{
 		body = zlib_token_encode(body, ZLIB_TOKEN_FORMAT_GZIP, 5);
 		if(ERROR_CODE(scope_token_t) == body)
 			ERROR_LOG_GOTO(ERR, "Cannot encode the body");
 	}
-	else if(algorithm && ctx->encode_method.ENCODE_METHOD_DEFLATE)
+	else if(algorithm & ctx->encode_method.ENCODE_METHOD_DEFLATE)
 	{
 		body = zlib_token_encode(body, ZLIB_TOKEN_FORMAT_DEFLATE, 5);
 		if(ERROR_CODE(scope_token_t) == body)
@@ -274,16 +279,14 @@ SIZE_DETERMINED:
 	
 	if(size == ctx->SIZE_UNKNOWN)
 	{
-		if(algorithm & ctx->encode_method.ENCODE_METHOD_CHUNCKED)
+		if(ctx->opt.chuncked)
 		{
+			algorithm |= ctx->encode_method.ENCODE_METHOD_CHUNCKED;
 			body = chuncked_encode(body, 4);
 			if(ERROR_CODE(scope_token_t) == body)
 				ERROR_LOG_GOTO(ERR, "Cannot encode the body");
 		}
-		else 
-		{
-			/* TODO: what if the client doen't support chuncked encoding */
-		}
+		else ERROR_LOG_GOTO(ERR, "Misconfigured server: chuncked is not enabled, but compression does compression");
 	}
 
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_encode_method, algorithm))

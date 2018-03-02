@@ -13,7 +13,6 @@ typedef struct {
 	uint32_t    deflate:1;   /*!< If we need to support deflate encoding */
 	uint32_t    br:1;        /*!< If we need to support BR encoding */
 	uint32_t    chuncked:1;  /*!< If we need to support chuncked transfer encoding */
-	/* TODO: for some of the mime type we actually don't want to compress */
 } options_t;
 
 /**

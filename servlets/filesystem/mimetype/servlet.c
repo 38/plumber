@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <fnmatch.h>
 
 #include <pservlet.h>
 #include <pstd.h>
@@ -14,12 +15,14 @@ typedef struct hashnode_t {
 	uint64_t           hashcode;
 	char*              mimetype;
 	struct hashnode_t* next;
+	uint32_t           needs_compress:1;
 } hashnode_t;
 
 
 typedef struct {
 	pipe_t      extname;
 	pipe_t      mimetype;
+	pipe_t      compress_enabled;
 
 	pstd_type_model_t*   type_model;
 	pstd_type_accessor_t extname_token;
@@ -44,14 +47,22 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 {
 	uint32_t i;
 	context_t* ctx = (context_t*)ctxbuf;
-	if(argc != 2)
-	    ERROR_RETURN_LOG(int, "Usage: %s <path to mime.types file>", argv[0]);
+	char const* const* compress_list = NULL;
+	uint32_t n_compress_list = 0;
+
+	if(argc < 2 || (argc >= 3 && strcmp(argv[2], "--compress") != 0))
+	    ERROR_RETURN_LOG(int, "Usage: %s <path to mime.types file> [--compress <list of mime needs compression>]", argv[0]);
+
+	if(argc > 3) compress_list = argv + 3, n_compress_list = argc - 3;
 
 	if(NULL == (ctx->type_model = pstd_type_model_new()))
 	    ERROR_RETURN_LOG(int, "Cannot create type model");
 
 	if(ERROR_CODE(pipe_t) == (ctx->extname = pipe_define("extname", PIPE_INPUT, "plumber/std/request_local/String")))
 	    ERROR_RETURN_LOG(int, "Cannot create pipe 'extname'");
+
+	if(ERROR_CODE(pipe_t) == (ctx->compress_enabled = pipe_define("compress_enabled", PIPE_OUTPUT, NULL)))
+		ERROR_RETURN_LOG(int, "Cannot create pipe 'compress_enabled'");
 
 	if(ERROR_CODE(pipe_t) == (ctx->mimetype = pipe_define("mimetype", PIPE_OUTPUT, "plumber/std/request_local/String")))
 	    ERROR_RETURN_LOG(int, "Cannot create pipe 'mimetype'");
@@ -102,9 +113,14 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 			memcpy(node->mimetype, mime_begin, (size_t)(mime_end - mime_begin));
 
 			node->mimetype[mime_end - mime_begin] = 0;
+			node->needs_compress = 0;
 
 			node->next = ctx->hash[hashcode % HASH_SIZE];
 			ctx->hash[hashcode % HASH_SIZE] = node;
+
+			for(i = 0; i < n_compress_list && !node->needs_compress; i ++)
+				if(fnmatch(compress_list[i], node->mimetype, 0) == 0)
+					node->needs_compress = 1;
 		}
 	}
 
@@ -206,6 +222,26 @@ static int _exec(void* ctxbuf)
 
 	if(ERROR_CODE(int) == _write_str(inst, ctx->mimetype_token, result))
 	    ERROR_LOG_GOTO(ERR, "Cannot write the string to the output");
+
+	if(node->needs_compress)
+	{
+		char enabled = 1;
+		for(;;)
+		{
+			size_t rc = pipe_write(ctx->compress_enabled, &enabled, 1);
+			switch(rc)
+			{
+				case 0: 
+					continue;
+				case 1:
+					goto DONE;
+				default:
+					ERROR_LOG_GOTO(ERR, "Cannot write the signal pipe 'compress_enabled'");
+			}
+		}
+DONE:
+		(void)0;
+	}
 
 	if(ERROR_CODE(int) == pstd_type_instance_free(inst))
 	    ERROR_RETURN_LOG(int, "Cannot dispose the type instance object");
