@@ -32,13 +32,13 @@ typedef struct _pstd_trans_inst_t pstd_trans_inst_t;
  * @brief The data structure that is used to describe a data processor
  **/
 typedef struct {
-	const void*     data;         /*!< The additional data for the processor callbacks */
+	void*     data;         /*!< The additional data for the processor callbacks */
 	/**
 	 * @brief Initialize the stream processor
 	 * @param data The addtional data to pass in
 	 * @return The stream processor handle NULL on erro case
 	 **/
-	pstd_trans_inst_t*  (*init_func)(const void* data);
+	pstd_trans_inst_t*  (*init_func)(void* data);
 
 	/**
 	 * @brief Feed data to the stream processor

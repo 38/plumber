@@ -29,7 +29,7 @@ typedef struct {
 
 static uint32_t _page_size = 0;
 
-static pstd_trans_inst_t* _init(const void* data)
+static pstd_trans_inst_t* _init(void* data)
 {
 	uint8_t page_limit = (uint8_t)(uintptr_t)data;
 

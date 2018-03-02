@@ -4,15 +4,17 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <errno.h>
 
 #include <pservlet.h>
 #include <pstd.h>
 #include <pstd/types/string.h>
+#include <pstd/types/file.h>
 
 #include <options.h>
 #include <chuncked.h>
-
+#include <zlib_token.h>
 /**
  * @brief The servlet context
  **/
@@ -167,7 +169,9 @@ static inline uint32_t _determine_compression_algorithm(ctx_t *ctx, pstd_type_in
 
 	unsigned current_len = 0;
 	const char* ptr;
-	for(ptr = accepts; *ptr; ptr ++)
+	uint32_t ret = ctx->encode_method.ENCODE_METHOD_IDENTITY;
+	uint32_t chuncked = !ctx->opt.chuncked, compressed = !(ctx->opt.gzip || ctx->opt.deflate || ctx->opt.compress || ctx->opt.br);
+	for(ptr = accepts; ptr < accepts_end && (!chuncked || !compressed); ptr ++)
 	{
 		if(current_len == 0)
 		{
@@ -175,37 +179,39 @@ static inline uint32_t _determine_compression_algorithm(ctx_t *ctx, pstd_type_in
 				continue;
 			else
 			{
-				switch(*ptr)
+				if(accepts_end - ptr >= 8 && !chuncked && memcmp("chuncked", ptr, 8) == 0)
+					ret |= ctx->encode_method.ENCODE_METHOD_CHUNCKED, ptr += 8, chuncked = 1;
+				else switch(compressed ? -1 : *ptr)
 				{
 					case 'g':
 						/* gzip */
 						if(ctx->opt.gzip && accepts_end - ptr >= 4 && memcmp("gzip", ptr, 4) == 0)
-							return ctx->encode_method.ENCODE_METHOD_GZIP;
+							 ret |= ctx->encode_method.ENCODE_METHOD_GZIP, compressed = 1;
 						break;
 					case 'd':
 						/* deflate */
 						if(ctx->opt.deflate && accepts_end - ptr >= 7 && memcmp("deflate", ptr, 7) == 0)
-							return ctx->encode_method.ENCODE_METHOD_DEFLATE;
+							ret |= ctx->encode_method.ENCODE_METHOD_DEFLATE, compressed = 1;
 						break;
 					case 'c':
 						/* compress */
 						if(ctx->opt.compress && accepts_end - ptr >= 8 && memcmp("compress", ptr, 8) == 0)
-							return ctx->encode_method.ENCODE_METHOD_COMPRESS;
+							ret |= ctx->encode_method.ENCODE_METHOD_COMPRESS, compressed = 1;
 						break;
 					case 'b':
 						/* br */
 						if(ctx->opt.br && accepts_end - ptr >= 2 && memcmp("br", ptr, 2) == 0)
-							return ctx->encode_method.ENCODE_METHOD_BR;
+							ret |= ctx->encode_method.ENCODE_METHOD_BR, compressed = 1;
 						break;
 					default:
 						if(NULL == (ptr = strchr(ptr, ',')))
-							return ctx->encode_method.ENCODE_METHOD_IDENTITY;
+							return ret;
 				}
 			}
 		}
 	}
 
-	return ctx->encode_method.ENCODE_METHOD_IDENTITY;
+	return ret;
 }
 
 static int _exec(void* ctxmem)
@@ -230,24 +236,53 @@ static int _exec(void* ctxmem)
 
 	uint64_t size = ctx->SIZE_UNKNOWN;
 	
-	if(ctx->encode_method.ENCODE_METHOD_IDENTITY == algorithm)
+	if(ctx->encode_method.ENCODE_METHOD_IDENTITY == (algorithm & ~ctx->encode_method.ENCODE_METHOD_CHUNCKED))
 	{
-		/* TODO: we need to determine the actual size */
+		size_t actual_size = ERROR_CODE(size_t);
+		switch(ctx->body_type)
+		{
+			case _TYPE_FILE:
+				actual_size = pstd_file_size(pstd_file_from_rls(body));
+				break;
+			case _TYPE_STRING:
+				actual_size = pstd_string_length(pstd_string_from_rls(body));
+				break;
+			default:
+				goto SIZE_DETERMINED;
+		}
+
+		if(ERROR_CODE(size_t) == actual_size)
+			ERROR_LOG_GOTO(ERR, "Cannot determine the body size");
+
+		size = (uint64_t)size;
+	}
+
+SIZE_DETERMINED:
+
+	if(algorithm && ctx->encode_method.ENCODE_METHOD_GZIP)
+	{
+		body = zlib_token_encode(body, ZLIB_TOKEN_FORMAT_GZIP, 5);
+		if(ERROR_CODE(scope_token_t) == body)
+			ERROR_LOG_GOTO(ERR, "Cannot encode the body");
+	}
+	else if(algorithm && ctx->encode_method.ENCODE_METHOD_DEFLATE)
+	{
+		body = zlib_token_encode(body, ZLIB_TOKEN_FORMAT_DEFLATE, 5);
+		if(ERROR_CODE(scope_token_t) == body)
+			ERROR_LOG_GOTO(ERR, "Cannot encode the body");
 	}
 	
 	if(size == ctx->SIZE_UNKNOWN)
 	{
-		if(ctx->opt.chuncked)
+		if(algorithm & ctx->encode_method.ENCODE_METHOD_CHUNCKED)
 		{
-			algorithm |= ctx->encode_method.ENCODE_METHOD_CHUNCKED;
-
 			body = chuncked_encode(body, 4);
 			if(ERROR_CODE(scope_token_t) == body)
 				ERROR_LOG_GOTO(ERR, "Cannot encode the body");
 		}
-		else
+		else 
 		{
-			/* TODO: what if we cannot use chuncked? */
+			/* TODO: what if the client doen't support chuncked encoding */
 		}
 	}
 
