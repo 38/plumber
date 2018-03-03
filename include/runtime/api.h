@@ -532,6 +532,7 @@ STATIC_ASSERTION_EQ(RUNTIME_API_INIT_RESULT_SYNC, 0);
  **/
 typedef struct _runtime_api_async_task_handle_t runtime_api_async_handle_t;
 
+
 /**
  * @brief the address table that contains the address of the pipe APIs
  * @note we do not need the servlet instance id, because the caller of the exec of the init will definately have the execution info. <br/>

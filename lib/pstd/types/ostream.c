@@ -58,7 +58,7 @@ typedef struct {
 typedef struct _block_t {
 	_block_type_t     type;         /*!< The type of current block */
 	struct _block_t*  next;         /*!< The next block */
-	uintpad_t __padding__[0];
+	uintpad_t         __padding__[0];
 	_page_data_t      page[0];      /*!< The pointer to the page data */
 	_memory_buf_t     memory[0];    /*!< The pointer to the memory buffer data */
 	_rls_stream_t     stream[0];    /*!< The pointer to the stream data */
