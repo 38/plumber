@@ -61,7 +61,7 @@ pstd_scope_stream_t* pstd_scope_stream_open(scope_token_t token);
 /**
  * @brief Read bytes from the RLS stream
  * @param stream The stream to read
- * @param buf The buffer 
+ * @param buf The buffer
  * @param size The size of buffer
  * @return number of bytes has been read
  **/

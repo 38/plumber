@@ -5,7 +5,7 @@
  * @brief The output stream RLS object
  * @details The stream RLS object is the object that accepts other RLS token or string and
  *          concatenate all the RLS tokens and strings into a single RLS.
- *          This is typically useful when we want to generate a gziped TCP result which we 
+ *          This is typically useful when we want to generate a gziped TCP result which we
  *          have to write in multiple times. <br/>
  *          Since we can not make sure that all the inner token can be opened as stream twice,
  *          thus for this kinds of token, we can only DRA it one time. </br>
@@ -47,7 +47,7 @@ scope_token_t pstd_ostream_commit(pstd_ostream_t* stream);
 
 /**
  * @brief Append the given buffer to the ostream
- * @param stream The stream 
+ * @param stream The stream
  * @param buf The memory buffer
  * @param sz The size of the buffer
  * @return status code
@@ -81,6 +81,6 @@ int pstd_ostream_write_scope_token(pstd_ostream_t* stream, scope_token_t token);
  * @return status code
  **/
 int pstd_ostream_printf(pstd_ostream_t* stream, const char* fmt, ...)
-	__attribute__((format(printf, 2, 3)));
+    __attribute__((format(printf, 2, 3)));
 
 #endif

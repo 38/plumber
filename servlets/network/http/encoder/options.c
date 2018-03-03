@@ -16,23 +16,23 @@ static inline int _opt_callback(pstd_option_data_t data)
 	switch(data.current_option->short_opt)
 	{
 		case 'g':
-			opt->gzip = 1;
-			opt->chunked = 1;
+		    opt->gzip = 1;
+		    opt->chunked = 1;
 		    break;
 		case 'c':
-			opt->compress = 1;
-			opt->chunked = 1;
+		    opt->compress = 1;
+		    opt->chunked = 1;
 		    break;
 		case 'd':
-			opt->deflate = 1;
-			opt->chunked = 1;
+		    opt->deflate = 1;
+		    opt->chunked = 1;
 		    break;
 		case 'b':
-			opt->br = 1;
-			opt->chunked = 1;
+		    opt->br = 1;
+		    opt->chunked = 1;
 		    break;
 		case 'C':
-			opt->chunked = 1;
+		    opt->chunked = 1;
 		    break;
 		default:
 		    ERROR_RETURN_LOG(int, "Invalid options");

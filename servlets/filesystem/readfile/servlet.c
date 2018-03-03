@@ -53,7 +53,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	    ERROR_RETURN_LOG(int, "Cannot create input pipe");
 
 	if(ERROR_CODE(pipe_t) == (ctx->p_file   = pipe_define("file", PIPE_OUTPUT, "plumber/std/request_local/File")))
-		ERROR_RETURN_LOG(int, "Cannot create the file output pipe");
+	    ERROR_RETURN_LOG(int, "Cannot create the file output pipe");
 
 	if(ERROR_CODE(pipe_t) == (ctx->p_status = pipe_define("result", PIPE_OUTPUT, "plumber/std_servlet/filesystem/readfile/v0/Result")))
 	    ERROR_RETURN_LOG(int, "Cannot create the output pipe");

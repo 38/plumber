@@ -34,15 +34,15 @@ static size_t _default_buf_size = 0;
 pstd_trans_t* pstd_trans_new(scope_token_t token, pstd_trans_desc_t desc)
 {
 	if(token == 0 || token == ERROR_CODE(scope_token_t))
-		ERROR_PTR_RETURN_LOG("Invalid scope token");
+	    ERROR_PTR_RETURN_LOG("Invalid scope token");
 
 	if(desc.init_func == NULL || desc.feed_func == NULL || desc.fetch_func == NULL || desc.cleanup_func == NULL)
-		ERROR_PTR_RETURN_LOG("Undefined callback functions");
+	    ERROR_PTR_RETURN_LOG("Undefined callback functions");
 
 	pstd_trans_t* ret = (pstd_trans_t*)pstd_mempool_alloc(sizeof(pstd_trans_t));
 
 	if(NULL == ret)
-		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the stream processor");
+	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the stream processor");
 
 	memset(ret, 0, sizeof(pstd_trans_t));
 
@@ -50,7 +50,7 @@ pstd_trans_t* pstd_trans_new(scope_token_t token, pstd_trans_desc_t desc)
 	ret->src_token = token;
 
 	if(_default_buf_size == 0)
-		_default_buf_size = (size_t)getpagesize();
+	    _default_buf_size = (size_t)getpagesize();
 
 	ret->origin_buf_cap = _default_buf_size;
 
@@ -60,10 +60,10 @@ pstd_trans_t* pstd_trans_new(scope_token_t token, pstd_trans_desc_t desc)
 int pstd_trans_set_buffer_size(pstd_trans_t* trans, size_t size)
 {
 	if(NULL == trans || size == 0 || size == ERROR_CODE(size_t))
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(trans->opened)
-		ERROR_RETURN_LOG(int, "Cannot change the buffer size for a opened stream transformer");
+	    ERROR_RETURN_LOG(int, "Cannot change the buffer size for a opened stream transformer");
 
 	if(size < _default_buf_size) size = _default_buf_size;
 
@@ -75,22 +75,22 @@ int pstd_trans_set_buffer_size(pstd_trans_t* trans, size_t size)
 static int _free_impl(pstd_trans_t* trans, int app_space)
 {
 	if(app_space && trans->commited)
-		ERROR_RETURN_LOG(int, "Cannot dispose a token has already commited");
+	    ERROR_RETURN_LOG(int, "Cannot dispose a token has already commited");
 
 	int rc = 0;
 
 	if(trans->stream_proc != NULL && ERROR_CODE(int) == trans->ctx.cleanup_func(trans->stream_proc))
-		rc = ERROR_CODE(int);
+	    rc = ERROR_CODE(int);
 
 	if(NULL != trans->data_source &&  ERROR_CODE(int) == pstd_scope_stream_close(trans->data_source))
-		rc = ERROR_CODE(int);
+	    rc = ERROR_CODE(int);
 
 	if(NULL != trans->origin_buf)
 	{
 		if(trans->origin_buf_cap == _default_buf_size && ERROR_CODE(int) == pstd_mempool_page_dealloc(trans->origin_buf))
-			rc = ERROR_CODE(int);
+		    rc = ERROR_CODE(int);
 		if(trans->origin_buf_cap != _default_buf_size)
-			free(trans->origin_buf);
+		    free(trans->origin_buf);
 	}
 
 	return rc;
@@ -118,25 +118,25 @@ static void* _open(const void* trans)
 	char* pooled = NULL;
 	char* malloced = NULL;
 
-	if(ret->opened) 
-		ERROR_PTR_RETURN_LOG("Cannot open a stream transformer RLS twice");
+	if(ret->opened)
+	    ERROR_PTR_RETURN_LOG("Cannot open a stream transformer RLS twice");
 
 	ret->opened = 1;
 	ret->data_source_eos = 0;
 
 	if(ret->origin_buf_cap == _default_buf_size)
-		ret->origin_buf = pooled = (char*)pstd_mempool_page_alloc();
+	    ret->origin_buf = pooled = (char*)pstd_mempool_page_alloc();
 	else
-		ret->origin_buf = malloced = (char*)malloc(ret->origin_buf_size);
+	    ret->origin_buf = malloced = (char*)malloc(ret->origin_buf_size);
 
 	if(ret->origin_buf == NULL)
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate the original data buffer for the stream processor");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate the original data buffer for the stream processor");
 
 	if(NULL == (ret->data_source = pstd_scope_stream_open(ret->src_token)))
-		ERROR_PTR_RETURN_LOG("Cannot open the data source stream");
+	    ERROR_PTR_RETURN_LOG("Cannot open the data source stream");
 
 	if(NULL == (ret->stream_proc = ret->ctx.init_func(ret->ctx.data)))
-		ERROR_LOG_GOTO(ERR, "Cannot initialize the stream processor instance");
+	    ERROR_LOG_GOTO(ERR, "Cannot initialize the stream processor instance");
 
 	return ret;
 
@@ -167,7 +167,7 @@ static size_t _read(void* __restrict trans_mem, void* __restrict buf, size_t cou
 		size_t bytes_read = trans->ctx.fetch_func(trans->stream_proc, buf, count);
 
 		if(ERROR_CODE(size_t) == bytes_read)
-			ERROR_RETURN_LOG(size_t, "Cannot fetch bytes from the stream processor");
+		    ERROR_RETURN_LOG(size_t, "Cannot fetch bytes from the stream processor");
 
 		buf = ((int8_t*)buf) + bytes_read;
 		count -= bytes_read;
@@ -194,14 +194,14 @@ static size_t _read(void* __restrict trans_mem, void* __restrict buf, size_t cou
 			size_t bytes_read = pstd_scope_stream_read(trans->data_source, trans->origin_buf, trans->origin_buf_cap);
 
 			if(bytes_read == ERROR_CODE(size_t))
-				ERROR_RETURN_LOG(size_t, "Cannot read original bytes from the RLS data source");
+			    ERROR_RETURN_LOG(size_t, "Cannot read original bytes from the RLS data source");
 
 			/* If we cannot get anything, just return */
 			if(bytes_read == 0)
 			{
 				int eos_rc = pstd_scope_stream_eof(trans->data_source);
 				if(ERROR_CODE(int) == eos_rc)
-					ERROR_RETURN_LOG(size_t, "Cannot check if the data source reached the end");
+				    ERROR_RETURN_LOG(size_t, "Cannot check if the data source reached the end");
 
 				/* If we may have more data, obviously we need to return 0 which indicates the wait state */
 				if(eos_rc)
@@ -210,7 +210,7 @@ static size_t _read(void* __restrict trans_mem, void* __restrict buf, size_t cou
 					trans->data_source_eos = 1;
 
 					if(ERROR_CODE(size_t) == trans->ctx.feed_func(trans->stream_proc, NULL, 0))
-						ERROR_RETURN_LOG(size_t, "Cannot send the end of data source message");
+					    ERROR_RETURN_LOG(size_t, "Cannot send the end of data source message");
 
 					trans->wait_feed = 0;
 
@@ -226,16 +226,16 @@ static size_t _read(void* __restrict trans_mem, void* __restrict buf, size_t cou
 			trans->origin_buf_used = 0;
 		}
 
-		size_t bytes_accepted = trans->ctx.feed_func(trans->stream_proc, 
-				                                     trans->origin_buf + trans->origin_buf_used, 
-													 trans->origin_buf_size - trans->origin_buf_used);
+		size_t bytes_accepted = trans->ctx.feed_func(trans->stream_proc,
+		                                             trans->origin_buf + trans->origin_buf_used,
+		                                             trans->origin_buf_size - trans->origin_buf_used);
 
 		if(ERROR_CODE(size_t) == bytes_accepted || bytes_accepted > trans->origin_buf_size - trans->origin_buf_used)
-			ERROR_RETURN_LOG(size_t, "Unexpected feed callback return value");
+		    ERROR_RETURN_LOG(size_t, "Unexpected feed callback return value");
 
 		/* The the stream processor refuse to accept any bytes we just return */
 		if(bytes_accepted == 0)
-			return ret;
+		    return ret;
 		trans->origin_buf_used = 0;
 		trans->origin_buf_used += bytes_accepted;
 
@@ -247,10 +247,10 @@ FETCH:
 			size_t bytes_fetched = trans->ctx.fetch_func(trans->stream_proc, buf, count);
 
 			if(ERROR_CODE(size_t) == bytes_fetched || bytes_fetched > count)
-				ERROR_RETURN_LOG(size_t, "The fetch callback returns unexpected value");
+			    ERROR_RETURN_LOG(size_t, "The fetch callback returns unexpected value");
 
 			/* If the stream processor return 0, we just grab more data and try again */
-			if(bytes_fetched == 0) 
+			if(bytes_fetched == 0)
 			{
 				trans->wait_feed = 1;
 				break;
@@ -278,8 +278,8 @@ static int _event(void* __restrict trans_mem, runtime_api_scope_ready_event_t* e
 {
 	pstd_trans_t* trans = (pstd_trans_t*)trans_mem;
 
-	if(trans->wait_feed) 
-		return pstd_scope_stream_ready_event(trans->data_source, event_buf);
+	if(trans->wait_feed)
+	    return pstd_scope_stream_ready_event(trans->data_source, event_buf);
 
 	return 0;
 }
@@ -287,7 +287,7 @@ static int _event(void* __restrict trans_mem, runtime_api_scope_ready_event_t* e
 scope_token_t pstd_trans_commit(pstd_trans_t* trans)
 {
 	if(NULL == trans || trans->commited)
-		ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
+	    ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
 
 	scope_entity_t ent = {
 		.data = trans,
@@ -299,6 +299,6 @@ scope_token_t pstd_trans_commit(pstd_trans_t* trans)
 		.read_func = _read,
 		.event_func = _event
 	};
-	
+
 	return pstd_scope_add(&ent);
 }

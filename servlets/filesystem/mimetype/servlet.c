@@ -62,7 +62,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	    ERROR_RETURN_LOG(int, "Cannot create pipe 'extname'");
 
 	if(ERROR_CODE(pipe_t) == (ctx->compress_enabled = pipe_define("compress_enabled", PIPE_OUTPUT, NULL)))
-		ERROR_RETURN_LOG(int, "Cannot create pipe 'compress_enabled'");
+	    ERROR_RETURN_LOG(int, "Cannot create pipe 'compress_enabled'");
 
 	if(ERROR_CODE(pipe_t) == (ctx->mimetype = pipe_define("mimetype", PIPE_OUTPUT, "plumber/std/request_local/String")))
 	    ERROR_RETURN_LOG(int, "Cannot create pipe 'mimetype'");
@@ -119,8 +119,8 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 			ctx->hash[hashcode % HASH_SIZE] = node;
 
 			for(i = 0; i < n_compress_list && !node->needs_compress; i ++)
-				if(fnmatch(compress_list[i], node->mimetype, 0) == 0)
-					node->needs_compress = 1;
+			    if(fnmatch(compress_list[i], node->mimetype, 0) == 0)
+			        node->needs_compress = 1;
 		}
 	}
 
@@ -231,12 +231,12 @@ static int _exec(void* ctxbuf)
 			size_t rc = pipe_write(ctx->compress_enabled, &enabled, 1);
 			switch(rc)
 			{
-				case 0: 
-					continue;
+				case 0:
+				    continue;
 				case 1:
-					goto DONE;
+				    goto DONE;
 				default:
-					ERROR_LOG_GOTO(ERR, "Cannot write the signal pipe 'compress_enabled'");
+				    ERROR_LOG_GOTO(ERR, "Cannot write the signal pipe 'compress_enabled'");
 			}
 		}
 DONE:

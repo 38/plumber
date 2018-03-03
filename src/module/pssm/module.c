@@ -536,7 +536,7 @@ static inline int _get_libconfig(const char* name, int* is_numeric, void const *
 static inline sched_rscope_stream_t* _rscope_stream_open(uint32_t token)
 {
 	if(ERROR_CODE(runtime_api_scope_token_t) == token)
-		ERROR_PTR_RETURN_LOG("Invalid arguments");
+	    ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	runtime_api_scope_token_t internal_token = token - 1;
 
@@ -647,9 +647,9 @@ static int _invoke(void* __restrict ctx, uint32_t opcode, va_list args)
 			uint32_t token = va_arg(args, uint32_t);
 			void** ret = va_arg(args, void**);
 			if(NULL == ret)
-				ERROR_RETURN_LOG(int, "Invalid arguments");
+			    ERROR_RETURN_LOG(int, "Invalid arguments");
 			if(NULL == (*ret = _rscope_stream_open(token)))
-				return ERROR_CODE(int);
+			    return ERROR_CODE(int);
 			return 0;
 		}
 		case MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_CLOSE:
@@ -664,9 +664,9 @@ static int _invoke(void* __restrict ctx, uint32_t opcode, va_list args)
 			size_t bufsize = va_arg(args, size_t);
 			size_t* ret = va_arg(args, size_t*);
 			if(NULL == ret)
-				ERROR_RETURN_LOG(int, "Invalid arguments");
+			    ERROR_RETURN_LOG(int, "Invalid arguments");
 			if(ERROR_CODE(size_t) == (*ret = _rscope_stream_read(stream, buf, bufsize)))
-				return ERROR_CODE(int);
+			    return ERROR_CODE(int);
 			return 0;
 		}
 		case MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_EOF:
@@ -674,9 +674,9 @@ static int _invoke(void* __restrict ctx, uint32_t opcode, va_list args)
 			const sched_rscope_stream_t* stream = va_arg(args, const sched_rscope_stream_t*);
 			int* ret = va_arg(args, int*);
 			if(NULL == ret)
-				ERROR_RETURN_LOG(int, "Invalid arguments");
+			    ERROR_RETURN_LOG(int, "Invalid arguments");
 			if(ERROR_CODE(int) == (*ret = _rscope_stream_eof(stream)))
-				return ERROR_CODE(int);
+			    return ERROR_CODE(int);
 			return 0;
 		}
 		case MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_READY_EVENT:
@@ -685,9 +685,9 @@ static int _invoke(void* __restrict ctx, uint32_t opcode, va_list args)
 			runtime_api_scope_ready_event_t* buf = va_arg(args, runtime_api_scope_ready_event_t*);
 			int* ret = va_arg(args, int*);
 			if(NULL == ret)
-				ERROR_RETURN_LOG(int, "Invalid arguments");
+			    ERROR_RETURN_LOG(int, "Invalid arguments");
 			if(ERROR_CODE(int) == (*ret = _rscope_stream_ready_event(stream, buf)))
-				return ERROR_CODE(int);
+			    return ERROR_CODE(int);
 			return 0;
 		}
 		default:
