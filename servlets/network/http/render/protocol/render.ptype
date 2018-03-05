@@ -1,0 +1,47 @@
+/**
+ * Copyright (C) 2018, Hao Hou
+ */
+package plumber.std_servlet.network.http.render.v0;
+
+/**
+ * The status code. We do not have status code such as 500. Since it indicates the unexpected error 
+ * of the internal implementation, so it's issued automatically 
+ **/
+type StatusCode {
+	uint16        OK                  = 200;   /*!< The Status code for HTTP OK */
+
+	uint16        MOVED_PERMANENTLY   = 301;   /*!< The Status code for Move permanently */
+	uint16        MOVED_TEMPORARILY   = 302;   /*!< The status code for move temporarily */
+	uint16        NOT_MODIFIED        = 304;   /*!< The status code for the reuqest is not changed */
+	uint16        REDIR_PERMANENTLY   = 307;   /*!< The Status code for redirect permanently, which means almost 301, but should replay the same method */
+	uint16        REDIR_TEMOORARILY   = 308;   /*!< Similar to REDIR_PERMANENTLY */
+
+	uint16        BAD_REQUEST         = 400;   /*!< Bad request status code */
+	uint16        UNAUTORIZED         = 401;   /*!< Unautorized */
+	uint16        FORBIDEN            = 403;   /*!< The forbiden response */
+	uint16        NOT_FOUND           = 404;   /*!< Page not found */
+	uint16        METHOD_NOT_ALLOWED  = 405;   /*!< Method is not allowed */
+	uint16        NOT_ACCEPTABLE      = 406;   /*!< The content negotiation failure */
+
+	uint16        status_code;                 /*!< The actual status code */
+};
+
+/**
+ * Actual response to render
+ **/
+type Response {
+	StatusCode            status;                                   /*!< The HTTP status code */
+	
+	uint64                BODY_SIZE_UNKNOWN = 2;                    /*!< The constant that indicates we don't know the size of the body. */
+	uint32                BODY_FLAGS_CAN_COMPRESS = 1;              /*!< The body can be compressed */
+
+	uint32                body_flags;                               /*!< The flags for the body */
+	request_local_token   body_object;                              /*!< The RLS token for the body object. If this is a invalid object, we should put the data to pipe data body */
+	uint64                body_size;                                /*!< The size of the HTTP body */
+
+	plumber.std.request_local.String mime_type;                     /*!< The MIME type for current response */
+
+	plumber.std.request_local.String redirect_location;             /*!< The location for the redirect response, when this is given, the status code should be any redirect code */
+
+	/* TODO: Cookie and other kinds of field as well, also cache controll, etc */
+};

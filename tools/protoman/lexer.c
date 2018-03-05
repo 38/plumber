@@ -351,6 +351,7 @@ static inline void _strip_whilespace_and_comment(lexer_t* lexer)
 						    break;
 						case 1:
 						    if(ch == '/') state = 2;
+							else if(ch == '*') state = 1;
 						    else state = 0;
 						    break;
 						default:
