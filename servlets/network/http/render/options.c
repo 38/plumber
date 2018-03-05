@@ -82,11 +82,16 @@ static int _opt_callback_string(pstd_option_data_t data)
 		case '5':
 			target = &opt->err_500.error_page;
 			break;
+		case 'e':
+			target = &opt->err_503.error_page;
+			break;
 		case 0:
 			if(strcmp("500-mime", data.current_option->long_opt) == 0)
 				target = &opt->err_500.mime_type;
 			else if(strcmp("406-mime", data.current_option->long_opt) == 0)
 				target = &opt->err_406.mime_type;
+			else if(strcmp("503-mime", data.current_option->long_opt) == 0)
+				target = &opt->err_503.mime_type;
 			else
 				ERROR_RETURN_LOG(int, "Invalid options");
 			break;
@@ -210,6 +215,21 @@ static pstd_option_t _options[] = {
 		.args        = NULL
 	},
 	{
+		.long_opt    = "503-page",
+		.short_opt   = 'e',
+		.pattern     = "S",
+		.description = "Service Not Available Error page",
+		.handler     = _opt_callback_string,
+		.args        = NULL
+	},
+	{
+		.long_opt    = "503-mime",
+		.pattern     = "S",
+		.description = "Service Not Available Error page",
+		.handler     = _opt_callback_string,
+		.args        = NULL
+	},
+	{
 		.long_opt    = "proxy",
 		.short_opt   = 'P',
 		.pattern     = "",
@@ -242,6 +262,9 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 		ERROR_RETURN_LOG(int, "Cannot initialize the default server name");
 	
 	if(NULL == buf->err_500.mime_type && NULL == (buf->err_500.mime_type = strdup("text/html")))
+		ERROR_RETURN_LOG(int, "Cannot initialize the default server name");
+	
+	if(NULL == buf->err_503.mime_type && NULL == (buf->err_503.mime_type = strdup("text/html")))
 		ERROR_RETURN_LOG(int, "Cannot initialize the default server name");
 
 	return 0;

@@ -38,6 +38,7 @@ typedef struct {
 	/* Error Pages */
 	options_error_page_t err_500;     /*!< The 500 error page */
 	options_error_page_t err_406;     /*!< When we cannot use chunked encoding but the size is unknown */
+	options_error_page_t err_503;     /*!< When we cannot perform the reverse proxying */
 } options_t;
 
 /**

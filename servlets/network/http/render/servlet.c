@@ -445,8 +445,30 @@ static int _exec(void* ctxmem)
 	}
 
 	/* Step0: Check if we got a proxy response */
+	if(ctx->opts.reverse_proxy)
+	{
+		int has_proxy;
 
-	/* TODO */
+		if(ERROR_CODE(int) == (has_proxy = pipe_eof(ctx->p_proxy)))
+			ERROR_LOG_GOTO(ERR, "Cannot check if we have reverse proxy response");
+
+		if(has_proxy)
+		{
+			scope_token_t scope = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, type_inst, ctx->a_proxy_token);
+			if(ERROR_CODE(int) == pstd_bio_write_scope_token(out, scope))
+			{
+				const char* default_503 = "<html><body><h1>Service Unavailable</h1></body></html>";
+				if(ERROR_CODE(scope_token_t) == (body_token = _write_error_page(out, 503, &ctx->opts.err_503, default_503)))
+					ERROR_LOG_GOTO(ERR, "Cannot write HTTP 503 response");
+
+				if(ERROR_CODE(int) == _write_connection_field(out, ctx->p_output, 0))
+					ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
+
+				goto RET;
+			}
+		}
+		else goto PROXY_RET; 
+	}
 
 	/* Step1: Dtermine the encoding algorithm, size etc... */
 	
@@ -547,6 +569,8 @@ RET:
 	/* Write the body */
 	if(ERROR_CODE(int) == pstd_bio_write_scope_token(out, body_token))
 		ERROR_RETURN_LOG(int, "Cannot write the body content");
+
+PROXY_RET:
 
 	if(ERROR_CODE(int) == pstd_type_instance_free(type_inst))
 		ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
