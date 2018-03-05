@@ -35,6 +35,12 @@ static int _set_string(pstd_option_data_t data)
 		case 'n':
 			target = &opt->not_found_page;
 			break;
+		case 'C':
+			target = &opt->compress_list;
+			break;
+		case 'I':
+			target = &opt->dir_index_file;
+			break;
 		default:
 			ERROR_RETURN_LOG(int, "Invalid option: %c", data.current_option->short_opt);
 	}
@@ -144,17 +150,34 @@ static pstd_option_t _opts[] = {
 		.handler     = _set_switch,
 		.args        = NULL  
 	},
+	{
+		.long_opt    = "compress",
+		.short_opt   = 'C',
+		.pattern     = "S",
+		.description = "Indicates we needs compression if the mime-type of the file matches this wildcard list: type-1,type2,...",
+		.handler     = _set_string,
+		.args        = NULL
+	},
+	{
+		.long_opt    = "index",
+		.short_opt   = 'I',
+		.pattern     = "I",
+		.description = "The comma seperated list for the possible directory index.html file",
+		.handler     = _set_string,
+		.args         = NULL
+	}
 };
 
 int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 {
 	if(NULL == argv || NULL == buf)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
+	
+	memset(buf, 0, sizeof(*buf));
+
 
 	if(ERROR_CODE(int) == pstd_option_sort(_opts, sizeof(_opts) / sizeof(_opts[0])))
 		ERROR_RETURN_LOG(int, "Cannot sort the option");
-
-	memset(buf, 0, sizeof(*buf));
 
 	uint32_t ret = pstd_option_parse(_opts, sizeof(_opts) / sizeof(_opts[0]), argc, argv, buf);
 
@@ -163,6 +186,9 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 
 	if(NULL == buf->root)
 		ERROR_RETURN_LOG(int, "Missing --root");
+
+	if(NULL == buf->dir_index_file && NULL == (buf->dir_index_file = strdup("index.htm;index.html")))
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot set the default directory index filename");
 
 	return 0;
 }
@@ -180,6 +206,12 @@ int options_free(const options_t* opt)
 
 	if(NULL != opt->forbiden_page)
 		free(opt->forbiden_page);
+
+	if(NULL != opt->compress_list)
+		free(opt->compress_list);
+
+	if(NULL != opt->dir_index_file)
+		free(opt->dir_index_file);
 
 	return 0;
 }

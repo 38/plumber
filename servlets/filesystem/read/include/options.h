@@ -17,6 +17,8 @@ typedef struct {
 	char*     mime_spec;     /*!< The mime type specification file */
 	char*     forbiden_page; /*!< The file to the customized 403 page */
 	char*     not_found_page;/*!< The file for the 404 page */
+	char*     compress_list; /*!< The list of mime type wildcards to compress */
+	char*     dir_index_file;/*!< The list of file names that can used as the directory index */
 	enum {
 			  OPTIONS_OUTPUT_FILE,  /*!< Use the pstd file object */
 			  OPTIONS_OUTPUT_HTTP,  /*!< Use the HTTP response object */
