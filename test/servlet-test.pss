@@ -37,7 +37,7 @@ if(options["parsed"]["--help"] != undefined ||
 	exit(0);
 }
 
-import(options["parsed"]["--servlet-def"][0]);
+import(servlet_def_file = options["parsed"]["--servlet-def"][0]);
 insmod("simulate input=" + options["parsed"]["--input"][0] + " output=" + options["parsed"]["--output"][0] + " label=test_events");
 
 

@@ -1,0 +1,28 @@
+raw_mode = 1;
+
+list = split(servlet_def_file, "/");
+base_dir = "";
+
+for(var i = 0; i < len(list) - 1; i ++)
+	base_dir += list[i] + "/"
+
+servlet = {
+	parse_input := "typing/conversion/json --from-json --raw " + 
+				    "response:plumber/std_servlet/network/http/render/v0/Response " + 
+					"content:plumber/std/request_local/String " + 
+					"accept_encoding:plumber/std/request_local/String ";
+	modify_content := "dataflow/modify body_rls";
+	render := "network/http/render --406-page " + base_dir + "406.txt --406-mime text/plain";
+	
+	(input) -> "json" parse_input {
+		"content" ->  "body_rls";
+		"response" -> "base";
+	} modify_content "output" -> "response" render "output" -> (output);
+
+	parse_input "accept_encoding" -> "accept_encoding" render;
+};
+
+servlet_input = "input";
+
+servlet_output = "output";
+

@@ -1,0 +1,14 @@
+.TEXT case_1
+{
+	"response": {
+		"status": {
+			"status_code": 200
+		},
+		"body_flags": 3,
+		"mime_type": "text/plain"
+	},
+	"content": "This is a test",
+	"accept_encoding": ""
+}
+.END
+.STOP
