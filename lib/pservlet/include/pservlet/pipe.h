@@ -242,10 +242,10 @@ int pipe_set_type_callback(pipe_t pipe, pipe_type_callback_t callback, void* dat
  * @brief The pipe intiialization param used by the batch operation
  **/
 typedef struct {
-	pipe_t*       target;
-	const char*   name;
-	pipe_flags_t  flags;
-	const char*   type;
+	pipe_t*       target;   /*!< The target variable for the pipe dsec */
+	const char*   name;     /*!< The name of the pipe */
+	pipe_flags_t  flags;    /*!< The flag we should use */
+	const char*   type;     /*!< The type we use */
 } pipe_init_param_t;
 
 /**
@@ -271,6 +271,12 @@ typedef struct {
  **/
 int pipe_batch_init(const pipe_init_param_t* params, size_t count);
 
+
+/**
+ * @brief Perform a batch pipe initiaztion 
+ * @param name The name of the pie list
+ * @return status code
+ **/
 #define PIPE_BATCH_INIT(name) pipe_batch_init(name, sizeof(name) / sizeof(*name))
 
 #endif

@@ -9,3 +9,5 @@ if("${PC_ZLIB_FOUND}" STREQUAL "1")
 	list(APPEND LOCAL_LIBS "${ZLIB_LIBRARIES}")
 	list(APPEND LOCAL_CFLAGS "-DHAS_ZLIB")
 endif("${PC_ZLIB_FOUND}" STREQUAL "1")
+
+#TODO: Add brotli support

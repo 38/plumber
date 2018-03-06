@@ -14,6 +14,9 @@
 
 #include <chunked.h>
 
+/**
+ * @brief The actual data structure for the chunked stream processor
+ **/
 typedef struct {
 	uint32_t  chunck_size;     /*!< The size of current chunck */
 	char      size_buf[16];    /*!< The buffer used for the chunck size */
@@ -26,6 +29,7 @@ typedef struct {
 	uintpad_t __padding__[0];
 	char*     pages[0];        /*!< The actual pages */
 } _processor_t;
+
 
 static uint32_t _page_size = 0;
 

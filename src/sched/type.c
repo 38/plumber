@@ -471,7 +471,7 @@ static inline const char* _render_type_name(const char* type_expr, const _env_t*
 
 					const char* underlying = NULL;
 					if(NULL == (underlying = proto_db_field_type(result[0], fieldname)))
-					    ERROR_LOG_GOTO(ERR, "Cannot get the type of field [%s = %s].%s", varname, result[0], underlying);
+					    ERROR_LOG_GOTO(ERR, "Cannot get the type of field [%s = %s].%s", varname, result[0], fieldname);
 
 					LOG_DEBUG("Expand field type expression [%s = %s].%s = %s", varname, result[0], fieldname, underlying);
 
