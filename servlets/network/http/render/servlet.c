@@ -109,6 +109,9 @@ static int _unload(void* ctxmem)
 	return rc;
 }
 
+/**
+ * @brief Write the status line
+ **/
 static inline int _write_status_line(pstd_bio_t* bio, uint16_t status_code)
 {
 	const char* status_phrase = "Unknown Status Phrase";
@@ -179,8 +182,6 @@ static inline int _write_status_line(pstd_bio_t* bio, uint16_t status_code)
 		STATUS_PHRASE(508,"Loop Detected");
 		STATUS_PHRASE(510,"Not Extended");
 		STATUS_PHRASE(511,"Network Authentication Required");
-		default:
-			(void)0;
 	}
 
 	if(ERROR_CODE(size_t) == pstd_bio_printf(bio, "HTTP/1.1 %d %s\r\n", status_code, status_phrase))
@@ -189,6 +190,9 @@ static inline int _write_status_line(pstd_bio_t* bio, uint16_t status_code)
 	return 0;
 }
 
+/**
+ * @brief Write a string HTTP header field
+ **/
 static inline int _write_string_field(pstd_bio_t* bio, pstd_type_instance_t* inst, pstd_type_accessor_t acc, const char* name, const char* defval)
 {
 	const char* value = defval;
@@ -202,6 +206,9 @@ static inline int _write_string_field(pstd_bio_t* bio, pstd_type_instance_t* ins
 	return 0;
 }
 
+/**
+ * @brief Determine the best compression algorithm for this request
+ **/
 static inline uint32_t _determine_compression_algorithm(const ctx_t *ctx, pstd_type_instance_t* inst, int compress_enabled)
 {
 	if(pipe_eof(ctx->p_accept_encoding) == 1)
@@ -256,6 +263,9 @@ static inline uint32_t _determine_compression_algorithm(const ctx_t *ctx, pstd_t
 	return ret;
 }
 
+/**
+ * @brief Write encoding HTTP header 
+ **/
 static inline int _write_encoding(pstd_bio_t* bio, uint32_t algorithm, uint64_t size)
 {
 	if((algorithm & _ENCODING_COMPRESSED))
@@ -287,6 +297,9 @@ static inline int _write_encoding(pstd_bio_t* bio, uint32_t algorithm, uint64_t 
 	return 0;
 }
 
+/**
+ * @brief Write an error response
+ **/
 static inline scope_token_t _write_error_page(pstd_bio_t* bio, uint16_t status, const options_error_page_t* page, const char* default_page)
 {
 	if(ERROR_CODE(int) == _write_status_line(bio, status))
@@ -335,7 +348,9 @@ WRITE:
 	return ret;
 }
 
-
+/**
+ * @brief Write the connection control field
+ **/
 static inline int _write_connection_field(pstd_bio_t* out, pipe_t res, int needs_close)
 {
 	pipe_flags_t flags = 0;
@@ -393,7 +408,7 @@ static int _exec(void* ctxmem)
 		if(ERROR_CODE(scope_token_t) == (body_token = _write_error_page(out, 500, &ctx->opts.err_500, default_500)))
 			ERROR_LOG_GOTO(ERR, "Cannot write the HTTP 500 response");
 
-		if(ERROR_CODE(int) == _write_connection_field(out, ctx->p_output, 0))
+		if(ERROR_CODE(int) == _write_connection_field(out, ctx->p_output, 1))
 			ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
 
 		goto RET;
@@ -488,8 +503,7 @@ static int _exec(void* ctxmem)
 	}
 
 
-	/* Write the status line */
-
+	/* Step 2: Write the status line */
 	if(ERROR_CODE(uint16_t) == (status_code = PSTD_TYPE_INST_READ_PRIMITIVE(uint16_t, type_inst, ctx->a_status_code)))
 		ERROR_LOG_GOTO(ERR, "Cannot read the status code from response pipe");
 
