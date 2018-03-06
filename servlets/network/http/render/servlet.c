@@ -70,7 +70,8 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	PSTD_TYPE_MODEL(model_list) 
 	{
 		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        status.status_code,       ctx->a_status_code),
-		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        body_flags,               ctx->a_body_token),
+		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        body_object,              ctx->a_body_token),
+		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        body_flags,               ctx->a_body_flags),
 		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        body_size,                ctx->a_body_size),
 		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        mime_type.token,          ctx->a_mime_type),
 		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        redirect_location.token,  ctx->a_redir_loc),
@@ -188,24 +189,12 @@ static inline int _write_status_line(pstd_bio_t* bio, uint16_t status_code)
 	return 0;
 }
 
-static inline int _write_string_field(pstd_bio_t* bio, pstd_type_instance_t* inst, pstd_type_accessor_t mime_acc, const char* name, const char* defval)
+static inline int _write_string_field(pstd_bio_t* bio, pstd_type_instance_t* inst, pstd_type_accessor_t acc, const char* name, const char* defval)
 {
-	scope_token_t tok = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, mime_acc);
-
-	if(ERROR_CODE(scope_token_t) == tok)
-		ERROR_RETURN_LOG(int, "Cannot read response.mime_type.token from pipe response");
-
 	const char* value = defval;
 
-	if(tok != 0)
-	{
-		const pstd_string_t* str_rls = pstd_string_from_rls(tok);
-		if(NULL == str_rls)
-			ERROR_RETURN_LOG(int, "Cannot acquire the string RLS object from the scope");
-
-		if(NULL == (value = pstd_string_value(str_rls)))
-			ERROR_RETURN_LOG(int, "Cannot get the string pointer for the string RLS object");
-	}
+	if(NULL == (value = pstd_string_get_data_from_accessor(inst, acc, defval)))
+		ERROR_RETURN_LOG(int, "Cannot get the string value");
 
 	if(ERROR_CODE(size_t) == pstd_bio_printf(bio, "%s: %s\r\n", name, value))
 		ERROR_RETURN_LOG(int, "Cannot write the %s field", name);
@@ -218,22 +207,10 @@ static inline uint32_t _determine_compression_algorithm(const ctx_t *ctx, pstd_t
 	if(pipe_eof(ctx->p_accept_encoding) == 1)
 	    return 0;
 
-	scope_token_t accept_token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->a_accept_enc);
-
-	if(ERROR_CODE(scope_token_t) == accept_token)
-	    ERROR_RETURN_LOG(uint32_t, "Cannot read the accept token from pipe");
-
-	const pstd_string_t* accept_obj = pstd_string_from_rls(accept_token);
-
-	if(NULL == accept_obj)
-	    ERROR_RETURN_LOG(uint32_t, "Cannot get the RLS string object for the token");
-
-	const char* accepts = pstd_string_value(accept_obj);
-	const char* accepts_end = accepts + pstd_string_length(accept_obj);
-
-	if(NULL == accepts)
-	    ERROR_RETURN_LOG(uint32_t, "Cannot get the accepts string");
-
+	const char* accepts = pstd_string_get_data_from_accessor(inst, ctx->a_accept_enc, "");
+	if(NULL == accepts) ERROR_RETURN_LOG(uint32_t, "Cannot get the Accept-Encoding field");
+	const char* accepts_end = accepts + strlen(accepts);
+	
 	unsigned current_len = 0;
 	const char* ptr;
 	uint32_t ret = 0;
@@ -322,17 +299,8 @@ static inline scope_token_t _write_error_page(pstd_bio_t* bio, uint16_t status, 
 	{
 DEF_ERR_PAGE:
 		length = strlen(default_page);
-
-		pstd_string_t* str_rls = pstd_string_from_onwership_pointer(strdup(default_page), length);
-
-		if(NULL == str_rls)
-			ERROR_RETURN_LOG(scope_token_t, "Cannot create the default error page");
-
-		if(ERROR_CODE(scope_token_t) == (ret = pstd_string_commit(str_rls)))
-		{
-			pstd_string_free(str_rls);
-			ERROR_RETURN_LOG(scope_token_t, "Cannot commit the RLS string to the RLS");
-		}
+		if(ERROR_CODE(scope_token_t) == (ret = pstd_string_create_commit(default_page)))
+			ERROR_RETURN_LOG(scope_token_t, "Cannot commit the default page to the RLS");
 	}
 	else
 	{
@@ -499,7 +467,7 @@ static int _exec(void* ctxmem)
 			body_flags |= ctx->BODY_SIZE_UNKNOWN;
 	}
 
-	if((body_flags & ctx->BODY_SIZE_UNKNOWN))
+	if(!(body_flags & ctx->BODY_SIZE_UNKNOWN))
 	{
 		if(ERROR_CODE(uint64_t) == (body_size = PSTD_TYPE_INST_READ_PRIMITIVE(uint64_t, type_inst, ctx->a_body_size)))
 			ERROR_LOG_GOTO(ERR, "Cannot determine the size of the body");
@@ -545,15 +513,15 @@ static int _exec(void* ctxmem)
 	if(ERROR_CODE(int) == _write_connection_field(out, ctx->p_output, 0))
 		ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
 
-	/* Write the body deliminators */
-	if(ERROR_CODE(size_t) == pstd_bio_puts(out, "\r\n"))
-		ERROR_RETURN_LOG(int, "Cannot write the body deliminator");
-
 RET:
 
 	/* Write the server name */
-	if(NULL != ctx->opts.server_name && ERROR_CODE(size_t) != pstd_bio_printf(out, "Server: %s\r\n", ctx->opts.server_name))
+	if(NULL != ctx->opts.server_name && ERROR_CODE(size_t) == pstd_bio_printf(out, "Server: %s\r\n", ctx->opts.server_name))
 		ERROR_LOG_GOTO(ERR, "Cannot write the server name field");
+
+	/* Write the body deliminators */
+	if(ERROR_CODE(size_t) == pstd_bio_puts(out, "\r\n"))
+		ERROR_RETURN_LOG(int, "Cannot write the body deliminator");
 
 	/* Write the body */
 	if(ERROR_CODE(int) == pstd_bio_write_scope_token(out, body_token))

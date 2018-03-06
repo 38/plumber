@@ -32,8 +32,8 @@ type StatusCode {
 type Response {
 	StatusCode            status;                                   /*!< The HTTP status code */
 	
-	uint64                BODY_SIZE_UNKNOWN = 2;                    /*!< The constant that indicates we don't know the size of the body. */
-	uint32                BODY_FLAGS_CAN_COMPRESS = 1;              /*!< The body can be compressed */
+	uint32                BODY_SIZE_UNKNOWN = 2;                    /*!< The constant that indicates we don't know the size of the body. */
+	uint32                BODY_CAN_COMPRESS = 1;                    /*!< The body can be compressed */
 
 	uint32                body_flags;                               /*!< The flags for the body */
 	request_local_token   body_object;                              /*!< The RLS token for the body object. If this is a invalid object, we should put the data to pipe data body */

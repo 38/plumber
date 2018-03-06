@@ -19,6 +19,8 @@
 #ifndef __PSTD_TYPES_STRING_H__
 #define __PSTD_TYPES_STRING_H__
 
+#include <string.h>
+
 #	ifdef __cplusplus
 extern "C" {
 #	endif /* __cplusplus__ */
@@ -37,6 +39,28 @@ extern "C" {
 	 * @return newly create PSTD String object, NULL on error case
 	 **/
 	pstd_string_t* pstd_string_from_onwership_pointer(char* data, size_t sz);
+
+	/**
+	 * @brief Create a new immutable string from the ownership pointer
+	 * @param data The imuutable string 
+	 * @param sz The size
+	 * @return newly created string object, NULL on error
+	 **/
+	pstd_string_t* pstd_string_new_immutable(const char* data, size_t sz);
+
+	/**
+	 * @brief Create a new immutable string from a constant string pointer
+	 * @param data The immutable string
+	 * @return newly created string object
+	 **/
+	static inline pstd_string_t* pstd_string_from_const(const char* data)
+	{
+		if(NULL == data) ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+		size_t sz = strlen(data);
+
+		return pstd_string_new_immutable(data, sz);
+	}
 
 	/**
 	* @brief create a new pstd string buffer
@@ -116,6 +140,76 @@ extern "C" {
 	* @return The number of bytes has been appended to the string object
 	**/
 	size_t pstd_string_vprintf(pstd_string_t* str, const char* fmt, va_list ap);
+
+	/**
+	 * @brief Create and commit a string constant 
+	 * @param str The string to commit
+	 * @return the Scope token we have commited
+	 **/
+	static inline scope_token_t pstd_string_create_commit(const char* str)
+	{
+		pstd_string_t* str_rls_obj = pstd_string_from_const(str);
+
+		if(NULL == str_rls_obj)
+			ERROR_RETURN_LOG(scope_token_t, "Cannot create the PSTD string object");
+
+		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
+		if(ERROR_CODE(scope_token_t) == str_rls_tok)
+		{
+			pstd_string_free(str_rls_obj);
+			ERROR_RETURN_LOG(scope_token_t, "Cannot commit the RLS string to the scope");
+		}
+
+		return str_rls_tok;
+	}
+
+	/**
+	 * @brief Create, commit and write an immutable RLS string object to the typed pipe
+	 * @note This is the helper function to write a string constant to the scope
+	 * @param type_inst The type instance we used for writing
+	 * @param accessor The field accessor we want to write
+	 * @param str The string we want to write
+	 * @return status code
+	 **/
+	static inline int pstd_string_create_commit_write(pstd_type_instance_t* type_inst, pstd_type_accessor_t accessor, const char* str)
+	{
+		pstd_string_t* str_rls_obj = pstd_string_from_const(str);
+
+		if(NULL == str_rls_obj)
+			ERROR_RETURN_LOG(int, "Cannot create the PSTD string object");
+
+		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
+		if(ERROR_CODE(scope_token_t) == str_rls_tok)
+		{
+			pstd_string_free(str_rls_obj);
+			ERROR_RETURN_LOG(int, "Cannot commit the RLS string to the scope");
+		}
+		
+		return PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, accessor, str_rls_tok);
+	}
+
+	/**
+	 * @brief Retrieve a string value using the accessor
+	 * @param type_inst The type instance
+	 * @param accessor The accessor we should use
+	 * @param defval The default value
+	 * @return The string value
+	 **/
+	static inline const char* pstd_string_get_data_from_accessor(pstd_type_instance_t* type_inst, pstd_type_accessor_t accessor, const char* defval)
+	{
+		scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, type_inst, accessor);
+		if(ERROR_CODE(scope_token_t) == token)
+			ERROR_PTR_RETURN_LOG("Cannot read the RLS token value with given accessor");
+
+		if(0 == token) return defval;
+
+		const pstd_string_t* str_obj = pstd_string_from_rls(token);
+
+		if(NULL == str_obj)
+			ERROR_PTR_RETURN_LOG("Cannot retrieve the string object from RLS");
+
+		return pstd_string_value(str_obj);
+	}
 
 #	ifdef __cplusplus
 }

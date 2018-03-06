@@ -22,7 +22,10 @@ struct _pstd_string_t {
 	size_t length;            /*!< the length of the string */
 	uint32_t commited:1;      /*!< if this string has been commited */
 	uintpad_t __padding__;
-	char     _def_buf[128];   /*!< the default initial buffer */
+	union {
+		char     _def_buf[128];   /*!< the default initial buffer */
+		const char* immutable;    /*!< The pointer for the immutable string */
+	};
 };
 STATIC_ASSERTION_LAST(pstd_string_t, _def_buf);
 
@@ -39,10 +42,32 @@ pstd_string_t* pstd_string_from_onwership_pointer(char* data, size_t sz)
 	if(NULL == data) ERROR_PTR_RETURN_LOG("Invalid arguments");
 	pstd_string_t* ret = pstd_string_new(0);
 
+	if(NULL == ret)
+		ERROR_PTR_RETURN_LOG("Cannot allocate string object");
+
 	ret->buffer = data;
 	ret->capacity = sz;
 	ret->length = sz;
 	ret->commited = 0;
+
+	return ret;
+}
+
+pstd_string_t* pstd_string_new_immutable(const char* data, size_t sz)
+{
+	if(NULL == data || sz == ERROR_CODE(size_t))
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+	pstd_string_t* ret = pstd_string_new(0);
+	
+	if(NULL == ret)
+		ERROR_PTR_RETURN_LOG("Cannot allocate string object");
+
+	ret->buffer   = NULL;
+	ret->capacity = 0;
+	ret->length   = sz;
+	ret->commited = 0;
+	ret->immutable = data;
 
 	return ret;
 }
@@ -118,7 +143,7 @@ const char* pstd_string_value(const pstd_string_t* str)
 {
 	if(NULL == str) ERROR_PTR_RETURN_LOG("Invalid arguments");
 
-	return str->buffer;
+	return str->buffer == NULL ? str->immutable : str->buffer;
 }
 
 size_t pstd_string_length(const pstd_string_t* str)
@@ -166,11 +191,16 @@ static inline void* _copy(const void* mem)
 	const pstd_string_t* ptr = (const pstd_string_t*)mem;
 
 	LOG_DEBUG("RLS string duplicated");
-	pstd_string_t* ret = pstd_string_new(ptr->length + 1);
+	pstd_string_t* ret = pstd_string_new(ptr->buffer != NULL ? ptr->length + 1 : 0);
+
 	if(NULL == ret)
 	    ERROR_PTR_RETURN_LOG("Cannot create new string object for the duplication");
 
-	memcpy(ret->buffer, ptr->buffer, ptr->length + 1);
+	if(ret->buffer != NULL)
+		memcpy(ret->buffer, ptr->buffer, ptr->length + 1);
+	else
+		ret->immutable = ptr->immutable;
+
 	ret->length = ptr->length;
 	ret->commited = 1;   /*!< it's commited by default */
 
@@ -249,7 +279,11 @@ static inline size_t _read(void* __restrict stream_mem, void* __restrict buf, si
 	if(bytes_can_read + stream->location > stream->string->length)
 	    bytes_can_read = stream->string->length - stream->location;
 
-	memcpy(buf, stream->string->buffer + stream->location, bytes_can_read);
+	if(stream->string->buffer != NULL)
+		memcpy(buf, stream->string->buffer + stream->location, bytes_can_read);
+	else
+		memcpy(buf, stream->string->immutable + stream->location, bytes_can_read);
+
 	stream->location += bytes_can_read;
 	return bytes_can_read;
 }
@@ -309,7 +343,7 @@ static inline int _ensure_capacity(pstd_string_t* str, size_t required_size)
 
 size_t pstd_string_write(pstd_string_t* str, const char* data, size_t size)
 {
-	if(NULL == str || NULL == data || size == ERROR_CODE(size_t))
+	if(NULL == str || NULL == data || size == ERROR_CODE(size_t) || str->buffer == NULL)
 	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 	if(size == 0) return 0;
@@ -326,7 +360,7 @@ size_t pstd_string_write(pstd_string_t* str, const char* data, size_t size)
 
 size_t pstd_string_vprintf(pstd_string_t* str, const char* fmt, va_list ap)
 {
-	if(NULL == str || NULL == fmt)
+	if(NULL == str || NULL == fmt || str->buffer == NULL)
 	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
 	size_t ret = 0;
 
