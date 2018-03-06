@@ -62,4 +62,21 @@ typedef struct {
 	char**                    index_file_names;       /*!< All the possible index file names, NULL terminated */
 } options_t;
 
+/**
+ * @brief Parse the servlet init string
+ * @param argc The number of arguments
+ * @param argv The argument list
+ * @param buf The buffer for the options
+ * @return status code
+ **/
+int options_parse(uint32_t argc, char const* const* argv, options_t* buf);
+
+/**
+ * @brief Dispose the used options
+ * @note This function will assume the options is statically allocated
+ * @param options The option to dispose
+ * @return status code
+ **/
+int options_free(const options_t* options);
+
 #endif
