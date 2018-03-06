@@ -57,53 +57,38 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	if(ERROR_CODE(int) == options_parse(argc, argv, &ctx->opts))
 		ERROR_RETURN_LOG(int, "Cannot parse the servlet init string");
 
-	if(ERROR_CODE(pipe_t) == (ctx->p_response = pipe_define("response", PIPE_INPUT, "plumber/std_servlet/network/http/render/v0/Response")))
-		ERROR_RETURN_LOG(int, "Cannot declare the response data pipe");
+	PIPE_LIST(pipes) 
+	{
+		PIPE("response",        PIPE_INPUT,               "plumber/std_servlet/network/http/render/v0/Response", ctx->p_response),
+		PIPE("accept_encoding", PIPE_INPUT,               "plumber/std/request_local/String",                    ctx->p_accept_encoding),
+		PIPE("500",             PIPE_INPUT,               NULL,                                                  ctx->p_500),
+		PIPE("output",          PIPE_OUTPUT | PIPE_ASYNC, NULL,                                                  ctx->p_output)
+	};
 
-	if(ERROR_CODE(pipe_t) == (ctx->p_accept_encoding = pipe_define("accept_encoding", PIPE_INPUT, "plumber/std/request_local/String")))
-		ERROR_RETURN_LOG(int, "Cannot declare the accept_encoding pipe");
+	if(ERROR_CODE(int) == PIPE_BATCH_INIT(pipes)) return ERROR_CODE(int);
 
-	if(ctx->opts.reverse_proxy && ERROR_CODE(pipe_t) == (ctx->p_proxy = pipe_define("proxy", PIPE_INPUT, "plumber/std_servlet/network/http/proxy/v0/Response")))
-		ERROR_RETURN_LOG(int, "Cannot declare the proxy pipe");
+	PSTD_TYPE_MODEL(model_list) 
+	{
+		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        status.status_code,       ctx->a_status_code),
+		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        body_flags,               ctx->a_body_token),
+		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        body_size,                ctx->a_body_size),
+		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        mime_type.token,          ctx->a_mime_type),
+		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        redirect_location.token,  ctx->a_redir_loc),
+		PSTD_TYPE_MODEL_FIELD(ctx->p_accept_encoding, token,                    ctx->a_accept_enc),
+		PSTD_TYPE_MODEL_CONST(ctx->p_response,        BODY_SIZE_UNKNOWN,        ctx->BODY_SIZE_UNKNOWN),
+		PSTD_TYPE_MODEL_CONST(ctx->p_response,        BODY_CAN_COMPRESS,        ctx->BODY_CAN_COMPRESS)
+	};
 
-	if(ERROR_CODE(pipe_t) == (ctx->p_500 = pipe_define("500", PIPE_INPUT, NULL)))
-		ERROR_RETURN_LOG(int, "Cannot declare the internal error signal pipe");
+	if(NULL == (ctx->type_model = PSTD_TYPE_MODEL_BATCH_INIT(model_list))) return ERROR_CODE(int);
 
-	if(ERROR_CODE(pipe_t) == (ctx->p_output = pipe_define("output", PIPE_OUTPUT | PIPE_ASYNC, NULL)))
-		ERROR_RETURN_LOG(int, "Cannot declare the output pipe");
+	if(ctx->opts.reverse_proxy)
+	{
+		if(ERROR_CODE(pipe_t) == (ctx->p_proxy = pipe_define("proxy", PIPE_INPUT, "plumber/std_servlet/network/http/proxy/v0/Response")))
+			ERROR_RETURN_LOG(int, "Cannot declare the proxy pipe");
 
-	if(NULL == (ctx->type_model = pstd_type_model_new()))
-		ERROR_RETURN_LOG(int, "Cannot create the type model for this servlet");
-
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->a_status_code = pstd_type_model_get_accessor(ctx->type_model, ctx->p_response, "status.status_code")))
-		ERROR_RETURN_LOG(int, "Cannot get the accessor for response.status.status_code");
-
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->a_body_flags = pstd_type_model_get_accessor(ctx->type_model, ctx->p_response, "body_flags")))
-		ERROR_RETURN_LOG(int, "Cannot get the accessor for response.body_flags");
-
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->a_body_size = pstd_type_model_get_accessor(ctx->type_model, ctx->p_response, "body_size")))
-		ERROR_RETURN_LOG(int, "Cannot get the accessor for response.body_size");
-
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->a_body_token = pstd_type_model_get_accessor(ctx->type_model, ctx->p_response, "body_object")))
-		ERROR_RETURN_LOG(int, "Cannot get the accessor for response.body_object");
-
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->a_mime_type = pstd_type_model_get_accessor(ctx->type_model, ctx->p_response, "mime_type.token")))
-		ERROR_RETURN_LOG(int, "Cannot get the accessor for response.mime_type.token");
-
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->a_redir_loc = pstd_type_model_get_accessor(ctx->type_model, ctx->p_response, "redirect_location.token")))
-		ERROR_RETURN_LOG(int, "Cannot get the accessor for response.redirect_location.token");
-
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->a_accept_enc = pstd_type_model_get_accessor(ctx->type_model, ctx->p_accept_encoding, "token")))
-		ERROR_RETURN_LOG(int, "Cannot get the accessor for accept_encoding.token");
-
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->a_proxy_token = pstd_type_model_get_accessor(ctx->type_model, ctx->p_proxy, "token")))
-		ERROR_RETURN_LOG(int, "Cannot get the accessor for proxy.token");
-
-	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->p_response, "BODY_SIZE_UNKNOWN", &ctx->BODY_SIZE_UNKNOWN))
-		ERROR_RETURN_LOG(int, "Cannot get constant response.BODY_SIZE_UNKNOWN"); 
-
-	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(ctx->type_model, ctx->p_response, "BODY_CAN_COMPRESS", &ctx->BODY_CAN_COMPRESS))
-		ERROR_RETURN_LOG(int, "Cannot get constant response.BODY_CAN_COMPRESS");
+		if(ERROR_CODE(pstd_type_accessor_t) == (ctx->a_proxy_token = pstd_type_model_get_accessor(ctx->type_model, ctx->p_proxy, "token")))
+			ERROR_RETURN_LOG(int, "Cannot get the accessor for proxy.token");
+	}
 
 	return 0;
 }
@@ -263,6 +248,7 @@ static inline uint32_t _determine_compression_algorithm(const ctx_t *ctx, pstd_t
 			{
 				switch(compressed ? -1 : *ptr)
 				{
+#ifdef HAS_ZLIB
 					case 'g':
 					    /* gzip */
 					    if(ctx->opts.gzip_enabled && accepts_end - ptr >= 4 && memcmp("gzip", ptr, 4) == 0)
@@ -273,6 +259,7 @@ static inline uint32_t _determine_compression_algorithm(const ctx_t *ctx, pstd_t
 					    if(ctx->opts.deflate_enabled && accepts_end - ptr >= 7 && memcmp("deflate", ptr, 7) == 0)
 					        ret |= _ENCODING_DEFLATE, compressed = 1;
 					    break;
+#endif
 #ifdef HAS_BROTLI
 					case 'b':
 					    /* br */
@@ -480,8 +467,9 @@ static int _exec(void* ctxmem)
 
 	if(ERROR_CODE(scope_token_t) == (body_token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, type_inst, ctx->a_body_token)))
 		ERROR_LOG_GOTO(ERR, "Cannot get the request body RLS token");
-
-	if((algorithm & _ENCODING_GZIP))
+	if(0);
+#ifdef HAS_ZLIB
+	else if((algorithm & _ENCODING_GZIP))
 	{
 		if(ERROR_CODE(scope_token_t) == (body_token = zlib_token_encode(body_token, ZLIB_TOKEN_FORMAT_GZIP, ctx->opts.compress_level)))
 			ERROR_LOG_GOTO(ERR, "Cannot encode the body with GZIP encoder");
@@ -495,7 +483,8 @@ static int _exec(void* ctxmem)
 		else
 			body_flags |= ctx->BODY_SIZE_UNKNOWN;
 	}
-#if HAS_BROTLI
+#endif
+#ifdef HAS_BROTLI
 	else if((algorithm & _ENCODING_BR))
 	{
 		/* TODO: Brotli support */

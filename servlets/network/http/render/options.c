@@ -16,6 +16,7 @@ static int _opt_callback_no_val(pstd_option_data_t data)
 	options_t* opt = (options_t*)data.cb_data;
 	switch(data.current_option->short_opt)
 	{
+#ifdef HAS_ZLIB
 		case 'g':
 			opt->gzip_enabled = 1;
 			opt->chunked_enabled = 1;
@@ -24,6 +25,8 @@ static int _opt_callback_no_val(pstd_option_data_t data)
 			opt->deflate_enabled = 1;
 			opt->chunked_enabled = 1;
 			break;
+#endif
+
 #ifdef HAS_BROTLI
 		case 'b':
 			opt->br_enabled = 1;
@@ -283,5 +286,7 @@ int options_free(const options_t* options)
 	if(NULL != options->err_500.error_page) free(options->err_500.error_page);
 	if(NULL != options->err_500.mime_type) free(options->err_500.mime_type);
 
+	if(NULL != options->err_503.error_page) free(options->err_503.error_page);
+	if(NULL != options->err_503.mime_type) free(options->err_503.mime_type);
 	return 0;
 }

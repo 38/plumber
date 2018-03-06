@@ -8,6 +8,8 @@
 #ifndef __ZLIB_TOKEN_H__
 #define __ZLIB_TOKEN_H__
 
+#ifdef HAS_ZLIB
+
 typedef enum {
 	ZLIB_TOKEN_FORMAT_GZIP,
 	ZLIB_TOKEN_FORMAT_DEFLATE
@@ -21,5 +23,6 @@ typedef enum {
  * @return The result token
  **/
 scope_token_t zlib_token_encode(scope_token_t data_token, zlib_token_format_t format, int level);
+#endif
 
 #endif

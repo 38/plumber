@@ -238,4 +238,39 @@ int pipe_set_type_callback(pipe_t pipe, pipe_type_callback_t callback, void* dat
  **/
 #define PIPE_MOD_OPCODE(opcode) _pipe_get_module_specified_opcode_##opcode()
 
+/**
+ * @brief The pipe intiialization param used by the batch operation
+ **/
+typedef struct {
+	pipe_t*       target;
+	const char*   name;
+	pipe_flags_t  flags;
+	const char*   type;
+} pipe_init_param_t;
+
+/**
+ * @brief start a pipe list
+ **/
+#define PIPE_LIST(name) pipe_init_param_t name[] = 
+
+/**
+ * @brief Add a new entry to the pipe list
+ **/
+#define PIPE(name_str, flags_var, type_str, var) {\
+	.target = &var,\
+	.name   = name_str,\
+	.flags  = flags_var,\
+	.type   = type_str\
+}
+
+/**
+ * @brief Init pipes in the params list
+ * @param params The param list
+ * @param count The number of pipes to initialize
+ * @return status code
+ **/
+int pipe_batch_init(const pipe_init_param_t* params, size_t count);
+
+#define PIPE_BATCH_INIT(name) pipe_batch_init(name, sizeof(name) / sizeof(*name))
+
 #endif

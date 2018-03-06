@@ -1,6 +1,7 @@
 /**
  * Copyright (C) 2018, Hao Hou
  **/
+#if HAS_ZLIB
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -180,3 +181,4 @@ ERR:
 	pstd_mempool_free(zs);
 	return ERROR_CODE(scope_token_t);
 }
+#endif

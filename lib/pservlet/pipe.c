@@ -222,3 +222,23 @@ int pipe_hdr_get_buf(pipe_t pipe, size_t nbytes, void const** resbuf)
 
 	return 1;
 }
+
+int pipe_batch_init(const pipe_init_param_t* params, size_t count)
+{
+	if(NULL == params)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	size_t i;
+	for(i = 0; i < count; i ++)
+	{
+		const pipe_init_param_t* current = params + i;
+
+		if(NULL == current->target)
+			ERROR_RETURN_LOG(int, "Invalid arguments");
+
+		if(ERROR_CODE(pipe_t) == (*current->target = pipe_define(current->name, current->flags, current->type)))
+			ERROR_RETURN_LOG(int, "Cannot initialize pipe `%s'", current->name);
+	}
+
+	return 0;
+}

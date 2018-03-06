@@ -47,6 +47,7 @@ typedef struct {
  **/
 typedef int (*pstd_type_assertion_t)(pipe_t pipe, const char* type, void* data);
 
+
 /**
  * @brief Create a new pipe type model object
  * @return the newly create pipe, NULL on error  case
@@ -232,4 +233,87 @@ int pstd_type_model_const(pstd_type_model_t* model, pipe_t pipe, const char* fie
  * @return the size or error code
  **/
 size_t pstd_type_instance_field_size(pstd_type_instance_t* inst, pstd_type_accessor_t accessor);
+
+
+/**
+ * @brief The patch field initialization param
+ **/
+typedef struct {
+	uint8_t                      is_constant:1;     /*!< Determine if this is a constant description */
+	union {
+		pstd_type_accessor_t*    accessor_buf;      /*!< The buffer used for the field accessor */
+		struct {
+			void*                target_addr;       /*!< The target address */
+			uint32_t             const_size;        /*!< The size of the constant */
+			uint8_t              signedness:1;      /*!< The signedness flag */
+			uint8_t              floatpoint:1;      /*!< The floatpoint flag */
+		}                        const_buf;         /*!< The constant buffer */
+	};
+	const char*                  field_expr;        /*!< The field accessor */
+	pipe_t                       pipe;              /*!< The target pipe */
+	const char*                  filename;          /*!< The file name */
+	uint32_t                     line;              /*!< The line */
+	const char*                  pipe_name;         /*!< The pipe name */
+} pstd_type_model_init_param_t;
+
+/**
+ * @brief Add a new field to the type model
+ * @param pipe The pipe we are talking about
+ * @param field_expr The field expression
+ * @param target The accessor variable we want to use
+ **/
+#define PSTD_TYPE_MODEL_FIELD(pipe_var, field_expr_var, target_var) {\
+	.is_constant  = 0, \
+	.accessor_buf = &target_var, \
+	.field_expr   = #field_expr_var,\
+	.filename     = __FILE__, \
+	.line         = __LINE__, \
+	.pipe_name    = #pipe_var, \
+	.pipe         = pipe_var \
+}
+
+/**
+ * @brief  Add a new const to the type model
+ * @param pipe The pipe we are talking about
+ * @param field_expr The field expression
+ * @param target The variable we want to store the value of this const
+ **/
+#define PSTD_TYPE_MODEL_CONST(pipe_var, field_expr_var, target) {\
+	.is_constant  = 1, \
+	.field_expr   = #field_expr_var, \
+	.const_buf    = {\
+		.target_addr = &target, \
+		.signedness = !((typeof(target))-1 > 0),\
+		.floatpoint = ((typeof(target))0.1 != 0),\
+		.const_size = sizeof(target) \
+	},\
+	.filename     = __FILE__, \
+	.line         = __LINE__, \
+	.pipe_name    = #pipe_var, \
+	.pipe         = pipe_var \
+}
+
+/**
+ * @brief Begin of the type model section
+ * @param name The name of the type model list
+ **/
+#define PSTD_TYPE_MODEL(name) pstd_type_model_init_param_t name[] =
+
+
+/**
+ * @brief Perform the batch type model initialization
+ * @param params The initialzation param array initialized with PSTD_TYPE_MODEL_* macro
+ * @param count The size of the array
+ * @return The created type model
+ **/
+pstd_type_model_t* pstd_type_model_batch_init(const pstd_type_model_init_param_t* params, size_t count);
+
+/**
+ * @brief initailize the type model with the batch parameters
+ * @param list The list to initialize
+ * @return The newly created type model
+ **/
+#define PSTD_TYPE_MODEL_BATCH_INIT(list) pstd_type_model_batch_init(list, sizeof(list) / sizeof(*list))
+
+
 #endif /* __PSTD_PIPETYPE_H__ */
