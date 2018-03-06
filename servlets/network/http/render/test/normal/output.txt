@@ -1,0 +1,9 @@
+.OUTPUT case_1
+{"result":"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 14\r\nConnection: close\r\nServer: Plumber/HTTP\r\n\r\nThis is a test"}
+.END
+.OUTPUT case_2
+{"result":"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nTransfer-Encoding: chunked\r\nConnection: close\r\nServer: Plumber/HTTP\r\n\r\nE\r\nThis is a test\r\n0\r\n\r\n"}
+.END
+.OUTPUT case_3
+{"result":"HTTP/1.1 301 Moved Permanently\r\nContent-Type: text/plain\r\nLocation: /new/url\r\nTransfer-Encoding: chunked\r\nConnection: close\r\nServer: Plumber/HTTP\r\n\r\nE\r\nThis is a test\r\n0\r\n\r\n"}
+.END

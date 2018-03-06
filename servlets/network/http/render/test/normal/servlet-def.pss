@@ -1,0 +1,22 @@
+raw_mode = 1;
+
+servlet = {
+	parse_input := "typing/conversion/json --from-json --raw " + 
+				    "response:plumber/std_servlet/network/http/render/v0/Response " + 
+					"content:plumber/std/request_local/String " + 
+					"accept_encoding:plumber/std/request_local/String ";
+	modify_content := "dataflow/modify body_rls";
+	render := "network/http/render --chunked";
+	
+	(input) -> "json" parse_input {
+		"content" ->  "body_rls";
+		"response" -> "base";
+	} modify_content "output" -> "response" render "output" -> (output);
+
+	parse_input "accept_encoding" -> "accept_encoding" render;
+};
+
+servlet_input = "input";
+
+servlet_output = "output";
+

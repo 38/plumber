@@ -85,7 +85,8 @@ static int _on_type_determined(pipe_t pipe, const char* type, void* data)
 
 		if(i == ctx->count) return 0;
 
-		ctx->modifications[i].actual_type = type;
+		if(NULL == (ctx->modifications[i].actual_type = proto_db_get_managed_name(type)))
+			ERROR_RETURN_LOG(int, "Cannot get the managed typename");
 	}
 
 	uint32_t i;

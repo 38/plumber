@@ -296,7 +296,8 @@ scope_token_t pstd_string_commit(pstd_string_t* str)
 	    ERROR_RETURN_LOG(scope_token_t, "The string has been commited prevoiusly");
 
 	str->commited = 1;
-	str->buffer[str->length] = 0;
+	if(str->buffer != NULL)
+		str->buffer[str->length] = 0;
 
 	scope_entity_t ent = {
 		.data = str,

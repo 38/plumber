@@ -459,6 +459,9 @@ static int _exec(void* ctxmem)
 	}
 #endif
 
+	if((body_flags & ctx->BODY_SIZE_UNKNOWN) && ctx->opts.chunked_enabled)
+		algorithm |= _ENCODING_CHUNKED;
+
 	if((algorithm & _ENCODING_CHUNKED))
 	{
 		if(ERROR_CODE(scope_token_t) == (body_token = chunked_encode(body_token, ctx->opts.max_chunk_size)))
@@ -501,7 +504,7 @@ static int _exec(void* ctxmem)
 	/* Write redirections */
 	if(status_code == 301 || status_code == 302 || status_code == 308 || status_code == 309)
 	{
-		if(ERROR_CODE(int) != _write_string_field(out, type_inst, ctx->a_redir_loc, "Location", "/"))
+		if(ERROR_CODE(int) == _write_string_field(out, type_inst, ctx->a_redir_loc, "Location", "/"))
 			ERROR_LOG_GOTO(ERR, "Cannot write the redirect location");
 	}
 

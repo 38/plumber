@@ -1,0 +1,42 @@
+.TEXT case_1
+{
+	"response": {
+		"status": {
+			"status_code": 200
+		},
+		"body_flags": 0,
+		"body_size": 14,
+		"mime_type": "text/plain"
+	},
+	"content": "This is a test",
+	"accept_encoding": "chunked"
+}
+.END
+.TEXT case_2
+{
+	"response": {
+		"status": {
+			"status_code": 200
+		},
+		"body_flags": 3,
+		"mime_type": "text/plain"
+	},
+	"content": "This is a test",
+	"accept_encoding": "chunked"
+}
+.END
+.TEXT case_3
+{
+	"response": {
+		"status": {
+			"status_code": 301
+		},
+		"body_flags": 3,
+		"mime_type": "text/plain",
+		"redirect_location": "/new/url"
+	},
+	"content": "This is a test",
+	"accept_encoding": "chunked"
+}
+.END
+.STOP

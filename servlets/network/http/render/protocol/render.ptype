@@ -36,8 +36,9 @@ type Response {
 	uint32                BODY_CAN_COMPRESS = 1;                    /*!< The body can be compressed */
 
 	uint32                body_flags;                               /*!< The flags for the body */
-	request_local_token   body_object;                              /*!< The RLS token for the body object. If this is a invalid object, we should put the data to pipe data body */
 	uint64                body_size;                                /*!< The size of the HTTP body */
+	alias body_rls.token  body_object;                              /*!< The body object */
+	plumber.std.request_local.MemoryObject body_rls;                /*!< The RLS token for the body object. If this is a invalid object, we should put the data to pipe data body */
 
 	plumber.std.request_local.String mime_type;                     /*!< The MIME type for current response */
 

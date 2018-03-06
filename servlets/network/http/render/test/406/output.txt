@@ -1,0 +1,3 @@
+.OUTPUT case_1
+{"result":"HTTP/1.1 406 Not Acceptable\r\nContent-Type: text/html\r\nContent-Length: 66\r\n\r\nConnection: close\r\nServer: Plumber/HTTP\r\n\r\n<html><body><h1>Content Encoding Not Acceptable</h1></body></html>"}
+.END
