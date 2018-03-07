@@ -25,9 +25,10 @@ typedef struct {
  * @brief Load the mime type map 
  * @param map_file The path to the map file
  * @param compress The compressable MIME type list
+ * @param default_mime_type The default MIME type
  * @return newly created MIME map
  **/
-mime_map_t* mime_map_new(const char* map_file, const char* compress);
+mime_map_t* mime_map_new(const char* map_file, const char* compress, const char* default_mime_type);
 
 /**
  * @brief Query the extension name
@@ -36,7 +37,7 @@ mime_map_t* mime_map_new(const char* map_file, const char* compress);
  * @param buf The result buffer
  * @return status code
  **/
-int mime_map_query(mime_map_t* map, const char* extname, mime_map_info_t* buf);
+int mime_map_query(const mime_map_t* map, const char* extname, mime_map_info_t* buf);
 
 /**
  * @brief Dispose the MIME map 

@@ -30,8 +30,9 @@ typedef enum {
  * @brief The error page when we use HTTP mode
  **/
 typedef struct {
-	char* filename;    /*!< The file name to the error page */
-	char* mime_type;   /*!< The mime type */
+	char*       filename;        /*!< The file name to the error page */
+	const char* mime_type;       /*!< The mime type */
+	uint32_t    compressable:1;  /*!< If this page is compressable */
 } options_output_err_page_t;
 
 /**
@@ -40,7 +41,7 @@ typedef struct {
 typedef struct {
 	/* Generic Options */
 	options_input_mode_t      input_mode;   /*!< The input mode */
-	options_output_mode_t     output_model; /*!< The output mode */
+	options_output_mode_t     output_mode;  /*!< The output mode */
 	char*                     root_dir;     /*!< The root directory */
 	uint32_t                  inscure:1;    /*!< Inscure mode, allows the file outside of the root directory */
 
@@ -55,7 +56,8 @@ typedef struct {
 	/* HTTP Mime Type Guesser parameter */
 	char*                     default_mime_type;  /*!< The default MIME type */
 	char*                     mime_map_file;      /*!< The file extension to MIME type mapping file */
-	char**                    compressable_types; /*!< The MIME type that can be compressed, NULL terminated */
+	char*                     compressable_types; /*!< The MIME type that can be compressed, NULL terminated */
+	mime_map_t*               mime_map;           /*!< The MIME type map */
 
 	/* The Index Page */
 	uint32_t                  directory_list_page:1;  /*!< Indicates we are able to generate the directory list when the index.html is missing */
