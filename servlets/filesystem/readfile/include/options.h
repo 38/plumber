@@ -43,7 +43,6 @@ typedef struct {
 	options_input_mode_t      input_mode;   /*!< The input mode */
 	options_output_mode_t     output_mode;  /*!< The output mode */
 	char*                     root_dir;     /*!< The root directory */
-	uint32_t                  inscure:1;    /*!< Inscure mode, allows the file outside of the root directory */
 
 	/* The input options */
 	char*                     path_field;   /*!< The string field for path when we use string field mode */

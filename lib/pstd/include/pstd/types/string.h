@@ -187,6 +187,32 @@ extern "C" {
 		
 		return PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, accessor, str_rls_tok);
 	}
+	
+	/**
+	 * @brief Copy, commit and write an immutable RLS string object to the typed pipe
+	 * @note This is the helper function to write a string to typed header. Unlike the create version, this function copy the string
+	 * @param type_inst The type instance we used for writing
+	 * @param accessor The field accessor we want to write
+	 * @param str The string we want to write
+	 * @return status code
+	 **/
+	static inline int pstd_string_copy_commit_write(pstd_type_instance_t* type_inst, pstd_type_accessor_t accessor, const char* str)
+	{
+		if(NULL == str) ERROR_RETURN_LOG(int, "Invalid arguments");
+		pstd_string_t* str_rls_obj = pstd_string_from_onwership_pointer(strdup(str), strlen(str));
+
+		if(NULL == str_rls_obj)
+			ERROR_RETURN_LOG(int, "Cannot create the PSTD string object");
+
+		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
+		if(ERROR_CODE(scope_token_t) == str_rls_tok)
+		{
+			pstd_string_free(str_rls_obj);
+			ERROR_RETURN_LOG(int, "Cannot commit the RLS string to the scope");
+		}
+		
+		return PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, accessor, str_rls_tok);
+	}
 
 	/**
 	 * @brief Retrieve a string value using the accessor

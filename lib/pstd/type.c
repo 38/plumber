@@ -852,9 +852,9 @@ int pstd_type_instance_write(pstd_type_instance_t* inst, pstd_type_accessor_t ac
 	return 0;
 }
 
-pstd_type_model_t* pstd_type_model_batch_init(const pstd_type_model_init_param_t* params, size_t count)
+pstd_type_model_t* pstd_type_model_batch_init(const pstd_type_model_init_param_t* params, size_t count, pstd_type_model_t* model, ...)
 {
-	pstd_type_model_t* ret = pstd_type_model_new();
+	pstd_type_model_t* ret = model == NULL ? pstd_type_model_new() : model;
 
 	if(NULL == ret)
 		ERROR_PTR_RETURN_LOG("Cannot initialize the type model");

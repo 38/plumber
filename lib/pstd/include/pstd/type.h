@@ -304,16 +304,18 @@ typedef struct {
  * @brief Perform the batch type model initialization
  * @param params The initialzation param array initialized with PSTD_TYPE_MODEL_* macro
  * @param count The size of the array
+ * @param model If this variable is given using the type model instead of the new one
  * @return The created type model
  **/
-pstd_type_model_t* pstd_type_model_batch_init(const pstd_type_model_init_param_t* params, size_t count);
+pstd_type_model_t* pstd_type_model_batch_init(const pstd_type_model_init_param_t* params, size_t count, pstd_type_model_t* model, ...);
 
 /**
  * @brief initailize the type model with the batch parameters
  * @param list The list to initialize
+ * @param model An optional param means use the existing type model
  * @return The newly created type model
  **/
-#define PSTD_TYPE_MODEL_BATCH_INIT(list) pstd_type_model_batch_init(list, sizeof(list) / sizeof(*list))
+#define PSTD_TYPE_MODEL_BATCH_INIT(list, model...) pstd_type_model_batch_init(list, sizeof(list) / sizeof(*list), ##model, NULL)
 
 
 #endif /* __PSTD_PIPETYPE_H__ */

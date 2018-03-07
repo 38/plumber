@@ -101,9 +101,6 @@ static int _set_bool_opt(pstd_option_data_t data)
 
 	switch(data.current_option->short_opt)
 	{
-		case 'n':
-			options->inscure = 1;
-			break;
 		case 'd':
 			options->directory_list_page = 1;
 			break;
@@ -256,14 +253,6 @@ static pstd_option_t _opts[] = {
 		.description    = "Sepcify the list of index file names",
 		.pattern        = "S",
 		.handler        = _set_default_page_name,
-		.args           = NULL
-	},
-	{
-		.long_opt       = "inscure",
-		.short_opt      = 'n',
-		.description    = "Enable the inscure mode which allows the file outside of the root directory",
-		.pattern        = "",
-		.handler        = _set_bool_opt,
 		.args           = NULL
 	},
 	{

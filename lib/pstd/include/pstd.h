@@ -13,6 +13,7 @@ extern "C" {
 #	endif /* __cplusplus__ */
 
 #include <sys/stat.h>
+#include <alloca.h>
 
 #include <pservlet.h>
 #include <pstd/mempool.h>
