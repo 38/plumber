@@ -37,6 +37,8 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 {
 	ctx_t* ctx = (ctx_t*)ctxmem;
 
+	memset(ctx, 0, sizeof(*ctx));
+
 	if(ERROR_CODE(int) == options_parse(argc, argv, &ctx->options))
 		ERROR_RETURN_LOG(int, "Cannot parse the servlet init string");
 
@@ -76,28 +78,31 @@ static int _unload(void* ctxmem)
 	if(ERROR_CODE(int) == options_free(&ctx->options))
 		rc = ERROR_CODE(int);
 
-	if(ERROR_CODE(int) == input_ctx_free(ctx->input_ctx))
+	if(NULL != ctx->input_ctx && ERROR_CODE(int) == input_ctx_free(ctx->input_ctx))
 		rc = ERROR_CODE(int);
 
-	if(ERROR_CODE(int) == pstd_type_model_free(ctx->type_model))
+	if(NULL != ctx->type_model && ERROR_CODE(int) == pstd_type_model_free(ctx->type_model))
 		rc = ERROR_CODE(int);
-	
-	switch(ctx->options.output_mode)
+
+	if(NULL != ctx->out_ctx)
 	{
-		case OPTIONS_OUTPUT_MODE_FILE:
-			if(ERROR_CODE(int) == file_ctx_free(ctx->file_ctx))
-				rc = ERROR_CODE(int);
-			break;
-		case OPTIONS_OUTPUT_MODE_RAW:
-			if(ERROR_CODE(int) == raw_ctx_free(ctx->raw_ctx))
-				rc = ERROR_CODE(int);
-			break;
-		case OPTIONS_OUTPUT_MODE_HTTP:
-			if(ERROR_CODE(int) == http_ctx_free(ctx->http_ctx))
-				rc = ERROR_CODE(int);
-			break;
-		default:
-			ERROR_RETURN_LOG(int, "Invalid output mode");
+		switch(ctx->options.output_mode)
+		{
+			case OPTIONS_OUTPUT_MODE_FILE:
+				if(ERROR_CODE(int) == file_ctx_free(ctx->file_ctx))
+					rc = ERROR_CODE(int);
+				break;
+			case OPTIONS_OUTPUT_MODE_RAW:
+				if(ERROR_CODE(int) == raw_ctx_free(ctx->raw_ctx))
+					rc = ERROR_CODE(int);
+				break;
+			case OPTIONS_OUTPUT_MODE_HTTP:
+				if(ERROR_CODE(int) == http_ctx_free(ctx->http_ctx))
+					rc = ERROR_CODE(int);
+				break;
+			default:
+				ERROR_RETURN_LOG(int, "Invalid output mode");
+		}
 	}
 
 	return rc;

@@ -197,9 +197,20 @@ static inline int _write_default_index(const http_ctx_t* ctx, pstd_type_instance
 												path + ctx->root_dir_len))
 		ERROR_LOG_GOTO(ERR, "Cannot generate the directory listing page");
 
+	size_t len = strlen(path);
+	const char* sep = "";
+	if(len > 0 && path[len - 1] != '/')
+		sep = "/";
+
 	while((ep = readdir(dp)) != NULL)
-		if(ERROR_CODE(size_t) == pstd_string_printf(result_str, "<li><a href=\"%s\">%s</a></li>", ep->d_name, ep->d_name))
+	{
+		const char* suffix = "";
+		if(ep->d_type & DT_DIR)
+			suffix = "/";
+		if(ERROR_CODE(size_t) == pstd_string_printf(result_str, "<li><a href=\"%s%s%s\">%s%s</a></li>", 
+					                                path + ctx->root_dir_len, sep, ep->d_name, ep->d_name, suffix))
 			ERROR_LOG_GOTO(ERR, "Cannot generate the directory listing page");
+	}
 
 	if(ERROR_CODE(size_t) == pstd_string_printf(result_str, "</ul></body></html>"))
 		ERROR_LOG_GOTO(ERR, "Cannot generate the directory listing page");
@@ -218,7 +229,7 @@ static inline int _write_default_index(const http_ctx_t* ctx, pstd_type_instance
 	
 	result_str = NULL;
 
-	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_body_flags, (uint32_t)0))
+	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_body_flags, (uint32_t)ctx->BODY_CAN_COMPRESS))
 		ERROR_RETURN_LOG(int, "Cannot write the body flags");
 
 	if(ERROR_CODE(int) == pstd_string_create_commit_write(type_inst, ctx->a_mime_type, "text/html"))

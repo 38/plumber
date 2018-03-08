@@ -208,7 +208,7 @@ static pstd_option_t _opts[] = {
 		.args           = NULL
 	},
 	{
-		.long_opt       = "foribden-page",
+		.long_opt       = "forbiden-page",
 		.short_opt      = 'F',
 		.description    = "Sepcify the path to the customized forbiden error page",
 		.pattern        = "S",

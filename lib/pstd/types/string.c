@@ -371,7 +371,9 @@ size_t pstd_string_vprintf(pstd_string_t* str, const char* fmt, va_list ap)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-nonliteral"
 #endif
-		int rc = vsnprintf(str->buffer + str->length, str->capacity - str->length, fmt, ap);
+		va_list ap_copy;
+		va_copy(ap_copy, ap);
+		int rc = vsnprintf(str->buffer + str->length, str->capacity - str->length, fmt, ap_copy);
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif

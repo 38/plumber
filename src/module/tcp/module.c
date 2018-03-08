@@ -571,7 +571,8 @@ static inline int _init_connection_pool(_module_context_t* __restrict context)
 	{
 		LOG_ERROR("Cannot configure the connection pool, retry after %d seconds", context->retry_interval);
 		usleep((uint32_t)(context->retry_interval * 1000000));
-		context->retry_interval *= 2;
+		if(context->retry_interval < 30)
+			context->retry_interval *= 2;
 		return ERROR_CODE(int);
 	}
 

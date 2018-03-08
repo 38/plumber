@@ -213,17 +213,22 @@ int mime_map_free(mime_map_t* map)
 
 int mime_map_query(const mime_map_t* map, const char* extname, mime_map_info_t* buf)
 {
-	if(NULL == map || NULL == extname || NULL == buf)
+	if(NULL == map || NULL == buf)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
+	
+	const _hashnode_t* node = NULL;
 
-	size_t len = strlen(extname);
-	if(len > sizeof(uint64_t)) len = sizeof(uint64_t);
+	if(extname != NULL)
+	{
 
-	uint64_t hashcode = 0;
-	memcpy(&hashcode, extname, len);
+		size_t len = strlen(extname);
+		if(len > sizeof(uint64_t)) len = sizeof(uint64_t);
 
-	const _hashnode_t* node;
-	for(node = map->hash_table[hashcode % HASH_SIZE]; NULL != node && node->hashcode != hashcode; node = node->next);
+		uint64_t hashcode = 0;
+		memcpy(&hashcode, extname, len);
+
+		for(node = map->hash_table[hashcode % HASH_SIZE]; NULL != node && node->hashcode != hashcode; node = node->next);
+	}
 
 	if(node == NULL)
 	{
