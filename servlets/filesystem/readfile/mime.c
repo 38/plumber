@@ -232,7 +232,7 @@ int mime_map_query(const mime_map_t* map, const char* extname, mime_map_info_t* 
 
 	if(node == NULL)
 	{
-		buf->mime_type = "application/octet-stream";
+		buf->mime_type = map->default_mime_type;
 		buf->compressable = 1;
 	}
 	else
