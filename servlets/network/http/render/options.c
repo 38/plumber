@@ -18,29 +18,29 @@ static int _opt_callback_no_val(pstd_option_data_t data)
 	{
 #ifdef HAS_ZLIB
 		case 'g':
-			opt->gzip_enabled = 1;
-			opt->chunked_enabled = 1;
-			break;
+		    opt->gzip_enabled = 1;
+		    opt->chunked_enabled = 1;
+		    break;
 		case 'd':
-			opt->deflate_enabled = 1;
-			opt->chunked_enabled = 1;
-			break;
+		    opt->deflate_enabled = 1;
+		    opt->chunked_enabled = 1;
+		    break;
 #endif
 
 #ifdef HAS_BROTLI
 		case 'b':
-			opt->br_enabled = 1;
-			opt->chunked_enabled = 1;
-			break;
+		    opt->br_enabled = 1;
+		    opt->chunked_enabled = 1;
+		    break;
 #endif
 		case 'c':
-			opt->chunked_enabled = 1;
-			break;
+		    opt->chunked_enabled = 1;
+		    break;
 		case 'P':
-			opt->reverse_proxy = 1;
-			break;
+		    opt->reverse_proxy = 1;
+		    break;
 		default:
-			ERROR_RETURN_LOG(int, "Invalid option");
+		    ERROR_RETURN_LOG(int, "Invalid option");
 	}
 
 	return 0;
@@ -49,7 +49,7 @@ static int _opt_callback_no_val(pstd_option_data_t data)
 static int _opt_callback_numeric(pstd_option_data_t data)
 {
 	if(data.param_array_size != 1)
-		ERROR_RETURN_LOG(int, "Invalid number of parameter");
+	    ERROR_RETURN_LOG(int, "Invalid number of parameter");
 
 	options_t* opt = (options_t*)data.cb_data;
 
@@ -58,13 +58,13 @@ static int _opt_callback_numeric(pstd_option_data_t data)
 	switch(data.current_option->short_opt)
 	{
 		case 'L':
-			opt->compress_level = ((uint8_t)val & 0xfu);
-			break;
+		    opt->compress_level = ((uint8_t)val & 0xfu);
+		    break;
 		case 'S':
-			opt->max_chunk_size = ((uint8_t)val & 0xffu);
-			break;
+		    opt->max_chunk_size = ((uint8_t)val & 0xffu);
+		    break;
 		default:
-			ERROR_RETURN_LOG(int, "Invalid option");
+		    ERROR_RETURN_LOG(int, "Invalid option");
 	}
 	return 0;
 }
@@ -72,7 +72,7 @@ static int _opt_callback_numeric(pstd_option_data_t data)
 static int _opt_callback_string(pstd_option_data_t data)
 {
 	if(data.param_array_size != 1)
-		ERROR_RETURN_LOG(int, "Invalid number of parameter");
+	    ERROR_RETURN_LOG(int, "Invalid number of parameter");
 
 	options_t* opt = (options_t*)data.cb_data;
 	char** target = NULL;
@@ -80,38 +80,38 @@ static int _opt_callback_string(pstd_option_data_t data)
 	switch(data.current_option->short_opt)
 	{
 		case '4':
-			target = &opt->err_406.error_page;
-			break;
+		    target = &opt->err_406.error_page;
+		    break;
 		case '5':
-			target = &opt->err_500.error_page;
-			break;
+		    target = &opt->err_500.error_page;
+		    break;
 		case 'e':
-			target = &opt->err_503.error_page;
-			break;
+		    target = &opt->err_503.error_page;
+		    break;
 		case 0:
-			if(strcmp("500-mime", data.current_option->long_opt) == 0)
-				target = &opt->err_500.mime_type;
-			else if(strcmp("406-mime", data.current_option->long_opt) == 0)
-				target = &opt->err_406.mime_type;
-			else if(strcmp("503-mime", data.current_option->long_opt) == 0)
-				target = &opt->err_503.mime_type;
-			else
-				ERROR_RETURN_LOG(int, "Invalid options");
-			break;
+		    if(strcmp("500-mime", data.current_option->long_opt) == 0)
+		        target = &opt->err_500.mime_type;
+		    else if(strcmp("406-mime", data.current_option->long_opt) == 0)
+		        target = &opt->err_406.mime_type;
+		    else if(strcmp("503-mime", data.current_option->long_opt) == 0)
+		        target = &opt->err_503.mime_type;
+		    else
+		        ERROR_RETURN_LOG(int, "Invalid options");
+		    break;
 		case 's':
-			target = &opt->server_name;
-			break;
+		    target = &opt->server_name;
+		    break;
 		default:
-			ERROR_RETURN_LOG(int, "Invalid options");
+		    ERROR_RETURN_LOG(int, "Invalid options");
 	}
-	
+
 	char* val = strdup(data.param_array[0].strval);
 
 	if(NULL == val)
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the param string");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the param string");
 
 	if(NULL != *target)
-		free(*target);
+	    free(*target);
 
 	*target = val;
 
@@ -245,8 +245,8 @@ static pstd_option_t _options[] = {
 int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 {
 	if(NULL == argv || NULL == buf)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
-	
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+
 	memset(buf, 0, sizeof(options_t));
 
 	buf->compress_level = 5;
@@ -259,16 +259,16 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 	    ERROR_RETURN_LOG(int, "Cannot parse the servlet initialization string");
 
 	if(NULL == buf->server_name && NULL == (buf->server_name = strdup("Plumber/HTTP")))
-		ERROR_RETURN_LOG(int, "Cannot initialize the default server name");
-	
+	    ERROR_RETURN_LOG(int, "Cannot initialize the default server name");
+
 	if(NULL == buf->err_406.mime_type && NULL == (buf->err_406.mime_type = strdup("text/html")))
-		ERROR_RETURN_LOG(int, "Cannot initialize the default server name");
-	
+	    ERROR_RETURN_LOG(int, "Cannot initialize the default server name");
+
 	if(NULL == buf->err_500.mime_type && NULL == (buf->err_500.mime_type = strdup("text/html")))
-		ERROR_RETURN_LOG(int, "Cannot initialize the default server name");
-	
+	    ERROR_RETURN_LOG(int, "Cannot initialize the default server name");
+
 	if(NULL == buf->err_503.mime_type && NULL == (buf->err_503.mime_type = strdup("text/html")))
-		ERROR_RETURN_LOG(int, "Cannot initialize the default server name");
+	    ERROR_RETURN_LOG(int, "Cannot initialize the default server name");
 
 	return 0;
 }
@@ -276,13 +276,13 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 int options_free(const options_t* options)
 {
 	if(NULL == options)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(NULL != options->server_name) free(options->server_name);
 
 	if(NULL != options->err_406.error_page) free(options->err_406.error_page);
 	if(NULL != options->err_406.mime_type) free(options->err_406.mime_type);
-	
+
 	if(NULL != options->err_500.error_page) free(options->err_500.error_page);
 	if(NULL != options->err_500.mime_type) free(options->err_500.mime_type);
 

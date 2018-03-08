@@ -52,7 +52,7 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf);
 
 /**
  * @brief Dispose the used options
- * @note This function do not actually dispose the options pointer, but dispose all the 
+ * @note This function do not actually dispose the options pointer, but dispose all the
  *       buffer allocated by options_parse function
  * @param options The options to dispose
  * @return status code

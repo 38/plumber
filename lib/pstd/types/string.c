@@ -43,7 +43,7 @@ pstd_string_t* pstd_string_from_onwership_pointer(char* data, size_t sz)
 	pstd_string_t* ret = pstd_string_new(0);
 
 	if(NULL == ret)
-		ERROR_PTR_RETURN_LOG("Cannot allocate string object");
+	    ERROR_PTR_RETURN_LOG("Cannot allocate string object");
 
 	ret->buffer = data;
 	ret->capacity = sz;
@@ -56,12 +56,12 @@ pstd_string_t* pstd_string_from_onwership_pointer(char* data, size_t sz)
 pstd_string_t* pstd_string_new_immutable(const char* data, size_t sz)
 {
 	if(NULL == data || sz == ERROR_CODE(size_t))
-		ERROR_PTR_RETURN_LOG("Invalid arguments");
+	    ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	pstd_string_t* ret = pstd_string_new(0);
-	
+
 	if(NULL == ret)
-		ERROR_PTR_RETURN_LOG("Cannot allocate string object");
+	    ERROR_PTR_RETURN_LOG("Cannot allocate string object");
 
 	ret->buffer   = NULL;
 	ret->capacity = 0;
@@ -197,9 +197,9 @@ static inline void* _copy(const void* mem)
 	    ERROR_PTR_RETURN_LOG("Cannot create new string object for the duplication");
 
 	if(ret->buffer != NULL)
-		memcpy(ret->buffer, ptr->buffer, ptr->length + 1);
+	    memcpy(ret->buffer, ptr->buffer, ptr->length + 1);
 	else
-		ret->immutable = ptr->immutable;
+	    ret->immutable = ptr->immutable;
 
 	ret->length = ptr->length;
 	ret->commited = 1;   /*!< it's commited by default */
@@ -280,9 +280,9 @@ static inline size_t _read(void* __restrict stream_mem, void* __restrict buf, si
 	    bytes_can_read = stream->string->length - stream->location;
 
 	if(stream->string->buffer != NULL)
-		memcpy(buf, stream->string->buffer + stream->location, bytes_can_read);
+	    memcpy(buf, stream->string->buffer + stream->location, bytes_can_read);
 	else
-		memcpy(buf, stream->string->immutable + stream->location, bytes_can_read);
+	    memcpy(buf, stream->string->immutable + stream->location, bytes_can_read);
 
 	stream->location += bytes_can_read;
 	return bytes_can_read;
@@ -297,7 +297,7 @@ scope_token_t pstd_string_commit(pstd_string_t* str)
 
 	str->commited = 1;
 	if(str->buffer != NULL)
-		str->buffer[str->length] = 0;
+	    str->buffer[str->length] = 0;
 
 	scope_entity_t ent = {
 		.data = str,

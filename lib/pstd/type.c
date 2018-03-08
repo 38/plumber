@@ -857,7 +857,7 @@ pstd_type_model_t* pstd_type_model_batch_init(const pstd_type_model_init_param_t
 	pstd_type_model_t* ret = model == NULL ? pstd_type_model_new() : model;
 
 	if(NULL == ret)
-		ERROR_PTR_RETURN_LOG("Cannot initialize the type model");
+	    ERROR_PTR_RETURN_LOG("Cannot initialize the type model");
 
 	size_t i;
 	for(i = 0; i < count; i ++)
@@ -866,20 +866,20 @@ pstd_type_model_t* pstd_type_model_batch_init(const pstd_type_model_init_param_t
 
 		if(current->is_constant)
 		{
-			if(ERROR_CODE(int) == pstd_type_model_const(ret, current->pipe, current->field_expr, 
-						                                current->const_buf.signedness, 
-														current->const_buf.floatpoint, 
-														current->const_buf.target_addr,
-														current->const_buf.const_size))
-				ERROR_LOG_GOTO(ERR, "Cannot initailize the constant field %s at %s:%u", current->pipe_name, current->filename, current->line);
+			if(ERROR_CODE(int) == pstd_type_model_const(ret, current->pipe, current->field_expr,
+			                                            current->const_buf.signedness,
+			                                            current->const_buf.floatpoint,
+			                                            current->const_buf.target_addr,
+			                                            current->const_buf.const_size))
+			    ERROR_LOG_GOTO(ERR, "Cannot initailize the constant field %s at %s:%u", current->pipe_name, current->filename, current->line);
 		}
 		else
 		{
 			if(NULL == current->accessor_buf)
-				ERROR_LOG_GOTO(ERR, "Invalid arguments for field accessor %s at %s:%u", current->pipe_name, current->filename, current->line);
+			    ERROR_LOG_GOTO(ERR, "Invalid arguments for field accessor %s at %s:%u", current->pipe_name, current->filename, current->line);
 
 			if(ERROR_CODE(pstd_type_accessor_t) == (*current->accessor_buf = pstd_type_model_get_accessor(ret, current->pipe, current->field_expr)))
-				ERROR_LOG_GOTO(ERR, "Cannot initailize the type accessor for field %s at %s:%u", current->pipe_name, current->filename, current->line);
+			    ERROR_LOG_GOTO(ERR, "Cannot initailize the type accessor for field %s at %s:%u", current->pipe_name, current->filename, current->line);
 		}
 	}
 

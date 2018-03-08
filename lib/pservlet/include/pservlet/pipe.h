@@ -251,7 +251,7 @@ typedef struct {
 /**
  * @brief start a pipe list
  **/
-#define PIPE_LIST(name) pipe_init_param_t name[] = 
+#define PIPE_LIST(name) pipe_init_param_t name[] =
 
 /**
  * @brief Add a new entry to the pipe list
@@ -273,7 +273,7 @@ int pipe_batch_init(const pipe_init_param_t* params, size_t count);
 
 
 /**
- * @brief Perform a batch pipe initiaztion 
+ * @brief Perform a batch pipe initiaztion
  * @param name The name of the pie list
  * @return status code
  **/

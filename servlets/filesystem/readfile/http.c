@@ -34,7 +34,7 @@ struct _http_ctx_t {
 	options_output_err_page_t   page_forbiden;    /*!< The forbiden error page */
 
 	char const* const*          index_page;       /*!< The index page */
-	uint32_t                    default_index:1;  /*!< If we need to use the default index.html */ 
+	uint32_t                    default_index:1;  /*!< If we need to use the default index.html */
 
 	pstd_type_accessor_t        a_status_code;    /*!< The status code accessor */
 	pstd_type_accessor_t        a_body_flags;     /*!< The body flags accessor */
@@ -54,14 +54,14 @@ struct _http_ctx_t {
 http_ctx_t* http_ctx_new(const options_t* options, pstd_type_model_t* type_model)
 {
 	if(NULL == options || NULL == type_model)
-		ERROR_PTR_RETURN_LOG("Invalid arguments");
+	    ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	http_ctx_t* ret = (http_ctx_t*)malloc(sizeof(http_ctx_t));
 	if(NULL == ret)
-		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the http reader context");
+	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the http reader context");
 
 	if(ERROR_CODE(pipe_t) == (ret->p_file = pipe_define("file", PIPE_OUTPUT, "plumber/std_servlet/network/http/render/v0/Response")))
-		ERROR_LOG_GOTO(ERR, "Cannot declare the http output pipe port");
+	    ERROR_LOG_GOTO(ERR, "Cannot declare the http output pipe port");
 
 	ret->page_not_found = options->http_err_not_found;
 	ret->page_forbiden = options->http_err_forbiden;
@@ -69,7 +69,7 @@ http_ctx_t* http_ctx_new(const options_t* options, pstd_type_model_t* type_model
 	ret->index_page = (char const* const*)options->index_file_names;
 	ret->root_dir_len = strlen(options->root_dir);
 	if(ret->root_dir_len > 0 && options->root_dir[ret->root_dir_len - 1] == '/')
-		ret->root_dir_len --;
+	    ret->root_dir_len --;
 	ret->mime_map = options->mime_map;
 	ret->default_index = options->directory_list_page;
 
@@ -89,8 +89,8 @@ http_ctx_t* http_ctx_new(const options_t* options, pstd_type_model_t* type_model
 	};
 
 	if(NULL == PSTD_TYPE_MODEL_BATCH_INIT(output_model, type_model))
-		ERROR_LOG_GOTO(ERR, "Cannot initialize the type model");
-	
+	    ERROR_LOG_GOTO(ERR, "Cannot initialize the type model");
+
 	return ret;
 ERR:
 	free(ret);
@@ -106,16 +106,16 @@ int http_ctx_free(http_ctx_t* ctx)
 static inline int _write_string_body(const http_ctx_t* ctx, pstd_type_instance_t* type_inst, const char* str, size_t length, const char* mime)
 {
 	if(ERROR_CODE(int) == pstd_string_create_commit_write(type_inst, ctx->a_body_token, str))
-		ERROR_RETURN_LOG(int, "Cannot write the response content");
+	    ERROR_RETURN_LOG(int, "Cannot write the response content");
 
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_body_size, (uint64_t)length))
-		ERROR_RETURN_LOG(int, "Cannot write the response size");
+	    ERROR_RETURN_LOG(int, "Cannot write the response size");
 
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_body_flags, (uint32_t)0))
-		ERROR_RETURN_LOG(int, "Cannot write the body flags");
+	    ERROR_RETURN_LOG(int, "Cannot write the body flags");
 
 	if(ERROR_CODE(int) == pstd_string_create_commit_write(type_inst, ctx->a_mime_type, mime))
-		ERROR_RETURN_LOG(int, "Cannot write the MIME type to the response");
+	    ERROR_RETURN_LOG(int, "Cannot write the MIME type to the response");
 
 	return 0;
 }
@@ -124,7 +124,7 @@ static inline int _write_file_body(const http_ctx_t* ctx, pstd_type_instance_t* 
 {
 	pstd_file_t* file = pstd_file_new(filename);
 	if(NULL == file)
-		ERROR_RETURN_LOG(int, "Cannot create the file object");
+	    ERROR_RETURN_LOG(int, "Cannot create the file object");
 
 	scope_token_t tok = pstd_file_commit(file);
 	if(ERROR_CODE(scope_token_t) == tok)
@@ -135,29 +135,29 @@ static inline int _write_file_body(const http_ctx_t* ctx, pstd_type_instance_t* 
 
 	size_t length = pstd_file_size(file);
 	if(ERROR_CODE(size_t) == length)
-		ERROR_RETURN_LOG(int, "Cannot determine the size of the file");
+	    ERROR_RETURN_LOG(int, "Cannot determine the size of the file");
 
 	if(ERROR_CODE(int) == pstd_string_create_commit_write(type_inst, ctx->a_mime_type, mime))
-		ERROR_RETURN_LOG(int, "Cannot write the MIME type to the response");
+	    ERROR_RETURN_LOG(int, "Cannot write the MIME type to the response");
 
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_body_size, (uint64_t)length))
-		ERROR_RETURN_LOG(int, "Cannot write the file size to the response");
+	    ERROR_RETURN_LOG(int, "Cannot write the file size to the response");
 
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_body_flags, (uint32_t)(compress ? ctx->BODY_CAN_COMPRESS : 0)))
-		ERROR_RETURN_LOG(int, "Cannot write the body flag to the response");
+	    ERROR_RETURN_LOG(int, "Cannot write the body flag to the response");
 
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_body_token, tok))
-		ERROR_RETURN_LOG(int, "Cannot write the body token to the response");
+	    ERROR_RETURN_LOG(int, "Cannot write the body token to the response");
 
 	return 0;
 }
 
-static inline int _write_message_page(const http_ctx_t* ctx, pstd_type_instance_t* type_inst, 
-		                              uint16_t status_code, const options_output_err_page_t* page, 
-									  const char* defval, size_t defsz)
+static inline int _write_message_page(const http_ctx_t* ctx, pstd_type_instance_t* type_inst,
+                                      uint16_t status_code, const options_output_err_page_t* page,
+                                      const char* defval, size_t defsz)
 {
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_status_code, status_code))
-		ERROR_RETURN_LOG(int, "Cannot write the status code");
+	    ERROR_RETURN_LOG(int, "Cannot write the status code");
 
 	struct stat st;
 
@@ -165,13 +165,13 @@ static inline int _write_message_page(const http_ctx_t* ctx, pstd_type_instance_
 	{
 		/* If the page exists */
 		if(ERROR_CODE(int) == _write_file_body(ctx, type_inst, page->filename, page->mime_type, page->compressable))
-			ERROR_RETURN_LOG(int, "Cannot write the message page");
+		    ERROR_RETURN_LOG(int, "Cannot write the message page");
 	}
 	else
 	{
 		/* Write the default page */
 		if(ERROR_CODE(int) == _write_string_body(ctx, type_inst, defval, defsz, "text/html"))
-			ERROR_RETURN_LOG(int, "Cannot write the default error messasge");
+		    ERROR_RETURN_LOG(int, "Cannot write the default error messasge");
 	}
 
 	return 0;
@@ -180,64 +180,64 @@ static inline int _write_message_page(const http_ctx_t* ctx, pstd_type_instance_
 static inline int _write_default_index(const http_ctx_t* ctx, pstd_type_instance_t* type_inst, const char* path)
 {
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_status_code, ctx->HTTP_STATUS_OK))
-		ERROR_RETURN_LOG(int, "Cannot write the status code");
+	    ERROR_RETURN_LOG(int, "Cannot write the status code");
 
 	DIR* dp = NULL;
 	struct dirent* ep = NULL;
 	pstd_string_t* result_str = NULL;
 
 	if(NULL == (dp = opendir(path)))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot open directory %s", path);
-		
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot open directory %s", path);
+
 	if(NULL == (result_str = pstd_string_new(1024)))
-		ERROR_LOG_GOTO(ERR, "Cannot create new string object");
+	    ERROR_LOG_GOTO(ERR, "Cannot create new string object");
 
 	if(ERROR_CODE(size_t) == pstd_string_printf(result_str, "<html><head><title>Directory Listing of %s</title></head>"
-				                                                  "<body><h1>Directory Listing of %s</h1><hr><ul>", 
-												path + ctx->root_dir_len,
-												path + ctx->root_dir_len))
-		ERROR_LOG_GOTO(ERR, "Cannot generate the directory listing page");
+	                                                              "<body><h1>Directory Listing of %s</h1><hr><ul>",
+	                                            path + ctx->root_dir_len,
+	                                            path + ctx->root_dir_len))
+	    ERROR_LOG_GOTO(ERR, "Cannot generate the directory listing page");
 
 	size_t len = strlen(path);
 	const char* sep = "";
 	if(len > 0 && path[len - 1] != '/')
-		sep = "/";
+	    sep = "/";
 
 	while((ep = readdir(dp)) != NULL)
 	{
 		const char* suffix = "";
 		if(ep->d_type & DT_DIR)
-			suffix = "/";
-		if(ERROR_CODE(size_t) == pstd_string_printf(result_str, "<li><a href=\"%s%s%s\">%s%s</a></li>", 
-					                                path + ctx->root_dir_len, sep, ep->d_name, ep->d_name, suffix))
-			ERROR_LOG_GOTO(ERR, "Cannot generate the directory listing page");
+		    suffix = "/";
+		if(ERROR_CODE(size_t) == pstd_string_printf(result_str, "<li><a href=\"%s%s%s\">%s%s</a></li>",
+		                                            path + ctx->root_dir_len, sep, ep->d_name, ep->d_name, suffix))
+		    ERROR_LOG_GOTO(ERR, "Cannot generate the directory listing page");
 	}
 
 	if(ERROR_CODE(size_t) == pstd_string_printf(result_str, "</ul></body></html>"))
-		ERROR_LOG_GOTO(ERR, "Cannot generate the directory listing page");
+	    ERROR_LOG_GOTO(ERR, "Cannot generate the directory listing page");
 
 	if(closedir(dp) < 0)
-		ERROR_LOG_GOTO(ERR, "Cannot close the directory pointer");
+	    ERROR_LOG_GOTO(ERR, "Cannot close the directory pointer");
 
 	dp = NULL;
-	
+
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_body_size, pstd_string_length(result_str)))
-		ERROR_RETURN_LOG(int, "Cannot write the response size");
+	    ERROR_RETURN_LOG(int, "Cannot write the response size");
 
 	scope_token_t tok = pstd_string_commit(result_str);
 	if(ERROR_CODE(scope_token_t) == tok)
-		ERROR_LOG_GOTO(ERR, "Cannot commit the result string to the scope");
-	
+	    ERROR_LOG_GOTO(ERR, "Cannot commit the result string to the scope");
+
 	result_str = NULL;
 
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_body_flags, (uint32_t)ctx->BODY_CAN_COMPRESS))
-		ERROR_RETURN_LOG(int, "Cannot write the body flags");
+	    ERROR_RETURN_LOG(int, "Cannot write the body flags");
 
 	if(ERROR_CODE(int) == pstd_string_create_commit_write(type_inst, ctx->a_mime_type, "text/html"))
-		ERROR_RETURN_LOG(int, "Cannot write the MIME type to the response");
+	    ERROR_RETURN_LOG(int, "Cannot write the MIME type to the response");
 
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_body_token, tok))
-		ERROR_RETURN_LOG(int, "Cannot write body token");
+	    ERROR_RETURN_LOG(int, "Cannot write body token");
 
 	return 0;
 
@@ -250,24 +250,24 @@ ERR:
 int http_ctx_exec(const http_ctx_t* ctx, pstd_type_instance_t* type_inst, const char* path, const char* extname)
 {
 	if(NULL == ctx || NULL == type_inst || NULL == path)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(path[0] == 0)
 	{
-		if(ERROR_CODE(int) == _write_message_page(ctx, type_inst, 
-					                              ctx->HTTP_STATUS_FORBIDEN, &ctx->page_forbiden, 
-												  _default_403_page, sizeof(_default_403_page) - 1))
-			ERROR_RETURN_LOG(int, "Cannnot write the message page");
+		if(ERROR_CODE(int) == _write_message_page(ctx, type_inst,
+		                                          ctx->HTTP_STATUS_FORBIDEN, &ctx->page_forbiden,
+		                                          _default_403_page, sizeof(_default_403_page) - 1))
+		    ERROR_RETURN_LOG(int, "Cannnot write the message page");
 		return 0;
 	}
 
 	struct stat st;
 	if(ERROR_CODE(int) == pstd_fcache_stat(path, &st))
 	{
-		if(ERROR_CODE(int) == _write_message_page(ctx, type_inst, 
-					                              ctx->HTTP_STATUS_NOT_FOUND, &ctx->page_not_found, 
-												  _default_404_page, sizeof(_default_404_page) - 1))
-			ERROR_RETURN_LOG(int, "Cannnot write the message page");
+		if(ERROR_CODE(int) == _write_message_page(ctx, type_inst,
+		                                          ctx->HTTP_STATUS_NOT_FOUND, &ctx->page_not_found,
+		                                          _default_404_page, sizeof(_default_404_page) - 1))
+		    ERROR_RETURN_LOG(int, "Cannnot write the message page");
 		return 0;
 	}
 	char buf[PATH_MAX + 1];
@@ -281,7 +281,7 @@ int http_ctx_exec(const http_ctx_t* ctx, pstd_type_instance_t* type_inst, const 
 		memcpy(buf, path, len);
 
 		if((len == 0 || buf[len - 1] != '/') && len < PATH_MAX)
-			buf[len++] = '/';
+		    buf[len++] = '/';
 
 		for(i = 0; ctx->index_page && ctx->index_page[i]; i ++)
 		{
@@ -289,7 +289,7 @@ int http_ctx_exec(const http_ctx_t* ctx, pstd_type_instance_t* type_inst, const 
 			snprintf(buf + len, bytes_avail, "%s", ctx->index_page[i]);
 
 			if(ERROR_CODE(int) == pstd_fcache_stat(buf, &st))
-				continue;
+			    continue;
 
 			if((st.st_mode & (S_IFREG | S_IFLNK)))
 			{
@@ -303,40 +303,40 @@ int http_ctx_exec(const http_ctx_t* ctx, pstd_type_instance_t* type_inst, const 
 			if(ctx->default_index)
 			{
 				if(ERROR_CODE(int) == _write_default_index(ctx, type_inst, path))
-					ERROR_RETURN_LOG(int, "Cannot write the default index");
+				    ERROR_RETURN_LOG(int, "Cannot write the default index");
 				return 0;
 			}
 			else
 			{
-				if(ERROR_CODE(int) == _write_message_page(ctx, type_inst, 
-														  ctx->HTTP_STATUS_NOT_FOUND, &ctx->page_not_found, 
-														  _default_404_page, sizeof(_default_404_page) - 1))
-					ERROR_RETURN_LOG(int, "Cannnot write the message page");
+				if(ERROR_CODE(int) == _write_message_page(ctx, type_inst,
+				                                          ctx->HTTP_STATUS_NOT_FOUND, &ctx->page_not_found,
+				                                          _default_404_page, sizeof(_default_404_page) - 1))
+				    ERROR_RETURN_LOG(int, "Cannnot write the message page");
 				return 0;
 			}
 		}
 		else
 		{
-			if(ERROR_CODE(int) == _write_message_page(ctx, type_inst, 
-													  ctx->HTTP_STATUS_MOVED, &ctx->page_moved, 
-													  _default_301_page, sizeof(_default_301_page) - 1))
-				ERROR_RETURN_LOG(int, "Cannnot write the message page");
+			if(ERROR_CODE(int) == _write_message_page(ctx, type_inst,
+			                                          ctx->HTTP_STATUS_MOVED, &ctx->page_moved,
+			                                          _default_301_page, sizeof(_default_301_page) - 1))
+			    ERROR_RETURN_LOG(int, "Cannnot write the message page");
 
 			if(ERROR_CODE(int) == pstd_string_copy_commit_write(type_inst, ctx->a_redirect, path + ctx->root_dir_len))
-				ERROR_RETURN_LOG(int, "Cannot write the message page");
+			    ERROR_RETURN_LOG(int, "Cannot write the message page");
 			return 0;
 		}
 	}
-	
+
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_status_code, ctx->HTTP_STATUS_OK))
-		ERROR_RETURN_LOG(int, "Cannot write the status code");
+	    ERROR_RETURN_LOG(int, "Cannot write the status code");
 
 	mime_map_info_t info;
 	if(ERROR_CODE(int) == mime_map_query(ctx->mime_map, extname, &info))
-		ERROR_RETURN_LOG(int, "Cannot query the MIME type mapping");
+	    ERROR_RETURN_LOG(int, "Cannot query the MIME type mapping");
 
 	if(ERROR_CODE(int) == _write_file_body(ctx, type_inst, path, info.mime_type, info.compressable))
-		ERROR_RETURN_LOG(int, "Cannot write the file content to the response");
+	    ERROR_RETURN_LOG(int, "Cannot write the file content to the response");
 
 	return 0;
 }

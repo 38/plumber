@@ -15,7 +15,7 @@ typedef struct _file_ctx_t file_ctx_t;
 
 /**
  * @brief Create a new file context
- * @param options The options 
+ * @param options The options
  * @param type_model The type model
  * @return newly created file context
  **/

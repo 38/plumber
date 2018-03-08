@@ -55,9 +55,9 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	ctx_t* ctx = (ctx_t*)ctxmem;
 
 	if(ERROR_CODE(int) == options_parse(argc, argv, &ctx->opts))
-		ERROR_RETURN_LOG(int, "Cannot parse the servlet init string");
+	    ERROR_RETURN_LOG(int, "Cannot parse the servlet init string");
 
-	PIPE_LIST(pipes) 
+	PIPE_LIST(pipes)
 	{
 		PIPE("response",        PIPE_INPUT,               "plumber/std_servlet/network/http/render/v0/Response", ctx->p_response),
 		PIPE("accept_encoding", PIPE_INPUT,               "plumber/std/request_local/String",                    ctx->p_accept_encoding),
@@ -67,7 +67,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 
 	if(ERROR_CODE(int) == PIPE_BATCH_INIT(pipes)) return ERROR_CODE(int);
 
-	PSTD_TYPE_MODEL(model_list) 
+	PSTD_TYPE_MODEL(model_list)
 	{
 		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        status.status_code,       ctx->a_status_code),
 		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        body_object,              ctx->a_body_token),
@@ -85,10 +85,10 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	if(ctx->opts.reverse_proxy)
 	{
 		if(ERROR_CODE(pipe_t) == (ctx->p_proxy = pipe_define("proxy", PIPE_INPUT, "plumber/std_servlet/network/http/proxy/v0/Response")))
-			ERROR_RETURN_LOG(int, "Cannot declare the proxy pipe");
+		    ERROR_RETURN_LOG(int, "Cannot declare the proxy pipe");
 
 		if(ERROR_CODE(pstd_type_accessor_t) == (ctx->a_proxy_token = pstd_type_model_get_accessor(ctx->type_model, ctx->p_proxy, "token")))
-			ERROR_RETURN_LOG(int, "Cannot get the accessor for proxy.token");
+		    ERROR_RETURN_LOG(int, "Cannot get the accessor for proxy.token");
 	}
 
 	return 0;
@@ -101,10 +101,10 @@ static int _unload(void* ctxmem)
 	int rc = 0;
 
 	if(ERROR_CODE(int) == options_free(&ctx->opts))
-		rc = ERROR_CODE(int);
+	    rc = ERROR_CODE(int);
 
 	if(ERROR_CODE(int) == pstd_type_model_free(ctx->type_model))
-		rc = ERROR_CODE(int);
+	    rc = ERROR_CODE(int);
 
 	return rc;
 }
@@ -185,7 +185,7 @@ static inline int _write_status_line(pstd_bio_t* bio, uint16_t status_code)
 	}
 
 	if(ERROR_CODE(size_t) == pstd_bio_printf(bio, "HTTP/1.1 %d %s\r\n", status_code, status_phrase))
-		ERROR_RETURN_LOG(int, "Cannot write the status line");
+	    ERROR_RETURN_LOG(int, "Cannot write the status line");
 
 	return 0;
 }
@@ -198,10 +198,10 @@ static inline int _write_string_field(pstd_bio_t* bio, pstd_type_instance_t* ins
 	const char* value = defval;
 
 	if(NULL == (value = pstd_string_get_data_from_accessor(inst, acc, defval)))
-		ERROR_RETURN_LOG(int, "Cannot get the string value");
+	    ERROR_RETURN_LOG(int, "Cannot get the string value");
 
 	if(ERROR_CODE(size_t) == pstd_bio_printf(bio, "%s: %s\r\n", name, value))
-		ERROR_RETURN_LOG(int, "Cannot write the %s field", name);
+	    ERROR_RETURN_LOG(int, "Cannot write the %s field", name);
 
 	return 0;
 }
@@ -217,7 +217,7 @@ static inline uint32_t _determine_compression_algorithm(const ctx_t *ctx, pstd_t
 	const char* accepts = pstd_string_get_data_from_accessor(inst, ctx->a_accept_enc, "");
 	if(NULL == accepts) ERROR_RETURN_LOG(uint32_t, "Cannot get the Accept-Encoding field");
 	const char* accepts_end = accepts + strlen(accepts);
-	
+
 	unsigned current_len = 0;
 	const char* ptr;
 	uint32_t ret = 0;
@@ -264,7 +264,7 @@ static inline uint32_t _determine_compression_algorithm(const ctx_t *ctx, pstd_t
 }
 
 /**
- * @brief Write encoding HTTP header 
+ * @brief Write encoding HTTP header
  **/
 static inline int _write_encoding(pstd_bio_t* bio, uint32_t algorithm, uint64_t size)
 {
@@ -272,26 +272,26 @@ static inline int _write_encoding(pstd_bio_t* bio, uint32_t algorithm, uint64_t 
 	{
 		const char* algorithm_name = "identity";
 		if((algorithm & _ENCODING_GZIP))
-			algorithm_name = "gzip";
+		    algorithm_name = "gzip";
 		else if((algorithm & _ENCODING_DEFLATE))
-			algorithm_name = "deflate";
+		    algorithm_name = "deflate";
 #ifdef HAS_BROTLI
 		else if((algorithm & _ENCODING_BR))
-			algorithm_name = "br";
+		    algorithm_name = "br";
 #endif
 		if(ERROR_CODE(size_t) == pstd_bio_printf(bio, "Content-Encoding: %s\r\n", algorithm_name))
-			ERROR_RETURN_LOG(int, "Cannot write the Content-Encoding header");
+		    ERROR_RETURN_LOG(int, "Cannot write the Content-Encoding header");
 	}
 
 	if((algorithm & _ENCODING_CHUNKED))
 	{
 		if(ERROR_CODE(size_t) == pstd_bio_puts(bio, "Transfer-Encoding: chunked\r\n"))
-			ERROR_RETURN_LOG(int, "Cannot write the Transfer-Encoding header");
+		    ERROR_RETURN_LOG(int, "Cannot write the Transfer-Encoding header");
 	}
 	else
 	{
 		if(ERROR_CODE(size_t) == pstd_bio_printf(bio, "Content-Length: %zu\r\n", size))
-			ERROR_RETURN_LOG(int, "Cannot write the Content-Length header");
+		    ERROR_RETURN_LOG(int, "Cannot write the Content-Length header");
 	}
 
 	return 0;
@@ -303,7 +303,7 @@ static inline int _write_encoding(pstd_bio_t* bio, uint32_t algorithm, uint64_t 
 static inline scope_token_t _write_error_page(pstd_bio_t* bio, uint16_t status, const options_error_page_t* page, const char* default_page)
 {
 	if(ERROR_CODE(int) == _write_status_line(bio, status))
-		ERROR_RETURN_LOG(scope_token_t, "Cannot write the status line");
+	    ERROR_RETURN_LOG(scope_token_t, "Cannot write the status line");
 
 	size_t length;
 	scope_token_t ret = ERROR_CODE(scope_token_t);
@@ -313,25 +313,25 @@ static inline scope_token_t _write_error_page(pstd_bio_t* bio, uint16_t status, 
 DEF_ERR_PAGE:
 		length = strlen(default_page);
 		if(ERROR_CODE(scope_token_t) == (ret = pstd_string_create_commit(default_page)))
-			ERROR_RETURN_LOG(scope_token_t, "Cannot commit the default page to the RLS");
+		    ERROR_RETURN_LOG(scope_token_t, "Cannot commit the default page to the RLS");
 	}
 	else
 	{
 		pstd_file_t* err_page = pstd_file_new(page->error_page);
 		if(NULL == err_page)
-			ERROR_RETURN_LOG(scope_token_t, "Cannot create RLS file object for the error page");
+		    ERROR_RETURN_LOG(scope_token_t, "Cannot create RLS file object for the error page");
 
 		int exist = pstd_file_exist(err_page);
 		if(exist == ERROR_CODE(int))
-			ERROR_LOG_GOTO(ERR, "Cannot check if the error page exists");
+		    ERROR_LOG_GOTO(ERR, "Cannot check if the error page exists");
 
 		if(!exist) goto DEF_ERR_PAGE;
-		
+
 		if(ERROR_CODE(size_t) == (length = pstd_file_size(err_page)))
-			ERROR_LOG_GOTO(ERR, "Cannot get the size of the error page");
+		    ERROR_LOG_GOTO(ERR, "Cannot get the size of the error page");
 
 		if(ERROR_CODE(scope_token_t) == (ret = pstd_file_commit(err_page)))
-			ERROR_LOG_GOTO(ERR, "Cannot commit the RLS file object to scope");
+		    ERROR_LOG_GOTO(ERR, "Cannot commit the RLS file object to scope");
 
 		goto WRITE;
 ERR:
@@ -342,8 +342,8 @@ ERR:
 WRITE:
 
 	if(ERROR_CODE(size_t) == pstd_bio_printf(bio, "Content-Type: %s\r\n"
-				                               "Content-Length: %zu\r\n\r\n", page->mime_type, (size_t)length))
-		ERROR_RETURN_LOG(scope_token_t, "Cannot write the header");
+	                                           "Content-Length: %zu\r\n\r\n", page->mime_type, (size_t)length))
+	    ERROR_RETURN_LOG(scope_token_t, "Cannot write the header");
 
 	return ret;
 }
@@ -358,23 +358,23 @@ static inline int _write_connection_field(pstd_bio_t* out, pipe_t res, int needs
 	if(needs_close == 0)
 	{
 		if(ERROR_CODE(int) == pipe_cntl(res, PIPE_CNTL_GET_FLAGS, &flags))
-			ERROR_RETURN_LOG(int, "Cannot get the pipe flags");
+		    ERROR_RETURN_LOG(int, "Cannot get the pipe flags");
 	}
 	else
 	{
 		if(ERROR_CODE(int) == pipe_cntl(res, PIPE_CNTL_CLR_FLAG, PIPE_PERSIST))
-			ERROR_RETURN_LOG(int, "Cannot clear the persistent flag");
+		    ERROR_RETURN_LOG(int, "Cannot clear the persistent flag");
 	}
 
 	if((flags & PIPE_PERSIST))
 	{
-	    if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Connection: keep-alive\r\n"))
-			ERROR_RETURN_LOG(int, "Cannot write the connection field");
+		if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Connection: keep-alive\r\n"))
+		    ERROR_RETURN_LOG(int, "Cannot write the connection field");
 	}
 	else
 	{
-	    if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Connection: close\r\n"))
-			ERROR_RETURN_LOG(int, "Cannot write the connection field");
+		if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Connection: close\r\n"))
+		    ERROR_RETURN_LOG(int, "Cannot write the connection field");
 	}
 
 	return 0;
@@ -388,28 +388,28 @@ static int _exec(void* ctxmem)
 	scope_token_t body_token;
 	int eof_rc;
 
-	pstd_bio_t* out = NULL; 
+	pstd_bio_t* out = NULL;
 	ctx_t* ctx = (ctx_t*)ctxmem;
 	pstd_type_instance_t* type_inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model);
 
 	if(NULL == type_inst)
-		ERROR_RETURN_LOG(int, "Cannot create type instance for the servlet");
+	    ERROR_RETURN_LOG(int, "Cannot create type instance for the servlet");
 
 	if(NULL == (out = pstd_bio_new(ctx->p_output)))
-		ERROR_LOG_GOTO(ERR, "Cannot create new pstd BIO object for the output pipe");
+	    ERROR_LOG_GOTO(ERR, "Cannot create new pstd BIO object for the output pipe");
 
 	/* Check if we need a HTTP 500 */
 	if(ERROR_CODE(int) == (eof_rc = pipe_eof(ctx->p_500)))
-		ERROR_LOG_GOTO(ERR, "Cannot check if we got service internal error signal");
+	    ERROR_LOG_GOTO(ERR, "Cannot check if we got service internal error signal");
 
 	if(!eof_rc)
 	{
 		const char* default_500 = "<html><body><h1>Server Internal Error</h1></body></html>";
 		if(ERROR_CODE(scope_token_t) == (body_token = _write_error_page(out, 500, &ctx->opts.err_500, default_500)))
-			ERROR_LOG_GOTO(ERR, "Cannot write the HTTP 500 response");
+		    ERROR_LOG_GOTO(ERR, "Cannot write the HTTP 500 response");
 
 		if(ERROR_CODE(int) == _write_connection_field(out, ctx->p_output, 1))
-			ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
+		    ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
 
 		goto RET;
 	}
@@ -420,7 +420,7 @@ static int _exec(void* ctxmem)
 		int has_proxy;
 
 		if(ERROR_CODE(int) == (has_proxy = pipe_eof(ctx->p_proxy)))
-			ERROR_LOG_GOTO(ERR, "Cannot check if we have reverse proxy response");
+		    ERROR_LOG_GOTO(ERR, "Cannot check if we have reverse proxy response");
 
 		if(has_proxy)
 		{
@@ -429,42 +429,42 @@ static int _exec(void* ctxmem)
 			{
 				const char* default_503 = "<html><body><h1>Service Unavailable</h1></body></html>";
 				if(ERROR_CODE(scope_token_t) == (body_token = _write_error_page(out, 503, &ctx->opts.err_503, default_503)))
-					ERROR_LOG_GOTO(ERR, "Cannot write HTTP 503 response");
+				    ERROR_LOG_GOTO(ERR, "Cannot write HTTP 503 response");
 
 				if(ERROR_CODE(int) == _write_connection_field(out, ctx->p_output, 0))
-					ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
+				    ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
 
 				goto RET;
 			}
 		}
-		else goto PROXY_RET; 
+		else goto PROXY_RET;
 	}
 
 	/* Step1: Dtermine the encoding algorithm, size etc... */
-	
+
 	if(ERROR_CODE(uint32_t) == (body_flags = PSTD_TYPE_INST_READ_PRIMITIVE(uint32_t, type_inst, ctx->a_body_flags)))
-		ERROR_LOG_GOTO(ERR, "Cannot read the body flag");
+	    ERROR_LOG_GOTO(ERR, "Cannot read the body flag");
 
 	if(ERROR_CODE(uint32_t) == (algorithm = _determine_compression_algorithm(ctx, type_inst, (body_flags & ctx->BODY_CAN_COMPRESS) > 0)))
-		ERROR_LOG_GOTO(ERR, "Cannot determine the encoding algorithm");
+	    ERROR_LOG_GOTO(ERR, "Cannot determine the encoding algorithm");
 
 	if(ERROR_CODE(scope_token_t) == (body_token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, type_inst, ctx->a_body_token)))
-		ERROR_LOG_GOTO(ERR, "Cannot get the request body RLS token");
+	    ERROR_LOG_GOTO(ERR, "Cannot get the request body RLS token");
 	if(0);
 #ifdef HAS_ZLIB
 	else if((algorithm & _ENCODING_GZIP))
 	{
 		if(ERROR_CODE(scope_token_t) == (body_token = zlib_token_encode(body_token, ZLIB_TOKEN_FORMAT_GZIP, ctx->opts.compress_level)))
-			ERROR_LOG_GOTO(ERR, "Cannot encode the body with GZIP encoder");
+		    ERROR_LOG_GOTO(ERR, "Cannot encode the body with GZIP encoder");
 		else
-			body_flags |= ctx->BODY_SIZE_UNKNOWN;
+		    body_flags |= ctx->BODY_SIZE_UNKNOWN;
 	}
 	else if((algorithm & _ENCODING_DEFLATE))
 	{
 		if(ERROR_CODE(scope_token_t) == (body_token = zlib_token_encode(body_token, ZLIB_TOKEN_FORMAT_DEFLATE, ctx->opts.compress_level)))
-			ERROR_LOG_GOTO(ERR, "Cannot encode the body with Deflate encoder");
+		    ERROR_LOG_GOTO(ERR, "Cannot encode the body with Deflate encoder");
 		else
-			body_flags |= ctx->BODY_SIZE_UNKNOWN;
+		    body_flags |= ctx->BODY_SIZE_UNKNOWN;
 	}
 #endif
 #ifdef HAS_BROTLI
@@ -475,29 +475,29 @@ static int _exec(void* ctxmem)
 #endif
 
 	if((body_flags & ctx->BODY_SIZE_UNKNOWN) && ctx->opts.chunked_enabled)
-		algorithm |= _ENCODING_CHUNKED;
+	    algorithm |= _ENCODING_CHUNKED;
 
 	if((algorithm & _ENCODING_CHUNKED))
 	{
 		if(ERROR_CODE(scope_token_t) == (body_token = chunked_encode(body_token, ctx->opts.max_chunk_size)))
-			ERROR_LOG_GOTO(ERR, "Cannot encode body with chunked encoder");
+		    ERROR_LOG_GOTO(ERR, "Cannot encode body with chunked encoder");
 		else
-			body_flags |= ctx->BODY_SIZE_UNKNOWN;
+		    body_flags |= ctx->BODY_SIZE_UNKNOWN;
 	}
 
 	if(!(body_flags & ctx->BODY_SIZE_UNKNOWN))
 	{
 		if(ERROR_CODE(uint64_t) == (body_size = PSTD_TYPE_INST_READ_PRIMITIVE(uint64_t, type_inst, ctx->a_body_size)))
-			ERROR_LOG_GOTO(ERR, "Cannot determine the size of the body");
+		    ERROR_LOG_GOTO(ERR, "Cannot determine the size of the body");
 	}
 	else if(!(algorithm & _ENCODING_CHUNKED))
 	{
 		const char* default_406 = "<html><body><h1>Content Encoding Not Acceptable</h1></body></html>";
 		if(ERROR_CODE(scope_token_t) == (body_token = _write_error_page(out, 406, &ctx->opts.err_406, default_406)))
-			ERROR_LOG_GOTO(ERR, "Cannot write the HTTP 500 response");
+		    ERROR_LOG_GOTO(ERR, "Cannot write the HTTP 500 response");
 
 		if(ERROR_CODE(int) == _write_connection_field(out, ctx->p_output, 0))
-			ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
+		    ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
 
 		goto RET;
 	}
@@ -505,58 +505,58 @@ static int _exec(void* ctxmem)
 
 	/* Step 2: Write the status line */
 	if(ERROR_CODE(uint16_t) == (status_code = PSTD_TYPE_INST_READ_PRIMITIVE(uint16_t, type_inst, ctx->a_status_code)))
-		ERROR_LOG_GOTO(ERR, "Cannot read the status code from response pipe");
+	    ERROR_LOG_GOTO(ERR, "Cannot read the status code from response pipe");
 
 	if(ERROR_CODE(int) == _write_status_line(out, status_code))
-		ERROR_LOG_GOTO(ERR, "Cannot write the status code");
+	    ERROR_LOG_GOTO(ERR, "Cannot write the status code");
 
 
 	/* Write the content type */
 	if(ERROR_CODE(int) == _write_string_field(out, type_inst, ctx->a_mime_type, "Content-Type", "application/octet-stream" ))
-		ERROR_LOG_GOTO(ERR, "Cannot write the mime type");
+	    ERROR_LOG_GOTO(ERR, "Cannot write the mime type");
 
 	/* Write redirections */
 	if(status_code == 301 || status_code == 302 || status_code == 308 || status_code == 309)
 	{
 		if(ERROR_CODE(int) == _write_string_field(out, type_inst, ctx->a_redir_loc, "Location", "/"))
-			ERROR_LOG_GOTO(ERR, "Cannot write the redirect location");
+		    ERROR_LOG_GOTO(ERR, "Cannot write the redirect location");
 	}
 
 	/* Write the encoding fields */
 	if(ERROR_CODE(int) == _write_encoding(out, algorithm, body_size))
-		ERROR_RETURN_LOG(int, "Cannot write the encoding fields");
+	    ERROR_RETURN_LOG(int, "Cannot write the encoding fields");
 
 	/* Write the connection field */
 	if(ERROR_CODE(int) == _write_connection_field(out, ctx->p_output, 0))
-		ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
+	    ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
 
 RET:
 
 	/* Write the server name */
 	if(NULL != ctx->opts.server_name && ERROR_CODE(size_t) == pstd_bio_printf(out, "Server: %s\r\n", ctx->opts.server_name))
-		ERROR_LOG_GOTO(ERR, "Cannot write the server name field");
+	    ERROR_LOG_GOTO(ERR, "Cannot write the server name field");
 
 	/* Write the body deliminators */
 	if(ERROR_CODE(size_t) == pstd_bio_puts(out, "\r\n"))
-		ERROR_RETURN_LOG(int, "Cannot write the body deliminator");
+	    ERROR_RETURN_LOG(int, "Cannot write the body deliminator");
 
 	/* Write the body */
 	if(ERROR_CODE(int) == pstd_bio_write_scope_token(out, body_token))
-		ERROR_LOG_GOTO(ERR, "Cannot write the body content");
+	    ERROR_LOG_GOTO(ERR, "Cannot write the body content");
 
 PROXY_RET:
 
 	if(ERROR_CODE(int) == pstd_type_instance_free(type_inst))
-		ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
+	    ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
 
 	if(ERROR_CODE(int) == pstd_bio_free(out))
-		ERROR_RETURN_LOG(int, "Cannot dispose the BIO object");
+	    ERROR_RETURN_LOG(int, "Cannot dispose the BIO object");
 
 	return 0;
 ERR:
 	if(NULL != type_inst) pstd_type_instance_free(type_inst);
 	if(NULL != out) pstd_bio_free(out);
-	
+
 	return ERROR_CODE(int);
 }
 

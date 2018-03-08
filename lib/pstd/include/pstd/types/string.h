@@ -42,7 +42,7 @@ extern "C" {
 
 	/**
 	 * @brief Create a new immutable string from the ownership pointer
-	 * @param data The imuutable string 
+	 * @param data The imuutable string
 	 * @param sz The size
 	 * @return newly created string object, NULL on error
 	 **/
@@ -142,7 +142,7 @@ extern "C" {
 	size_t pstd_string_vprintf(pstd_string_t* str, const char* fmt, va_list ap);
 
 	/**
-	 * @brief Create and commit a string constant 
+	 * @brief Create and commit a string constant
 	 * @param str The string to commit
 	 * @return the Scope token we have commited
 	 **/
@@ -151,7 +151,7 @@ extern "C" {
 		pstd_string_t* str_rls_obj = pstd_string_from_const(str);
 
 		if(NULL == str_rls_obj)
-			ERROR_RETURN_LOG(scope_token_t, "Cannot create the PSTD string object");
+		    ERROR_RETURN_LOG(scope_token_t, "Cannot create the PSTD string object");
 
 		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
 		if(ERROR_CODE(scope_token_t) == str_rls_tok)
@@ -176,7 +176,7 @@ extern "C" {
 		pstd_string_t* str_rls_obj = pstd_string_from_const(str);
 
 		if(NULL == str_rls_obj)
-			ERROR_RETURN_LOG(int, "Cannot create the PSTD string object");
+		    ERROR_RETURN_LOG(int, "Cannot create the PSTD string object");
 
 		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
 		if(ERROR_CODE(scope_token_t) == str_rls_tok)
@@ -184,10 +184,10 @@ extern "C" {
 			pstd_string_free(str_rls_obj);
 			ERROR_RETURN_LOG(int, "Cannot commit the RLS string to the scope");
 		}
-		
+
 		return PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, accessor, str_rls_tok);
 	}
-	
+
 	/**
 	 * @brief Copy, commit and write an immutable RLS string object to the typed pipe
 	 * @note This is the helper function to write a string to typed header. Unlike the create version, this function copy the string
@@ -202,7 +202,7 @@ extern "C" {
 		pstd_string_t* str_rls_obj = pstd_string_from_onwership_pointer(strdup(str), strlen(str));
 
 		if(NULL == str_rls_obj)
-			ERROR_RETURN_LOG(int, "Cannot create the PSTD string object");
+		    ERROR_RETURN_LOG(int, "Cannot create the PSTD string object");
 
 		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
 		if(ERROR_CODE(scope_token_t) == str_rls_tok)
@@ -210,7 +210,7 @@ extern "C" {
 			pstd_string_free(str_rls_obj);
 			ERROR_RETURN_LOG(int, "Cannot commit the RLS string to the scope");
 		}
-		
+
 		return PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, accessor, str_rls_tok);
 	}
 
@@ -225,14 +225,14 @@ extern "C" {
 	{
 		scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, type_inst, accessor);
 		if(ERROR_CODE(scope_token_t) == token)
-			ERROR_PTR_RETURN_LOG("Cannot read the RLS token value with given accessor");
+		    ERROR_PTR_RETURN_LOG("Cannot read the RLS token value with given accessor");
 
 		if(0 == token) return defval;
 
 		const pstd_string_t* str_obj = pstd_string_from_rls(token);
 
 		if(NULL == str_obj)
-			ERROR_PTR_RETURN_LOG("Cannot retrieve the string object from RLS");
+		    ERROR_PTR_RETURN_LOG("Cannot retrieve the string object from RLS");
 
 		return pstd_string_value(str_obj);
 	}

@@ -26,7 +26,7 @@ typedef struct _hashnode_t {
 } _hashnode_t;
 
 /**
- * @brief The actual data structure for MIME map 
+ * @brief The actual data structure for MIME map
  **/
 struct _mime_map_t {
 	_hashnode_t*   hash_table[HASH_SIZE];     /*!< The hash table */
@@ -55,24 +55,24 @@ mime_map_t* mime_map_new(const char* map_file, const char* compress, const char*
 	mime_map_t* ret = (mime_map_t*)malloc(sizeof(*ret));
 
 	if(NULL == ret)
-		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the MIME map");
-	
+	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the MIME map");
+
 	memset(ret->hash_table, 0, sizeof(ret->hash_table));
-	
+
 	ret->default_mime_type = default_mime_type == NULL ? "application/octet-stream" : default_mime_type;
 
 
 	if(map_file != NULL)
 	{
 		fp = fopen(map_file, "r");
-		if(NULL == fp) 
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open the mime type file: %s", map_file);
+		if(NULL == fp)
+		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open the mime type file: %s", map_file);
 
 
 		if(NULL != compress)
 		{
 			if(NULL == (compress_list_buf = strdup(compress)))
-				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot dupilcate the compress list");
+			    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot dupilcate the compress list");
 
 			char* ptr, *last = compress_list_buf;
 			for(ptr = compress_list_buf;; ptr ++)
@@ -80,14 +80,14 @@ mime_map_t* mime_map_new(const char* map_file, const char* compress, const char*
 				if(*ptr == ',' || *ptr == 0)
 				{
 					if(ptr - last > 0)
-						n_compress_list ++;
+					    n_compress_list ++;
 					last = ptr + 1;
 					if(*ptr == 0) break;
 				}
 			}
 
 			if(NULL == (compress_list = (char const**)malloc(sizeof(char const*) * n_compress_list)))
-				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate the compress list");
+			    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate the compress list");
 
 			i = 0;
 			for(last = ptr = compress_list_buf;; ptr ++)
@@ -134,11 +134,11 @@ mime_map_t* mime_map_new(const char* map_file, const char* compress, const char*
 
 				_hashnode_t* node = (_hashnode_t*)malloc(sizeof(_hashnode_t));
 				if(NULL == node)
-					ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the hash table");
+				    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the hash table");
 
 				node->hashcode = hashcode;
 				if(NULL == (node->mimetype = (char*)malloc((size_t)(mime_end - mime_begin + 1))))
-					ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the MIME type string");
+				    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the MIME type string");
 
 				memcpy(node->mimetype, mime_begin, (size_t)(mime_end - mime_begin));
 
@@ -149,8 +149,8 @@ mime_map_t* mime_map_new(const char* map_file, const char* compress, const char*
 				ret->hash_table[hashcode % HASH_SIZE] = node;
 
 				for(i = 0; i < n_compress_list && !node->needs_compress; i ++)
-					if(fnmatch(compress_list[i], node->mimetype, 0) == 0)
-						node->needs_compress = 1;
+				    if(fnmatch(compress_list[i], node->mimetype, 0) == 0)
+				        node->needs_compress = 1;
 			}
 		}
 
@@ -190,10 +190,10 @@ ERR:
 int mime_map_free(mime_map_t* map)
 {
 	if(NULL == map)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	uint32_t i;
-	
+
 	for(i = 0; i < HASH_SIZE; i ++)
 	{
 		_hashnode_t* ptr = map->hash_table[i];
@@ -214,8 +214,8 @@ int mime_map_free(mime_map_t* map)
 int mime_map_query(const mime_map_t* map, const char* extname, mime_map_info_t* buf)
 {
 	if(NULL == map || NULL == buf)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
-	
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+
 	const _hashnode_t* node = NULL;
 
 	if(extname != NULL)

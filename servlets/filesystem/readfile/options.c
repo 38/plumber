@@ -17,32 +17,32 @@ static int _set_mode(pstd_option_data_t data)
 	options_t* options = (options_t*)data.cb_data;
 
 	if(data.param_array_size < 1)
-		ERROR_RETURN_LOG(int, "Unexpected number of parameters");
+	    ERROR_RETURN_LOG(int, "Unexpected number of parameters");
 
 	const char* value = data.param_array[0].strval;
 
 	if(data.current_option->short_opt == 'I')
 	{
-		if(strcmp(value, "raw") == 0) 
-			options->input_mode = OPTIONS_INPUT_MODE_RAW;
+		if(strcmp(value, "raw") == 0)
+		    options->input_mode = OPTIONS_INPUT_MODE_RAW;
 		else if(strcmp(value, "string") == 0)
-			options->input_mode = OPTIONS_INPUT_MODE_STRING;
+		    options->input_mode = OPTIONS_INPUT_MODE_STRING;
 		else if(strncmp(value, "field=", 6) == 0)
 		{
 			options->input_mode = OPTIONS_INPUT_MODE_STRING_FIELD;
 			if(NULL == (options->path_field = strdup(value + 6)))
-				ERROR_RETURN_LOG_ERRNO(int, "Cannot set the path field expression");
+			    ERROR_RETURN_LOG_ERRNO(int, "Cannot set the path field expression");
 		}
 		else goto INVALID;
 	}
 	else if(data.current_option->short_opt == 'O')
 	{
 		if(strcmp(value, "raw") == 0)
-			options->output_mode = OPTIONS_OUTPUT_MODE_RAW;
+		    options->output_mode = OPTIONS_OUTPUT_MODE_RAW;
 		else if(strcmp(value, "file") == 0)
-			options->output_mode = OPTIONS_OUTPUT_MODE_FILE;
+		    options->output_mode = OPTIONS_OUTPUT_MODE_FILE;
 		else if(strcmp(value, "http") == 0)
-			options->output_mode = OPTIONS_OUTPUT_MODE_HTTP;
+		    options->output_mode = OPTIONS_OUTPUT_MODE_HTTP;
 		else goto INVALID;
 	}
 
@@ -56,41 +56,41 @@ static int _set_string_option(pstd_option_data_t data)
 	options_t* options = (options_t*)data.cb_data;
 
 	if(data.param_array_size < 1)
-		ERROR_RETURN_LOG(int, "Unexpected number of parameters");
+	    ERROR_RETURN_LOG(int, "Unexpected number of parameters");
 
 	char** target = NULL;
 
 	switch(data.current_option->short_opt)
 	{
 		case 'r':
-			target = &options->root_dir;
-			break;
+		    target = &options->root_dir;
+		    break;
 		case 'm':
-			target = &options->mime_map_file;
-			break;
+		    target = &options->mime_map_file;
+		    break;
 		case 'D':
-			target = &options->default_mime_type;
-			break;
+		    target = &options->default_mime_type;
+		    break;
 		case 'C':
-			target = &options->compressable_types;
-			break;
+		    target = &options->compressable_types;
+		    break;
 		case 'N':
-			target = &options->http_err_not_found.filename;
-			break;
+		    target = &options->http_err_not_found.filename;
+		    break;
 		case 'F':
-			target = &options->http_err_forbiden.filename;
-			break;
+		    target = &options->http_err_forbiden.filename;
+		    break;
 		case 'M':
-			target = &options->http_err_moved.filename;
-			break;
+		    target = &options->http_err_moved.filename;
+		    break;
 		default:
-			ERROR_RETURN_LOG(int, "Invalid options: %c", data.current_option->short_opt);
+		    ERROR_RETURN_LOG(int, "Invalid options: %c", data.current_option->short_opt);
 	}
 
 	if(*target != NULL) return 0;
 
 	if(NULL == (*target = strdup(data.param_array[0].strval)))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot set the string value");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot set the string value");
 
 	return 0;
 }
@@ -102,10 +102,10 @@ static int _set_bool_opt(pstd_option_data_t data)
 	switch(data.current_option->short_opt)
 	{
 		case 'd':
-			options->directory_list_page = 1;
-			break;
+		    options->directory_list_page = 1;
+		    break;
 		default:
-			ERROR_RETURN_LOG(int, "Invalid arguments");
+		    ERROR_RETURN_LOG(int, "Invalid arguments");
 	}
 
 	return 0;
@@ -113,9 +113,9 @@ static int _set_bool_opt(pstd_option_data_t data)
 static int _set_default_page_name(pstd_option_data_t data)
 {
 	options_t* options = (options_t*)data.cb_data;
-	
+
 	if(data.param_array_size < 1)
-		ERROR_RETURN_LOG(int, "Unexpected number of parameters");
+	    ERROR_RETURN_LOG(int, "Unexpected number of parameters");
 
 	if(options->index_file_names != NULL) return 0;
 
@@ -136,16 +136,16 @@ static int _set_default_page_name(pstd_option_data_t data)
 	}
 
 	if(NULL == (options->index_file_names = (char**)calloc(sizeof(char*), count + 1)))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the index file names array");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the index file names array");
 
 	for(begin = end = value;; end ++)
 	{
 		if(*end == ',' || *end == 0)
 		{
-			if(end - begin > 0) 
+			if(end - begin > 0)
 			{
 				if(NULL == (options->index_file_names[i] = (char*)malloc((size_t)(end - begin + 1))))
-					ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the index file names array");
+				    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the index file names array");
 
 				memcpy(options->index_file_names[i], begin, (size_t)(end - begin));
 				options->index_file_names[i][end - begin] = 0;
@@ -160,8 +160,8 @@ static int _set_default_page_name(pstd_option_data_t data)
 	return 0;
 ERR:
 	for(i = 0; i < count; i ++)
-		if(NULL != options->index_file_names[i])
-			free(options->index_file_names[i]);
+	    if(NULL != options->index_file_names[i])
+	        free(options->index_file_names[i]);
 	free(options->index_file_names);
 	return ERROR_CODE(int);
 }
@@ -271,14 +271,14 @@ static inline int _init_error_page(const mime_map_t* map, options_output_err_pag
 
 	const char* extname = NULL, *ptr;
 
-	if(page->filename == NULL) 
-		return 0;
+	if(page->filename == NULL)
+	    return 0;
 
 	for(ptr = page->filename; *ptr; ptr ++)
-		if(*ptr == '.') extname = ptr + 1;
+	    if(*ptr == '.') extname = ptr + 1;
 
 	if(ERROR_CODE(int) == mime_map_query(map, extname, &info))
-		ERROR_RETURN_LOG(int, "Cannot query the MIME type map");
+	    ERROR_RETURN_LOG(int, "Cannot query the MIME type map");
 
 	page->mime_type = info.mime_type;
 	page->compressable = info.compressable;
@@ -289,8 +289,8 @@ static inline int _init_error_page(const mime_map_t* map, options_output_err_pag
 int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 {
 	if(NULL == argv || NULL == buf)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
-	
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+
 	memset(buf, 0, sizeof(options_t));
 
 	if(ERROR_CODE(int) == pstd_option_sort(_opts, sizeof(_opts) / sizeof(_opts[0])))
@@ -300,21 +300,21 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 	    ERROR_RETURN_LOG(int, "Cannot parse the servlet initialization string");
 
 	if(buf->root_dir == NULL)
-		ERROR_RETURN_LOG(int, "Missing --root");
+	    ERROR_RETURN_LOG(int, "Missing --root");
 
 	if(buf->output_mode == OPTIONS_OUTPUT_MODE_HTTP)
 	{
 		if(NULL == (buf->mime_map = mime_map_new(buf->mime_map_file, buf->compressable_types, buf->default_mime_type)))
-			ERROR_RETURN_LOG(int, "Cannot load the MIME type map");
+		    ERROR_RETURN_LOG(int, "Cannot load the MIME type map");
 
 		if(ERROR_CODE(int) == _init_error_page(buf->mime_map, &buf->http_err_not_found))
-			ERROR_RETURN_LOG(int, "Cannot initialize the 404 error page");
-		
+		    ERROR_RETURN_LOG(int, "Cannot initialize the 404 error page");
+
 		if(ERROR_CODE(int) == _init_error_page(buf->mime_map, &buf->http_err_forbiden))
-			ERROR_RETURN_LOG(int, "Cannot initialize the 405 error page");
-		
+		    ERROR_RETURN_LOG(int, "Cannot initialize the 405 error page");
+
 		if(ERROR_CODE(int) == _init_error_page(buf->mime_map, &buf->http_err_moved))
-			ERROR_RETURN_LOG(int, "Cannot initialize the 301 page");
+		    ERROR_RETURN_LOG(int, "Cannot initialize the 301 page");
 	}
 
 	return 0;
@@ -338,14 +338,14 @@ int options_free(const options_t* options)
 	{
 		uint32_t i;
 		for(i = 0; options->index_file_names[i]; i ++)
-			free(options->index_file_names[i]);
+		    free(options->index_file_names[i]);
 		free(options->index_file_names);
 	}
 
 	int rc = 0;
 
 	if(options->mime_map != NULL && ERROR_CODE(int) == mime_map_free(options->mime_map))
-		rc = ERROR_CODE(int);
+	    rc = ERROR_CODE(int);
 
 	return rc;
 }
