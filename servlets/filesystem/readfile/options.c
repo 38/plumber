@@ -315,6 +315,18 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 
 		if(ERROR_CODE(int) == _init_error_page(buf->mime_map, &buf->http_err_moved))
 		    ERROR_RETURN_LOG(int, "Cannot initialize the 301 page");
+
+		if(NULL == buf->index_file_names)
+		{
+			if(NULL == (buf->index_file_names = (char**)calloc(sizeof(char*), 3)))
+				ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the default index filenames");
+
+			if(NULL == (buf->index_file_names[0] = strdup("index.html")))
+				ERROR_RETURN_LOG_ERRNO(int, "Cannot append index.html to the default index filename list");
+			
+			if(NULL == (buf->index_file_names[1] = strdup("index.htm")))
+				ERROR_RETURN_LOG_ERRNO(int, "Cannot append index.htm to the default index filename list");
+		}
 	}
 
 	return 0;

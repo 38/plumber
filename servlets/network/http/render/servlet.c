@@ -342,7 +342,7 @@ ERR:
 WRITE:
 
 	if(ERROR_CODE(size_t) == pstd_bio_printf(bio, "Content-Type: %s\r\n"
-	                                           "Content-Length: %zu\r\n\r\n", page->mime_type, (size_t)length))
+	                                           "Content-Length: %zu\r\n", page->mime_type, (size_t)length))
 	    ERROR_RETURN_LOG(scope_token_t, "Cannot write the header");
 
 	return ret;
@@ -417,12 +417,12 @@ static int _exec(void* ctxmem)
 	/* Step0: Check if we got a proxy response */
 	if(ctx->opts.reverse_proxy)
 	{
-		int has_proxy;
+		int has_no_proxy;
 
-		if(ERROR_CODE(int) == (has_proxy = pipe_eof(ctx->p_proxy)))
+		if(ERROR_CODE(int) == (has_no_proxy = pipe_eof(ctx->p_proxy)))
 		    ERROR_LOG_GOTO(ERR, "Cannot check if we have reverse proxy response");
 
-		if(has_proxy)
+		if(!has_no_proxy)
 		{
 			scope_token_t scope = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, type_inst, ctx->a_proxy_token);
 			if(ERROR_CODE(int) == pstd_bio_write_scope_token(out, scope))
@@ -436,8 +436,8 @@ static int _exec(void* ctxmem)
 
 				goto RET;
 			}
+			else goto PROXY_RET;
 		}
-		else goto PROXY_RET;
 	}
 
 	/* Step1: Dtermine the encoding algorithm, size etc... */

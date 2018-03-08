@@ -1,0 +1,41 @@
+/**
+ * Copyright (C) 2018, Hao Hou
+ **/
+/**
+ * @brief Create a servlet initialization string
+ * @param servlet_name The name of this servlet
+ * @param params The servlet initialization parameters
+ * @return The servlet init string
+ **/
+Servlet.init = function init(servlet_name, params) 
+{
+	var ret = servlet_name ;
+
+	var escape = function escape(str) 
+	{
+		var ret = "";
+		for(var i = 0; i < len(str); i ++)
+		{
+			var ch = substr(str, i, i + 1);
+			if(ch == " ")
+				ret += "\\ ";
+			else if(ch == "\\")
+				ret += "\\\\";
+			else
+				ret += ch;
+		}
+		return ret;
+	}
+
+	for(var key in params)
+	{
+		var val = params[key];
+
+		if(val == undefined)
+			ret += " --" + key;
+		else
+			ret += " --" + key + " " + escape(val);
+	}
+
+	return ret;
+}
