@@ -542,7 +542,7 @@ RET:
 
 	/* Write the body */
 	if(ERROR_CODE(int) == pstd_bio_write_scope_token(out, body_token))
-		ERROR_RETURN_LOG(int, "Cannot write the body content");
+		ERROR_LOG_GOTO(ERR, "Cannot write the body content");
 
 PROXY_RET:
 

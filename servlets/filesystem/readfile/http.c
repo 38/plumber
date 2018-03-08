@@ -192,8 +192,9 @@ static inline int _write_default_index(const http_ctx_t* ctx, pstd_type_instance
 	if(NULL == (result_str = pstd_string_new(1024)))
 		ERROR_LOG_GOTO(ERR, "Cannot create new string object");
 
-	if(ERROR_CODE(size_t) == pstd_string_printf(result_str, "<html><head><title>Directory Listing</title></head>"
+	if(ERROR_CODE(size_t) == pstd_string_printf(result_str, "<html><head><title>Directory Listing of %s</title></head>"
 				                                                  "<body><h1>Directory Listing of %s</h1><hr><ul>", 
+												path + ctx->root_dir_len,
 												path + ctx->root_dir_len))
 		ERROR_LOG_GOTO(ERR, "Cannot generate the directory listing page");
 
