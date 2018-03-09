@@ -404,7 +404,7 @@ static int _exec(void* ctxmem)
 
 	if(!eof_rc)
 	{
-		const char* default_500 = "<html><body><h1>Server Internal Error</h1></body></html>";
+		const char* default_500 = "<html><body><center><h1>Server Internal Error</h1></center><hr/></body></html>";
 		if(ERROR_CODE(scope_token_t) == (body_token = _write_error_page(out, 500, &ctx->opts.err_500, default_500)))
 		    ERROR_LOG_GOTO(ERR, "Cannot write the HTTP 500 response");
 
@@ -427,7 +427,7 @@ static int _exec(void* ctxmem)
 			scope_token_t scope = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, type_inst, ctx->a_proxy_token);
 			if(ERROR_CODE(int) == pstd_bio_write_scope_token(out, scope))
 			{
-				const char* default_503 = "<html><body><h1>Service Unavailable</h1></body></html>";
+				const char* default_503 = "<html><body><center><h1>Service Unavailable</h1></center><hr/></body></html>";
 				if(ERROR_CODE(scope_token_t) == (body_token = _write_error_page(out, 503, &ctx->opts.err_503, default_503)))
 				    ERROR_LOG_GOTO(ERR, "Cannot write HTTP 503 response");
 

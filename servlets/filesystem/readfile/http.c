@@ -18,9 +18,9 @@
 #include  <options.h>
 #include  <http.h>
 
-static const char _default_404_page[] = "<html><body><h1>404 Page Not Found</h1></body></html>";
-static const char _default_403_page[] = "<html><body><h1>403 Forbiden</h1></body></html>";
-static const char _default_301_page[] = "<html><body><h1>301 Moved</h1></body></html>";
+static const char _default_404_page[] = "<html><body><center><h1>404 Page Not Found</h1></center><hr/></body></html>";
+static const char _default_403_page[] = "<html><body><center><h1>403 Forbiden</h1></center><hr/></body></html>";
+static const char _default_301_page[] = "<html><body><cneter><h1>301 Moved</h1></center><hr/></body></html>";
 
 struct _http_ctx_t {
 	pipe_t                      p_file;           /*!< The file pipe */
