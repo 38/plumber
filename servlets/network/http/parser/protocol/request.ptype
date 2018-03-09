@@ -1,0 +1,43 @@
+/**
+ * Copyright (C) 2018, Hao Hou
+ **/
+
+package plumber.std_servlet.network.http.parser.v0;
+
+/**
+ * @brief Define the constants used by the request struct
+ */
+type RequestConst {
+	uint32                            METHOD_GET       = 0;                    /*!< Indicates the method is GET */
+	uint32                            METHOD_POST      = 1;                    /*!< Indicates the method is POST */
+	uint32                            METHOD_HEAD      = 3;                    /*!< Indicates the method is HEAD */
+	uint64                            RANGE_FILE_BEG   = 0;                    /*!< Indicates we are requesting begnings at the the start of the file */
+	uint64                            RANGE_FILE_END   = 0xffffffffffffffff;   /*!< Indicates we are requesting until the end of the file */
+};
+
+/**
+ * @brief The request data, the data fields that is used by the actual application
+ **/
+type RequestData : RequestConst {
+	/* Routing support and URLs */
+	plumber.std.request_local.String  relative_url;      /*!< The relative URL under current URI routing */
+	plumber.std.request_local.String  base_url;          /*!< The base URL under current URI routhing */
+	plumber.std.request_local.String  host;              /*!< The host name under current URI routhing */
+	
+	/* Data payload */
+	plumber.std.request_local.String  query_param;       /*!< The query parameter, if there are both get param and post param, concatenate them */
+
+	/* Request Range */
+	uint64                            range_begin;       /*!< The begining of the range */
+	uint64                            range_end;         /*!< The end of the range */
+};
+
+/**
+ * @brief The protocol related data, which is unrelated to the application logic, but it will 
+ *        impact the behavior of how data will be transferred
+ **/
+type ProtocolData {
+	/* The accepted encoding data */
+	plumber.std.request_local.String accept_encoding;      /*!< The encoding we should accept */
+	plumber.std.request_local.String upgrade_https_target; /*!< This means we need to upgrade the protocol to HTTPS */
+};
