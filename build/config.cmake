@@ -57,7 +57,7 @@ constant(RUNTIME_PIPE_NAME_LEN 128)
 constant(RUNTIME_PDT_INIT_SIZE 8)
 constant(RUNTIME_SERVLET_SEARCH_PATH_INIT_SIZE 4)
 constant(RUNTIME_SERVLET_DEFAULT_SEARCH_PATH \"${CMAKE_INSTALL_PREFIX}/lib/plumber/servlet\")
-constant(RUNTIME_SERVLET_NS1_PREFIX \"/tmp/plumber-serfvlet.\")
+constant(RUNTIME_SERVLET_NS1_PREFIX \"/tmp/plumber-servlet.\")
 
 constant(MODULE_TCP_MAX_ASYNC_BUF_SIZE 4096)
 
