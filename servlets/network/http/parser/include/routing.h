@@ -66,6 +66,7 @@ typedef struct {
 	const char*      https_url_base; /*!< If we need upgrade the protocol and we can not simply just use https://host/url_base/relative_url, this will we set */
 
 	/* The output related */
+	pstd_type_accessor_t   a_method;       /*!< The accessor to the method code */
 	pstd_type_accessor_t   a_rel_url;      /*!< The accessor to the relative URL */
 	pstd_type_accessor_t   a_base_url;     /*!< The accessor to the base URL */
 	pstd_type_accessor_t   a_host;         /*!< The accessor to the host name */
@@ -73,6 +74,7 @@ typedef struct {
 	pstd_type_accessor_t   a_range_begin;  /*!< The beginging of the range */
 	pstd_type_accessor_t   a_range_end;    /*!< The end of the range */
 } routing_result_t;
+
 
 /**
  * @brief Create a new routing map
@@ -88,12 +90,32 @@ routing_map_t* routing_map_new(void);
 int routing_map_free(routing_map_t* map);
 
 /**
+ * @brief Initialize the routing map
+ * @note This function will finally get the accessors and constants from the type model. 
+ *       This call is the last step before we can actually use the routing map
+ * @param map The routing map
+ * @param param The intialization param
+ * @return status code
+ **/
+int routing_map_initialize(routing_map_t* map, pstd_type_model_t* type_model);
+
+/**
  * @brief Add a new routing rule to the routing map
  * @param map The routing map we need to add
  * @param rule The routing rule
  * @return status code
  **/
 int routing_map_add_routing_rule(routing_map_t* map, routing_desc_t rule);
+
+/**
+ * @brief Indicates if we need to upgrade HTTP to HTTPS for the default routing
+ * @param map The routing map
+ * @param upgrade_enabled if we need to enable the http upgrade
+ * @param url_base If this is not NULL, instead of changing the url from http://... to https://..., it use the
+ *                 given URL prefix
+ * @return status code
+ **/
+int routing_map_set_default_http_upgrade(routing_map_t* map, uint32_t upgrade_enabled, const char* url_base);
 
 /**
  * @brief Match a request in the routing table
@@ -103,8 +125,11 @@ int routing_map_add_routing_rule(routing_map_t* map, routing_desc_t rule);
  * @param host The host name 
  * @param url The URL
  * @param the matching result
- * @return If the request matches any of the routing table
+ * @return status code
  **/
-int routing_map_match_request(const routing_map_t* map, routing_method_t method, routing_protocol_t scheme, const char* host, const char* url, routing_result_t* resbuf);
+int routing_map_match_request(const routing_map_t* map, 
+		                      routing_method_t method, routing_protocol_t scheme, 
+							  const char* host, size_t host_len,
+							  const char* url,  size_t url_len, routing_result_t* resbuf);
 
 #endif
