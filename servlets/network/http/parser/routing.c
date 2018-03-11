@@ -21,6 +21,7 @@ typedef struct {
 	char*                  https_url_base; /*!< If specified it means we should redirect the to another URL */
 	
 	pipe_t                 p_out;          /*!< The output pipe */
+	pstd_type_accessor_t   a_method;       /*!< The accessor to the method  */
 	pstd_type_accessor_t   a_rel_url;      /*!< The accessor to the relative URL */
 	pstd_type_accessor_t   a_base_url;     /*!< The accessor to the base URL */
 	pstd_type_accessor_t   a_host;         /*!< The accessor to the host name */
@@ -51,17 +52,26 @@ struct _routing_map_t {
 	uint16_t n_rules;                      /*!< The number of rules */
 	uint16_t cap_rules;                    /*!< The capacity of the rules array */
 	_rule_t* rules;                        /*!< The rules table */
+	uint8_t* short_hash;                   /*!< The shorter hash table */
 	_rule_data_t  default_rule;            /*!< The default rule */
 };
 
 static inline void _rule_hash(const char* host, size_t host_len, const char* url, size_t url_len, uint64_t* buf)
 {
-	buf[0] = buf[1] = 0xffffffffffffffffull;
+	buf[0] = buf[1] = 0;
+	
 	memcpy(buf, host, host_len < sizeof(uint64_t) ? host_len : sizeof(uint64_t));
 	memcpy(buf, url, url_len < sizeof(uint64_t) ? url_len : sizeof(uint64_t));
 
 	buf[0] = __builtin_bswap64(buf[0]);
 	buf[1] = __builtin_bswap64(buf[1]);
+}
+
+static uint8_t _short_hash(const uint64_t* hash)
+{
+	const uint8_t half_k = (uint8_t)(0x100000000ull % 253);
+	const uint8_t k = (((uint32_t)half_k * (uint32_t)half_k) % 253) % 253;
+	return (uint8_t)(((hash[0] % 253) * k  + (hash[1] % 253)) % 253);
 }
 
 routing_map_t* routing_map_new()
@@ -184,6 +194,9 @@ int routing_map_set_default_http_upgrade(routing_map_t* map, uint32_t upgrade_en
 
 static inline int _init_rule_data(_rule_data_t* rd, pstd_type_model_t* type_model)
 {
+	if(ERROR_CODE(pstd_type_accessor_t) == (rd->a_method = pstd_type_model_get_accessor(type_model, rd->p_out, "method")))
+		ERROR_RETURN_LOG(int, "Cannot get the type accessor for method");
+
 	if(ERROR_CODE(pstd_type_accessor_t) == (rd->a_rel_url = pstd_type_model_get_accessor(type_model, rd->p_out, "relative_url")))
 		ERROR_RETURN_LOG(int, "Cannot get the type accessor for relative URL");
 
@@ -241,38 +254,74 @@ int routing_map_initialize(routing_map_t* map, pstd_type_model_t* type_model)
 
 	qsort(map->rules, map->n_rules, sizeof(_rule_t), _rule_comp);
 
+	if(NULL == (map->short_hash = (uint8_t*)malloc(sizeof(uint8_t) * map->n_rules)))
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the short hash");
+
+	for(i = 0; i < map->n_rules; i ++)
+		map->short_hash[i] = _short_hash(map->rules[i].hash);
+
 	return 0;
 }
 
-#if 0
-int routing_map_match_request(const routing_map_t* map,
+int routing_map_match_request(const routing_map_t* map, 
 		                      routing_method_t method, routing_protocol_t scheme, 
 							  const char* host, size_t host_len,
 							  const char* url,  size_t url_len, routing_result_t* resbuf)
 {
-	if(NULL == map ||  NULL == host || NULL == url || NULL == resbuf)
+	if(NULL == map || NULL == host || NULL == url || NULL == resbuf)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	uint64_t hash[2];
+	_rule_hash(host, host_len, url, url_len, hash);
 
-	uint16_t idx = _rule_find(map, host, host_len, url, url_len, hash);
+	uint8_t short_hash = _short_hash(hash);
+	
+	const _rule_data_t* rule_data = &map->default_rule;
+	size_t prefix_len = 0;
 
-	_rule_data_t* result = NULL;
+	uint32_t i;
+	for(i = 0; i < map->n_rules; i ++)
+		if(short_hash == map->short_hash[i])
+		{
+			if(map->rules[i].hash[0] > hash[0]) break;
+			if(map->rules[i].hash[0] == hash[0] && (method & map->rules[i].method) > 0)
+			{
+				if(map->rules[i].hash[1] > hash[1]) break;
+		    	if(((map->rules[i].hash[1] ^ hash[1]) & map->rules[i].hash_mask) == 0 &&
+		           map->rules[i].host_name_len == host_len &&
+		           map->rules[i].url_prefix_len <= url_len &&
+		           memcmp(map->rules[i].host_name, host, host_len) == 0 &&
+				   memcmp(map->rules[i].url_prefix, url, map->rules[i].url_prefix_len) == 0)
+				{
+					rule_data = &map->rules[i].data;
+					prefix_len = map->rules[i].url_prefix_len;
+					break;
+				}
+			}
+		}
 
-	if(ERROR_CODE(uint16_t) == idx)
+	resbuf->host = host;
+	resbuf->url_base = url;
+	resbuf->relative_url = url + prefix_len;
 
-	int found = 0;
-	for(;map->rules[idx].hash[0] == hash[0] && map->rules[idx].hash[1] == (hash[1] & map->rules[idx].hash_mask);idx ++)
+	if(scheme == ROUTING_PROTOCOL_HTTP && rule_data->upgrade_http)
 	{
-		if(host_len == map->rules[idx].host_name_len && memcmp(map->rules[idx].host_name, host, host_len) == 0 &&
-		   
+		resbuf->should_upgrade = 1;
+		resbuf->https_url_base = rule_data->https_url_base;
+	}
+	else
+	{
+		resbuf->should_upgrade = 0;
+		resbuf->https_url_base = NULL;
 	}
 
-
-DEFAULT_URL:
-
-FOUND:
+	resbuf->a_method = rule_data->a_method;
+	resbuf->a_rel_url = rule_data->a_rel_url;
+	resbuf->a_base_url = rule_data->a_base_url;
+	resbuf->a_host = rule_data->a_host;
+	resbuf->a_query_param = rule_data->a_query_param;
+	resbuf->a_range_begin = rule_data->a_range_begin;
+	resbuf->a_range_end = rule_data->a_range_end;
 
 	return 0;
 }
-#endif

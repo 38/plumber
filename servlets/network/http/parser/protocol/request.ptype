@@ -19,6 +19,7 @@ type RequestConst {
  * @brief The request data, the data fields that is used by the actual application
  **/
 type RequestData : RequestConst {
+	uint32                            method;            /*!< What method the client is requesting */
 	/* Routing support and URLs */
 	plumber.std.request_local.String  relative_url;      /*!< The relative URL under current URI routing */
 	plumber.std.request_local.String  base_url;          /*!< The base URL under current URI routhing */
