@@ -69,9 +69,7 @@ static inline void _rule_hash(const char* host, size_t host_len, const char* url
 
 static uint8_t _short_hash(const uint64_t* hash)
 {
-	const uint8_t half_k = (uint8_t)(0x100000000ull % 253);
-	const uint8_t k = (((uint32_t)half_k * (uint32_t)half_k) % 253) % 253;
-	return (uint8_t)(((hash[0] % 253) * k  + (hash[1] % 253)) % 253);
+	return (uint8_t)(hash[0] % 253);
 }
 
 routing_map_t* routing_map_new()
@@ -253,6 +251,9 @@ int routing_map_initialize(routing_map_t* map, pstd_type_model_t* type_model)
 		ERROR_RETURN_LOG(int, "Cannot initialize the rule data");
 
 	qsort(map->rules, map->n_rules, sizeof(_rule_t), _rule_comp);
+
+	/* TODO: Actually, this is not a effecient index, think about if there's any
+	 * better way for indexing */
 
 	if(NULL == (map->short_hash = (uint8_t*)malloc(sizeof(uint8_t) * map->n_rules)))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the short hash");
