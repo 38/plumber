@@ -268,11 +268,13 @@ PARSER_DONE:
 
 	/* TODO: routing and forwarding */
 
+	if(new_state && ERROR_CODE(int) == parser_state_free(state))
+		ERROR_LOG_GOTO(ERR, "Cannot dispose the parser state");
+
 	if(ERROR_CODE(int) == pstd_type_instance_free(type_inst))
 		ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
 
 	return 0;
-	goto ERR;
 ERR:
 	pstd_type_instance_free(type_inst);
 	return ERROR_CODE(int);
