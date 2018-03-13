@@ -2,9 +2,9 @@
 .TEXT test_case_add
 {
 	"request": {
-		"path": "/user",
-		"method": 3,
-		"data": "dummy_data"
+		"relative_url": "/user",
+		"method": 1,
+		"body": "dummy_data"
 	}
 }
 .END
@@ -13,9 +13,9 @@
 .TEXT test_case_add_child
 {
 	"request": {
-		"path": "$wEjMzQTN2cDO5ATYiNGZlBA/post",
-		"method": 3,
-		"data": "dummy_data"
+		"relative_url": "$wEjMzQTN2cDO5ATYiNGZlBA/post",
+		"method": 1,
+		"body": "dummy_data"
 	}
 }
 .END
@@ -24,8 +24,8 @@
 .TEXT test_case_delete
 {
 	"request": {
-		"path": "/post/$wEjMzQTN2cDO5ATYiNGZlBA",
-		"method": 5
+		"relative_url": "/post/$wEjMzQTN2cDO5ATYiNGZlBA",
+		"method": 3
 	}
 }
 .END
@@ -34,9 +34,9 @@
 .TEXT test_case_modify
 {
 	"request": {
-		"path": "/post/$wEjMzQTN2cDO5ATYiNGZlBA/like",
-		"method": 3,
-		"data": "overrided"
+		"relative_url": "/post/$wEjMzQTN2cDO5ATYiNGZlBA/like",
+		"method": 1,
+		"body": "overrided"
 	}
 }
 .END
@@ -45,9 +45,9 @@
 .TEXT test_case_query_posts
 {
 	"request": {
-		"path": "/post",
-		"method": 1,
-		"param": "keyword=zelda&limit=10"
+		"relative_url": "/post",
+		"method": 0,
+		"query_param": "keyword=zelda&limit=10"
 	}
 }
 .END
@@ -56,9 +56,9 @@
 .TEXT test_case_query_child
 {
 	"request": {
-		"path": "$wEjMzQTN2cDO5ATYiNGZlBA/post",
-		"method": 1,
-		"param": "limit=20&from=0"
+		"relative_url": "$wEjMzQTN2cDO5ATYiNGZlBA/post",
+		"method": 0,
+		"query_param": "limit=20&from=0"
 	}
 }
 .END
@@ -67,8 +67,8 @@
 .TEXT test_case_get_content
 {
 	"request": {
-		"path": "/user/$wEjMzQTN2cDO5ATYiNGZlBA",
-		"method": 1
+		"relative_url": "/user/$wEjMzQTN2cDO5ATYiNGZlBA",
+		"method": 0
 	}
 }
 .END
@@ -77,9 +77,9 @@
 .TEXT test_case_ignore_create_user_under_resource
 {
 	"request": {
-		"path": "$wEjMzQTN2cDO5ATYiNGZlBA/user",
-		"method": 3,
-		"data": "should fail"
+		"relative_url": "$wEjMzQTN2cDO5ATYiNGZlBA/user",
+		"method": 1,
+		"body": "should fail"
 	}
 }
 .END
@@ -88,9 +88,9 @@
 .TEXT test_case_ignore_create_user_isolated
 {
 	"request": {
-		"path": "/post",
-		"method": 3,
-		"data": "should fail"
+		"relative_url": "/post",
+		"method": 1,
+		"body": "should fail"
 	}
 }
 .END
@@ -98,8 +98,8 @@
 .TEXT test_case_ignore_undefined_resource
 {
 	"request": {
-		"path": "/undefined/$wEjMzQTN2cDO5ATYiNGZlBA",
-		"method": 1
+		"relative_url": "/undefined/$wEjMzQTN2cDO5ATYiNGZlBA",
+		"method": 0
 	}
 }
 .END
@@ -107,8 +107,8 @@
 .TEXT test_case_ignore_invalid_rest_path
 {
 	"request": {
-		"path": "../../../../../admin.php"
-		"method":1
+		"relative_url": "../../../../../admin.php"
+		"method":0
 	}
 }
 .END

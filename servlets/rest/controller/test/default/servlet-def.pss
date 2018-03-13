@@ -1,7 +1,7 @@
 servlet = "rest/controller --no-random user user:post post:comment";
 
 servlet_input = {
-	"request" : "plumber/std_servlet/network/http/httpreq/v0/Request"
+	"request" : "plumber/std_servlet/network/http/parser/v0/RequestData"
 };
 
 servlet_output = {

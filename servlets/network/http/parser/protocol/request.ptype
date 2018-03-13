@@ -11,6 +11,7 @@ type RequestConst {
 	uint32                            METHOD_GET       = 0;                    /*!< Indicates the method is GET */
 	uint32                            METHOD_POST      = 1;                    /*!< Indicates the method is POST */
 	uint32                            METHOD_HEAD      = 2;                    /*!< Indicates the method is HEAD */
+	uint32                            METHOD_DELETE    = 3;                    /*!< The DELETE method, NOTE: currently we havn't implement this, but rest controller uses this */
 	uint64                            SEEK_SET         = 0;                    /*!< Indicates we are requesting begnings at the the start of the file */
 	uint64                            SEEK_END         = 0xffffffffffffffff;   /*!< Indicates we are requesting until the end of the file */
 };
@@ -26,7 +27,8 @@ type RequestData : RequestConst {
 	plumber.std.request_local.String  host;              /*!< The host name under current URI routhing */
 	
 	/* Data payload */
-	plumber.std.request_local.String  query_param;       /*!< The query parameter, if there are both get param and post param, concatenate them */
+	plumber.std.request_local.String  query_param;       /*!< The query parameter */
+	plumber.std.request_local.String  body;              /*!< The data body */
 
 	/* Request Range */
 	uint64                            range_begin;       /*!< The begining of the range */

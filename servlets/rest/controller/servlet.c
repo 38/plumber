@@ -63,9 +63,9 @@ typedef struct {
 		uint32_t           EXISTS;          /*!< Check if the resource id exists */
 	}                      opcode;          /*!< The operation code defined by the protocol */
 	struct {
-		uint32_t           GET;             /*!< GET HTTP request */
-		uint32_t           POST;            /*!< POST HTTP request */
-		uint32_t           DELETE;          /*!< DELETE HTTP request */
+		uint32_t           METHOD_GET;             /*!< GET HTTP request */
+		uint32_t           METHOD_POST;            /*!< POST HTTP request */
+		uint32_t           METHOD_DELETE;          /*!< DELETE HTTP request */
 	}                      method_code;     /*!< The method code */
 	pstd_type_model_t*     model;           /*!< The type model */
 	pstd_type_accessor_t   method_acc;      /*!< The method accessor */
@@ -116,22 +116,22 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	if(NULL == (ctx->model = pstd_type_model_new()))
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot create the type model");
 
-	if(ERROR_CODE(pipe_t) == (ctx->request = pipe_define("request", PIPE_INPUT, "plumber/std_servlet/network/http/httpreq/v0/Request")))
+	if(ERROR_CODE(pipe_t) == (ctx->request = pipe_define("request", PIPE_INPUT, "plumber/std_servlet/network/http/parser/v0/RequestData")))
 	    ERROR_RETURN_LOG(int, "Cannot define the requested pipe");
 
 #define _READ_CONST_CHK(p, base, name) (ERROR_CODE(int) ==  _fill_const(ctx->model, ctx->p, #name, &ctx->base.name))
-	if(_READ_CONST_CHK(request, method_code, GET) ||
-	   _READ_CONST_CHK(request, method_code, POST) ||
-	   _READ_CONST_CHK(request, method_code, DELETE))
+	if(_READ_CONST_CHK(request, method_code, METHOD_GET) ||
+	   _READ_CONST_CHK(request, method_code, METHOD_POST) ||
+	   _READ_CONST_CHK(request, method_code, METHOD_DELETE))
 	    return ERROR_CODE(int);
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->method_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "method")))
 	    ERROR_RETURN_LOG(int, "Cannot get the accessor for request.method");
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->path_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "path.token")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->path_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "relative_url.token")))
 	    ERROR_RETURN_LOG(int, "Cannot get the accessor for request.path");
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->param_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "param.token")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->param_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "query_param.token")))
 	    ERROR_RETURN_LOG(int, "Cannot get the accessor for request.method");
-	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->data_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "data.token")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->data_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "body.token")))
 	    ERROR_RETURN_LOG(int, "Cannot get the accessor for request.method");
 
 	uint32_t i, j;
@@ -330,7 +330,7 @@ static int _exec(void* ctxbuf)
 
 	uint32_t storage_opcode = ERROR_CODE(uint32_t);
 
-	if(method == ctx->method_code.POST)
+	if(method == ctx->method_code.METHOD_POST)
 	{
 		if(object_id == NULL)
 		{
@@ -357,7 +357,7 @@ static int _exec(void* ctxbuf)
 		}
 
 	}
-	else if(method == ctx->method_code.DELETE)
+	else if(method == ctx->method_code.METHOD_DELETE)
 	{
 		if(object_id != NULL)
 		{
@@ -365,7 +365,7 @@ static int _exec(void* ctxbuf)
 			parent_id = NULL;    /* we ignore the parent id */
 		}
 	}
-	else if(method == ctx->method_code.GET)
+	else if(method == ctx->method_code.METHOD_GET)
 	{
 		if(object_id == NULL)
 		{
