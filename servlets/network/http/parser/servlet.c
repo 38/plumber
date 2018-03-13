@@ -115,6 +115,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	rc = 0;
 	goto RET;
 ERR:
+#ifdef LOG_ERROR_ENABLED
 	LOG_ERROR("=========== libproto stack ============");
 	const proto_err_t* stack = proto_err_stack();
 
@@ -124,6 +125,7 @@ ERR:
 
 		LOG_ERROR("%s", proto_err_str(stack, buf, sizeof(buf)));
 	}
+#endif
 
 	proto_err_clear();
 	LOG_ERROR("=========== end of libproto stack ============");
