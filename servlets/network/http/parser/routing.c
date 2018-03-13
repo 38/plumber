@@ -11,6 +11,7 @@
 #include <pservlet.h>
 #include <pstd.h>
 
+#include <trie.h>
 #include <routing.h>
 
 /**
@@ -34,13 +35,9 @@ typedef struct {
  * @brief The actual data structure for a routing rule
  **/
 typedef struct {
-	uint64_t               hash[2];        /*!< The hash code for this rule */
-	uint64_t               hash_mask;      /*!< The hash mask used to identify if this matches */
-	char*                  host_name;      /*!< The host name */
-	size_t                 host_name_len;  /*!< The length of the host name */
 	char*                  url_prefix;     /*!< The URL prefix */
+	size_t                 host_len;       /*!< The length of host name in the the URL prefix */
 	size_t                 url_prefix_len; /*!< The length of the URL prefix */
-	routing_protocol_t     method;         /*!< The method we can match */
 	_rule_data_t           data;           /*!< The rule data */
 } _rule_t;
 
@@ -48,29 +45,12 @@ typedef struct {
  * @brief The actual data structure for a routing map 
  **/
 struct _routing_map_t {
-	uint32_t init:1;                       /*!< Indicates if this map has been completely initialized, which means we have createtd a map and set type model */
-	uint16_t n_rules;                      /*!< The number of rules */
-	uint16_t cap_rules;                    /*!< The capacity of the rules array */
-	_rule_t* rules;                        /*!< The rules table */
-	uint8_t* short_hash;                   /*!< The shorter hash table */
-	_rule_data_t  default_rule;            /*!< The default rule */
+	uint16_t      n_rules;                      /*!< The number of rules */
+	uint16_t      cap_rules;                    /*!< The capacity of the rules array */
+	_rule_t*      rules;                        /*!< The rules table */
+	_rule_data_t  default_rule;                 /*!< The default rule */
+	trie_t*       index;                        /*!< The index for fast access */
 };
-
-static inline void _rule_hash(const char* host, size_t host_len, const char* url, size_t url_len, uint64_t* buf)
-{
-	buf[0] = buf[1] = 0;
-	
-	memcpy(buf, host, host_len < sizeof(uint64_t) ? host_len : sizeof(uint64_t));
-	memcpy(buf, url, url_len < sizeof(uint64_t) ? url_len : sizeof(uint64_t));
-
-	buf[0] = __builtin_bswap64(buf[0]);
-	buf[1] = __builtin_bswap64(buf[1]);
-}
-
-static uint8_t _short_hash(const uint64_t* hash)
-{
-	return (uint8_t)(hash[0] % 253);
-}
 
 routing_map_t* routing_map_new()
 {
@@ -79,6 +59,9 @@ routing_map_t* routing_map_new()
 		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocatae memory for the routing map");
 	
 	ret->cap_rules = 32;
+	ret->n_rules = 0;
+	ret->index = NULL;
+	ret->default_rule.https_url_base = NULL;
 
 	if(NULL == (ret->rules = (_rule_t*)malloc(sizeof(_rule_t) * ret->cap_rules)))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the rule array");
@@ -99,28 +82,33 @@ int routing_map_free(routing_map_t* map)
 		uint32_t i;
 		for(i = 0; i < map->n_rules; i ++)
 		{
-			if(NULL != map->rules[i].host_name)
-				free(map->rules[i].host_name);
 			if(NULL != map->rules[i].url_prefix)
 				free(map->rules[i].url_prefix);
 			if(NULL != map->rules[i].data.https_url_base)
 				free(map->rules[i].data.https_url_base);
 		}
+
+		free(map->rules);
 	}
 
-	if(NULL == map->default_rule.https_url_base)
+	if(NULL != map->default_rule.https_url_base)
 		free(map->default_rule.https_url_base);
 
+	int rc = 0;
+
+	if(NULL != map->index && ERROR_CODE(int) == trie_free(map->index))
+		rc = ERROR_CODE(int);
+
 	free(map);
-	return 0;
+	return rc;
 }
 
 int routing_map_add_routing_rule(routing_map_t* map, routing_desc_t rule)
 {
-	if(NULL == map || NULL == rule.host || NULL == rule.url_base || NULL == rule.port_name)
+	if(NULL == map || NULL == rule.url_base || NULL == rule.pipe_port_name)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	if(map->init)
+	if(NULL != map->index)
 		ERROR_RETURN_LOG(int, "Cannot change the mapping layout of an initialized map");
 
 	if(map->cap_rules <= map->n_rules)
@@ -138,32 +126,25 @@ int routing_map_add_routing_rule(routing_map_t* map, routing_desc_t rule)
 	}
 
 	_rule_t* buf = map->rules + map->n_rules;
-	_rule_hash(rule.host, buf->host_name_len = strlen(rule.host), rule.url_base, buf->url_prefix_len = strlen(rule.url_base), buf->hash);
-
-	buf->hash_mask = 0xffffffffffffffffull;
-
-	if(buf->url_prefix_len < sizeof(uint64_t))
-		buf->hash_mask <<= (sizeof(uint64_t) - buf->url_prefix_len) * 8;
-
-	if(NULL == (buf->host_name = strdup(rule.host)))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the host name");
 
 	if(NULL == (buf->url_prefix = strdup(rule.url_base)))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the URL prefix");
 
-	buf->method = rule.method;
+	for(buf->host_len = 0; buf->url_prefix[buf->host_len] && buf->url_prefix[buf->host_len] != '/'; buf->host_len ++);
+
 	buf->data.upgrade_http = rule.upgrade_http;
 
-	if(NULL != (buf->data.https_url_base = strdup(rule.https_url_base)))
+	buf->data.https_url_base = NULL;
+
+	if(rule.https_url_base != NULL && NULL == (buf->data.https_url_base = strdup(rule.https_url_base)))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the HTTPS url base");
 
-	if(ERROR_CODE(pipe_t) == (buf->data.p_out = pipe_define(rule.port_name, PIPE_OUTPUT, "plumber/std_servlet/network/http/parser/v0/RequestData")))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open the pipe for routing %s", rule.port_name);
+	if(ERROR_CODE(pipe_t) == (buf->data.p_out = pipe_define(rule.pipe_port_name, PIPE_OUTPUT, "plumber/std_servlet/network/http/parser/v0/RequestData")))
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open the pipe for routing %s", rule.pipe_port_name);
 
 	map->n_rules ++;
 	return 0;
 ERR:
-	if(NULL != buf->host_name) free(buf->host_name);
 	if(NULL != buf->url_prefix) free(buf->url_prefix);
 	if(NULL != buf->data.https_url_base) free(buf->data.https_url_base);
 
@@ -216,28 +197,13 @@ static inline int _init_rule_data(_rule_data_t* rd, pstd_type_model_t* type_mode
 	return 0;
 }
 
-static inline int _int64_cmp(uint64_t a, uint64_t b)
-{
-	if(a > b) return 1;
-	if(a < b) return -1;
-	return 0;
-}
-
-static inline int _rule_comp(const void* pa, const void* pb)
-{
-	const _rule_t* a = (const _rule_t*)pa;
-	const _rule_t* b = (const _rule_t*)pb;
-
-	int ret = _int64_cmp(a->hash[0], b->hash[0]);
-	if(ret) return ret;
-
-	return _int64_cmp(a->hash[1], b->hash[1]);
-}
-
 int routing_map_initialize(routing_map_t* map, pstd_type_model_t* type_model)
 {
 	if(NULL == map || NULL == type_model)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(map->index != NULL)
+		ERROR_RETURN_LOG(int, "Cannot initialize the routing map twice");
 
 	uint16_t i;
 	for(i = 0; i < map->n_rules; i ++)
@@ -247,74 +213,48 @@ int routing_map_initialize(routing_map_t* map, pstd_type_model_t* type_model)
 			ERROR_RETURN_LOG(int, "Cannot initialize the rule data");
 	}
 
+	if(ERROR_CODE(pipe_t) == (map->default_rule.p_out = pipe_define("default", PIPE_OUTPUT, "plumber/std_servlet/network/http/parser/v0/RequestData")))
+		ERROR_RETURN_LOG(int, "Cannot create the default routing");
+
 	if(ERROR_CODE(int) == _init_rule_data(&map->default_rule, type_model))
 		ERROR_RETURN_LOG(int, "Cannot initialize the rule data");
 
-	qsort(map->rules, map->n_rules, sizeof(_rule_t), _rule_comp);
-
-	/* TODO: Actually, this is not a effecient index, think about if there's any
-	 * better way for indexing */
-
-	if(NULL == (map->short_hash = (uint8_t*)malloc(sizeof(uint8_t) * map->n_rules)))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the short hash");
+	trie_kv_pair_t* index_buf = (trie_kv_pair_t*)malloc(sizeof(trie_kv_pair_t) * map->n_rules);
+	if(NULL == index_buf)
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the index buffer");
 
 	for(i = 0; i < map->n_rules; i ++)
-		map->short_hash[i] = _short_hash(map->rules[i].hash);
+		index_buf[i].key = map->rules[i].url_prefix,
+		index_buf[i].val = map->rules + i;
+
+	if(NULL == (map->index = trie_new(index_buf, map->n_rules)))
+		ERROR_LOG_GOTO(ERR, "Cannot create index for the routing map");
+
+	free(index_buf);
 
 	return 0;
+ERR:
+	free(index_buf);
+	return ERROR_CODE(int);
 }
 
-int routing_map_match_request(const routing_map_t* map, 
-		                      routing_method_t method, routing_protocol_t scheme, 
-							  const char* host, size_t host_len,
-							  const char* url,  size_t url_len, routing_result_t* resbuf)
+static inline void _fill_routing_result(routing_result_t* resbuf, const _rule_data_t* rule_data, const _rule_t* rule)
 {
-	if(NULL == map || NULL == host || NULL == url || NULL == resbuf)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
-
-	uint64_t hash[2];
-	_rule_hash(host, host_len, url, url_len, hash);
-
-	uint8_t short_hash = _short_hash(hash);
-	
-	const _rule_data_t* rule_data = &map->default_rule;
-	size_t prefix_len = 0;
-
-	uint32_t i;
-	for(i = 0; i < map->n_rules; i ++)
-		if(short_hash == map->short_hash[i])
-		{
-			if(map->rules[i].hash[0] > hash[0]) break;
-			if(map->rules[i].hash[0] == hash[0] && (method & map->rules[i].method) > 0)
-			{
-				if(map->rules[i].hash[1] > hash[1]) break;
-		    	if(((map->rules[i].hash[1] ^ hash[1]) & map->rules[i].hash_mask) == 0 &&
-		           map->rules[i].host_name_len == host_len &&
-		           map->rules[i].url_prefix_len <= url_len &&
-		           memcmp(map->rules[i].host_name, host, host_len) == 0 &&
-				   memcmp(map->rules[i].url_prefix, url, map->rules[i].url_prefix_len) == 0)
-				{
-					rule_data = &map->rules[i].data;
-					prefix_len = map->rules[i].url_prefix_len;
-					break;
-				}
-			}
-		}
-
-	resbuf->host = host;
-	resbuf->url_base = url;
-	resbuf->relative_url = url + prefix_len;
-
-	if(scheme == ROUTING_PROTOCOL_HTTP && rule_data->upgrade_http)
+	if(NULL == rule)
 	{
-		resbuf->should_upgrade = 1;
-		resbuf->https_url_base = rule_data->https_url_base;
+		resbuf->url_base = "";
+		resbuf->url_base_len = 0;
+		resbuf->host_len = 0;
 	}
 	else
 	{
-		resbuf->should_upgrade = 0;
-		resbuf->https_url_base = NULL;
+		resbuf->url_base = rule->url_prefix;
+		resbuf->url_base_len = rule->url_prefix_len;
+		resbuf->host_len = rule->host_len;
 	}
+
+	resbuf->should_upgrade = 1;
+	resbuf->https_url_base = rule_data->https_url_base;
 
 	resbuf->a_method = rule_data->a_method;
 	resbuf->a_rel_url = rule_data->a_rel_url;
@@ -323,6 +263,32 @@ int routing_map_match_request(const routing_map_t* map,
 	resbuf->a_query_param = rule_data->a_query_param;
 	resbuf->a_range_begin = rule_data->a_range_begin;
 	resbuf->a_range_end = rule_data->a_range_end;
+}
 
-	return 0;
+size_t routing_process_buffer(routing_state_t* state, const char* buf, size_t buf_len)
+{
+	if(NULL == state || NULL == state->map || NULL == state->result_buf || NULL == buf || 0 == buf_len || ERROR_CODE(size_t) == buf_len)
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
+
+	_rule_t const* rule = NULL;
+	size_t match_rc = trie_search(state->map->index, &state->idx_state, buf, buf_len, (void const**)&rule);
+
+	if(match_rc == ERROR_CODE(size_t))
+		ERROR_RETURN_LOG(size_t, "Cannot process the next buffer");
+
+	if(match_rc == 0)
+	{
+		_fill_routing_result(state->result_buf, &state->map->default_rule, NULL);
+		state->done = 1;
+		return 0;
+	}
+
+	if(NULL != rule) 
+	{
+		_fill_routing_result(state->result_buf, &rule->data, rule);
+		state->done = 1;
+		return match_rc;
+	}
+
+	return match_rc;
 }

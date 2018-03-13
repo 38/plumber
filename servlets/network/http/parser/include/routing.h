@@ -14,15 +14,6 @@
 typedef struct _routing_map_t routing_map_t;
 
 /**
- * @brief The bit flags used to select which protocol we need to use
- **/
-typedef enum {
-	ROUTING_PROTOCOL_NONE  = 0,   /*!< Doesn't match anything */
-	ROUTING_PROTOCOL_HTTP  = 1,   /*!< Matches the HTTP protocol */
-	ROUTING_PROTOCOL_HTTPS = 2    /*!< Matches the HTTPS protocol */
-} routing_protocol_t;
-
-/**
  * @brief The bit flags used to specify which method should allow
  **/
 typedef enum {
@@ -38,18 +29,14 @@ typedef enum {
  **/
 typedef struct {
 	/* HTTPS upgrade support */
-	uint32_t     upgrade_http:1;    /*!< Indicates for this part we need to upgrade http to https */
-	const char*  https_url_base;    /*!< If specified, it means do not just replate the scheme string in the original URL, but use this as the base directory */
+	uint32_t           upgrade_http:1;    /*!< Indicates for this part we need to upgrade http to https */
+	const char*        https_url_base;    /*!< If specified, it means do not just replate the scheme string in the original URL, but use this as the base directory */
 
 	/* URL pattern */
-	routing_protocol_t scheme;      /*!< The scheme HTTP or HTTPS we should use */
-	routing_method_t   method;      /*!< The method we should use for this method */
-	const char*        host;        /*!< The host we can match, we only allows wildcard in the beginging:
-	                                 *       *domain.com will match all the host ends with domain.com */
 	const char*        url_base;    /*!< The URL prefix we need to match, don't support any wildcard */
 
 	/* The output */
-	const char*        port_name;   /*!< The port we need to output the result */
+	const char*        pipe_port_name;   /*!< The port we need to output the result */
 } routing_desc_t;
 
 /**
@@ -57,13 +44,13 @@ typedef struct {
  **/
 typedef struct {
 	/* The URL and host related */
-	const char*      host;         /*!< The actual host name for this routing result */
-	const char*      url_base;     /*!< The URL base for the matched rule */
-	const char*      relative_url; /*!< The relative URL */
+	const char*            url_base;       /*!< The path base for the matched rule */
+	size_t                 url_base_len;   /*!< The length of the path base */
+	size_t                 host_len;       /*!< The length of the host name */
 
 	/* HTTPS upgrade */
-	uint32_t         should_upgrade; /*!< If we need to upgrade the protocol */
-	const char*      https_url_base; /*!< If we need upgrade the protocol and we can not simply just use https://host/url_base/relative_url, this will we set */
+	uint32_t               should_upgrade; /*!< If we need to upgrade the protocol */
+	const char*            https_url_base; /*!< If we need upgrade the protocol and we can not simply just use https://host/url_base/relative_url, this will we set */
 
 	/* The output related */
 	pstd_type_accessor_t   a_method;       /*!< The accessor to the method code */
@@ -74,6 +61,30 @@ typedef struct {
 	pstd_type_accessor_t   a_range_begin;  /*!< The beginging of the range */
 	pstd_type_accessor_t   a_range_end;    /*!< The end of the range */
 } routing_result_t;
+
+/**
+ * @brief The routing map state
+ **/
+typedef struct {
+	const routing_map_t* map;         /*!< The routing map to search */
+	trie_search_state_t  idx_state;   /*!< The index state */
+	routing_result_t*    result_buf;  /*!< The result buffer */
+	uint32_t             done:1;      /*!< If the routing map has determined the routing */
+} routing_state_t;
+
+/**
+ * @brief Initialize a routing map state variable that is used for routing
+ * @param state The state to initailize
+ * @param result_buf The result buffer
+ * @return nothing
+ **/
+static inline void routing_state_init(routing_state_t* state, const routing_map_t* map, routing_result_t* result_buf)
+{
+	trie_state_init(&state->idx_state);
+	state->result_buf = result_buf;
+	state->done = 0;
+	state->map = map;
+}
 
 
 /**
@@ -118,18 +129,13 @@ int routing_map_add_routing_rule(routing_map_t* map, routing_desc_t rule);
 int routing_map_set_default_http_upgrade(routing_map_t* map, uint32_t upgrade_enabled, const char* url_base);
 
 /**
- * @brief Match a request in the routing table
- * @param map The routing map we use
- * @param method The HTTP method
- * @param scheme The scheme for this request either HTTP or HTTPS
- * @param host The host name 
- * @param url The URL
- * @param the matching result
- * @return status code
+ * @brief Process the next buffer that contains the URL information
+ * @param map   The routing map
+ * @param state The routing state
+ * @param buf The data buffer
+ * @param buf_len The length of the buffer
+ * @return number of bytes has been accepted or error code
  **/
-int routing_map_match_request(const routing_map_t* map, 
-		                      routing_method_t method, routing_protocol_t scheme, 
-							  const char* host, size_t host_len,
-							  const char* url,  size_t url_len, routing_result_t* resbuf);
+size_t routing_process_buffer(routing_state_t* state, const char* buf, size_t buf_len);
 
 #endif

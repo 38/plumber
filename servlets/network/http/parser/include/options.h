@@ -18,13 +18,9 @@ typedef enum {
 } options_http_version_t;
 
 /**
- * @brief The actual servlet options. The routing can be described as --routing static_content method:GET;scheme:http,https;host:*;base:static/ ...
+ * @brief The actual servlet options. The routing can be described as --routing name:static_content;prefix:plumberserver.com/static/;upgrade_http ...
  **/
 typedef struct {
-	options_http_version_t  allowed_versions;   /*!< The set of versions of HTTP protocol that is allowed */
-	uint8_t                 range_request:1;    /*!< If the HTTP server allows fetch partial content */
-	uint8_t                 keep_alive:1;       /*!< If the HTTP server should use persist connection */
-
 	routing_map_t*          routing_map;        /*!< The HTTP routing map */
 } options_t;
 

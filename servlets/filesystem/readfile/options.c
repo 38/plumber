@@ -334,6 +334,9 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 
 int options_free(const options_t* options)
 {
+	if(NULL == options)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
 	if(NULL != options->path_field) free(options->path_field);
 
 	if(NULL != options->http_err_not_found.filename) free(options->http_err_not_found.filename);
