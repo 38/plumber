@@ -185,12 +185,22 @@ static int _exec(void* ctxmem)
 	{
 		/* Before we actually started, we need to release the previously acquired internal buffer */
 		size_t min_sz;
+
 		if(buffer != _buffer && buffer != NULL && ERROR_CODE(int) == pipe_data_release_buf(ctx->p_input, buffer, sz))
 			ERROR_LOG_GOTO(READ_ERR, "Cannot release the previously acquired internal buffer");
 
 		/* Try to access the internal buffer before we actually call read, thus we can avoid copy */
 		sz = sizeof(_buffer);
+		
+#ifdef __clang__ 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-qual"
+#endif
+		/* Clang has a ridiculous restriction on the qualifier cast. */
 		int rc = pipe_data_get_buf(ctx->p_input, sizeof(_buffer), (void const**)&buffer, &min_sz, &sz);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 		if(ERROR_CODE(int) == rc)
 			ERROR_LOG_GOTO(READ_ERR, "Cannot get the internal buffer");
 
