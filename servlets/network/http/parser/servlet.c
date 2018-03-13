@@ -14,6 +14,7 @@
 #include <trie.h>
 #include <routing.h>
 #include <options.h>
+#include <parser.h>
 
 typedef struct {
 	pipe_t             p_input;     /*!< The input pipe for raw request */
@@ -151,10 +152,137 @@ static int _unload(void* ctxmem)
 	return rc;
 }
 
+static int _state_free(void* state)
+{
+	return parser_state_free((parser_state_t*)state);
+}
+
+static int _exec(void* ctxmem)
+{
+	char _buffer[4096];
+	char* buffer = NULL;
+	size_t sz;
+	int parser_done = 0;
+	pstd_type_instance_t* type_inst = NULL;
+
+	ctx_t* ctx = (ctx_t*)ctxmem;
+
+	/* Before we start, we need to check if we have previously saved parser state */
+	parser_state_t* state;
+	if(ERROR_CODE(int) == pipe_cntl(ctx->p_input, PIPE_CNTL_POP_STATE, &state))
+		ERROR_RETURN_LOG(int, "Cannot pop the previously saved state");
+
+	int new_state = 0;
+	if(NULL == state)
+	{
+		if(NULL == parser_state_new())
+			ERROR_RETURN_LOG(int, "Cannot allocate memory for the new parser state");
+		new_state = 1;
+	}
+
+	/* Ok, now we have a valid parser state and are going to parse the request */
+	for(;;)
+	{
+		/* Before we actually started, we need to release the previously acquired internal buffer */
+		size_t min_sz;
+		if(buffer != _buffer && buffer != NULL && ERROR_CODE(int) == pipe_data_release_buf(ctx->p_input, buffer, sz))
+			ERROR_LOG_GOTO(READ_ERR, "Cannot release the previously acquired internal buffer");
+
+		/* Try to access the internal buffer before we actually call read, thus we can avoid copy */
+		sz = sizeof(_buffer);
+		int rc = pipe_data_get_buf(ctx->p_input, sizeof(_buffer), (void const**)&buffer, &min_sz, &sz);
+		if(ERROR_CODE(int) == rc)
+			ERROR_LOG_GOTO(READ_ERR, "Cannot get the internal buffer");
+
+		/* If the pipe cannot return the internal buffer, then we read the buffer */
+		if(rc == 0) 
+		{
+			buffer = _buffer;
+			if(ERROR_CODE(size_t) == (sz = pipe_read(ctx->p_input, buffer, sizeof(buffer))))
+				ERROR_LOG_GOTO(READ_ERR, "Cannot read request data from pipe");
+		}
+
+		/* At this time, if we still unable to get anything, we need to do something */
+		if(sz == 0) 
+		{
+			int eof_rc = pipe_eof(ctx->p_input);
+
+			if(eof_rc == ERROR_CODE(int))
+				ERROR_LOG_GOTO(READ_ERR, "Cannot determine if the pipe has more data");
+
+			if(eof_rc)
+			{
+				state->keep_alive = 0;
+				if(state->empty)
+				{
+					if(new_state && ERROR_CODE(int) == parser_state_free(state))
+						ERROR_RETURN_LOG(int, "Cannot dispose the parser state");
+					return 0;
+				}
+
+				/* Although the parser is still in processing state, we still need to move ahead */
+				goto PARSER_DONE;
+			}
+			else
+			{
+				/* The piep is waiting for more data, thus we can save the state and exit */
+				if(ERROR_CODE(int) == pipe_cntl(ctx->p_input, PIPE_CNTL_SET_FLAG, PIPE_PERSIST))
+					ERROR_LOG_GOTO(READ_ERR, "Cannot set the pipe to persistent mode");
+
+				if(ERROR_CODE(int) == pipe_cntl(ctx->p_input, PIPE_CNTL_PUSH_STATE, state, _state_free))
+					ERROR_LOG_GOTO(READ_ERR, "Cannot push the parser state to the pipe");
+
+				return 0;
+			}
+		}
+		else
+		{
+			/* Otherwise we are able to parse something */
+			size_t bytes_consumed = parser_process_next_buf(state, buffer, sz);
+
+			if(ERROR_CODE(size_t) == bytes_consumed)
+				ERROR_LOG_GOTO(READ_ERR, "Cannot parse the request");
+
+			/* If the parser doesn't consume all the feed in data, the parsing is definitely finished */
+			if(bytes_consumed < sz) 
+				parser_done = 1;
+			else if(ERROR_CODE(int) == (parser_done = parser_state_done(state)))
+				ERROR_LOG_GOTO(READ_ERR, "Cannot check if the request is complete");
+
+			/* If we are done, we need to move ahead */
+			if(parser_done) goto PARSER_DONE;
+		}
+	}
+
+READ_ERR:
+	if(new_state && ERROR_CODE(int) == parser_state_free(state))
+		ERROR_RETURN_LOG(int, "Cannot dispose the parser state");
+
+	return ERROR_CODE(int);
+
+PARSER_DONE:
+
+	/* If we just compeleted the parsing stage */
+	if(NULL == (type_inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model)))
+		ERROR_RETURN_LOG(int, "Cannot allocate memory for the type instance");
+
+	/* TODO: routing and forwarding */
+
+	if(ERROR_CODE(int) == pstd_type_instance_free(type_inst))
+		ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
+
+	return 0;
+	goto ERR;
+ERR:
+	pstd_type_instance_free(type_inst);
+	return ERROR_CODE(int);
+}
+
 SERVLET_DEF = {
 	.desc    = "The HTTP Request Parser",
 	.version = 0x0,
 	.size    = sizeof(ctx_t),
 	.init    = _init,
-	.unload  = _unload
+	.unload  = _unload,
+	.exec    = _exec
 };

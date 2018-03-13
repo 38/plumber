@@ -242,6 +242,11 @@ int trie_free(trie_t* trie)
 	return 0;
 }
 
+static inline int _mem_match(const char* a, const char* b, size_t sz)
+{
+	return 0 == memcmp(a, b, sz);
+}
+
 size_t trie_search(const trie_t* trie, trie_search_state_t* state, const char* key, size_t key_size, void const** result)
 {
 	if(NULL == trie || NULL == state || NULL == key || NULL == result || key_size == 0)
@@ -301,7 +306,7 @@ size_t trie_search(const trie_t* trie, trie_search_state_t* state, const char* k
 				if(bytes_to_comp > key_size)
 					bytes_to_comp = (uint32_t)key_size;
 
-				if(0 != memcmp(key, cur_key + matched_len, bytes_to_comp))
+				if(!_mem_match(key, cur_key + matched_len, bytes_to_comp))
 					goto MATCH_FAILED;
 
 				matched_len += bytes_to_comp;
