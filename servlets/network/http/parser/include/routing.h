@@ -46,7 +46,7 @@ typedef struct {
 	/* The URL and host related */
 	const char*            url_base;       /*!< The path base for the matched rule */
 	size_t                 url_base_len;   /*!< The length of the path base */
-	size_t                 host_len;       /*!< The length of the host name */
+	size_t                 host_len;       /*!< The length of the host */
 
 	/* HTTPS upgrade */
 	uint32_t               should_upgrade; /*!< If we need to upgrade the protocol */

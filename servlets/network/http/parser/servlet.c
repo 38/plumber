@@ -157,6 +157,22 @@ static int _state_free(void* state)
 	return parser_state_free((parser_state_t*)state);
 }
 
+static inline int _determine_routing(const ctx_t* ctx, const char* host, size_t host_len, const char* path, size_t path_len, routing_result_t* result)
+{
+	routing_state_t state;
+	routing_state_init(&state, ctx->options.routing_map, result);
+
+	size_t sz = routing_process_buffer(&state, host, host_len);
+	if(sz == ERROR_CODE(size_t))
+		ERROR_RETURN_LOG(int, "Cannot parse the host");
+
+	sz = routing_process_buffer(&state, path, path_len);
+	if(ERROR_CODE(size_t) == sz)
+		ERROR_RETURN_LOG(int, "Cannot parse the path");
+
+	return state.done;
+}
+
 static int _exec(void* ctxmem)
 {
 	char _buffer[4096];
@@ -276,7 +292,11 @@ PARSER_DONE:
 	if(NULL == (type_inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model)))
 		ERROR_RETURN_LOG(int, "Cannot allocate memory for the type instance");
 
-	/* TODO: routing and forwarding */
+	routing_result_t result;
+	if(ERROR_CODE(int) == _determine_routing(ctx, state->host, state->host_len, state->path, state->path_len, &result))
+		ERROR_LOG_GOTO(ERR, "Cannot dispose the parser state");
+
+	/* TODO: The write data to the routing result pipe */
 
 	if(new_state && ERROR_CODE(int) == parser_state_free(state))
 		ERROR_LOG_GOTO(ERR, "Cannot dispose the parser state");

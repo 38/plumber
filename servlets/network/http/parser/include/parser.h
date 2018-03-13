@@ -15,10 +15,15 @@ typedef struct {
 	uint32_t             empty:1;             /*!< If the request don't have any data */
 	uint32_t             keep_alive:1;        /*!< If the client ask to keep this connection */
 	char*                path;                /*!< The path buffer (MAX: 2048 Bytes) */
+	size_t               path_len;            /*!< The length of the path */
 	char*                host;                /*!< The host name buffer (MAX: 64 Bytes) */
+	size_t               host_len;            /*!< The length of the host */
 	char*                query;               /*!< The query parameter (MAX: 2048 Bytes) */
+	size_t               query_len;           /*!< The length of the query */
 	char*                accept_encoding;     /*!< The accept encoding buffer (MAX: 32 Bytes) */
+	size_t               accept_encoding_len; /*!< The length of accept encoding */
 	char*                body;                /*!< The body data (MAX: 2048) (TODO: we probably need a RLS token that wraps the pipe data directly) */
+	size_t               body_len;            /*!< The length of the data body */
 	uint64_t             range_begin;         /*!< The beginging of the range */
 	uint64_t             range_end;           /*!< The end of the range */
 	uintpad_t __padding__[0];
