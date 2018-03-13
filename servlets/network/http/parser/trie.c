@@ -91,7 +91,7 @@ static inline void _init_node(trie_t* trie, uint32_t slot, char const* key, uint
 	trie->key_data[slot] = key + key_byte_ofs;
 	trie->val_data[slot] = value;
 
-	if(key_offset / 8 != (key_offset + key_length) / 8)
+	if(key_offset / 8 != (key_offset + key_length - 1) / 8)
 	{
 		/* If this key has covers more than one byte */
 		trie->node_array[slot].mask[0] = (uint8_t)(0xffu >> key_bit_ofs);
@@ -263,7 +263,7 @@ size_t trie_search(const trie_t* trie, trie_search_state_t* state, const char* k
 			if(!(cur_node->mask[0] & ch))
 			{
 				/* Check if we have matched the full byte */
-				if(cur_node->mask[1] == 1)
+				if((cur_node->mask[1] & 1) == 1)
 				{
 					ret ++;
 					key ++;
@@ -350,7 +350,6 @@ LEFT:
 		continue;
 RIGHT:
 		if(cur_val != NULL) goto MATCH_SUCCESS;
-		if(!cur_node->has_left) goto MATCH_FAILED;
 		if(!cur_node->has_right) goto MATCH_FAILED;
 		cur_node = cur_node + cur_node->right_offset + 1; 
 		cur_key = trie->key_data[(uint32_t)(cur_node - trie->node_array)];
