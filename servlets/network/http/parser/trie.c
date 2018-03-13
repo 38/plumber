@@ -30,7 +30,6 @@ struct _trie_t {
 	_trie_node_t*   node_array;   /*!< The node array */
 	const void**    val_data;     /*!< The value data for each node */
 	const char**    key_data;     /*!< The key data array */
-	uint32_t        n_nodes;      /*!< The number of nodes */
 };
 
 static int _key_cmp(const void* pa, const void* pb)
