@@ -10,9 +10,9 @@ package plumber.std_servlet.network.http.parser.v0;
 type RequestConst {
 	uint32                            METHOD_GET       = 0;                    /*!< Indicates the method is GET */
 	uint32                            METHOD_POST      = 1;                    /*!< Indicates the method is POST */
-	uint32                            METHOD_HEAD      = 3;                    /*!< Indicates the method is HEAD */
-	uint64                            RANGE_FILE_BEG   = 0;                    /*!< Indicates we are requesting begnings at the the start of the file */
-	uint64                            RANGE_FILE_END   = 0xffffffffffffffff;   /*!< Indicates we are requesting until the end of the file */
+	uint32                            METHOD_HEAD      = 2;                    /*!< Indicates the method is HEAD */
+	uint64                            SEEK_SET         = 0;                    /*!< Indicates we are requesting begnings at the the start of the file */
+	uint64                            SEEK_END         = 0xffffffffffffffff;   /*!< Indicates we are requesting until the end of the file */
 };
 
 /**
@@ -41,4 +41,9 @@ type ProtocolData {
 	/* The accepted encoding data */
 	plumber.std.request_local.String accept_encoding;      /*!< The encoding we should accept */
 	plumber.std.request_local.String upgrade_https_target; /*!< This means we need to upgrade the protocol to HTTPS */
+	/* The message flags */
+	uint32                           protocol_error;         /*!< The protocol flags */
+	uint32                           NO_ERROR           = 0; /*!< If we don't have any protocol error */
+	uint32                           BAD_REQUEST        = 1; /*!< If we are seeing a bad request */
+	uint32                           METHOD_UNSUPPORTED = 2; /*!< The method is not supported */
 };
