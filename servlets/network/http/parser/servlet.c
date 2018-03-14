@@ -30,9 +30,9 @@ typedef struct {
 	pstd_type_accessor_t a_upgrade_target;       /*!< The accessor for the HTTPS upgrade target */
 	pstd_type_accessor_t a_error;                /*!< THe protocol error bits */
 
-	uint32_t           METHOD_GET;  /*!< The method code for GET */
-	uint32_t           METHOD_POST; /*!< The method code for GET */
-	uint32_t           METHOD_HEAD; /*!< The method code for GET */
+	uint32_t           METHOD_GET;      /*!< The method code for GET */
+	uint32_t           METHOD_POST;     /*!< The method code for GET */
+	uint32_t           METHOD_HEAD;     /*!< The method code for GET */
 
 	uint64_t           RANGE_SEEK_SET;  /*!< The constant used to represent the head of the file */
 	uint64_t           RANGE_SEEK_END;  /*!< THe constant used to represent the tail of the file */
@@ -239,12 +239,8 @@ static int _exec(void* ctxmem)
 			if(eof_rc)
 			{
 				state->keep_alive = 0;
-				if(state->empty)
-				{
-					if(new_state && ERROR_CODE(int) == parser_state_free(state))
-						ERROR_RETURN_LOG(int, "Cannot dispose the parser state");
-					return 0;
-				}
+				state->error = 1;
+				if(state->empty) goto NORMAL_EXIT;
 
 				/* Although the parser is still in processing state, we still need to move ahead */
 				goto PARSER_DONE;

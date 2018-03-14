@@ -30,8 +30,8 @@ typedef struct {
  * @brief The search state for a trie search
  **/
 typedef struct {
-	uint32_t            code;
-	uint32_t            matched_len;
+	uint32_t            code;           /*!< The state code */
+	uint32_t            matched_len;    /*!< Number of bytes has been matched */
 } trie_search_state_t;
 
 /**
