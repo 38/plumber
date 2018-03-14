@@ -18,6 +18,7 @@
  **/
 struct _pstd_string_t {
 	char*  buffer;            /*!< the actual buffer that uses this */
+	size_t buffer_offset;     /*!< The number of bytes from the begining of the allocation to the beginging of the buffer */
 	size_t capacity;          /*!< the capacity of the string buffer */
 	size_t length;            /*!< the length of the string */
 	uint32_t commited:1;      /*!< if this string has been commited */
@@ -36,6 +37,21 @@ typedef struct {
 	const pstd_string_t* string;   /*!< the string object */
 	size_t               location; /*!< the current location */
 } _stream_t;
+
+pstd_string_t* pstd_string_from_onwership_pointer_range(char* data, size_t begin, size_t end)
+{
+	if(NULL == data || begin >= end) ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+	pstd_string_t* ret = pstd_string_new(0);
+
+	ret->buffer = data + begin;
+	ret->capacity = end - begin;
+	ret->length = end - begin;
+	ret->commited = 0;
+	ret->buffer_offset = begin;
+
+	return ret;
+}
 
 pstd_string_t* pstd_string_from_onwership_pointer(char* data, size_t sz)
 {
@@ -96,6 +112,7 @@ pstd_string_t* pstd_string_new(size_t initcap)
 	}
 	ret->length = 0;
 	ret->commited = 0;
+	ret->buffer_offset = 0;
 	return ret;
 ERR:
 	if(NULL != ret) pstd_mempool_free(ret);
@@ -120,7 +137,7 @@ static inline int _free_impl(pstd_string_t* str, int user_space_call)
 	if(NULL != str->buffer)
 	{
 		if(str->buffer != str->_def_buf)
-		    free(str->buffer);
+		    free(str->buffer - str->buffer_offset);
 	}
 
 	if(ERROR_CODE(int) == pstd_mempool_free(str))
@@ -319,6 +336,9 @@ scope_token_t pstd_string_commit(pstd_string_t* str)
  **/
 static inline int _ensure_capacity(pstd_string_t* str, size_t required_size)
 {
+	if(str->buffer_offset > 0)
+		ERROR_RETURN_LOG(int, "Cannot resize a ranged buffer");
+
 	size_t newcap = str->capacity;
 	for(;newcap < str->length + required_size + 1; newcap *= 2);
 	if(newcap == str->capacity) return 0;

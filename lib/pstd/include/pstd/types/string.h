@@ -20,6 +20,7 @@
 #define __PSTD_TYPES_STRING_H__
 
 #include <string.h>
+#include <stdlib.h>
 
 #	ifdef __cplusplus
 extern "C" {
@@ -39,6 +40,18 @@ extern "C" {
 	 * @return newly create PSTD String object, NULL on error case
 	 **/
 	pstd_string_t* pstd_string_from_onwership_pointer(char* data, size_t sz);
+
+	/**
+	 * @brief Create a new string from a onwership pointer, similar to pstd_string_from_onwership_pointer
+	 *        but this function only expose data from data + begin to data + end.
+	 * @note This is useful when we have a buffer which is owned by us, however, what we want the next servlet
+	 *       to get is just a part of the string. Thus we are use this function to avoid copy
+	 * @param data The data buffer
+	 * @param begin The offset where the data section begins
+	 * @param end The offset where the data section ends
+	 * @return the newly created string object
+	 **/
+	pstd_string_t* pstd_string_from_onwership_pointer_range(char* data, size_t begin, size_t end);
 
 	/**
 	 * @brief Create a new immutable string from the ownership pointer
@@ -129,7 +142,7 @@ extern "C" {
 	* @return the number of bytes has been written, NULL on error case
 	**/
 	size_t pstd_string_printf(pstd_string_t* str, const char* fmt, ...)
-	__attribute__((format (printf, 2, 3)));
+		__attribute__((format (printf, 2, 3)));
 
 	/**
 	* @brief append the formatted string to the string object. This is similar to pstd_string_printf, but it accepts
@@ -164,6 +177,34 @@ extern "C" {
 	}
 
 	/**
+	 * @brief Create, commit and write an immutable RLS string to the typed pipe
+	 * @note This function is almost identical to pstd_string_create_commit_write, the only difference is instead of
+	 *       detect the string length, it use the given size specified by caller
+	 * @param type_inst The type instance
+	 * @param accessor The field accessor
+	 * @param str The string to commit
+	 * @param len The size of the string to commit
+	 * @return status code
+	 **/
+	static inline int pstd_string_create_commit_write_sz(pstd_type_instance_t* type_inst, pstd_type_accessor_t accessor, const char* str, size_t len)
+	{
+		pstd_string_t* str_rls_obj = pstd_string_new_immutable(str, len);
+
+		if(NULL == str_rls_obj)
+		    ERROR_RETURN_LOG(int, "Cannot create the PSTD string object");
+
+		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
+		if(ERROR_CODE(scope_token_t) == str_rls_tok)
+		{
+			pstd_string_free(str_rls_obj);
+			ERROR_RETURN_LOG(int, "Cannot commit the RLS string to the scope");
+		}
+
+		return PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, accessor, str_rls_tok);
+
+	}
+
+	/**
 	 * @brief Create, commit and write an immutable RLS string object to the typed pipe
 	 * @note This is the helper function to write a string constant to the scope
 	 * @param type_inst The type instance we used for writing
@@ -173,10 +214,96 @@ extern "C" {
 	 **/
 	static inline int pstd_string_create_commit_write(pstd_type_instance_t* type_inst, pstd_type_accessor_t accessor, const char* str)
 	{
-		pstd_string_t* str_rls_obj = pstd_string_from_const(str);
+		if(NULL == str)
+			ERROR_RETURN_LOG(int, "Invalid arguments");
+		return pstd_string_create_commit_write_sz(type_inst, accessor, str, strlen(str));
+	}
+
+	/**
+	 * @brief Transfer the ownership of the pointer, commit and write a mutable RLS string 
+	 * @note This is the helper function to write a string to typed header. Unlike other version of pstd_string_*_commit*, it
+	 *       takes the ownership of the string
+	 * @param type_inst The type instance
+	 * @param accessor The accessor 
+	 * @param str The string to commit
+	 * @param size The size of the string buffer
+	 * @return status code
+	 **/
+	static inline int pstd_string_transfer_commit_write(pstd_type_instance_t* type_inst, pstd_type_accessor_t accessor, char* str, size_t size)
+	{
+		pstd_string_t* str_rls_obj = pstd_string_from_onwership_pointer(str, size);
 
 		if(NULL == str_rls_obj)
+			ERROR_RETURN_LOG(int, "Cannot create PSTD string object");
+
+		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
+		if(ERROR_CODE(scope_token_t) == str_rls_tok)
+		{
+			pstd_string_free(str_rls_obj);
+			ERROR_RETURN_LOG(int, "Cannot commit the RLS string object to the scope");
+		}
+
+		return PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, accessor, str_rls_tok);
+	}
+
+	/**
+	 * @brief Transfer the ownership of the pointer and commit, wrie a mutable RLS string
+	 * @note This is different from pstd_string_transfer_commit_write. It only expose a range of data from the buffer.
+	 *       But when the object is disposed it will dispose the entire buffer
+	 * @param type_inst The type instance
+	 * @param accessor The accessor
+	 * @param str The string to commit
+	 * @param begin The begin offset
+	 * @param end The end offset
+	 * @return status code
+	 **/
+	static inline int pstd_string_transfer_commit_write_range(pstd_type_instance_t* type_inst, pstd_type_accessor_t accessor, char* str, size_t begin, size_t end)
+	{
+		pstd_string_t* str_rls_obj = pstd_string_from_onwership_pointer_range(str, begin, end);
+
+		if(NULL == str_rls_obj)
+			ERROR_RETURN_LOG(int, "Cannot create PSTD string object");
+
+		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
+		if(ERROR_CODE(scope_token_t) == str_rls_tok)
+		{
+			pstd_string_free(str_rls_obj);
+			ERROR_RETURN_LOG(int, "Cannot commit the RLS string object to the scope");
+		}
+
+		return PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, accessor, str_rls_tok);
+	}
+
+	/**
+	 * @brief Copy, commit and write a mutable RLS string object to the typed pipe
+	 * @note This is the helper function to write a string to typed header. Unlike the create version, this function copy the string.
+	 *       This function unlike the one without _sz suffix, it actually uses the caller specified size
+	 * @param type_inst The type instance we used for writing
+	 * @param accessor The field accessor we want to write
+	 * @param str The string we want to write
+	 * @param sz The size of the string to write
+	 * @return status code
+	 **/
+	static inline int pstd_string_copy_commit_write_sz(pstd_type_instance_t* type_inst, pstd_type_accessor_t accessor, const char* str, size_t sz)
+	{
+		if(NULL == str) 
+			ERROR_RETURN_LOG(int, "Invalid arguments");
+
+		char* owned_str = (char*)malloc(sz + 1);
+
+		if(NULL == owned_str)
+			ERROR_RETURN_LOG(int, "Cannot allocate memory for the new string");
+
+		memcpy(owned_str, str, sz);
+		owned_str[sz] = 0;
+
+		pstd_string_t* str_rls_obj = pstd_string_from_onwership_pointer(owned_str, sz);
+
+		if(NULL == str_rls_obj)
+		{
+			free(owned_str);
 		    ERROR_RETURN_LOG(int, "Cannot create the PSTD string object");
+		}
 
 		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
 		if(ERROR_CODE(scope_token_t) == str_rls_tok)
@@ -189,8 +316,8 @@ extern "C" {
 	}
 
 	/**
-	 * @brief Copy, commit and write an immutable RLS string object to the typed pipe
-	 * @note This is the helper function to write a string to typed header. Unlike the create version, this function copy the string
+	 * @brief Copy, commit and write a mutable RLS string object to the typed pipe
+	 * @note This is the helper function to write a string to typed header. Unlike the create version, this function copy the string.
 	 * @param type_inst The type instance we used for writing
 	 * @param accessor The field accessor we want to write
 	 * @param str The string we want to write
@@ -198,20 +325,9 @@ extern "C" {
 	 **/
 	static inline int pstd_string_copy_commit_write(pstd_type_instance_t* type_inst, pstd_type_accessor_t accessor, const char* str)
 	{
-		if(NULL == str) ERROR_RETURN_LOG(int, "Invalid arguments");
-		pstd_string_t* str_rls_obj = pstd_string_from_onwership_pointer(strdup(str), strlen(str));
-
-		if(NULL == str_rls_obj)
-		    ERROR_RETURN_LOG(int, "Cannot create the PSTD string object");
-
-		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
-		if(ERROR_CODE(scope_token_t) == str_rls_tok)
-		{
-			pstd_string_free(str_rls_obj);
-			ERROR_RETURN_LOG(int, "Cannot commit the RLS string to the scope");
-		}
-
-		return PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, accessor, str_rls_tok);
+		if(NULL == str)
+			ERROR_RETURN_LOG(int, "Invalid arguments");
+		return pstd_string_copy_commit_write_sz(type_inst, accessor, str, strlen(str));
 	}
 
 	/**

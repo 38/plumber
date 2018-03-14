@@ -22,9 +22,9 @@ type RequestConst {
 type RequestData : RequestConst {
 	uint32                            method;            /*!< What method the client is requesting */
 	/* Routing support and URLs */
-	plumber.std.request_local.String  relative_url;      /*!< The relative URL under current URI routing */
-	plumber.std.request_local.String  base_url;          /*!< The base URL under current URI routhing */
 	plumber.std.request_local.String  host;              /*!< The host name under current URI routhing */
+	plumber.std.request_local.String  base_url;          /*!< The base URL under current URI routhing */
+	plumber.std.request_local.String  relative_url;      /*!< The relative URL under current URI routing */
 	
 	/* Data payload */
 	plumber.std.request_local.String  query_param;       /*!< The query parameter */
@@ -42,10 +42,10 @@ type RequestData : RequestConst {
 type ProtocolData {
 	/* The accepted encoding data */
 	plumber.std.request_local.String accept_encoding;      /*!< The encoding we should accept */
-	plumber.std.request_local.String upgrade_https_target; /*!< This means we need to upgrade the protocol to HTTPS */
+	plumber.std.request_local.String upgrade_target;       /*!< This means we need to upgrade the protocol to HTTPS */
+
 	/* The message flags */
-	uint32                           protocol_error;         /*!< The protocol flags */
-	uint32                           NO_ERROR           = 0; /*!< If we don't have any protocol error */
-	uint32                           BAD_REQUEST        = 1; /*!< If we are seeing a bad request */
-	uint32                           METHOD_UNSUPPORTED = 2; /*!< The method is not supported */
+	uint32                           error;                  /*!< The error bits */
+	uint32                           ERROR_NONE         = 0; /*!< If we don't have any protocol error */
+	uint32                           ERROR_BAD_REQ      = 1; /*!< If we are seeing a bad request */
 };

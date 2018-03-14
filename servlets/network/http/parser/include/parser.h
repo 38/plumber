@@ -17,11 +17,23 @@ typedef struct {
 } parser_string_t;
 
 /**
+ * @brief The method of the request
+ **/
+typedef enum {
+	PARSER_METHOD_GET,   /*!< GET method */
+	PARSER_METHOD_POST,  /*!< POST method */
+	PARSER_METHOD_HEAD   /*!< HEAD method */
+} parser_method_t;
+
+/**
  * @brief The PARSER parser state
  **/
 typedef struct {
+	uint32_t             error:1;             /*!< If this is a invalid request */
 	uint32_t             empty:1;             /*!< If the request don't have any data */
 	uint32_t             keep_alive:1;        /*!< If the client ask to keep this connection */
+	uint32_t             has_range:1;         /*!< Indicates if the request contains a range reuqest */
+	parser_method_t      method;              /*!< The HTTP method */
 	parser_string_t      path;                /*!< The path buffer (MAX: 2048 Bytes) */
 	parser_string_t      host;                /*!< The host name buffer (MAX: 64 Bytes) */
 	parser_string_t      query;               /*!< The query parameter (MAX: 2048 Bytes) */
