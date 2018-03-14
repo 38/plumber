@@ -276,7 +276,20 @@ static int _exec(void* ctxmem)
 				ERROR_LOG_GOTO(READ_ERR, "Cannot check if the request is complete");
 
 			/* If we are done, we need to move ahead */
-			if(parser_done) goto PARSER_DONE;
+			if(parser_done) 
+			{
+				if(_buffer == buffer)
+				{
+					if(bytes_consumed < sz && ERROR_CODE(int) == pipe_cntl(ctx->p_input, PIPE_CNTL_EOM, buffer, bytes_consumed))
+						ERROR_LOG_GOTO(READ_ERR, "Cannot unread the bytes");
+				}
+				else
+				{
+					if(bytes_consumed < sz && ERROR_CODE(int) == pipe_data_release_buf(ctx->p_input, buffer, bytes_consumed))
+						ERROR_LOG_GOTO(READ_ERR, "Cannot unread the buffer");
+				}
+				goto PARSER_DONE;
+			}
 		}
 	}
 
@@ -293,7 +306,7 @@ PARSER_DONE:
 		ERROR_RETURN_LOG(int, "Cannot allocate memory for the type instance");
 
 	routing_result_t result;
-	if(ERROR_CODE(int) == _determine_routing(ctx, state->host, state->host_len, state->path, state->path_len, &result))
+	if(ERROR_CODE(int) == _determine_routing(ctx, state->host.value, state->host.length, state->path.value, state->path.length, &result))
 		ERROR_LOG_GOTO(ERR, "Cannot dispose the parser state");
 
 	/* TODO: The write data to the routing result pipe */

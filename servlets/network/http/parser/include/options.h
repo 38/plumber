@@ -9,15 +9,6 @@
 #define __OPTIONS_H__
 
 /**
- * @biref The bit flags used to identify the HTTP protocol version
- **/
-typedef enum {
-	OPTIONS_HTTP_VERSION_1_0 = 1,   /*!< The HTTP/1.0 */
-	OPTIONS_HTTP_VERSION_1_1 = 2    /*!< The HTTP/1.1 */
-	/* TODO: We need finally support HTTP/2.0 */
-} options_http_version_t;
-
-/**
  * @brief The actual servlet options. The routing can be described as --routing name:static_content;prefix:plumberserver.com/static/;upgrade_http ...
  **/
 typedef struct {

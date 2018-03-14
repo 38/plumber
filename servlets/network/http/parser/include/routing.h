@@ -14,17 +14,6 @@
 typedef struct _routing_map_t routing_map_t;
 
 /**
- * @brief The bit flags used to specify which method should allow
- **/
-typedef enum {
-	ROUTING_METHOD_NONE = 0,   /*!< No method is allowed */
-	ROUTING_METHOD_GET  = 1,   /*!< The GET method is allowed */
-	ROUTING_METHOD_POST = 2,   /*!< The POST method is allowed */
-	ROUTING_METHOD_HEAD = 4    /*!< The HEAD method is allowed */
-} routing_method_t;
-
-
-/**
  * @brief Describe a routing description
  **/
 typedef struct {
@@ -40,6 +29,20 @@ typedef struct {
 } routing_desc_t;
 
 /**
+ * @brief The accessor used for produce the output
+ **/
+typedef struct {
+	pstd_type_accessor_t   a_method;       /*!< The accessor to the method code */
+	pstd_type_accessor_t   a_rel_url;      /*!< The accessor to the relative URL */
+	pstd_type_accessor_t   a_base_url;     /*!< The accessor to the base URL */
+	pstd_type_accessor_t   a_host;         /*!< The accessor to the host name */
+	pstd_type_accessor_t   a_query_param;  /*!< The accessor to the query param */
+	pstd_type_accessor_t   a_range_begin;  /*!< The beginging of the range */
+	pstd_type_accessor_t   a_range_end;    /*!< The end of the range */
+	pstd_type_accessor_t   a_body;         /*!< The accessor for the body data */
+} routing_output_t;
+
+/**
  * @brief Describe the routing result that we can use
  **/
 typedef struct {
@@ -53,13 +56,7 @@ typedef struct {
 	const char*            https_url_base; /*!< If we need upgrade the protocol and we can not simply just use https://host/url_base/relative_url, this will we set */
 
 	/* The output related */
-	pstd_type_accessor_t   a_method;       /*!< The accessor to the method code */
-	pstd_type_accessor_t   a_rel_url;      /*!< The accessor to the relative URL */
-	pstd_type_accessor_t   a_base_url;     /*!< The accessor to the base URL */
-	pstd_type_accessor_t   a_host;         /*!< The accessor to the host name */
-	pstd_type_accessor_t   a_query_param;  /*!< The accessor to the query param */
-	pstd_type_accessor_t   a_range_begin;  /*!< The beginging of the range */
-	pstd_type_accessor_t   a_range_end;    /*!< The end of the range */
+	const routing_output_t* out;           /*!< The data structure thatt is used to describe the routing accessors */
 } routing_result_t;
 
 /**

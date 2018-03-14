@@ -22,13 +22,7 @@ typedef struct {
 	char*                  https_url_base; /*!< If specified it means we should redirect the to another URL */
 	
 	pipe_t                 p_out;          /*!< The output pipe */
-	pstd_type_accessor_t   a_method;       /*!< The accessor to the method  */
-	pstd_type_accessor_t   a_rel_url;      /*!< The accessor to the relative URL */
-	pstd_type_accessor_t   a_base_url;     /*!< The accessor to the base URL */
-	pstd_type_accessor_t   a_host;         /*!< The accessor to the host name */
-	pstd_type_accessor_t   a_query_param;  /*!< The accessor to the query param */
-	pstd_type_accessor_t   a_range_begin;  /*!< The beginging of the range */
-	pstd_type_accessor_t   a_range_end;    /*!< The end of the range */
+	routing_output_t       accessors;      /*!< The accessors */
 } _rule_data_t;
 
 /**
@@ -173,26 +167,29 @@ int routing_map_set_default_http_upgrade(routing_map_t* map, uint32_t upgrade_en
 
 static inline int _init_rule_data(_rule_data_t* rd, pstd_type_model_t* type_model)
 {
-	if(ERROR_CODE(pstd_type_accessor_t) == (rd->a_method = pstd_type_model_get_accessor(type_model, rd->p_out, "method")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (rd->accessors.a_method = pstd_type_model_get_accessor(type_model, rd->p_out, "method")))
 		ERROR_RETURN_LOG(int, "Cannot get the type accessor for method");
 
-	if(ERROR_CODE(pstd_type_accessor_t) == (rd->a_rel_url = pstd_type_model_get_accessor(type_model, rd->p_out, "relative_url")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (rd->accessors.a_rel_url = pstd_type_model_get_accessor(type_model, rd->p_out, "relative_url.token")))
 		ERROR_RETURN_LOG(int, "Cannot get the type accessor for relative URL");
 
-	if(ERROR_CODE(pstd_type_accessor_t) == (rd->a_base_url = pstd_type_model_get_accessor(type_model, rd->p_out, "base_url")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (rd->accessors.a_base_url = pstd_type_model_get_accessor(type_model, rd->p_out, "base_url.token")))
 		ERROR_RETURN_LOG(int, "Cannot get the type accessor for base URL");
 
-	if(ERROR_CODE(pstd_type_accessor_t) == (rd->a_host = pstd_type_model_get_accessor(type_model, rd->p_out, "host")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (rd->accessors.a_host = pstd_type_model_get_accessor(type_model, rd->p_out, "host.token")))
 		ERROR_RETURN_LOG(int, "Cannot get the type accessor for host name");
 
-	if(ERROR_CODE(pstd_type_accessor_t) == (rd->a_query_param = pstd_type_model_get_accessor(type_model, rd->p_out, "query_param")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (rd->accessors.a_query_param = pstd_type_model_get_accessor(type_model, rd->p_out, "query_param.token")))
 		ERROR_RETURN_LOG(int, "Cannot get the type accessor for query param");
 
-	if(ERROR_CODE(pstd_type_accessor_t) == (rd->a_range_begin = pstd_type_model_get_accessor(type_model, rd->p_out, "range_begin")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (rd->accessors.a_range_begin = pstd_type_model_get_accessor(type_model, rd->p_out, "range_begin")))
 		ERROR_RETURN_LOG(int, "Cannot get the type accessor for the range begin");
 
-	if(ERROR_CODE(pstd_type_accessor_t) == (rd->a_range_end = pstd_type_model_get_accessor(type_model, rd->p_out, "range_end")))
+	if(ERROR_CODE(pstd_type_accessor_t) == (rd->accessors.a_range_end = pstd_type_model_get_accessor(type_model, rd->p_out, "range_end")))
 		ERROR_RETURN_LOG(int, "Cannot get the type accessor for the range end");
+
+	if(ERROR_CODE(pstd_type_accessor_t) == (rd->accessors.a_body = pstd_type_model_get_accessor(type_model, rd->p_out, "body.token")))
+		ERROR_RETURN_LOG(int, "Cannot get the type accessor for body");
 
 	return 0;
 }
@@ -255,14 +252,7 @@ static inline void _fill_routing_result(routing_result_t* resbuf, const _rule_da
 
 	resbuf->should_upgrade = 1;
 	resbuf->https_url_base = rule_data->https_url_base;
-
-	resbuf->a_method = rule_data->a_method;
-	resbuf->a_rel_url = rule_data->a_rel_url;
-	resbuf->a_base_url = rule_data->a_base_url;
-	resbuf->a_host = rule_data->a_host;
-	resbuf->a_query_param = rule_data->a_query_param;
-	resbuf->a_range_begin = rule_data->a_range_begin;
-	resbuf->a_range_end = rule_data->a_range_end;
+	resbuf->out = &rule_data->accessors;
 }
 
 size_t routing_process_buffer(routing_state_t* state, const char* buf, size_t buf_len)
