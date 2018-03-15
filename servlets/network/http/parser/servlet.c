@@ -53,7 +53,7 @@ static inline int _read_const_unsigned(const char* field, void* result, size_t s
 		const void* default_data;
 		size_t default_data_size;
 
-		if(proto_db_field_get_default(_TYPE_ROOT"ProtocolData", 
+		if(proto_db_field_get_default(_TYPE_ROOT"RequestData", 
 					                  field, 
 									  &default_data, 
 									  &default_data_size) == ERROR_CODE(int))
@@ -166,9 +166,13 @@ static inline int _determine_routing(const ctx_t* ctx, const char* host, size_t 
 	if(sz == ERROR_CODE(size_t))
 		ERROR_RETURN_LOG(int, "Cannot parse the host");
 
-	sz = routing_process_buffer(&state, path, path_len);
-	if(ERROR_CODE(size_t) == sz)
-		ERROR_RETURN_LOG(int, "Cannot parse the path");
+	if(!state.done)
+	{
+
+		sz = routing_process_buffer(&state, path, path_len);
+		if(ERROR_CODE(size_t) == sz)
+			ERROR_RETURN_LOG(int, "Cannot parse the path");
+	}
 
 	return state.done;
 }
@@ -191,7 +195,7 @@ static int _exec(void* ctxmem)
 	int new_state = 0;
 	if(NULL == state)
 	{
-		if(NULL == parser_state_new())
+		if(NULL == (state = parser_state_new()))
 			ERROR_RETURN_LOG(int, "Cannot allocate memory for the new parser state");
 		new_state = 1;
 	}
@@ -281,7 +285,7 @@ static int _exec(void* ctxmem)
 				}
 				else
 				{
-					if(bytes_consumed < sz && ERROR_CODE(int) == pipe_data_release_buf(ctx->p_input, buffer, bytes_consumed))
+					if(ERROR_CODE(int) == pipe_data_release_buf(ctx->p_input, buffer, bytes_consumed))
 						ERROR_LOG_GOTO(ERR, "Cannot unread the buffer");
 				}
 				goto PARSER_DONE;
@@ -296,11 +300,6 @@ PARSER_DONE:
 		ERROR_RETURN_LOG(int, "Cannot allocate memory for the type instance");
 
 	routing_result_t result;
-	if(ERROR_CODE(int) == _determine_routing(ctx, state->host.value, state->host.length, state->path.value, state->path.length, &result))
-		ERROR_LOG_GOTO(ERR, "Cannot dispose the parser state");
-
-	if(state->keep_alive && ERROR_CODE(int) == pipe_cntl(ctx->p_input, PIPE_CNTL_SET_FLAG, PIPE_PERSIST))
-		ERROR_LOG_GOTO(ERR, "Cannot set the persist flag");
 
 	if(state->error)
 	{
@@ -310,6 +309,12 @@ PARSER_DONE:
 
 		goto NORMAL_EXIT;
 	}
+
+	if(ERROR_CODE(int) == _determine_routing(ctx, state->host.value, state->host.length, state->path.value, state->path.length, &result))
+		ERROR_LOG_GOTO(ERR, "Cannot dispose the parser state");
+
+	if(state->keep_alive && ERROR_CODE(int) == pipe_cntl(ctx->p_input, PIPE_CNTL_SET_FLAG, PIPE_PERSIST))
+		ERROR_LOG_GOTO(ERR, "Cannot set the persist flag");
 
 	/* If we reached here, it means we've got a good http request */
 	uint32_t method_code = ERROR_CODE(uint32_t);

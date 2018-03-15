@@ -56,6 +56,7 @@ routing_map_t* routing_map_new()
 	ret->n_rules = 0;
 	ret->index = NULL;
 	ret->default_rule.https_url_base = NULL;
+	ret->default_rule.upgrade_http = 0;
 
 	if(NULL == (ret->rules = (_rule_t*)malloc(sizeof(_rule_t) * ret->cap_rules)))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the rule array");
@@ -250,7 +251,7 @@ static inline void _fill_routing_result(routing_result_t* resbuf, const _rule_da
 		resbuf->host_len = rule->host_len;
 	}
 
-	resbuf->should_upgrade = 1;
+	resbuf->should_upgrade = rule_data->upgrade_http;
 	resbuf->https_url_base = rule_data->https_url_base;
 	resbuf->out = &rule_data->accessors;
 }

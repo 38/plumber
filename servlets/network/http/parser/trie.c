@@ -206,18 +206,23 @@ trie_t* trie_new(trie_kv_pair_t* data, size_t count)
 			ERROR_PTR_RETURN_LOG("Invalid arguments: Duplicated key found %s", data[i].key);
 
 	size_t trie_size = _compute_trie_size(data, 0, count);
+
 	trie_t* ret = (trie_t*)calloc(sizeof(trie_t), 1);
 	if(NULL == ret)
 		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the trie");
 
-	if(NULL == (ret->node_array = (_trie_node_t*)calloc(sizeof(_trie_node_t), trie_size)))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the node array");
-	if(NULL == (ret->key_data = (char const**)calloc(sizeof(char const*), trie_size)))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocat ememory for the key data");
-	if(NULL == (ret->val_data = (void const**)calloc(sizeof(void const*), trie_size)))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the val data");
+	if(trie_size > 0)
+	{
 
-	(void)_build_trie(data, 0, (uint32_t)count, ret, 0);
+		if(NULL == (ret->node_array = (_trie_node_t*)calloc(sizeof(_trie_node_t), trie_size)))
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the node array");
+		if(NULL == (ret->key_data = (char const**)calloc(sizeof(char const*), trie_size)))
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocat ememory for the key data");
+		if(NULL == (ret->val_data = (void const**)calloc(sizeof(void const*), trie_size)))
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the val data");
+
+		(void)_build_trie(data, 0, (uint32_t)count, ret, 0);
+	}
 
 	return ret;
 ERR:
@@ -251,6 +256,13 @@ size_t trie_search(const trie_t* trie, trie_search_state_t* state, const char* k
 {
 	if(NULL == trie || NULL == state || NULL == key || NULL == result || key_size == 0)
 		ERROR_RETURN_LOG(size_t, "Invalid arguments");
+
+	if(trie->node_array == NULL) 
+	{
+		*result = NULL;
+		state->code = ERROR_CODE(uint32_t);
+		return 0;
+	}
 
 	size_t ret = 0;
 	uint32_t matched_len = state->matched_len;
@@ -340,6 +352,7 @@ size_t trie_search(const trie_t* trie, trie_search_state_t* state, const char* k
 					else
 						goto LEFT;
 				}
+				else goto MATCH_FAILED;
 			}
 		}
 		/* If we get here, it means we need another iteration */

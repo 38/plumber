@@ -16,7 +16,6 @@
  * @brief The HTTP parser state codes
  **/
 typedef enum {
-	_STATE_ERROR = -1,      /*!< We are unable to parse the request */
 	_STATE_INIT,            /*!< The state when we initialize the request parser */
 	_STATE_METHOD_GET,      /*!< The method phrase is determined and we need to match the method */
 	_STATE_METHOD_HEAD,     /*!< The method phrase is determined and we need to match the method */
@@ -49,7 +48,9 @@ typedef enum {
 	_STATE_BODY_END,        /*!< We are parsing the body end */
 	_STATE_DONE,            /*!< We have parsed everything */
 	_STATE_COUNT,           /*!< The number of states */
-	_STATE_PENDING          /*!< We are waiting for finalize the state transition */
+	_STATE_CODE_MASK = 0xff,/*!< The mask */
+	_STATE_PENDING = 0x100, /*!< We are waiting for finalize the state transition */
+	_STATE_ERROR   = 0x80   /*!< We are unable to parse the request */
 } _state_code_t;
 
 /**
@@ -70,6 +71,7 @@ typedef enum {
 typedef struct {
 	_state_type_t type;     /*!< The type of the state */
 	_state_type_t next;     /*!< The next state */
+	_state_type_t fail;     /*!< What we do when we failed */
 	union {
 		struct {
 			const char* str;/*!< The literal we want to match */
@@ -88,7 +90,17 @@ typedef struct {
 
 #define _GENERIC(name)                 [_STATE_##name] = {.type = _STATE_TYPE_GENERIC}
 #define _LITERAL(name, ns, lit)        [_STATE_##name] = {.type = _STATE_TYPE_LITER, .next = _STATE_##ns, .param = {.liter = {.str = lit, .size = sizeof(lit) - 1}}}
-#define _LITERAL_IC(name, ns, lit)     [_STATE_##name] = {.type = _STATE_TYPE_LITER_IC, .next = _STATE_##ns, .param = {.liter ={ .str = lit, .size = sizeof(lit) - 1}}}
+#define _LITERAL_IC(name, ns, fs, lit) [_STATE_##name] = {\
+	.type = _STATE_TYPE_LITER_IC, \
+	.next = _STATE_##ns, \
+	.fail = _STATE_##fs, \
+	.param = {\
+		.liter = {\
+			.str = lit,\
+			.size = sizeof(lit) - 1\
+		}\
+	}\
+}
 #define _COPY(name, ns, tr, sz, ofs)   [_STATE_##name] = {\
 	.type = _STATE_TYPE_COPY,  \
 	.next = _STATE_##ns, \
@@ -107,36 +119,66 @@ typedef struct {
  * @brief The state description table
  **/
 static _state_desc_t _state_info[_STATE_COUNT] = {
-	_GENERIC(INIT),                                          /* In this state we need to determine which is the next state and set the method code*/
-	_LITERAL(METHOD_GET, METHOD_PATH_SEP,  "ET "),           /* We are going to match GET */ 
-	_LITERAL(METHOD_HEAD, METHOD_PATH_SEP, "EAD "),          /* We are going to match HEAD */ 
-	_LITERAL(METHOD_POST, METHOD_PATH_SEP, "OST "),          /* We are going to match POST */
-	_WS(METHOD_PATH_SEP, URI, 0),                            /* Strip the extra white space between method and URI */
-	_GENERIC(URI),                                           /* In this state we need to determine if we got a full URI or relative path */
-	_IGNORE(URI_SCHEME, URI_SCHEME_SEP, ':'),                /* We just ignore whatever scheme it specify */
-	_LITERAL(URI_SCHEME_SEP, URI_HOST, "://"),               /* We should expect the delimitor for the scheme and host name */
-	_COPY(URI_HOST, URI_PATH, '/', 64, host),                /* Then we have the host name to copy to the buffer */
-	_GENERIC(URI_PATH),                                      /* In this state we need to copy the path to buffer and determine if we have query parameter */
-	_COPY(URI_QUERY, URI_VERSION_SEP, ' ', 2048, query),     /* We simply copy the data to the query param */
-	_WS(URI_VERSION_SEP, VERSION, 1),                        /* Strip at least one space after the URI */
-	_IGNORE(VERSION, REQ_LINE_END, '\r'),                    /* For whatever HTTP version, we don't actually care about this */
-	_LITERAL(REQ_LINE_END, FIELD_NAME_INIT, "\r\n"),              /* Finally we need a sign to complete the first line */
-	_GENERIC(FIELD_NAME_INIT),                               /* In this state we need to determine which state we are goging to parse */
-	_LITERAL_IC(FIELD_NAME_ACCEPT_ENC, FIELD_KV_SEP, "ccept-encoding:"),  /* We are matching the accept-encoding field */
-	_LITERAL_IC(FIELD_NAME_RANGE, FIELD_KV_SEP, "ange:"),                 /* We are matching range field */
-	_LITERAL_IC(FIELD_NAME_HOST, FIELD_KV_SEP, "ost:"),                   /* We are matching host field */
-	_LITERAL_IC(FIELD_NAME_CONNECT, FIELD_KV_SEP, "nection:"),            /* We are matching connection field */
-	_LITERAL_IC(FIELD_NAME_CONTENT_LEN, FIELD_KV_SEP, "tent-length:"),    /* We are matching content-length field */
-	_WS(FIELD_KV_SEP, FIELD_VALUE, 0),                       /* In this state we handle each of the state differently */
-	_GENERIC(FIELD_VALUE),                                   /* All the non-copy header */
-	_COPY(FIELD_VAL_HOST, FIELD_LINE_END, '\r', 64, host),       /* All the non-copy header */
-	_COPY(FIELD_VAL_ACCEPT_ENC, FIELD_LINE_END, '\r', 64, accept_encoding), /* All the non-copy header */
-	_COPY(FIELD_VAL_RANGE, FIELD_LINE_END, '\r', 64, range_text), /* All the non-copy header */
-	_IGNORE(FIELD_NOT_INST, FIELD_LINE_END, '\r'),           /* We are going to ignore this field */
-	_LITERAL(FIELD_LINE_END, FIELD_NAME_INIT, "\r\n"),       /* We should check if we really come to the end of the field line */
-	_LITERAL(BODY_BEGIN, BODY_DATA, "\r\n"),                 /* We expect the last \r\n */
-	_GENERIC(BODY_DATA),                                     /* Read all body data */
-	_GENERIC(DONE)                                           /* Finally we are done */
+	/* In this state we need to determine which is the next state and set the method code*/
+	_GENERIC(INIT),
+	/* We are going to match GET */ 
+	_LITERAL(METHOD_GET, METHOD_PATH_SEP,  "ET "),
+	/* We are going to match HEAD */ 
+	_LITERAL(METHOD_HEAD, METHOD_PATH_SEP, "EAD "),
+	/* We are going to match POST */
+	_LITERAL(METHOD_POST, METHOD_PATH_SEP, "OST "),
+	/* Strip the extra white space between method and URI */
+	_WS(METHOD_PATH_SEP, URI, 0),
+	/* In this state we need to determine if we got a full URI or relative path */
+	_GENERIC(URI),
+	/* We just ignore whatever scheme it specify */
+	_IGNORE(URI_SCHEME, URI_SCHEME_SEP, ':'),
+	/* We should expect the delimitor for the scheme and host name */
+	_LITERAL(URI_SCHEME_SEP, URI_HOST, "://"),
+	/* Then we have the host name to copy to the buffer */
+	_COPY(URI_HOST, URI_PATH, '/', 64, host),
+	/* In this state we need to copy the path to buffer and determine if we have query parameter */
+	_GENERIC(URI_PATH),
+	/* We simply copy the data to the query param */
+	_COPY(URI_QUERY, URI_VERSION_SEP, ' ', 2048, query),
+	/* Strip at least one space after the URI */
+	_WS(URI_VERSION_SEP, VERSION, 1),
+	/* For whatever HTTP version, we don't actually care about this */
+	_IGNORE(VERSION, REQ_LINE_END, '\r'),
+	/* Finally we need a sign to complete the first line */
+	_LITERAL(REQ_LINE_END, FIELD_NAME_INIT, "\r\n"),
+	/* In this state we need to determine which state we are goging to parse */
+	_GENERIC(FIELD_NAME_INIT),
+	/* We are matching the accept-encoding field */
+	_LITERAL_IC(FIELD_NAME_ACCEPT_ENC, FIELD_KV_SEP, FIELD_NOT_INST, "ccept-encoding:"),
+	/* We are matching range field */
+	_LITERAL_IC(FIELD_NAME_RANGE, FIELD_KV_SEP, FIELD_NOT_INST, "ange:"),
+	/* We are matching host field */
+	_LITERAL_IC(FIELD_NAME_HOST, FIELD_KV_SEP, FIELD_NOT_INST, "ost:"),
+	/* We are matching connection field */
+	_LITERAL_IC(FIELD_NAME_CONNECT, FIELD_KV_SEP, FIELD_NOT_INST, "ection:"),
+	/* We are matching content-length field */
+	_LITERAL_IC(FIELD_NAME_CONTENT_LEN, FIELD_KV_SEP, FIELD_NOT_INST, "ent-length:"),
+	/* In this state we handle each of the state differently */
+	_WS(FIELD_KV_SEP, FIELD_VALUE, 0),
+	/* All the non-copy header */
+	_GENERIC(FIELD_VALUE),
+	/* All the non-copy header */
+	_COPY(FIELD_VAL_HOST, FIELD_LINE_END, '\r', 64, host),
+	/* All the non-copy header */
+	_COPY(FIELD_VAL_ACCEPT_ENC, FIELD_LINE_END, '\r', 64, accept_encoding),
+	/* All the non-copy header */
+	_COPY(FIELD_VAL_RANGE, FIELD_LINE_END, '\r', 64, range_text),
+	/* We are going to ignore this field */
+	_IGNORE(FIELD_NOT_INST, FIELD_LINE_END, '\r'),
+	/* We should check if we really come to the end of the field line */
+	_LITERAL(FIELD_LINE_END, FIELD_NAME_INIT, "\r\n"),
+	/* We expect the last \r\n */
+	_LITERAL(BODY_BEGIN, BODY_DATA, "\r\n"),
+	/* Read all body data */
+	_GENERIC(BODY_DATA),
+	/* Finally we are done */
+	_GENERIC(DONE)                                                                    
 };
 
 typedef enum {
@@ -171,6 +213,10 @@ static inline int _init_buffer(parser_state_t* state, uintptr_t offset, size_t l
 {
 	_state_t* internal = (_state_t*)state->internal_state;
 	internal->buffer = (parser_string_t*)((uintptr_t)state + offset);
+
+	if(internal->buffer->value != NULL)
+		free(internal->buffer->value);
+
 	size_t init_size = 64;
 	if(limit + 1 < init_size)
 		init_size = limit + 1;
@@ -208,14 +254,15 @@ static inline int _ensure_buffer(parser_state_t* state, size_t new_bytes, size_t
 static inline const char* _copy(parser_state_t* state, const char* data, const char* end)
 {
 	_state_t* internal = (_state_t*)state->internal_state;
-	const _state_desc_t* si = _state_info + internal->code;
+	const _state_desc_t* si = _state_info + (internal->code & _STATE_CODE_MASK);
 
-	if(internal->code & _STATE_PENDING)
+	if(_STATE_PENDING & internal->code)
 	{
 		if(ERROR_CODE(int) == _init_buffer(state, (uintptr_t)si->param.copy.off, (size_t)si->param.copy.lim))
 			return NULL;
 		internal->code ^= _STATE_PENDING;
 	}
+	
 
 	const char* termpos = data;
 	int last = 0;
@@ -230,8 +277,6 @@ static inline const char* _copy(parser_state_t* state, const char* data, const c
 	int ensure_rc = _ensure_buffer(state, (size_t)(termpos - data), (size_t)si->param.copy.lim);
 	if(ensure_rc == 0) return data;
 	if(ensure_rc == ERROR_CODE(int)) return NULL;
-
-	if(internal->buffer->length + (size_t)(termpos - data) + 1> internal->buffer_cap)
 
 	memcpy(internal->buffer->value + internal->buffer->length, data, (size_t)(termpos - data));
 	internal->buffer->length += (size_t)(termpos - data);
@@ -256,7 +301,7 @@ static inline const char* _uri_path(parser_state_t* state, const char* data, con
 		internal->code ^= _STATE_PENDING;
 	}
 
-	for(;data < end && data[0] != '&' && data[0] != ' '; data ++)
+	for(;data < end && data[0] != '?' && data[0] != ' '; data ++)
 	{
 		int ensure_rc = _ensure_buffer(state, 1, 2048);
 		if(ensure_rc == 0) return data;
@@ -264,7 +309,7 @@ static inline const char* _uri_path(parser_state_t* state, const char* data, con
 		internal->buffer->value[internal->buffer->length++] = data[0];
 	}
 
-	if(data < end && data[0] == '&')
+	if(data < end && data[0] == '?')
 	{
 		internal->buffer->value[internal->buffer->length] = 0;
 		_transite_state(state, _STATE_URI_QUERY);
@@ -306,6 +351,7 @@ static inline const char* _body_data(parser_state_t* state, const char* data, co
 	}
 
 	memcpy(state->body.value + state->body.length, data, bytes_to_copy);
+	state->body.length += bytes_to_copy;
 
 	return data + bytes_to_copy;
 }
@@ -313,9 +359,12 @@ static inline const char* _body_data(parser_state_t* state, const char* data, co
 static inline const char* _ignore(parser_state_t* state, const char* data, const char* end)
 {
 	_state_t* internal = (_state_t*)state->internal_state;
-	const _state_desc_t* si = _state_info + internal->code;
+	const _state_desc_t* si = _state_info + (internal->code & _STATE_CODE_MASK);
 	
 	data = memchr(data, si->param.ignore, (size_t)(end - data));
+
+	if(data != NULL && data < end && data[0] == si->param.ignore)
+		_transite_state(state, si->next);
 
 	return data ? data : end;
 }
@@ -323,13 +372,14 @@ static inline const char* _ignore(parser_state_t* state, const char* data, const
 static inline const char* _ws(parser_state_t* state, const char* data, const char* end)
 {
 	_state_t* internal = (_state_t*)state->internal_state;
-	const _state_desc_t* si = _state_info + internal->code;
+	const _state_desc_t* si = _state_info + (internal->code & _STATE_CODE_MASK);
 
 	if(internal->code & _STATE_PENDING)
 	{
 		internal->sub_state = si->param.ws;
 		internal->code ^= _STATE_PENDING;
 	}
+	
 
 	for(;data < end && (data[0] == ' ' || data[0] == '\t'); data ++)
 		if(internal->sub_state > 0)
@@ -348,13 +398,14 @@ static inline const char* _ws(parser_state_t* state, const char* data, const cha
 static inline const char* _literal(parser_state_t* state, const char* data, const char* end)
 {
 	_state_t* internal = (_state_t*)state->internal_state;
-	const _state_desc_t* si = _state_info + internal->code;
 	
 	if(internal->code & _STATE_PENDING)
 	{
 		internal->sub_state = 0;
 		internal->code ^= _STATE_PENDING;
 	}
+	
+	const _state_desc_t* si = _state_info + internal->code;
 
 	const char* to_match = si->param.liter.str;
 
@@ -373,7 +424,7 @@ static inline const char* _literal(parser_state_t* state, const char* data, cons
 static inline const char* _literal_ci(parser_state_t* state, const char* data, const char* end)
 {
 	_state_t* internal = (_state_t*)state->internal_state;
-	const _state_desc_t* si = _state_info + internal->code;
+	const _state_desc_t* si = _state_info + (internal->code & _STATE_CODE_MASK);
 	
 	if(internal->code & _STATE_PENDING)
 	{
@@ -390,7 +441,7 @@ static inline const char* _literal_ci(parser_state_t* state, const char* data, c
 			ch |= 0x20;
 		if(to_match[internal->sub_state] != ch)
 		{
-			_transite_state(state, _STATE_ERROR);
+			_transite_state(state, si->fail);
 			return data;
 		}
 	}
@@ -443,7 +494,7 @@ static inline const char* _uri(parser_state_t* state, const char* data, const ch
 
 static inline const char* _connection(parser_state_t* state, const char* data, const char* end)
 {
-	const char closed[] = "closed";
+	const char closed[] = "close";
 	_state_t* internal = (_state_t*)state->internal_state;
 
 	for(;data < end && (size_t)internal->sub_state < sizeof(closed) - 1 && closed[internal->sub_state] == data[0]; data ++, internal->sub_state ++);
@@ -459,8 +510,10 @@ static inline const char* _connection(parser_state_t* state, const char* data, c
 	return data;
 }
 
-static inline const char* _content_length(parser_state_t* state, const char* data, const char* end)
+static inline const char* _content_length(parser_state_t* state, const char* data, const char* end, int reset)
 {
+	if(reset) state->content_length = 0;
+
 	for(;data < end && data[0] >= '0' && data[0] <= '9'; data ++)
 		state->content_length = state->content_length * 10ull + (unsigned)(data[0] - '0');
 
@@ -472,12 +525,13 @@ static inline const char* _content_length(parser_state_t* state, const char* dat
 
 static inline const char* _field_value(parser_state_t* state, const char* data, const char* end)
 {
-	(void)end;
+	int reset = 0;
 	_state_t* internal = (_state_t*)state->internal_state;
 	
 	if(internal->code & _STATE_PENDING)
 	{
 		internal->sub_state = 0;
+		reset = 1;
 		internal->code ^= _STATE_PENDING;
 	}
 
@@ -504,7 +558,7 @@ static inline const char* _field_value(parser_state_t* state, const char* data, 
 		case _FIELD_NAME_CONN:
 			return _connection(state, data, end);
 		case _FIELD_NAME_CL:
-			return _content_length(state, data, end);
+			return _content_length(state, data, end, reset);
 		default:
 			_transite_state(state, _STATE_FIELD_VAL_HOST);
 			return data;
@@ -541,7 +595,7 @@ static inline const char* _field_name_init(parser_state_t* state, const char* da
 			internal->fn_state = _FIELD_NAME_HOST;
 			return data + 1;
 		}
-		else if(data[0] == 'c' || data[1] == 'C')
+		else if(data[0] == 'c' || data[0] == 'C')
 		{
 			internal->fn_state = _FIELD_NAME_CON_OR_CL;
 			internal->sub_state = 0;
@@ -575,9 +629,11 @@ static inline const char* _field_name_init(parser_state_t* state, const char* da
 		switch(data[0])
 		{
 			case 'n':
+				internal->fn_state = _FIELD_NAME_CONN;
 				_transite_state(state, _STATE_FIELD_NAME_CONNECT);
 				return data + 1;
 			case 't':
+				internal->fn_state = _FIELD_NAME_CL;
 				_transite_state(state, _STATE_FIELD_NAME_CONTENT_LEN);
 				return data + 1;
 			default:
@@ -592,12 +648,13 @@ static inline const char* _field_name_init(parser_state_t* state, const char* da
 
 static inline size_t _parse_next_buf(parser_state_t* state, const char* data, size_t size)
 {
+	const char* begin = data;
 	const char* end = data + size;
 	_state_t* internal = (_state_t*)state->internal_state;
-	_state_type_t type = _state_info[internal->code].type;
 
 	while(data < end)
 	{
+		_state_type_t type = _state_info[internal->code & _STATE_CODE_MASK].type;
 		const char* ret = NULL;
 		if(type != _STATE_TYPE_GENERIC)
 		{
@@ -624,7 +681,7 @@ static inline size_t _parse_next_buf(parser_state_t* state, const char* data, si
 		}
 		else
 		{
-			switch(internal->code & ~_STATE_PENDING)
+			switch(internal->code & _STATE_CODE_MASK)
 			{
 				case _STATE_URI_PATH:
 					ret = _uri_path(state, data, end);
@@ -648,17 +705,21 @@ static inline size_t _parse_next_buf(parser_state_t* state, const char* data, si
 					(void)0;
 			}
 		}
+		
+		data = ret;
 
-		if((internal->code & ~_STATE_PENDING) == _STATE_DONE ||
-		   (internal->code & ~_STATE_PENDING) == _STATE_ERROR)
+		if((internal->code & _STATE_CODE_MASK) == _STATE_BODY_DATA && state->content_length == state->body.length)
+			internal->code = _STATE_DONE;
+
+		if((internal->code & _STATE_CODE_MASK) == _STATE_DONE ||
+		   (internal->code & _STATE_CODE_MASK) == _STATE_ERROR)
 			break;
 
 		if(ret == NULL)
 			return ERROR_CODE(size_t);
-		data = ret;
 	}
 
-	return (size_t)(end - data);
+	return (size_t)(data - begin);
 }
 
 parser_state_t* parser_state_new()
@@ -724,12 +785,12 @@ size_t parser_process_next_buf(parser_state_t* state, const void* buf, size_t sz
 
 	state->empty = 0;
 
-	if(internal->code == _STATE_ERROR)
+	if((internal->code & _STATE_CODE_MASK) == _STATE_ERROR)
 	{
 		state->error = 1;
 		internal->code = _STATE_ERROR;
 	}
-	else if(internal->code == _STATE_DONE)
+	else if((internal->code & _STATE_CODE_MASK) == _STATE_DONE)
 	{
 		if(state->range_text.value != NULL)
 		{
@@ -747,13 +808,14 @@ size_t parser_process_next_buf(parser_state_t* state, const void* buf, size_t sz
 			}
 
 			free(state->range_text.value);
+			state->range_text.value = NULL;
 		}
 
 		if(state->host.value == NULL || state->path.value == NULL)
 			state->error = 1;
 	}
 
-	return 0;
+	return rc;
 }
 
 int parser_state_done(const parser_state_t* state)
