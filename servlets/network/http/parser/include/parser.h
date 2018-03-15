@@ -42,6 +42,7 @@ typedef struct {
 	parser_string_t      range_text;          /*!< The text for the range */
 	uint64_t             range_begin;         /*!< The beginging of the range */
 	uint64_t             range_end;           /*!< The end of the range */
+	uint64_t             content_length;      /*!< The content length */
 	uintpad_t __padding__[0];
 	char                 internal_state[0];   /*!< The internal state */
 } parser_state_t;

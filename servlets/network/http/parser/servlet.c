@@ -328,7 +328,10 @@ PARSER_DONE:
 			ERROR_LOG_GOTO(ERR, "Code bug: Invalid method");
 	}
 	
-	if(ERROR_CODE(int) == pstd_string_transfer_commit_write(type_inst, ctx->a_accept_encoding, state->accept_encoding.value, state->accept_encoding.length))
+	if(state->accept_encoding.value != NULL && 
+		ERROR_CODE(int) == pstd_string_transfer_commit_write(type_inst, ctx->a_accept_encoding, 
+			                                                 state->accept_encoding.value, 
+															 state->accept_encoding.length))
 		ERROR_LOG_GOTO(ERR, "Cannot write the accept encdoding to the protocol data buffer");
 	state->accept_encoding.value = NULL;
 
@@ -392,13 +395,13 @@ UPGRADE_ERR:
 		ERROR_LOG_GOTO(ERR, "Cannot write the relative URL to the result pipe");
 	state->path.value = NULL;
 
-	if(ERROR_CODE(int) == pstd_string_transfer_commit_write(type_inst, result.out->a_query_param, state->query.value, state->query.length))
+	if(state->query.value != NULL && ERROR_CODE(int) == pstd_string_transfer_commit_write(type_inst, result.out->a_query_param, state->query.value, state->query.length))
 		ERROR_LOG_GOTO(ERR, "Cannot write the query param to the result pipe");
 	state->query.value = NULL;
 
-	if(ERROR_CODE(int) == pstd_string_transfer_commit_write(type_inst, result.out->a_body, state->query.value, state->query.length))
+	if(state->body.value != NULL && ERROR_CODE(int) == pstd_string_transfer_commit_write(type_inst, result.out->a_body, state->body.value, state->body.length))
 		ERROR_LOG_GOTO(ERR, "Cannot write the data body to the result pipe");
-	state->query.value = NULL;
+	state->body.value = NULL;
 
 	uint64_t begin = ctx->RANGE_SEEK_SET;
 	uint64_t end   = ctx->RANGE_SEEK_END;

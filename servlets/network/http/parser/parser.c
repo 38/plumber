@@ -281,6 +281,35 @@ static inline const char* _uri_path(parser_state_t* state, const char* data, con
 	return data;
 }
 
+static inline const char* _body_data(parser_state_t* state, const char* data, const char* end)
+{
+	_state_t* internal = (_state_t*)state->internal_state;
+
+	if(internal->code & _STATE_PENDING)
+	{
+		if(state->content_length > 0)
+		{
+			if(NULL == (state->body.value = (char*)malloc(state->content_length + 1)))
+				ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the data body");
+		}
+		internal->code ^= _STATE_PENDING;
+	}
+
+	size_t bytes_to_copy = (size_t)(end - data);
+	if(bytes_to_copy > state->content_length - state->body.length)
+		bytes_to_copy = state->content_length - state->body.length;
+
+	if(bytes_to_copy == 0)
+	{
+		_transite_state(state, _STATE_DONE);
+		return data;
+	}
+
+	memcpy(state->body.value + state->body.length, data, bytes_to_copy);
+
+	return data + bytes_to_copy;
+}
+
 static inline const char* _ignore(parser_state_t* state, const char* data, const char* end)
 {
 	_state_t* internal = (_state_t*)state->internal_state;
@@ -412,10 +441,45 @@ static inline const char* _uri(parser_state_t* state, const char* data, const ch
 	return data;
 }
 
+static inline const char* _connection(parser_state_t* state, const char* data, const char* end)
+{
+	const char closed[] = "closed";
+	_state_t* internal = (_state_t*)state->internal_state;
+
+	for(;data < end && (size_t)internal->sub_state < sizeof(closed) - 1 && closed[internal->sub_state] == data[0]; data ++, internal->sub_state ++);
+
+	if(internal->sub_state == sizeof(closed) - 1) 
+	{
+		state->keep_alive = 0;
+		_transite_state(state, _STATE_FIELD_LINE_END);
+	}
+	else if(data < end && closed[internal->sub_state] != data[0])
+		_transite_state(state, _STATE_FIELD_NOT_INST);
+
+	return data;
+}
+
+static inline const char* _content_length(parser_state_t* state, const char* data, const char* end)
+{
+	for(;data < end && data[0] >= '0' && data[0] <= '9'; data ++)
+		state->content_length = state->content_length * 10ull + (unsigned)(data[0] - '0');
+
+	if(data < end && (data[0] < '0' || data[0] > '9'))
+		_transite_state(state, _STATE_FIELD_LINE_END);
+
+	return data;
+}
+
 static inline const char* _field_value(parser_state_t* state, const char* data, const char* end)
 {
 	(void)end;
 	_state_t* internal = (_state_t*)state->internal_state;
+	
+	if(internal->code & _STATE_PENDING)
+	{
+		internal->sub_state = 0;
+		internal->code ^= _STATE_PENDING;
+	}
 
 	switch(internal->fn_state)
 	{
@@ -437,13 +501,14 @@ static inline const char* _field_value(parser_state_t* state, const char* data, 
 		case _FIELD_NAME_RANGE:
 			_transite_state(state, _STATE_FIELD_VAL_RANGE);
 			return data;
-		/* TODO: content-length, connection */
+		case _FIELD_NAME_CONN:
+			return _connection(state, data, end);
+		case _FIELD_NAME_CL:
+			return _content_length(state, data, end);
 		default:
 			_transite_state(state, _STATE_FIELD_VAL_HOST);
 			return data;
 	}
-
-
 }
 
 static inline const char* _field_name_init(parser_state_t* state, const char* data, const char* end)
@@ -525,14 +590,76 @@ static inline const char* _field_name_init(parser_state_t* state, const char* da
 }
 
 
-#if 0
-static inline int _parse_next_buf(parser_state_t* state, const char* data, size_t size)
+static inline size_t _parse_next_buf(parser_state_t* state, const char* data, size_t size)
 {
 	const char* end = data + size;
 	_state_t* internal = (_state_t*)state->internal_state;
-	
+	_state_type_t type = _state_info[internal->code].type;
+
+	while(data < end)
+	{
+		const char* ret = NULL;
+		if(type != _STATE_TYPE_GENERIC)
+		{
+			switch(type)
+			{
+				case _STATE_TYPE_LITER:
+					ret = _literal(state, data, end);
+					break;
+				case _STATE_TYPE_LITER_IC:
+					ret = _literal_ci(state, data, end);
+					break;
+				case _STATE_TYPE_COPY:
+					ret = _copy(state, data, end);
+					break;
+				case _STATE_TYPE_WS:
+					ret = _ws(state, data, end);
+					break;
+				case _STATE_TYPE_IGNORE:
+					ret = _ignore(state, data, end);
+					break;
+				default:
+					(void)0;
+			}
+		}
+		else
+		{
+			switch(internal->code & ~_STATE_PENDING)
+			{
+				case _STATE_URI_PATH:
+					ret = _uri_path(state, data, end);
+					break;
+				case _STATE_BODY_DATA:
+					ret = _body_data(state, data, end);
+					break;
+				case _STATE_INIT:
+					ret = _init(state, data, end);
+					break;
+				case _STATE_URI:
+					ret = _uri(state, data, end);
+					break;
+				case _STATE_FIELD_VALUE:
+					ret = _field_value(state, data, end);
+					break;
+				case _STATE_FIELD_NAME_INIT:
+					ret = _field_name_init(state, data, end);
+					break;
+				default:
+					(void)0;
+			}
+		}
+
+		if((internal->code & ~_STATE_PENDING) == _STATE_DONE ||
+		   (internal->code & ~_STATE_PENDING) == _STATE_ERROR)
+			break;
+
+		if(ret == NULL)
+			return ERROR_CODE(size_t);
+		data = ret;
+	}
+
+	return (size_t)(end - data);
 }
-#endif
 
 parser_state_t* parser_state_new()
 {
@@ -543,6 +670,98 @@ parser_state_t* parser_state_new()
 		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the state");
 
 	ret->empty = 1;
+	ret->keep_alive = 1;
 
 	return ret;
+}
+
+static inline void _free_string(parser_string_t* str)
+{
+	if(NULL != str->value)
+		free(str->value);
+}
+
+int parser_state_free(parser_state_t* state)
+{
+	if(NULL == state)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	_free_string(&state->path);
+	_free_string(&state->host);
+	_free_string(&state->query);
+	_free_string(&state->accept_encoding);
+	_free_string(&state->body);
+	_free_string(&state->range_text);
+
+	free(state);
+
+	return 0;
+}
+
+static inline uint64_t _parse_u64(const char* s)
+{
+	uint64_t ret = 0;
+
+	for(;*s;s ++)
+		if(*s >= '0' && *s <= '9')
+			ret = ret * 10u + (uint64_t)(*s - '0');
+		else
+			return (uint64_t)-1;
+	return ret;
+}
+
+size_t parser_process_next_buf(parser_state_t* state, const void* buf, size_t sz)
+{
+	if(NULL == state || NULL == buf || sz == 0)
+		ERROR_RETURN_LOG(size_t, "Invalid argument");
+
+	size_t rc = _parse_next_buf(state, buf, sz);
+
+	if(ERROR_CODE(size_t) == rc)
+		ERROR_RETURN_LOG(size_t, "Cannot parse the buffer");
+
+	_state_t* internal = (_state_t*)state->internal_state;
+
+	state->empty = 0;
+
+	if(internal->code == _STATE_ERROR)
+	{
+		state->error = 1;
+		internal->code = _STATE_ERROR;
+	}
+	else if(internal->code == _STATE_DONE)
+	{
+		if(state->range_text.value != NULL)
+		{
+			char* unit = state->range_text.value;
+			char* start = strchr(unit, '=');
+			if(start != NULL) *(start++) = 0;
+			char* end = start ? strchr(start, '-') : NULL;
+			if(end != NULL) *(end++) = 0;
+
+			if(start != NULL && end != NULL)
+			{
+				state->range_begin = _parse_u64(start); 
+				state->range_end   = _parse_u64(end);
+				state->has_range = 1;
+			}
+
+			free(state->range_text.value);
+		}
+
+		if(state->host.value == NULL || state->path.value == NULL)
+			state->error = 1;
+	}
+
+	return 0;
+}
+
+int parser_state_done(const parser_state_t* state)
+{
+	if(NULL == state) ERROR_RETURN_LOG(int, "INvalid arguments");
+
+	if(state->error) return 1;
+
+	const _state_t* internal = (const _state_t*)state->internal_state;
+	return internal->code == _STATE_DONE || internal->code == _STATE_ERROR;
 }
