@@ -39,6 +39,7 @@ typedef struct {
 	parser_string_t      query;               /*!< The query parameter (MAX: 2048 Bytes) */
 	parser_string_t      accept_encoding;     /*!< The accept encoding buffer (MAX: 32 Bytes) */
 	parser_string_t      body;                /*!< The body data (MAX: 2048) (TODO: we probably need a RLS token that wraps the pipe data directly) */
+	parser_string_t      range_text;          /*!< The text for the range */
 	uint64_t             range_begin;         /*!< The beginging of the range */
 	uint64_t             range_end;           /*!< The end of the range */
 	uintpad_t __padding__[0];

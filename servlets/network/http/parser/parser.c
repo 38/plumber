@@ -31,15 +31,25 @@ typedef enum {
 	_STATE_URI_VERSION_SEP, /*!< The space between URI and HTTP version identifer */
 	_STATE_VERSION,         /*!< The HTTP version */
 	_STATE_REQ_LINE_END,    /*!< We are parsing the \r\n */
-	_STATE_FIELD_NAME,      /*!< We are parsing a field name */
+	_STATE_FIELD_NAME_INIT, /*!< We are parsing a field name */
+	_STATE_FIELD_NAME_ACCEPT_ENC,   /*!< We are parsering the Accept-Encoding field name */
+	_STATE_FIELD_NAME_RANGE,        /*!< We are parsing the Range field name */
+	_STATE_FIELD_NAME_HOST,         /*!< We are parsing the Host field name */
+	_STATE_FIELD_NAME_CONTENT_LEN,  /*!< We are parsing the content-length name */
+	_STATE_FIELD_NAME_CONNECT,      /*!< We are parsing the connection field name */
 	_STATE_FIELD_KV_SEP,    /*!< We are parsing the field name - field value delimitor */
 	_STATE_FIELD_VALUE,     /*!< We are parsing the content of the value */
+	_STATE_FIELD_VAL_HOST,
+	_STATE_FIELD_VAL_ACCEPT_ENC,
+	_STATE_FIELD_VAL_RANGE,
 	_STATE_FIELD_LINE_END,  /*!< We are parsing the end of the field line */
 	_STATE_FIELD_NOT_INST,  /*!< The field we are not interested */
+	_STATE_BODY_BEGIN,      /*!< We are reading the last \r\n */
 	_STATE_BODY_DATA,       /*!< We are parsing the data */
 	_STATE_BODY_END,        /*!< We are parsing the body end */
 	_STATE_DONE,            /*!< We have parsed everything */
-	_STATE_COUNT            /*!< The number of states */
+	_STATE_COUNT,           /*!< The number of states */
+	_STATE_PENDING          /*!< We are waiting for finalize the state transition */
 } _state_code_t;
 
 /**
@@ -48,6 +58,7 @@ typedef enum {
 typedef enum {
 	_STATE_TYPE_GENERIC = 0,   /*!< Indicates this is not a predefined state */
 	_STATE_TYPE_LITER,         /*!< Indicates in this state we need to match a literal constant, if failed goto error */
+	_STATE_TYPE_LITER_IC,      /*!< Liternal constant but ignore the case */
 	_STATE_TYPE_COPY,          /*!< Indicates in this state we want to copy the data into a buffer, util we see a char */
 	_STATE_TYPE_WS,            /*!< Indicates in this state we want to trip the white spaces */
 	_STATE_TYPE_IGNORE         /*!< We want to ignore the data until we see the char */
@@ -60,8 +71,12 @@ typedef struct {
 	_state_type_t type;     /*!< The type of the state */
 	_state_type_t next;     /*!< The next state */
 	union {
-		const char*  liter;    /*!< The literal we want to match */
 		struct {
+			const char* str;/*!< The literal we want to match */
+			size_t      size; /*!< The size of the string */
+		} liter, liter_ic;   /*!< The literal and literal case insensitive */ 
+		struct {
+			uint32_t off;   /*!< The offset for the buffer */
 			char     term;  /*!< The ending string we want to terminate the copy */
 			int32_t  lim;   /*!< The size limit of the buffer */
 		}         copy;     /*!< The copy param */
@@ -71,295 +86,453 @@ typedef struct {
 } _state_desc_t;
 
 
-#define _GENERIC(name)            [_STATE_##name] = {.type = _STATE_TYPE_GENERIC}
-#define _LITERAL(name, ns, lit)   [_STATE_##name] = {.type = _STATE_TYPE_LITER, .next = _STATE_##ns, .param = {.liter = lit}}
-#define _COPY(name, ns, tr, sz)   [_STATE_##name] = {.type = _STATE_TYPE_COPY,  .next = _STATE_##ns, .param = {.copy = {.term = tr, .lim = sz}}}
-#define _WS(name, ns, n)          [_STATE_##name] = {.type = _STATE_TYPE_WS, .next = _STATE_##ns, .param = {.ws = n}}
-#define _IGNORE(name, ns, tr)     [_STATE_##name] = {.type = _STATE_TYPE_IGNORE, .next = _STATE_##ns, .param = {.ignore = tr}}
+#define _GENERIC(name)                 [_STATE_##name] = {.type = _STATE_TYPE_GENERIC}
+#define _LITERAL(name, ns, lit)        [_STATE_##name] = {.type = _STATE_TYPE_LITER, .next = _STATE_##ns, .param = {.liter = {.str = lit, .size = sizeof(lit) - 1}}}
+#define _LITERAL_IC(name, ns, lit)     [_STATE_##name] = {.type = _STATE_TYPE_LITER_IC, .next = _STATE_##ns, .param = {.liter ={ .str = lit, .size = sizeof(lit) - 1}}}
+#define _COPY(name, ns, tr, sz, ofs)   [_STATE_##name] = {\
+	.type = _STATE_TYPE_COPY,  \
+	.next = _STATE_##ns, \
+	.param = {\
+		.copy = {\
+			.term = tr, \
+			.lim = sz, \
+			.off = (uint32_t)(uint64_t)&((parser_state_t*)NULL)->ofs\
+		}\
+	}\
+}
+#define _WS(name, ns, n)               [_STATE_##name] = {.type = _STATE_TYPE_WS, .next = _STATE_##ns, .param = {.ws = n}}
+#define _IGNORE(name, ns, tr)          [_STATE_##name] = {.type = _STATE_TYPE_IGNORE, .next = _STATE_##ns, .param = {.ignore = tr}}
 
 /**
  * @brief The state description table
  **/
 static _state_desc_t _state_info[_STATE_COUNT] = {
-	_GENERIC(INIT),
-	_LITERAL(METHOD_GET,       METHOD_PATH_SEP, "ET "       ),
-	_LITERAL(METHOD_HEAD,      METHOD_PATH_SEP, "EAD "      ),
-	_LITERAL(METHOD_POST,      METHOD_PATH_SEP, "OST "      ),
-	_WS     (METHOD_PATH_SEP,  URI,              0          ),
-	_GENERIC(URI                                            ),
-	_IGNORE (URI_SCHEME,       URI_SCHEME_SEP,  ':'         ),
-	_LITERAL(URI_SCHEME_SEP,   URI_HOST,        "//"        ),
-	_COPY   (URI_HOST,         URI_PATH,        '/',      64),
-	_GENERIC(URI_PATH                                       ),
-	_COPY   (URI_QUERY,        URI_VERSION_SEP, ' ',    2048),
-	_WS     (URI_VERSION_SEP,  VERSION,          0           ),
-	_IGNORE (VERSION,          REQ_LINE_END,    '\r'         ),
-	_LITERAL(REQ_LINE_END,     FIELD_NAME,      "\n"         ),
-	_GENERIC(FIELD_NAME                                      ),
-	_GENERIC(FIELD_KV_SEP                                    ),
-	_GENERIC(FIELD_VALUE                                     ),
-	_IGNORE (FIELD_NOT_INST,   FIELD_LINE_END,  '\r'         ),
-	_LITERAL(FIELD_LINE_END,   FIELD_NAME,      "\r\n"       ),
-	_GENERIC(BODY_DATA                                       ),
-	_GENERIC(DONE                                            )
+	_GENERIC(INIT),                                          /* In this state we need to determine which is the next state and set the method code*/
+	_LITERAL(METHOD_GET, METHOD_PATH_SEP,  "ET "),           /* We are going to match GET */ 
+	_LITERAL(METHOD_HEAD, METHOD_PATH_SEP, "EAD "),          /* We are going to match HEAD */ 
+	_LITERAL(METHOD_POST, METHOD_PATH_SEP, "OST "),          /* We are going to match POST */
+	_WS(METHOD_PATH_SEP, URI, 0),                            /* Strip the extra white space between method and URI */
+	_GENERIC(URI),                                           /* In this state we need to determine if we got a full URI or relative path */
+	_IGNORE(URI_SCHEME, URI_SCHEME_SEP, ':'),                /* We just ignore whatever scheme it specify */
+	_LITERAL(URI_SCHEME_SEP, URI_HOST, "://"),               /* We should expect the delimitor for the scheme and host name */
+	_COPY(URI_HOST, URI_PATH, '/', 64, host),                /* Then we have the host name to copy to the buffer */
+	_GENERIC(URI_PATH),                                      /* In this state we need to copy the path to buffer and determine if we have query parameter */
+	_COPY(URI_QUERY, URI_VERSION_SEP, ' ', 2048, query),     /* We simply copy the data to the query param */
+	_WS(URI_VERSION_SEP, VERSION, 1),                        /* Strip at least one space after the URI */
+	_IGNORE(VERSION, REQ_LINE_END, '\r'),                    /* For whatever HTTP version, we don't actually care about this */
+	_LITERAL(REQ_LINE_END, FIELD_NAME_INIT, "\r\n"),              /* Finally we need a sign to complete the first line */
+	_GENERIC(FIELD_NAME_INIT),                               /* In this state we need to determine which state we are goging to parse */
+	_LITERAL_IC(FIELD_NAME_ACCEPT_ENC, FIELD_KV_SEP, "ccept-encoding:"),  /* We are matching the accept-encoding field */
+	_LITERAL_IC(FIELD_NAME_RANGE, FIELD_KV_SEP, "ange:"),                 /* We are matching range field */
+	_LITERAL_IC(FIELD_NAME_HOST, FIELD_KV_SEP, "ost:"),                   /* We are matching host field */
+	_LITERAL_IC(FIELD_NAME_CONNECT, FIELD_KV_SEP, "nection:"),            /* We are matching connection field */
+	_LITERAL_IC(FIELD_NAME_CONTENT_LEN, FIELD_KV_SEP, "tent-length:"),    /* We are matching content-length field */
+	_WS(FIELD_KV_SEP, FIELD_VALUE, 0),                       /* In this state we handle each of the state differently */
+	_GENERIC(FIELD_VALUE),                                   /* All the non-copy header */
+	_COPY(FIELD_VAL_HOST, FIELD_LINE_END, '\r', 64, host),       /* All the non-copy header */
+	_COPY(FIELD_VAL_ACCEPT_ENC, FIELD_LINE_END, '\r', 64, accept_encoding), /* All the non-copy header */
+	_COPY(FIELD_VAL_RANGE, FIELD_LINE_END, '\r', 64, range_text), /* All the non-copy header */
+	_IGNORE(FIELD_NOT_INST, FIELD_LINE_END, '\r'),           /* We are going to ignore this field */
+	_LITERAL(FIELD_LINE_END, FIELD_NAME_INIT, "\r\n"),       /* We should check if we really come to the end of the field line */
+	_LITERAL(BODY_BEGIN, BODY_DATA, "\r\n"),                 /* We expect the last \r\n */
+	_GENERIC(BODY_DATA),                                     /* Read all body data */
+	_GENERIC(DONE)                                           /* Finally we are done */
 };
 
 typedef enum {
+	_FIELD_NAME_UNKNOWN,
+	_FIELD_NAME_CON_OR_CL,
+	_FIELD_NAME_N_DETERMINED,      /*!< Number of determined */
 	_FIELD_NAME_HOST,              /*!< Host */
 	_FIELD_NAME_ACCEPT_ENCODING,   /*!< Accept encoding */
 	_FIELD_NAME_RANGE,             /*!< Range */
 	_FIELD_NAME_CONN,              /*!< Connection */
 	_FIELD_NAME_CL,                /*!< Content Length */
-	_FIELD_NAME_N_DETERMINED,      /*!< How many headers we really care about */ 
-	_FIELD_NAME_UNKNOWN,           /*!< We are about to start */
-	_FIELD_NAME_CONN_OR_CL,        /*!< Connection or Content-Length */
-	_FIELD_NAME_GENERIC            /*!< A generic header we don't care about */
 } _field_name_state_t;
-
-static const char const* _field_name[] = {
-	[_FIELD_NAME_HOST]              = "host",
-	[_FIELD_NAME_ACCEPT_ENCODING]   = "accept-encoding",
-	[_FIELD_NAME_RANGE]             = "range",
-	[_FIELD_NAME_CONN]              = "connection",
-	[_FIELD_NAME_CL]                = "content-length"
-};
-
 
 /**
  * @brief The internal state 
  **/
 typedef struct {
-	_state_code_t    code;       /*!< The state code */
-	int              sub_state;  /*!< The substate */
+	_state_code_t       code;       /*!< The state code */
+	int                 sub_state;  /*!< The substate */
 	_field_name_state_t fn_state;/*!< The field name state */
-	parser_string_t* buffer;     /*!< The string buffer */
+	parser_string_t*    buffer;     /*!< The string buffer */
+	size_t              buffer_cap; /*!< The buffer capacity */
 } _state_t;
 
-static inline int _process_next_buf(parser_state_t* state, const char* data, size_t size)
+static inline void _transite_state(parser_state_t* state, _state_code_t next)
 {
 	_state_t* internal = (_state_t*)state->internal_state;
-	
-	while(size > 0 && internal->code != _STATE_DONE && internal->code != _STATE_ERROR)
-	{
-		const _state_desc_t* si = _state_info + internal->code;
-		switch(si->type)
-		{
-			case _STATE_TYPE_LITER:
-			{
-				const char* to_match = si->param.liter;
-				for(;size > 0 && to_match[internal->sub_state]; size--, internal->sub_state ++, data ++)
-					if(to_match[internal->sub_state] != data[0])
-						goto ERROR;
-				if(to_match[internal->sub_state] == 0) 
-					goto TRANSIT;
-				break;
-			}
-			case _STATE_TYPE_COPY:
-			{
-				for(;size > 0 && data[0] != si->param.copy.term; internal->buffer->length ++, data ++, size --)
-					if(si->param.copy.lim < internal->sub_state)
-						goto ERROR;
-					else 
-						internal->buffer->value[internal->buffer->length] = data[0];
-				if(data[0] == si->param.copy.term)
-				{
-					data ++, size --;
-					internal->buffer->value[internal->buffer->length] = 0;
-					goto TRANSIT;
-				}
-				break;
-			}
-			case _STATE_TYPE_IGNORE:
-			{
-				for(; size > 0 && data[0] != si->param.ignore; data ++, size --);
-				if(data[0] != si->param.ignore)
-				{
-					data ++, size --;
-					goto TRANSIT;
-				}
-				break;
-			}
-			case _STATE_TYPE_WS:
-			{
-				for(;size > 0 && (data[0] == ' ' || data[0] == '\t'); data ++, size --, internal->sub_state ++);
-				if(data[0] != ' ' && data[0] != '\t')
-				{
-					if(internal->sub_state >= si->param.ws)
-						goto TRANSIT;
-					else
-						goto ERROR;
-				}
-				break;
-			}
-			case _STATE_TYPE_GENERIC:
-			{
-				switch(internal->code)
-				{
-					case _STATE_INIT:
-					{
-						if(data[0] == 'G') 
-							internal->code = _STATE_METHOD_GET;
-						else if(data[0] == 'P')
-							internal->code = _STATE_METHOD_POST;
-						else if(data[0] == 'H')
-							internal->code = _STATE_METHOD_HEAD;
-						else goto ERROR;
-						size --, data ++;
-						goto GENERIC_TRANS;
-					}
-					case _STATE_URI:
-					{
-						if(data[0] != '/')
-						{
-							internal->code = _STATE_URI_SCHEME;
-							size --, data ++;
-							goto GENERIC_TRANS;
-						}
-
-						internal->code = _STATE_URI_PATH;
-						goto GENERIC_TRANS;
-					}
-					case _STATE_FIELD_NAME:
-					{
-						for(;size > 0;)
-						{
-							switch(internal->fn_state)
-							{
-								case _FIELD_NAME_UNKNOWN:
-									if(data[0] == 'h' || data[0] == 'H')
-										internal->fn_state = _FIELD_NAME_HOST;
-									else if(data[0] == 'r' || data[0] == 'R')
-										internal->fn_state = _FIELD_NAME_RANGE;
-									else if(data[0] == 'a' || data[0] == 'A')
-										internal->fn_state = _FIELD_NAME_ACCEPT_ENCODING;
-									else if(data[0] == 'c' || data[0] == 'C')
-										internal->fn_state = _FIELD_NAME_CONN_OR_CL;
-									else if(data[0] == '\r')
-									{
-										internal->code = _STATE_BODY_DATA;
-										goto GENERIC_TRANS;
-									}
-									else
-									{
-										internal->fn_state = _FIELD_NAME_GENERIC;
-										internal->code = _STATE_FIELD_NOT_INST;
-										goto GENERIC_TRANS;
-									}
-									data ++, size --, internal->sub_state = 1;
-									break;
-								case _FIELD_NAME_CONN:
-								case _FIELD_NAME_ACCEPT_ENCODING:
-								case _FIELD_NAME_RANGE:
-								case _FIELD_NAME_CL:
-									for(;size > 0 && _field_name[internal->fn_state][internal->sub_state]; internal->sub_state ++, size --, data ++)
-										if(_field_name[internal->fn_state][internal->sub_state] != (data[0] | (0x20 & (data[0] >> 1))))
-										{
-											internal->fn_state = _FIELD_NAME_GENERIC;
-											internal->code = _STATE_FIELD_NOT_INST;
-											goto GENERIC_TRANS;
-										}
-									if(_field_name[internal->fn_state][internal->sub_state] == 0)
-									{
-										internal->code = _STATE_FIELD_KV_SEP;
-										goto GENERIC_TRANS;
-									}
-									break;
-								case _FIELD_NAME_CONN_OR_CL:
-									for(;size > 0 && _field_name[_FIELD_NAME_CONN][internal->sub_state] == _field_name[_FIELD_NAME_CL][internal->sub_state]; 
-										data ++, size --, internal->sub_state ++)
-										if(_field_name[_FIELD_NAME_CONN][internal->sub_state] != (data[0] | (0x20 & (data[0] >> 1))))
-										{
-											internal->fn_state = _FIELD_NAME_GENERIC;
-											internal->code = _STATE_FIELD_NOT_INST;
-											goto GENERIC_TRANS;
-										}
-									if(data[0] == 't' || data[0] == 'T')
-										internal->fn_state = _FIELD_NAME_CL;
-									else if(data[0] == 'n' || data[0] == 'N')
-										internal->fn_state = _FIELD_NAME_CONN;
-									else
-									{
-										internal->code = _STATE_FIELD_NOT_INST;
-										internal->fn_state = _FIELD_NAME_GENERIC;
-										goto GENERIC_TRANS;
-									}
-								default:
-									(void)0;
-							}
-						}
-						break;
-					}
-					case _STATE_FIELD_KV_SEP:
-					{
-						switch(internal->sub_state)
-						{
-							case 0:
-							case 2:
-								for(;(data[0] == '\t' || data[0] == ' '); data ++, size --);
-								if(internal->sub_state == 0)
-								{
-									if(data[0] != '\t' || data[0] != ' ')
-									{	
-										internal->sub_state = 1;
-									}
-								}
-								else if(internal->sub_state == 2)
-								{
-									internal->code = _STATE_FIELD_VALUE;
-									goto TRANSIT;
-								}
-								break;
-							case 1:
-								if(data[0] != ':')  goto ERROR;
-								internal->sub_state = 2;
-						}
-						break;
-					}
-					case _STATE_FIELD_VALUE:
-					{
-						/* TODO */
-						break;
-					}
-					case _STATE_BODY_DATA:
-					{
-						break;
-					}
-					case _STATE_DONE:
-					{
-						break;
-					}
-					default:
-					(void)0;
-				}
-			}
-		}
-		continue;
-TRANSIT:
-		internal->code = si->next;
-GENERIC_TRANS:
-		internal->sub_state = 0;
-		if(_state_info[internal->code].type == _STATE_TYPE_COPY)
-		{
-			if(internal->code == _STATE_URI_HOST)
-				internal->buffer = &state->host;
-			else if(internal->code == _STATE_URI_QUERY)
-				internal->buffer = &state->query;
-			if(NULL == (internal->buffer->value = (char*)malloc((size_t)_state_info[internal->code].param.copy.lim + 1)))
-			{
-				LOG_ERROR_ERRNO("Cannot allocate memory for the buffer");
-				goto ERROR;
-			}
-			internal->buffer->length = 0;
-		}
-		if(internal->code == _STATE_FIELD_NAME)
-			internal->fn_state = _FIELD_NAME_UNKNOWN;
-		continue;
-ERROR:
-		internal->code = _STATE_ERROR;
-		state->error = 1;
-		return 0;
-	}
+	internal->code = _STATE_PENDING | next;
 }
+
+static inline int _init_buffer(parser_state_t* state, uintptr_t offset, size_t limit)
+{
+	_state_t* internal = (_state_t*)state->internal_state;
+	internal->buffer = (parser_string_t*)((uintptr_t)state + offset);
+	size_t init_size = 64;
+	if(limit + 1 < init_size)
+		init_size = limit + 1;
+	
+	if(NULL == (internal->buffer->value = (char*)malloc(init_size)))
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the copy buffer");
+	internal->buffer->length = 0;
+	internal->buffer_cap = init_size;
+	return 0;
+}
+
+static inline int _ensure_buffer(parser_state_t* state, size_t new_bytes, size_t limit)
+{
+	_state_t* internal = (_state_t*)state->internal_state;
+	if(internal->buffer->length + new_bytes + 1  > internal->buffer_cap)
+	{
+		size_t new_size = internal->buffer_cap;
+		for(;new_size < internal->buffer->length + new_bytes + 1; new_size <<= 1);
+		if(new_size < limit + 1)
+		{
+			_transite_state(state, _STATE_ERROR);
+			return 0;
+		}
+		char* new_buf = (char*)realloc(internal->buffer->value, new_size);
+		if(NULL == new_buf)
+			return ERROR_CODE(int);
+
+		internal->buffer->value = new_buf;
+		internal->buffer_cap = new_size;
+	}
+
+	return 1;
+}
+
+static inline const char* _copy(parser_state_t* state, const char* data, const char* end)
+{
+	_state_t* internal = (_state_t*)state->internal_state;
+	const _state_desc_t* si = _state_info + internal->code;
+
+	if(internal->code & _STATE_PENDING)
+	{
+		if(ERROR_CODE(int) == _init_buffer(state, (uintptr_t)si->param.copy.off, (size_t)si->param.copy.lim))
+			return NULL;
+		internal->code ^= _STATE_PENDING;
+	}
+
+	const char* termpos = data;
+	int last = 0;
+
+	termpos = memchr(data, si->param.copy.term, (size_t)(end - data));
+
+	if(NULL == termpos) 
+		termpos = end;
+	else 
+		last = 1;
+
+	int ensure_rc = _ensure_buffer(state, (size_t)(termpos - data), (size_t)si->param.copy.lim);
+	if(ensure_rc == 0) return data;
+	if(ensure_rc == ERROR_CODE(int)) return NULL;
+
+	if(internal->buffer->length + (size_t)(termpos - data) + 1> internal->buffer_cap)
+
+	memcpy(internal->buffer->value + internal->buffer->length, data, (size_t)(termpos - data));
+	internal->buffer->length += (size_t)(termpos - data);
+
+	if(last) 
+	{
+		internal->buffer->value[internal->buffer->length] = 0;
+		_transite_state(state, si->next);
+	}
+
+	return termpos;
+}
+
+static inline const char* _uri_path(parser_state_t* state, const char* data, const char* end)
+{
+	_state_t* internal = (_state_t*)state->internal_state;
+
+	if(internal->code & _STATE_PENDING)
+	{
+		if(ERROR_CODE(int) == _init_buffer(state, (uintptr_t)(&((parser_state_t*)NULL)->path), 2048))
+			return NULL;
+		internal->code ^= _STATE_PENDING;
+	}
+
+	for(;data < end && data[0] != '&' && data[0] != ' '; data ++)
+	{
+		int ensure_rc = _ensure_buffer(state, 1, 2048);
+		if(ensure_rc == 0) return data;
+		if(ensure_rc == ERROR_CODE(int)) return NULL;
+		internal->buffer->value[internal->buffer->length++] = data[0];
+	}
+
+	if(data < end && data[0] == '&')
+	{
+		internal->buffer->value[internal->buffer->length] = 0;
+		_transite_state(state, _STATE_URI_QUERY);
+		return data + 1;
+	}
+
+	if(data < end && data[0] == ' ')
+	{
+		internal->buffer->value[internal->buffer->length] = 0;
+		_transite_state(state, _STATE_VERSION);
+		return data + 1;
+	}
+
+	return data;
+}
+
+static inline const char* _ignore(parser_state_t* state, const char* data, const char* end)
+{
+	_state_t* internal = (_state_t*)state->internal_state;
+	const _state_desc_t* si = _state_info + internal->code;
+	
+	data = memchr(data, si->param.ignore, (size_t)(end - data));
+
+	return data ? data : end;
+}
+
+static inline const char* _ws(parser_state_t* state, const char* data, const char* end)
+{
+	_state_t* internal = (_state_t*)state->internal_state;
+	const _state_desc_t* si = _state_info + internal->code;
+
+	if(internal->code & _STATE_PENDING)
+	{
+		internal->sub_state = si->param.ws;
+		internal->code ^= _STATE_PENDING;
+	}
+
+	for(;data < end && (data[0] == ' ' || data[0] == '\t'); data ++)
+		if(internal->sub_state > 0)
+			internal->sub_state --;
+	if(data < end && data[0] != ' ' && data[0] != '\t')
+	{
+		if(internal->sub_state > 0)
+			_transite_state(state, _STATE_ERROR);
+		else
+			_transite_state(state, si->next);
+	}
+
+	return data;
+}
+
+static inline const char* _literal(parser_state_t* state, const char* data, const char* end)
+{
+	_state_t* internal = (_state_t*)state->internal_state;
+	const _state_desc_t* si = _state_info + internal->code;
+	
+	if(internal->code & _STATE_PENDING)
+	{
+		internal->sub_state = 0;
+		internal->code ^= _STATE_PENDING;
+	}
+
+	const char* to_match = si->param.liter.str;
+
+	for(;data < end && to_match[internal->sub_state] != 0; data ++, internal->sub_state ++)
+		if(to_match[internal->sub_state] != data[0])
+		{
+			_transite_state(state, _STATE_ERROR);
+			return data;
+		}
+	if(to_match[internal->sub_state] == 0) 
+		_transite_state(state, si->next);
+
+	return data;
+}
+
+static inline const char* _literal_ci(parser_state_t* state, const char* data, const char* end)
+{
+	_state_t* internal = (_state_t*)state->internal_state;
+	const _state_desc_t* si = _state_info + internal->code;
+	
+	if(internal->code & _STATE_PENDING)
+	{
+		internal->sub_state = 0;
+		internal->code ^= _STATE_PENDING;
+	}
+
+	const char* to_match = si->param.liter.str;
+
+	for(;data < end && to_match[internal->sub_state] != 0; data ++, internal->sub_state ++)
+	{
+		char ch = data[0];
+		if(ch >= 'A' && ch <= 'Z')
+			ch |= 0x20;
+		if(to_match[internal->sub_state] != ch)
+		{
+			_transite_state(state, _STATE_ERROR);
+			return data;
+		}
+	}
+	if(to_match[internal->sub_state] == 0) 
+		_transite_state(state, si->next);
+
+	return data;
+}
+
+static inline const char* _init(parser_state_t* state, const char* data, const char* end)
+{
+	(void)end;
+	_state_code_t next = _STATE_ERROR;
+
+	switch(data[0])
+	{
+		case 'G':
+			next = _STATE_METHOD_GET;
+			state->method = PARSER_METHOD_GET;
+			break;
+		case 'P':
+			/* TODO: We also needs to handle PUT method later */
+			next = _STATE_METHOD_POST;
+			state->method = PARSER_METHOD_POST;
+			break;
+		case 'H':
+			next = _STATE_METHOD_HEAD;
+			state->method = PARSER_METHOD_HEAD;
+			break;
+	}
+
+	_transite_state(state, next);
+
+	return data + 1;
+}
+
+static inline const char* _uri(parser_state_t* state, const char* data, const char* end)
+{
+	(void)end;
+
+	if(data[0] == '/')
+		_transite_state(state, _STATE_URI_PATH);
+	else if(data[0] == 'h')
+		_transite_state(state, _STATE_URI_SCHEME);
+	else
+		_transite_state(state, _STATE_ERROR);
+
+	return data;
+}
+
+static inline const char* _field_value(parser_state_t* state, const char* data, const char* end)
+{
+	(void)end;
+	_state_t* internal = (_state_t*)state->internal_state;
+
+	switch(internal->fn_state)
+	{
+		case _FIELD_NAME_HOST:
+			if(state->host.value != NULL)
+			{
+				_transite_state(state, _STATE_FIELD_NOT_INST);
+				return data;
+			}
+			else
+			{
+				_transite_state(state, _STATE_FIELD_VAL_HOST);
+				return data;
+			}
+			break;
+		case _FIELD_NAME_ACCEPT_ENCODING:
+			_transite_state(state, _STATE_FIELD_VAL_ACCEPT_ENC);
+			return data;
+		case _FIELD_NAME_RANGE:
+			_transite_state(state, _STATE_FIELD_VAL_RANGE);
+			return data;
+		/* TODO: content-length, connection */
+		default:
+			_transite_state(state, _STATE_FIELD_VAL_HOST);
+			return data;
+	}
+
+
+}
+
+static inline const char* _field_name_init(parser_state_t* state, const char* data, const char* end)
+{
+	_state_t* internal = (_state_t*)state->internal_state;
+
+	if(internal->code & _STATE_PENDING)
+	{
+		internal->fn_state = _FIELD_NAME_UNKNOWN;
+		internal->code ^= _STATE_PENDING;
+	}
+
+	if(internal->fn_state == _FIELD_NAME_UNKNOWN)
+	{
+		if(data[0] == 'r' || data[0] == 'R')
+		{
+			_transite_state(state, _STATE_FIELD_NAME_RANGE);
+			internal->fn_state = _FIELD_NAME_RANGE;
+			return data + 1;
+		}
+		else if(data[0] == 'a' || data[0] == 'A')
+		{
+			_transite_state(state, _STATE_FIELD_NAME_ACCEPT_ENC);
+			internal->fn_state = _FIELD_NAME_ACCEPT_ENCODING;
+			return data + 1;
+		}
+		else if(data[0] == 'h' || data[0] == 'H')
+		{
+			_transite_state(state, _STATE_FIELD_NAME_HOST);
+			internal->fn_state = _FIELD_NAME_HOST;
+			return data + 1;
+		}
+		else if(data[0] == 'c' || data[1] == 'C')
+		{
+			internal->fn_state = _FIELD_NAME_CON_OR_CL;
+			internal->sub_state = 0;
+		}
+		else if(data[0] == '\r')
+		{
+			_transite_state(state, _STATE_BODY_BEGIN);
+			return data;
+		}
+		else 
+		{
+			_transite_state(state, _STATE_FIELD_NOT_INST);
+			return data + 1;
+		}
+	}
+
+	if(internal->fn_state == _FIELD_NAME_CON_OR_CL)
+	{
+		for(;data < end && internal->sub_state < 3; data++)
+		{
+			static const char common[] = "con";
+			char ch = data[0];
+			if(ch >= 'A' && ch <= 'Z')
+				ch |= 0x20;
+
+			if(common[internal->sub_state] == ch)
+				internal->sub_state ++;
+		}
+
+		if(data == end) return end;
+		switch(data[0])
+		{
+			case 'n':
+				_transite_state(state, _STATE_FIELD_NAME_CONNECT);
+				return data + 1;
+			case 't':
+				_transite_state(state, _STATE_FIELD_NAME_CONTENT_LEN);
+				return data + 1;
+			default:
+				_transite_state(state, _STATE_FIELD_NOT_INST);
+				return data + 1;
+		}
+	}
+
+	return NULL;
+}
+
+
+#if 0
+static inline int _parse_next_buf(parser_state_t* state, const char* data, size_t size)
+{
+	const char* end = data + size;
+	_state_t* internal = (_state_t*)state->internal_state;
+	
+}
+#endif
 
 parser_state_t* parser_state_new()
 {
