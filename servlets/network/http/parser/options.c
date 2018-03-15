@@ -13,6 +13,20 @@
 #include <trie.h>
 #include <routing.h>
 #include <options.h>
+static int _upgrade_default(pstd_option_data_t data)
+{
+	options_t* options = (options_t*)data.cb_data;
+
+	const char* https_url = NULL;
+
+	if(data.param_array_size > 1)
+		https_url = data.param_array[0].strval;
+
+	if(ERROR_CODE(int) == routing_map_set_default_http_upgrade(options->routing_map, 1, https_url))
+		ERROR_RETURN_LOG(int, "Cannot set the default routing settings");
+
+	return 0;
+}
 
 static int _route(pstd_option_data_t data)
 {
@@ -76,6 +90,13 @@ static pstd_option_t _options[] = {
 		.description  = "Add a routing rule: Format --route name:<pipe_name>;prefix:<prefix>[;upgrade_http[:https_url_base]]",
 		.pattern      = "S",
 		.handler      = _route
+	},
+	{
+		.short_opt    = 'D',
+		.long_opt     = "upgrade-default",
+		.description  = "Upgrade default connection for HTTP",
+		.pattern      = "?S",
+		.handler      = _upgrade_default
 	}
 };
 
