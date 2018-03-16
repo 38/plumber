@@ -162,14 +162,14 @@ static inline int _determine_routing(const ctx_t* ctx, const char* host, size_t 
 	routing_state_t state;
 	routing_state_init(&state, ctx->options.routing_map, result);
 
-	size_t sz = routing_process_buffer(&state, host, host_len);
+	size_t sz = routing_process_buffer(&state, host, host_len, 0);
 	if(sz == ERROR_CODE(size_t))
 		ERROR_RETURN_LOG(int, "Cannot parse the host");
 
 	if(!state.done)
 	{
 
-		sz = routing_process_buffer(&state, path, path_len);
+		sz = routing_process_buffer(&state, path, path_len, 1);
 		if(ERROR_CODE(size_t) == sz)
 			ERROR_RETURN_LOG(int, "Cannot parse the path");
 	}

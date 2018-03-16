@@ -256,7 +256,7 @@ static inline void _fill_routing_result(routing_result_t* resbuf, const _rule_da
 	resbuf->out = &rule_data->accessors;
 }
 
-size_t routing_process_buffer(routing_state_t* state, const char* buf, size_t buf_len)
+size_t routing_process_buffer(routing_state_t* state, const char* buf, size_t buf_len, int last)
 {
 	if(NULL == state || NULL == state->map || NULL == state->result_buf || NULL == buf || 0 == buf_len || ERROR_CODE(size_t) == buf_len)
 		ERROR_RETURN_LOG(size_t, "Invalid arguments");
@@ -267,7 +267,7 @@ size_t routing_process_buffer(routing_state_t* state, const char* buf, size_t bu
 	if(match_rc == ERROR_CODE(size_t))
 		ERROR_RETURN_LOG(size_t, "Cannot process the next buffer");
 
-	if(match_rc == 0)
+	if(match_rc == 0 || (NULL == rule && match_rc == buf_len && last))
 	{
 		_fill_routing_result(state->result_buf, &state->map->default_rule, NULL);
 		state->done = 1;

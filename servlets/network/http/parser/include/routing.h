@@ -131,8 +131,9 @@ int routing_map_set_default_http_upgrade(routing_map_t* map, uint32_t upgrade_en
  * @param state The routing state
  * @param buf The data buffer
  * @param buf_len The length of the buffer
+ * @param last If this is the last buffer
  * @return number of bytes has been accepted or error code
  **/
-size_t routing_process_buffer(routing_state_t* state, const char* buf, size_t buf_len);
+size_t routing_process_buffer(routing_state_t* state, const char* buf, size_t buf_len, int last);
 
 #endif
