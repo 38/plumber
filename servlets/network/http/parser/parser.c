@@ -70,8 +70,8 @@ typedef enum {
  **/
 typedef struct {
 	_state_type_t type;     /*!< The type of the state */
-	_state_type_t next;     /*!< The next state */
-	_state_type_t fail;     /*!< What we do when we failed */
+	_state_code_t next;     /*!< The next state */
+	_state_code_t fail;     /*!< What we do when we failed */
 	union {
 		struct {
 			const char* str;/*!< The literal we want to match */

@@ -4,7 +4,7 @@ servlet = {
 	parse_input := "typing/conversion/json --from-json --raw " + 
 				    "response:plumber/std_servlet/network/http/render/v0/Response " + 
 					"content:plumber/std/request_local/String " + 
-					"accept_encoding:plumber/std/request_local/String ";
+					"protocol_data:plumber/std_servlet/network/http/parser/v0/ProtocolData ";
 	modify_content := "dataflow/modify body_rls";
 	render := "network/http/render";
 	
@@ -13,7 +13,7 @@ servlet = {
 		"response" -> "base";
 	} modify_content "output" -> "response" render "output" -> (output);
 
-	parse_input "accept_encoding" -> "accept_encoding" render;
+	parse_input "protocol_data" -> "protocol_data" render;
 };
 
 servlet_input = "input";

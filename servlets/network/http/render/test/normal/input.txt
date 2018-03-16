@@ -9,7 +9,9 @@
 		"mime_type": "text/plain"
 	},
 	"content": "This is a test",
-	"accept_encoding": "chunked"
+	"protocol_data": {
+		"accept_encoding": "chunked"
+	}
 }
 .END
 .TEXT case_2
@@ -22,7 +24,9 @@
 		"mime_type": "text/plain"
 	},
 	"content": "This is a test",
-	"accept_encoding": "chunked"
+	"protocol_data": {
+		"accept_encoding": "chunked"
+	}
 }
 .END
 .TEXT case_3
@@ -36,7 +40,9 @@
 		"redirect_location": "/new/url"
 	},
 	"content": "This is a test",
-	"accept_encoding": "chunked"
+	"protocol_data": {
+		"accept_encoding": "chunked"
+	}
 }
 .END
 .STOP

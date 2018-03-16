@@ -8,7 +8,9 @@
 		"mime_type": "text/plain"
 	},
 	"content": "This is a test",
-	"accept_encoding": ""
+	"protocol_data": {
+		"accept_encoding": ""
+	}
 }
 .END
 .STOP
