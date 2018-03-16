@@ -14,7 +14,6 @@
 typedef struct {
 	char*          mime_type;     /*!< The MIME type for 500 error page */
 	char*          error_page;    /*!< The 500 error page */
-	size_t         size;          /*!< The size of 500 error page */
 } options_error_page_t;
 
 /**
@@ -39,6 +38,7 @@ typedef struct {
 	options_error_page_t err_500;     /*!< The 500 error page */
 	options_error_page_t err_406;     /*!< When we cannot use chunked encoding but the size is unknown */
 	options_error_page_t err_503;     /*!< When we cannot perform the reverse proxying */
+	options_error_page_t err_400;     /*!< When we cannot parse the request */
 } options_t;
 
 /**

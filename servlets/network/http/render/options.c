@@ -88,6 +88,9 @@ static int _opt_callback_string(pstd_option_data_t data)
 		case 'e':
 		    target = &opt->err_503.error_page;
 		    break;
+		case 'b':
+			target = &opt->err_400.error_page;
+			break;
 		case 0:
 		    if(strcmp("500-mime", data.current_option->long_opt) == 0)
 		        target = &opt->err_500.mime_type;
@@ -95,6 +98,8 @@ static int _opt_callback_string(pstd_option_data_t data)
 		        target = &opt->err_406.mime_type;
 		    else if(strcmp("503-mime", data.current_option->long_opt) == 0)
 		        target = &opt->err_503.mime_type;
+			else if(strcmp("400-mime", data.current_option->long_opt) == 0)
+				target = &opt->err_400.mime_type;
 		    else
 		        ERROR_RETURN_LOG(int, "Invalid options");
 		    break;
@@ -228,7 +233,22 @@ static pstd_option_t _options[] = {
 	{
 		.long_opt    = "503-mime",
 		.pattern     = "S",
-		.description = "Service Not Available Error page",
+		.description = "Type of Service Not Available Error page",
+		.handler     = _opt_callback_string,
+		.args        = NULL
+	},
+	{
+		.long_opt    = "400-page",
+		.short_opt   = 'b',
+		.pattern     = "S",
+		.description = "Bad Request Page",
+		.handler     = _opt_callback_string,
+		.args        = NULL
+	},
+	{
+		.long_opt    = "400-mime",
+		.pattern     = "S",
+		.description = "Type of Bad Request Page",
 		.handler     = _opt_callback_string,
 		.args        = NULL
 	},
@@ -269,6 +289,9 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 
 	if(NULL == buf->err_503.mime_type && NULL == (buf->err_503.mime_type = strdup("text/html")))
 	    ERROR_RETURN_LOG(int, "Cannot initialize the default server name");
+	
+	if(NULL == buf->err_400.mime_type && NULL == (buf->err_400.mime_type = strdup("text/html")))
+	    ERROR_RETURN_LOG(int, "Cannot initialize the default server name");
 
 	return 0;
 }
@@ -288,5 +311,8 @@ int options_free(const options_t* options)
 
 	if(NULL != options->err_503.error_page) free(options->err_503.error_page);
 	if(NULL != options->err_503.mime_type) free(options->err_503.mime_type);
+	
+	if(NULL != options->err_400.error_page) free(options->err_400.error_page);
+	if(NULL != options->err_400.mime_type) free(options->err_400.mime_type);
 	return 0;
 }

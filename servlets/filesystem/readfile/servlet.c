@@ -120,6 +120,13 @@ static int _exec(void* ctxmem)
 	char buf[PATH_MAX + 1];
 	const char* extname = NULL;
 	size_t length;
+	input_metadata_t input_meta = {
+		.partial    = 0,
+		.disallowed = 0,
+		.content    = 1,
+		.begin      = 0,
+		.end        = (uint64_t)-1
+	};
 
 	if(ERROR_CODE(size_t) == (length = input_ctx_read_path(ctx->input_ctx, inst, buf, sizeof(buf), &extname)))
 	    ERROR_LOG_GOTO(ERR, "Cannot read path from the input");
@@ -135,7 +142,9 @@ static int _exec(void* ctxmem)
 		    rc = raw_ctx_exec(ctx->raw_ctx, inst, buf);
 		    break;
 		case OPTIONS_OUTPUT_MODE_HTTP:
-		    rc = http_ctx_exec(ctx->http_ctx, inst, buf, extname);
+			if(ERROR_CODE(int) == input_ctx_read_metadata(ctx->input_ctx, inst, &input_meta))
+				ERROR_LOG_GOTO(ERR, "Cannot read the input metadata");
+		    rc = http_ctx_exec(ctx->http_ctx, inst, buf, extname, &input_meta);
 		    break;
 		default:
 		        ERROR_LOG_GOTO(ERR, "Invalid output mode");

@@ -32,7 +32,7 @@ typedef struct {
 	options_t            opts;               /*!< The servlet options */
 	pipe_t               p_response;         /*!< The pipe for the response to render */
 	pipe_t               p_proxy;            /*!< The reverse proxy response */
-	pipe_t               p_accept_encoding;  /*!< The accept-encoding */
+	pipe_t               p_protocol_data;    /*!< The protocol data */
 	pipe_t               p_500;              /*!< The 500 status signal pipe */
 	pipe_t               p_output;           /*!< The output port */
 
@@ -43,11 +43,21 @@ typedef struct {
 	pstd_type_accessor_t a_body_token;       /*!< The accessor for RLS token */
 	pstd_type_accessor_t a_mime_type;        /*!< The MIME type RLS token */
 	pstd_type_accessor_t a_redir_loc;        /*!< The redirect location RLS token accessor */
-	pstd_type_accessor_t a_accept_enc;       /*!< The accept encoding RLS token */
 	pstd_type_accessor_t a_proxy_token;      /*!< The reverse proxy token */
+	pstd_type_accessor_t a_range_begin;      /*!< The accessor for the begin offset of the range */
+	pstd_type_accessor_t a_range_end;        /*!< The accessor for the end offset of the range */
+	pstd_type_accessor_t a_range_total;      /*!< The accessor for the total size of the ranged body */
+	
+	pstd_type_accessor_t a_accept_enc;       /*!< The accept encoding RLS token */
+	pstd_type_accessor_t a_upgrade_target;   /*!< The target we where we want to upgrade the protocol */
+	pstd_type_accessor_t a_protocol_error;   /*!< The protocol error code */
 
 	uint32_t             BODY_SIZE_UNKNOWN;  /*!< The unknown body size */
 	uint32_t             BODY_CAN_COMPRESS;  /*!< Indicates if the body should be compressed */
+	uint32_t             BODY_SEEKABLE;      /*!< Indicates if we can seek the body */
+	uint32_t             BODY_RANGED;        /*!< Indicates if we got a ranged body */
+
+	uint32_t             PROTOCOL_ERROR_BAD_REQ;  /*!< Indicate we have got a bad request */
 } ctx_t;
 
 static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
@@ -59,10 +69,10 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 
 	PIPE_LIST(pipes)
 	{
-		PIPE("response",        PIPE_INPUT,               "plumber/std_servlet/network/http/render/v0/Response", ctx->p_response),
-		PIPE("accept_encoding", PIPE_INPUT,               "plumber/std/request_local/String",                    ctx->p_accept_encoding),
-		PIPE("500",             PIPE_INPUT,               NULL,                                                  ctx->p_500),
-		PIPE("output",          PIPE_OUTPUT | PIPE_ASYNC, NULL,                                                  ctx->p_output)
+		PIPE("response",        PIPE_INPUT,               "plumber/std_servlet/network/http/render/v0/Response",     ctx->p_response),
+		PIPE("protocol_data",   PIPE_INPUT,               "plumber/std_servlet/network/http/parser/v0/ProtocolData", ctx->p_protocol_data),
+		PIPE("500",             PIPE_INPUT,               NULL,                                                      ctx->p_500),
+		PIPE("output",          PIPE_OUTPUT | PIPE_ASYNC, NULL,                                                      ctx->p_output)
 	};
 
 	if(ERROR_CODE(int) == PIPE_BATCH_INIT(pipes)) return ERROR_CODE(int);
@@ -75,9 +85,17 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        body_size,                ctx->a_body_size),
 		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        mime_type.token,          ctx->a_mime_type),
 		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        redirect_location.token,  ctx->a_redir_loc),
-		PSTD_TYPE_MODEL_FIELD(ctx->p_accept_encoding, token,                    ctx->a_accept_enc),
+		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        range_begin,              ctx->a_range_begin),
+		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        range_end,                ctx->a_range_end),
+		PSTD_TYPE_MODEL_FIELD(ctx->p_response,        range_total,              ctx->a_range_total),
+		PSTD_TYPE_MODEL_FIELD(ctx->p_protocol_data,   accept_encoding.token,    ctx->a_accept_enc),
+		PSTD_TYPE_MODEL_FIELD(ctx->p_protocol_data,   upgrade_target.token,     ctx->a_upgrade_target),
+		PSTD_TYPE_MODEL_FIELD(ctx->p_protocol_data,   error,                    ctx->a_protocol_error),
 		PSTD_TYPE_MODEL_CONST(ctx->p_response,        BODY_SIZE_UNKNOWN,        ctx->BODY_SIZE_UNKNOWN),
-		PSTD_TYPE_MODEL_CONST(ctx->p_response,        BODY_CAN_COMPRESS,        ctx->BODY_CAN_COMPRESS)
+		PSTD_TYPE_MODEL_CONST(ctx->p_response,        BODY_CAN_COMPRESS,        ctx->BODY_CAN_COMPRESS),
+		PSTD_TYPE_MODEL_CONST(ctx->p_response,        BODY_SEEKABLE,            ctx->BODY_SEEKABLE),
+		PSTD_TYPE_MODEL_CONST(ctx->p_response,        BODY_RANGED,              ctx->BODY_RANGED),
+		PSTD_TYPE_MODEL_CONST(ctx->p_protocol_data,   ERROR_BAD_REQ,            ctx->PROTOCOL_ERROR_BAD_REQ)
 	};
 
 	if(NULL == (ctx->type_model = PSTD_TYPE_MODEL_BATCH_INIT(model_list))) return ERROR_CODE(int);
@@ -211,7 +229,7 @@ static inline int _write_string_field(pstd_bio_t* bio, pstd_type_instance_t* ins
  **/
 static inline uint32_t _determine_compression_algorithm(const ctx_t *ctx, pstd_type_instance_t* inst, int compress_enabled)
 {
-	if(pipe_eof(ctx->p_accept_encoding) == 1)
+	if(pipe_eof(ctx->p_protocol_data) == 1)
 	    return 0;
 
 	const char* accepts = pstd_string_get_data_from_accessor(inst, ctx->a_accept_enc, "");
@@ -383,7 +401,7 @@ static inline int _write_connection_field(pstd_bio_t* out, pipe_t res, int needs
 static int _exec(void* ctxmem)
 {
 	uint16_t status_code;
-	uint32_t body_flags, algorithm;
+	uint32_t body_flags, algorithm, protocol_error;
 	uint64_t body_size = ERROR_CODE(uint64_t);
 	scope_token_t body_token;
 	int eof_rc;
@@ -404,7 +422,7 @@ static int _exec(void* ctxmem)
 
 	if(!eof_rc)
 	{
-		const char* default_500 = "<html><body><center><h1>Server Internal Error</h1></center><hr/></body></html>";
+		const char* default_500 = "<html><body><center><h1>500 Server Internal Error</h1></center><hr/></body></html>";
 		if(ERROR_CODE(scope_token_t) == (body_token = _write_error_page(out, 500, &ctx->opts.err_500, default_500)))
 		    ERROR_LOG_GOTO(ERR, "Cannot write the HTTP 500 response");
 
@@ -413,6 +431,51 @@ static int _exec(void* ctxmem)
 
 		goto RET;
 	}
+
+	if(ERROR_CODE(int) == (eof_rc = pipe_eof(ctx->p_protocol_data)))
+		ERROR_LOG_GOTO(ERR, "Cannot check if we got the protocol data");
+
+	if(!eof_rc)
+	{
+		if(ERROR_CODE(uint32_t) == (protocol_error = PSTD_TYPE_INST_READ_PRIMITIVE(uint32_t, type_inst, ctx->a_protocol_error)))
+			ERROR_LOG_GOTO(ERR, "Cannot read the protocol error");
+
+		if(protocol_error == ctx->PROTOCOL_ERROR_BAD_REQ)
+		{
+			const char* default_400 = "<html><body><center><h1>400 Bad Request</h1></center><hr/></body></html>";
+			
+			if(ERROR_CODE(scope_token_t) == (body_token = _write_error_page(out, 400, &ctx->opts.err_400, default_400)))
+				ERROR_LOG_GOTO(ERR, "Cannot write the HTTP 500 response");
+
+			if(ERROR_CODE(int) == _write_connection_field(out, ctx->p_output, 1))
+				ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
+
+			goto RET;
+		}
+
+		const char* target = pstd_string_get_data_from_accessor(type_inst, ctx->a_upgrade_target, "");
+		if(target[0] != 0)
+		{
+			if(ERROR_CODE(int) == _write_status_line(out, 301))
+				ERROR_LOG_GOTO(ERR, "Cannot write the status line");
+
+			if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Content-Type: text/plain\r\n"))
+				ERROR_LOG_GOTO(ERR, "Cannot write Content-Type field");
+
+			if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Content-Length: 0\r\n"))
+				ERROR_LOG_GOTO(ERR, "Cannot write the content length");
+
+			if(ERROR_CODE(int) == _write_connection_field(out, ctx->p_output, 0))
+				ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
+
+			if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Locatoin: %s\r\n\r\n", target))
+				ERROR_LOG_GOTO(ERR, "Cannot write the location field");
+
+			/* Since we have no body at this time, so we just jump to the proxy return */
+			goto PROXY_RET;
+		}
+	}
+
 
 	/* Step0: Check if we got a proxy response */
 	if(ctx->opts.reverse_proxy)
@@ -450,39 +513,43 @@ static int _exec(void* ctxmem)
 
 	if(ERROR_CODE(scope_token_t) == (body_token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, type_inst, ctx->a_body_token)))
 	    ERROR_LOG_GOTO(ERR, "Cannot get the request body RLS token");
-	if(0);
+
+	if(body_token != 0)
+	{
+		if(0);
 #ifdef HAS_ZLIB
-	else if((algorithm & _ENCODING_GZIP))
-	{
-		if(ERROR_CODE(scope_token_t) == (body_token = zlib_token_encode(body_token, ZLIB_TOKEN_FORMAT_GZIP, ctx->opts.compress_level)))
-		    ERROR_LOG_GOTO(ERR, "Cannot encode the body with GZIP encoder");
-		else
-		    body_flags |= ctx->BODY_SIZE_UNKNOWN;
-	}
-	else if((algorithm & _ENCODING_DEFLATE))
-	{
-		if(ERROR_CODE(scope_token_t) == (body_token = zlib_token_encode(body_token, ZLIB_TOKEN_FORMAT_DEFLATE, ctx->opts.compress_level)))
-		    ERROR_LOG_GOTO(ERR, "Cannot encode the body with Deflate encoder");
-		else
-		    body_flags |= ctx->BODY_SIZE_UNKNOWN;
-	}
+		else if((algorithm & _ENCODING_GZIP))
+		{
+			if(ERROR_CODE(scope_token_t) == (body_token = zlib_token_encode(body_token, ZLIB_TOKEN_FORMAT_GZIP, ctx->opts.compress_level)))
+				ERROR_LOG_GOTO(ERR, "Cannot encode the body with GZIP encoder");
+			else
+				body_flags |= ctx->BODY_SIZE_UNKNOWN;
+		}
+		else if((algorithm & _ENCODING_DEFLATE))
+		{
+			if(ERROR_CODE(scope_token_t) == (body_token = zlib_token_encode(body_token, ZLIB_TOKEN_FORMAT_DEFLATE, ctx->opts.compress_level)))
+				ERROR_LOG_GOTO(ERR, "Cannot encode the body with Deflate encoder");
+			else
+				body_flags |= ctx->BODY_SIZE_UNKNOWN;
+		}
 #endif
 #ifdef HAS_BROTLI
-	else if((algorithm & _ENCODING_BR))
-	{
-		/* TODO: Brotli support */
-	}
+		else if((algorithm & _ENCODING_BR))
+		{
+			/* TODO: Brotli support */
+		}
 #endif
 
-	if((body_flags & ctx->BODY_SIZE_UNKNOWN) && ctx->opts.chunked_enabled)
-	    algorithm |= _ENCODING_CHUNKED;
+		if((body_flags & ctx->BODY_SIZE_UNKNOWN) && ctx->opts.chunked_enabled)
+			algorithm |= _ENCODING_CHUNKED;
 
-	if((algorithm & _ENCODING_CHUNKED))
-	{
-		if(ERROR_CODE(scope_token_t) == (body_token = chunked_encode(body_token, ctx->opts.max_chunk_size)))
-		    ERROR_LOG_GOTO(ERR, "Cannot encode body with chunked encoder");
-		else
-		    body_flags |= ctx->BODY_SIZE_UNKNOWN;
+		if((algorithm & _ENCODING_CHUNKED))
+		{
+			if(ERROR_CODE(scope_token_t) == (body_token = chunked_encode(body_token, ctx->opts.max_chunk_size)))
+				ERROR_LOG_GOTO(ERR, "Cannot encode body with chunked encoder");
+			else
+				body_flags |= ctx->BODY_SIZE_UNKNOWN;
+		}
 	}
 
 	if(!(body_flags & ctx->BODY_SIZE_UNKNOWN))
@@ -530,6 +597,22 @@ static int _exec(void* ctxmem)
 	if(ERROR_CODE(int) == _write_connection_field(out, ctx->p_output, 0))
 	    ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
 
+	if((body_flags & ctx->BODY_SEEKABLE) && ERROR_CODE(size_t) == pstd_bio_printf(out, "Accept-Ranges: bytes\r\n"))
+		ERROR_LOG_GOTO(ERR, "Cannot write the accept-ranges header");
+
+	if((body_flags & ctx->BODY_RANGED))
+	{
+		size_t left, right, total;
+		if(ERROR_CODE(size_t) == (left = PSTD_TYPE_INST_READ_PRIMITIVE(size_t, type_inst, ctx->a_range_begin)))
+			ERROR_LOG_GOTO(ERR, "Cannot read the range begin");
+		if(ERROR_CODE(size_t) == (right = PSTD_TYPE_INST_READ_PRIMITIVE(size_t, type_inst, ctx->a_range_end)))
+			ERROR_LOG_GOTO(ERR, "Cannot read the range end");
+		if(ERROR_CODE(size_t) == (total = PSTD_TYPE_INST_READ_PRIMITIVE(size_t, type_inst, ctx->a_range_total)))
+			ERROR_LOG_GOTO(ERR, "Cannot read the total size");
+		if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Content-Range: bytes %zu-%zu/%zu\r\n", left, right - 1, total))
+			ERROR_LOG_GOTO(ERR, "Cannot write the content-range header");
+	}
+
 RET:
 
 	/* Write the server name */
@@ -541,7 +624,7 @@ RET:
 	    ERROR_RETURN_LOG(int, "Cannot write the body deliminator");
 
 	/* Write the body */
-	if(ERROR_CODE(int) == pstd_bio_write_scope_token(out, body_token))
+	if(body_token != 0 && ERROR_CODE(int) == pstd_bio_write_scope_token(out, body_token))
 	    ERROR_LOG_GOTO(ERR, "Cannot write the body content");
 
 PROXY_RET:

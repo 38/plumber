@@ -14,7 +14,8 @@
 typedef enum {
 	OPTIONS_INPUT_MODE_RAW,             /*!< We get the file name from a RAW pipe */
 	OPTIONS_INPUT_MODE_STRING,          /*!< We get the file name from a string pipe */
-	OPTIONS_INPUT_MODE_STRING_FIELD     /*!< Indicates we get a string field */
+	OPTIONS_INPUT_MODE_STRING_FIELD,    /*!< Indicates we get a string field */
+	OPTIONS_INPUT_MODE_HTTP_REQUEST     /*!< Indicates the input is a HTTP request */
 } options_input_mode_t;
 
 /**
@@ -51,6 +52,8 @@ typedef struct {
 	options_output_err_page_t http_err_not_found; /*!< The not found error page */
 	options_output_err_page_t http_err_moved;     /*!< The moved error page */
 	options_output_err_page_t http_err_forbiden;  /*!< The forbiden error page */
+	options_output_err_page_t http_err_method;    /*!< The Method not allow error page */
+	options_output_err_page_t http_err_range;     /*!< The range can not be satisfied */
 
 	/* HTTP Mime Type Guesser parameter */
 	char*                     default_mime_type;  /*!< The default MIME type */
@@ -59,8 +62,11 @@ typedef struct {
 	mime_map_t*               mime_map;           /*!< The MIME type map */
 
 	/* The Index Page */
-	uint32_t                  directory_list_page:1;  /*!< Indicates we are able to generate the directory list when the index.html is missing */
 	char**                    index_file_names;       /*!< All the possible index file names, NULL terminated */
+	uint32_t                  directory_list_page:1;  /*!< Indicates we are able to generate the directory list when the index.html is missing */
+
+	/* HTTP Logic */
+	uint32_t                  allow_range:1;          /*!< Indicates we can request for partial content */
 } options_t;
 
 /**

@@ -9,6 +9,7 @@ package plumber.std_servlet.network.http.render.v0;
  **/
 type StatusCode {
 	uint16        OK                  = 200;   /*!< The Status code for HTTP OK */
+	uint16        PARTIAL             = 206;   /*!< The status code for HTTP partial content */
 
 	uint16        MOVED_PERMANENTLY   = 301;   /*!< The Status code for Move permanently */
 	uint16        MOVED_TEMPORARILY   = 302;   /*!< The status code for move temporarily */
@@ -32,11 +33,18 @@ type StatusCode {
 type Response {
 	StatusCode            status;                                   /*!< The HTTP status code */
 	
-	uint32                BODY_SIZE_UNKNOWN = 2;                    /*!< The constant that indicates we don't know the size of the body. */
 	uint32                BODY_CAN_COMPRESS = 1;                    /*!< The body can be compressed */
+	uint32                BODY_SIZE_UNKNOWN = 2;                    /*!< The constant that indicates we don't know the size of the body. */
+	uint32                BODY_SEEKABLE     = 4;                    /*!< The constant that indicates the body is rangable */
+	uint32                BODY_RANGED       = 8;                    /*!< Indicates this body is a ranged one */
 
 	uint32                body_flags;                               /*!< The flags for the body */
 	uint64                body_size;                                /*!< The size of the HTTP body */
+
+	uint64                range_begin;                              /*!< The begin offset of the range */
+	uint64                range_end;                                /*!< The end offset of the range */
+	uint64                range_total;                              /*!< The total size of the ranged content */
+
 	alias body_rls.token  body_object;                              /*!< The body object */
 	plumber.std.request_local.MemoryObject body_rls;                /*!< The RLS token for the body object. If this is a invalid object, we should put the data to pipe data body */
 

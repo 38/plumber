@@ -16,11 +16,14 @@
 
 #include  <mime.h>
 #include  <options.h>
+#include  <input.h>
 #include  <http.h>
 
-static const char _default_404_page[] = "<html><body><center><h1>404 Page Not Found</h1></center><hr/></body></html>";
-static const char _default_403_page[] = "<html><body><center><h1>403 Forbiden</h1></center><hr/></body></html>";
 static const char _default_301_page[] = "<html><body><cneter><h1>301 Moved</h1></center><hr/></body></html>";
+static const char _default_403_page[] = "<html><body><center><h1>403 Forbiden</h1></center><hr/></body></html>";
+static const char _default_404_page[] = "<html><body><center><h1>404 Page Not Found</h1></center><hr/></body></html>";
+static const char _default_405_page[] = "<html><body><center><h1>405 Method Not Allowed</h1></center><hr/></body></html>";
+static const char _default_406_page[] = "<html><body><center><h1>406 Not Acceptable</h1></center><hr/></body></html>";
 
 struct _http_ctx_t {
 	pipe_t                      p_file;           /*!< The file pipe */
@@ -32,9 +35,12 @@ struct _http_ctx_t {
 	options_output_err_page_t   page_not_found;   /*!< The page not found message */
 	options_output_err_page_t   page_moved;       /*!< The moved page */
 	options_output_err_page_t   page_forbiden;    /*!< The forbiden error page */
+	options_output_err_page_t   method_disallowed;/*!< The method not allowed error page */
+	options_output_err_page_t   request_rej;      /*!< The request is requested */
 
 	char const* const*          index_page;       /*!< The index page */
 	uint32_t                    default_index:1;  /*!< If we need to use the default index.html */
+	uint32_t                    allow_range:1;    /*!< If we allow the range request */
 
 	pstd_type_accessor_t        a_status_code;    /*!< The status code accessor */
 	pstd_type_accessor_t        a_body_flags;     /*!< The body flags accessor */
@@ -42,13 +48,21 @@ struct _http_ctx_t {
 	pstd_type_accessor_t        a_body_token;     /*!< The body token accessor */
 	pstd_type_accessor_t        a_mime_type;      /*!< The MIME type accessor */
 	pstd_type_accessor_t        a_redirect;       /*!< The redirect accessor */
+	pstd_type_accessor_t        a_range_begin;    /*!< The accessor for the begin of range */
+	pstd_type_accessor_t        a_range_end;      /*!< The accessor for the end of the range */
+	pstd_type_accessor_t        a_total_size;     /*!< The accessor for the total size of the ranged file */
 
 	uint32_t                    BODY_CAN_COMPRESS;  /*!< The constant indicates that the body can be compressed */
+	uint32_t                    BODY_SEEKABLE;      /*!< The constant indicates that the body can be seeked */
+	uint32_t                    BODY_RANGED;        /*!< Indicates the body is ranged */
 
 	uint16_t                    HTTP_STATUS_OK;           /*!< OK */
+	uint16_t                    HTTP_STATUS_PARTIAL;      /*!< The partial content */
 	uint16_t                    HTTP_STATUS_MOVED;        /*!< Moved Permanently */
 	uint16_t                    HTTP_STATUS_NOT_FOUND;    /*!< Not found */
 	uint16_t                    HTTP_STATUS_FORBIDEN;     /*!< Forbiden */
+	uint16_t                    HTTP_STATUS_METHOD_NOT_ALLOWED;  /*!< Method not allowed */
+	uint16_t                    HTTP_STATUS_NOT_ACCEPTABLE;      /*!< Request is not acceptable */
 };
 
 http_ctx_t* http_ctx_new(const options_t* options, pstd_type_model_t* type_model)
@@ -66,12 +80,15 @@ http_ctx_t* http_ctx_new(const options_t* options, pstd_type_model_t* type_model
 	ret->page_not_found = options->http_err_not_found;
 	ret->page_forbiden = options->http_err_forbiden;
 	ret->page_moved = options->http_err_moved;
+	ret->method_disallowed = options->http_err_method;
+	ret->request_rej = options->http_err_range;
 	ret->index_page = (char const* const*)options->index_file_names;
 	ret->root_dir_len = strlen(options->root_dir);
 	if(ret->root_dir_len > 0 && options->root_dir[ret->root_dir_len - 1] == '/')
 	    ret->root_dir_len --;
 	ret->mime_map = options->mime_map;
 	ret->default_index = options->directory_list_page;
+	ret->allow_range = options->allow_range;
 
 	PSTD_TYPE_MODEL(output_model)
 	{
@@ -81,11 +98,19 @@ http_ctx_t* http_ctx_new(const options_t* options, pstd_type_model_t* type_model
 		PSTD_TYPE_MODEL_FIELD(ret->p_file,  body_object,              ret->a_body_token),
 		PSTD_TYPE_MODEL_FIELD(ret->p_file,  mime_type.token,          ret->a_mime_type),
 		PSTD_TYPE_MODEL_FIELD(ret->p_file,  redirect_location.token,  ret->a_redirect),
+		PSTD_TYPE_MODEL_FIELD(ret->p_file,  range_begin,              ret->a_range_begin),
+		PSTD_TYPE_MODEL_FIELD(ret->p_file,  range_end,                ret->a_range_end),
+		PSTD_TYPE_MODEL_FIELD(ret->p_file,  range_total,              ret->a_total_size),
 		PSTD_TYPE_MODEL_CONST(ret->p_file,  BODY_CAN_COMPRESS,        ret->BODY_CAN_COMPRESS),
 		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.OK,                ret->HTTP_STATUS_OK),
+		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.PARTIAL,           ret->HTTP_STATUS_PARTIAL),             
 		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.NOT_FOUND,         ret->HTTP_STATUS_NOT_FOUND),
 		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.MOVED_PERMANENTLY, ret->HTTP_STATUS_MOVED),
-		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.FORBIDEN,          ret->HTTP_STATUS_FORBIDEN)
+		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.FORBIDEN,          ret->HTTP_STATUS_FORBIDEN),
+		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.METHOD_NOT_ALLOWED,ret->HTTP_STATUS_METHOD_NOT_ALLOWED),
+		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.NOT_ACCEPTABLE,    ret->HTTP_STATUS_NOT_ACCEPTABLE),
+		PSTD_TYPE_MODEL_CONST(ret->p_file,  BODY_SEEKABLE,            ret->BODY_SEEKABLE),
+		PSTD_TYPE_MODEL_CONST(ret->p_file,  BODY_RANGED,              ret->BODY_RANGED)
 	};
 
 	if(NULL == PSTD_TYPE_MODEL_BATCH_INIT(output_model, type_model))
@@ -120,7 +145,9 @@ static inline int _write_string_body(const http_ctx_t* ctx, pstd_type_instance_t
 	return 0;
 }
 
-static inline int _write_file_body(const http_ctx_t* ctx, pstd_type_instance_t* type_inst, const char* filename, const char* mime, int compress)
+static inline int _write_file_body(const http_ctx_t* ctx, pstd_type_instance_t* type_inst, 
+		                           const char* filename, const char* mime, int compress, 
+								   int seekable, off_t start, off_t end, int content)
 {
 	pstd_file_t* file = pstd_file_new(filename);
 	if(NULL == file)
@@ -133,9 +160,35 @@ static inline int _write_file_body(const http_ctx_t* ctx, pstd_type_instance_t* 
 		ERROR_RETURN_LOG(int, "Cannot commit the file object to scope");
 	}
 
-	size_t length = pstd_file_size(file);
-	if(ERROR_CODE(size_t) == length)
+	uint32_t body_flags = 0;
+	if(compress) body_flags |= ctx->BODY_CAN_COMPRESS;
+	if(seekable) body_flags |= ctx->BODY_SEEKABLE;
+
+	size_t length = 0;
+	
+	if(ERROR_CODE(size_t) == (length = pstd_file_size(file)))
 	    ERROR_RETURN_LOG(int, "Cannot determine the size of the file");
+
+	if(start != -1 || end != -1)
+	{
+		uint64_t left = (start == 0) ? 0 : (uint64_t)start;
+		uint64_t right  = (end == -1) ? (uint64_t)-1 : (uint64_t)end;
+		if(ERROR_CODE(int) == pstd_file_set_range(file, left, right))
+			ERROR_RETURN_LOG(int, "Cannot set the range mask to the file object");
+
+		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_range_begin, left))
+			ERROR_RETURN_LOG(int, "Cannot write the range begin");
+		
+		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_range_end, right))
+			ERROR_RETURN_LOG(int, "Cannot write the range begin");
+		
+		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_total_size, length))
+			ERROR_RETURN_LOG(int, "Cannot write the range begin");
+		
+		length = right - left;
+
+		body_flags |= ctx->BODY_RANGED;
+	}
 
 	if(ERROR_CODE(int) == pstd_string_create_commit_write(type_inst, ctx->a_mime_type, mime))
 	    ERROR_RETURN_LOG(int, "Cannot write the MIME type to the response");
@@ -143,10 +196,10 @@ static inline int _write_file_body(const http_ctx_t* ctx, pstd_type_instance_t* 
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_body_size, (uint64_t)length))
 	    ERROR_RETURN_LOG(int, "Cannot write the file size to the response");
 
-	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_body_flags, (uint32_t)(compress ? ctx->BODY_CAN_COMPRESS : 0)))
+	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_body_flags, body_flags))
 	    ERROR_RETURN_LOG(int, "Cannot write the body flag to the response");
 
-	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_body_token, tok))
+	if(content &&  ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_body_token, tok))
 	    ERROR_RETURN_LOG(int, "Cannot write the body token to the response");
 
 	return 0;
@@ -164,7 +217,7 @@ static inline int _write_message_page(const http_ctx_t* ctx, pstd_type_instance_
 	if(NULL != page->filename && ERROR_CODE(int) != pstd_fcache_stat(page->filename, &st) && (st.st_mode & S_IFREG))
 	{
 		/* If the page exists */
-		if(ERROR_CODE(int) == _write_file_body(ctx, type_inst, page->filename, page->mime_type, page->compressable))
+		if(ERROR_CODE(int) == _write_file_body(ctx, type_inst, page->filename, page->mime_type, page->compressable, 0, -1, -1, 1))
 		    ERROR_RETURN_LOG(int, "Cannot write the message page");
 	}
 	else
@@ -247,10 +300,19 @@ ERR:
 	return ERROR_CODE(int);
 }
 
-int http_ctx_exec(const http_ctx_t* ctx, pstd_type_instance_t* type_inst, const char* path, const char* extname)
+int http_ctx_exec(const http_ctx_t* ctx, pstd_type_instance_t* type_inst, const char* path, const char* extname, const input_metadata_t* meta)
 {
-	if(NULL == ctx || NULL == type_inst || NULL == path)
+	if(NULL == ctx || NULL == type_inst || NULL == path || NULL == meta)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(meta->disallowed)
+	{
+		if(ERROR_CODE(int) == _write_message_page(ctx, type_inst,
+					                              ctx->HTTP_STATUS_METHOD_NOT_ALLOWED, &ctx->method_disallowed,
+												  _default_405_page, sizeof(_default_405_page) - 1))
+			ERROR_RETURN_LOG(int, "Cannot write the message page");
+		return 0;
+	}
 
 	if(path[0] == 0)
 	{
@@ -270,6 +332,7 @@ int http_ctx_exec(const http_ctx_t* ctx, pstd_type_instance_t* type_inst, const 
 		    ERROR_RETURN_LOG(int, "Cannnot write the message page");
 		return 0;
 	}
+
 	char buf[PATH_MAX + 1];
 
 	if((st.st_mode & S_IFDIR))
@@ -328,14 +391,38 @@ int http_ctx_exec(const http_ctx_t* ctx, pstd_type_instance_t* type_inst, const 
 		}
 	}
 
-	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_status_code, ctx->HTTP_STATUS_OK))
+	int partial = 0;
+	off_t start = -1, end = -1;
+
+	if(ctx->allow_range && meta->partial)
+	{
+		start = (off_t)meta->begin;
+		end = (off_t)meta->end;
+		if(end == -1)
+			end = st.st_size;
+
+		if(start > end || start > st.st_size || end > st.st_size)
+		{
+			if(ERROR_CODE(int) == _write_message_page(ctx, type_inst,
+						                              ctx->HTTP_STATUS_NOT_ACCEPTABLE, &ctx->request_rej,
+													  _default_406_page, sizeof(_default_406_page) - 1))
+				ERROR_RETURN_LOG(int, "Cannto write the message page");
+			return 0;
+		}
+		if(start != 0 || end != st.st_size)
+			partial = 1;
+		else
+			start = end = (off_t)-1;
+	}
+
+	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_status_code, partial ? ctx->HTTP_STATUS_PARTIAL : ctx->HTTP_STATUS_OK))
 	    ERROR_RETURN_LOG(int, "Cannot write the status code");
 
 	mime_map_info_t info;
 	if(ERROR_CODE(int) == mime_map_query(ctx->mime_map, extname, &info))
 	    ERROR_RETURN_LOG(int, "Cannot query the MIME type mapping");
 
-	if(ERROR_CODE(int) == _write_file_body(ctx, type_inst, path, info.mime_type, info.compressable))
+	if(ERROR_CODE(int) == _write_file_body(ctx, type_inst, path, info.mime_type, info.compressable, ctx->allow_range, start, end, meta->content))
 	    ERROR_RETURN_LOG(int, "Cannot write the file content to the response");
 
 	return 0;

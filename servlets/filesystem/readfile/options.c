@@ -33,6 +33,8 @@ static int _set_mode(pstd_option_data_t data)
 			if(NULL == (options->path_field = strdup(value + 6)))
 			    ERROR_RETURN_LOG_ERRNO(int, "Cannot set the path field expression");
 		}
+		else if(strcmp(value, "http") == 0)
+			options->input_mode = OPTIONS_INPUT_MODE_HTTP_REQUEST;
 		else goto INVALID;
 	}
 	else if(data.current_option->short_opt == 'O')
@@ -83,6 +85,12 @@ static int _set_string_option(pstd_option_data_t data)
 		case 'M':
 		    target = &options->http_err_moved.filename;
 		    break;
+		case 'a':
+			target = &options->http_err_method.filename;
+			break;
+		case 'S':
+			target = &options->http_err_range.filename;
+			break;
 		default:
 		    ERROR_RETURN_LOG(int, "Invalid options: %c", data.current_option->short_opt);
 	}
@@ -104,6 +112,9 @@ static int _set_bool_opt(pstd_option_data_t data)
 		case 'd':
 		    options->directory_list_page = 1;
 		    break;
+		case 'R':
+			options->allow_range = 1;
+			break;
 		default:
 		    ERROR_RETURN_LOG(int, "Invalid arguments");
 	}
@@ -262,6 +273,30 @@ static pstd_option_t _opts[] = {
 		.pattern        = "",
 		.handler        = _set_bool_opt,
 		.args           = NULL
+	},
+	{
+		.long_opt       = "range-access",
+		.short_opt      = 'R',
+		.description    = "Enable the default index page",
+		.pattern        = "",
+		.handler        = _set_bool_opt,
+		.args           = NULL
+	},
+	{
+		.long_opt       = "method-not-allowed",
+		.short_opt      = 'a',
+		.description    = "Sepcify the path to the customized method not allowed error page",
+		.pattern        = "S",
+		.handler        = _set_string_option,
+		.args           = NULL
+	},
+	{
+		.long_opt       = "range-error",
+		.short_opt      = 'S',
+		.description    = "Sepcify the path to the customized range cannot be satisified error page",
+		.pattern        = "S",
+		.handler        = _set_string_option,
+		.args           = NULL
 	}
 };
 
@@ -315,6 +350,12 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 
 		if(ERROR_CODE(int) == _init_error_page(buf->mime_map, &buf->http_err_moved))
 		    ERROR_RETURN_LOG(int, "Cannot initialize the 301 page");
+
+		if(ERROR_CODE(int) == _init_error_page(buf->mime_map, &buf->http_err_method))
+			ERROR_RETURN_LOG(int, "Cannot initialize the 405 page");
+
+		if(ERROR_CODE(int) == _init_error_page(buf->mime_map, &buf->http_err_range))
+			ERROR_RETURN_LOG(int, "Cannot initialize the 406 page");
 
 		if(NULL == buf->index_file_names)
 		{

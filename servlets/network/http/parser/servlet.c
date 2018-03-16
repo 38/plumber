@@ -91,11 +91,11 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 
 	PSTD_TYPE_MODEL(type_model) 
 	{
-		PSTD_TYPE_MODEL_FIELD(ctx->p_protocol_data, "accept_encoding.token", ctx->a_accept_encoding),
-		PSTD_TYPE_MODEL_FIELD(ctx->p_protocol_data, "upgrade_target.token",  ctx->a_upgrade_target),
-		PSTD_TYPE_MODEL_FIELD(ctx->p_protocol_data, "error",                 ctx->a_error),
-		PSTD_TYPE_MODEL_CONST(ctx->p_protocol_data, "ERROR_NONE",            ctx->ERROR_NONE),
-		PSTD_TYPE_MODEL_CONST(ctx->p_protocol_data, "ERROR_BAD_REQ",         ctx->ERROR_BAD_REQ)
+		PSTD_TYPE_MODEL_FIELD(ctx->p_protocol_data, accept_encoding.token, ctx->a_accept_encoding),
+		PSTD_TYPE_MODEL_FIELD(ctx->p_protocol_data, upgrade_target.token,  ctx->a_upgrade_target),
+		PSTD_TYPE_MODEL_FIELD(ctx->p_protocol_data, error,                 ctx->a_error),
+		PSTD_TYPE_MODEL_CONST(ctx->p_protocol_data, ERROR_NONE,            ctx->ERROR_NONE),
+		PSTD_TYPE_MODEL_CONST(ctx->p_protocol_data, ERROR_BAD_REQ,         ctx->ERROR_BAD_REQ)
 	};
 
 	if(NULL == (ctx->type_model = PSTD_TYPE_MODEL_BATCH_INIT(type_model)))
@@ -327,7 +327,7 @@ PARSER_DONE:
 			method_code = ctx->METHOD_POST;
 			break;
 		case PARSER_METHOD_HEAD:
-			method_code = ctx->METHOD_POST;
+			method_code = ctx->METHOD_HEAD;
 			break;
 		default:
 			ERROR_LOG_GOTO(ERR, "Code bug: Invalid method");
@@ -414,7 +414,7 @@ UPGRADE_ERR:
 	if(state->has_range)
 	{
 		if(state->range_begin != ERROR_CODE(uint64_t)) begin = state->range_begin;
-		if(state->range_end != ERROR_CODE(uint64_t)) end = state->range_end;
+		if(state->range_end != ERROR_CODE(uint64_t)) end = state->range_end + 1;
 	}
 	
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, result.out->a_range_begin, begin))

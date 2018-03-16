@@ -803,7 +803,7 @@ size_t parser_process_next_buf(parser_state_t* state, const void* buf, size_t sz
 			if(start != NULL && end != NULL)
 			{
 				state->range_begin = _parse_u64(start); 
-				state->range_end   = _parse_u64(end);
+				state->range_end   = end[0] ? _parse_u64(end) : (uint64_t)-1;
 				state->has_range = 1;
 			}
 

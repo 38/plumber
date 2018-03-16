@@ -20,10 +20,25 @@ struct _pstd_file_t {
 	char*       filename;        /*!< the target file name */
 	uint32_t    committed:1;     /*!< if the object has been committed */
 	uint32_t    stat_ready:1;    /*!< if we already get the stat of the file */
+	uint32_t    partial:1;       /*! We want to access part of the file */
+	size_t      part_beg;        /*!< The begining of the partial content */
+	size_t      part_size;       /*!< The size of the part that is accessable */
 	struct stat stat;            /*!< the cached stat information */
 	uintpad_t  __padding__[0];
 	char       _def_buf[128];   /*!< the default filename buf */
 };
+
+/**
+ * @brief The opened file stream
+ **/
+typedef struct {
+#ifdef PSTD_FILE_NO_CACHE
+	FILE* file;     /*!< The file pointer */
+#else
+	pstd_fcache_file_t* file;  /*!< The file pointer */
+#endif
+	size_t remaining;  /*!< The remaining bytes to read (for ranged file) */
+} _stream_t;
 
 pstd_file_t* pstd_file_new(const char* filename)
 {
@@ -43,11 +58,24 @@ pstd_file_t* pstd_file_new(const char* filename)
 	memcpy(ret->filename, filename, len + 1);
 	ret->committed = 0;
 	ret->stat_ready = 0;
+	ret->partial = 0;
 	LOG_DEBUG("File RLS object for filename %s has been created", filename);
 	return ret;
 ERR:
 	pstd_mempool_free(ret);
 	return NULL;
+}
+
+int pstd_file_set_range(pstd_file_t* file, size_t begin, size_t end)
+{
+	if(NULL == file || end < begin)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	file->partial = 1;
+	file->part_beg = begin;
+	file->part_size = (size_t)(end - begin);
+
+	return 0;
 }
 
 /**
@@ -211,18 +239,48 @@ static inline int _free(void* mem)
  **/
 static inline void* _open(const void* mem)
 {
+	_stream_t* stream = (_stream_t*)pstd_mempool_alloc(sizeof(_stream_t));
+
+	if(NULL == stream)
+		ERROR_PTR_RETURN_LOG("Cannot allocate meomry for the stream");
+
 	const pstd_file_t* file = (const pstd_file_t*)mem;
 #ifdef PSTD_FILE_NO_CACHE
-	FILE* ret = fopen(file->filename, "rb");
+	stream->file = fopen(file->filename, "rb");
 #else
-	pstd_fcache_file_t* ret = pstd_fcache_open(file->filename);
+	stream->file = pstd_fcache_open(file->filename);
 #endif
-	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot open file %s", file->filename);
+	if(NULL == stream->file)
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open file %s", file->filename);
+
+	if(file->partial)
+	{
+#ifdef PSTD_FILE_NO_CACHE
+		if(-1 == fseek(stream->file, (off_t)file->part_beg, SEEK_SET))
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot seek file %s", file->filename);
+#else
+		if(ERROR_CODE(int) == pstd_fcache_seek(stream->file, file->part_beg))
+			ERROR_LOG_GOTO(ERR, "Cannot seek file %s", file->filename);
+#endif
+		stream->remaining = file->part_size;
+	}
+	else stream->remaining = (size_t)-1;
 
 	LOG_DEBUG("RLS file %s is opened as a byte stream", file->filename);
 
-	return ret;
+	return stream;
+ERR:
+	if(NULL != stream->file)
+	{
+#ifdef PSTD_FILE_NO_CACHE
+		fclose(stream->file);
+#else
+		pstd_fcache_close(stream->file);
+#endif
+	}
+
+	pstd_mempool_free(stream);
+	return NULL;
 }
 
 /**
@@ -232,17 +290,16 @@ static inline void* _open(const void* mem)
  **/
 static inline int _close(void* stream_mem)
 {
+	_stream_t* s = (_stream_t*)stream_mem;
 #ifdef PSTD_FILE_NO_CACHE
-	FILE* stream = (FILE*)stream_mem;
-	fclose(stream);
+	fclose(s->file);
 #else
-	pstd_fcache_file_t* stream = (pstd_fcache_file_t*)stream_mem;
-	if(ERROR_CODE(int) == pstd_fcache_close(stream))
+	if(ERROR_CODE(int) == pstd_fcache_close(s->file))
 	    ERROR_RETURN_LOG(int, "Cannot close the file cache reference");
 #endif
 
 	LOG_DEBUG("The byte stream interface for RLS file has been closed");
-	return 0;
+	return pstd_mempool_free(s);
 }
 
 /**
@@ -252,15 +309,15 @@ static inline int _close(void* stream_mem)
  **/
 static inline int _eos(const void* stream_mem)
 {
+	const _stream_t* s = (const _stream_t*)stream_mem;
+	if(s->remaining == 0) return 1;
 #ifdef PSTD_FILE_NO_CACHE
-	FILE* stream = (FILE*)stream_mem;
-	int rc = feof(stream);
+	int rc = feof(s->file);
 	if(rc < 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot check if the stream gets the end");
 	return rc > 0;
 #else
-	const pstd_fcache_file_t* stream = (const pstd_fcache_file_t*)stream_mem;
-	return pstd_fcache_eof(stream);
+	return pstd_fcache_eof(s->file);
 #endif
 }
 
@@ -273,19 +330,31 @@ static inline int _eos(const void* stream_mem)
  **/
 static inline size_t _read(void* __restrict stream_mem, void* __restrict buf, size_t count)
 {
-#ifdef PSTD_FILE_NO_CACHE
-	FILE* stream = (FILE*)stream_mem;
-	size_t rc = fread(buf, 1, count, stream);
-	if(rc == 0 && ferror(stream))
-	    ERROR_RETURN_LOG_ERRNO(size_t, "Cannot read file the RLS file stream");
+	_stream_t* s = (_stream_t*)stream_mem;
 
+	if(s->remaining != (size_t)-1 && count > s->remaining)
+		count = s->remaining;
+
+#ifdef PSTD_FILE_NO_CACHE
+	size_t rc = fread(buf, 1, count, s->file);
+	if(rc == 0 && ferror(s->file))
+	    ERROR_RETURN_LOG_ERRNO(size_t, "Cannot read file the RLS file stream");
+	
 	LOG_DEBUG("%zu bytes has been read from RLS file byte stream interface", rc);
 
+	if(s->remaining != (size_t)-1)
+		s->remaining -= rc;
+	
 	return rc;
 #else
-	pstd_fcache_file_t* stream = (pstd_fcache_file_t*)stream_mem;
+	size_t rc = pstd_fcache_read(s->file, buf, count);
 
-	return pstd_fcache_read(stream, buf, count);
+	if(ERROR_CODE(size_t) == rc) return ERROR_CODE(size_t);
+
+	if(s->remaining != (size_t)-1)
+		s->remaining -= rc;
+
+	return rc;
 #endif
 }
 
