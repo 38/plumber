@@ -221,7 +221,6 @@ size_t input_ctx_read_path(const input_ctx_t* input_ctx, pstd_type_instance_t* t
 	/* Since we should preserve the last slash, so we need to check this case */
 	if(sp > 0 && es[sp - 1][0] == '/')
 	    es[sp] = bs[sp] = "", sp ++;
-#pragma GCC diagnostic pop
 
 	if(inplace && !simplified)
 	{
@@ -245,6 +244,7 @@ size_t input_ctx_read_path(const input_ctx_t* input_ctx, pstd_type_instance_t* t
 		    *extname = buf + valid_size + (ext - bs[i]);
 		valid_size += bytes_to_copy;
 	}
+#pragma GCC diagnostic pop
 
 	buf[valid_size] = 0;
 
