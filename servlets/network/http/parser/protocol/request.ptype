@@ -11,7 +11,11 @@ type RequestConst {
 	uint32                            METHOD_GET       = 0;                    /*!< Indicates the method is GET */
 	uint32                            METHOD_POST      = 1;                    /*!< Indicates the method is POST */
 	uint32                            METHOD_HEAD      = 2;                    /*!< Indicates the method is HEAD */
-	uint32                            METHOD_DELETE    = 3;                    /*!< The DELETE method, NOTE: currently we havn't implement this, but rest controller uses this */
+	/* NOTE: We doesn't support the following method currently */
+	uint32                            METHOD_DELETE    = 3;                    /*!< The DELETE method */
+	uint32                            METHOD_PUT       = 4;                    /*!< The PUT method */
+
+	/* The range constants */
 	uint64                            SEEK_SET         = 0;                    /*!< Indicates we are requesting begnings at the the start of the file */
 	uint64                            SEEK_END         = 0xffffffffffffffff;   /*!< Indicates we are requesting until the end of the file */
 };
@@ -21,6 +25,7 @@ type RequestConst {
  **/
 type RequestData : RequestConst {
 	uint32                            method;            /*!< What method the client is requesting */
+
 	/* Routing support and URLs */
 	plumber.std.request_local.String  host;              /*!< The host name under current URI routhing */
 	plumber.std.request_local.String  base_url;          /*!< The base URL under current URI routhing */

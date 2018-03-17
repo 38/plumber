@@ -40,7 +40,7 @@ typedef struct {
 
 pstd_string_t* pstd_string_from_onwership_pointer_range(char* data, size_t begin, size_t end)
 {
-	if(NULL == data || begin >= end) ERROR_PTR_RETURN_LOG("Invalid arguments");
+	if(NULL == data || begin > end) ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	pstd_string_t* ret = pstd_string_new(0);
 

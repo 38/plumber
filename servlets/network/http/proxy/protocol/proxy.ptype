@@ -1,22 +1,5 @@
 package plumber.std_servlet.network.http.proxy.v0;
 
-type MethodCode {
-	uint32 GET     = 0;    /*!< GET */
-	uint32 HEAD    = 1;    /*!< HEAD */
-	uint32 POST    = 2;    /*!< POST */
-	uint32 PUT     = 3;    /*!< PUT */
-	uint32 DELETE  = 4;    /*!< DELETE */
-};
-
-type Request : MethodCode {
-	plumber.std.request_local.String url;      /*!< The URL to request */
-	plumber.std.request_local.String data;     /*!< The data payload for this request. TODO: what if the data section is large ? */
-	uint32                           method;   /*!< Which method we used for this request */
-	/* TODO: cookies & etc */
-};
-
 type Response {
 	request_local_token              token;    /*!< The RLS token for this request */
 };
-
-

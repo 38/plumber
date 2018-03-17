@@ -235,7 +235,7 @@ static inline int _ensure_buffer(parser_state_t* state, size_t new_bytes, size_t
 	{
 		size_t new_size = internal->buffer_cap;
 		for(;new_size < internal->buffer->length + new_bytes + 1; new_size <<= 1);
-		if(new_size < limit + 1)
+		if(new_size > limit + 1)
 		{
 			_transite_state(state, _STATE_ERROR);
 			return 0;

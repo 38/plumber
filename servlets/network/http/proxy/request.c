@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -24,30 +25,28 @@
  * @brief The name of the HTTP verb
  **/
 const char* _method_verb[] = {
-	[REQUEST_METHOD_GET]  = "GET",
-	[REQUEST_METHOD_PUT]  = "PUT",
-	[REQUEST_METHOD_POST] = "POST",
-	[REQUEST_METHOD_HEAD] = "HEAD",
-	[REQUEST_METHOD_DELETE] = "DELETE"
+	[REQUEST_METHOD_GET]  = "GET ",
+	[REQUEST_METHOD_PUT]  = "PUT ",
+	[REQUEST_METHOD_POST] = "POST ",
+	[REQUEST_METHOD_HEAD] = "HEAD ",
+	[REQUEST_METHOD_DELETE] = "DELETE "
 };
 
 /**
  * @brief The length of the HTTP verb
  **/
 const size_t _method_verb_size[] = {
-	[REQUEST_METHOD_GET]  = 3,
-	[REQUEST_METHOD_PUT]  = 3,
-	[REQUEST_METHOD_POST] = 4,
-	[REQUEST_METHOD_HEAD] = 4,
-	[REQUEST_METHOD_DELETE] = 6
+	[REQUEST_METHOD_GET]  = 4,
+	[REQUEST_METHOD_PUT]  = 4,
+	[REQUEST_METHOD_POST] = 5,
+	[REQUEST_METHOD_HEAD] = 5,
+	[REQUEST_METHOD_DELETE] = 7
 };
 
 /**
  * @brief The actual data structure of a HTTP request
  **/
 struct _request_t {
-	char*             url;              /*!< The URL to request */
-	char*             data;             /*!< The payload data */
 	const char*       domain;           /*!< The begining of the domain name */
 	const char*       host;             /*!< The begining of the host name (Which includes port and domain) */
 	const char*       port_str;         /*!< The string reprentation of the port number */
@@ -154,59 +153,65 @@ static inline int _request_buffer_write(request_t* req, const void* data, size_t
 	return 0;
 }
 
-static inline int _populate_request_buffer(request_t* req, const char* path, const void* data, size_t data_len)
+static inline int _populate_request_buffer(request_t* req, const char* base, const char* path, const char* query, uint64_t beg, uint64_t end, const void* data, size_t data_len)
 {
-	const char* req_data[] = {
-		[0] = NULL,       /* verb */
-		[1] = " ",
-		[2] = NULL,       /* URL */
-		[3] = " HTTP/1.1\r\n",
-		[4] = "Host: ",
-		[5] = NULL,       /* Domain name */
-		[6] = "\r\nUser-Agent: Plumber(network.http.proxy)/0.1\r\nConnection: keep-alive\r\n",
-		[7] = NULL,       /* Content length */
-		[8] = NULL,
-		[9] = NULL       /* body */
+	enum {
+		_VERB,
+		_URL_BASE,
+		_URL_REL,
+		_QUERY_START,
+		_QUERY_BODY,
+		_VERSION,
+		_HOST_KEY,
+		_HOST_VALUE,
+		_CL_LINE,
+		_RANGE_LINE,
+		_MISC_FIELDS,
+		_END_OF_HEADER,
+		_BODY,
+		_N_PARTS
 	};
-
-	size_t req_size[] = {
-		[0] = 0,
-		[1] = 1,
-		[2] = 0,
-		[3] = 11,
-		[4] = 6,
-		[5] = 0,
-		[6] = 71,
-		[7] = 0,
-		[8] = 2,
-		[9] = 0
-	};
-
-	req_data[0] = _method_verb[req->method];
-	req_size[0] = _method_verb_size[req->method];
-
-	req_data[2] = *path ? path : "/";
-	req_size[2] = strlen(req_data[2]);
-
-	req_data[5] = req->host;
-	req_size[5] = req->host_len;
-
+	const char* req_data[_N_PARTS] = {};
+	size_t req_size[_N_PARTS] = {};
 	char cl_buf[128];
-	if(req->data != NULL)
+	char rg_buf[128];
+	size_t base_len;
+
+#define _SET_CONST(what, str) req_data[what] = str, req_size[what] = sizeof(str) - 1
+#define _SET_VAR(what, str, len) req_data[what] = str, req_size[what] = len
+	_SET_VAR  (_VERB, _method_verb[req->method], _method_verb_size[req->method]);
+	_SET_VAR  (_URL_BASE, base, base_len = strlen(base));
+	if(base_len > 0 && base[base_len - 1] == '/' && path[0] == '/')
+		path ++;
+	_SET_VAR  (_URL_REL, path, strlen(path));
+	if(query[0] != 0)
 	{
-		if((req_size[7] = (size_t)snprintf(cl_buf, sizeof(cl_buf), "Content-Length: %zu\r\n", data_len)) > sizeof(cl_buf) - 1)
-		    req_size[7] = sizeof(cl_buf) - 1;
-
-		req_data[7] = cl_buf;
-
-		req_data[8] = "\r\n";
-		req_size[8] = 2;
-
-		req_data[9] = data;
-		req_size[9] = data_len;
+		_SET_CONST(_QUERY_BODY, "?");
+		_SET_VAR  (_QUERY_BODY, query, strlen(query));
 	}
-	else
-	    req_data[8] = "\r\n", req_size[8] = 2;
+	_SET_CONST(_VERSION, " HTTP/1.1\r\n");
+	_SET_CONST(_HOST_KEY, "Host: ");
+	_SET_VAR  (_HOST_VALUE, req->domain, strlen(req->domain));
+	if(NULL != data)
+	{
+		int sz = snprintf(cl_buf, sizeof(cl_buf), "\r\nContent-Length: %zu\r\n", data_len);
+		_SET_VAR(_CL_LINE, cl_buf, (size_t)sz);
+	}
+	else _SET_CONST(_CL_LINE, "\r\n");
+	if(beg != (uint64_t)-1 || end != (uint64_t)-1)
+	{
+		int sz = 0;
+		if(beg == (uint64_t)-1)
+			sz = snprintf(rg_buf, sizeof(rg_buf), "Range: bytes=-%"PRIu64"\r\n", end - 1);
+		else if(end == (uint64_t) - 1)
+			sz = snprintf(rg_buf, sizeof(rg_buf), "Range: bytes=%"PRIu64"-\r\n", beg);
+		else
+			sz = snprintf(rg_buf, sizeof(rg_buf), "Range: bytes=%"PRIu64"-%"PRIu64"\r\n", beg, end - 1);
+		_SET_VAR(_RANGE_LINE, rg_buf, (size_t)sz);
+	}
+	_SET_CONST(_MISC_FIELDS, "User-Agent: Plumber(network.http.proxy)/0.1\r\nConnection: keep-alive\r\n");
+	_SET_CONST(_END_OF_HEADER, "\r\n");
+	if(data != NULL) _SET_VAR(_BODY, data, data_len);
 
 	uint32_t i;
 
@@ -217,13 +222,10 @@ static inline int _populate_request_buffer(request_t* req, const char* path, con
 	return 0;
 }
 
-request_t* request_new(request_method_t method, const char* url, const char* data, size_t data_len, uint32_t timeout)
+request_t* request_new(const request_param_t* param, uint32_t timeout)
 {
-	if(NULL == url)
+	if(NULL == param->host || param->base_dir == NULL || param->relative_path == NULL)
 	    ERROR_PTR_RETURN_LOG("Invalid arguments");
-
-	if(memchr(url, 0, 7) != NULL || memcmp(url, "http://", 7) != 0)
-	    ERROR_PTR_RETURN_LOG("Invalid URL");
 
 	request_t* ret = pstd_mempool_alloc(sizeof(request_t));
 
@@ -231,18 +233,11 @@ request_t* request_new(request_method_t method, const char* url, const char* dat
 	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the new request object");
 
 	ret->committed = 0;
-	ret->data = NULL;
+	ret->domain = param->host;
 	ret->req_pages = NULL;
+	ret->method = param->method;
 
-	if(NULL == (ret->url = strdup(url)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the URL string");
-
-	if(NULL != data && NULL == (ret->data = strdup(data)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the data string");
-
-	ret->method = method;
-
-	ret->host = ret->domain = ret->url + 7;
+	ret->host = ret->domain;
 	for(ret->domain_len = 0;; ret->domain_len ++)
 	{
 		char ch = ret->domain[ret->domain_len];
@@ -274,12 +269,7 @@ request_t* request_new(request_method_t method, const char* url, const char* dat
 		ret->host_len = 0xffu & ((uint8_t)(ret->domain_len + ret->port_str_len) + 1u);
 	}
 	else
-	    ret->host_len =ret->domain_len;
-
-	const char* next = &ret->domain[ret->domain_len + (ret->port_str == NULL ? 0 : ret->port_str_len + 1)];
-
-	if(*next != 0 && *next != '/')
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Invalid URL");
+	    ret->host_len = ret->domain_len;
 
 	ret->req_page_capcity = 4;
 	ret->req_page_count = 0;
@@ -290,7 +280,10 @@ request_t* request_new(request_method_t method, const char* url, const char* dat
 
 	memset(ret->req_pages, 0, sizeof(char*) * ret->req_page_capcity);
 
-	if(ERROR_CODE(int) == _populate_request_buffer(ret, next, data, data_len))
+	if(ERROR_CODE(int) == _populate_request_buffer(ret, 
+				                                   param->base_dir, param->relative_path, param->query_param,
+												   param->range_begin, param->range_end, 
+												   param->content, param->content_len))
 	    ERROR_LOG_GOTO(ERR, "Cannot populate the request buffer");
 
 	ret->timeout = timeout;
@@ -298,17 +291,12 @@ request_t* request_new(request_method_t method, const char* url, const char* dat
 	return ret;
 ERR:
 	_free_request_pages(ret);
-	if(NULL != ret->data) free(ret->data);
-	if(NULL != ret->url) free(ret->url);
 	pstd_mempool_free(ret);
 	return NULL;
 }
 
 static inline int _request_free(request_t* req)
 {
-	if(NULL != req->data) free(req->data);
-	if(NULL != req->url)  free(req->url);
-
 	int rc = _free_request_pages(req);
 
 	if(ERROR_CODE(int) == pstd_mempool_free(req))

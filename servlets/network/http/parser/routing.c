@@ -126,6 +126,7 @@ int routing_map_add_routing_rule(routing_map_t* map, routing_desc_t rule)
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the URL prefix");
 
 	for(buf->host_len = 0; buf->url_prefix[buf->host_len] && buf->url_prefix[buf->host_len] != '/'; buf->host_len ++);
+	buf->url_prefix_len = strlen(buf->url_prefix) - buf->host_len;
 
 	buf->data.upgrade_http = rule.upgrade_http;
 

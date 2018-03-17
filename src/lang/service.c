@@ -229,6 +229,31 @@ ERR:
 	return NULL;
 }
 
+static inline const char* _get_servlet_init_string(runtime_stab_entry_t stab_ent, char* buf, size_t sz)
+{
+	char* next = buf;
+	uint32_t argc;
+	char const* const* argv = runtime_stab_get_init_arg(stab_ent, &argc);
+
+	if(NULL == argv)
+		return "(unknown)";
+
+	for(;argc > 0 && sz > 0; argv ++, argc --)
+	{
+		int rc = snprintf(next, sz, " %s", argv[0]);
+		if((size_t)rc > sz) 
+			sz = 0;
+		else
+		{
+			sz -= (size_t)rc;
+			next += rc;
+		}
+
+	}
+
+	return buf;
+}
+
 int lang_service_add_edge(lang_service_t* service, int64_t src_nid, const char* src_port, int64_t dst_nid, const char* dst_port)
 {
 	if(NULL == service || src_nid < 0 || src_nid >= ERROR_CODE(sched_service_node_id_t) ||
@@ -247,9 +272,26 @@ int lang_service_add_edge(lang_service_t* service, int64_t src_nid, const char* 
 	if(NULL == dst_pdt) ERROR_RETURN_LOG(int, "Cannot get the PDT for node %u", service->sid_map[dst_nid]);
 
 	runtime_api_pipe_id_t src_pid = runtime_pdt_get_pd_by_name(src_pdt, src_port);
-	if(ERROR_CODE(runtime_api_pipe_id_t) == src_pid) ERROR_RETURN_LOG(int, "Cannot get the PID for the pipe named %s", src_port);
+	if(ERROR_CODE(runtime_api_pipe_id_t) == src_pid) 
+	{
+#ifdef LOG_ERROR_ENABLED
+		char buf[4096];
+#endif
+		ERROR_RETURN_LOG(int, "Cannot get the PID for the pipe named %s (NID = %ld%s)", 
+				         src_port, src_nid, 
+						 _get_servlet_init_string(service->sid_map[src_nid], buf, sizeof(buf)));
+	}
 	runtime_api_pipe_id_t dst_pid = runtime_pdt_get_pd_by_name(dst_pdt, dst_port);
-	if(ERROR_CODE(runtime_api_pipe_id_t) == dst_pid) ERROR_RETURN_LOG(int, "Cannot get the PID for the pipe named %s", dst_port);
+	if(ERROR_CODE(runtime_api_pipe_id_t) == dst_pid)
+	{
+#ifdef LOG_ERROR_ENABLED
+		char buf[4096];
+#endif
+		ERROR_RETURN_LOG(int, "Cannot get the PID for the pipe named %s (NID = %ld%s)", 
+				          dst_port, src_nid,
+						 _get_servlet_init_string(service->sid_map[dst_nid], buf, sizeof(buf)));
+
+	}
 
 	sched_service_pipe_descriptor_t pd = {
 		.source_node_id = (sched_service_node_id_t)src_nid,

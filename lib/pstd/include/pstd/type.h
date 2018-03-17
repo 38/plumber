@@ -103,6 +103,18 @@ int pstd_type_model_get_field_info(pstd_type_model_t* model, pipe_t pipe, const 
 int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_assertion_t assertion, void* data);
 
 /**
+ * @brief Add a directive indicates the to pipe contains a copy of from pipe when each time the servlet
+ *        gets exectuted
+ * @details This function is typically useful when we needs to performe some modification to the typed header 
+ *          and build an output based on this. <br/>
+ *          This requires the type of from pipe is actually a sub-type of to pipe.
+ * @param from The from pipe
+ * @param to   The to pipe
+ * @return status code
+ **/
+int pstd_type_model_copy_pipe_data(pstd_type_model_t* model, pipe_t from, pipe_t to);
+
+/**
  * @brief Comput the size of the type context instance for the given type model
  * @param model The input type model
  * @return The size or error code

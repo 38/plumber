@@ -71,6 +71,7 @@ typedef struct _const_t {
 typedef struct {
 	uint32_t                cb_setup:1;    /*!< Indicates if we have already installed the type callback for this type info */
 	uint32_t                init:1;        /*!< If the type info has been initialized */
+	pipe_t                  copy_from;     /*!< If given it indicates which pipe we need to copy data from at the begning */
 	char*                   name;          /*!< The name of the type */
 	uint32_t                full_size;     /*!< The size of the header section */
 	uint32_t                used_size;     /*!< The size of the header data we actually used */
@@ -311,8 +312,54 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 		for(i = (runtime_api_pipe_id_t)(PIPE_GET_ID(pipe) + 1); i < model->pipe_max; i ++)
 		    model->type_info[i].buf_begin += typeinfo->used_size + sizeof(_header_buf_t);
 	}
-
+	
 	typeinfo->init = 1u;
+
+	/* Finally we update the size info if we have some copy request */
+	{
+		runtime_api_pipe_id_t p_dst;
+		for(p_dst = 0; p_dst < model->pipe_max; p_dst ++)
+			if(model->type_info[p_dst].copy_from != ERROR_CODE(pipe_t))
+			{
+				runtime_api_pipe_id_t p_src = (runtime_api_pipe_id_t)PIPE_GET_ID(model->type_info[p_dst].copy_from);
+				if(p_src >= model->pipe_max)
+					ERROR_LOG_GOTO(ERR, "Invalid source pipe %u", p_src);
+				if(model->type_info[p_src].init && model->type_info[p_dst].init)
+				{
+					const char* from_type = model->type_info[p_src].name;
+					const char* to_type = model->type_info[p_dst].name;
+					const char* types[] = {from_type, to_type, NULL};
+
+					const char* common = proto_db_common_ancestor(types);
+					if(NULL == common || strcmp(common, to_type) != 0)
+						ERROR_LOG_GOTO(ERR, "Invalid pipe data copy: from %s to %s", from_type, to_type);
+
+					uint32_t required_size = model->type_info[p_dst].full_size;
+
+					pipe_t p[2] = {(p_src < p_dst ? p_src : p_dst), (p_src < p_dst ? p_dst : p_src)};
+					runtime_api_pipe_id_t i;
+					uint32_t j;
+					size_t delta = 0;
+
+					/* Then we need to check all the buffer allocation fulfills the requirement */
+					for(i = 0, j = 0; i < model->pipe_max; i ++)
+					{
+						model->type_info[i].buf_begin += delta;
+						if(j < 2 && p[j] == i)
+						{
+							if(model->type_info[p[j]].used_size < required_size)
+							{
+								if(model->type_info[p[j]].used_size == 0)
+									delta += sizeof(_header_buf_t);
+								delta += (uint32_t)(required_size - model->type_info[p[j]].used_size);
+								model->type_info[p[j]].used_size = required_size;
+							}
+							j++;
+						}
+					}
+				}
+			}
+	}
 
 	rc = 0;
 
@@ -357,7 +404,10 @@ static inline int _ensure_pipe_typeinfo(pstd_type_model_t* ctx, pipe_t pipe)
 
 		uint32_t i;
 		for(i = ctx->pipe_cap; i < ctx->pipe_cap * 2; i ++)
+		{
 		    ctx->type_info[i].accessor_list = ERROR_CODE(uint32_t);
+			ctx->type_info[pid].copy_from = ERROR_CODE(pipe_t);
+		}
 
 		ctx->pipe_cap <<= 1u;
 		ctx->type_info = newbuf;
@@ -375,6 +425,7 @@ static inline int _ensure_pipe_typeinfo(pstd_type_model_t* ctx, pipe_t pipe)
 
 		ctx->type_info[pid].cb_setup = 1;
 	}
+
 
 
 	return 0;
@@ -435,7 +486,10 @@ pstd_type_model_t* pstd_type_model_new()
 
 	uint32_t i;
 	for(i = 0; i < ret->pipe_cap; i ++)
+	{
 	    ret->type_info[i].accessor_list = ERROR_CODE(uint32_t);
+		ret->type_info[i].copy_from = ERROR_CODE(pipe_t);
+	}
 
 	ret->accessor_cnt = 0;
 	ret->accessor_cap = PSTD_TYPE_MODEL_ACC_VEC_INIT_CAP;
@@ -613,6 +667,24 @@ ERR:
 	return ERROR_CODE(int);
 }
 
+int pstd_type_model_copy_pipe_data(pstd_type_model_t* model, pipe_t from, pipe_t to)
+{
+	if(NULL == model || ERROR_CODE(pipe_t) == from || ERROR_CODE(pipe_t) == to)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(ERROR_CODE(int) == _ensure_pipe_typeinfo(model, from))
+	    ERROR_RETURN_LOG(int, "Cannot resize the typeinfo arrray");
+	
+	if(ERROR_CODE(int) == _ensure_pipe_typeinfo(model, to))
+	    ERROR_RETURN_LOG(int, "Cannot resize the typeinfo arrray");
+
+	_typeinfo_t* typeinfo = model->type_info + PIPE_GET_ID(to);
+
+	typeinfo->copy_from = from;
+
+	return 0;
+}
+
 /**
  * @brief Compute the instance buffer size
  * @param model the type model
@@ -636,6 +708,8 @@ size_t pstd_type_instance_size(const pstd_type_model_t* model)
 	return sizeof(pstd_type_instance_t) + _inst_buf_size(model);
 }
 
+static inline int _ensure_header_read(pstd_type_instance_t* inst, pipe_t pipe, size_t nbytes);
+
 pstd_type_instance_t* pstd_type_instance_new(const pstd_type_model_t* model, void* mem)
 {
 	if(NULL == model)
@@ -655,7 +729,40 @@ pstd_type_instance_t* pstd_type_instance_new(const pstd_type_model_t* model, voi
 	    if(model->type_info[i].used_size > 0)
 	        *(size_t*)(ret->buffer + model->type_info[i].buf_begin) = 0;
 
+	/* Finally we just copy all the headers that needs to be copied */
+	for(i = 0; i < model->pipe_max; i ++)
+	{
+		if(model->type_info[i].copy_from != ERROR_CODE(pipe_t))
+		{
+			pipe_t source = model->type_info[i].copy_from;
+			int eof_rc = pipe_eof(source);
+			
+			if(eof_rc == ERROR_CODE(int))
+				ERROR_LOG_GOTO(ERR, "Cannot check if the pipe has more data");
+
+			if(eof_rc) continue;
+
+			if(ERROR_CODE(int) == _ensure_header_read(ret, source, model->type_info[i].used_size))
+				ERROR_LOG_GOTO(ERR, "Cannot read the typed header from the source");
+	
+			const _header_buf_t* src_buffer = (const _header_buf_t*)(ret->buffer + ret->model->type_info[PIPE_GET_ID(source)].buf_begin);
+			_header_buf_t* dst_buffer = (_header_buf_t*)(ret->buffer + ret->model->type_info[i].buf_begin);
+			const char* data;
+
+			if(src_buffer->valid_size == ERROR_CODE(size_t))
+				data = src_buffer->bufptr[0];
+			else
+				data = src_buffer->data;
+
+			memcpy(dst_buffer->data, data, model->type_info[i].used_size);
+			dst_buffer->valid_size = model->type_info[i].used_size;
+		}
+	}
+
 	return ret;
+ERR:
+	if(mem == NULL) free(ret);
+	return NULL;
 }
 
 int pstd_type_instance_free(pstd_type_instance_t* inst)
@@ -732,7 +839,7 @@ static inline int _ensure_header_read(pstd_type_instance_t* inst, pipe_t pipe, s
 		else
 		{
 			LOG_DEBUG("The direct buffer access has returned a buffer, use the buffer directly");
-			buffer->valid_size = ERROR_CODE(uint32_t);
+			buffer->valid_size = ERROR_CODE(size_t);
 			return 0;
 		}
 	}
@@ -797,9 +904,9 @@ size_t pstd_type_instance_read(pstd_type_instance_t* inst, pstd_type_accessor_t 
 	const _header_buf_t* buffer = (const _header_buf_t*)(inst->buffer + inst->model->type_info[PIPE_GET_ID(obj->pipe)].buf_begin);
 
 
-	if(buffer->valid_size > 0 && buffer->valid_size != ERROR_CODE(uint32_t))
+	if(buffer->valid_size > 0 && buffer->valid_size != ERROR_CODE(size_t))
 	    memcpy(buf, buffer->data + obj->offset, bufsize);
-	else if(buffer->valid_size == ERROR_CODE(uint32_t))
+	else if(buffer->valid_size == ERROR_CODE(size_t))
 	    memcpy(buf, buffer->bufptr[0] + obj->offset, bufsize);
 	else
 	    return 0;

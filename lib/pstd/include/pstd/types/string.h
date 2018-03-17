@@ -353,6 +353,23 @@ extern "C" {
 		return pstd_string_value(str_obj);
 	}
 
+	/**
+	 * @brief Retrive a string object with the type accessor
+	 * @param type_inst The type instance
+	 * @Param accessor The accessor to the string token
+	 * @return The string object
+	 **/
+	static inline const pstd_string_t* pstd_string_from_accessor(pstd_type_instance_t* type_inst, pstd_type_accessor_t accessor)
+	{
+		scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, type_inst, accessor);
+		if(ERROR_CODE(scope_token_t) == token)
+		    ERROR_PTR_RETURN_LOG("Cannot read the RLS token value with given accessor");
+
+		if(token == 0) return NULL;
+
+		return pstd_string_from_rls(token);
+	}
+
 #	ifdef __cplusplus
 }
 #	endif /* __cplusplus__ */

@@ -20,19 +20,33 @@ typedef enum {
 } request_method_t;
 
 /**
+ * @brief The request parameter
+ **/
+typedef struct {
+	request_method_t method;         /*!< The request method */
+	const char*      host;           /*!< The host name */
+	const char*      base_dir;       /*!< The base directory */
+	const char*      relative_path;  /*!< The relative path */
+	const char*      query_param;    /*!< The query parameter */
+	const char*      content;        /*!< The data body */
+	size_t           content_len;    /*!< The content length */
+
+	uint64_t         range_begin;    /*!< The start point of the range */
+	uint64_t         range_end;      /*!< The end point of range */
+} request_param_t;
+
+/**
  * @brief The declaration for a RLS proxy object
  **/
 typedef struct _request_t request_t;
 
 /**
  * @brief Create a new request RLS proxy
- * @param method The request method
- * @param url The url for the request
- * @param data The addtional payload data
+ * @param param The request parameters
  * @param timeout The time limit for connection wait
  * @return status code
  **/
-request_t* request_new(request_method_t method, const char* url, const char* data, size_t data_len, uint32_t timeout);
+request_t* request_new(const request_param_t* param, uint32_t timeout);
 
 /**
  * @brief Dispose a uncommited request
