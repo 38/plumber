@@ -18,12 +18,12 @@
 #include  <options.h>
 #include  <input.h>
 #include  <http.h>
-
-static const char _default_301_page[] = "<html><body><cneter><h1>301 Moved</h1></center><hr/></body></html>";
-static const char _default_403_page[] = "<html><body><center><h1>403 Forbiden</h1></center><hr/></body></html>";
-static const char _default_404_page[] = "<html><body><center><h1>404 Page Not Found</h1></center><hr/></body></html>";
-static const char _default_405_page[] = "<html><body><center><h1>405 Method Not Allowed</h1></center><hr/></body></html>";
-static const char _default_406_page[] = "<html><body><center><h1>406 Not Acceptable</h1></center><hr/></body></html>";
+#define _INFO_PAGE_FOOTER "<center><i>Plumber Static Content Server / 0.1.1</i></center>"
+static const char _default_301_page[] = "<html><body><cneter><h1>301 Moved</h1></center><hr/>"_INFO_PAGE_FOOTER"</body></html>";
+static const char _default_403_page[] = "<html><body><center><h1>403 Forbiden</h1></center><hr/>"_INFO_PAGE_FOOTER"</body></html>";
+static const char _default_404_page[] = "<html><body><center><h1>404 Page Not Found</h1></center><hr/>"_INFO_PAGE_FOOTER"</body></html>";
+static const char _default_405_page[] = "<html><body><center><h1>405 Method Not Allowed</h1></center><hr/>"_INFO_PAGE_FOOTER"</body></html>";
+static const char _default_416_page[] = "<html><body><center><h1>416 Range Not Satisfiable</h1></center><hr/>"_INFO_PAGE_FOOTER"</body></html>";
 
 struct _http_ctx_t {
 	pipe_t                      p_file;           /*!< The file pipe */
@@ -61,8 +61,8 @@ struct _http_ctx_t {
 	uint16_t                    HTTP_STATUS_MOVED;        /*!< Moved Permanently */
 	uint16_t                    HTTP_STATUS_NOT_FOUND;    /*!< Not found */
 	uint16_t                    HTTP_STATUS_FORBIDEN;     /*!< Forbiden */
-	uint16_t                    HTTP_STATUS_METHOD_NOT_ALLOWED;  /*!< Method not allowed */
-	uint16_t                    HTTP_STATUS_NOT_ACCEPTABLE;      /*!< Request is not acceptable */
+	uint16_t                    HTTP_STATUS_METHOD_NOT_ALLOWED;    /*!< Method not allowed */
+	uint16_t                    HTTP_STATUS_RANGE_NOT_SATISFIABLE; /*!< Request is not acceptable */
 };
 
 http_ctx_t* http_ctx_new(const options_t* options, pstd_type_model_t* type_model)
@@ -108,7 +108,7 @@ http_ctx_t* http_ctx_new(const options_t* options, pstd_type_model_t* type_model
 		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.MOVED_PERMANENTLY, ret->HTTP_STATUS_MOVED),
 		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.FORBIDEN,          ret->HTTP_STATUS_FORBIDEN),
 		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.METHOD_NOT_ALLOWED,ret->HTTP_STATUS_METHOD_NOT_ALLOWED),
-		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.NOT_ACCEPTABLE,    ret->HTTP_STATUS_NOT_ACCEPTABLE),
+		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.RANGE_NOT_SATISFIABLE, ret->HTTP_STATUS_RANGE_NOT_SATISFIABLE),
 		PSTD_TYPE_MODEL_CONST(ret->p_file,  BODY_SEEKABLE,            ret->BODY_SEEKABLE),
 		PSTD_TYPE_MODEL_CONST(ret->p_file,  BODY_RANGED,              ret->BODY_RANGED)
 	};
@@ -401,11 +401,11 @@ int http_ctx_exec(const http_ctx_t* ctx, pstd_type_instance_t* type_inst, const 
 		if(end == -1)
 		    end = st.st_size;
 
-		if(start > end || start > st.st_size || end > st.st_size)
+		if(start >= end || start > st.st_size || end > st.st_size)
 		{
 			if(ERROR_CODE(int) == _write_message_page(ctx, type_inst,
-			                                          ctx->HTTP_STATUS_NOT_ACCEPTABLE, &ctx->request_rej,
-			                                          _default_406_page, sizeof(_default_406_page) - 1))
+			                                          ctx->HTTP_STATUS_RANGE_NOT_SATISFIABLE, &ctx->request_rej,
+			                                          _default_416_page, sizeof(_default_416_page) - 1))
 			    ERROR_RETURN_LOG(int, "Cannto write the message page");
 			return 0;
 		}

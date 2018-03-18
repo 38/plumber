@@ -761,14 +761,15 @@ int parser_state_free(parser_state_t* state)
 
 static inline uint64_t _parse_u64(const char* s)
 {
+	int empty = 1;
 	uint64_t ret = 0;
 
-	for(;*s;s ++)
+	for(;*s;s ++, empty = 0)
 	    if(*s >= '0' && *s <= '9')
 	        ret = ret * 10u + (uint64_t)(*s - '0');
 	    else
 	        return (uint64_t)-1;
-	return ret;
+	return empty ? ERROR_CODE(uint64_t) : ret;
 }
 
 size_t parser_process_next_buf(parser_state_t* state, const void* buf, size_t sz)

@@ -55,7 +55,8 @@ add_custom_target(uninstall
 	COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
 add_custom_target(show-flags
-	COMMAND echo "Compiler       = ${CMAKE_C_COMPILER}" && 
+	COMMAND echo "C Compiler     = ${CMAKE_C_COMPILER}" && 
+			echo "CXX Compiler   = ${CMAKE_CXX_COMPILER}" &&
 	        echo "Log Level      = ${LOG}" &&
 			echo "Optimaization  = ${OPTLEVEL}" &&
 			echo "C Compiler Flags = ${CFLAGS}" &&

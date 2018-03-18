@@ -8,21 +8,22 @@ package plumber.std_servlet.network.http.render.v0;
  * of the internal implementation, so it's issued automatically 
  **/
 type StatusCode {
-	uint16        OK                  = 200;   /*!< The Status code for HTTP OK */
-	uint16        PARTIAL             = 206;   /*!< The status code for HTTP partial content */
+	uint16        OK                     = 200;   /*!< The Status code for HTTP OK */
+	uint16        PARTIAL                = 206;   /*!< The status code for HTTP partial content */
 
-	uint16        MOVED_PERMANENTLY   = 301;   /*!< The Status code for Move permanently */
-	uint16        MOVED_TEMPORARILY   = 302;   /*!< The status code for move temporarily */
-	uint16        NOT_MODIFIED        = 304;   /*!< The status code for the reuqest is not changed */
-	uint16        REDIR_PERMANENTLY   = 307;   /*!< The Status code for redirect permanently, which means almost 301, but should replay the same method */
-	uint16        REDIR_TEMOORARILY   = 308;   /*!< Similar to REDIR_PERMANENTLY */
+	uint16        MOVED_PERMANENTLY      = 301;   /*!< The Status code for Move permanently */
+	uint16        MOVED_TEMPORARILY      = 302;   /*!< The status code for move temporarily */
+	uint16        NOT_MODIFIED           = 304;   /*!< The status code for the reuqest is not changed */
+	uint16        REDIR_PERMANENTLY      = 307;   /*!< The Status code for redirect permanently, which means almost 301, but should replay the same method */
+	uint16        REDIR_TEMOORARILY      = 308;   /*!< Similar to REDIR_PERMANENTLY */
 
-	uint16        BAD_REQUEST         = 400;   /*!< Bad request status code */
-	uint16        UNAUTORIZED         = 401;   /*!< Unautorized */
-	uint16        FORBIDEN            = 403;   /*!< The forbiden response */
-	uint16        NOT_FOUND           = 404;   /*!< Page not found */
-	uint16        METHOD_NOT_ALLOWED  = 405;   /*!< Method is not allowed */
-	uint16        NOT_ACCEPTABLE      = 406;   /*!< The content negotiation failure */
+	uint16        BAD_REQUEST            = 400;   /*!< Bad request status code */
+	uint16        UNAUTORIZED            = 401;   /*!< Unautorized */
+	uint16        FORBIDEN               = 403;   /*!< The forbiden response */
+	uint16        NOT_FOUND              = 404;   /*!< Page not found */
+	uint16        METHOD_NOT_ALLOWED     = 405;   /*!< Method is not allowed */
+	uint16        NOT_ACCEPTABLE         = 406;   /*!< The content negotiation failure */
+	uint16        RANGE_NOT_SATISFIABLE  = 416;   /*!< The bad range error code */
 
 	uint16        status_code;                 /*!< The actual status code */
 };

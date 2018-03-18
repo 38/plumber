@@ -414,7 +414,7 @@ UPGRADE_ERR:
 	if(state->has_range)
 	{
 		if(state->range_begin != ERROR_CODE(uint64_t)) begin = state->range_begin;
-		if(state->range_end != ERROR_CODE(uint64_t)) end = state->range_end + 1;
+		if(state->range_end != ERROR_CODE(uint64_t)) end = state->range_end + (state->range_begin != ERROR_CODE(uint64_t));
 	}
 
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, result.out->a_range_begin, begin))
