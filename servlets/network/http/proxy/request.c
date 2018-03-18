@@ -385,11 +385,11 @@ static inline int _connect(_stream_t* stream)
 		for(ptr = result; ptr != NULL; ptr = ptr->ai_next)
 		{
 			if((stream->sock =socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol)) < 0)
-			    LOG_TRACE_ERRNO("Cannot connect to the address %s", req->url);
+			    LOG_TRACE_ERRNO("Cannot connect to the address %s", req->domain);
 
 			if(connect(stream->sock, ptr->ai_addr, ptr->ai_addrlen) >= 0)
 			{
-				LOG_TRACE("The connection has been successfully established to %s", req->url);
+				LOG_TRACE("The connection has been successfully established to %s", req->domain);
 				int flags = fcntl(stream->sock, F_GETFL, 0);
 				if(flags == -1)
 				    ERROR_LOG_ERRNO_GOTO(CONN_FAIL, "Cannot get the flags for the socket FD");

@@ -229,6 +229,9 @@ ERR:
 	return NULL;
 }
 
+#ifdef __clang__
+__attribute__((used))
+#endif
 static inline const char* _get_servlet_init_string(runtime_stab_entry_t stab_ent, char* buf, size_t sz)
 {
 	char* next = buf;
