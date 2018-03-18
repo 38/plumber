@@ -708,8 +708,6 @@ size_t pstd_type_instance_size(const pstd_type_model_t* model)
 	return sizeof(pstd_type_instance_t) + _inst_buf_size(model);
 }
 
-static inline int _ensure_header_read(pstd_type_instance_t* inst, pipe_t pipe, size_t nbytes);
-
 pstd_type_instance_t* pstd_type_instance_new(const pstd_type_model_t* model, void* mem)
 {
 	if(NULL == model)
@@ -729,40 +727,7 @@ pstd_type_instance_t* pstd_type_instance_new(const pstd_type_model_t* model, voi
 	    if(model->type_info[i].used_size > 0)
 	        *(size_t*)(ret->buffer + model->type_info[i].buf_begin) = 0;
 
-	/* Finally we just copy all the headers that needs to be copied */
-	for(i = 0; i < model->pipe_max; i ++)
-	{
-		if(model->type_info[i].copy_from != ERROR_CODE(pipe_t))
-		{
-			pipe_t source = model->type_info[i].copy_from;
-			int eof_rc = pipe_eof(source);
-			
-			if(eof_rc == ERROR_CODE(int))
-				ERROR_LOG_GOTO(ERR, "Cannot check if the pipe has more data");
-
-			if(eof_rc) continue;
-
-			if(ERROR_CODE(int) == _ensure_header_read(ret, source, model->type_info[i].used_size))
-				ERROR_LOG_GOTO(ERR, "Cannot read the typed header from the source");
-	
-			const _header_buf_t* src_buffer = (const _header_buf_t*)(ret->buffer + ret->model->type_info[PIPE_GET_ID(source)].buf_begin);
-			_header_buf_t* dst_buffer = (_header_buf_t*)(ret->buffer + ret->model->type_info[i].buf_begin);
-			const char* data;
-
-			if(src_buffer->valid_size == ERROR_CODE(size_t))
-				data = src_buffer->bufptr[0];
-			else
-				data = src_buffer->data;
-
-			memcpy(dst_buffer->data, data, model->type_info[i].used_size);
-			dst_buffer->valid_size = model->type_info[i].used_size;
-		}
-	}
-
 	return ret;
-ERR:
-	if(mem == NULL) free(ret);
-	return NULL;
 }
 
 int pstd_type_instance_free(pstd_type_instance_t* inst)
@@ -914,6 +879,39 @@ size_t pstd_type_instance_read(pstd_type_instance_t* inst, pstd_type_accessor_t 
 	return bufsize;
 }
 
+__attribute__((noinline))
+static int _copy_header_data(pstd_type_instance_t* inst, pipe_t pipe)
+{
+	uint32_t i = PIPE_GET_ID(pipe);
+	const pstd_type_model_t* model = inst->model;
+
+	pipe_t source = model->type_info[i].copy_from;
+	int eof_rc = pipe_eof(source);
+	
+	if(eof_rc == ERROR_CODE(int))
+		ERROR_RETURN_LOG(int, "Cannot check if the pipe has more data");
+
+	if(eof_rc) return 0;
+
+	if(ERROR_CODE(int) == _ensure_header_read(inst, source, model->type_info[i].used_size))
+		ERROR_RETURN_LOG(int, "Cannot read the typed header from the source");
+
+	const _header_buf_t* src_buffer = (const _header_buf_t*)(inst->buffer + inst->model->type_info[PIPE_GET_ID(source)].buf_begin);
+	_header_buf_t* dst_buffer = (_header_buf_t*)(inst->buffer + inst->model->type_info[i].buf_begin);
+	const char* data;
+
+	if(src_buffer->valid_size == ERROR_CODE(size_t))
+		data = src_buffer->bufptr[0];
+	else
+		data = src_buffer->data;
+
+	memcpy(dst_buffer->data, data, model->type_info[i].used_size);
+	dst_buffer->valid_size = model->type_info[i].used_size;
+
+	return 0;
+}
+
+
 /**
  * @brief Ensure the pipe header written properly. This means it will make sure all the bytes in [0, nbytes) must be
  *        properly initialized
@@ -927,6 +925,13 @@ static inline int _ensure_header_write(pstd_type_instance_t* inst, pipe_t pipe, 
 	const _typeinfo_t* typeinfo = inst->model->type_info + PIPE_GET_ID(pipe);
 	_header_buf_t* buffer = (_header_buf_t*)(inst->buffer + typeinfo->buf_begin);
 	if(nbytes <= buffer->valid_size) return 0;
+	
+	if(typeinfo->copy_from != ERROR_CODE(pipe_t) && buffer->valid_size == 0)
+	{
+		if(ERROR_CODE(int) == _copy_header_data(inst, pipe))
+		   ERROR_RETURN_LOG(int, "Cannot copy data from the source pipe");
+		return 0;
+	}
 
 	size_t bytes_to_fill = nbytes - buffer->valid_size;
 
