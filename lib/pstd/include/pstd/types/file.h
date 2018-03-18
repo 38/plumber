@@ -82,11 +82,11 @@ extern "C" {
 	* @return The file name or NULL on error
 	**/
 	const char* pstd_file_name(const pstd_file_t* file);
-	
+
 	/**
 	 * @brief Set a range mask to the PSTD file object
 	 * @detail This mask will makes the part of the file in that range acceptable
-	 * @note If the range is larger than the file it will return the entire file 
+	 * @note If the range is larger than the file it will return the entire file
 	 * @param file The file to mask
 	 * @param begin The begin of the mask
 	 * @param end The end of the mask

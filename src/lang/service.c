@@ -239,13 +239,13 @@ static inline const char* _get_servlet_init_string(runtime_stab_entry_t stab_ent
 	char const* const* argv = runtime_stab_get_init_arg(stab_ent, &argc);
 
 	if(NULL == argv)
-		return "(unknown)";
+	    return "(unknown)";
 
 	for(;argc > 0 && sz > 0; argv ++, argc --)
 	{
 		int rc = snprintf(next, sz, " %s", argv[0]);
-		if((size_t)rc > sz) 
-			sz = 0;
+		if((size_t)rc > sz)
+		    sz = 0;
 		else
 		{
 			sz -= (size_t)rc;
@@ -275,14 +275,14 @@ int lang_service_add_edge(lang_service_t* service, int64_t src_nid, const char* 
 	if(NULL == dst_pdt) ERROR_RETURN_LOG(int, "Cannot get the PDT for node %u", service->sid_map[dst_nid]);
 
 	runtime_api_pipe_id_t src_pid = runtime_pdt_get_pd_by_name(src_pdt, src_port);
-	if(ERROR_CODE(runtime_api_pipe_id_t) == src_pid) 
+	if(ERROR_CODE(runtime_api_pipe_id_t) == src_pid)
 	{
 #ifdef LOG_ERROR_ENABLED
 		char buf[4096];
 #endif
-		ERROR_RETURN_LOG(int, "Cannot get the PID for the pipe named %s (NID = %ld%s)", 
-				         src_port, src_nid, 
-						 _get_servlet_init_string(service->sid_map[src_nid], buf, sizeof(buf)));
+		ERROR_RETURN_LOG(int, "Cannot get the PID for the pipe named %s (NID = %ld%s)",
+		                 src_port, src_nid,
+		                 _get_servlet_init_string(service->sid_map[src_nid], buf, sizeof(buf)));
 	}
 	runtime_api_pipe_id_t dst_pid = runtime_pdt_get_pd_by_name(dst_pdt, dst_port);
 	if(ERROR_CODE(runtime_api_pipe_id_t) == dst_pid)
@@ -290,9 +290,9 @@ int lang_service_add_edge(lang_service_t* service, int64_t src_nid, const char* 
 #ifdef LOG_ERROR_ENABLED
 		char buf[4096];
 #endif
-		ERROR_RETURN_LOG(int, "Cannot get the PID for the pipe named %s (NID = %ld%s)", 
-				          dst_port, src_nid,
-						 _get_servlet_init_string(service->sid_map[dst_nid], buf, sizeof(buf)));
+		ERROR_RETURN_LOG(int, "Cannot get the PID for the pipe named %s (NID = %ld%s)",
+		                  dst_port, src_nid,
+		                 _get_servlet_init_string(service->sid_map[dst_nid], buf, sizeof(buf)));
 
 	}
 

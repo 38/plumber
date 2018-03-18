@@ -182,7 +182,7 @@ static inline int _populate_request_buffer(request_t* req, const char* base, con
 	_SET_VAR  (_VERB, _method_verb[req->method], _method_verb_size[req->method]);
 	_SET_VAR  (_URL_BASE, base, base_len = strlen(base));
 	if(base_len > 0 && base[base_len - 1] == '/' && path[0] == '/')
-		path ++;
+	    path ++;
 	_SET_VAR  (_URL_REL, path, strlen(path));
 	if(query[0] != 0)
 	{
@@ -202,11 +202,11 @@ static inline int _populate_request_buffer(request_t* req, const char* base, con
 	{
 		int sz = 0;
 		if(beg == (uint64_t)-1)
-			sz = snprintf(rg_buf, sizeof(rg_buf), "Range: bytes=-%"PRIu64"\r\n", end - 1);
+		    sz = snprintf(rg_buf, sizeof(rg_buf), "Range: bytes=-%"PRIu64"\r\n", end - 1);
 		else if(end == (uint64_t) - 1)
-			sz = snprintf(rg_buf, sizeof(rg_buf), "Range: bytes=%"PRIu64"-\r\n", beg);
+		    sz = snprintf(rg_buf, sizeof(rg_buf), "Range: bytes=%"PRIu64"-\r\n", beg);
 		else
-			sz = snprintf(rg_buf, sizeof(rg_buf), "Range: bytes=%"PRIu64"-%"PRIu64"\r\n", beg, end - 1);
+		    sz = snprintf(rg_buf, sizeof(rg_buf), "Range: bytes=%"PRIu64"-%"PRIu64"\r\n", beg, end - 1);
 		_SET_VAR(_RANGE_LINE, rg_buf, (size_t)sz);
 	}
 	_SET_CONST(_MISC_FIELDS, "User-Agent: Plumber(network.http.proxy)/0.1\r\nConnection: keep-alive\r\n");
@@ -280,10 +280,10 @@ request_t* request_new(const request_param_t* param, uint32_t timeout)
 
 	memset(ret->req_pages, 0, sizeof(char*) * ret->req_page_capcity);
 
-	if(ERROR_CODE(int) == _populate_request_buffer(ret, 
-				                                   param->base_dir, param->relative_path, param->query_param,
-												   param->range_begin, param->range_end, 
-												   param->content, param->content_len))
+	if(ERROR_CODE(int) == _populate_request_buffer(ret,
+	                                               param->base_dir, param->relative_path, param->query_param,
+	                                               param->range_begin, param->range_end,
+	                                               param->content, param->content_len))
 	    ERROR_LOG_GOTO(ERR, "Cannot populate the request buffer");
 
 	ret->timeout = timeout;

@@ -20,7 +20,7 @@
 typedef struct {
 	uint32_t               upgrade_http:1; /*!< If we need to upgrade the HTTP to HTTPS protocol */
 	char*                  https_url_base; /*!< If specified it means we should redirect the to another URL */
-	
+
 	pipe_t                 p_out;          /*!< The output pipe */
 	routing_output_t       accessors;      /*!< The accessors */
 } _rule_data_t;
@@ -36,7 +36,7 @@ typedef struct {
 } _rule_t;
 
 /**
- * @brief The actual data structure for a routing map 
+ * @brief The actual data structure for a routing map
  **/
 struct _routing_map_t {
 	uint16_t      n_rules;                      /*!< The number of rules */
@@ -50,8 +50,8 @@ routing_map_t* routing_map_new()
 {
 	routing_map_t* ret = (routing_map_t*)malloc(sizeof(routing_map_t));
 	if(NULL == ret)
-		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocatae memory for the routing map");
-	
+	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocatae memory for the routing map");
+
 	ret->cap_rules = 32;
 	ret->n_rules = 0;
 	ret->index = NULL;
@@ -59,7 +59,7 @@ routing_map_t* routing_map_new()
 	ret->default_rule.upgrade_http = 0;
 
 	if(NULL == (ret->rules = (_rule_t*)malloc(sizeof(_rule_t) * ret->cap_rules)))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the rule array");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the rule array");
 
 	return ret;
 ERR:
@@ -70,7 +70,7 @@ ERR:
 int routing_map_free(routing_map_t* map)
 {
 	if(NULL == map)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(map->rules != NULL)
 	{
@@ -78,21 +78,21 @@ int routing_map_free(routing_map_t* map)
 		for(i = 0; i < map->n_rules; i ++)
 		{
 			if(NULL != map->rules[i].url_prefix)
-				free(map->rules[i].url_prefix);
+			    free(map->rules[i].url_prefix);
 			if(NULL != map->rules[i].data.https_url_base)
-				free(map->rules[i].data.https_url_base);
+			    free(map->rules[i].data.https_url_base);
 		}
 
 		free(map->rules);
 	}
 
 	if(NULL != map->default_rule.https_url_base)
-		free(map->default_rule.https_url_base);
+	    free(map->default_rule.https_url_base);
 
 	int rc = 0;
 
 	if(NULL != map->index && ERROR_CODE(int) == trie_free(map->index))
-		rc = ERROR_CODE(int);
+	    rc = ERROR_CODE(int);
 
 	free(map);
 	return rc;
@@ -101,10 +101,10 @@ int routing_map_free(routing_map_t* map)
 int routing_map_add_routing_rule(routing_map_t* map, routing_desc_t rule)
 {
 	if(NULL == map || NULL == rule.url_base || NULL == rule.pipe_port_name)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(NULL != map->index)
-		ERROR_RETURN_LOG(int, "Cannot change the mapping layout of an initialized map");
+	    ERROR_RETURN_LOG(int, "Cannot change the mapping layout of an initialized map");
 
 	if(map->cap_rules <= map->n_rules)
 	{
@@ -114,7 +114,7 @@ int routing_map_add_routing_rule(routing_map_t* map, routing_desc_t rule)
 
 		_rule_t* new_arr = (_rule_t*)realloc(map->rules, sizeof(_rule_t) * new_cap);
 		if(NULL == new_arr)
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot resize the rule array");
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot resize the rule array");
 
 		map->cap_rules = new_cap;
 		map->rules = new_arr;
@@ -123,7 +123,7 @@ int routing_map_add_routing_rule(routing_map_t* map, routing_desc_t rule)
 	_rule_t* buf = map->rules + map->n_rules;
 
 	if(NULL == (buf->url_prefix = strdup(rule.url_base)))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the URL prefix");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the URL prefix");
 
 	for(buf->host_len = 0; buf->url_prefix[buf->host_len] && buf->url_prefix[buf->host_len] != '/'; buf->host_len ++);
 	buf->url_prefix_len = strlen(buf->url_prefix) - buf->host_len;
@@ -133,10 +133,10 @@ int routing_map_add_routing_rule(routing_map_t* map, routing_desc_t rule)
 	buf->data.https_url_base = NULL;
 
 	if(rule.https_url_base != NULL && NULL == (buf->data.https_url_base = strdup(rule.https_url_base)))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the HTTPS url base");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the HTTPS url base");
 
 	if(ERROR_CODE(pipe_t) == (buf->data.p_out = pipe_define(rule.pipe_port_name, PIPE_OUTPUT, "plumber/std_servlet/network/http/parser/v0/RequestData")))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open the pipe for routing %s", rule.pipe_port_name);
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open the pipe for routing %s", rule.pipe_port_name);
 
 	map->n_rules ++;
 	return 0;
@@ -150,15 +150,15 @@ ERR:
 int routing_map_set_default_http_upgrade(routing_map_t* map, uint32_t upgrade_enabled, const char* url_base)
 {
 	if(NULL == map)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	char* new_url = NULL;
 
 	if(url_base != NULL && NULL == (new_url = strdup(url_base)))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the URL base");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the URL base");
 
 	if(NULL != map->default_rule.https_url_base)
-		free(map->default_rule.https_url_base);
+	    free(map->default_rule.https_url_base);
 
 	map->default_rule.https_url_base = new_url;
 
@@ -170,28 +170,28 @@ int routing_map_set_default_http_upgrade(routing_map_t* map, uint32_t upgrade_en
 static inline int _init_rule_data(_rule_data_t* rd, pstd_type_model_t* type_model)
 {
 	if(ERROR_CODE(pstd_type_accessor_t) == (rd->accessors.a_method = pstd_type_model_get_accessor(type_model, rd->p_out, "method")))
-		ERROR_RETURN_LOG(int, "Cannot get the type accessor for method");
+	    ERROR_RETURN_LOG(int, "Cannot get the type accessor for method");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (rd->accessors.a_rel_url = pstd_type_model_get_accessor(type_model, rd->p_out, "relative_url.token")))
-		ERROR_RETURN_LOG(int, "Cannot get the type accessor for relative URL");
+	    ERROR_RETURN_LOG(int, "Cannot get the type accessor for relative URL");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (rd->accessors.a_base_url = pstd_type_model_get_accessor(type_model, rd->p_out, "base_url.token")))
-		ERROR_RETURN_LOG(int, "Cannot get the type accessor for base URL");
+	    ERROR_RETURN_LOG(int, "Cannot get the type accessor for base URL");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (rd->accessors.a_host = pstd_type_model_get_accessor(type_model, rd->p_out, "host.token")))
-		ERROR_RETURN_LOG(int, "Cannot get the type accessor for host name");
+	    ERROR_RETURN_LOG(int, "Cannot get the type accessor for host name");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (rd->accessors.a_query_param = pstd_type_model_get_accessor(type_model, rd->p_out, "query_param.token")))
-		ERROR_RETURN_LOG(int, "Cannot get the type accessor for query param");
+	    ERROR_RETURN_LOG(int, "Cannot get the type accessor for query param");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (rd->accessors.a_range_begin = pstd_type_model_get_accessor(type_model, rd->p_out, "range_begin")))
-		ERROR_RETURN_LOG(int, "Cannot get the type accessor for the range begin");
+	    ERROR_RETURN_LOG(int, "Cannot get the type accessor for the range begin");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (rd->accessors.a_range_end = pstd_type_model_get_accessor(type_model, rd->p_out, "range_end")))
-		ERROR_RETURN_LOG(int, "Cannot get the type accessor for the range end");
+	    ERROR_RETURN_LOG(int, "Cannot get the type accessor for the range end");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (rd->accessors.a_body = pstd_type_model_get_accessor(type_model, rd->p_out, "body.token")))
-		ERROR_RETURN_LOG(int, "Cannot get the type accessor for body");
+	    ERROR_RETURN_LOG(int, "Cannot get the type accessor for body");
 
 	return 0;
 }
@@ -199,35 +199,35 @@ static inline int _init_rule_data(_rule_data_t* rd, pstd_type_model_t* type_mode
 int routing_map_initialize(routing_map_t* map, pstd_type_model_t* type_model)
 {
 	if(NULL == map || NULL == type_model)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(map->index != NULL)
-		ERROR_RETURN_LOG(int, "Cannot initialize the routing map twice");
+	    ERROR_RETURN_LOG(int, "Cannot initialize the routing map twice");
 
 	uint16_t i;
 	for(i = 0; i < map->n_rules; i ++)
 	{
 		_rule_data_t* rd = &map->rules[i].data;
 		if(ERROR_CODE(int) == _init_rule_data(rd, type_model))
-			ERROR_RETURN_LOG(int, "Cannot initialize the rule data");
+		    ERROR_RETURN_LOG(int, "Cannot initialize the rule data");
 	}
 
 	if(ERROR_CODE(pipe_t) == (map->default_rule.p_out = pipe_define("default", PIPE_OUTPUT, "plumber/std_servlet/network/http/parser/v0/RequestData")))
-		ERROR_RETURN_LOG(int, "Cannot create the default routing");
+	    ERROR_RETURN_LOG(int, "Cannot create the default routing");
 
 	if(ERROR_CODE(int) == _init_rule_data(&map->default_rule, type_model))
-		ERROR_RETURN_LOG(int, "Cannot initialize the rule data");
+	    ERROR_RETURN_LOG(int, "Cannot initialize the rule data");
 
 	trie_kv_pair_t* index_buf = (trie_kv_pair_t*)malloc(sizeof(trie_kv_pair_t) * map->n_rules);
 	if(NULL == index_buf)
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the index buffer");
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the index buffer");
 
 	for(i = 0; i < map->n_rules; i ++)
-		index_buf[i].key = map->rules[i].url_prefix,
-		index_buf[i].val = map->rules + i;
+	    index_buf[i].key = map->rules[i].url_prefix,
+	    index_buf[i].val = map->rules + i;
 
 	if(NULL == (map->index = trie_new(index_buf, map->n_rules)))
-		ERROR_LOG_GOTO(ERR, "Cannot create index for the routing map");
+	    ERROR_LOG_GOTO(ERR, "Cannot create index for the routing map");
 
 	free(index_buf);
 
@@ -260,13 +260,13 @@ static inline void _fill_routing_result(routing_result_t* resbuf, const _rule_da
 size_t routing_process_buffer(routing_state_t* state, const char* buf, size_t buf_len, int last)
 {
 	if(NULL == state || NULL == state->map || NULL == state->result_buf || NULL == buf || 0 == buf_len || ERROR_CODE(size_t) == buf_len)
-		ERROR_RETURN_LOG(size_t, "Invalid arguments");
+	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 	_rule_t const* rule = NULL;
 	size_t match_rc = trie_search(state->map->index, &state->idx_state, buf, buf_len, (void const**)&rule);
 
 	if(match_rc == ERROR_CODE(size_t))
-		ERROR_RETURN_LOG(size_t, "Cannot process the next buffer");
+	    ERROR_RETURN_LOG(size_t, "Cannot process the next buffer");
 
 	if(match_rc == 0 || (NULL == rule && match_rc == buf_len && last))
 	{
@@ -275,7 +275,7 @@ size_t routing_process_buffer(routing_state_t* state, const char* buf, size_t bu
 		return 0;
 	}
 
-	if(NULL != rule) 
+	if(NULL != rule)
 	{
 		_fill_routing_result(state->result_buf, &rule->data, rule);
 		state->done = 1;

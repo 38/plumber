@@ -701,18 +701,18 @@ int pstd_fcache_eof(const pstd_fcache_file_t* file)
 int pstd_fcache_seek(pstd_fcache_file_t* file, size_t offset)
 {
 	if(NULL == file)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(file->cached)
 	{
 		if(offset > file->cache->size)
-			ERROR_RETURN_LOG(int, "Invalid offset");
+		    ERROR_RETURN_LOG(int, "Invalid offset");
 		file->offset = offset;
 	}
 	else
 	{
 		if(-1 == fseek(file->file, (off_t)offset, SEEK_SET))
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot seek the file");
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot seek the file");
 	}
 
 	return 0;

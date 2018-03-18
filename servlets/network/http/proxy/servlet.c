@@ -75,7 +75,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	};
 
 	if(NULL == (ctx->type_model = PSTD_TYPE_MODEL_BATCH_INIT(type_list)))
-		ERROR_RETURN_LOG(int, "Cannot initialize the type model");
+	    ERROR_RETURN_LOG(int, "Cannot initialize the type model");
 
 	return 0;
 }
@@ -106,7 +106,7 @@ static inline int _construct_request_param(const _ctx_t* ctx, pstd_type_instance
 {
 	uint32_t method_code = PSTD_TYPE_INST_READ_PRIMITIVE(uint32_t, inst, ctx->a_method);
 	if(ERROR_CODE(uint32_t) == method_code)
-		ERROR_RETURN_LOG(int, "Cannot read the method code");
+	    ERROR_RETURN_LOG(int, "Cannot read the method code");
 
 	if(method_code == ctx->method.GET)
 	    buf->method = REQUEST_METHOD_GET;
@@ -118,30 +118,30 @@ static inline int _construct_request_param(const _ctx_t* ctx, pstd_type_instance
 	    buf->method = REQUEST_METHOD_HEAD;
 	else if(method_code == ctx->method.DELETE)
 	    buf->method = REQUEST_METHOD_DELETE;
-	else 
-		return 0;
+	else
+	    return 0;
 
 	if(NULL == (buf->host = pstd_string_get_data_from_accessor(inst, ctx->a_host, NULL)))
-		ERROR_RETURN_LOG(int, "Cannot read the host from the request");
-	
+	    ERROR_RETURN_LOG(int, "Cannot read the host from the request");
+
 	if(NULL == (buf->base_dir = pstd_string_get_data_from_accessor(inst, ctx->a_base_url, "")))
-		ERROR_RETURN_LOG(int, "Cannot read the base URL from the request");
-	
+	    ERROR_RETURN_LOG(int, "Cannot read the base URL from the request");
+
 	if(NULL == (buf->relative_path = pstd_string_get_data_from_accessor(inst, ctx->a_rel_url, "")))
-		ERROR_RETURN_LOG(int, "Cannot read the relative path from the request");
+	    ERROR_RETURN_LOG(int, "Cannot read the relative path from the request");
 
 	if(NULL == (buf->query_param = pstd_string_get_data_from_accessor(inst, ctx->a_query_param, "")))
-		ERROR_RETURN_LOG(int, "Cannot read the query param from the request");
+	    ERROR_RETURN_LOG(int, "Cannot read the query param from the request");
 
 	const pstd_string_t* content_obj = pstd_string_from_accessor(inst, ctx->a_body);
 
 	if(NULL != content_obj)
 	{
 		if(NULL == (buf->content = pstd_string_value(content_obj)))
-			ERROR_RETURN_LOG(int, "Cannot get the value of the content object");
+		    ERROR_RETURN_LOG(int, "Cannot get the value of the content object");
 
 		if(ERROR_CODE(size_t) == (buf->content_len = pstd_string_length(content_obj)))
-			ERROR_RETURN_LOG(int, "Cannot get the length of the string");
+		    ERROR_RETURN_LOG(int, "Cannot get the length of the string");
 	}
 	else
 	{

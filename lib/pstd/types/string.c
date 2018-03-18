@@ -337,7 +337,7 @@ scope_token_t pstd_string_commit(pstd_string_t* str)
 static inline int _ensure_capacity(pstd_string_t* str, size_t required_size)
 {
 	if(str->buffer_offset > 0)
-		ERROR_RETURN_LOG(int, "Cannot resize a ranged buffer");
+	    ERROR_RETURN_LOG(int, "Cannot resize a ranged buffer");
 
 	size_t newcap = str->capacity;
 	for(;newcap < str->length + required_size + 1; newcap *= 2);

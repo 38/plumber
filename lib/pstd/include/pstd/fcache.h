@@ -70,7 +70,7 @@ int pstd_fcache_stat(const char* filename, struct stat* buf);
 /**
  * @brief Jump to the given location
  * @param file The reference to the cached file
- * @param offset The offset 
+ * @param offset The offset
  * @return the new offset in the file
  **/
 int pstd_fcache_seek(pstd_fcache_file_t* file, size_t offset);

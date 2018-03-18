@@ -142,7 +142,7 @@ extern "C" {
 	* @return the number of bytes has been written, NULL on error case
 	**/
 	size_t pstd_string_printf(pstd_string_t* str, const char* fmt, ...)
-		__attribute__((format (printf, 2, 3)));
+	    __attribute__((format (printf, 2, 3)));
 
 	/**
 	* @brief append the formatted string to the string object. This is similar to pstd_string_printf, but it accepts
@@ -215,16 +215,16 @@ extern "C" {
 	static inline int pstd_string_create_commit_write(pstd_type_instance_t* type_inst, pstd_type_accessor_t accessor, const char* str)
 	{
 		if(NULL == str)
-			ERROR_RETURN_LOG(int, "Invalid arguments");
+		    ERROR_RETURN_LOG(int, "Invalid arguments");
 		return pstd_string_create_commit_write_sz(type_inst, accessor, str, strlen(str));
 	}
 
 	/**
-	 * @brief Transfer the ownership of the pointer, commit and write a mutable RLS string 
+	 * @brief Transfer the ownership of the pointer, commit and write a mutable RLS string
 	 * @note This is the helper function to write a string to typed header. Unlike other version of pstd_string_*_commit*, it
 	 *       takes the ownership of the string
 	 * @param type_inst The type instance
-	 * @param accessor The accessor 
+	 * @param accessor The accessor
 	 * @param str The string to commit
 	 * @param size The size of the string buffer
 	 * @return status code
@@ -234,7 +234,7 @@ extern "C" {
 		pstd_string_t* str_rls_obj = pstd_string_from_onwership_pointer(str, size);
 
 		if(NULL == str_rls_obj)
-			ERROR_RETURN_LOG(int, "Cannot create PSTD string object");
+		    ERROR_RETURN_LOG(int, "Cannot create PSTD string object");
 
 		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
 		if(ERROR_CODE(scope_token_t) == str_rls_tok)
@@ -262,7 +262,7 @@ extern "C" {
 		pstd_string_t* str_rls_obj = pstd_string_from_onwership_pointer_range(str, begin, end);
 
 		if(NULL == str_rls_obj)
-			ERROR_RETURN_LOG(int, "Cannot create PSTD string object");
+		    ERROR_RETURN_LOG(int, "Cannot create PSTD string object");
 
 		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
 		if(ERROR_CODE(scope_token_t) == str_rls_tok)
@@ -286,13 +286,13 @@ extern "C" {
 	 **/
 	static inline int pstd_string_copy_commit_write_sz(pstd_type_instance_t* type_inst, pstd_type_accessor_t accessor, const char* str, size_t sz)
 	{
-		if(NULL == str) 
-			ERROR_RETURN_LOG(int, "Invalid arguments");
+		if(NULL == str)
+		    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 		char* owned_str = (char*)malloc(sz + 1);
 
 		if(NULL == owned_str)
-			ERROR_RETURN_LOG(int, "Cannot allocate memory for the new string");
+		    ERROR_RETURN_LOG(int, "Cannot allocate memory for the new string");
 
 		memcpy(owned_str, str, sz);
 		owned_str[sz] = 0;
@@ -302,7 +302,7 @@ extern "C" {
 		if(NULL == str_rls_obj)
 		{
 			free(owned_str);
-		    ERROR_RETURN_LOG(int, "Cannot create the PSTD string object");
+			ERROR_RETURN_LOG(int, "Cannot create the PSTD string object");
 		}
 
 		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
@@ -326,7 +326,7 @@ extern "C" {
 	static inline int pstd_string_copy_commit_write(pstd_type_instance_t* type_inst, pstd_type_accessor_t accessor, const char* str)
 	{
 		if(NULL == str)
-			ERROR_RETURN_LOG(int, "Invalid arguments");
+		    ERROR_RETURN_LOG(int, "Invalid arguments");
 		return pstd_string_copy_commit_write_sz(type_inst, accessor, str, strlen(str));
 	}
 

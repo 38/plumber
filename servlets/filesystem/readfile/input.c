@@ -85,7 +85,7 @@ input_ctx_t* input_ctx_new(const options_t* options, pstd_type_model_t* type_mod
 		};
 
 		if(NULL == PSTD_TYPE_MODEL_BATCH_INIT(model, type_model))
-			ERROR_LOG_GOTO(ERR, "Cannot build the type model for the HTTP requeset servlet");
+		    ERROR_LOG_GOTO(ERR, "Cannot build the type model for the HTTP requeset servlet");
 	}
 	else ret->a_str_tok = ERROR_CODE(pstd_type_accessor_t);
 
@@ -108,20 +108,20 @@ int input_ctx_free(input_ctx_t* input_ctx)
 int input_ctx_read_metadata(const input_ctx_t* input_ctx, pstd_type_instance_t* type_inst, input_metadata_t* metadata)
 {
 	if(NULL == input_ctx || NULL == type_inst || NULL == metadata)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	if(!input_ctx->http_req) 
-		return 0;
+	if(!input_ctx->http_req)
+	    return 0;
 
 	uint32_t method_code = PSTD_TYPE_INST_READ_PRIMITIVE(uint32_t, type_inst, input_ctx->a_method);
 	if(ERROR_CODE(uint32_t) == method_code)
-		ERROR_RETURN_LOG(int, "Cannot read the method code from input");
+	    ERROR_RETURN_LOG(int, "Cannot read the method code from input");
 
 	metadata->disallowed = 1;
 	if(method_code == input_ctx->METHOD_HEAD)
-		metadata->content = 0, metadata->disallowed = 0;
+	    metadata->content = 0, metadata->disallowed = 0;
 	else if(method_code == input_ctx->METHOD_GET)
-		metadata->content = 1, metadata->disallowed = 0;
+	    metadata->content = 1, metadata->disallowed = 0;
 
 	if(metadata->disallowed) return 1;
 
@@ -129,7 +129,7 @@ int input_ctx_read_metadata(const input_ctx_t* input_ctx, pstd_type_instance_t* 
 	uint64_t range_end   = PSTD_TYPE_INST_READ_PRIMITIVE(uint64_t, type_inst, input_ctx->a_range_end);
 
 	if(range_begin == input_ctx->RANGE_HEAD && range_end == input_ctx->RANGE_TAIL)
-		metadata->partial = 0;
+	    metadata->partial = 0;
 	else
 	{
 		metadata->partial = 1;

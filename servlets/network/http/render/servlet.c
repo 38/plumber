@@ -47,7 +47,7 @@ typedef struct {
 	pstd_type_accessor_t a_range_begin;      /*!< The accessor for the begin offset of the range */
 	pstd_type_accessor_t a_range_end;        /*!< The accessor for the end offset of the range */
 	pstd_type_accessor_t a_range_total;      /*!< The accessor for the total size of the ranged body */
-	
+
 	pstd_type_accessor_t a_accept_enc;       /*!< The accept encoding RLS token */
 	pstd_type_accessor_t a_upgrade_target;   /*!< The target we where we want to upgrade the protocol */
 	pstd_type_accessor_t a_protocol_error;   /*!< The protocol error code */
@@ -433,22 +433,22 @@ static int _exec(void* ctxmem)
 	}
 
 	if(ERROR_CODE(int) == (eof_rc = pipe_eof(ctx->p_protocol_data)))
-		ERROR_LOG_GOTO(ERR, "Cannot check if we got the protocol data");
+	    ERROR_LOG_GOTO(ERR, "Cannot check if we got the protocol data");
 
 	if(!eof_rc)
 	{
 		if(ERROR_CODE(uint32_t) == (protocol_error = PSTD_TYPE_INST_READ_PRIMITIVE(uint32_t, type_inst, ctx->a_protocol_error)))
-			ERROR_LOG_GOTO(ERR, "Cannot read the protocol error");
+		    ERROR_LOG_GOTO(ERR, "Cannot read the protocol error");
 
 		if(protocol_error == ctx->PROTOCOL_ERROR_BAD_REQ)
 		{
 			const char* default_400 = "<html><body><center><h1>400 Bad Request</h1></center><hr/></body></html>";
-			
+
 			if(ERROR_CODE(scope_token_t) == (body_token = _write_error_page(out, 400, &ctx->opts.err_400, default_400)))
-				ERROR_LOG_GOTO(ERR, "Cannot write the HTTP 500 response");
+			    ERROR_LOG_GOTO(ERR, "Cannot write the HTTP 500 response");
 
 			if(ERROR_CODE(int) == _write_connection_field(out, ctx->p_output, 1))
-				ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
+			    ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
 
 			goto RET;
 		}
@@ -457,19 +457,19 @@ static int _exec(void* ctxmem)
 		if(target[0] != 0)
 		{
 			if(ERROR_CODE(int) == _write_status_line(out, 301))
-				ERROR_LOG_GOTO(ERR, "Cannot write the status line");
+			    ERROR_LOG_GOTO(ERR, "Cannot write the status line");
 
 			if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Content-Type: text/plain\r\n"))
-				ERROR_LOG_GOTO(ERR, "Cannot write Content-Type field");
+			    ERROR_LOG_GOTO(ERR, "Cannot write Content-Type field");
 
 			if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Content-Length: 0\r\n"))
-				ERROR_LOG_GOTO(ERR, "Cannot write the content length");
+			    ERROR_LOG_GOTO(ERR, "Cannot write the content length");
 
 			if(ERROR_CODE(int) == _write_connection_field(out, ctx->p_output, 0))
-				ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
+			    ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
 
 			if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Locatoin: %s\r\n\r\n", target))
-				ERROR_LOG_GOTO(ERR, "Cannot write the location field");
+			    ERROR_LOG_GOTO(ERR, "Cannot write the location field");
 
 			/* Since we have no body at this time, so we just jump to the proxy return */
 			goto PROXY_RET;
@@ -521,16 +521,16 @@ static int _exec(void* ctxmem)
 		else if((algorithm & _ENCODING_GZIP))
 		{
 			if(ERROR_CODE(scope_token_t) == (body_token = zlib_token_encode(body_token, ZLIB_TOKEN_FORMAT_GZIP, ctx->opts.compress_level)))
-				ERROR_LOG_GOTO(ERR, "Cannot encode the body with GZIP encoder");
+			    ERROR_LOG_GOTO(ERR, "Cannot encode the body with GZIP encoder");
 			else
-				body_flags |= ctx->BODY_SIZE_UNKNOWN;
+			    body_flags |= ctx->BODY_SIZE_UNKNOWN;
 		}
 		else if((algorithm & _ENCODING_DEFLATE))
 		{
 			if(ERROR_CODE(scope_token_t) == (body_token = zlib_token_encode(body_token, ZLIB_TOKEN_FORMAT_DEFLATE, ctx->opts.compress_level)))
-				ERROR_LOG_GOTO(ERR, "Cannot encode the body with Deflate encoder");
+			    ERROR_LOG_GOTO(ERR, "Cannot encode the body with Deflate encoder");
 			else
-				body_flags |= ctx->BODY_SIZE_UNKNOWN;
+			    body_flags |= ctx->BODY_SIZE_UNKNOWN;
 		}
 #endif
 #ifdef HAS_BROTLI
@@ -541,14 +541,14 @@ static int _exec(void* ctxmem)
 #endif
 
 		if((body_flags & ctx->BODY_SIZE_UNKNOWN) && ctx->opts.chunked_enabled)
-			algorithm |= _ENCODING_CHUNKED;
+		    algorithm |= _ENCODING_CHUNKED;
 
 		if((algorithm & _ENCODING_CHUNKED))
 		{
 			if(ERROR_CODE(scope_token_t) == (body_token = chunked_encode(body_token, ctx->opts.max_chunk_size)))
-				ERROR_LOG_GOTO(ERR, "Cannot encode body with chunked encoder");
+			    ERROR_LOG_GOTO(ERR, "Cannot encode body with chunked encoder");
 			else
-				body_flags |= ctx->BODY_SIZE_UNKNOWN;
+			    body_flags |= ctx->BODY_SIZE_UNKNOWN;
 		}
 	}
 
@@ -598,19 +598,19 @@ static int _exec(void* ctxmem)
 	    ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
 
 	if((body_flags & ctx->BODY_SEEKABLE) && ERROR_CODE(size_t) == pstd_bio_printf(out, "Accept-Ranges: bytes\r\n"))
-		ERROR_LOG_GOTO(ERR, "Cannot write the accept-ranges header");
+	    ERROR_LOG_GOTO(ERR, "Cannot write the accept-ranges header");
 
 	if((body_flags & ctx->BODY_RANGED))
 	{
 		size_t left, right, total;
 		if(ERROR_CODE(size_t) == (left = PSTD_TYPE_INST_READ_PRIMITIVE(size_t, type_inst, ctx->a_range_begin)))
-			ERROR_LOG_GOTO(ERR, "Cannot read the range begin");
+		    ERROR_LOG_GOTO(ERR, "Cannot read the range begin");
 		if(ERROR_CODE(size_t) == (right = PSTD_TYPE_INST_READ_PRIMITIVE(size_t, type_inst, ctx->a_range_end)))
-			ERROR_LOG_GOTO(ERR, "Cannot read the range end");
+		    ERROR_LOG_GOTO(ERR, "Cannot read the range end");
 		if(ERROR_CODE(size_t) == (total = PSTD_TYPE_INST_READ_PRIMITIVE(size_t, type_inst, ctx->a_range_total)))
-			ERROR_LOG_GOTO(ERR, "Cannot read the total size");
+		    ERROR_LOG_GOTO(ERR, "Cannot read the total size");
 		if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Content-Range: bytes %zu-%zu/%zu\r\n", left, right - 1, total))
-			ERROR_LOG_GOTO(ERR, "Cannot write the content-range header");
+		    ERROR_LOG_GOTO(ERR, "Cannot write the content-range header");
 	}
 
 RET:

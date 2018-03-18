@@ -20,10 +20,10 @@ static int _upgrade_default(pstd_option_data_t data)
 	const char* https_url = NULL;
 
 	if(data.param_array_size > 1)
-		https_url = data.param_array[0].strval;
+	    https_url = data.param_array[0].strval;
 
 	if(ERROR_CODE(int) == routing_map_set_default_http_upgrade(options->routing_map, 1, https_url))
-		ERROR_RETURN_LOG(int, "Cannot set the default routing settings");
+	    ERROR_RETURN_LOG(int, "Cannot set the default routing settings");
 
 	return 0;
 }
@@ -57,9 +57,9 @@ static int _route(pstd_option_data_t data)
 		if(NULL != val) *(val ++) = 0;
 
 		if(strcmp(key, "name") == 0)
-			desc.pipe_port_name = val;
+		    desc.pipe_port_name = val;
 		else if(strcmp(key, "prefix") == 0)
-			desc.url_base = val;
+		    desc.url_base = val;
 		else if(strcmp(key, "upgrade_http") == 0)
 		{
 			desc.upgrade_http = 1;
@@ -68,10 +68,10 @@ static int _route(pstd_option_data_t data)
 	}
 
 	if(desc.pipe_port_name == NULL || desc.url_base == NULL)
-		ERROR_RETURN_LOG(int, "Malformed route description");
+	    ERROR_RETURN_LOG(int, "Malformed route description");
 
 	if(ERROR_CODE(int) == routing_map_add_routing_rule(options->routing_map, desc))
-		ERROR_RETURN_LOG(int, "Cannot add the routing rule to the routing map");
+	    ERROR_RETURN_LOG(int, "Cannot add the routing rule to the routing map");
 
 	return 0;
 }
@@ -108,9 +108,9 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 	memset(buf, 0, sizeof(*buf));
 
 	if(NULL == (buf->routing_map = routing_map_new()))
-		ERROR_RETURN_LOG(int, "Cannot create routing map");
+	    ERROR_RETURN_LOG(int, "Cannot create routing map");
 
-	
+
 	if(ERROR_CODE(int) == pstd_option_sort(_options, sizeof(_options) / sizeof(_options[0])))
 	    ERROR_RETURN_LOG(int, "Cannot sort the opts array");
 
@@ -123,10 +123,10 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 int options_free(const options_t* options)
 {
 	if(NULL == options)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(NULL != options->routing_map)
-		return routing_map_free(options->routing_map);
+	    return routing_map_free(options->routing_map);
 
 	return 0;
 }

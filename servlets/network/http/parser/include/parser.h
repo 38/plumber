@@ -67,7 +67,7 @@ int parser_state_free(parser_state_t* state);
  * @param sz The size of buffer
  * @return How many bytes that has been processed
  **/
-size_t parser_process_next_buf(parser_state_t* state, const void* buf, size_t sz); 
+size_t parser_process_next_buf(parser_state_t* state, const void* buf, size_t sz);
 
 /**
  * @brief Check if we just completed the parsing

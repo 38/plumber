@@ -142,8 +142,8 @@ static int _exec(void* ctxmem)
 		    rc = raw_ctx_exec(ctx->raw_ctx, inst, buf);
 		    break;
 		case OPTIONS_OUTPUT_MODE_HTTP:
-			if(ERROR_CODE(int) == input_ctx_read_metadata(ctx->input_ctx, inst, &input_meta))
-				ERROR_LOG_GOTO(ERR, "Cannot read the input metadata");
+		    if(ERROR_CODE(int) == input_ctx_read_metadata(ctx->input_ctx, inst, &input_meta))
+		        ERROR_LOG_GOTO(ERR, "Cannot read the input metadata");
 		    rc = http_ctx_exec(ctx->http_ctx, inst, buf, extname, &input_meta);
 		    break;
 		default:

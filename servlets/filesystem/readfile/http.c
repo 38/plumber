@@ -103,7 +103,7 @@ http_ctx_t* http_ctx_new(const options_t* options, pstd_type_model_t* type_model
 		PSTD_TYPE_MODEL_FIELD(ret->p_file,  range_total,              ret->a_total_size),
 		PSTD_TYPE_MODEL_CONST(ret->p_file,  BODY_CAN_COMPRESS,        ret->BODY_CAN_COMPRESS),
 		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.OK,                ret->HTTP_STATUS_OK),
-		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.PARTIAL,           ret->HTTP_STATUS_PARTIAL),             
+		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.PARTIAL,           ret->HTTP_STATUS_PARTIAL),
 		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.NOT_FOUND,         ret->HTTP_STATUS_NOT_FOUND),
 		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.MOVED_PERMANENTLY, ret->HTTP_STATUS_MOVED),
 		PSTD_TYPE_MODEL_CONST(ret->p_file,  status.FORBIDEN,          ret->HTTP_STATUS_FORBIDEN),
@@ -145,9 +145,9 @@ static inline int _write_string_body(const http_ctx_t* ctx, pstd_type_instance_t
 	return 0;
 }
 
-static inline int _write_file_body(const http_ctx_t* ctx, pstd_type_instance_t* type_inst, 
-		                           const char* filename, const char* mime, int compress, 
-								   int seekable, off_t start, off_t end, int content)
+static inline int _write_file_body(const http_ctx_t* ctx, pstd_type_instance_t* type_inst,
+                                   const char* filename, const char* mime, int compress,
+                                   int seekable, off_t start, off_t end, int content)
 {
 	pstd_file_t* file = pstd_file_new(filename);
 	if(NULL == file)
@@ -165,7 +165,7 @@ static inline int _write_file_body(const http_ctx_t* ctx, pstd_type_instance_t* 
 	if(seekable) body_flags |= ctx->BODY_SEEKABLE;
 
 	size_t length = 0;
-	
+
 	if(ERROR_CODE(size_t) == (length = pstd_file_size(file)))
 	    ERROR_RETURN_LOG(int, "Cannot determine the size of the file");
 
@@ -174,17 +174,17 @@ static inline int _write_file_body(const http_ctx_t* ctx, pstd_type_instance_t* 
 		uint64_t left = (start == 0) ? 0 : (uint64_t)start;
 		uint64_t right  = (end == -1) ? (uint64_t)-1 : (uint64_t)end;
 		if(ERROR_CODE(int) == pstd_file_set_range(file, left, right))
-			ERROR_RETURN_LOG(int, "Cannot set the range mask to the file object");
+		    ERROR_RETURN_LOG(int, "Cannot set the range mask to the file object");
 
 		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_range_begin, left))
-			ERROR_RETURN_LOG(int, "Cannot write the range begin");
-		
+		    ERROR_RETURN_LOG(int, "Cannot write the range begin");
+
 		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_range_end, right))
-			ERROR_RETURN_LOG(int, "Cannot write the range begin");
-		
+		    ERROR_RETURN_LOG(int, "Cannot write the range begin");
+
 		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_total_size, length))
-			ERROR_RETURN_LOG(int, "Cannot write the range begin");
-		
+		    ERROR_RETURN_LOG(int, "Cannot write the range begin");
+
 		length = right - left;
 
 		body_flags |= ctx->BODY_RANGED;
@@ -308,9 +308,9 @@ int http_ctx_exec(const http_ctx_t* ctx, pstd_type_instance_t* type_inst, const 
 	if(meta->disallowed)
 	{
 		if(ERROR_CODE(int) == _write_message_page(ctx, type_inst,
-					                              ctx->HTTP_STATUS_METHOD_NOT_ALLOWED, &ctx->method_disallowed,
-												  _default_405_page, sizeof(_default_405_page) - 1))
-			ERROR_RETURN_LOG(int, "Cannot write the message page");
+		                                          ctx->HTTP_STATUS_METHOD_NOT_ALLOWED, &ctx->method_disallowed,
+		                                          _default_405_page, sizeof(_default_405_page) - 1))
+		    ERROR_RETURN_LOG(int, "Cannot write the message page");
 		return 0;
 	}
 
@@ -399,20 +399,20 @@ int http_ctx_exec(const http_ctx_t* ctx, pstd_type_instance_t* type_inst, const 
 		start = (off_t)meta->begin;
 		end = (off_t)meta->end;
 		if(end == -1)
-			end = st.st_size;
+		    end = st.st_size;
 
 		if(start > end || start > st.st_size || end > st.st_size)
 		{
 			if(ERROR_CODE(int) == _write_message_page(ctx, type_inst,
-						                              ctx->HTTP_STATUS_NOT_ACCEPTABLE, &ctx->request_rej,
-													  _default_406_page, sizeof(_default_406_page) - 1))
-				ERROR_RETURN_LOG(int, "Cannto write the message page");
+			                                          ctx->HTTP_STATUS_NOT_ACCEPTABLE, &ctx->request_rej,
+			                                          _default_406_page, sizeof(_default_406_page) - 1))
+			    ERROR_RETURN_LOG(int, "Cannto write the message page");
 			return 0;
 		}
 		if(start != 0 || end != st.st_size)
-			partial = 1;
+		    partial = 1;
 		else
-			start = end = (off_t)-1;
+		    start = end = (off_t)-1;
 	}
 
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(type_inst, ctx->a_status_code, partial ? ctx->HTTP_STATUS_PARTIAL : ctx->HTTP_STATUS_OK))

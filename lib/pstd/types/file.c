@@ -69,7 +69,7 @@ ERR:
 int pstd_file_set_range(pstd_file_t* file, size_t begin, size_t end)
 {
 	if(NULL == file || end < begin)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	file->partial = 1;
 	file->part_beg = begin;
@@ -242,7 +242,7 @@ static inline void* _open(const void* mem)
 	_stream_t* stream = (_stream_t*)pstd_mempool_alloc(sizeof(_stream_t));
 
 	if(NULL == stream)
-		ERROR_PTR_RETURN_LOG("Cannot allocate meomry for the stream");
+	    ERROR_PTR_RETURN_LOG("Cannot allocate meomry for the stream");
 
 	const pstd_file_t* file = (const pstd_file_t*)mem;
 #ifdef PSTD_FILE_NO_CACHE
@@ -257,10 +257,10 @@ static inline void* _open(const void* mem)
 	{
 #ifdef PSTD_FILE_NO_CACHE
 		if(-1 == fseek(stream->file, (off_t)file->part_beg, SEEK_SET))
-			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot seek file %s", file->filename);
+		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot seek file %s", file->filename);
 #else
 		if(ERROR_CODE(int) == pstd_fcache_seek(stream->file, file->part_beg))
-			ERROR_LOG_GOTO(ERR, "Cannot seek file %s", file->filename);
+		    ERROR_LOG_GOTO(ERR, "Cannot seek file %s", file->filename);
 #endif
 		stream->remaining = file->part_size;
 	}
@@ -333,18 +333,18 @@ static inline size_t _read(void* __restrict stream_mem, void* __restrict buf, si
 	_stream_t* s = (_stream_t*)stream_mem;
 
 	if(s->remaining != (size_t)-1 && count > s->remaining)
-		count = s->remaining;
+	    count = s->remaining;
 
 #ifdef PSTD_FILE_NO_CACHE
 	size_t rc = fread(buf, 1, count, s->file);
 	if(rc == 0 && ferror(s->file))
 	    ERROR_RETURN_LOG_ERRNO(size_t, "Cannot read file the RLS file stream");
-	
+
 	LOG_DEBUG("%zu bytes has been read from RLS file byte stream interface", rc);
 
 	if(s->remaining != (size_t)-1)
-		s->remaining -= rc;
-	
+	    s->remaining -= rc;
+
 	return rc;
 #else
 	size_t rc = pstd_fcache_read(s->file, buf, count);
@@ -352,7 +352,7 @@ static inline size_t _read(void* __restrict stream_mem, void* __restrict buf, si
 	if(ERROR_CODE(size_t) == rc) return ERROR_CODE(size_t);
 
 	if(s->remaining != (size_t)-1)
-		s->remaining -= rc;
+	    s->remaining -= rc;
 
 	return rc;
 #endif

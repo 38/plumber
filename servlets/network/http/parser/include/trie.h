@@ -19,7 +19,7 @@
 typedef struct _trie_t trie_t;
 
 /**
- * @brief key-value pair 
+ * @brief key-value pair
  **/
 typedef struct {
 	char const* key;

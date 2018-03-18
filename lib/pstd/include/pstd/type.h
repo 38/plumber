@@ -105,7 +105,7 @@ int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_asse
 /**
  * @brief Add a directive indicates the to pipe contains a copy of from pipe when each time the servlet
  *        gets exectuted
- * @details This function is typically useful when we needs to performe some modification to the typed header 
+ * @details This function is typically useful when we needs to performe some modification to the typed header
  *          and build an output based on this. <br/>
  *          This requires the type of from pipe is actually a sub-type of to pipe.
  * @param from The from pipe

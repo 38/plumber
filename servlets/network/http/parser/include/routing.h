@@ -99,7 +99,7 @@ int routing_map_free(routing_map_t* map);
 
 /**
  * @brief Initialize the routing map
- * @note This function will finally get the accessors and constants from the type model. 
+ * @note This function will finally get the accessors and constants from the type model.
  *       This call is the last step before we can actually use the routing map
  * @param map The routing map
  * @param param The intialization param
