@@ -908,7 +908,7 @@ static int _copy_header_data(pstd_type_instance_t* inst, pipe_t pipe)
 	memcpy(dst_buffer->data, data, model->type_info[i].used_size);
 	dst_buffer->valid_size = model->type_info[i].used_size;
 
-	return 0;
+	return 1;
 }
 
 
@@ -928,9 +928,11 @@ static inline int _ensure_header_write(pstd_type_instance_t* inst, pipe_t pipe, 
 	
 	if(typeinfo->copy_from != ERROR_CODE(pipe_t) && buffer->valid_size == 0)
 	{
-		if(ERROR_CODE(int) == _copy_header_data(inst, pipe))
+		int copy_rc;
+		if(ERROR_CODE(int) == (copy_rc = _copy_header_data(inst, pipe)))
 		   ERROR_RETURN_LOG(int, "Cannot copy data from the source pipe");
-		return 0;
+		if(copy_rc) 
+			return 0;
 	}
 
 	size_t bytes_to_fill = nbytes - buffer->valid_size;
