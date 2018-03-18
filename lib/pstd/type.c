@@ -730,6 +730,8 @@ pstd_type_instance_t* pstd_type_instance_new(const pstd_type_model_t* model, voi
 	return ret;
 }
 
+static int _copy_header_data(pstd_type_instance_t* inst, pipe_t pipe) __attribute__((noinline));
+
 int pstd_type_instance_free(pstd_type_instance_t* inst)
 {
 	if(NULL == inst)
@@ -740,7 +742,19 @@ int pstd_type_instance_free(pstd_type_instance_t* inst)
 	for(i = 0; i < inst->model->pipe_max; i ++)
 	{
 
-		if(!inst->model->type_info[i].init || inst->model->type_info[i].used_size == 0) continue;
+		if(!inst->model->type_info[i].init) continue;
+		
+		if(inst->model->type_info[i].used_size == 0) 
+		{
+			if(inst->model->type_info[i].copy_from == ERROR_CODE(pipe_t))
+				continue;
+
+			int copy_rc = _copy_header_data(inst, RUNTIME_API_PIPE_FROM_ID(i));
+			if(copy_rc == ERROR_CODE(int)) 
+				ERROR_RETURN_LOG(int, "Cannot copy the data from the source pipe");
+
+			if(!copy_rc) continue;
+		}
 
 		runtime_api_pipe_flags_t flags = PIPE_INPUT;
 

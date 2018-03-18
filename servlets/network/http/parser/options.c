@@ -19,7 +19,7 @@ static int _upgrade_default(pstd_option_data_t data)
 
 	const char* https_url = NULL;
 
-	if(data.param_array_size > 1)
+	if(data.param_array_size >= 1)
 	    https_url = data.param_array[0].strval;
 
 	if(ERROR_CODE(int) == routing_map_set_default_http_upgrade(options->routing_map, 1, https_url))

@@ -467,10 +467,13 @@ static int _exec(void* ctxmem)
 
 			if(ERROR_CODE(int) == _write_connection_field(out, ctx->p_output, 0))
 			    ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
+			
+			if(NULL != ctx->opts.server_name && ERROR_CODE(size_t) == pstd_bio_printf(out, "Server: %s\r\n", ctx->opts.server_name))
+				ERROR_LOG_GOTO(ERR, "Cannot write the server name field");
 
-			if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Locatoin: %s\r\n\r\n", target))
+			if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Location: %s\r\n\r\n", target))
 			    ERROR_LOG_GOTO(ERR, "Cannot write the location field");
-
+			
 			/* Since we have no body at this time, so we just jump to the proxy return */
 			goto PROXY_RET;
 		}
@@ -496,7 +499,7 @@ static int _exec(void* ctxmem)
 
 				if(ERROR_CODE(int) == _write_connection_field(out, ctx->p_output, 0))
 				    ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
-
+				
 				goto RET;
 			}
 			else goto PROXY_RET;
