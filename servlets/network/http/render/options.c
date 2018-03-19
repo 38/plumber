@@ -6,6 +6,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include <config.h>
+
 #include <pservlet.h>
 #include <pstd.h>
 
@@ -278,7 +280,7 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 	if(ERROR_CODE(uint32_t) == pstd_option_parse(_options, sizeof(_options) / sizeof(_options[0]), argc, argv, buf))
 	    ERROR_RETURN_LOG(int, "Cannot parse the servlet initialization string");
 
-	if(NULL == buf->server_name && NULL == (buf->server_name = strdup("Plumber/HTTP")))
+	if(NULL == buf->server_name && NULL == (buf->server_name = strdup("Plumber-PINOS/"PLUMBER_VERSION_SHORT)))
 	    ERROR_RETURN_LOG(int, "Cannot initialize the default server name");
 
 	if(NULL == buf->err_406.mime_type && NULL == (buf->err_406.mime_type = strdup("text/html")))

@@ -13,6 +13,9 @@
 /** @brief the plumber version number */
 #   define PLUMBER_VERSION @PLUMBER_VERSION@
 
+/** @brief The short version number, used for security reason */
+#	define PLUMBER_VERSION_SHORT "@PLUMBER_VERSION_SHORT@"
+
 /** @brief The unsigned data type which is as large as pedding size */
 #	define uintpad_t @PADDING_INT_TYPE@
 
