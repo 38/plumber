@@ -12,7 +12,7 @@ servlet = {
 					"content:plumber/std/request_local/String " + 
 					"protocol_data:plumber/std_servlet/network/http/parser/v0/ProtocolData ";
 	modify_content := "dataflow/modify body_rls";
-	render := "network/http/render --406-page " + base_dir + "406.txt --406-mime text/plain";
+	render := "network/http/render --server-name Plumber/HTTP --406-page " + base_dir + "406.txt --406-mime text/plain";
 	
 	(input) -> "json" parse_input {
 		"content" ->  "body_rls";
