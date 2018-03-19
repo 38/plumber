@@ -271,16 +271,16 @@ size_t routing_process_buffer(routing_state_t* state, const char* buf, size_t bu
 		size_t match_rc = trie_search(state->map->index, &state->idx_state, buf, buf_len, (void const**)&rule);
 
 		if(match_rc == ERROR_CODE(size_t))
-			ERROR_RETURN_LOG(size_t, "Cannot process the next buffer");
+		    ERROR_RETURN_LOG(size_t, "Cannot process the next buffer");
 
 		bytes_consumed += match_rc;
 		buf += match_rc;
 		buf_len -= match_rc;
 
 		if(NULL != rule)
-			last_matched_rule = rule;
-		
-		if(state->idx_state.code == ERROR_CODE(uint32_t)) 
+		    last_matched_rule = rule;
+
+		if(state->idx_state.code == ERROR_CODE(uint32_t))
 		{
 			/* If the match is definitely failed, we do not need to look at more bytes */
 			last = 1;

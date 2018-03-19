@@ -358,13 +358,13 @@ size_t trie_search(const trie_t* trie, trie_search_state_t* state, const char* k
 		continue;
 LEFT:
 		/* We need to goto the left child */
-		if(cur_val != NULL) *result = cur_val; 
-		if(!cur_node->has_left) 
+		if(cur_val != NULL) *result = cur_val;
+		if(!cur_node->has_left)
 		{
-			if(cur_val != NULL) 
-				goto MATCH_DONE;
+			if(cur_val != NULL)
+			    goto MATCH_DONE;
 			else
-				goto MATCH_FAILED;
+			    goto MATCH_FAILED;
 		}
 		cur_node = cur_node + 1;
 		cur_key = trie->key_data[(uint32_t)(cur_node - trie->node_array)];

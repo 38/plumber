@@ -743,15 +743,15 @@ int pstd_type_instance_free(pstd_type_instance_t* inst)
 	{
 
 		if(!inst->model->type_info[i].init) continue;
-		
-		if(inst->model->type_info[i].used_size == 0) 
+
+		if(inst->model->type_info[i].used_size == 0)
 		{
 			if(inst->model->type_info[i].copy_from == ERROR_CODE(pipe_t))
-				continue;
+			    continue;
 
 			int copy_rc = _copy_header_data(inst, RUNTIME_API_PIPE_FROM_ID(i));
-			if(copy_rc == ERROR_CODE(int)) 
-				ERROR_RETURN_LOG(int, "Cannot copy the data from the source pipe");
+			if(copy_rc == ERROR_CODE(int))
+			    ERROR_RETURN_LOG(int, "Cannot copy the data from the source pipe");
 
 			if(!copy_rc) continue;
 		}
