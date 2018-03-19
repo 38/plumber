@@ -186,7 +186,7 @@ static inline int _populate_request_buffer(request_t* req, const char* base, con
 	_SET_VAR  (_URL_REL, path, strlen(path));
 	if(query[0] != 0)
 	{
-		_SET_CONST(_QUERY_BODY, "?");
+		_SET_CONST(_QUERY_START, "?");
 		_SET_VAR  (_QUERY_BODY, query, strlen(query));
 	}
 	_SET_CONST(_VERSION, " HTTP/1.1\r\n");
