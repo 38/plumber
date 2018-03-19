@@ -262,25 +262,48 @@ size_t routing_process_buffer(routing_state_t* state, const char* buf, size_t bu
 	if(NULL == state || NULL == state->map || NULL == state->result_buf || NULL == buf || 0 == buf_len || ERROR_CODE(size_t) == buf_len)
 	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
-	_rule_t const* rule = NULL;
-	size_t match_rc = trie_search(state->map->index, &state->idx_state, buf, buf_len, (void const**)&rule);
+	size_t bytes_consumed = 0;
+	_rule_t const* last_matched_rule = NULL;
 
-	if(match_rc == ERROR_CODE(size_t))
-	    ERROR_RETURN_LOG(size_t, "Cannot process the next buffer");
-
-	if(match_rc == 0 || (NULL == rule && match_rc == buf_len && last))
+	while(buf_len > 0)
 	{
-		_fill_routing_result(state->result_buf, &state->map->default_rule, NULL);
-		state->done = 1;
-		return 0;
+		_rule_t const* rule = NULL;
+		size_t match_rc = trie_search(state->map->index, &state->idx_state, buf, buf_len, (void const**)&rule);
+
+		if(match_rc == ERROR_CODE(size_t))
+			ERROR_RETURN_LOG(size_t, "Cannot process the next buffer");
+
+		bytes_consumed += match_rc;
+		buf += match_rc;
+		buf_len -= match_rc;
+
+		if(NULL != rule)
+			last_matched_rule = rule;
+		
+		if(state->idx_state.code == ERROR_CODE(uint32_t)) 
+		{
+			/* If the match is definitely failed, we do not need to look at more bytes */
+			last = 1;
+			break;
+		}
+
 	}
 
-	if(NULL != rule)
+	if(last)
 	{
-		_fill_routing_result(state->result_buf, &rule->data, rule);
-		state->done = 1;
-		return match_rc;
+
+		if(last_matched_rule == NULL && last)
+		{
+			_fill_routing_result(state->result_buf, &state->map->default_rule, NULL);
+			state->done = 1;
+			return 0;
+		}
+		else
+		{
+			_fill_routing_result(state->result_buf, &last_matched_rule->data, last_matched_rule);
+			state->done = 1;
+		}
 	}
 
-	return match_rc;
+	return bytes_consumed;
 }

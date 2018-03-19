@@ -72,6 +72,7 @@ static inline uint32_t _compute_trie_size(const trie_kv_pair_t* data, uint32_t o
 				split = i;
 			}
 		}
+		if(is_word) break;
 	}
 
 	if(done)
@@ -139,7 +140,6 @@ static inline uint32_t _build_trie(const trie_kv_pair_t* data, uint32_t offset, 
 	uint16_t length;
 	uint32_t done = 0, split = 0, is_word = 0;
 
-
 	for(length = 0; length < 0xffffu && !done; length ++)
 	{
 		uint32_t i;
@@ -165,6 +165,7 @@ static inline uint32_t _build_trie(const trie_kv_pair_t* data, uint32_t offset, 
 				split = i;
 			}
 		}
+		if(is_word) break;
 	}
 
 	_init_node(trie, slot, data[0].key, offset, length, is_word ? data[0].val : NULL);
@@ -181,12 +182,8 @@ static inline uint32_t _build_trie(const trie_kv_pair_t* data, uint32_t offset, 
 	}
 	else
 	{
-		int last_bit = (data[offset + length - 1].key[offset / 8] & (0x80 >> ((offset + length) % 8)));
-
-		if(0 == last_bit)
-		    trie->node_array[slot].has_left = 1;
-		else
-		    trie->node_array[slot].has_right = 1;
+		trie->node_array[slot].has_left = 1;
+		trie->node_array[slot].has_right = 0;
 
 		return _build_trie(data + is_word, offset + length, size - is_word, trie, slot + 1) + 1;
 	}
@@ -264,13 +261,15 @@ size_t trie_search(const trie_t* trie, trie_search_state_t* state, const char* k
 		return 0;
 	}
 
+	*result = NULL;
+
 	size_t ret = 0;
 	uint32_t matched_len = state->matched_len;
 	const _trie_node_t* cur_node = trie->node_array + state->code;
 	const char* cur_key = trie->key_data[state->code];
 	const void* cur_val = trie->val_data[state->code];
 
-	for(;key_size > 0;)
+	for(;key_size > 0 && *result == NULL;)
 	{
 		if(cur_node->length == 1)
 		{
@@ -359,15 +358,20 @@ size_t trie_search(const trie_t* trie, trie_search_state_t* state, const char* k
 		continue;
 LEFT:
 		/* We need to goto the left child */
-		if(cur_val != NULL) goto MATCH_SUCCESS;
-		if(!cur_node->has_left) goto MATCH_FAILED;
+		if(cur_val != NULL) *result = cur_val; 
+		if(!cur_node->has_left) 
+		{
+			if(cur_val != NULL) 
+				goto MATCH_DONE;
+			else
+				goto MATCH_FAILED;
+		}
 		cur_node = cur_node + 1;
 		cur_key = trie->key_data[(uint32_t)(cur_node - trie->node_array)];
 		cur_val = trie->val_data[(uint32_t)(cur_node - trie->node_array)];
 		matched_len = 0;
 		continue;
 RIGHT:
-		if(cur_val != NULL) goto MATCH_SUCCESS;
 		if(!cur_node->has_right) goto MATCH_FAILED;
 		cur_node = cur_node + cur_node->right_offset + 1;
 		cur_key = trie->key_data[(uint32_t)(cur_node - trie->node_array)];
@@ -382,13 +386,10 @@ RIGHT:
 	return ret;
 
 MATCH_FAILED:
-
-	*result = NULL;
 	state->code = ERROR_CODE(uint32_t);
 	return 0;
 
-MATCH_SUCCESS:
+MATCH_DONE:
 	state->code = ERROR_CODE(uint32_t);
-	*result = cur_val;
 	return ret;
 }
