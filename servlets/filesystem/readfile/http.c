@@ -18,7 +18,7 @@
 #include  <options.h>
 #include  <input.h>
 #include  <http.h>
-#define _INFO_PAGE_FOOTER "<center><i>Plumber Static Content Server / 0.1.1</i></center>"
+#define _INFO_PAGE_FOOTER "<center><i>Powered by Plumber PINOS Static Content Server "PLUMBER_VERSION_SHORT"</i></center>"
 static const char _default_301_page[] = "<html><body><cneter><h1>301 Moved</h1></center><hr/>"_INFO_PAGE_FOOTER"</body></html>";
 static const char _default_403_page[] = "<html><body><center><h1>403 Forbiden</h1></center><hr/>"_INFO_PAGE_FOOTER"</body></html>";
 static const char _default_404_page[] = "<html><body><center><h1>404 Page Not Found</h1></center><hr/>"_INFO_PAGE_FOOTER"</body></html>";
