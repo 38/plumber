@@ -133,8 +133,10 @@ static int _unload(void* ctxmem)
 static inline int _write_status_line(pstd_bio_t* bio, uint16_t status_code)
 {
 	const char* status_phrase = "Unknown Status Phrase";
+	size_t status_size = 0;
 
-#define STATUS_PHRASE(code, text) case code: status_phrase = text; break
+#define STATUS_LINE(code, text) "HTTP/1.1 "#code" "text"\r\n"
+#define STATUS_PHRASE(code, text) case code: status_phrase = STATUS_LINE(code, text); status_size = sizeof(STATUS_LINE(code, text)) - 1; break
 
 	switch(status_code)
 	{
@@ -200,10 +202,18 @@ static inline int _write_status_line(pstd_bio_t* bio, uint16_t status_code)
 		STATUS_PHRASE(508,"Loop Detected");
 		STATUS_PHRASE(510,"Not Extended");
 		STATUS_PHRASE(511,"Network Authentication Required");
+		default:
+			ERROR_RETURN_LOG(int, "Invalid status code %d", status_code);
 	}
 
-	if(ERROR_CODE(size_t) == pstd_bio_printf(bio, "HTTP/1.1 %d %s\r\n", status_code, status_phrase))
-	    ERROR_RETURN_LOG(int, "Cannot write the status line");
+	while(status_size > 0)
+	{
+		size_t rc = pstd_bio_write(bio, status_phrase, status_size);
+		if(rc == ERROR_CODE(size_t))
+	    	ERROR_RETURN_LOG(int, "Cannot write the status line");
+		status_size -= rc;
+		status_phrase += rc;
+	}
 
 	return 0;
 }
@@ -218,8 +228,14 @@ static inline int _write_string_field(pstd_bio_t* bio, pstd_type_instance_t* ins
 	if(NULL == (value = pstd_string_get_data_from_accessor(inst, acc, defval)))
 	    ERROR_RETURN_LOG(int, "Cannot get the string value");
 
-	if(ERROR_CODE(size_t) == pstd_bio_printf(bio, "%s: %s\r\n", name, value))
-	    ERROR_RETURN_LOG(int, "Cannot write the %s field", name);
+	if(ERROR_CODE(size_t) == pstd_bio_puts(bio, name))
+		ERROR_RETURN_LOG(int, "Cannot write the field name %s", name);
+
+	if(ERROR_CODE(size_t) == pstd_bio_puts(bio, value))
+		ERROR_RETURN_LOG(int, "Cannot write the field value");
+
+	if(ERROR_CODE(size_t) == pstd_bio_puts(bio, "\r\n"))
+		ERROR_RETURN_LOG(int, "Cannot write the CLRF");
 
 	return 0;
 }
@@ -288,17 +304,18 @@ static inline int _write_encoding(pstd_bio_t* bio, uint32_t algorithm, uint64_t 
 {
 	if((algorithm & _ENCODING_COMPRESSED))
 	{
-		const char* algorithm_name = "identity";
+#define _CE_NAME "Content-Encoding: "
+		const char* algorithm_name = _CE_NAME"identity\r\n";
 		if((algorithm & _ENCODING_GZIP))
-		    algorithm_name = "gzip";
+		    algorithm_name = _CE_NAME"gzip\r\n";
 		else if((algorithm & _ENCODING_DEFLATE))
-		    algorithm_name = "deflate";
+		    algorithm_name = _CE_NAME"deflate\r\n";
 #ifdef HAS_BROTLI
 		else if((algorithm & _ENCODING_BR))
-		    algorithm_name = "br";
+		    algorithm_name = _CE_NAME"br\r\n";
 #endif
-		if(ERROR_CODE(size_t) == pstd_bio_printf(bio, "Content-Encoding: %s\r\n", algorithm_name))
-		    ERROR_RETURN_LOG(int, "Cannot write the Content-Encoding header");
+		if(ERROR_CODE(size_t) == pstd_bio_puts(bio, algorithm_name))
+			ERROR_RETURN_LOG(int, "Cannot write the content-encoding");
 	}
 
 	if((algorithm & _ENCODING_CHUNKED))
@@ -308,8 +325,33 @@ static inline int _write_encoding(pstd_bio_t* bio, uint32_t algorithm, uint64_t 
 	}
 	else
 	{
-		if(ERROR_CODE(size_t) == pstd_bio_printf(bio, "Content-Length: %zu\r\n", size))
-		    ERROR_RETURN_LOG(int, "Cannot write the Content-Length header");
+		char buffer[256];
+		char* ptr = buffer + sizeof(buffer) - 3;
+		buffer[sizeof(buffer) - 1] = 0;
+		buffer[sizeof(buffer) - 2] = '\n';
+		buffer[sizeof(buffer) - 3] = '\r';
+
+		if(size == 0) 
+			*(--ptr) = '0';
+		else while(size > 0)
+		{
+			*(--ptr) = (char)((size % 10) + '0');
+			size /= 10;
+		}
+
+#define _CL_NAME "Content-Length: "
+
+		ptr -= sizeof(_CL_NAME) - 1;
+		memcpy(ptr, _CL_NAME, sizeof(_CL_NAME) - 1);
+
+		while(ptr[0] != 0)
+		{
+			size_t sz;
+			if(ERROR_CODE(size_t) == (sz = pstd_bio_write(bio, ptr, (size_t)(buffer + sizeof(buffer) - 1 - ptr))))
+				ERROR_RETURN_LOG(int, "Cannot write the Content-Length header");
+
+			ptr += sz;
+		}
 	}
 
 	return 0;
@@ -386,12 +428,12 @@ static inline int _write_connection_field(pstd_bio_t* out, pipe_t res, int needs
 
 	if((flags & PIPE_PERSIST))
 	{
-		if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Connection: keep-alive\r\n"))
+		if(ERROR_CODE(size_t) == pstd_bio_puts(out, "Connection: keep-alive\r\n"))
 		    ERROR_RETURN_LOG(int, "Cannot write the connection field");
 	}
 	else
 	{
-		if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Connection: close\r\n"))
+		if(ERROR_CODE(size_t) == pstd_bio_puts(out, "Connection: close\r\n"))
 		    ERROR_RETURN_LOG(int, "Cannot write the connection field");
 	}
 
@@ -459,19 +501,22 @@ static int _exec(void* ctxmem)
 			if(ERROR_CODE(int) == _write_status_line(out, 301))
 			    ERROR_LOG_GOTO(ERR, "Cannot write the status line");
 
-			if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Content-Type: text/plain\r\n"))
+			if(ERROR_CODE(size_t) == pstd_bio_puts(out, "Content-Type: text/plain\r\n"))
 			    ERROR_LOG_GOTO(ERR, "Cannot write Content-Type field");
 
-			if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Content-Length: 0\r\n"))
+			if(ERROR_CODE(size_t) == pstd_bio_puts(out, "Content-Length: 0\r\n"))
 			    ERROR_LOG_GOTO(ERR, "Cannot write the content length");
 
 			if(ERROR_CODE(int) == _write_connection_field(out, ctx->p_output, 0))
 			    ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
 
-			if(NULL != ctx->opts.server_name && ERROR_CODE(size_t) == pstd_bio_printf(out, "Server: %s\r\n", ctx->opts.server_name))
+			if(NULL != ctx->opts.server_name && ERROR_CODE(size_t) == pstd_bio_puts(out, ctx->opts.server_name))
 			    ERROR_LOG_GOTO(ERR, "Cannot write the server name field");
 
-			if(ERROR_CODE(size_t) == pstd_bio_printf(out, "Location: %s\r\n\r\n", target))
+			if(ERROR_CODE(size_t) == pstd_bio_puts(out, "Location: "))
+			    ERROR_LOG_GOTO(ERR, "Cannot write the location field");
+
+			if(ERROR_CODE(size_t) == pstd_bio_puts(out, target))
 			    ERROR_LOG_GOTO(ERR, "Cannot write the location field");
 
 			/* Since we have no body at this time, so we just jump to the proxy return */
@@ -582,13 +627,13 @@ static int _exec(void* ctxmem)
 
 
 	/* Write the content type */
-	if(ERROR_CODE(int) == _write_string_field(out, type_inst, ctx->a_mime_type, "Content-Type", "application/octet-stream" ))
+	if(ERROR_CODE(int) == _write_string_field(out, type_inst, ctx->a_mime_type, "Content-Type: ", "application/octet-stream" ))
 	    ERROR_LOG_GOTO(ERR, "Cannot write the mime type");
 
 	/* Write redirections */
 	if(status_code == 301 || status_code == 302 || status_code == 308 || status_code == 309)
 	{
-		if(ERROR_CODE(int) == _write_string_field(out, type_inst, ctx->a_redir_loc, "Location", "/"))
+		if(ERROR_CODE(int) == _write_string_field(out, type_inst, ctx->a_redir_loc, "Location: ", "/"))
 		    ERROR_LOG_GOTO(ERR, "Cannot write the redirect location");
 	}
 
@@ -600,7 +645,7 @@ static int _exec(void* ctxmem)
 	if(ERROR_CODE(int) == _write_connection_field(out, ctx->p_output, 0))
 	    ERROR_LOG_GOTO(ERR, "Cannot write the connection field");
 
-	if((body_flags & ctx->BODY_SEEKABLE) && ERROR_CODE(size_t) == pstd_bio_printf(out, "Accept-Ranges: bytes\r\n"))
+	if((body_flags & ctx->BODY_SEEKABLE) && ERROR_CODE(size_t) == pstd_bio_puts(out, "Accept-Ranges: bytes\r\n"))
 	    ERROR_LOG_GOTO(ERR, "Cannot write the accept-ranges header");
 
 	if((body_flags & ctx->BODY_RANGED))
@@ -619,7 +664,7 @@ static int _exec(void* ctxmem)
 RET:
 
 	/* Write the server name */
-	if(NULL != ctx->opts.server_name && ERROR_CODE(size_t) == pstd_bio_printf(out, "Server: %s\r\n", ctx->opts.server_name))
+	if(NULL != ctx->opts.server_name && ERROR_CODE(size_t) == pstd_bio_puts(out, ctx->opts.server_name))
 	    ERROR_LOG_GOTO(ERR, "Cannot write the server name field");
 
 	/* Write the body deliminators */
