@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
+#include <stdio.h>
 
 #include <config.h>
 
@@ -78,6 +79,7 @@ static int _opt_callback_string(pstd_option_data_t data)
 
 	options_t* opt = (options_t*)data.cb_data;
 	char** target = NULL;
+	char* val = NULL;
 
 	switch(data.current_option->short_opt)
 	{
@@ -106,14 +108,20 @@ static int _opt_callback_string(pstd_option_data_t data)
 		        ERROR_RETURN_LOG(int, "Invalid options");
 		    break;
 		case 's':
-		    target = &opt->server_name;
-		    break;
+		{	
+			size_t len = strlen(data.param_array[0].strval) + sizeof("Server: \r\n");
+			val = (char*)malloc(len);
+			if(NULL != val)
+				snprintf(val, len, "Server: %s\r\n", data.param_array[0].strval);
+			goto FINISHED;
+		}
 		default:
 		    ERROR_RETURN_LOG(int, "Invalid options");
 	}
 
-	char* val = strdup(data.param_array[0].strval);
+	val = strdup(data.param_array[0].strval);
 
+FINISHED:
 	if(NULL == val)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the param string");
 
@@ -280,7 +288,7 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 	if(ERROR_CODE(uint32_t) == pstd_option_parse(_options, sizeof(_options) / sizeof(_options[0]), argc, argv, buf))
 	    ERROR_RETURN_LOG(int, "Cannot parse the servlet initialization string");
 
-	if(NULL == buf->server_name && NULL == (buf->server_name = strdup("Plumber-PINS/"PLUMBER_VERSION_SHORT)))
+	if(NULL == buf->server_name && NULL == (buf->server_name = strdup("Server: Plumber-PINS/"PLUMBER_VERSION_SHORT"\r\n")))
 	    ERROR_RETURN_LOG(int, "Cannot initialize the default server name");
 
 	if(NULL == buf->err_406.mime_type && NULL == (buf->err_406.mime_type = strdup("text/html")))
