@@ -45,12 +45,12 @@ typedef struct _cached_object_t {
  * @brief the actual memory pool data structure
  **/
 struct _mempool_objpool_t {
-	thread_pset_t*               local_pool;                     /*!< the thread local object pool */
-	_cached_object_t*            cached;                         /*!< the cahced object list */
-	_page_t*                     pages;                          /*!< the pages used by the pool */
 	uint32_t                     page_count;                     /*!< the number of pages */
 	uint32_t                     obj_size;                       /*!< the size of each object in the pool */
+	_page_t*                     pages;                          /*!< the pages used by the pool */
+	_cached_object_t*            cached;                         /*!< the cahced object list */
 	pthread_mutex_t              mutex;                          /*!< the mutex use for the multi-thread pool */
+	thread_pset_t                local_pool;                     /*!< the thread local object pool */
 	mempool_objpool_tlp_policy_t policy[THREAD_NUM_TYPES];       /*!< the allocation policy for each type of thread */
 };
 
@@ -230,7 +230,7 @@ mempool_objpool_t* mempool_objpool_new(uint32_t size)
 	ret->cached = NULL;
 	ret->page_count = 0;
 
-	if(NULL == (ret->local_pool = thread_pset_new(1, _thread_pool_alloc , _thread_pool_free, ret)))
+	if(NULL == (/*ret->local_pool = */thread_pset_new(1, _thread_pool_alloc , _thread_pool_free, ret, &ret->local_pool)))
 	    ERROR_LOG_GOTO(ERR, "Cannot create thread local pointer set as the lcoal thread pool");
 
 	if((errno = pthread_mutex_init(&ret->mutex, NULL)) != 0)
@@ -245,7 +245,7 @@ mempool_objpool_t* mempool_objpool_new(uint32_t size)
 
 	goto RET;
 ERR:
-	if(ret->local_pool != NULL) thread_pset_free(ret->local_pool);
+	thread_pset_free(&ret->local_pool);
 	free(ret);
 	ret = NULL;
 RET:
@@ -270,7 +270,7 @@ int mempool_objpool_free(mempool_objpool_t* pool)
 		free(current);
 	}
 
-	if(thread_pset_free(pool->local_pool) == ERROR_CODE(int))
+	if(thread_pset_free(&pool->local_pool) == ERROR_CODE(int))
 	{
 		LOG_ERROR("Cannot dispose the thread local memory pool");
 		rc = ERROR_CODE(int);
@@ -385,7 +385,7 @@ static void* _mempool_objpool_alloc_no_check(mempool_objpool_t* pool)
 	void* ret = NULL;
 
 	/* First try to get the object from the local pool */
-	_thread_local_pool_t* tlp = thread_pset_acquire(pool->local_pool);
+	_thread_local_pool_t* tlp = thread_pset_acquire(&pool->local_pool);
 
 #ifndef FULL_OPTIMIZATION
 	if(PREDICT_FALSE(NULL == tlp))
@@ -402,7 +402,7 @@ static void* _mempool_objpool_alloc_no_check(mempool_objpool_t* pool)
 	
 	ret = tlp->end;
 	tlp->end = tlp->end->prev;
-	if(tlp->end == NULL)
+	if(tlp->count == 1)
 	    tlp->begin = tlp->exceeded = NULL;
 	else if(PREDICT_FALSE(tlp->exceeded == ret))
 	    tlp->exceeded = NULL;
@@ -481,25 +481,26 @@ int mempool_objpool_dealloc(mempool_objpool_t* pool, void* mem);
 static int _mempool_objpool_dealloc_no_check(mempool_objpool_t* pool, void* mem)
 {
 
-	_thread_local_pool_t* tlp = thread_pset_acquire(pool->local_pool);
+	_thread_local_pool_t* tlp = thread_pset_acquire(&pool->local_pool);
 #ifndef FULL_OPTIMIZATION
 	if(PREDICT_FALSE(NULL == tlp))
 	    ERROR_RETURN_LOG(int, "Cannot acquire the thread local pool for current thread TID=%u", thread_get_id());
 #endif
 
 	_cached_object_t* cur = (_cached_object_t*)mem;
-	cur->prev = NULL;
-	cur->next = tlp->begin;
-	if(PREDICT_TRUE(tlp->begin != NULL)) tlp->begin->prev = cur;
-	else tlp->end = cur;
-	tlp->begin = cur;
+	cur->prev = tlp->end;
+	cur->next = NULL;
+	if(PREDICT_TRUE(tlp->end != NULL)) 
+		tlp->end->next = cur;
+	else 
+		tlp->begin = cur;
+
+	tlp->end = cur;
 
 	uint32_t cache_limit = _get_current_thread_cache_limit(pool);
 
 	if(PREDICT_FALSE(tlp->count == cache_limit))
 	    tlp->exceeded = tlp->end;
-	else if(tlp->count > cache_limit)
-	    tlp->exceeded = tlp->exceeded->prev;
 
 	tlp->count ++;
 
