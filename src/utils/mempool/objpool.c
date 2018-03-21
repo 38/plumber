@@ -45,12 +45,12 @@ typedef struct _cached_object_t {
  * @brief the actual memory pool data structure
  **/
 struct _mempool_objpool_t {
+	thread_pset_t*               local_pool;                     /*!< the thread local object pool */
+	_cached_object_t*            cached;                         /*!< the cahced object list */
+	_page_t*                     pages;                          /*!< the pages used by the pool */
 	uint32_t                     page_count;                     /*!< the number of pages */
 	uint32_t                     obj_size;                       /*!< the size of each object in the pool */
-	_page_t*                     pages;                          /*!< the pages used by the pool */
-	_cached_object_t*            cached;                         /*!< the cahced object list */
 	pthread_mutex_t              mutex;                          /*!< the mutex use for the multi-thread pool */
-	thread_pset_t*               local_pool;                     /*!< the thread local object pool */
 	mempool_objpool_tlp_policy_t policy[THREAD_NUM_TYPES];       /*!< the allocation policy for each type of thread */
 };
 
@@ -387,7 +387,7 @@ static void* _mempool_objpool_alloc_no_check(mempool_objpool_t* pool)
 	/* First try to get the object from the local pool */
 	_thread_local_pool_t* tlp = thread_pset_acquire(pool->local_pool);
 
-#ifdef FULL_OPTIMIZATION
+#ifndef FULL_OPTIMIZATION
 	if(PREDICT_FALSE(NULL == tlp))
 	    ERROR_PTR_RETURN_LOG("Cannot acquire the thread local pool for current thread TID=%u", thread_get_id());
 #endif
@@ -399,18 +399,20 @@ static void* _mempool_objpool_alloc_no_check(mempool_objpool_t* pool)
 	}
 	else
 	    LOG_DEBUG("The thread-local pool contains unused objects, reuse it");
-
-	ret = tlp->begin;
-	tlp->begin = tlp->begin->next;
-	if(PREDICT_FALSE(tlp->begin == NULL))
-	    tlp->end = tlp->exceeded = NULL;
-	else if(tlp->exceeded != NULL)
-	    tlp->exceeded = tlp->exceeded->next;
+	
+	ret = tlp->end;
+	tlp->end = tlp->end->prev;
+	if(tlp->end == NULL)
+	    tlp->begin = tlp->exceeded = NULL;
+	else if(PREDICT_FALSE(tlp->exceeded == ret))
+	    tlp->exceeded = NULL;
 
 	tlp->count --;
 
+#ifndef FULL_OPTIMIZATION
 	if(PREDICT_FALSE(NULL == ret))
 	    LOG_ERROR("Cannot allocate memory from the object pool");
+#endif
 
 	return ret;
 }
@@ -496,7 +498,7 @@ static int _mempool_objpool_dealloc_no_check(mempool_objpool_t* pool, void* mem)
 
 	if(PREDICT_FALSE(tlp->count == cache_limit))
 	    tlp->exceeded = tlp->end;
-	else if(PREDICT_TRUE(tlp->count > cache_limit))
+	else if(tlp->count > cache_limit)
 	    tlp->exceeded = tlp->exceeded->prev;
 
 	tlp->count ++;

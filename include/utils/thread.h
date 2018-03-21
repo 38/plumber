@@ -114,11 +114,12 @@ STATIC_ASSERTION_SIZE(thread_pointer_array_t, ptr, 0);
  *          and it's able to automatically resize when the new thread is created
  **/
 typedef struct _thread_pset_t {
-	pthread_mutex_t resize_lock;  /*!< the resize lock for this pointer set */
-	const void*     data;         /*!< the additional data passed to the allocator/deallocator */
-	thread_pset_allocate_t alloc; /*!< the allocation function */
-	thread_pset_deallocate_t dealloc; /*!< the deallocation function */
-	thread_pointer_array_t* array;      /*!< the actual pointer array */
+	const void*              data;             /*!< The additional data passed to the allocator/deallocator */
+	thread_pset_allocate_t   alloc;            /*!< The allocation function */
+	thread_pset_deallocate_t dealloc;          /*!< The deallocation function */
+	thread_pointer_array_t*  array;            /*!< The actual pointer array */
+	pthread_mutex_t          resize_lock;      /*!< The resize lock for this pointer set */
+	uint32_t                 is_alloc:1;       /*!< Indicates the thread pointer set is allocated dynamically */
 } thread_pset_t;
 
 #ifdef STACK_SIZE
@@ -142,7 +143,10 @@ typedef struct {
  * @param data the addtional data passed to the allocator/deallocator
  * @return the newly created object or NULL
  **/
-thread_pset_t* thread_pset_new(uint32_t init_size, thread_pset_allocate_t alloc, thread_pset_deallocate_t dealloc, const void* data);
+#define thread_pset_new(init_size, alloc, dealloc, data, mem_args...) _thread_pset_new_impl(init_size, alloc, dealloc, data, ##mem_args, NULL)
+
+thread_pset_t* _thread_pset_new_impl(uint32_t init_size, thread_pset_allocate_t alloc, thread_pset_deallocate_t dealloc, const void* data, ...)
+	__attribute__((sentinel));
 
 /**
  * @brief dispose a used thread local ptr

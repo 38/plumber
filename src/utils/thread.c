@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <stdarg.h>
 
 #ifdef __LINUX__
 #include <sys/prctl.h>
@@ -193,16 +194,24 @@ static inline void* _get_current_pointer(thread_pset_t* pset)
 }
 #endif
 
-thread_pset_t* thread_pset_new(uint32_t init_size, thread_pset_allocate_t alloc, thread_pset_deallocate_t dealloc, const void* data)
+thread_pset_t* _thread_pset_new_impl(uint32_t init_size, thread_pset_allocate_t alloc, thread_pset_deallocate_t dealloc, const void* data, ...)
 {
 	if(NULL == alloc || NULL == dealloc || init_size == 0 || init_size == ERROR_CODE(uint32_t))
 	    ERROR_PTR_RETURN_LOG("Invalid arguments");
 
+	void* mem = NULL;
+
+	va_list ap;
+	va_start(ap, data);
+	mem = va_arg(ap, void*);
+	va_end(ap);
+
 	uint32_t mutex_init = 0;
 	uint32_t i = 0;
-	thread_pset_t* ret = (thread_pset_t*)malloc(sizeof(thread_pset_t));
+	thread_pset_t* ret = (thread_pset_t*)(mem == NULL ? malloc(sizeof(thread_pset_t)) : mem);
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the thread pointer set object");
 
+	ret->is_alloc = (mem == NULL);
 	ret->array = NULL;
 
 	if((errno = pthread_mutex_init(&ret->resize_lock, NULL)) != 0)
@@ -264,7 +273,7 @@ int thread_pset_free(thread_pset_t* pset)
 		free(tmp);
 	}
 
-	free(pset);
+	if(pset->is_alloc) free(pset);
 
 	return rc;
 }
