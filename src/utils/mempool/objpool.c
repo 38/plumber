@@ -230,7 +230,7 @@ mempool_objpool_t* mempool_objpool_new(uint32_t size)
 	ret->cached = NULL;
 	ret->page_count = 0;
 
-	if(NULL == (/*ret->local_pool = */thread_pset_new(1, _thread_pool_alloc , _thread_pool_free, ret, &ret->local_pool)))
+	if(NULL == thread_pset_new(1, _thread_pool_alloc , _thread_pool_free, ret, &ret->local_pool))
 	    ERROR_LOG_GOTO(ERR, "Cannot create thread local pointer set as the lcoal thread pool");
 
 	if((errno = pthread_mutex_init(&ret->mutex, NULL)) != 0)
