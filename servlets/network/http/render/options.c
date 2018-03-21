@@ -108,7 +108,8 @@ static int _opt_callback_string(pstd_option_data_t data)
 		        ERROR_RETURN_LOG(int, "Invalid options");
 		    break;
 		case 's':
-		{	
+		{
+			target = &opt->server_name;
 			size_t len = strlen(data.param_array[0].strval) + sizeof("Server: \r\n");
 			val = (char*)malloc(len);
 			if(NULL != val)
