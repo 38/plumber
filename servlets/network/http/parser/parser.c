@@ -623,6 +623,11 @@ static inline const char* _field_name_init(parser_state_t* state, const char* da
 
 			if(common[internal->sub_state] == ch)
 			    internal->sub_state ++;
+			else
+			{
+				_transite_state(state, _STATE_FIELD_NOT_INST);
+				return data + 1;
+			}
 		}
 
 		if(data == end) return end;
