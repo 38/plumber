@@ -554,7 +554,9 @@ static inline int _clear_ssl_error(void)
 		else
 		    hook_installed = 1;
 	}
+#if 0
 	ERR_clear_error();
+#endif
 
 	return 0;
 }

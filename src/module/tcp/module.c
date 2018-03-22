@@ -631,6 +631,8 @@ static inline int _module_context_init(_module_context_t* ctx, _module_context_t
 
 		ctx->pool_conf.port = master->pool_conf.port;
 
+		/* We need to inherit the slave mode configuration */
+		ctx->slave_mode = master->slave_mode;
 	}
 
 	_instance_count ++;
