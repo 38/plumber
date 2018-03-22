@@ -643,6 +643,11 @@ L_ERR:
 
 static inline void _log_ssl_error(const char* what, int reason, int rc)
 {
+#ifndef LOG_ERROR_ENABLED
+	(void)what;
+	(void)reason;
+	(void)rc;
+#else
 	unsigned long error_code;
 	switch(reason)
 	{
@@ -654,7 +659,7 @@ static inline void _log_ssl_error(const char* what, int reason, int rc)
 		    break;
 		case SSL_ERROR_SYSCALL:
 		    if(rc == 0)
-		        LOG_TRACE("TLS error(%s): System call error: EOF", what);
+		        LOG_ERROR("TLS error(%s): System call error: EOF", what);
 		    else
 		        LOG_ERROR("TLS error(%s): System call error: %s", what, strerror(errno));
 		    break;
@@ -670,6 +675,7 @@ static inline void _log_ssl_error(const char* what, int reason, int rc)
 		default:
 		    LOG_ERROR("TLS error(%s): unknown error %d", what, reason);
 	}
+#endif
 }
 
 /**
