@@ -399,7 +399,7 @@ static void* _mempool_objpool_alloc_no_check(mempool_objpool_t* pool)
 	}
 	else
 	    LOG_DEBUG("The thread-local pool contains unused objects, reuse it");
-	
+
 	ret = tlp->end;
 	tlp->end = tlp->end->prev;
 	if(tlp->count == 1)
@@ -490,10 +490,10 @@ static int _mempool_objpool_dealloc_no_check(mempool_objpool_t* pool, void* mem)
 	_cached_object_t* cur = (_cached_object_t*)mem;
 	cur->prev = tlp->end;
 	cur->next = NULL;
-	if(PREDICT_TRUE(tlp->end != NULL)) 
-		tlp->end->next = cur;
-	else 
-		tlp->begin = cur;
+	if(PREDICT_TRUE(tlp->end != NULL))
+	    tlp->end->next = cur;
+	else
+	    tlp->begin = cur;
 
 	tlp->end = cur;
 

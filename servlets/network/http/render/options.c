@@ -113,7 +113,7 @@ static int _opt_callback_string(pstd_option_data_t data)
 			size_t len = strlen(data.param_array[0].strval) + sizeof("Server: \r\n");
 			val = (char*)malloc(len);
 			if(NULL != val)
-				snprintf(val, len, "Server: %s\r\n", data.param_array[0].strval);
+			    snprintf(val, len, "Server: %s\r\n", data.param_array[0].strval);
 			goto FINISHED;
 		}
 		default:

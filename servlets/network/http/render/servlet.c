@@ -203,14 +203,14 @@ static inline int _write_status_line(pstd_bio_t* bio, uint16_t status_code)
 		STATUS_PHRASE(510,"Not Extended");
 		STATUS_PHRASE(511,"Network Authentication Required");
 		default:
-			ERROR_RETURN_LOG(int, "Invalid status code %d", status_code);
+		    ERROR_RETURN_LOG(int, "Invalid status code %d", status_code);
 	}
 
 	while(status_size > 0)
 	{
 		size_t rc = pstd_bio_write(bio, status_phrase, status_size);
 		if(rc == ERROR_CODE(size_t))
-	    	ERROR_RETURN_LOG(int, "Cannot write the status line");
+		    ERROR_RETURN_LOG(int, "Cannot write the status line");
 		status_size -= rc;
 		status_phrase += rc;
 	}
@@ -229,13 +229,13 @@ static inline int _write_string_field(pstd_bio_t* bio, pstd_type_instance_t* ins
 	    ERROR_RETURN_LOG(int, "Cannot get the string value");
 
 	if(ERROR_CODE(size_t) == pstd_bio_puts(bio, name))
-		ERROR_RETURN_LOG(int, "Cannot write the field name %s", name);
+	    ERROR_RETURN_LOG(int, "Cannot write the field name %s", name);
 
 	if(ERROR_CODE(size_t) == pstd_bio_puts(bio, value))
-		ERROR_RETURN_LOG(int, "Cannot write the field value");
+	    ERROR_RETURN_LOG(int, "Cannot write the field value");
 
 	if(ERROR_CODE(size_t) == pstd_bio_puts(bio, "\r\n"))
-		ERROR_RETURN_LOG(int, "Cannot write the CLRF");
+	    ERROR_RETURN_LOG(int, "Cannot write the CLRF");
 
 	return 0;
 }
@@ -315,7 +315,7 @@ static inline int _write_encoding(pstd_bio_t* bio, uint32_t algorithm, uint64_t 
 		    algorithm_name = _CE_NAME"br\r\n";
 #endif
 		if(ERROR_CODE(size_t) == pstd_bio_puts(bio, algorithm_name))
-			ERROR_RETURN_LOG(int, "Cannot write the content-encoding");
+		    ERROR_RETURN_LOG(int, "Cannot write the content-encoding");
 	}
 
 	if((algorithm & _ENCODING_CHUNKED))
@@ -331,8 +331,8 @@ static inline int _write_encoding(pstd_bio_t* bio, uint32_t algorithm, uint64_t 
 		buffer[sizeof(buffer) - 2] = '\n';
 		buffer[sizeof(buffer) - 3] = '\r';
 
-		if(size == 0) 
-			*(--ptr) = '0';
+		if(size == 0)
+		    *(--ptr) = '0';
 		else while(size > 0)
 		{
 			*(--ptr) = (char)((size % 10) + '0');
@@ -348,7 +348,7 @@ static inline int _write_encoding(pstd_bio_t* bio, uint32_t algorithm, uint64_t 
 		{
 			size_t sz;
 			if(ERROR_CODE(size_t) == (sz = pstd_bio_write(bio, ptr, (size_t)(buffer + sizeof(buffer) - 1 - ptr))))
-				ERROR_RETURN_LOG(int, "Cannot write the Content-Length header");
+			    ERROR_RETURN_LOG(int, "Cannot write the Content-Length header");
 
 			ptr += sz;
 		}

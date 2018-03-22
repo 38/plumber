@@ -146,7 +146,7 @@ typedef struct {
 #define thread_pset_new(init_size, alloc, dealloc, data, mem_args...) _thread_pset_new_impl(init_size, alloc, dealloc, data, ##mem_args, NULL)
 
 thread_pset_t* _thread_pset_new_impl(uint32_t init_size, thread_pset_allocate_t alloc, thread_pset_deallocate_t dealloc, const void* data, ...)
-	__attribute__((sentinel));
+    __attribute__((sentinel));
 
 /**
  * @brief dispose a used thread local ptr

@@ -645,28 +645,28 @@ static inline void _log_ssl_error(const char* what, int reason, int rc)
 	switch(reason)
 	{
 		case SSL_ERROR_ZERO_RETURN:
-			LOG_ERROR("TLS error(%s): transporation layer connection is closed", what);
-			break;
+		    LOG_ERROR("TLS error(%s): transporation layer connection is closed", what);
+		    break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
-			LOG_ERROR("TLS error(%s): OpenSSL wants to perform X509 lookup", what);
-			break;
+		    LOG_ERROR("TLS error(%s): OpenSSL wants to perform X509 lookup", what);
+		    break;
 		case SSL_ERROR_SYSCALL:
-			if(rc == 0)
-				LOG_TRACE("TLS error(%s): System call error: EOF", what);
-			else
-				LOG_ERROR("TLS error(%s): System call error: %s", what, strerror(errno));
-			break;
+		    if(rc == 0)
+		        LOG_TRACE("TLS error(%s): System call error: EOF", what);
+		    else
+		        LOG_ERROR("TLS error(%s): System call error: %s", what, strerror(errno));
+		    break;
 		case SSL_ERROR_SSL:
-			error_code = ERR_get_error();
-			if(error_code == 0 && rc == 0)
-				LOG_ERROR("TLS error(%s): OpenSSL got EOF", what);
-			else if(error_code == 0)
-				LOG_ERROR("TLS error(%s): OpenSSL got an IO error", what);
-			else
-				LOG_ERROR("TLS error(%s): %s", what, ERR_error_string(error_code, NULL));
-			break;
+		    error_code = ERR_get_error();
+		    if(error_code == 0 && rc == 0)
+		        LOG_ERROR("TLS error(%s): OpenSSL got EOF", what);
+		    else if(error_code == 0)
+		        LOG_ERROR("TLS error(%s): OpenSSL got an IO error", what);
+		    else
+		        LOG_ERROR("TLS error(%s): %s", what, ERR_error_string(error_code, NULL));
+		    break;
 		default:
-			LOG_ERROR("TLS error(%s): unknown error %d", what, reason);
+		    LOG_ERROR("TLS error(%s): unknown error %d", what, reason);
 	}
 }
 
@@ -694,7 +694,7 @@ static inline int _ensure_connect(_handle_t* handle)
 				    LOG_DEBUG("Read/Write failure encountered, deactivate the connection until it gets ready");
 				    return 0;
 				default:
-					_log_ssl_error("accept", reason, rc);
+				    _log_ssl_error("accept", reason, rc);
 			}
 		}
 		else if(rc == 1)
@@ -756,7 +756,7 @@ static int _dealloc(void* __restrict ctx, void* __restrict pipe, int error, int 
 	}
 
 	if(handle->type == _HANDLE_TYPE_IN)
-		handle->tls->input_alive = 0;
+	    handle->tls->input_alive = 0;
 
 	int rc = itc_module_pipe_deallocate(handle->t_pipe);
 
@@ -837,7 +837,7 @@ static size_t _read(void* __restrict ctx, void* __restrict buffer, size_t bytes_
 
 			handle->last_read_size = 0;
 			handle->no_more_input = 1;
-			
+
 			_log_ssl_error("read", reason, rc);
 
 			return ERROR_CODE(size_t);
@@ -908,7 +908,7 @@ static size_t _write(void* __restrict ctx, const void* __restrict data, size_t n
 				LOG_DEBUG("The DRA callback qeueue has rejected all the data, so directly write to SSL cipher");
 				int ssl_result = SSL_write(handle->tls->ssl, data, (int)nbytes);
 
-				if(ssl_result < 0) 
+				if(ssl_result < 0)
 				{
 					int reason = SSL_get_error(handle->tls->ssl, ssl_result);
 					_log_ssl_error("write", reason, ssl_result);
