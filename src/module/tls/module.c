@@ -89,6 +89,7 @@ typedef struct _module_tls_module_conn_data_t {
 	_module_context_t*              module_context;       /*!< the module context used by this connection context */
 	_tls_state_t                    state;                /*!< the state of the TLS connection */
 	SSL*                            ssl;                  /*!< the ssl context data */
+	uint32_t                        input_alive:1;        /*!< Indicates the input side of the transporation layer pipe is still alive */
 	uint32_t                        user_state_to_push:1; /*!< indicate this is the user-space state to push */
 	uint32_t                        pushed:1;             /*!< set when the state is already pushed */
 	uint32_t                        dra_counter;          /*!< The shared memory used by the DRA synchornization */
@@ -627,6 +628,8 @@ static int _accept(void* __restrict ctx, const void* __restrict args, void* __re
 	out->tls = tls_state;
 	out->t_pipe = trans_out;
 
+	tls_state->input_alive = 1;
+
 	return 0;
 
 L_ERR:
@@ -634,6 +637,37 @@ L_ERR:
 	if(NULL != trans_out)  itc_module_pipe_deallocate(trans_out);
 	if(NULL != tls_state && state_owned) _tls_context_free(tls_state);
 	return ERROR_CODE(int);
+}
+
+static inline void _log_ssl_error(const char* what, int reason, int rc)
+{
+	unsigned long error_code;
+	switch(reason)
+	{
+		case SSL_ERROR_ZERO_RETURN:
+			LOG_ERROR("TLS error(%s): transporation layer connection is closed", what);
+			break;
+		case SSL_ERROR_WANT_X509_LOOKUP:
+			LOG_ERROR("TLS error(%s): OpenSSL wants to perform X509 lookup", what);
+			break;
+		case SSL_ERROR_SYSCALL:
+			if(rc == 0)
+				LOG_TRACE("TLS error(%s): System call error: EOF", what);
+			else
+				LOG_ERROR("TLS error(%s): System call error: %s", what, strerror(errno));
+			break;
+		case SSL_ERROR_SSL:
+			error_code = ERR_get_error();
+			if(error_code == 0 && rc == 0)
+				LOG_ERROR("TLS error(%s): OpenSSL got EOF", what);
+			else if(error_code == 0)
+				LOG_ERROR("TLS error(%s): OpenSSL got an IO error", what);
+			else
+				LOG_ERROR("TLS error(%s): %s", what, ERR_error_string(error_code, NULL));
+			break;
+		default:
+			LOG_ERROR("TLS error(%s): unknown error %d", what, reason);
+	}
 }
 
 /**
@@ -660,8 +694,7 @@ static inline int _ensure_connect(_handle_t* handle)
 				    LOG_DEBUG("Read/Write failure encountered, deactivate the connection until it gets ready");
 				    return 0;
 				default:
-				    LOG_ERROR("TLS return unexpected error reason: %d, rc: %d, error: %s", reason, rc, ERR_error_string(ERR_get_error(), NULL));
-				    return ERROR_CODE(int);
+					_log_ssl_error("accept", reason, rc);
 			}
 		}
 		else if(rc == 1)
@@ -721,6 +754,9 @@ static int _dealloc(void* __restrict ctx, void* __restrict pipe, int error, int 
 			    ERROR_RETURN_LOG(int, "Cannot dispose the TLS context");
 		}
 	}
+
+	if(handle->type == _HANDLE_TYPE_IN)
+		handle->tls->input_alive = 0;
 
 	int rc = itc_module_pipe_deallocate(handle->t_pipe);
 
@@ -801,7 +837,9 @@ static size_t _read(void* __restrict ctx, void* __restrict buffer, size_t bytes_
 
 			handle->last_read_size = 0;
 			handle->no_more_input = 1;
-			LOG_ERROR("TLS read error: (rc = %u, reason = %d) %s", rc, reason, ERR_error_string(ERR_get_error(), NULL));
+			
+			_log_ssl_error("read", reason, rc);
+
 			return ERROR_CODE(size_t);
 		}
 
@@ -833,9 +871,21 @@ static size_t _write(void* __restrict ctx, const void* __restrict data, size_t n
 		if(_should_encrypt(handle))
 		{
 			_clear_ssl_error();
-			int con_rc = _ensure_connect(handle);
-			if(con_rc == ERROR_CODE(int)) ERROR_RETURN_LOG(size_t, "Cannot establish the TLS tunnel");
-			else if(con_rc == 0) return 0;
+
+			if(handle->tls->state == _TLS_STATE_CONNECTING)
+			{
+				if(!handle->tls->input_alive)
+				{
+					LOG_DEBUG("We are ignoring all the writing request to an unestablished TLS tunnel");
+					return nbytes;
+				}
+				else
+				{
+					int con_rc = _ensure_connect(handle);
+					if(con_rc == ERROR_CODE(int)) ERROR_RETURN_LOG(size_t, "Cannot establish the TLS tunnel");
+					else if(con_rc == 0) return 0;
+				}
+			}
 
 			if(ERROR_CODE(int) == _tls_context_incref(handle->tls))
 			    ERROR_RETURN_LOG(size_t, "Cannot increase the reference counter for the TLS context object");
@@ -858,7 +908,12 @@ static size_t _write(void* __restrict ctx, const void* __restrict data, size_t n
 				LOG_DEBUG("The DRA callback qeueue has rejected all the data, so directly write to SSL cipher");
 				int ssl_result = SSL_write(handle->tls->ssl, data, (int)nbytes);
 
-				if(ssl_result < 0) rc = ERROR_CODE(size_t);
+				if(ssl_result < 0) 
+				{
+					int reason = SSL_get_error(handle->tls->ssl, ssl_result);
+					_log_ssl_error("write", reason, ssl_result);
+					rc = ERROR_CODE(size_t);
+				}
 				else rc = (size_t)ssl_result;
 			}
 			else
@@ -878,7 +933,7 @@ static size_t _write(void* __restrict ctx, const void* __restrict data, size_t n
 			data = ((const char*)data) + rc;
 		}
 		else if(_should_encrypt(handle))
-		    ERROR_RETURN_LOG(size_t, "TLS write error: %s", ERR_error_string(ERR_get_error(), NULL));
+		    ERROR_RETURN_LOG(size_t, "TLS write error");
 		else
 		    ERROR_RETURN_LOG(size_t, "Transportation layer pipe error");
 	}
