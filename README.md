@@ -1,17 +1,6 @@
-# Plumber [![Build Status](https://plumberserver.com/jenkins/job/Plumber/badge/icon)](https://plumberserver.com/jenkins/job/Plumber/) [![Build Status Travis](https://travis-ci.org/38/plumber.svg?branch=master)](https://travis-ci.org/38/plumber)
-
+# Plumber 
 ----
-
-# Quick start links
-
-- [Plumber Project Site](https://plumberserver.com)
-- [Plumber Main Project](https://github.com/38/plumber)
-- [Plumber Examples Repository](https://github.com/38/plumber_example)
-- [Introduction to Plumber (Slides)](https://plumberserver.com/slides/index.html?slideshow=plumber-intro)
-- [Explaination for the Plumber Based Static Content Server](https://plumberserver.com/fileserver_example/explained_fileserver_pss.html)
-- [A Tutorial of Plumber](https://github.com/38/plumber-tutorial)
-
-
+[![Build Status](https://plumberserver.com/jenkins/job/Plumber/badge/icon)](https://plumberserver.com/jenkins/job/Plumber/) [![Build Status Travis](https://travis-ci.org/38/plumber.svg?branch=master)](https://travis-ci.org/38/plumber)
 
 # What is Plumber?
 
@@ -39,47 +28,23 @@ To serve the files other than the default page
 docker run --rm --network=host -ti -v /path/to/serve:/www haohou/plumber-fileserver-example --root=/www
 ```
 
-## Explore the Framework(Linux/MacOS/Windows WSL)
+## Explore the Framework with the Sandbox(Linux/MacOS/Windows WSL)
 
 You can also use the sandbox environment and try the examples with [the Plumber examples repository](https://github.com/38/plumber_examples). 
-
-```bash
-git clone --recursive https://github.com/38/plumber_examples.git
-```
-
-The minimal required dependencies are 
-
-	- Python 2 (Python 2.7 Recommended)
-	- CMake 2.6 or later (CMake 3+ Recommended)
-	- libreadline 
-	- GCC and G++ (GCC-5 Recommended)
-	- GNU Make
-	
-for Ubuntu users, use command
-
-```bash
-sudo apt-get install python-2.7 cmake libreadline-dev gcc g++ pkg-config make
-```
-
-for MacOS users, use command
-
-```bash
-sudo brew install cmake openssl@1.0 ossp-uuid pkg-config  pkgconfig   readline
-```
-
-After installed all the dependencies, use the following command to enter the environment.
-
-```bash
-cd plumber_examples
-./init 
-```
-
-In the environment, you should be able to build and run the examples under `src` directory.
 
 ## Tutorial 
 
 Now we have a tutorial repository in which we demonstrate how we build a simple server software setp by step. 
 In this tutorial we are be able to go through most of the key concepts of Plumber software infrastructure.
 Follow the [link](https://github.com/38/plumber-tutorial) for the tutorial repository.
+
+# Useful Links
+
+- [Plumber Project Site](https://plumberserver.com)
+- [Plumber Main Project](https://github.com/38/plumber)
+- [Plumber Examples Repository](https://github.com/38/plumber_example)
+- [Introduction to Plumber (Slides)](https://plumberserver.com/slides/index.html?slideshow=plumber-intro)
+- [Explaination for the Plumber Based Static Content Server](https://plumberserver.com/fileserver_example/explained_fileserver_pss.html)
+- [A Tutorial of Plumber](https://github.com/38/plumber-tutorial)
 
 
