@@ -1,9 +1,8 @@
-Plumber [![Build Status](https://plumberserver.com/jenkins/job/Plumber/badge/icon)](https://plumberserver.com/jenkins/job/Plumber/) 
-[![Build Status Travis](https://travis-ci.org/38/plumber.svg?branch=master)](https://travis-ci.org/38/plumber)
+# Plumber [![Build Status](https://plumberserver.com/jenkins/job/Plumber/badge/icon)](https://plumberserver.com/jenkins/job/Plumber/) [![Build Status Travis](https://travis-ci.org/38/plumber.svg?branch=master)](https://travis-ci.org/38/plumber)
 
 ----
 
-# Quick start
+# Quick start links
 
 - [Plumber Project Site](https://plumberserver.com)
 - [Plumber Main Project](https://github.com/38/plumber)
