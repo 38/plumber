@@ -551,10 +551,6 @@ static inline int _parallel_write(uint32_t n)
 	{
 		dh[i].stage = 1;
 		ASSERT_OK(module_tcp_async_write_data_ends(loop, i), CLEANUP_NOP);
-	}
-
-	for(i = 0; i < n; i ++)
-	{
 		_wait_async_thread(AS_DISPOSE);
 		_unblock_async_thread(conn_id);
 	}
