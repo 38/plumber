@@ -15,42 +15,44 @@
 
 # What is Plumber?
 
-Plumber is a general purpose, language independent and high performance [Flow-Based Programming](https://en.wikipedia.org/wiki/Flow-based_programming) software framework. 
+Plumber is a general purpose, language independent and high performance [Flow-Based Programming](https://en.wikipedia.org/wiki/Flow-based_programming) framework. Explaination of FBP from Wikipedia:
 
 > In computer programming, flow-based programming (FBP) is a programming paradigm that defines applications as networks of "black box" processes, which exchange data across predefined connections by message passing, where the connections are specified externally to the processes. These black box processes can be reconnected endlessly to form different applications without having to be changed internally. FBP is thus naturally component-oriented.
 
-The basic idea of FPB and Plumber is very similar to [UNIX Philosophy](https://en.wikipedia.org/wiki/Unix_philosophy#Do_One_Thing_and_Do_It_Well): Do One Thing and Do It Well. 
+The idea of FPB and Plumber is very similar to [UNIX Philosophy](https://en.wikipedia.org/wiki/Unix_philosophy#Do_One_Thing_and_Do_It_Well): Do One Thing and Do It Well. 
 
-With Plumber, small, independent and composable components written in different programming languages can be connected together as a system. Plumber also brings many modern technologies and innovative ideas which enables fully flow-based development practical in modern use cases.
+With Plumber, applications are built with small, independent and composable components written in different programming languages. Plumber brings many modern technologies and innovation that enables fully flow-based development experience in modern use cases.
+
+For more details please visit the project [home page](https://plumberserver.com).
 
 # Why Plumber?
 
 Different from traditional OOP method, Plumber makes organization of a large application easier. 
 
-* **Modular and Composable Desgin** All components are highly composable modules. Developer can implement complicated software logic by connecting different components without touching the actual code.
-* **Code Isolation** All components have on code coupling. Developer can maintain different components with seperate code base without any conflicts and compatibility issues.
+* **Composable Modules** Components are highly composable. Developer can implement complicated software logic by connecting different components without touching the actual code.
+* **Code Isolation** Components have on code coupling. Developer can maintain different components with seperate code base without any conflicts and compatibility issues.
 * **Testablility** All components can be tested seperately without any mocking.
-* **Language Independent** developer can choose programming language fits their need and connects components in differently languages easily.
+* **Language Independent** Developer can choose programming language fits their need and connects components written in differently languages easily.
 
-Plumber makes high-performance application easier.
+Plumber is desgined for high-performance senario.
 
 * **Event-Driven** Application are fully event-driven and can fully use computer hardware
 * **Naturally Asynchronous** There's no need for passing callback funcions and developers are completely free from callback hell
 * **Multithreaded** Unlike javascript based event-driven framework, Plumber applications utilize modern multicore CPU effeciently.
 
-Plumber enables practical Flow-Based development. Unlike other FBP environment, a Plumber application's workflow can be:
+Plumber enables practical Flow-Based Programming. Unlike other FBP environment, a Plumber application's workflow can be:
 
-* **Strongly Typed** Plumber protect developer from the errors that introduced by connecting wrong components and eliminating depenency hell issue.
+* **Strongly Typed** It protects developer from type errors that introduced by connecting wrong components and eliminating depenency hell issue.
 * **Generically Typed** Components can be used for different types of input without any modification of the source code.
 * **Hierarchically Described** The workflow can be described hierarchically, thus the complexity of the workflow can be hidden by the hierarchical description.
-* **Dynamically Generated** Plumber provides a Turing-Complete workflow generator, which application can be generated automatically by need.  
+* **Dynamically Generated** Plumber provides a Turing-Complete workflow generator. Application can be generated programmatically based on what you need.
 
 # Try Plumber
 
 ## Try the Application - The PINS Web Server
 
-The Plumber Project homepage is actually powered by this web server. 
-The code lives in [the Plumber examples repository](https://github.com/38/plumber_examples/tree/master/src/fileserver). You can try the server in following ways.
+The Plumber Project home page is actually powered by this web server. 
+The code lives in [the Plumber examples repository](https://github.com/38/plumber_examples/tree/master/src/fileserver). You can play with the server in following ways.
 
 * **Try with Docker(Linux Only)**
 
@@ -63,6 +65,7 @@ To serve the files other than the default page
 ```bash
 docker run --rm --network=host -ti -v /path/to/serve:/www haohou/plumber-fileserver-example --root=/www
 ```
+
 ## Explore the Framework(Linux/MacOS/Windows WSL)
 
 You can also use the sandbox environment and try the examples with [the Plumber examples repository](https://github.com/38/plumber_examples). 
@@ -112,7 +115,7 @@ Follow the [link](https://github.com/38/plumber-tutorial) for the tutorial repos
 
 You probably know this, the Porject is still in a very early stage. There are too many development target needs to be done. But we don't have too enough people work on the project. **Any one who wants to contribute to the project are warmly welcomed.**
 
-If you are interested regarding the project, feel free to email the [contributors](https://github.com/38/plumber/blob/master/CONTRIBUTORS).
+If you are interested in the project, feel free to email the [contributors](https://github.com/38/plumber/blob/master/CONTRIBUTORS).
 
 # How to compile?
 To compile this project you need CMake 2.6 or later. 
