@@ -27,24 +27,24 @@ For more details please visit the project [home page](https://plumberserver.com)
 
 # Why Plumber?
 
-Different from traditional OOP method, Plumber makes organization of a large application easier. 
+**Different from traditional OOP method, Plumber makes organization of a large application easier.**
 
 * **Composable Modules** Components are highly composable. Developer can implement complicated software logic by connecting different components without touching the actual code.
 * **Code Isolation** Components have on code coupling. Developer can maintain different components with seperate code base without any conflicts and compatibility issues.
 * **Testablility** All components can be tested seperately without any mocking.
 * **Language Independent** Developer can choose programming language fits their need and connects components written in differently languages easily.
 
-Plumber is desgined for high-performance senario.
+**Plumber is desgined for high-performance senario.**
 
 * **Event-Driven** Application are fully event-driven and can fully use computer hardware
 * **Naturally Asynchronous** There's no need for passing callback funcions and developers are completely free from callback hell
 * **Multithreaded** Unlike javascript based event-driven framework, Plumber applications utilize modern multicore CPU effeciently.
 
-Plumber enables practical Flow-Based Programming. Unlike other FBP environment, a Plumber application's workflow can be:
+**Plumber enables practical Flow-Based Programming. Unlike other FBP environment, a Plumber application's workflow can be**
 
 * **Strongly Typed** It protects developer from type errors that introduced by connecting wrong components and eliminating depenency hell issue.
 * **Generically Typed** Components can be used for different types of input without any modification of the source code.
-* **Hierarchically Described** The workflow can be described hierarchically, thus the complexity of the workflow can be hidden by the hierarchical description.
+* **Hierarchically Constructed** The workflow can be described hierarchically, thus the complexity of the workflow can be hidden by the hierarchical description.
 * **Dynamically Generated** Plumber provides a Turing-Complete workflow generator. Application can be generated programmatically based on what you need.
 
 # Try Plumber
