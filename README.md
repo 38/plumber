@@ -12,42 +12,61 @@ Plumber [![Build Status](https://plumberserver.com/jenkins/job/Plumber/badge/ico
 - [Explaination for the Plumber Based Static Content Server](https://plumberserver.com/fileserver_example/explained_fileserver_pss.html)
 - [A Tutorial of Plumber](https://github.com/38/plumber-tutorial)
 
-# What is Plumber
 
-Plumber is a software infrastructure based on pipeline and data flow. It provides a runtime environment 
-for pipe based, asynchronized, ultra lightweight micro-service we called servlet and a high-level domain specific 
-language to describe the high-level software architecture. The Plumber framework has multiple language bindings,
-and developers are able to develop each part of their software in the language that fits the task most. Currently
-we support C, C++, Javascript and Python, and new language support is coming.
+
+# What is Plumber?
+
+Plumber is a general purpose, language independent and high performance [Flow-Based Programming](https://en.wikipedia.org/wiki/Flow-based_programming) software framework. 
+
+> In computer programming, flow-based programming (FBP) is a programming paradigm that defines applications as networks of "black box" processes, which exchange data across predefined connections by message passing, where the connections are specified externally to the processes. These black box processes can be reconnected endlessly to form different applications without having to be changed internally. FBP is thus naturally component-oriented.
+
+The basic idea of FPB and Plumber is very similar to [UNIX Philosophy](https://en.wikipedia.org/wiki/Unix_philosophy#Do_One_Thing_and_Do_It_Well): Do One Thing and Do It Well. 
+
+With Plumber, small, independent and composable components written in different programming languages can be connected together as a system. Plumber also brings many modern technologies and innovative ideas which enables fully flow-based development practical in modern use cases.
+
+# Why Plumber?
+
+Different from traditional OOP method, Plumber makes organization of a large application easier. 
+
+* **Modular and Composable Desgin** All components are highly composable modules. Developer can implement complicated software logic by connecting different components without touching the actual code.
+* **Code Isolation** All components have on code coupling. Developer can maintain different components with seperate code base without any conflicts and compatibility issues.
+* **Testablility** All components can be tested seperately without any mocking.
+* **Language Independent** developer can choose programming language fits their need and connects components in differently languages easily.
+
+Plumber makes high-performance application easier.
+
+* **Event-Driven** Application are fully event-driven and can fully use computer hardware
+* **Naturally Asynchronous** There's no need for passing callback funcions and developers are completely free from callback hell
+* **Multithreaded** Unlike javascript based event-driven framework, Plumber applications utilize modern multicore CPU effeciently.
+
+Plumber enables practical Flow-Based development. Unlike other FBP environment, a Plumber application's workflow can be:
+
+* **Strongly Typed** Plumber protect developer from the errors that introduced by connecting wrong components and eliminating depenency hell issue.
+* **Generically Typed** Components can be used for different types of input without any modification of the source code.
+* **Hierarchically Described** The workflow can be described hierarchically, thus the complexity of the workflow can be hidden by the hierarchical description.
+* **Dynamically Generated** Plumber provides a Turing-Complete workflow generator, which application can be generated automatically by need.  
 
 # Try Plumber
 
-## Docker (Linux)
+## Try the Application - The PINS Web Server
 
-Thanks to the container techenoloy, we can explorer the Plumber environment without installing any dependencies
+The Plumber Project homepage is actually powered by this web server. 
+The code lives in [the Plumber examples repository](https://github.com/38/plumber_examples/tree/master/src/fileserver). You can try the server in following ways.
 
-- To try the file server example with docker and open [http://localhost:8080/](http://localhost:8080/) in browser
+* **Try with Docker(Linux Only)**
 
 ```bash
 docker run --rm -t -i --network=host haohou/plumber-fileserver-example --port=8080
 ```
 
-- To make the static content server serves the content you provided using command
+To serve the files other than the default page
 
 ```bash
-docker run --rm -ti -v <path-to-serve>:/www haohou/plumber-fileserver-example --root=/www
+docker run --rm --network=host -ti -v /path/to/serve:/www haohou/plumber-fileserver-example --root=/www
 ```
+## Explore the Framework(Linux/MacOS/Windows WSL)
 
-- To play with the precompiled Plumber interactive REPL shell use command
-
-```bash
-docker run --rm -t -i haohou/plumber-minimal -c pscript
-```
-
-## Try Plumber with the example sandbox (Linux/MacOS/Windows WSL)
-
-Currently we have a automated tool to build an isolated sandbox environment. To get the sandbox environment, 
-using the following command
+You can also use the sandbox environment and try the examples with [the Plumber examples repository](https://github.com/38/plumber_examples). 
 
 ```bash
 git clone --recursive https://github.com/38/plumber_examples.git
@@ -60,7 +79,7 @@ The minimal required dependencies are
 	- libreadline 
 	- GCC and G++ (GCC-5 Recommended)
 	- GNU Make
-
+	
 for Ubuntu users, use command
 
 ```bash
@@ -73,25 +92,14 @@ for MacOS users, use command
 sudo brew install cmake openssl@1.0 ossp-uuid pkg-config  pkgconfig   readline
 ```
 
-After you get the code, use 
+After installed all the dependencies, use the following command to enter the environment.
 
 ```bash
 cd plumber_examples
 ./init 
 ```
 
-To initialize the Plumber isolated environment. Then you can go to src/ directory, compile and run the examples 
-there. 
-
-To start the static content server based on the Plumber framework
-
-```bash
-cd src/fileserver
-make
-./fileserver.pss
-```
-
-After the server starts, you will be able to access [http://localhost:8080/](http://localhost:8080)
+In the environment, you should be able to build and run the examples under `src` directory.
 
 ## Tutorial 
 
@@ -99,31 +107,13 @@ Now we have a tutorial repository in which we demonstrate how we build a simple 
 In this tutorial we are be able to go through most of the key concepts of Plumber software infrastructure.
 Follow the [link](https://github.com/38/plumber-tutorial) for the tutorial repository.
 
+# Needs Your Help
 
-# General Idea of Plumber
-Unlike traditional service framework, which modelling the component as a request-response based "service", 
-by which means for each request, the caller is responsible for handling the response. Plumber use an innovative
-pipelining model. Each component do not need to return any value to the caller, but provide the result 
-to its downstream component via a mechanism called "pipe".
+*If you think this project is interesting, please help us to promote the project.*
 
-The pipe API provides good abstraction for the communication between different servlets. The details about inter-component
-communication are transparent to servlet using pipe API. And a pipe can be either in the same machine or cross the machine
-boarder or even a load balancer. The goal of Plumber software infrastructure is the software shouldn't aware if itself is
-running on a single machine or a large cluster.
+You probably know this, the Porject is still in a very early stage. There are too many development target needs to be done. But we don't have too enough people work on the project. **Any one who wants to contribute to the project are warmly welcomed.**
 
-The servlet is a small piece of code runs under the Plumber runtime environment. 
-It's an ultra ligthweight nanoservice, by which means multiple servlet can share a same worker thread and occupy minmum
-amount of resources. The isolation provided by the traditional micro-service architecture still applies, between servlets it only
-has data dependencies and the servlet has to access data via the pipe APIs. The programming model of a servlet is quite simple, 
-it takes one or more input, and produces one or more output. For each time the exec function is called, the servlet reads data 
-from input pipes and produces result and write it to output. Plumber has a few APIs provided to servlet. Each servlet is a really 
-strighforward program, which reads from the input pipes and writes the result ot the output pipes. The Plumber runtime environment 
-provides a simple UNIX-like abstraction API for pipe manipulations. And the details of the network and inter-servlet communication 
-are completely hidden by the environment. 
-
-Plumber has a centralized protocol database which manages all the communication protocols between different components, the pipes
-are optional structured and strong typed. The mechanism of the protocol database also makes the upstream and downstream *always*
-compatibile. 
+If you are interested regarding the project, feel free to email the [contributors](https://github.com/38/plumber/blob/master/CONTRIBUTORS).
 
 # How to compile?
 To compile this project you need CMake 2.6 or later. 
@@ -141,6 +131,7 @@ make show-flags
 to see the full configuration parameters. 
 
 # Language Support
+
 ## C/C++ support
 Plumber supports all the language that can produce native binary code and supports dynamic link. 
 Currently we only have the header definition for C and C++. 
@@ -155,119 +146,6 @@ configure parameter, to build plumberv8, look at the repository page at [https:/
 
 ```bash
 cmake -DPLUMBER_V8_PREFIX=<your-plumber-v8-install-prefix> -Dbuild_javascript=yes .
-```
-
-## How to build native servlet
-To build you own user-space program, you need to compile your code with libpservlet which is a part of this repository. The libpservlet provides your code some functions.
-
-```C
-#include <pservlet.h>
-// The context of the servlet
-typedef struct {
-	pipe_t input, output;
-} context_t;
-// Called after servlet is loaded
-int init(uint32_t argc, char const* const* argv, void* data)
-{
-	context_t* context = (context_t*) data;
-	context->input = pipe_define("in", PIPE_INPUT);
-	context->output = pipe_define("out", PIPE_OUTPUT);
-	return 0;
-} 
-// The "main function" of the servlet
-int exec(void* data)
-{
-	context_t* context = (context_t*)data;
-	int n;
-	pipe_read(context->input, &n, sizeof(int)); 
-	n ++;
-	pipe_write(context->output, &n, sizeof(int)); 
-	return 0;
-}
-// Do some cleanup work here
-int unload(void* data)
-{
-	return 0;
-}
-SERVLET_DEF = {
-	.desc = "Describe your servlet",
-	.version = 0x0, /* reserved field, current unused*/
-	.size = sizeof(context_t), /* sizeof the context data */
-	.init = init, /* init function */
-	.exec = exec, /* exec function */
-	.unload = unload /* unload function */
-};
-```
-
-To compile this code, use command
-
-```bash
-gcc servlet.c -o libservlet.so -lpservlet -fPIC
-```
-
-Note that you may need to give the compiler include path and library search path depends on where libpservlet located.
-
-If you have Plumber installed, you will be able to use the servlet.mk to build your own servlet. You can create build.mk 
-on your source code directory
-
-```makefile
-SRC=servlet.c
-TARGET=servlet
-```
-
-And then make the servlet using command
-
-```bash
-make -f <your-plumber-install-prefix>/lib/plumber/servlet.mk
-```
-
-# How to use scripting language for servlet
-
-For the scripting language, instead of loading the servlet bindary itself, you need to load the script loader servlet.
-For python, you need use pyservlet as the script loader, for example, if we have myservlet.py as the servlet, we can use
-
-```
-myservlet := "pyservlet myservlet"
-```
-
-To load the servlet. 
-
-For javascript, we need to use the servlet called javascript.
-
-# PSS Language: Plumber Service Script
-The PSS language is the scripting language used to define the software layout from high level, it actaully defines the
-application you want to build with Plumber. It combines all the components with the pipe using the language. Also it's 
-a javascript-like, turing completed scripting language in which software is a first-class-citizen. Which means you will
-be able to create an software generator with the PSS language!
-
-- The simple example of how to create a static content server with plumber
-
-```javascript
-import("service");
-//define the file server
-fileserver = {
-	/* Define the servlet node */
-	parse_req := "getpath";
-	dup_path  := "dup 2";
-	mime_type := "mime mime.types";
-	read_file := "read doc/doxygen/html";
-	error     := "cat 2";
-	gen_res   := "response";
-	/* Define the pipes */	
-	() -> "request" parse_req "path" -> "in" dup_path {
-			"out0" -> "path" mime_type "mime" -> "mime";
-			"out1" -> "path" read_file {
-				"content" -> "content";
-				"size"    -> "size";
-				"status"  -> "status";
-			}
-	} gen_res "response" -> ();
-	{
-		parse_req "error" -> "in0";
-		read_file "error" -> "in1";
-	} error "out" -> "error" gen_res;
-};
-Service.start(fileserver);
 ```
 
 # Profiling
