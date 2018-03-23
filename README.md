@@ -15,37 +15,10 @@
 
 # What is Plumber?
 
-Plumber is a general purpose, language independent and high performance [Flow-Based Programming](https://en.wikipedia.org/wiki/Flow-based_programming) framework. Explaination of FBP from Wikipedia:
-
-> In computer programming, flow-based programming (FBP) is a programming paradigm that defines applications as networks of "black box" processes, which exchange data across predefined connections by message passing, where the connections are specified externally to the processes. These black box processes can be reconnected endlessly to form different applications without having to be changed internally. FBP is thus naturally component-oriented.
-
-The idea of FPB and Plumber is very similar to [UNIX Philosophy](https://en.wikipedia.org/wiki/Unix_philosophy#Do_One_Thing_and_Do_It_Well): Do One Thing and Do It Well. 
-
+Plumber is a general purpose, language independent and high performance [Flow-Based Programming](https://en.wikipedia.org/wiki/Flow-based_programming) framework. 
 With Plumber, applications are built with small, independent and composable components written in different programming languages. Plumber brings many modern technologies and innovation that enables fully flow-based development experience in modern use cases.
 
 For more details please visit the project [home page](https://plumberserver.com).
-
-# Why Plumber?
-
-**Different from traditional OOP method, Plumber makes organization of a large application easier.**
-
-* **Composable Modules** Components are highly composable. Developer can implement complicated software logic by connecting different components without touching the actual code.
-* **Code Isolation** Components have on code coupling. Developer can maintain different components with seperate code base without any conflicts and compatibility issues.
-* **Testablility** All components can be tested seperately without any mocking.
-* **Language Independent** Developer can choose programming language fits their need and connects components written in differently languages easily.
-
-**Plumber is desgined for high-performance senario.**
-
-* **Event-Driven** Application are fully event-driven and can fully use computer hardware
-* **Naturally Asynchronous** There's no need for passing callback funcions and developers are completely free from callback hell
-* **Multithreaded** Unlike javascript based event-driven framework, Plumber applications utilize modern multicore CPU effeciently.
-
-**Plumber enables practical Flow-Based Programming. Unlike other FBP environment, a Plumber application's workflow can be**
-
-* **Strongly Typed** It protects developer from type errors that introduced by connecting wrong components and eliminating depenency hell issue.
-* **Generically Typed** Components can be used for different types of input without any modification of the source code.
-* **Hierarchically Constructed** The workflow can be described hierarchically, thus the complexity of the workflow can be hidden by the hierarchical description.
-* **Dynamically Generated** Plumber provides a Turing-Complete workflow generator. Application can be generated programmatically based on what you need.
 
 # Try Plumber
 
@@ -109,79 +82,4 @@ Now we have a tutorial repository in which we demonstrate how we build a simple 
 In this tutorial we are be able to go through most of the key concepts of Plumber software infrastructure.
 Follow the [link](https://github.com/38/plumber-tutorial) for the tutorial repository.
 
-# Needs Your Help
-
-*If you think this project is interesting, please help us to promote the project.*
-
-You probably know this, the Porject is still in a very early stage. There are too many development target needs to be done. But we don't have too enough people work on the project. **Any one who wants to contribute to the project are warmly welcomed.**
-
-If you are interested in the project, feel free to email the [contributors](https://github.com/38/plumber/blob/master/CONTRIBUTORS).
-
-# How to compile?
-To compile this project you need CMake 2.6 or later. 
-
-```bash
-cmake . && make 
-```
-
-You can set environment variable to change the compile options. To learn all the configuration, use 
-
-```bash
-make show-flags 
-```
-
-to see the full configuration parameters. 
-
-# Language Support
-
-## C/C++ support
-Plumber supports all the language that can produce native binary code and supports dynamic link. 
-Currently we only have the header definition for C and C++. 
-
-## Python support
-If you want to compile PyServlet you need python development file installed on you computer. 
-To compile this project with default configuration.
-
-## For javascript support:
-You need the plumberv8 project built and installed in your computer and configure Plumber with the following 
-configure parameter, to build plumberv8, look at the repository page at [https://github.com/38/plumberv8](https://github.com/38/plumberv8)
-
-```bash
-cmake -DPLUMBER_V8_PREFIX=<your-plumber-v8-install-prefix> -Dbuild_javascript=yes .
-```
-
-# Profiling
-The service infrastructure provide two ways for profiling, one is use the Plumber built-in servlet profiler, 
-which is just accumulate the execution time of this servlet. This is useful when you are looking at why the
-service runs slow, because it provides a good way to discover the bottleneck. **This feature is disabled by 
-default, because it will have some impact on the performance.** To enable this feature, you need to compile 
-the code with predefined macro *ENABLE_PROFILER*. After the build, you can use 
-	
-```
-profiler.enabled = 1 
-```
-
-to enable the profiling feature and use
-	
-```
-profiler.output = "<filename>"
-```
-
-to make it output to a file or alernatively
-
-```
-profiler.output = ""
-```
-
-will make the profiling data dumped as a **notice** log. 
-
-Another way to for profiling is more focus on the framework itself. Using the gpprof tool we can get the call
-graph and the time based on the stack stampling.
-To enable this, you need to configure the project in this way:
-	
-```bash
-LIBS=-lprofiler CFLAGS=-DGPROFTOOLS cmake .
-```
-
-After compilation, the pscript binary will generate profiling data file for each run.
 
