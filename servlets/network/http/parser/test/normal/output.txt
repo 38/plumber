@@ -1,4 +1,4 @@
-.OUTPUT case_1
+.OUTPUT case_get_1
 {
     "protocol": {
         "accept_encoding": "gzip, deflate, br",
@@ -17,7 +17,7 @@
     }
 }
 .END
-.OUTPUT case_2
+.OUTPUT case_get_2
 {
     "protocol": {
         "accept_encoding": "gzip",
@@ -36,7 +36,26 @@
     }
 }
 .END
-.OUTPUT case_3
+.OUTPUT case_get_3
+{
+    "protocol": {
+        "accept_encoding": "gzip", 
+        "error": 0, 
+        "upgrade_target": null
+    }, 
+    "request": {
+        "base_url": "", 
+        "body": null, 
+        "host": "p.com", 
+        "method": 0, 
+        "query_param": null, 
+        "range_begin": 0, 
+        "range_end": 18446744073709551615, 
+        "relative_url": "/"
+    }
+}
+.END
+.OUTPUT case_head
 {
     "request": {
         "base_url": "",
@@ -47,6 +66,48 @@
         "range_begin": 0,
         "range_end": 18446744073709551615,
         "relative_url": "/path"
+    }
+}
+.END
+.OUTPUT case_post
+{
+    "request": {
+        "base_url": "",
+        "body": null,
+        "host": "w3schools.com",
+        "method": 1,
+        "query_param": "a=3",
+        "range_begin": 0,
+        "range_end": 18446744073709551615,
+        "relative_url": "/test/demo_form.php"
+    }
+}
+.END
+.OUTPUT case_range_request
+{
+    "request": {
+        "base_url": "",
+        "body": null,
+        "host": "plumberserver.com",
+        "method": 0,
+        "query_param": null,
+        "range_begin": 0,
+        "range_end": 101,
+        "relative_url": "/index.html"
+    }
+}
+.END
+.OUTPUT case_range_request_2
+{
+    "request": {
+        "base_url": "",
+        "body": null,
+        "host": "plumberserver.com",
+        "method": 0,
+        "query_param": null,
+        "range_begin": 0,
+        "range_end": 10,
+        "relative_url": "/index.html"
     }
 }
 .END

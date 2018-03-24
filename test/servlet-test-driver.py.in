@@ -52,6 +52,13 @@ def parse_result(results):
             buffer += result
     return ret
 
+def print_json(value):
+    if type(value) is dict:
+        json.dump(value, sys.stdout, sort_keys=True, indent=4)
+        sys.stdout.write("\n")
+    else:
+        print(value)
+
 if result == 0:
     results = parse_result(tester.stdout.readlines())
     expected = parse_result(file(r"@CMAKE_CURRENT_SOURCE_DIR@/servlets/{test}/test/{case}/output.txt".format(test = servlet_name, case = case_name)).readlines())
@@ -60,7 +67,11 @@ if result == 0:
         actual = results.get(key, "")
         expect = expected.get(key, "")
         if actual != expect:
-            print "Case %s failure:\nexpected :\t%s\nbut got  :\t%s"%(key, expect, actual)
+            print("Case %s failure " % key)
+            print("expected:")
+            print_json(expect)
+            print("but got :")
+            print_json(actual)
             result = 1
 if result == 0:
     print "All test cases are OK!"
