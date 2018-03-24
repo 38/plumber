@@ -46,11 +46,18 @@ def parse_result(results):
             buffer = ""
             name = result.split()[1]
         elif result == ".END":
-            ret[name] = json.dumps(json.loads(buffer))
+            ret[name] = json.loads(buffer)
         else:
             buffer += "\n" 
             buffer += result
     return ret
+
+def print_json(value):
+    if type(value) is dict:
+        json.dump(value, sys.stdout, sort_keys=True, indent=4)
+        sys.stdout.write("\n")
+    else:
+        print(value)
 
 if result == 0:
     results = parse_result(tester.stdout.readlines())
@@ -60,7 +67,11 @@ if result == 0:
         actual = results.get(key, "")
         expect = expected.get(key, "")
         if actual != expect:
-            print "Case %s failure: expected %s but got %s"%(key, expect, actual)
+            print("Case %s failure " % key)
+            print("expected:")
+            print_json(expect)
+            print("but got :")
+            print_json(actual)
             result = 1
 if result == 0:
     print "All test cases are OK!"

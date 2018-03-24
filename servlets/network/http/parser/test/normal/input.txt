@@ -1,0 +1,70 @@
+.TEXT case_get_1
+GET / HTTP/1.1
+Host: plumberserver.com
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0
+Accept: */*
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate, br
+Referer: https://plumberserver.com/index.html
+X-Requested-With: XMLHttpRequest
+Connection: keep-alive
+
+
+.END
+.TEXT case_get_2
+GET /?a=3 HTTP/1.1
+hosT: abc.com
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0
+Accept: */*
+Accept-Encoding: gzip
+Referer: https://plumberserver.com/index.html
+X-Requested-With: XMLHttpRequest
+content-length: 1
+Connection: keep-alive
+
+0
+
+.END
+.TEXT case_get_3
+GET http://p.com/ HTTP/1.1
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0
+Accept: */*
+Accept-Encoding: gzip
+Referer: https://plumberserver.com/index.html
+X-Requested-With: XMLHttpRequest
+Connection: keep-alive
+
+
+.END
+.TEXT case_head
+HEAD /path HTTP/2.0
+Host: abc.com
+
+
+.END
+.TEXT case_post
+POST /test/demo_form.php?a=3 HTTP/1.1
+Host: w3schools.com
+name1=value1&name2=value2
+
+
+.END
+.TEXT case_range_request
+GET /index.html HTTP/1.1
+Host: plumberserver.com
+Range: bytes=0-100
+User-Agent: curl/7.47.0
+Accept: */*
+
+
+.END
+.TEXT case_range_request_2
+GET /index.html HTTP/1.1
+Host: plumberserver.com
+Range: bytes=-10
+User-Agent: curl/7.47.0
+Accept: */*
+
+
+.END
+.STOP

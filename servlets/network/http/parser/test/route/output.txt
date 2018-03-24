@@ -1,0 +1,57 @@
+.OUTPUT case_get_1
+{
+    "api": {
+        "base_url": "/api/", 
+        "body": null, 
+        "host": "p.com", 
+        "method": 0, 
+        "query_param": null, 
+        "range_begin": 0, 
+        "range_end": 18446744073709551615, 
+        "relative_url": ""
+    }, 
+    "protocol": {
+        "accept_encoding": "gzip, deflate, br", 
+        "error": 0, 
+        "upgrade_target": null
+    }
+}
+.END
+.OUTPUT case_get_2
+{
+    "static": {
+        "base_url": "/static/", 
+        "body": null, 
+        "host": "p.com", 
+        "method": 0, 
+        "query_param": null, 
+        "range_begin": 0, 
+        "range_end": 18446744073709551615, 
+        "relative_url": "vue.js"
+    }, 
+    "protocol": {
+        "accept_encoding": "gzip, deflate, br", 
+        "error": 0, 
+        "upgrade_target": null
+    }
+}
+.END
+.OUTPUT case_get_3
+{
+    "default": {
+        "base_url": "", 
+        "body": null, 
+        "host": "p.com", 
+        "method": 0, 
+        "query_param": null, 
+        "range_begin": 0, 
+        "range_end": 18446744073709551615, 
+        "relative_url": "/api"
+    }, 
+    "protocol": {
+        "accept_encoding": "gzip, deflate, br", 
+        "error": 0, 
+        "upgrade_target": null
+    }
+}
+.END

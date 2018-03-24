@@ -1,0 +1,40 @@
+.TEXT case_get_1
+GET /api/ HTTP/1.1
+Host: p.com
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0
+Accept: */*
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate, br
+Referer: https://plumberserver.com/index.html
+X-Requested-With: XMLHttpRequest
+Connection: keep-alive
+
+
+.END
+.TEXT case_get_2
+GET /static/vue.js HTTP/1.1
+Host: p.com
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0
+Accept: */*
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate, br
+Referer: https://plumberserver.com/index.html
+X-Requested-With: XMLHttpRequest
+Connection: keep-alive
+
+
+.END
+.TEXT case_get_3
+GET /api HTTP/1.1
+Host: p.com
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0
+Accept: */*
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate, br
+Referer: https://plumberserver.com/index.html
+X-Requested-With: XMLHttpRequest
+Connection: keep-alive
+
+
+.END
+.STOP
