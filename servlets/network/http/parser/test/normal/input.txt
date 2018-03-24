@@ -1,0 +1,34 @@
+.TEXT case_1
+GET / HTTP/1.1
+Host: plumberserver.com
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0
+Accept: */*
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate, br
+Referer: https://plumberserver.com/index.html
+X-Requested-With: XMLHttpRequest
+Connection: keep-alive
+
+
+.END
+.TEXT case_2
+GET /?a=3 HTTP/1.1
+hosT: abc.com
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0
+Accept: */*
+Accept-Encoding: gzip
+Referer: https://plumberserver.com/index.html
+X-Requested-With: XMLHttpRequest
+content-length: 1
+Connection: keep-alive
+
+0
+
+.END
+.TEXT case_3
+HEAD /path HTTP/2.0
+Host: abc.com
+
+
+.END
+.STOP

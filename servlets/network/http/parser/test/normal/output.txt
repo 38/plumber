@@ -1,0 +1,52 @@
+.OUTPUT case_1
+{
+    "protocol": {
+        "accept_encoding": "gzip, deflate, br",
+        "error": 0,
+        "upgrade_target": null
+    },
+    "request": {
+        "base_url": "",
+        "body": null,
+        "host": "plumberserver.com",
+        "method": 0,
+        "query_param": null,
+        "range_begin": 0,
+        "range_end": 18446744073709551615,
+        "relative_url": "/"
+    }
+}
+.END
+.OUTPUT case_2
+{
+    "protocol": {
+        "accept_encoding": "gzip",
+        "error": 0,
+        "upgrade_target": null
+    },
+    "request": {
+        "base_url": "",
+        "body": "0",
+        "host": "abc.com",
+        "method": 0,
+        "query_param": "a=3",
+        "range_begin": 0,
+        "range_end": 18446744073709551615,
+        "relative_url": "/"
+    }
+}
+.END
+.OUTPUT case_3
+{
+    "request": {
+        "base_url": "",
+        "body": null,
+        "host": "abc.com",
+        "method": 2,
+        "query_param": null,
+        "range_begin": 0,
+        "range_end": 18446744073709551615,
+        "relative_url": "/path"
+    }
+}
+.END

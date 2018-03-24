@@ -1,6 +1,7 @@
 #!/usr/bin/env pscript
 /**
  * Copyright (C) 2018, Hao Hou
+ * Copyright (C) 2018, Feng Liu
  **/
 // The servlet testing framework
 import("service");
@@ -46,8 +47,28 @@ var test_graph = {};
 scheduler.worker.nthreads = 1;
 scheduler.async.nthreads = 1;
 
+if(raw_mode == 1)
+{
+	Service.add_node(test_graph, "servlet", servlet);
+	Service.add_node(test_graph, "raw2str", "typing/conversion/raw2str");
+	Service.add_node(test_graph, "outgen", "typing/conversion/json --raw --to-json result:plumber/std/request_local/String");
 
-if(raw_mode != 1)
+	Service.add_in_port(test_graph, "", "servlet", servlet_input);
+	Service.add_pipe(test_graph, "servlet", servlet_output, "input", "raw2str");
+	Service.add_pipe(test_graph, "raw2str", "output", "result", "outgen");
+	Service.add_out_port(test_graph, "", "outgen", "json");
+
+	Service.start(test_graph);
+}
+else if(raw_mode == 2)
+{
+    Service.add_node(test_graph, "servlet", servlet);
+    Service.add_in_port(test_graph, "", "servlet", servlet_input);
+    Service.add_out_port(test_graph, "", "servlet", servlet_output);
+
+    Service.start(test_graph);
+}
+else
 {
 	Service.add_node(test_graph, "servlet", servlet);
 
@@ -68,17 +89,4 @@ if(raw_mode != 1)
 	servlet_output["null"] = "plumber/base/Raw";
 
 	Service.start(Testbed.embed(test_graph, servlet_input, servlet_output));
-}
-else
-{
-	Service.add_node(test_graph, "servlet", servlet);
-	Service.add_node(test_graph, "raw2str", "typing/conversion/raw2str");
-	Service.add_node(test_graph, "outgen", "typing/conversion/json --raw --to-json result:plumber/std/request_local/String");
-
-	Service.add_in_port(test_graph, "", "servlet", servlet_input);
-	Service.add_pipe(test_graph, "servlet", servlet_output, "input", "raw2str");
-	Service.add_pipe(test_graph, "raw2str", "output", "result", "outgen");
-	Service.add_out_port(test_graph, "", "outgen", "json");
-
-	Service.start(test_graph);
 }

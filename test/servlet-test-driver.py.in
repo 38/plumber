@@ -46,7 +46,7 @@ def parse_result(results):
             buffer = ""
             name = result.split()[1]
         elif result == ".END":
-            ret[name] = json.dumps(json.loads(buffer))
+            ret[name] = json.loads(buffer)
         else:
             buffer += "\n" 
             buffer += result
@@ -60,7 +60,7 @@ if result == 0:
         actual = results.get(key, "")
         expect = expected.get(key, "")
         if actual != expect:
-            print "Case %s failure: expected %s but got %s"%(key, expect, actual)
+            print "Case %s failure:\nexpected :\t%s\nbut got  :\t%s"%(key, expect, actual)
             result = 1
 if result == 0:
     print "All test cases are OK!"
