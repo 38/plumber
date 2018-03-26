@@ -520,7 +520,7 @@ static int _exec(void* ctxmem)
 			    ERROR_LOG_GOTO(ERR, "Cannot write the location field");
 
 			if(ERROR_CODE(size_t) == pstd_bio_puts(out, "\r\n\r\n"))
-				ERROR_LOG_GOTO(ERR, "Cannot write the request trailer");
+			    ERROR_LOG_GOTO(ERR, "Cannot write the request trailer");
 
 			/* Since we have no body at this time, so we just jump to the proxy return */
 			goto PROXY_RET;

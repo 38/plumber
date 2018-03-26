@@ -703,6 +703,7 @@ static inline int _ensure_connect(_handle_t* handle)
 				    return 0;
 				default:
 				    _log_ssl_error("accept", reason, rc);
+				    return ERROR_CODE(int);
 			}
 		}
 		else if(rc == 1)
