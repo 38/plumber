@@ -1,0 +1,7 @@
+set(TYPE shared-library)
+set(LOCAL_CFLAGS "-fPIC")
+set(LOCAL_LIBS pservlet proto pstd)
+set(INSTALL "yes")
+set(PACKAGE_CONF_INSTALL_PATH "include/pnum")
+install_includes("${SOURCE_PATH}/include" "include/pnum" "*.h")
+install_plumber_headers("include/pnum")

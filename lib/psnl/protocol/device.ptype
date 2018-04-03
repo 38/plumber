@@ -1,0 +1,15 @@
+/**
+ * Copyright (C) 2018, Hao Hou
+ **/
+package plumber.std.numeric;
+
+/* The base type used to represent a device memory */
+type DeviceObject {
+	request_local_token    device_obj@DeviceObject;   /*!< The memory object that lives on the device */
+};
+
+/* The object lives on CUDA device */
+type CUDA : DeviceObject {};
+
+/* The object lives on OpenCL device */
+type OpenCL : DeviceObject {};
