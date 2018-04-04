@@ -36,7 +36,25 @@
 typedef struct {
 	hashmap_t* namemap;   /*!< the hash map maps variable name to the variable id */
 	vector_t*  values;    /*!< the value array, the data in the values should be actually the pointer to the array of parsed compound types */
+	hashmap_t* strings;   /*!< The metadata string that is used */
 } _env_t;
+
+/**
+ * @brief Get the managed string from the environment
+ * @param env The environment
+ * @param str The string
+ * @return The managed string
+ **/
+static inline const char* _get_managed_string(_env_t* env, const char* str)
+{
+	hashmap_find_res_t result = {};
+	int rc = hashmap_insert(env->strings, str, strlen(str) + 1, NULL, 0, &result, 0);
+
+	if(ERROR_CODE(int) == rc)
+		ERROR_PTR_RETURN_LOG("Cannot look for the string table");
+
+	return (const char*)result.key_data;
+}
 
 /**
  * @brief duplicate a parsed type
@@ -66,7 +84,7 @@ static inline char const** _dup_type(char const* const* type)
  *        By doing this we can check if two type name are the same by comparing the type name
  * @return the parse result array, or NULL on error case
  **/
-static inline char const** _parse_type(const char* type_expr)
+static inline char const** _parse_type(_env_t* env, const char* type_expr)
 {
 	char type_buf[PATH_MAX];
 
@@ -122,8 +140,13 @@ static inline char const** _parse_type(const char* type_expr)
 		if(type_buf[0] != '$')
 		{
 			/* Then we have a type name, basically we want to convert the type name to a pointer to the libproto managed type name buffer */
-			if(NULL == (ret[i] = proto_db_get_managed_name(type_buf)))
-			    ERROR_LOG_GOTO(ERR, "Libproto can not find the type named %s", type_buf);
+			if(type_buf[0] != '@')
+			{
+				if(NULL == (ret[i] = proto_db_get_managed_name(type_buf)))
+			    	ERROR_LOG_GOTO(ERR, "Libproto can not find the type named %s", type_buf);
+			}
+			else if(NULL == (ret[i] = _get_managed_string(env, type_buf)))
+				ERROR_LOG_GOTO(ERR, "Cannot get the mamanged metadata %s", type_buf);
 		}
 		else
 		{
@@ -159,6 +182,9 @@ static inline _env_t* _env_new(void)
 	if(NULL == (ret->values = vector_new(sizeof(char const* const*), 128)))
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create the value vector for the environment table");
 
+	if(NULL == (ret->strings = hashmap_new(SCHED_TYPE_ENV_HASH_SIZE, 128)))
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create the string table for the environment");
+
 	return ret;
 ERR:
 	if(NULL != ret)
@@ -167,6 +193,8 @@ ERR:
 		    hashmap_free(ret->namemap);
 		if(NULL != ret->values)
 		    vector_free(ret->values);
+		if(NULL != ret->strings)
+			hashmap_free(ret->strings);
 	}
 
 	return NULL;
@@ -184,6 +212,9 @@ static inline int _env_free(_env_t* env)
 	{
 		if(NULL != env->namemap && ERROR_CODE(int) == hashmap_free(env->namemap))
 		    rc = ERROR_CODE(int);
+
+		if(NULL != env->strings && ERROR_CODE(int) == hashmap_free(env->strings))
+			rc = ERROR_CODE(int);
 
 		if(NULL != env->values)
 		{
@@ -203,6 +234,41 @@ static inline int _env_free(_env_t* env)
 	}
 
 	return rc;
+}
+
+/**
+ * @brief Merge two type (it may be a meta-data type)
+ * @param left The left type
+ * @param right The right type
+ * @return The merged type
+ * @note all The strings returned from this function are managed
+ **/
+static inline const char* _merge_type(_env_t* env, const char* left, const char* right)
+{
+	/* If this is a metadata section, we simply check if they are the same */
+	if(left[0] == '@' || right[0] == '@')
+	{
+		const char* buf[2] = {left, right};
+
+		if(left[0] == '@' && NULL == (buf[0] = _get_managed_string(env, left)))
+			ERROR_PTR_RETURN_LOG("Cannot get the managed string for metadata %s", left);
+
+		if(right[0] == '@' && NULL == (buf[1] = _get_managed_string(env, right)))
+			ERROR_PTR_RETURN_LOG("Cannot get the managed string for metadata %s", right);
+
+		if(buf[0] == buf[1]) return buf[0];
+
+		return NULL;
+	}
+
+	/* Otherwise merge the type */
+	const char* type_to_merge[] = {
+		left,
+		right,
+		NULL
+	};
+
+	return proto_db_common_ancestor(type_to_merge);
 }
 
 /**
@@ -254,10 +320,14 @@ static inline int _env_get(const _env_t* env, const char* varname, char const* *
  **/
 static inline int _env_merge(_env_t* env, const char* varname, char const* const* concrete_type)
 {
+	if(concrete_type[0] == NULL)
+		ERROR_RETURN_LOG(int, "Concrete type cannot be empty");
+
 	char const* * current;
 
 	if(ERROR_CODE(int) == _env_get(env, varname, &current))
 	    ERROR_RETURN_LOG(int, "Cannot look up the environment table");
+
 
 	if(NULL == current)
 	{
@@ -295,15 +365,9 @@ static inline int _env_merge(_env_t* env, const char* varname, char const* const
 			if(concrete_type[i][0] == '$')
 			    ERROR_RETURN_LOG(int, "Invalid arguments: cannot assign a type pattern to a type variable");
 
-			const char* type_to_merge[] = {
-				concrete_type[i],
-				current[i],
-				NULL
-			};
+			const char* merged_type;
 
-			const char* merged_type = proto_db_common_ancestor(type_to_merge);
-
-			if(NULL == merged_type)
+			if(NULL == (merged_type = _merge_type(env, concrete_type[i], current[i])))
 			    ERROR_RETURN_LOG(int, "Cannot merge type %s and %s", concrete_type[i], current[i]);
 
 			current[i] = merged_type;
@@ -344,11 +408,11 @@ static inline int _solve_ces(const sched_service_t* service, _env_t* env, const 
 
 		char const* * parsed_sour_type = NULL;
 		char const* * parsed_dest_type = NULL;
-		parsed_sour_type = _parse_type(sour_type);
+		parsed_sour_type = _parse_type(env, sour_type);
 		if(NULL == parsed_sour_type)
 		    ERROR_LOG_GOTO(LOOP_ERR, "Cannot parse the source type for the convertibility equation");
 
-		parsed_dest_type = _parse_type(dest_expr);
+		parsed_dest_type = _parse_type(env, dest_expr);
 		if(NULL == parsed_dest_type)
 		    ERROR_LOG_GOTO(LOOP_ERR, "Cannot parse the destination type for the convertibility equation");
 
@@ -382,7 +446,7 @@ static inline int _solve_ces(const sched_service_t* service, _env_t* env, const 
 				{
 					LOG_DEBUG("This isn't a trialing type variable (named %s), so we only try to map a simple type to it", varname);
 
-					const char* simple_type[] = {parsed_dest_type[k], NULL};
+					const char* simple_type[] = {parsed_sour_type[k], NULL};
 
 					if(ERROR_CODE(int) == _env_merge(env, varname, simple_type))
 					    ERROR_LOG_GOTO(LOOP_ERR, "Cannot merge the type expression to the variable");
@@ -390,12 +454,8 @@ static inline int _solve_ces(const sched_service_t* service, _env_t* env, const 
 			}
 			else
 			{
-				const char* types[] = {
-					from_type,
-					to_type,
-					NULL
-				};
-				const char* common_ancestor = proto_db_common_ancestor(types);
+				const char* common_ancestor = _merge_type(env, from_type, to_type);
+				
 				if(common_ancestor == NULL || strcmp(common_ancestor, to_type) != 0)
 				    ERROR_LOG_GOTO(LOOP_ERR, "Invalid conversion: %s -> %s", from_type, to_type);
 			}
@@ -424,9 +484,9 @@ ERR:
  * @param header_size_buf the buffer used to return the header size
  * @return the render result, NULL on error case
  **/
-static inline const char* _render_type_name(const char* type_expr, const _env_t* env, char* buf, size_t size, size_t* header_size_buf)
+static inline const char* _render_type_name(const char* type_expr, _env_t* env, char* buf, size_t size, size_t* header_size_buf)
 {
-	char const* * parsed_type = _parse_type(type_expr);
+	char const* * parsed_type = _parse_type(env, type_expr);
 	if(NULL == parsed_type)
 	    ERROR_PTR_RETURN_LOG("Cannot parse the type expression: %s", type_expr);
 
@@ -512,13 +572,7 @@ static inline const char* _render_type_name(const char* type_expr, const _env_t*
 					if(sec >= merged_type_len)
 					    ERROR_LOG_GOTO(ERR, "The alternations are in different size");
 
-					const char* merge_buf[] = {
-						merged_type[sec],
-						result[j],
-						NULL
-					};
-
-					const char* merge_result = proto_db_common_ancestor(merge_buf);
+					const char* merge_result = _merge_type(env, merged_type[sec], result[j]);
 
 					if(NULL == merge_result)
 					    ERROR_LOG_GOTO(ERR, "Cannot merge type %s and %s", merged_type[sec], result[j]);

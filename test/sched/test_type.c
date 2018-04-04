@@ -191,6 +191,35 @@ int adhoc_type(void)
 	return 0;
 }
 
+int metadata(void)
+{
+	MKBUF;
+
+	MKNODE(input, "in -> out1:test/sched/typing/Triangle_@this_@is_@a_@test out2:test/sched/typing/ColoredTriangle_@test");
+	MKNODE(middle, "in1:$T_@this_@is_$U_$V in2:$X_$V -> out:$X_$U");
+	MKNODE(output, "in:$T -> output");
+
+	CONNECT(input, out1, middle, in1);
+	CONNECT(input, out2, middle, in2);
+	CONNECT(middle, out, output, in);
+
+	SETIO(input, input, in);
+	SETIO(output, output, output);
+
+	MKSVC;
+
+	CHKTYPE(input, out1, "test/sched/typing/Triangle @this @is @a @test");
+	CHKTYPE(input, out2, "test/sched/typing/ColoredTriangle @test");
+	CHKTYPE(middle, in1, "test/sched/typing/Triangle @this @is @a @test");
+	CHKTYPE(middle, in2, "test/sched/typing/ColoredTriangle @test");
+	CHKTYPE(middle, out, "test/sched/typing/ColoredTriangle @a");
+	CHKTYPE(output, in, "test/sched/typing/ColoredTriangle @a");
+
+	FREESVC;
+
+	return 0;
+}
+
 int invalid_conversion(void)
 {
 	MKBUF;
@@ -248,6 +277,29 @@ int invalid_generialization(void)
 
 }
 
+int invalid_metadata(void)
+{
+	MKBUF;
+
+	(void)serv;
+
+	MKNODE(input, "in -> out1:test/sched/typing/Triangle_@this_@is_@a_@test out2:test/sched/typing/ColoredTriangle_@test");
+	MKNODE(middle, "in1:$T_@that_@is_$U_$V in2:$X_$V -> out:$X_$U");
+	MKNODE(output, "in:$T -> output");
+
+	CONNECT(input, out1, middle, in1);
+	CONNECT(input, out2, middle, in2);
+	CONNECT(middle, out, output, in);
+
+	SETIO(input, input, in);
+	SETIO(output, output, output);
+
+	ASSERT(NULL == sched_service_from_buffer(sbuf), CLEANUP_NOP);
+	ASSERT_OK(sched_service_buffer_free(sbuf), CLEANUP_NOP);
+
+	return 0;
+}
+
 int setup(void)
 {
 	ASSERT_OK(runtime_servlet_append_search_path(TESTDIR), CLEANUP_NOP);
@@ -262,5 +314,7 @@ TEST_LIST_BEGIN
     TEST_CASE(typed),
     TEST_CASE(invalid_conversion),
     TEST_CASE(adhoc_type),
-    TEST_CASE(invalid_generialization)
+    TEST_CASE(invalid_generialization),
+	TEST_CASE(metadata),
+	TEST_CASE(invalid_metadata)
 TEST_LIST_END;
