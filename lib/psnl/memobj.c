@@ -14,13 +14,13 @@
 /**
  * @brief The actual data struture for the PSNL memory object
  **/
-struct {
+struct _psnl_memobj_t {
 	void*                           obj;            /*!< The pointer to the actual data */
 	uint32_t                        refcnt;         /*!< The reference counter */
 	uint64_t                        magic;          /*!< The magic number for this memory object */
 	psnl_memobj_dispose_func_t      dispose;        /*!< The how to dispose the used memory object, if missing, use free */
 	void*                           cb_user_data;   /*!< The user data used by the callback functions */
-} _psnl_memobj_t;
+};
 
 /**
  * @brief Get the pointer that has the write access
@@ -31,11 +31,11 @@ struct {
  *       But the struct is only acceptable within this file, and it's actually reasonable we just do the modification
  * @return the writable pointer
  **/
-static inline psnl_memobj_t* _get_write_pointer(const _psnl_memobj_t* memobj)
+static inline psnl_memobj_t* _get_write_pointer(const psnl_memobj_t* memobj)
 {
 	union {
-		const _psnl_memobj_t* from;
-		_psnl_memobj_t*       to;
+		const psnl_memobj_t* from;
+		psnl_memobj_t*       to;
 	} convert = { .from = memobj };
 
 	return convert.to;
@@ -62,7 +62,7 @@ static inline int _dispose_inner_object(psnl_memobj_t* obj)
 	return 0;
 }
 
-psnl_memobj_t* psnl_memobj_new(psnl_memobj_param_t param);
+psnl_memobj_t* psnl_memobj_new(psnl_memobj_param_t param)
 {
 	if(NULL == param.obj && NULL == param.create_cb)
 		ERROR_PTR_RETURN_LOG("Invalid arguments");
@@ -80,7 +80,7 @@ psnl_memobj_t* psnl_memobj_new(psnl_memobj_param_t param);
 
 	ret->refcnt = 0;
 
-	ret->dispose = param.dispose;
+	ret->dispose = param.dispose_cb;
 	ret->cb_user_data = param.user_data;
 
 	return ret;
