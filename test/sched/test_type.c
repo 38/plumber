@@ -315,6 +315,6 @@ TEST_LIST_BEGIN
     TEST_CASE(invalid_conversion),
     TEST_CASE(adhoc_type),
     TEST_CASE(invalid_generialization),
-	TEST_CASE(metadata),
-	TEST_CASE(invalid_metadata)
+    TEST_CASE(metadata),
+    TEST_CASE(invalid_metadata)
 TEST_LIST_END;

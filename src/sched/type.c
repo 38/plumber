@@ -51,7 +51,7 @@ static inline const char* _get_managed_string(_env_t* env, const char* str)
 	int rc = hashmap_insert(env->strings, str, strlen(str) + 1, NULL, 0, &result, 0);
 
 	if(ERROR_CODE(int) == rc)
-		ERROR_PTR_RETURN_LOG("Cannot look for the string table");
+	    ERROR_PTR_RETURN_LOG("Cannot look for the string table");
 
 	return (const char*)result.key_data;
 }
@@ -143,10 +143,10 @@ static inline char const** _parse_type(_env_t* env, const char* type_expr)
 			if(type_buf[0] != '@')
 			{
 				if(NULL == (ret[i] = proto_db_get_managed_name(type_buf)))
-			    	ERROR_LOG_GOTO(ERR, "Libproto can not find the type named %s", type_buf);
+				    ERROR_LOG_GOTO(ERR, "Libproto can not find the type named %s", type_buf);
 			}
 			else if(NULL == (ret[i] = _get_managed_string(env, type_buf)))
-				ERROR_LOG_GOTO(ERR, "Cannot get the mamanged metadata %s", type_buf);
+			    ERROR_LOG_GOTO(ERR, "Cannot get the mamanged metadata %s", type_buf);
 		}
 		else
 		{
@@ -183,7 +183,7 @@ static inline _env_t* _env_new(void)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create the value vector for the environment table");
 
 	if(NULL == (ret->strings = hashmap_new(SCHED_TYPE_ENV_HASH_SIZE, 128)))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create the string table for the environment");
+	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create the string table for the environment");
 
 	return ret;
 ERR:
@@ -194,7 +194,7 @@ ERR:
 		if(NULL != ret->values)
 		    vector_free(ret->values);
 		if(NULL != ret->strings)
-			hashmap_free(ret->strings);
+		    hashmap_free(ret->strings);
 	}
 
 	return NULL;
@@ -214,7 +214,7 @@ static inline int _env_free(_env_t* env)
 		    rc = ERROR_CODE(int);
 
 		if(NULL != env->strings && ERROR_CODE(int) == hashmap_free(env->strings))
-			rc = ERROR_CODE(int);
+		    rc = ERROR_CODE(int);
 
 		if(NULL != env->values)
 		{
@@ -251,10 +251,10 @@ static inline const char* _merge_type(_env_t* env, const char* left, const char*
 		const char* buf[2] = {left, right};
 
 		if(left[0] == '@' && NULL == (buf[0] = _get_managed_string(env, left)))
-			ERROR_PTR_RETURN_LOG("Cannot get the managed string for metadata %s", left);
+		    ERROR_PTR_RETURN_LOG("Cannot get the managed string for metadata %s", left);
 
 		if(right[0] == '@' && NULL == (buf[1] = _get_managed_string(env, right)))
-			ERROR_PTR_RETURN_LOG("Cannot get the managed string for metadata %s", right);
+		    ERROR_PTR_RETURN_LOG("Cannot get the managed string for metadata %s", right);
 
 		if(buf[0] == buf[1]) return buf[0];
 
@@ -321,7 +321,7 @@ static inline int _env_get(const _env_t* env, const char* varname, char const* *
 static inline int _env_merge(_env_t* env, const char* varname, char const* const* concrete_type)
 {
 	if(concrete_type[0] == NULL)
-		ERROR_RETURN_LOG(int, "Concrete type cannot be empty");
+	    ERROR_RETURN_LOG(int, "Concrete type cannot be empty");
 
 	char const* * current;
 
@@ -455,7 +455,7 @@ static inline int _solve_ces(const sched_service_t* service, _env_t* env, const 
 			else
 			{
 				const char* common_ancestor = _merge_type(env, from_type, to_type);
-				
+
 				if(common_ancestor == NULL || strcmp(common_ancestor, to_type) != 0)
 				    ERROR_LOG_GOTO(LOOP_ERR, "Invalid conversion: %s -> %s", from_type, to_type);
 			}
