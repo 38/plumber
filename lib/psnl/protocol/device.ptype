@@ -3,13 +3,12 @@
  **/
 package plumber.std.numeric;
 
-/* The base type used to represent a device memory */
+/* The base type used to represent a device memory object */
 type DeviceObject {
 	request_local_token    device_obj@DeviceObject;   /*!< The memory object that lives on the device */
 };
 
-/* The object lives on CUDA device */
-type CUDA : DeviceObject {};
-
 /* The object lives on OpenCL device */
 type OpenCL : DeviceObject {};
+
+/* TODO: Create a CUDA device prefix if we need to use CUDA */

@@ -56,27 +56,6 @@ psnl_memobj_t* psnl_memobj_new(psnl_memobj_param_t param);
 int psnl_memobj_free(psnl_memobj_t* memobj);
 
 /**
- * @brief Commit the memory object to RLS 
- * @param memobj The memory object 
- * @return The RLS token for this object
- **/
-scope_token_t psnl_memobj_commit(psnl_memobj_t* memobj);
-
-/**
- * @brief Increse the reference counter for the memory object RLS token
- * @param token The RLS token
- * @return status code
- **/
-int psnl_memobj_incref_token(scope_token_t token);
-
-/**
- * @brief Decrease the reference counter for the memory oject RLS token
- * @param token The RLS token
- * @return status code
- **/
-int psnl_memobj_decref_token(scope_token_t token);
-
-/**
  * @brief Increase the refrence counter
  * @param memobj The memory object
  * @note eventhough some of the holder just have a reference to this memory object, but it's still needed for the hold to make sure

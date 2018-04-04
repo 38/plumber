@@ -1,0 +1,13 @@
+/**
+ * Copyright (C) 2018, Hao Hou
+ **/
+package plumber.std.numeric;
+
+/**
+ * A spatial object is an object that can be accessed randomly by a vector of integer.
+ * For example a matrix is represented as DoubleField @dim(2)
+ * Currently we assume that all the fields are double
+ **/
+type DoubleField {
+	request_local_token  token@SpatialObject; /*!< The token for the matrix that lives on the CPU */
+};
