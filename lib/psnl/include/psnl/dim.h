@@ -35,6 +35,29 @@ typedef struct {
 })
 
 /**
+ * @brief Get how many bytes the dimensional data uses
+ * @param dim The dimensional data
+ * @return The number of bytes
+ **/
+static inline uint32_t psnl_dim_data_size(const psnl_dim_t* dim)
+{
+	return (uint32_t)(sizeof(psnl_dim_t) + sizeof(int32_t) * dim->n_dim);
+}
+
+/**
+ * @brief Compute how many cells in the space
+ * @param dim The dimensional data
+ * @return The size of the space
+ **/
+static inline uint32_t psnl_dim_space_size(const psnl_dim_t* dim)
+{
+	uint32_t ret = 1, i;
+	for(i = 0; i < dim->n_dim; i ++)
+		ret *= (uint32_t)(dim->dims[i][1] - dim->dims[i][0]);
+	return ret;
+}
+
+/**
  * @brief Compute the offset for the cell in the given position
  * @param dim The dimensional data
  * @param pos The actual position

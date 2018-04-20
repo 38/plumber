@@ -3,44 +3,48 @@
  **/
 
 /**
- * @brief The RLS object for a double spatial field on CPU
- * @file include/psnl/cpu/dfd.h
+ * @brief The RLS object for a spatial field
+ * @note This code will just manage the field but it won't actually care about the type of the field. 
+ *       Actually, we don't really care about the size of the element here. Because if the caller of this group of functions
+ *       doesn't know the cell type, we can't do anything about it anyway.
+ * @file include/psnl/cpu/field.h
  **/
-#ifndef __PSNL_CPU_DFD_H__
-#define __PSNL_CPU_DFD_H__
+#ifndef __PSNL_CPU_FIELD_H__
+#define __PSNL_CPU_FIELD_H__
 
 /**
  * @brief The actual data structure for the CPU field with double precision cells
  **/
-typedef struct _psnl_cpu_dfd_t psnl_cpu_dfd_t;
+typedef struct _psnl_cpu_field_t psnl_cpu_field_t;
 
 /**
  * @brief Create new N dimensional field
  * @param dim The dimensional data
+ * @param elem_size The element size
  * @return The newly created object
  **/
-psnl_cpu_dfd_t* psnl_cpu_dfd_new(const psnl_dim_t* dim);
+psnl_cpu_field_t* psnl_cpu_field_new(const psnl_dim_t* dim, size_t elem_size);
 
 /**
  * @brief Increase the reference counter for this field
  * @param field The target field
  * @return status code
  **/
-int psnl_cpu_dfd_incref(const psnl_cpu_dfd_t* field);
+int psnl_cpu_field_incref(const psnl_cpu_field_t* field);
 
 /**
  * @brief Decrease the reference counter for this field
  * @param field The target field
  * @return status code
  **/
-int psnl_cpu_dfd_decref(const psnl_cpu_dfd_t* field);
+int psnl_cpu_field_decref(const psnl_cpu_field_t* field);
 
 /**
  * @brief Commit current field to the RLS
  * @param field The field to commit
  * @return The scope token
  **/
-scope_token_t psnl_cpu_dfd_commit(psnl_cpu_dfd_t* field);
+scope_token_t psnl_cpu_field_commit(psnl_cpu_field_t* field);
 
 /**
  * @brief Get the data from the field object
@@ -48,7 +52,7 @@ scope_token_t psnl_cpu_dfd_commit(psnl_cpu_dfd_t* field);
  * @param dim_buf The dimension buffer
  * @return status code
  **/
-double* psnl_cpu_dfd_get_data(psnl_cpu_dfd_t* field, psnl_cpu_dfd_t* dim_buf);
+void* psnl_cpu_field_get_data(psnl_cpu_field_t* field, psnl_dim_t* const* dim_buf);
 
 /**
  * @brief Get the read only data pointer from the field object 
@@ -56,6 +60,6 @@ double* psnl_cpu_dfd_get_data(psnl_cpu_dfd_t* field, psnl_cpu_dfd_t* dim_buf);
  * @param dim_buf The diemension buffer
  * @return status code
  **/
-const double* psnl_cpu_dfd_get_data_const(psnl_cpu_dfd_t* field, psnl_cpu_dfd_t* dim_buf);
+const void* psnl_cpu_field_get_data_const(psnl_cpu_field_t* field, psnl_dim_t* const* dim_buf);
 
 #endif /* __PSNL_CPU_DFD_H__ */

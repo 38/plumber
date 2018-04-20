@@ -4,10 +4,17 @@
 package plumber.std.numeric;
 
 /**
+ * A spatial object is an RLS object that can be randomly accessed by a vector of integer.
+ * The type specification should include the dimension information as param for example 
+ *     DoubleField @dim(2) 
+ **/
+type SpatialObject {
+	request_local_token token@SpatialObject;
+};
+
+/**
  * A spatial object is an object that can be accessed randomly by a vector of integer.
  * For example a matrix is represented as DoubleField @dim(2)
  * Currently we assume that all the fields are double
  **/
-type DoubleField {
-	request_local_token  token@SpatialObject; /*!< The token for the matrix that lives on the CPU */
-};
+type DoubleField : SpatialObject {};

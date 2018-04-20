@@ -62,7 +62,7 @@ static inline int _dispose_inner_object(psnl_memobj_t* obj)
 	return 0;
 }
 
-psnl_memobj_t* psnl_memobj_new(psnl_memobj_param_t param)
+psnl_memobj_t* psnl_memobj_new(psnl_memobj_param_t param, void* create_data)
 {
 	if(NULL == param.obj && NULL == param.create_cb)
 		ERROR_PTR_RETURN_LOG("Invalid arguments");
@@ -75,13 +75,13 @@ psnl_memobj_t* psnl_memobj_new(psnl_memobj_param_t param)
 
 	ret->magic = param.magic;
 	
-	if(param.obj == NULL && NULL == (ret->obj = param.create_cb(param.user_data)))
+	if(param.obj == NULL && NULL == (ret->obj = param.create_cb(create_data)))
 		ERROR_LOG_GOTO(ERR, "Cannot create the memory object");
 
 	ret->refcnt = 0;
 
 	ret->dispose = param.dispose_cb;
-	ret->cb_user_data = param.user_data;
+	ret->cb_user_data = param.dispose_cb_data;
 
 	return ret;
 ERR:

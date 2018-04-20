@@ -33,19 +33,20 @@ typedef void* (*psnl_memobj_create_func_t)(void* user_data);
  * @brief The initialization parameters for a managed memory object
  **/
 typedef struct {
-	uint64_t                     magic;      /*!< The magic number used to inditify the type of the object */
-	void*                        obj;        /*!< The actual memory object */
-	void*                        user_data;  /*!< The additional user specific data for the callback functions */
-	psnl_memobj_create_func_t    create_cb;  /*!<  The creation callback, either obj or create_cb should be provided, but not both */
-	psnl_memobj_dispose_func_t   dispose_cb; /*!< The dispose callback, if NULL given, use standard free from libc */
+	uint64_t                     magic;            /*!< The magic number used to inditify the type of the object */
+	void*                        obj;              /*!< The actual memory object */
+	psnl_memobj_create_func_t    create_cb;        /*!<  The creation callback, either obj or create_cb should be provided, but not both */
+	void*                        dispose_cb_data;  /*!< The additional user specific data for the dispose callback functions */
+	psnl_memobj_dispose_func_t   dispose_cb;       /*!< The dispose callback, if NULL given, use standard free from libc */
 } psnl_memobj_param_t;
 
 /**
  * @brief Create a new managed memory object
  * @param param The memory object parameter
+ * @param create_data The additional data pointer passed into the create callback
  * @return The newly created memory object
  **/
-psnl_memobj_t* psnl_memobj_new(psnl_memobj_param_t param);
+psnl_memobj_t* psnl_memobj_new(psnl_memobj_param_t param, void* create_data);
 
 /**
  * @brief Dispose a used memory object
