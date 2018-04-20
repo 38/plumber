@@ -9,12 +9,19 @@ package plumber.std.numeric;
  *     DoubleField @dim(2) 
  **/
 type SpatialObject {
-	request_local_token token@SpatialObject;
+	request_local_token       token@CPU_SPATIAL_OBJECT;    /*!< The actual RLS object used for a Spatial Object */
 };
+
+/**
+ * A field is the an RLS object that associated to a SpatialObject that has RAM as storage
+ **/
+type FieldObject : SpatialObject {};
 
 /**
  * A spatial object is an object that can be accessed randomly by a vector of integer.
  * For example a matrix is represented as DoubleField @dim(2)
  * Currently we assume that all the fields are double
  **/
-type DoubleField : SpatialObject {};
+type DoubleField : FieldObject {};
+
+
