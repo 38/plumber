@@ -17,6 +17,7 @@
 struct _psnl_memobj_t {
 	void*                           obj;            /*!< The pointer to the actual data */
 	uint32_t                        refcnt;         /*!< The reference counter */
+	uint32_t                        committed:1;    /*!< Indicates if the memory object has been committed */
 	uint64_t                        magic;          /*!< The magic number for this memory object */
 	psnl_memobj_dispose_func_t      dispose;        /*!< The how to dispose the used memory object, if missing, use free */
 	void*                           cb_user_data;   /*!< The user data used by the callback functions */
@@ -159,4 +160,22 @@ void* psnl_memobj_get(psnl_memobj_t* memobj, uint64_t magic)
 		ERROR_PTR_RETURN_LOG("Unexpected object magic number");
 
 	return memobj->obj;
+}
+
+int psnl_memobj_set_committed(psnl_memobj_t* memobj, int val)
+{
+	if(NULL == memobj)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	memobj->committed = (val != 0);
+
+	return 0;
+}
+
+int psnl_memobj_is_committed(const psnl_memobj_t* memobj)
+{
+	if(NULL == memobj)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	return memobj->committed != 0;
 }

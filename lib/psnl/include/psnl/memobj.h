@@ -88,4 +88,19 @@ const void* psnl_memobj_get_const(const psnl_memobj_t* memobj, uint64_t magic);
  **/
 void* psnl_memobj_get(psnl_memobj_t* memobj, uint64_t magic);
 
+/**
+ * @brief Set the flag bit to indicate the memory object has been committed to the RLS
+ * @param memobj The memory object to modify
+ * @param val The value
+ * @return status code
+ **/
+int psnl_memobj_set_committed(psnl_memobj_t* memobj, int val);
+
+/**
+ * @brief Check if the memory object has been committed
+ * @param memobj The memory object
+ * @return The check result or the error code
+ **/
+int psnl_memobj_is_committed(const psnl_memobj_t* memobj);
+
 #endif

@@ -105,3 +105,74 @@ psnl_cpu_field_t* psnl_cpu_field_new(const psnl_dim_t* dim, size_t elem_size)
 
 	return (psnl_cpu_field_t*)psnl_memobj_new(obj_desc, &create_param);
 }
+
+int psnl_cpu_field_incref(const psnl_cpu_field_t* field)
+{
+	return psnl_memobj_incref(_get_memory_object_const(field));
+}
+
+int psnl_cpu_field_decref(const psnl_cpu_field_t* field)
+{
+	return psnl_memobj_decref(_get_memory_object_const(field));
+}
+
+scope_token_t psnl_cpu_field_commit(psnl_cpu_field_t* field)
+{
+	if(NULL == field)
+		ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
+
+	int is_cmt = psnl_memobj_is_committed(_get_memory_object_const(field));
+
+	if(ERROR_CODE(int) == is_cmt)
+		ERROR_RETURN_LOG(scope_token_t, "Cannot check if the field has been committed");
+
+	if(is_cmt)
+		ERROR_RETURN_LOG(scope_token_t, "Cannot re-committed a token that is already in RLS");
+
+	if(ERROR_CODE(int) == psnl_memobj_set_committed(_get_memory_object(field), 1))
+		ERROR_RETURN_LOG(scope_token_t, "Cannot set the commit flag");
+	
+	/* TODO: Do the commit */
+	return 0;
+}
+
+void* psnl_cpu_field_get_data(psnl_cpu_field_t* field, psnl_dim_t const ** dim_buf)
+{
+	if(NULL == field)
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
+
+	_data_t* data = (_data_t*)psnl_memobj_get(_get_memory_object(field), _FIELD_MAGIC);
+
+	if(NULL == data)
+		ERROR_PTR_RETURN_LOG("Cannot get the field object from the managed reference object");
+
+	if(NULL != dim_buf) 
+		*dim_buf = data->dim;
+
+	return data->data + _get_padded_size(psnl_dim_data_size(data->dim));
+}
+
+const void* psnl_cpu_field_get_data_const(const psnl_cpu_field_t* field, psnl_dim_t const** dim_buf)
+{
+	if(NULL == field)
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
+	
+	const _data_t* data = (const _data_t*)psnl_memobj_get_const(_get_memory_object_const(field), _FIELD_MAGIC);
+
+	if(NULL == data)
+		ERROR_PTR_RETURN_LOG("Cannot get the field object from the managed reference object");
+
+	
+	if(NULL != dim_buf) 
+		*dim_buf = data->dim;
+
+	return data->data + _get_padded_size(psnl_dim_data_size(data->dim));
+}
+
+const psnl_cpu_field_t* psnl_cpu_field_from_rls(scope_token_t token)
+{
+	if(ERROR_CODE(scope_token_t) == token)
+		ERROR_PTR_RETURN_LOG("Invlaid arguments");
+
+	return (const psnl_cpu_field_t*)pstd_scope_get(token);
+}

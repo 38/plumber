@@ -26,6 +26,13 @@ typedef struct _psnl_cpu_field_t psnl_cpu_field_t;
 psnl_cpu_field_t* psnl_cpu_field_new(const psnl_dim_t* dim, size_t elem_size);
 
 /**
+ * @brief Acquire a PSNL field from a RLS object
+ * @param token The scope token to acquire
+ * @return The field object
+ **/
+const psnl_cpu_field_t* psnl_cpu_field_from_rls(scope_token_t token);
+
+/**
  * @brief Increase the reference counter for this field
  * @param field The target field
  * @return status code
@@ -52,7 +59,7 @@ scope_token_t psnl_cpu_field_commit(psnl_cpu_field_t* field);
  * @param dim_buf The dimension buffer
  * @return status code
  **/
-void* psnl_cpu_field_get_data(psnl_cpu_field_t* field, psnl_dim_t* const* dim_buf);
+void* psnl_cpu_field_get_data(psnl_cpu_field_t* field, psnl_dim_t const* * dim_buf);
 
 /**
  * @brief Get the read only data pointer from the field object 
@@ -60,6 +67,6 @@ void* psnl_cpu_field_get_data(psnl_cpu_field_t* field, psnl_dim_t* const* dim_bu
  * @param dim_buf The diemension buffer
  * @return status code
  **/
-const void* psnl_cpu_field_get_data_const(psnl_cpu_field_t* field, psnl_dim_t* const* dim_buf);
+const void* psnl_cpu_field_get_data_const(const psnl_cpu_field_t* field, psnl_dim_t const* * dim_buf);
 
 #endif /* __PSNL_CPU_DFD_H__ */
