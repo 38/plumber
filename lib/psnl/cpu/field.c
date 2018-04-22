@@ -16,7 +16,7 @@
 #define _FIELD_MAGIC 0xcf276354ff00aabbull
 
 /**
- * @brief The actual data structure used for the Double Field lives on the CPU
+ * @brief The actual data structure used for the Field lives on the CPU
  **/
 typedef struct {
 	uintpad_t  __padding__[0];
