@@ -1,12 +1,12 @@
-# Plumber 
+# Plumber - The General-Purpose Cross-Language Dataflow Programming
 ----
 [![Build Status](https://plumberserver.com/jenkins/job/Plumber/badge/icon)](https://plumberserver.com/jenkins/job/Plumber/) [![Build Status Travis](https://travis-ci.org/38/plumber.svg?branch=master)](https://travis-ci.org/38/plumber)
 
 # What is Plumber?
 
-Plumber is a general purpose, language independent and high performance [Flow-Based Programming](https://en.wikipedia.org/wiki/Flow-based_programming) framework. 
-With Plumber, applications are built with small, independent and composable components written in different programming languages. Plumber brings many modern technologies and innovation that enables fully flow-based development experience in modern use cases.
-
+Plumber is middleware for high-performance, general-purpose, cross-language dataflow programming.
+Plumber allows developer design dataflow based system easily, and provides many features, such 
+as type-checking, generic-typing, metaprogramming, in a language-neutral way.
 For more details please visit the project [home page](https://plumberserver.com).
 
 # Try Plumber
