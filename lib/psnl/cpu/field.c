@@ -20,6 +20,7 @@
  **/
 typedef struct {
 	uintpad_t  __padding__[0];
+	size_t     elem_size;      /*!< The element size */
 	psnl_dim_t dim[0];         /*!< The dimensional data */
 	char       data[0];        /*!< The actual data section */
 } _data_t;
@@ -31,6 +32,14 @@ typedef struct {
 	size_t             elem_size;   /*!< The size of the element in the field */
 	const psnl_dim_t*  dim;         /*!< The dimension specification */
 } _create_param_t;
+
+/**
+ * @brief Reperesent the string representation of a field
+ **/
+typedef struct {
+	const void* data;   /*!< The actual data to be written */
+	size_t      size;   /*!< The size of the struct */
+} _stream_t;
 
 
 /**
@@ -75,6 +84,7 @@ static void* _field_data_new(void* data)
 		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new CPU field");
 
 	memcpy(ret->dim, param->dim, psnl_dim_data_size(param->dim));
+	ret->elem_size = param->elem_size;
 
 	return ret;
 }
@@ -116,6 +126,53 @@ int psnl_cpu_field_decref(const psnl_cpu_field_t* field)
 	return psnl_memobj_decref(_get_memory_object_const(field));
 }
 
+static int _free(void* mem)
+{
+	return psnl_memobj_free((psnl_memobj_t*)mem);
+}
+
+static void* _open(const void* mem)
+{
+	_stream_t* ret = pstd_mempool_alloc(sizeof(_stream_t));
+
+	if(NULL == ret)
+		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the stream object");
+	
+	const _data_t* data = (const _data_t*)psnl_memobj_get_const((const psnl_memobj_t*)mem, _FIELD_MAGIC);
+	
+	ret->size = _get_padded_size(psnl_dim_data_size(data->dim)) + psnl_dim_data_size(data->dim) * sizeof(double);
+
+	ret->data = mem;
+
+	return ret;
+}
+
+static int _close(void* stream_mem)
+{
+	return pstd_mempool_free(stream_mem);
+}
+
+static int _eos(const void* stream_mem)
+{
+	const _stream_t* stream = (const _stream_t*)stream_mem;
+
+	return stream->size > 0;
+}
+
+static size_t _read(void* __restrict stream_mem, void* __restrict buf, size_t count)
+{
+	_stream_t* stream = (_stream_t*)stream_mem;
+
+	size_t ret = count;
+	if(ret > stream->size) ret = stream->size;
+
+	memcpy(buf, stream->data, ret);
+	
+	stream->size -= ret;
+	stream->data = (const void*)(((const uint8_t*)stream->data) + ret);
+	return ret;
+}
+
 scope_token_t psnl_cpu_field_commit(psnl_cpu_field_t* field)
 {
 	if(NULL == field)
@@ -131,9 +188,17 @@ scope_token_t psnl_cpu_field_commit(psnl_cpu_field_t* field)
 
 	if(ERROR_CODE(int) == psnl_memobj_set_committed(_get_memory_object(field), 1))
 		ERROR_RETURN_LOG(scope_token_t, "Cannot set the commit flag");
-	
-	/* TODO: Do the commit */
-	return 0;
+
+	scope_entity_t ent = {
+		.data = field,
+		.free_func = _free,
+		.open_func = _open,
+		.close_func = _close,
+		.eos_func   = _eos,
+		.read_func  = _read
+	};
+
+	return pstd_scope_add(&ent);
 }
 
 void* psnl_cpu_field_get_data(psnl_cpu_field_t* field, psnl_dim_t const ** dim_buf)
