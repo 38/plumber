@@ -116,6 +116,20 @@ psnl_cpu_field_t* psnl_cpu_field_new(const psnl_dim_t* dim, size_t elem_size)
 	return (psnl_cpu_field_t*)psnl_memobj_new(obj_desc, &create_param);
 }
 
+
+int psnl_cpu_field_free(psnl_cpu_field_t* field)
+{
+	if(NULL == field)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	int committed = psnl_memobj_is_committed(_get_memory_object(field));
+
+	if(ERROR_CODE(int) == committed || committed > 0)
+		ERROR_RETURN_LOG(int, "Refuse to dispose a committed RLS object");
+
+	return psnl_memobj_free(_get_memory_object(field));
+}
+
 int psnl_cpu_field_incref(const psnl_cpu_field_t* field)
 {
 	return psnl_memobj_incref(_get_memory_object_const(field));

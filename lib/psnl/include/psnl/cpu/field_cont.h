@@ -23,7 +23,7 @@ typedef struct _psnl_cpu_field_cont_t psnl_cpu_field_cont_t;
  * @param rhs  The right hand side
  * @return nothing
  **/
-typedef void (*psnl_cpu_field_cont_eval_func_t)(uint32_t ndim, const int32_t* pos, const void* __restrict lhs, void* __restrict rhs);
+typedef void (*psnl_cpu_field_cont_eval_func_t)(const int32_t* pos, const void* __restrict lhs, void* __restrict rhs);
 
 /**
  * @brief Called when the continuation needs to be freed

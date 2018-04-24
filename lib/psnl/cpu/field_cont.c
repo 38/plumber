@@ -31,6 +31,15 @@ typedef union {
 	psnl_memobj_t*         internal;    /*!< The internal data object */
 } _view_t;
 
+/**
+ * @brief Similar to the _view_t type but it's the constant version
+ **/
+typedef union {
+	const psnl_cpu_field_cont_t* external;    /*!< The external data object */
+	const psnl_memobj_t*         internal;    /*!< The internal data object */
+} _const_view_t;
+
+
 static void* _create_data(const void* user_data)
 {
 	const psnl_cpu_field_cont_desc_t* desc = (const psnl_cpu_field_cont_desc_t*)user_data;
@@ -93,4 +102,100 @@ psnl_cpu_field_cont_t* psnl_cpu_field_cont_new(const psnl_cpu_field_cont_desc_t*
 		ERROR_PTR_RETURN_LOG("Cannot allocate memory object for the continuation object");
 
 	return ret_obj.external;
+}
+
+int psnl_cpu_field_cont_free(psnl_cpu_field_cont_t* cont)
+{
+	if(NULL == cont)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	_view_t view = {
+		.external = cont
+	};
+
+	int committed = psnl_memobj_is_committed(view.internal);
+
+	if(ERROR_CODE(int) == committed || committed > 0)
+		ERROR_RETURN_LOG(int, "Refusing to dispose a committed RLS object from application code");
+
+	return psnl_memobj_free(view.internal);
+}
+
+int psnl_cpu_field_cont_incref(const psnl_cpu_field_cont_t* cont)
+{
+	if(NULL == cont)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	_const_view_t view = {
+		.external = cont
+	};
+
+	return psnl_memobj_incref(view.internal);
+}
+
+int psnl_cpu_field_cont_decref(const psnl_cpu_field_cont_t* cont)
+{
+	if(NULL == cont)
+		ERROR_RETURN_LOG(int,  "Invalid arguements");
+
+	_const_view_t view = {
+		.external = cont
+	};
+
+	return psnl_memobj_decref(view.internal);
+}
+
+static int _cont_free(void* obj)
+{
+	return psnl_memobj_decref((psnl_memobj_t*)obj);
+}
+
+scope_token_t psnl_cpu_field_cont_commit(psnl_cpu_field_cont_t* cont)
+{
+	if(NULL == cont)
+		ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
+	
+	_view_t view = {
+		.external = cont
+	};
+
+	int committed = psnl_memobj_is_committed(view.internal);
+
+	if(committed == ERROR_CODE(int) || committed > 0)
+		ERROR_RETURN_LOG(scope_token_t, "Cannot commit the same object twice");
+
+	scope_entity_t ent = {
+		.data = cont,
+		.free_func = _cont_free,
+	};
+
+	return pstd_scope_add(&ent);
+}
+
+int psnl_cpu_field_cont_value_at(const psnl_cpu_field_cont_t* cont, uint32_t ndim, int32_t* __restrict pos, void* __restrict buf)
+{
+	if(NULL == cont || NULL == pos || NULL == buf)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	_const_view_t view = {
+		.external = cont
+	};
+
+	const _cont_t* cont_obj = (const _cont_t*)psnl_memobj_get_const(view.internal, _OBJ_MAGIC);
+
+	if(NULL == cont_obj)
+		ERROR_RETURN_LOG(int, "Cannot get the actual continuation object");
+
+	if(cont_obj->range->n_dim != ndim)
+		ERROR_RETURN_LOG(int, "Invalid dimension");
+
+	uint32_t i;
+	for(i = 0; i < ndim; i ++)
+		if(cont_obj->range->dims[i][0] < pos[i] ||
+		   cont_obj->range->dims[i][1] >= pos[i])
+			ERROR_RETURN_LOG(int, "Invalid position");
+
+	cont_obj->eval_func(pos, cont_obj->lhs, buf);
+
+	return 0;
 }

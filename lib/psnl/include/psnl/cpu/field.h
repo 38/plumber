@@ -27,6 +27,13 @@ typedef struct _psnl_cpu_field_t psnl_cpu_field_t;
 psnl_cpu_field_t* psnl_cpu_field_new(const psnl_dim_t* dim, size_t elem_size);
 
 /**
+ * @brief Dispose a field that haven't been committed yet
+ * @param field The field to  dispose
+ * @return status code
+ **/
+int psnl_cpu_field_free(psnl_cpu_field_t* field);
+
+/**
  * @brief Acquire a PSNL field from a RLS object
  * @param token The scope token to acquire
  * @return The field object
