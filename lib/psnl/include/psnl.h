@@ -24,7 +24,9 @@ extern "C" {
 #endif
 #include <psnl/dim.h>
 #include <psnl/memobj.h>
-#include <psnl/cpu/double_field.h>
+
+#include <psnl/cpu/field.h>
+#include <psnl/cpu/field_cont.h>
 #ifdef __cplusplus
 }
 #endif

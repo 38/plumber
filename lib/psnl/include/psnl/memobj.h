@@ -27,7 +27,7 @@ typedef int (*psnl_memobj_dispose_func_t)(void* object, void* user_data);
  * @param user_data the user data needs to be passed into the callback
  * @return The newly created object
  **/
-typedef void* (*psnl_memobj_create_func_t)(void* user_data);
+typedef void* (*psnl_memobj_create_func_t)(const void* user_data);
 
 /**
  * @brief The initialization parameters for a managed memory object
@@ -46,7 +46,7 @@ typedef struct {
  * @param create_data The additional data pointer passed into the create callback
  * @return The newly created memory object
  **/
-psnl_memobj_t* psnl_memobj_new(psnl_memobj_param_t param, void* create_data);
+psnl_memobj_t* psnl_memobj_new(psnl_memobj_param_t param, const void* create_data);
 
 /**
  * @brief Dispose a used memory object

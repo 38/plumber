@@ -72,7 +72,7 @@ static inline size_t _get_padded_size(size_t size)
 		return size;
 }
 
-static void* _field_data_new(void* data)
+static void* _field_data_new(const void* data)
 {
 	const _create_param_t* param = (const _create_param_t*)data;
 

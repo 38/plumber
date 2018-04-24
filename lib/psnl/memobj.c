@@ -63,7 +63,7 @@ static inline int _dispose_inner_object(psnl_memobj_t* obj)
 	return 0;
 }
 
-psnl_memobj_t* psnl_memobj_new(psnl_memobj_param_t param, void* create_data)
+psnl_memobj_t* psnl_memobj_new(psnl_memobj_param_t param, const void* create_data)
 {
 	if(NULL == param.obj && NULL == param.create_cb)
 		ERROR_PTR_RETURN_LOG("Invalid arguments");
