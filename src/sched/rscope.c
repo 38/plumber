@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2017-2018, Hao Hou
+ * Copyright (C) 2018, Feng Liu
  **/
 #include <inttypes.h>
 #include <stdint.h>
@@ -456,3 +457,17 @@ int sched_rscope_stream_get_event(sched_rscope_stream_t* stream, runtime_api_sco
 	return ent->entity.event_func(stream->handle, buf);
 }
 
+int sched_rscope_get_hash(runtime_api_scope_token_t token, uint64_t out[2])
+{
+	if(_NULL_ENTRY == token || token >= _entry_table.capacity || _entry_table.data[token].data == NULL)
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	const _entry_t* target = _entry_table.data + token;
+
+	if(target->data->entity.hash_func == NULL)
+		return 0;
+
+	if(ERROR_CODE(int) == target->data->entity.hash_func(target->data->entity.data, out))
+		return ERROR_CODE(int);
+	return 1;
+}

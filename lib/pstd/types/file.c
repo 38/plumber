@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2018, Feng Liu
  **/
 #include <stdio.h>
 #include <string.h>
@@ -12,6 +13,7 @@
 
 #include <pstd.h>
 #include <pstd/types/file.h>
+#include <utils/hash/murmurhash3.h>
 
 /**
  * @brief the actual data structure for a file reference
@@ -358,6 +360,23 @@ static inline size_t _read(void* __restrict stream_mem, void* __restrict buf, si
 #endif
 }
 
+/**
+ * @brief the callback for generating hash code for the file
+ * @param mem the RLS object
+ * @param out the output array
+ * @return status code
+ **/
+static inline int _hash(const void* mem, uint64_t out[2])
+{
+	const pstd_file_t* file = (const pstd_file_t*)mem;
+	size_t len = strlen(file->filename);
+    /* use different seed for different type of RLS object */
+    const uint32_t seed = 93578;
+    murmurhash3_128(file->filename, len, seed, out);
+
+    return 0;
+}
+
 scope_token_t pstd_file_commit(pstd_file_t* file)
 {
 	if(NULL == file || file->committed)
@@ -370,7 +389,8 @@ scope_token_t pstd_file_commit(pstd_file_t* file)
 		.open_func = _open,
 		.close_func = _close,
 		.eos_func = _eos,
-		.read_func = _read
+		.read_func = _read,
+        .hash_func = _hash
 	};
 
 	scope_token_t ret = pstd_scope_add(&ent);

@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2018, Feng Liu
  **/
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +13,7 @@
 
 #include <pstd.h>
 #include <pstd/types/string.h>
+#include <utils/hash/murmurhash3.h>
 
 /**
  * @brief the actuall data structure for the PSTD string type
@@ -305,6 +307,24 @@ static inline size_t _read(void* __restrict stream_mem, void* __restrict buf, si
 	return bytes_can_read;
 }
 
+/**
+ * @brief Calculate the hash code for the string
+ * @param mem the RLS object
+ * @param out the output array
+ * @return status code
+ **/
+static inline int _hash(const void* mem, uint64_t out[2])
+{
+	if(NULL == mem)
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	const pstd_string_t* str = (const pstd_string_t*)mem;
+    /* use different seed for different type of RLS object */
+	const uint32_t seed = 222851856;
+	murmurhash3_128(str->buffer, str->length, seed, out);
+	return 0;
+}
+
 scope_token_t pstd_string_commit(pstd_string_t* str)
 {
 	if(NULL == str)
@@ -323,7 +343,8 @@ scope_token_t pstd_string_commit(pstd_string_t* str)
 		.open_func = _open,
 		.close_func = _close,
 		.read_func = _read,
-		.eos_func = _eos
+		.eos_func = _eos,
+		.hash_func = _hash
 	};
 
 	return pstd_scope_add(&ent);

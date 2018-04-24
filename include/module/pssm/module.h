@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2017-2018, Hao Hou
+ * Copyright (C) 2018, Feng Liu
  **/
 /**
  * @brief the module definition for the Plumber Standard Service Module
@@ -35,7 +36,8 @@ enum {
 	MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_CLOSE,  /*!< Close a RLS stream */
 	MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_EOF,    /*!< Check if the stream has reached the end */
 	MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_READ,   /*!< Read the stream */
-	MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_READY_EVENT  /*!< Query the ready event */
+	MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_READY_EVENT,  /*!< Query the ready event */
+	MODULE_PSSM_MODULE_OPCODE_SCOPE_GET_HASH       /*!< Get Hash */
 };
 
 #endif /* __PLUMBER_MODULE_PSSM_MODULE_H__ */
