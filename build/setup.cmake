@@ -29,7 +29,7 @@ set(LIB_DIR "lib")
 # log level can be 0 to 6, 0 means no log, 6 means the most detialed log
 if("$ENV{L}" STREQUAL "") 
 	if("${LOG}" STREQUAL "")
-		set(LOG     4) 
+		set(LOG     3) 
 	endif("${LOG}" STREQUAL "")
 else("$ENV{L}" STREQUAL "")
 	set(LOG		$ENV{L})
