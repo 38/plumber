@@ -19,8 +19,8 @@
  * @brief The actual data structure used for the Field lives on the CPU
  **/
 typedef struct {
-	uintpad_t  __padding__[0];
 	size_t     elem_size;      /*!< The element size */
+	uintpad_t  __padding__[0];
 	psnl_dim_t dim[0];         /*!< The dimensional data */
 	char       data[0];        /*!< The actual data section */
 } _data_t;
@@ -35,6 +35,7 @@ typedef struct {
 
 /**
  * @brief Reperesent the string representation of a field
+ * @todo  Do we need make the stream able to output seralized field?
  **/
 typedef struct {
 	const void* data;   /*!< The actual data to be written */
@@ -44,6 +45,8 @@ typedef struct {
 
 /**
  * @brief Convert the memory object from a field dummy type
+ * @param field The field type to convert
+ * @return the memory object pointer
  **/
 static inline psnl_memobj_t* _get_memory_object(psnl_cpu_field_t* field)
 {
@@ -52,6 +55,8 @@ static inline psnl_memobj_t* _get_memory_object(psnl_cpu_field_t* field)
 
 /**
  * @brief Convert the const memory object from a field dummy type
+ * @param field The field to convert
+ * @return the memory object pointer
  **/
 static inline const psnl_memobj_t* _get_memory_object_const(const psnl_cpu_field_t* field)
 {
@@ -65,11 +70,9 @@ static inline const psnl_memobj_t* _get_memory_object_const(const psnl_cpu_field
  **/
 static inline size_t _get_padded_size(size_t size) 
 {
-	size_t rem = (size & (sizeof(uintpad_t) - 1));
-	if(rem > 0)
-		return size - rem + sizeof(uintpad_t);
-	else
-		return size;
+	size_t rem = size % sizeof(uintpad_t);
+
+	return rem > 0 ? size - rem + sizeof(uintpad_t) : size;
 }
 
 static void* _field_data_new(const void* data)
