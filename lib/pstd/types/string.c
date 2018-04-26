@@ -311,7 +311,7 @@ static inline size_t _read(void* __restrict stream_mem, void* __restrict buf, si
  * @brief Calculate the hash code for the string
  * @param mem the RLS object
  * @param out the output array
- * @return status code
+ * @return The number of hash code
  **/
 static inline int _hash(const void* mem, uint64_t out[2])
 {
@@ -322,7 +322,7 @@ static inline int _hash(const void* mem, uint64_t out[2])
     /* use different seed for different type of RLS object */
 	const uint32_t seed = 222851856;
 	murmurhash3_128(str->buffer, str->length, seed, out);
-	return 0;
+	return 1;
 }
 
 scope_token_t pstd_string_commit(pstd_string_t* str)

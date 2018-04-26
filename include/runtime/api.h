@@ -460,7 +460,7 @@ typedef struct {
 	 * @brief Generate the hash code of the scope entity
 	 * @param ptr the RLS pointer to hash
 	 * @param out the generated hash code for ptr
-	 * @return status code
+	 * @return The number of hash code
 	 **/
 	int (*hash_func)(const void* ptr, uint64_t out[2]);
 

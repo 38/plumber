@@ -364,7 +364,7 @@ static inline size_t _read(void* __restrict stream_mem, void* __restrict buf, si
  * @brief the callback for generating hash code for the file
  * @param mem the RLS object
  * @param out the output array
- * @return status code
+ * @return The number of hash code
  **/
 static inline int _hash(const void* mem, uint64_t out[2])
 {
@@ -374,7 +374,7 @@ static inline int _hash(const void* mem, uint64_t out[2])
     const uint32_t seed = 93578;
     murmurhash3_128(file->filename, len, seed, out);
 
-    return 0;
+    return 1;
 }
 
 scope_token_t pstd_file_commit(pstd_file_t* file)
@@ -390,7 +390,7 @@ scope_token_t pstd_file_commit(pstd_file_t* file)
 		.close_func = _close,
 		.eos_func = _eos,
 		.read_func = _read,
-        .hash_func = _hash
+		.hash_func = _hash
 	};
 
 	scope_token_t ret = pstd_scope_add(&ent);

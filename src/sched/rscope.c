@@ -467,7 +467,5 @@ int sched_rscope_get_hash(runtime_api_scope_token_t token, uint64_t out[2])
 	if(target->data->entity.hash_func == NULL)
 		return 0;
 
-	if(ERROR_CODE(int) == target->data->entity.hash_func(target->data->entity.data, out))
-		return ERROR_CODE(int);
-	return 1;
+	return target->data->entity.hash_func(target->data->entity.data, out);
 }
