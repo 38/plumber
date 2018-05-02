@@ -18,10 +18,6 @@ type SpatialObject {
 type FieldObject : SpatialObject {};
 
 /**
- * A spatial object is an object that can be accessed randomly by a vector of integer.
- * For example a matrix is represented as DoubleField @dim(2)
- * Currently we assume that all the fields are double
+ * Represent a field with double typed cells
  **/
 type DoubleField : FieldObject {};
-
-

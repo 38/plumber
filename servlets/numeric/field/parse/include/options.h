@@ -14,8 +14,9 @@
  * @brief The type of the cell in the field 
  **/
 typedef enum {
-	OPTIONS_CELL_TYPE_DOUBLE   /*!< The field is a double precision int */
+	OPTIONS_CELL_TYPE_DOUBLE,  /*!< The field is a double precision int */
 	/* TODO: support more types */
+	OPTIONS_CELL_TYPE_COUNT    /*!< The number of cell types that is supported */
 } options_cell_type_t;
 
 /**
@@ -35,6 +36,7 @@ typedef struct {
 							                            *   will assume the field size. Ohterwise the parser should determine the field
 							                            *   size from the input */
 	options_input_format_t in_format;                  /*!< The input format */
+	options_cell_type_t    cell_type;                  /*!< The type of the cell */
 	const char*            input_type;                 /*!< The type for the input port */
 	const char*            result_type;                /*!< The type of the output port */
 } options_t;
@@ -45,7 +47,7 @@ typedef struct {
  * @param argv The arguments list
  * @return The newly created options pointer from the argument list, NULL on error
  **/
-options_t* options_parse(uint32_t argc, char const* const* argv);
+int options_parse(uint32_t argc, char const* const* argv, options_t* buf);
 
 /**
  * @brief Dipsose a used option
