@@ -19,7 +19,7 @@ typedef struct {
 } psnl_dim_t;
 
 /**
- * @brief Create a new dimension description
+ * @brief Create a new dimension description on stack
  * @param args The arguments
  * @return The dimensional data allocated on stack
  **/
@@ -35,13 +35,23 @@ typedef struct {
 })
 
 /**
+ * @brief Get the size of the dimension data for ND
+ * @param n_dim The number of dimension
+ * @return the number of bytes
+ **/
+static inline uint32_t psnl_dim_data_size_nd(uint32_t n_dim)
+{
+	return (uint32_t)(sizeof(psnl_dim_t) + 2 * sizeof(int32_t) * n_dim);
+}
+
+/**
  * @brief Get how many bytes the dimensional data uses
  * @param dim The dimensional data
  * @return The number of bytes
  **/
 static inline uint32_t psnl_dim_data_size(const psnl_dim_t* dim)
 {
-	return (uint32_t)(sizeof(psnl_dim_t) + sizeof(int32_t) * dim->n_dim);
+	return psnl_dim_data_size_nd(dim->n_dim);
 }
 
 /**
