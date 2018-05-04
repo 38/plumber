@@ -17,11 +17,11 @@
  * @brief The type name of the output field
  **/
 static char const* const _output_type_name[] = {
-	[OPTIONS_CELL_TYPE_DOUBLE] "plumber/std/numeric/DoubleField"
+	[OPTIONS_CELL_TYPE_DOUBLE] = "plumber/std/numeric/DoubleField"
 };
 
 static char const* const _cell_type_name[] = {
-	[OPTIONS_CELL_TYPE_DOUBLE] "double"
+	[OPTIONS_CELL_TYPE_DOUBLE] = "double"
 };
 STATIC_ASSERTION_EQ(OPTIONS_CELL_TYPE_COUNT, sizeof(_output_type_name) / sizeof(_output_type_name[0]));
 STATIC_ASSERTION_EQ_ID(check_name_array_size, sizeof(_output_type_name), sizeof(_cell_type_name));
