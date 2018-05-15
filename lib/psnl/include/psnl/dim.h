@@ -19,12 +19,28 @@ typedef struct {
 } psnl_dim_t;
 
 /**
+ * @brief Create a new dimension description buffer on stack
+ * @param n The number of dimensions
+ * @return The newly created dimensional data on stack
+ * @note Every cell should be initailized to 0
+ **/
+#define PSNL_DIM_LOCAL_NEW_BUF(n) ({\
+	psnl_dim_t* ret = alloca(psnl_dim_data_size_nd(n));\
+	if(NULL != ret) \
+	{\
+		ret->n_dim = (uint32_t)(n);\
+		memset(ret->dims, 0, sizeof((psnl_dim_data_size_nd(n))));\
+	}\
+	ret;\
+})
+
+/**
  * @brief Create a new dimension description on stack
  * @param args The arguments
  * @return The dimensional data allocated on stack
  **/
 #define PSNL_DIM_LOCAL_NEW(args...) ({\
-	uint32_t tmp[][2] = {args};\
+	int32_t tmp[][2] = {args};\
 	psnl_dim_t* ret = alloca(sizeof(psnl_dim_t) + sizeof(tmp)); \
 	if(NULL != ret)  \
 	{\
