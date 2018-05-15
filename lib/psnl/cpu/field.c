@@ -81,7 +81,7 @@ static void* _field_data_new(const void* data)
 
 	size_t size = psnl_dim_space_size(param->dim) * param->elem_size + psnl_dim_data_size(param->dim);
 
-	_data_t* ret = (_data_t*)calloc(sizeof(size), 1);
+	_data_t* ret = (_data_t*)calloc(size, 1);
 
 	if(NULL == ret)
 		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new CPU field");

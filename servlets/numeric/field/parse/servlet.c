@@ -223,24 +223,24 @@ static int _exec(void* ctxmem)
 			double temp[2];
 
 			if(ctx->options.in_format == OPTIONS_INPUT_FORMAT_BINARY && ctx->options.raw &&
-			   ERROR_CODE(int) == _read_next_raw_binary_double(p_in, temp + 0) &&
-			   ERROR_CODE(int) == _read_next_raw_binary_double(p_in, temp+ 1))   
+			   (ERROR_CODE(int) == _read_next_raw_binary_double(p_in, temp + 0) ||
+			    ERROR_CODE(int) == _read_next_raw_binary_double(p_in, temp+ 1)))
 				/* TODO: Once we are able to parse int, we need to use that parser */
 				ERROR_LOG_GOTO(ERR, "Cannot parse the dimension");
 
 			if(ctx->options.in_format == OPTIONS_INPUT_FORMAT_STRING && ctx->options.raw &&
-			   ERROR_CODE(int) == _read_next_raw_literal_double(p_in, temp + 0) &&
-			   ERROR_CODE(int) == _read_next_raw_literal_double(p_in, temp + 1))
+			   (ERROR_CODE(int) == _read_next_raw_literal_double(p_in, temp + 0) ||
+			    ERROR_CODE(int) == _read_next_raw_literal_double(p_in, temp + 1)))
 				ERROR_LOG_GOTO(ERR, "Cannot parse the dimension");
 
 			if(ctx->options.in_format == OPTIONS_INPUT_FORMAT_BINARY && !ctx->options.raw &&
-			   ERROR_CODE(int) == _read_next_string_binary_double(&s_in, s_end, temp + 0) &&
-			   ERROR_CODE(int) == _read_next_string_binary_double(&s_in, s_end, temp + 1))
+			   (ERROR_CODE(int) == _read_next_string_binary_double(&s_in, s_end, temp + 0) ||
+			    ERROR_CODE(int) == _read_next_string_binary_double(&s_in, s_end, temp + 1)))
 				ERROR_LOG_GOTO(ERR, "Cannot parse the dimension");
 
 			if(ctx->options.in_format == OPTIONS_INPUT_FORMAT_STRING && !ctx->options.raw &&
-			   ERROR_CODE(int) == _read_next_string_literal_double(&s_in, s_end, temp + 0) &&
-			   ERROR_CODE(int) == _read_next_string_literal_double(&s_in, s_end, temp + 1))
+			   (ERROR_CODE(int) == _read_next_string_literal_double(&s_in, s_end, temp + 0) ||
+			    ERROR_CODE(int) == _read_next_string_literal_double(&s_in, s_end, temp + 1)))
 				ERROR_LOG_GOTO(ERR, "Cannot parse the dimension");
 
 			if(temp[0] >= temp[1])
