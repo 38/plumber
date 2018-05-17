@@ -17,6 +17,41 @@
  **/
 typedef struct _psnl_cpu_field_t psnl_cpu_field_t;
 
+/**
+ * @brief Describe the cell type of the field 
+ **/
+typedef enum {
+	PSNL_CPU_FIELD_CELL_TYPE_DOUBLE,   /*!< Indicates the cell is double */
+	/* TODO: We should support other types later  */
+	PSNL_CPU_FIELD_CELL_TYPE_COUNT     /*!< The number of field type */
+} psnl_cpu_field_cell_type_t;
+
+/**
+ * @brief The type information
+ **/
+typedef struct {
+	psnl_cpu_field_cell_type_t cell_type;   /*!< The type of the cell */
+	size_t                     cell_size;   /*!< The size of the cell type */
+	uint32_t                   n_dim;       /*!< The number of dimension, if no dim 0 should be set */
+} psnl_cpu_field_type_info_t;
+
+/**
+ * @brief parse the typename of the field
+ * @param type_name The name of the type
+ * @param buf The buffer  for the type information
+ * @return status code
+ * @note The type pattern is "<Field Type Name> [@dim(N)]"
+ **/
+int psnl_cpu_field_type_parse(const char* type_name, psnl_cpu_field_type_info_t* buf);
+
+/**
+ * @brief Dump the type name for the given type
+ * @param info The type information
+ * @param buf The type name buffer
+ * @param buf_size the size of the buffer
+ * @return status code
+ **/
+int psnl_cpu_field_type_dump(const psnl_cpu_field_type_info_t* info, char* buf, size_t buf_size);
 
 /**
  * @brief Create new N dimensional field

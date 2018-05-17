@@ -1,6 +1,7 @@
 /**
  * Copyright (C) 2018, Hao Hou
  **/
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -13,6 +14,7 @@
 #include <psnl/memobj.h>
 #include <psnl/cpu/field.h>
 
+/** TODO: how to autoamtically generate magic number ? */
 #define _FIELD_MAGIC 0xcf276354ff00aabbull
 
 /**
@@ -257,4 +259,90 @@ const psnl_cpu_field_t* psnl_cpu_field_from_rls(scope_token_t token)
 		ERROR_PTR_RETURN_LOG("Invlaid arguments");
 
 	return (const psnl_cpu_field_t*)pstd_scope_get(token);
+}
+
+/**
+ * @brief The map from the cell type to the field type
+ **/
+static const char* _type_map[] = {
+	[PSNL_CPU_FIELD_CELL_TYPE_DOUBLE] "plumber/std/numeric/DoubleField"
+};
+STATIC_ASSERTION_EQ(PSNL_CPU_FIELD_CELL_TYPE_COUNT, sizeof(_type_map) / sizeof(_type_map[0]));
+
+int psnl_cpu_field_type_parse(const char* type_name, psnl_cpu_field_type_info_t* buf)
+{
+	if(NULL == type_name || NULL == buf)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	const char* major_begin = type_name;
+	const char* major_end   = type_name;
+
+	for(;*major_end != 0 && *major_end != ' ' && *major_end != '\t'; major_end ++);
+
+	uint32_t type_code;
+	for(type_code = 0; _type_map[type_code] && 
+			           !(major_begin + strlen(_type_map[type_code]) == major_end &&
+					     0 == memcmp(major_begin, _type_map[type_code], (size_t)(major_end - major_begin)));
+		type_code ++);
+
+	if(_type_map[type_code] == NULL)
+		ERROR_RETURN_LOG(int, "Unknown field type: %s", type_name);
+
+	buf->cell_type = (psnl_cpu_field_cell_type_t)type_code;
+
+	switch(buf->cell_type)
+	{
+		case PSNL_CPU_FIELD_CELL_TYPE_DOUBLE:
+			buf->cell_size = sizeof(double);
+			break;
+
+		default:
+			ERROR_RETURN_LOG(int, "Unknown type code");
+	}
+
+	/* Then we need to parse the dimension */
+
+	const char* dim_start = major_end;
+
+	buf->n_dim = 0;
+
+	for(;*dim_start != 0 && (*dim_start == ' ' || *dim_start == '\t'); dim_start ++);
+
+	if(*dim_start != 0 && memcmp(dim_start, "@dim(", 5) == 0)
+	{
+		char* next = NULL;
+
+		long long dim_val = strtoll(dim_start + 5, &next, 0);
+
+		if(NULL == next || *next != ')')
+			ERROR_RETURN_LOG(int, "Invalid dimension description");
+
+		if(dim_val <= 0 || dim_val > 0xffffffffll)
+			ERROR_RETURN_LOG(int, "Invalid dimension value");
+
+		buf->n_dim = (uint32_t)dim_val;
+	}
+
+	return 0;
+}
+
+int psnl_cpu_field_type_dump(const psnl_cpu_field_type_info_t* info, char* buf, size_t buf_size)
+{
+	if(NULL == info || NULL == buf)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	if(info->cell_type < 0 || info->cell_type >= PSNL_CPU_FIELD_CELL_TYPE_COUNT)
+		ERROR_RETURN_LOG(int, "Invalid arguments: cell type code");
+
+	size_t bytes_needed = 0;
+
+	if(info->n_dim > 0)
+		bytes_needed = (size_t)snprintf(buf, buf_size, "%s @dim(%u)", _type_map[info->cell_type], info->n_dim);
+	else
+		bytes_needed = (size_t)snprintf(buf, buf_size, "%s", _type_map[info->cell_type]);
+
+	if(bytes_needed > buf_size)
+		ERROR_RETURN_LOG(int, "The output buffer is too small");
+
+	return 0;
 }

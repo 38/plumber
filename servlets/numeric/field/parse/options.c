@@ -11,20 +11,13 @@
 
 #include <pservlet.h>
 #include <pstd.h>
+
 #include <options.h>
 
-/**
- * @brief The type name of the output field
- **/
-static char const* const _output_type_name[] = {
-	[OPTIONS_CELL_TYPE_DOUBLE] = "plumber/std/numeric/DoubleField"
-};
-
 static char const* const _cell_type_name[] = {
-	[OPTIONS_CELL_TYPE_DOUBLE] = "double"
+	[PSNL_CPU_FIELD_CELL_TYPE_DOUBLE] = "double"
 };
-STATIC_ASSERTION_EQ(OPTIONS_CELL_TYPE_COUNT, sizeof(_output_type_name) / sizeof(_output_type_name[0]));
-STATIC_ASSERTION_EQ_ID(check_name_array_size, sizeof(_output_type_name), sizeof(_cell_type_name));
+STATIC_ASSERTION_EQ(PSNL_CPU_FIELD_CELL_TYPE_COUNT, sizeof(_cell_type_name) / sizeof(_cell_type_name[0]));
 
 static int _parse_type(pstd_option_data_t data)
 {
@@ -34,10 +27,10 @@ static int _parse_type(pstd_option_data_t data)
 	options_t* opt = (options_t*)data.cb_data;
 
 	uint32_t i;
-	for(i = 0; i < OPTIONS_CELL_TYPE_COUNT; i ++)
+	for(i = 0; i < PSNL_CPU_FIELD_CELL_TYPE_COUNT; i ++)
 		if(strcmp(data.param_array[0].strval, _cell_type_name[i]) == 0)
 		{
-			opt->cell_type = (options_cell_type_t)OPTIONS_CELL_TYPE_COUNT;
+			opt->cell_type = (psnl_cpu_field_cell_type_t)i;
 			return 0;
 		}
 
@@ -257,7 +250,7 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 	buf->in_format = OPTIONS_INPUT_FORMAT_STRING;
 	buf->raw = 0;
 	buf->n_dim = ERROR_CODE(uint32_t);
-	buf->cell_type = OPTIONS_CELL_TYPE_DOUBLE;
+	buf->cell_type = PSNL_CPU_FIELD_CELL_TYPE_DOUBLE;
 
 	if(ERROR_CODE(uint32_t) == pstd_option_parse(_opts, sizeof(_opts) / sizeof(_opts[0]), argc, argv, buf))
 		ERROR_LOG_GOTO(ERR, "Cannot parse the options");
@@ -277,11 +270,18 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 	else
 		buf->input_type = "plumber/std/request_local/String";
 
-	size_t result_size = strlen(_output_type_name[buf->cell_type]) + 32;
-	if(NULL == (buf->result_type = (char*)malloc(result_size)))
+	/* TODO: the buffer should be adjustable */
+	size_t type_buf_size = 4096;
+	if(NULL == (buf->result_type = (char*)malloc(type_buf_size)))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the result type");
 
-	snprintf(buf->result_type, result_size, "%s @dim(%u)", _output_type_name[buf->cell_type], buf->n_dim);
+	psnl_cpu_field_type_info_t type_info = {
+		.cell_type = buf->cell_type,
+		.n_dim     = buf->n_dim
+	};
+
+	if(ERROR_CODE(int) == psnl_cpu_field_type_dump(&type_info, buf->result_type, type_buf_size))
+		ERROR_RETURN_LOG(int, "Cannot dump the type name");
 
 	return 0;
 

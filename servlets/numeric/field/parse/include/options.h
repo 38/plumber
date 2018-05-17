@@ -9,15 +9,7 @@
 #define __OPTIONS_H__
 
 #include <psnl/dim.h>
-
-/**
- * @brief The type of the cell in the field 
- **/
-typedef enum {
-	OPTIONS_CELL_TYPE_DOUBLE,  /*!< The field is a double precision int */
-	/* TODO: support more types */
-	OPTIONS_CELL_TYPE_COUNT    /*!< The number of cell types that is supported */
-} options_cell_type_t;
+#include <psnl/cpu/field.h>
 
 /**
  * @brief The input format of the parser
@@ -35,11 +27,11 @@ typedef struct {
 	psnl_dim_t*            dim_data;                   /*!< An optional dimension data, if this is given it means the parser
 							                            *   will assume the field size. Ohterwise the parser should determine the field
 							                            *   size from the input */
-	uint32_t               raw:1;                      /*!< If Indicates we should use raw input */
-	options_input_format_t in_format;                  /*!< The input format */
-	options_cell_type_t    cell_type;                  /*!< The type of the cell */
-	const char*            input_type;                 /*!< The type for the input port */
-	char*                  result_type;                /*!< The type of the output port */
+	uint32_t                   raw:1;                      /*!< If Indicates we should use raw input */
+	options_input_format_t     in_format;                  /*!< The input format */
+	psnl_cpu_field_cell_type_t cell_type;                  /*!< The type of the cell */
+	const char*                input_type;                 /*!< The type for the input port */
+	char*                      result_type;                /*!< The type of the output port */
 } options_t;
 
 /**
