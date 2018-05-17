@@ -265,7 +265,7 @@ const psnl_cpu_field_t* psnl_cpu_field_from_rls(scope_token_t token)
  * @brief The map from the cell type to the field type
  **/
 static const char* _type_map[] = {
-	[PSNL_CPU_FIELD_CELL_TYPE_DOUBLE] "plumber/std/numeric/DoubleField"
+	[PSNL_CPU_FIELD_CELL_TYPE_DOUBLE] = "plumber/std/numeric/DoubleField"
 };
 STATIC_ASSERTION_EQ(PSNL_CPU_FIELD_CELL_TYPE_COUNT, sizeof(_type_map) / sizeof(_type_map[0]));
 
@@ -331,7 +331,11 @@ int psnl_cpu_field_type_dump(const psnl_cpu_field_type_info_t* info, char* buf, 
 	if(NULL == info || NULL == buf)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
+#ifndef __clang__
 	if(info->cell_type < 0 || info->cell_type >= PSNL_CPU_FIELD_CELL_TYPE_COUNT)
+#else
+	if(info->cell_type >= PSNL_CPU_FIELD_CELL_TYPE_COUNT)
+#endif
 		ERROR_RETURN_LOG(int, "Invalid arguments: cell type code");
 
 	size_t bytes_needed = 0;
