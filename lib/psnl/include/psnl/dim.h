@@ -94,10 +94,12 @@ static inline uint32_t psnl_dim_get_offset(const psnl_dim_t* dim, const int32_t*
 	uint32_t stride = 1, ret = 0;
 
 	uint32_t i;
-	for(i = 0; i < dim->n_dim; i ++)
+	for(i = dim->n_dim - 1;; i --)
 	{
 		ret += stride * ((unsigned)(pos[i] - dim->dims[i][0]));
 		stride *= (unsigned)(dim->dims[i][1] - dim->dims[i][0]);
+
+		if(i == 0) break;
 	}
 
 	return ret;

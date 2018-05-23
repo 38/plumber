@@ -81,7 +81,7 @@ static void* _field_data_new(const void* data)
 {
 	const _create_param_t* param = (const _create_param_t*)data;
 
-	size_t size = psnl_dim_space_size(param->dim) * param->elem_size + psnl_dim_data_size(param->dim);
+	size_t size = sizeof(_data_t) + psnl_dim_space_size(param->dim) * param->elem_size + _get_padded_size(psnl_dim_data_size(param->dim));
 
 	_data_t* ret = (_data_t*)calloc(size, 1);
 

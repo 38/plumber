@@ -8,6 +8,7 @@
 #include <pstd/types/string.h>
 
 #include <options.h>
+#include <parser.h>
 
 /**
  * @brief The servlet context
@@ -65,115 +66,13 @@ static int _cleanup(void* ctxmem)
 	return rc;
 }
 
-static int _read_next_raw_literal_double(pstd_bio_t* p_in, double* buf)
+static int _assign_matrix(const psnl_dim_t* dim, size_t elem_size, const parser_request_t* req, uint32_t n, int32_t* pos, void* data)
 {
-	*buf = 0;
+	if(n == dim->n_dim) return parser_next_value(*req, (parser_result_buf_t)(void*)(((int8_t*)data) + psnl_dim_get_offset(dim, pos) * elem_size));
 
-	char sbuf[128];
-	unsigned size = 0;
-	
-	char ch;
-
-	for(;size < sizeof(sbuf) - 1;)
-	{
-		int getc_rc = pstd_bio_getc(p_in, &ch);
-
-		if(getc_rc == ERROR_CODE(int)) 
-			ERROR_RETURN_LOG(int, "Cannot get the next char");
-
-		if(getc_rc == 0)
-		{
-			int eof_rc = pstd_bio_eof(p_in);
-			if(ERROR_CODE(int) == eof_rc)
-				ERROR_RETURN_LOG(int, "Cannot check the EOF of the input pipe");
-
-			if(eof_rc) 
-				break;
-
-			/* TODO: do we really need to poll ? */
-			continue;
-		}
-
-		if(size == 0 && (ch == '\t' || ch == ' ' || ch == '\r' || ch == '\n'))
-			continue;
-
-		if(!(ch >= '0' && ch <= '9') && 
-		  !(ch == '.' || ch == 'e' || ch == 'E' || ch == '+' || ch == '-' || ch == 'x'))
-			break;
-		sbuf[size ++] = ch;
-	}
-
-
-
-	if(size == sizeof(sbuf))
-		ERROR_RETURN_LOG(int, "Number is too long");
-
-	sbuf[size] = 0;
-
-	char* endptr = NULL;
-	*buf = strtod(sbuf, &endptr);
-
-	if(NULL == endptr || *endptr != 0)
-		ERROR_RETURN_LOG(int, "Invalid number");
-
-	return 0;
-}
-
-static int _read_next_string_literal_double(char const** data, const  char* end, double* buf)
-{
-	while((**data == '\t' || **data == ' ' || **data == '\r' || **data == '\n') && (*data) < end)
-		(*data) ++;
-
-	if(*data >= end) 
-		ERROR_RETURN_LOG(int, "No more data");
-
-	const char* start = *data;
-	char* endptr;
-
-	*buf = strtod(start, &endptr);
-
-	if(NULL == endptr)
-		ERROR_RETURN_LOG(int, "Invalid number");
-
-	*data += (uintptr_t)endptr - (uintptr_t)*data;
-
-	return 0;
-}
-
-static int _read_next_raw_binary_double(pstd_bio_t* bio, double* buf)
-{
-	size_t bytes_to_read = sizeof(double);
-	void* start = buf;
-
-	while(bytes_to_read > 0)
-	{
-		size_t rc = pstd_bio_read(bio, start, bytes_to_read);
-		if(ERROR_CODE(size_t) == rc)
-			ERROR_RETURN_LOG(int, "Cannot read bytes from the raw pipe");
-
-		bytes_to_read -= rc;
-
-		start = ((char*)start) + rc;
-	}
-
-	return 0;
-}
-
-static int _read_next_string_binary_double(char const** data, const char* end, double* buf)
-{
-	if(end < *data + sizeof(double))
-		ERROR_RETURN_LOG(int, "No more data");
-
-	union {
-		const char*  s_data;
-		const double* n_data;
-	} view = {
-		.s_data = *data
-	};
-
-	*buf = view.n_data[0];
-
-	*data += sizeof(double);
+	for(pos[n] = dim->dims[n][0]; pos[n] < dim->dims[n][1]; pos[n] ++)
+		if(ERROR_CODE(int) == _assign_matrix(dim, elem_size, req, n + 1, pos, data))
+			return ERROR_CODE(int);
 
 	return 0;
 }
@@ -212,35 +111,36 @@ static int _exec(void* ctxmem)
 	
 	psnl_dim_t* dim = NULL;
 
+	parser_request_t pr;
+
+	pr.repr = ctx->options.in_format == OPTIONS_INPUT_FORMAT_BINARY ? PARSER_REPR_BINARY : PARSER_REPR_LITERAL;
+
+	if(ctx->options.raw)
+	{
+		pr.src_type = PARSER_SOURCE_TYPE_RAW_PIPE;
+		pr.source.raw = p_in;
+	}
+	else
+	{
+		pr.src_type =  PARSER_SOURCE_TYPE_STR_BUF;
+		pr.source.s_buf.begin = &s_in;
+		pr.source.s_buf.end   = s_end;
+	}
+
 	if(NULL == ctx->options.dim_data)
 	{
+		/* TODO: Once we are able to parse int, we need to use that parser */
+		double temp[2];
+		pr.type = PARSER_VALUE_TYPE_DOUBLE;
+
 		uint32_t i;
 		if(NULL == (dim = PSNL_DIM_LOCAL_NEW_BUF(ctx->options.n_dim)))
 			ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the new dimenional buffer");
 
 		for(i = 0; i < ctx->options.n_dim; i ++)
 		{
-			double temp[2];
-
-			if(ctx->options.in_format == OPTIONS_INPUT_FORMAT_BINARY && ctx->options.raw &&
-			   (ERROR_CODE(int) == _read_next_raw_binary_double(p_in, temp + 0) ||
-			    ERROR_CODE(int) == _read_next_raw_binary_double(p_in, temp+ 1)))
-				/* TODO: Once we are able to parse int, we need to use that parser */
-				ERROR_LOG_GOTO(ERR, "Cannot parse the dimension");
-
-			if(ctx->options.in_format == OPTIONS_INPUT_FORMAT_STRING && ctx->options.raw &&
-			   (ERROR_CODE(int) == _read_next_raw_literal_double(p_in, temp + 0) ||
-			    ERROR_CODE(int) == _read_next_raw_literal_double(p_in, temp + 1)))
-				ERROR_LOG_GOTO(ERR, "Cannot parse the dimension");
-
-			if(ctx->options.in_format == OPTIONS_INPUT_FORMAT_BINARY && !ctx->options.raw &&
-			   (ERROR_CODE(int) == _read_next_string_binary_double(&s_in, s_end, temp + 0) ||
-			    ERROR_CODE(int) == _read_next_string_binary_double(&s_in, s_end, temp + 1)))
-				ERROR_LOG_GOTO(ERR, "Cannot parse the dimension");
-
-			if(ctx->options.in_format == OPTIONS_INPUT_FORMAT_STRING && !ctx->options.raw &&
-			   (ERROR_CODE(int) == _read_next_string_literal_double(&s_in, s_end, temp + 0) ||
-			    ERROR_CODE(int) == _read_next_string_literal_double(&s_in, s_end, temp + 1)))
+			if(ERROR_CODE(int) == parser_next_value(pr, (parser_result_buf_t)(temp + 0)) ||
+			   ERROR_CODE(int) == parser_next_value(pr, (parser_result_buf_t)(temp + 1)))
 				ERROR_LOG_GOTO(ERR, "Cannot parse the dimension");
 
 			if(temp[0] >= temp[1])
@@ -259,7 +159,20 @@ static int _exec(void* ctxmem)
 	if(NULL == field)
 		ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the new field");
 
-	/* TODO: assign value to the field */
+	do {
+
+		int32_t pos[dim->n_dim];
+
+		void* data = psnl_cpu_field_get_data(field, NULL);
+
+		pr.type = PARSER_VALUE_TYPE_DOUBLE;
+		if(NULL == data || ERROR_CODE(int) == _assign_matrix(dim, elem_size, &pr, 0, pos, data))
+		{
+			psnl_cpu_field_free(field);
+			ERROR_LOG_GOTO(ERR, "Cannot assign matrix");
+		}
+
+	} while(0);
 
 	scope_token_t tok = psnl_cpu_field_commit(field);
 	if(ERROR_CODE(scope_token_t) == tok)

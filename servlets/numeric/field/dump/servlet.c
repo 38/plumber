@@ -173,14 +173,13 @@ static inline int _dump_data(pstd_bio_t* out, const ctx_t* ctx, const void* data
 
 	if(dim_rem == 1)
 	{
-		int32_t i;
 		uint32_t j = 0;
-		for(i = dim->dims[n][0]; i < dim->dims[n][1]; i ++, j ++)
+		for(pos[n] = dim->dims[n][0]; pos[n] < dim->dims[n][1]; pos[n] ++, j ++)
 		{
 			if(ERROR_CODE(int) == _data(out, ctx, ((const int8_t*)data) + (ctx->field_type.cell_size * psnl_dim_get_offset(dim, pos))))
 				return ERROR_CODE(int);
 
-			if(i == dim->dims[i][1] - 1)
+			if(pos[n] == dim->dims[n][1] - 1)
 			{
 				if(ERROR_CODE(int) == _new_line(out, ctx))
 					return ERROR_CODE(int);
@@ -197,6 +196,9 @@ static inline int _dump_data(pstd_bio_t* out, const ctx_t* ctx, const void* data
 
 	if(dim_rem == 2)
 	{
+		if(ERROR_CODE(int) == _new_slice(out, ctx))
+			return ERROR_CODE(int);
+
 		if(ctx->options.slice_coord)
 		{
 			uint32_t i;
@@ -215,8 +217,6 @@ static inline int _dump_data(pstd_bio_t* out, const ctx_t* ctx, const void* data
 
 		for(pos[n] = dim->dims[n][0]; pos[n] < dim->dims[n][1]; pos[n] ++)
 		{
-			if(ERROR_CODE(int) == _new_slice(out, ctx))
-				return ERROR_CODE(int);
 
 			if(ERROR_CODE(int) == _dump_data(out, ctx, data, pos, dim, n + 1))
 				return ERROR_CODE(int);
@@ -272,10 +272,14 @@ static int _exec(void* ctxmem)
 
 		uint32_t i;
 		for(i = 0; i < dim->n_dim; i ++)
+		{
 			if(ERROR_CODE(int) == _dim_data(out, ctx, dim->dims[i][0]) ||
 			   ERROR_CODE(int) == _field_sep(out, ctx) ||
 			   ERROR_CODE(int) == _dim_data(out, ctx, dim->dims[i][1]))
 				ERROR_RETURN_LOG(int, "Cannot write the dimension range");
+			if(i + 1 !=  dim->n_dim && ERROR_CODE(int) == _field_sep(out, ctx))
+				ERROR_RETURN_LOG(int, "Cannot write the field seperator");
+		}
 	}
 
 	/* Write the actual data */
