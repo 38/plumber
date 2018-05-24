@@ -2,18 +2,15 @@ language: c
 compiler: 
     - gcc
     - clang
+    - gcc-5
 
 os:
     - linux
-#    - osx
 
 env:
-    - L=6 O=5
-    - L=0 O=5
     - L=0 O=5 SANITIZER=yes
     - L=6 O=5 SANITIZER=yes
 
-#apt-get install -y  --allow-unauthenticated git cmake gcc g++ uuid-dev libssl-dev doxygen pkg-config python2.7 libpython2.7-dev libreadline-dev zsh
 addons:
     apt:
         packages:
@@ -29,6 +26,8 @@ addons:
             - wget
             - git
             - libc++-dev
+            - gcc-5
+            - g++-5
 before_install:
     - if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then brew update; fi
     - if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then brew install cmake python pkg-config openssl ossp-uuid readline; fi
