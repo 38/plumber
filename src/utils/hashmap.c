@@ -92,12 +92,19 @@ static inline uint64_t _hash(const void* data, size_t count)
 	return ret;
 }
 
+static inline size_t _pad(size_t s)
+{
+	if(s & (sizeof(uintpad_t) - 1))
+		return ((s / sizeof(uintpad_t)) * sizeof(uintpad_t) + sizeof(uintpad_t));
+	return s;
+}
+
 #define _KEY(node) ((node)->data)
-#define _VAL(node) ((node)->data + (node)->key_size)
+#define _VAL(node) ((node)->data + _pad((node)->key_size))
 
 static inline _node_t* _node_alloc(hashmap_t* hm, const void* key, size_t key_size, const void* val, size_t val_size)
 {
-	_node_t* ret = (_node_t*)mempool_oneway_alloc(hm->pool, sizeof(_node_t) + key_size + val_size);
+	_node_t* ret = (_node_t*)mempool_oneway_alloc(hm->pool, sizeof(_node_t) + _pad(key_size) + val_size);
 
 	if(NULL == ret)
 	{
