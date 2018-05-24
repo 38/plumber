@@ -159,7 +159,7 @@ static void* _open(const void* mem)
 	
 	const _data_t* data = (const _data_t*)psnl_memobj_get_const((const psnl_memobj_t*)mem, _FIELD_MAGIC);
 	
-	ret->size = _get_padded_size(psnl_dim_data_size(data->dim)) + psnl_dim_data_size(data->dim) * sizeof(double);
+	ret->size = _get_padded_size(psnl_dim_data_size(data->dim)) + psnl_dim_data_size(data->dim) * data->elem_size;
 
 	ret->data = mem;
 

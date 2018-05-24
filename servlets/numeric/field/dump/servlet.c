@@ -291,6 +291,9 @@ static int _exec(void* ctxmem)
 			ERROR_LOG_GOTO(ERR, "Cannot dump the data body");
 	}
 
+	if(ERROR_CODE(int) == psnl_cpu_field_decref(field))
+		ERROR_LOG_GOTO(ERR, "Cannot decref the field pointer");
+
 	if(ERROR_CODE(int) == pstd_bio_free(out))
 		ERROR_LOG_GOTO(ERR, "Cannot dispose the BIO object");
 
