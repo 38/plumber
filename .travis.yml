@@ -2,17 +2,26 @@ language: c
 compiler: 
     - gcc
     - clang
-    - gcc-5
+
+sudo: required
+
+script:
+    - sudo unlink /usr/bin/gcc && sudo ln -s /usr/bin/gcc-5 /usr/bin/gcc
+    - gcc --version
 
 os:
     - linux
 
 env:
+    - L=0 O=5 SANITIZER=no
+    - L=6 O=5 SANITIZER=no
     - L=0 O=5 SANITIZER=yes
     - L=6 O=5 SANITIZER=yes
 
 addons:
     apt:
+        sources:
+            - ubuntu-toolchain-r-test
         packages:
             - valgrind
             - libcurl3
