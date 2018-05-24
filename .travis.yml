@@ -10,6 +10,8 @@ os:
 env:
     - L=6 O=5
     - L=0 O=5
+    - L=0 O=5 SANITIZER=yes
+    - L=6 O=5 SANITIZER=yes
 
 #apt-get install -y  --allow-unauthenticated git cmake gcc g++ uuid-dev libssl-dev doxygen pkg-config python2.7 libpython2.7-dev libreadline-dev zsh
 addons:
