@@ -19,7 +19,7 @@
 
 #include <constants.h>
 
-#ifdef __GLIBC__
+#if defined(__GLIBC__) && !defined(SANITIZER)
 extern void  __libc_free(void* ptr);
 #	define __free__ __libc_free
 #else

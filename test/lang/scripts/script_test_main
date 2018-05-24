@@ -13,6 +13,8 @@ import shutil
 #	exit 1
 #fi
 
+use_valgrind = True
+
 def read_test_case_property(filename):
     fp = file(filename)
     inside_case = False
@@ -56,14 +58,17 @@ def run_test_script(filename):
     if not name: return (name, False, 0)
     print >>sys.stderr, "I\tLaunching test case %s"%name
     start_time = time.time()
-    try:
-        proc = subprocess.Popen(["valgrind", 
-                                 "--errors-for-leak-kinds=definite,reachable", 
-                                 "--leak-check=full", 
-                                 "--error-exitcode=1", 
-                                 pscript_binary, 
-                                 filename], stdout=subprocess.PIPE)
-    except:
+    if use_valgrind:
+        try:
+            proc = subprocess.Popen(["valgrind", 
+                                     "--errors-for-leak-kinds=definite,reachable", 
+                                     "--leak-check=full", 
+                                     "--error-exitcode=1", 
+                                     pscript_binary, 
+                                     filename], stdout=subprocess.PIPE)
+        except:
+            proc = subprocess.Popen([pscript_binary, filename], stdout=subprocess.PIPE)
+    else:
         proc = subprocess.Popen([pscript_binary, filename], stdout=subprocess.PIPE)
     for lineno, expected_line in enumerate(expected):
         line = proc.stdout.readline()
@@ -103,6 +108,7 @@ def test_all():
 if __name__ == "__main__":
     pscript_binary = "%s/pscript"%readenv("OBJDIR")
     case_dir = "%s/test/lang/scripts/"%readenv("OBJDIR")
+    if os.environ.get("NO_VALGRIND", "") != "": use_valgrind = False
     if len(sys.argv) > 1:
         test_one(sys.argv[1])
     else:

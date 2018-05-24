@@ -64,7 +64,8 @@ static inline uint64_t _hash_func(const char* typename, size_t count)
 
 	for(;count >= sizeof(uint64_t); count -= sizeof(uint64_t))
 	{
-		uint64_t cur = *(u64++);
+		uint64_t cur;
+		memcpy(&cur, u64++, sizeof(uint64_t));
 
 		cur *= m;
 		cur ^= cur >> r;
