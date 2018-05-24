@@ -3,20 +3,14 @@ compiler:
     - gcc-5
     - clang
 
-sudo: required
-
-script:
-    - sudo unlink /usr/bin/gcc && sudo ln -s /usr/bin/gcc-5 /usr/bin/gcc
-    - gcc --version
-
 os:
     - linux
 
 env:
     - L=0 O=5 SANITIZER=no
     - L=6 O=5 SANITIZER=no
-    - L=0 O=5 SANITIZER=yes
-    - L=6 O=5 SANITIZER=yes
+    - L=0 O=5 SANITIZER=yes LIBS=-fuse-ld=gold
+    - L=6 O=5 SANITIZER=yes LIBS=-fuse-ld=gold
 
 addons:
     apt:
