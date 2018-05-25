@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2018, Hao Hou
+ * Copyright (C) 2018, Feng Liu
  **/
 #include <stdlib.h>
 #include <stdint.h>
@@ -13,6 +14,7 @@
 #include <pstd/types/trans.h>
 #include <pstd/mempool.h>
 #include <pstd/scope.h>
+#include <utils/hash/murmurhash3.h>
 
 struct _pstd_trans_t {
 	uint32_t             commited:1;      /*!< Indicates if the token is committed */
@@ -284,6 +286,20 @@ static int _event(void* __restrict trans_mem, runtime_api_scope_ready_event_t* e
 	return 0;
 }
 
+static int _hash(const void* ptr, uint64_t out[2])
+{
+	const pstd_trans_t* trans = (const pstd_trans_t*)ptr;
+
+	uint64_t tk_hash[2];
+	int tk_res = pstd_scope_get_hash(trans->src_token, tk_hash);
+	if(ERROR_CODE(int) == tk_res || 0 == tk_res)
+		return tk_res;
+
+	murmurhash3_128(tk_hash, sizeof(tk_hash), trans->ctx.hash, out);
+
+	return 1;
+}
+
 scope_token_t pstd_trans_commit(pstd_trans_t* trans)
 {
 	if(NULL == trans || trans->commited)
@@ -297,7 +313,8 @@ scope_token_t pstd_trans_commit(pstd_trans_t* trans)
 		.close_func = _close,
 		.eos_func = _eos,
 		.read_func = _read,
-		.event_func = _event
+		.event_func = _event,
+		.hash_func = _hash
 	};
 
 	return pstd_scope_add(&ent);

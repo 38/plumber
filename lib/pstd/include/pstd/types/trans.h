@@ -33,6 +33,7 @@ typedef struct _pstd_trans_inst_t pstd_trans_inst_t;
  **/
 typedef struct {
 	void*     data;         /*!< The additional data for the processor callbacks */
+	uint32_t  hash;         /*!< A magic number for the type of transformer */
 	/**
 	 * @brief Initialize the stream processor
 	 * @param data The addtional data to pass in

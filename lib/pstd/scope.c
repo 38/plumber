@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2017-2018, Hao Hou
+ * Copyright (C) 2018, Feng Liu
  **/
 #include <stdlib.h>
 #include <errno.h>
@@ -114,5 +115,15 @@ int pstd_scope_stream_ready_event(pstd_scope_stream_t* stream, scope_ready_event
 	if(ERROR_CODE(int) == pipe_cntl(scope_stream_ready_event, PIPE_CNTL_INVOKE, stream, buf, &ret))
 	    ERROR_RETURN_LOG(int, "Cannot finish the pipe_cntl call");
 
+	return ret;
+}
+
+int pstd_scope_get_hash(scope_token_t token, uint64_t out[2])
+{
+	_ENSURE_PIPE(scope_get_hash, ERROR_CODE(int));
+	int ret = 0;
+	
+	if(ERROR_CODE(int) == pipe_cntl(scope_get_hash, PIPE_CNTL_INVOKE, token, out, &ret))
+		return ERROR_CODE(int);
 	return ret;
 }

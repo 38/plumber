@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2017-2018, Hao Hou
+ * Copyright (C) 2018, Feng Liu
  **/
 /**
  * @todo split this file to smaller files
@@ -563,6 +564,16 @@ static inline int _rscope_stream_ready_event(sched_rscope_stream_t* stream, runt
 	return sched_rscope_stream_get_event(stream, buf);
 }
 
+static inline int _rscope_get_hash(uint32_t token, uint64_t out[2])
+{
+	if(ERROR_CODE(runtime_api_scope_token_t) == token)
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	/* Be careful */
+	runtime_api_scope_token_t internal_token = token - 1;
+	return sched_rscope_get_hash(internal_token, out);
+}
+
 static int _invoke(void* __restrict ctx, uint32_t opcode, va_list args)
 {
 	(void)ctx;
@@ -690,6 +701,17 @@ static int _invoke(void* __restrict ctx, uint32_t opcode, va_list args)
 			    return ERROR_CODE(int);
 			return 0;
 		}
+		case MODULE_PSSM_MODULE_OPCODE_SCOPE_GET_HASH:
+		{
+			uint32_t token = va_arg(args, uint32_t);
+			uint64_t* out = va_arg(args, uint64_t*);
+			int* ret = va_arg(args, int*);
+			if(NULL == ret || NULL == out)
+				ERROR_RETURN_LOG(int, "Invalid arguments");
+			if(ERROR_CODE(int) == (*ret = _rscope_get_hash(token, out)))
+				return ERROR_CODE(int);
+			return 0;
+		}
 		default:
 		    ERROR_RETURN_LOG(int, "Invalid opcode 0x%x", opcode);
 	}
@@ -716,6 +738,7 @@ static uint32_t _get_opcode(void* __restrict ctx, const char* name)
 	if(strcmp(name, "scope_stream_eof") == 0) return MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_EOF;
 	if(strcmp(name, "scope_stream_read") == 0) return MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_READ;
 	if(strcmp(name, "scope_stream_ready_event") == 0) return MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_READY_EVENT;
+	if(strcmp(name, "scope_get_hash") == 0) return MODULE_PSSM_MODULE_OPCODE_SCOPE_GET_HASH;
 
 	ERROR_RETURN_LOG(uint32_t, "Invalid method name %s", name);
 }

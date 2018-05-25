@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2017-2018, Hao Hou
+ * Copyright (C) 2018, Feng Liu
  **/
 
 /**
@@ -454,6 +455,14 @@ typedef struct {
 	 *         event and error code for all the error cases
 	 **/
 	int (*event_func)(void* __restrict handle, runtime_api_scope_ready_event_t* event_buf);
+
+	/**
+	 * @brief Generate the hash code of the scope entity
+	 * @param ptr the RLS pointer to hash
+	 * @param out the generated hash code for ptr
+	 * @return The number of hash code
+	 **/
+	int (*hash_func)(const void* ptr, uint64_t out[2]);
 
 	/**
 	 * @brief close a used stream handle

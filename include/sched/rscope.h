@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2017-2018, Hao Hou
+ * Copyright (C) 2018, Feng Liu
  **/
 /**
  * @brief The request local scope
@@ -137,4 +138,12 @@ size_t sched_rscope_stream_read(sched_rscope_stream_t* stream, void* buffer, siz
  * @return The number of events has been returned, or error code
  **/
 int sched_rscope_stream_get_event(sched_rscope_stream_t* stream, runtime_api_scope_ready_event_t* buf);
+
+/**
+ * @brief get the hash code of a token
+ * @param token the RLS token
+ * @param out the buffer for hash code
+ * @return The number of hash code has been returned or error code
+ **/
+int sched_rscope_get_hash(runtime_api_scope_token_t token, uint64_t out[2]);
 #endif /* __SCHED_RSCOPE_H__ */

@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2018, Hao Hou
+ * Copyright (C) 2018, Feng Liu
  **/
 #if HAS_ZLIB
 #include <stdint.h>
@@ -158,6 +159,7 @@ scope_token_t zlib_token_encode(scope_token_t data_token, zlib_token_format_t fo
 
 	pstd_trans_desc_t desc = {
 		.data = zs,
+		.hash = 211840590,
 		.init_func = _init,
 		.feed_func = _feed,
 		.fetch_func = _fetch,

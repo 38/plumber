@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2017-2018, Hao Hou
+ * Copyright (C) 2018, Feng Liu
  **/
 /**
  * @brief The request local scope
@@ -88,5 +89,13 @@ int pstd_scope_stream_close(pstd_scope_stream_t* stream);
  * @return number of event has been returned
  **/
 int pstd_scope_stream_ready_event(pstd_scope_stream_t* stream, scope_ready_event_t* buf);
+
+/**
+ * @brief Calculate the hash code of a token
+ * @param token The RLS token
+ * @param out The buffer for hash code
+ * @return number of hash code has been generated
+ **/
+int pstd_scope_get_hash(scope_token_t token, uint64_t out[2]);
 
 #endif /* __PSTD_SCOPE_H__ */
