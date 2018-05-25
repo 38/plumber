@@ -1,6 +1,6 @@
 set(TYPE shared-library)
 set(LOCAL_CFLAGS "-fPIC")
-set(LOCAL_LIBS pservlet proto pstd)
+set(LOCAL_LIBS pstd)
 set(INSTALL "yes")
 set(PACKAGE_CONF_INSTALL_PATH "include/psnl")
 list(APPEND LOCAL_SOURCE cpu)

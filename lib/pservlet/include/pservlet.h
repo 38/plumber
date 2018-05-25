@@ -36,7 +36,9 @@ extern "C" {
 	/**@brief the metadata defined in the plugin */
 	extern servlet_def_t RUNTIME_SERVLET_DEFINE_SYM;
 
-#define SERVLET_DEF servlet_def_t RUNTIME_SERVLET_DEFINE_SYM
+#define SERVLET_DEF \
+	const address_table_t* RUNTIME_ADDRESS_TABLE_SYM __attribute__((used)) = NULL; \
+	servlet_def_t RUNTIME_SERVLET_DEFINE_SYM
 
 #	ifdef __cplusplus
 };
