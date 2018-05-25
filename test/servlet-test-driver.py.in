@@ -42,11 +42,14 @@ def parse_result(results):
     name = ""
     for result in results:
         result = result.strip()
-        if result.split()[0] == ".OUTPUT":
+        if result and result.split()[0] == ".OUTPUT":
             buffer = ""
             name = result.split()[1]
-        elif result == ".END":
-            ret[name] = json.loads(buffer)
+        elif result and result == ".END":
+            try:
+                ret[name] = json.loads(buffer)
+            except:
+                return {"____raw_result____": buffer }
         else:
             buffer += "\n" 
             buffer += result

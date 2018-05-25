@@ -1,0 +1,16 @@
+/* Note: Although this test case is under parser servlet, but it requires both parser and dump */
+/* This means we expecting fully raw input and fully raw output */
+raw_mode = 2;
+
+/* Parse a field and then parse a field */
+servlet = {
+	parse := "numeric/field/parse --ndim 3 --raw";
+	dump  := "numeric/field/dump --slice --dump-dim";
+	(input) -> "input" parse "output" 
+	        -> "field" dump "dump" -> (output);
+};
+
+/* Setup the ports */
+servlet_input = "input";
+servlet_output = "output";
+
