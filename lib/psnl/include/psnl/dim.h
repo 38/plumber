@@ -25,7 +25,7 @@ typedef struct {
  * @note Every cell should be initailized to 0
  **/
 #define PSNL_DIM_LOCAL_NEW_BUF(n) ({\
-	psnl_dim_t* ret = alloca(psnl_dim_data_size_nd(n));\
+	psnl_dim_t* ret = (n < 512) ? alloca(psnl_dim_data_size_nd(n)) : NULL;\
 	if(NULL != ret) \
 	{\
 		ret->n_dim = (uint32_t)(n);\

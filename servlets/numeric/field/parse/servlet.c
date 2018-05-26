@@ -161,7 +161,10 @@ static int _exec(void* ctxmem)
 
 	do {
 
-		int32_t pos[dim->n_dim];
+		int32_t* pos = dim->n_dim < 32 ? alloca(sizeof(int32_t) * dim->n_dim) : malloc(dim->n_dim * sizeof(int32_t));
+
+		if(NULL == pos)
+			ERROR_LOG_GOTO(ERR, "Cannot allocate meomry for the pos array");
 
 		void* data = psnl_cpu_field_get_data(field, NULL);
 
@@ -169,9 +172,11 @@ static int _exec(void* ctxmem)
 		if(NULL == data || ERROR_CODE(int) == _assign_matrix(dim, elem_size, &pr, 0, pos, data))
 		{
 			psnl_cpu_field_free(field);
+			if(dim->n_dim >= 32) free(pos);
 			ERROR_LOG_GOTO(ERR, "Cannot assign matrix");
 		}
 
+		if(dim->n_dim >= 32) free(pos);
 	} while(0);
 
 	scope_token_t tok = psnl_cpu_field_commit(field);

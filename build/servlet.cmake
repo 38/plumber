@@ -47,9 +47,6 @@ foreach(servlet_cmake ${servlet_cmakes})
 					get_filename_component(servlet_test_case ${case_dir} DIRECTORY)
 					add_test("servlet_${servlet_config_name}_${servlet_test_case}" 
 						     python ${CMAKE_CURRENT_BINARY_DIR}/servlet-test-driver.py ${servlet_test_name} ${servlet_test_case})
-					set_tests_properties("servlet_${servlet_config_name}_${servlet_test_case}"
-										  PROPERTIES ENVIRONMENT
-										  ASAN_OPTIONS=detect_odr_violation=0)
 				endforeach(case_dir in ${servlet_tests})
 			endif(NOT "${servlet_tests}" STREQUAL "")
 		else(NOT "${build_${servlet_config_name}}" STREQUAL "no")

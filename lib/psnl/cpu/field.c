@@ -26,6 +26,10 @@ typedef struct {
 	psnl_dim_t dim[0];         /*!< The dimensional data */
 	char       data[0];        /*!< The actual data section */
 } _data_t;
+STATIC_ASSERTION_SIZE(_data_t, dim, 0);
+STATIC_ASSERTION_SIZE(_data_t, data, 0);
+STATIC_ASSERTION_LAST(_data_t, dim);
+STATIC_ASSERTION_LAST(_data_t, data);
 
 /**
  * @brief The data structure that is used for allocating memory for a field
@@ -83,7 +87,8 @@ static void* _field_data_new(const void* data)
 
 	size_t size = sizeof(_data_t) + psnl_dim_space_size(param->dim) * param->elem_size + _get_padded_size(psnl_dim_data_size(param->dim));
 
-	_data_t* ret = (_data_t*)calloc(size, 1);
+	/* TODO: even though we just allocated from OS at this time, it should be better if we can cache the meomry we are using here */
+	_data_t* ret = (_data_t*)malloc(size);
 
 	if(NULL == ret)
 		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new CPU field");
@@ -97,6 +102,7 @@ static void* _field_data_new(const void* data)
 static int _field_data_free(void* obj, void* data)
 {
 	(void)data;
+	/* TODO: cache the memory we are using at this point would be really helpful */
 	free(obj);
 	return 0;
 }

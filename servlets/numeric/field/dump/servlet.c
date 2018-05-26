@@ -285,10 +285,18 @@ static int _exec(void* ctxmem)
 	/* Write the actual data */
 	{
 
-		int32_t pos[dim->n_dim];
+		int32_t* pos = (dim->n_dim < 32) ? alloca(dim->n_dim * sizeof(int32_t)) : malloc(dim->n_dim * sizeof(int32_t));
+
+		if(NULL == pos) 
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the position buffer");
 
 		if(ERROR_CODE(int) == _dump_data(out, ctx, data, pos, dim, 0))
+		{
+			if(dim->n_dim >= 32) free(pos);
 			ERROR_LOG_GOTO(ERR, "Cannot dump the data body");
+		}
+
+		if(dim->n_dim >= 32) free(pos);
 	}
 
 	if(ERROR_CODE(int) == psnl_cpu_field_decref(field))

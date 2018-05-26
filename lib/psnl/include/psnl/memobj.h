@@ -5,6 +5,13 @@
 /**
  * @brief The memory object with a reference counter
  * @file psnl/include/psnl/memobj.h
+ * @note This is an object wrapper which provides memory management functionality. 
+ *       Since the RLS object's life cycle will end at the time the event is fully processed,
+ *       so if we use the RLS memory management functionality directly we are using too much memory,
+ *       because the field object might use a lot of memory. 
+ *       So we introduce this wrapper, so that it allows the inner object to be disposed once there's no
+ *       pipe and other RLS object using it.
+ *       However, eventhough the inner object is dead, the wrapper will be hold by the RLS util the event is processed
  **/
 #ifndef __PSNL_MEMOBJ_H__
 #define __PSNL_MEMOBJ_H__

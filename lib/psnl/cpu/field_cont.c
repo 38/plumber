@@ -17,10 +17,10 @@
 typedef struct {
 	const void* __restrict           lhs;       /*!< The left-hand-side */
 	psnl_cpu_field_cont_eval_func_t  eval_func; /*!< The evaluation function */
-	psnl_cpu_field_cont_free_func_t  free_func; /*!< The free function */
-	uint64_t                         tag;       /*!< The tag: meaning is undefined, might be useful for JIT */
+	psnl_cpu_field_cont_free_func_t  free_func; /*!< The free function: Since the continuation itself also holds the reference to the RHS, so we need a function for this */
+	uint64_t                         tag;       /*!< Tag: meaning is undefined, might be useful for JIT */
 	uintpad_t __padding__[0];
-	psnl_dim_t                       range[0];     /*!< The valid range of the result */
+	psnl_dim_t                       range[0];  /*!< The valid range of the result */
 } _cont_t;
 
 /**
@@ -186,6 +186,8 @@ int psnl_cpu_field_cont_value_at(const psnl_cpu_field_cont_t* cont, uint32_t ndi
 	if(NULL == cont_obj)
 		ERROR_RETURN_LOG(int, "Cannot get the actual continuation object");
 
+#ifndef FULL_OPTIMIZATION 
+	/* We won't validate the dimension when we compile fully optmized */
 	if(cont_obj->range->n_dim != ndim)
 		ERROR_RETURN_LOG(int, "Invalid dimension");
 
@@ -194,6 +196,9 @@ int psnl_cpu_field_cont_value_at(const psnl_cpu_field_cont_t* cont, uint32_t ndi
 		if(cont_obj->range->dims[i][0] < pos[i] ||
 		   cont_obj->range->dims[i][1] >= pos[i])
 			ERROR_RETURN_LOG(int, "Invalid position");
+#else
+	(void)ndim;
+#endif
 
 	cont_obj->eval_func(pos, cont_obj->lhs, buf);
 
