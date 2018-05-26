@@ -38,7 +38,8 @@ typedef int (*psnl_cpu_field_cont_free_func_t)(const void* __restrict lhs);
  **/
 typedef struct {
 	const psnl_dim_t*                 range; /*!< The valid range of the result field of this continuation */
-	const void* __restrict            lhs;   /*!< The pointer to the left-hand-side */
+	const void* __restrict            rhs;   /*!< The pointer to the right-hand-side */
+	psnl_cpu_field_cell_type_t        lhs_type; /*!< The type of the left-hand-size */
 	psnl_cpu_field_cont_eval_func_t   eval;  /*!< What we need to do to evaluate the value at that point */
 	psnl_cpu_field_cont_free_func_t   free;  /*!< What we need to do to dispose the LHS */
 	uint64_t                          tag;   /*!< Reserved field: might be useful when we want to make a JIT optimizer for continuation */
@@ -46,9 +47,7 @@ typedef struct {
 
 /**
  * @brief A continuation on CPU
- * @param dim The dimension specification of this field
- * @param func The function for this continuation
- * @param lhs The left-hand-side
+ * @param cont_desc The continuation descriptor
  * @return The newly created CPU continuation
  **/
 psnl_cpu_field_cont_t* psnl_cpu_field_cont_new(const psnl_cpu_field_cont_desc_t* cont_desc);
@@ -84,12 +83,11 @@ scope_token_t psnl_cpu_field_cont_commit(psnl_cpu_field_cont_t* cont);
 /**
  * @brief Evaluate the continuation at the given position
  * @param cont The continuation
- * @param ndim The n-th dimension
  * @param pos The position
  * @todo We may want to have a JIT version of this, which returns the LLVM IR that is doing the same thing
  *       So that we can create a JIT optimized function later to eliminate the function pointers at this point
  * @return status code
  **/
-int psnl_cpu_field_cont_value_at(const psnl_cpu_field_cont_t* cont, uint32_t ndim, int32_t* __restrict pos, void* __restrict buf);
+int psnl_cpu_field_cont_value_at(const psnl_cpu_field_cont_t* cont, const int32_t* pos, void* __restrict buf);
 
 #endif /* __PSNL_CPU_FIELD_CONT_H__ */

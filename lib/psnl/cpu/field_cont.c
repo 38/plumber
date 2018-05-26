@@ -7,6 +7,7 @@
 
 #include <psnl/dim.h>
 #include <psnl/memobj.h>
+#include <psnl/cpu/field.h>
 #include <psnl/cpu/field_cont.h>
 
 #define _OBJ_MAGIC 0x314aaf027abdef12ull
@@ -15,7 +16,8 @@
  * @brief The internal continuation data
  **/
 typedef struct {
-	const void* __restrict           lhs;       /*!< The left-hand-side */
+	psnl_cpu_field_cell_type_t       elem_type; /*!< The element type */
+	const void* __restrict           rhs;       /*!< The left-hand-side */
 	psnl_cpu_field_cont_eval_func_t  eval_func; /*!< The evaluation function */
 	psnl_cpu_field_cont_free_func_t  free_func; /*!< The free function: Since the continuation itself also holds the reference to the RHS, so we need a function for this */
 	uint64_t                         tag;       /*!< Tag: meaning is undefined, might be useful for JIT */
@@ -56,10 +58,11 @@ static void* _create_data(const void* user_data)
 
 	memcpy(data_obj->range, desc->range, psnl_dim_data_size(desc->range));
 
-	data_obj->lhs = desc->lhs;
+	data_obj->rhs = desc->rhs;
 	data_obj->eval_func = desc->eval;
 	data_obj->free_func = desc->free;
 	data_obj->tag = desc->tag;
+	data_obj->elem_type = desc->lhs_type;
 
 	return data_obj;
 }
@@ -70,10 +73,10 @@ static int _dispose_data(void* obj, void* user_data)
 
 	_cont_t* cont = (_cont_t*)obj;
 
-	int ret = cont->free_func(cont->lhs);
+	int ret = cont->free_func(cont->rhs);
 
 	if(ERROR_CODE(int) == ret)
-		LOG_ERROR("Cannot dispose the LHS");
+		LOG_ERROR("Cannot dispose the RHS");
 
 	if(ERROR_CODE(int) == pstd_mempool_free(obj))
 		ERROR_RETURN_LOG(int, "Cannot dispose the used continuation");
@@ -172,7 +175,7 @@ scope_token_t psnl_cpu_field_cont_commit(psnl_cpu_field_cont_t* cont)
 	return pstd_scope_add(&ent);
 }
 
-int psnl_cpu_field_cont_value_at(const psnl_cpu_field_cont_t* cont, uint32_t ndim, int32_t* __restrict pos, void* __restrict buf)
+int psnl_cpu_field_cont_value_at(const psnl_cpu_field_cont_t* cont, const int32_t* pos, void* __restrict buf)
 {
 	if(NULL == cont || NULL == pos || NULL == buf)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
@@ -186,21 +189,7 @@ int psnl_cpu_field_cont_value_at(const psnl_cpu_field_cont_t* cont, uint32_t ndi
 	if(NULL == cont_obj)
 		ERROR_RETURN_LOG(int, "Cannot get the actual continuation object");
 
-#ifndef FULL_OPTIMIZATION 
-	/* We won't validate the dimension when we compile fully optmized */
-	if(cont_obj->range->n_dim != ndim)
-		ERROR_RETURN_LOG(int, "Invalid dimension");
-
-	uint32_t i;
-	for(i = 0; i < ndim; i ++)
-		if(cont_obj->range->dims[i][0] < pos[i] ||
-		   cont_obj->range->dims[i][1] >= pos[i])
-			ERROR_RETURN_LOG(int, "Invalid position");
-#else
-	(void)ndim;
-#endif
-
-	cont_obj->eval_func(pos, cont_obj->lhs, buf);
+	cont_obj->eval_func(pos, cont_obj->rhs, buf);
 
 	return 0;
 }

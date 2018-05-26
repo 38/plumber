@@ -9,25 +9,6 @@
 #define __PSNL_CPU_BINOPS_H__
 
 /**
- * @brief Describe a single LHS
- * @note Only one of the field should be non-null value
- **/
-typedef struct {
-
-	enum {
-		PSNL_CPU_BINOPS_LHS_SCALAR,      /*!< The LHS is a scalar */
-		PSNL_CPU_BINOPS_LHS_FIELD,       /*!< The LHS is a field */
-		PSNL_CPU_BINOPS_LHS_CONT         /*!< The LHS is another continuation */
-	}                       type;        /*!< The type of the LHS */
-
-	union {
-		double                  scalar;  /*!< The LHS is a scalar */
-		psnl_cpu_field_t*       field;   /*!< The field typed LHS */
-		psnl_cpu_field_cont_t*  cont;    /*!< The continuation typed LHS */
-	} value;                             /*!< The actual value of the field */
-} psnl_cpu_binops_lhs_t;
-
-/**
  * @brief The operation we supported
  **/
 typedef enum {
@@ -37,12 +18,12 @@ typedef enum {
 } psnl_cpu_binops_opcode_t;
 
 /**
- * @brief Create a new binary operation from the given LHS
+ * @brief Create a new binary operation from the given RHS
  * @param op The operation we want to perform
- * @param a  The first operand
- * @param b  The second operand
+ * @param first The first operand
+ * @param second  The second operand
  * @return The newly created continuation object for this operation
  **/
-psnl_cpu_field_cont_t* psnl_cpu_binops_new(psnl_cpu_binops_opcode_t op, psnl_cpu_binops_lhs_t a, psnl_cpu_binops_lhs_t b);
+psnl_cpu_field_cont_t* psnl_cpu_binops_new(psnl_cpu_binops_opcode_t op, const psnl_cpu_rhs_desc_t* first, const psnl_cpu_rhs_desc_t* second);
 
 #endif /* __PSNL_CPU_BINOPS_H__ */
