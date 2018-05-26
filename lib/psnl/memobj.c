@@ -179,3 +179,4 @@ int psnl_memobj_is_committed(const psnl_memobj_t* memobj)
 
 	return memobj->committed != 0;
 }
+

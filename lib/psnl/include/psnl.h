@@ -27,6 +27,7 @@ extern "C" {
 
 #include <psnl/cpu/field.h>
 #include <psnl/cpu/field_cont.h>
+#include <psnl/cpu/binops.h>
 #ifdef __cplusplus
 }
 #endif
