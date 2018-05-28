@@ -118,16 +118,14 @@ int pstd_scope_stream_ready_event(pstd_scope_stream_t* stream, scope_ready_event
 	return ret;
 }
 
-#define _GC_MAGIC 0x361fea8full
+#define _GC_MAGIC 0x3361fea8f61fea8full
 
 typedef struct {
-	uint32_t                 magic;
-	uint32_t                 refcnt;
+	uint64_t                 magic;
 	pstd_scope_gc_obj_t      gc_obj[0];
-	uint64_t                 tid;
 	scope_entity_t           ent;
+	uint32_t                 refcnt;
 } _gc_object_t;
-STATIC_ASSERTION_OFFSET_EQ_ID(_GC_OBJECT_TID, _gc_object_t, gc_obj[0].tid, _gc_object_t, tid);
 STATIC_ASSERTION_OFFSET_EQ_ID(_GC_OBJECT_OBJ, _gc_object_t, gc_obj[0].obj, _gc_object_t, ent.data);
 
 static inline _gc_object_t* _gc_object_check(pstd_scope_gc_obj_t* gc_obj)
@@ -186,7 +184,7 @@ static void* _gc_open(const void* ptr)
 	return gc->ent.open_func(gc->ent.data);
 }
 
-scope_token_t pstd_scope_gc_add(uint64_t tid, const scope_entity_t* entity, pstd_scope_gc_obj_t ** objbuf)
+scope_token_t pstd_scope_gc_add(const scope_entity_t* entity, pstd_scope_gc_obj_t ** objbuf)
 {
 	if(NULL == entity)
 		ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
@@ -197,7 +195,6 @@ scope_token_t pstd_scope_gc_add(uint64_t tid, const scope_entity_t* entity, pstd
 		ERROR_RETURN_LOG(scope_token_t, "Allocation failure");
 
 	obj->magic = _GC_MAGIC;
-	obj->tid = tid;
 	obj->refcnt = 0;
 
 	memcpy(&obj->ent, entity, sizeof(scope_entity_t));

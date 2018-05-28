@@ -93,7 +93,6 @@ int pstd_scope_stream_ready_event(pstd_scope_stream_t* stream, scope_ready_event
  * @brief The object that is managed by reference counter
  **/
 typedef struct {
-	uint64_t              tid;     /*!< The object type ID */
 	const void*           obj;     /*!< The actual data object */
 } pstd_scope_gc_obj_t;
 
@@ -105,7 +104,7 @@ typedef struct {
  * @param obj    The buffer used to return object
  * @return The token or error code
  **/
-scope_token_t pstd_scope_gc_add(uint64_t tid, const scope_entity_t* entity, pstd_scope_gc_obj_t ** obj);
+scope_token_t pstd_scope_gc_add(const scope_entity_t* entity, pstd_scope_gc_obj_t ** obj);
 
 /**
  * @brief Acquire the scope object from the sccope
