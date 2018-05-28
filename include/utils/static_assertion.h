@@ -63,6 +63,10 @@
 #define STATIC_ASSERTION_OFFSET_EQ(A, F, B, G) __STATIC_ASSERTION_POSITIVE__(offset_##type##_##A_##F##_##B_##G, \
         ((long long)offsetof(A,F) - (long long)offsetof(B,G)) * ((long long)offsetof(B,G) - (long long)offsetof(A,F)))
 
+/** @brief Check if offset A and offset B are the same */
+#define STATIC_ASSERTION_OFFSET_EQ_ID(ID, A, F, B, G) __STATIC_ASSERTION_POSITIVE__(offset_##type##__##ID, \
+        ((long long)offsetof(A,F) - (long long)offsetof(B,G)) * ((long long)offsetof(B,G) - (long long)offsetof(A,F)))
+
 /** @brief check if the member A is before member B */
 #define STATIC_ASSERTION_BEFORE(type, A, B) __STATIC_ASSERTION_POSITIVE__(before_##type##_##A##_##B, \
         ((long long)offsetof(type, B) - (long long)offsetof(type, A)))

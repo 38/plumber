@@ -7,6 +7,7 @@
 
 #include <error.h>
 #include <pservlet.h>
+#include <pstd/mempool.h>
 #include <pstd/scope.h>
 
 static inline pipe_t _ensure_pipe(pipe_t current, const char* func)
@@ -115,4 +116,163 @@ int pstd_scope_stream_ready_event(pstd_scope_stream_t* stream, scope_ready_event
 	    ERROR_RETURN_LOG(int, "Cannot finish the pipe_cntl call");
 
 	return ret;
+}
+
+#define _GC_MAGIC 0x361fea8full
+
+typedef struct {
+	uint32_t                 magic;
+	uint32_t                 refcnt;
+	pstd_scope_gc_obj_t      gc_obj[0];
+	uint64_t                 tid;
+	scope_entity_t           ent;
+} _gc_object_t;
+STATIC_ASSERTION_OFFSET_EQ_ID(_GC_OBJECT_TID, _gc_object_t, gc_obj[0].tid, _gc_object_t, tid);
+STATIC_ASSERTION_OFFSET_EQ_ID(_GC_OBJECT_OBJ, _gc_object_t, gc_obj[0].obj, _gc_object_t, ent.data);
+
+static inline _gc_object_t* _gc_object_check(pstd_scope_gc_obj_t* gc_obj)
+{
+	uintptr_t addr = (uintptr_t)gc_obj - offsetof(_gc_object_t, gc_obj);
+	_gc_object_t* obj = (_gc_object_t*)addr;
+
+	if(obj->magic != _GC_MAGIC)
+		ERROR_PTR_RETURN_LOG("Invaid object");
+
+	return obj;
+}
+
+static int _gc_free(void* ptr)
+{
+	_gc_object_t* gc = (_gc_object_t*)ptr;
+
+	if(gc->ent.data != NULL && gc->ent.free_func != NULL && ERROR_CODE(int) == gc->ent.free_func(gc->ent.data))
+		ERROR_RETURN_LOG(int, "Cannot dispose the object");
+
+	return pstd_mempool_free(ptr);
+}
+
+static void* _gc_copy(const void* ptr)
+{
+	const _gc_object_t* gc = (const _gc_object_t*)ptr;
+
+	if(gc->ent.data == NULL || gc->ent.copy_func == NULL)
+		ERROR_PTR_RETURN_LOG("Copy is impossible");
+	
+	_gc_object_t* obj = (_gc_object_t*)pstd_mempool_alloc(sizeof(_gc_object_t));
+
+	if(NULL == obj)
+		ERROR_PTR_RETURN_LOG("Allocation failure");
+
+	memcpy(obj, gc, sizeof(_gc_object_t));
+
+	if(NULL == (obj->ent.data = obj->ent.copy_func(gc->ent.data)))
+		ERROR_LOG_GOTO(ERR, "Cannot copy the inner data object");
+
+	obj->refcnt = 0;
+
+	return obj;
+ERR:
+	pstd_mempool_free(obj);
+	return NULL;
+}
+
+static void* _gc_open(const void* ptr)
+{
+	const _gc_object_t* gc = (const _gc_object_t*)ptr;
+
+	if(gc->ent.data == NULL || gc->ent.open_func == NULL)
+		ERROR_PTR_RETURN_LOG("Copy is impossible");
+
+	return gc->ent.open_func(gc->ent.data);
+}
+
+scope_token_t pstd_scope_gc_add(uint64_t tid, const scope_entity_t* entity, pstd_scope_gc_obj_t ** objbuf)
+{
+	if(NULL == entity)
+		ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
+
+	_gc_object_t* obj = (_gc_object_t*)pstd_mempool_alloc(sizeof(_gc_object_t));
+
+	if(NULL == obj)
+		ERROR_RETURN_LOG(scope_token_t, "Allocation failure");
+
+	obj->magic = _GC_MAGIC;
+	obj->tid = tid;
+	obj->refcnt = 0;
+
+	memcpy(&obj->ent, entity, sizeof(scope_entity_t));
+
+	scope_entity_t gc_ent = {
+		.data      = obj,
+		.copy_func = _gc_copy,
+		.free_func = _gc_free,
+		.open_func = _gc_open,
+		.read_func = entity->read_func,
+		.eos_func  = entity->eos_func,
+		.event_func = entity->event_func,
+		.close_func = entity->close_func
+	};
+
+	if(NULL != objbuf)
+		*objbuf = obj->gc_obj;
+
+	return pstd_scope_add(&gc_ent);
+}
+
+pstd_scope_gc_obj_t* pstd_scope_gc_get(scope_token_t token)
+{
+	const _gc_object_t* gc = (const _gc_object_t*)pstd_scope_get(token);
+
+	if(NULL == gc) return NULL;
+
+	union {
+		const pstd_scope_gc_obj_t*  cst;
+		pstd_scope_gc_obj_t*        mut;
+	} ret = { .cst = gc->gc_obj };
+
+	return ret.mut;
+}
+
+int pstd_scope_gc_incref(pstd_scope_gc_obj_t* gc_obj)
+{
+	if(NULL == gc_obj)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	_gc_object_t* obj;
+
+	if(NULL == (obj = _gc_object_check(gc_obj)))
+		ERROR_RETURN_LOG(int, "Invalid GC object");
+
+	if(obj->ent.data == NULL) 
+		ERROR_RETURN_LOG(int, "incref is impossible");
+
+	obj->refcnt ++;
+
+	return 0;
+}
+
+int pstd_scope_gc_decref(pstd_scope_gc_obj_t* gc_obj)
+{
+	if(NULL == gc_obj)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+	
+	_gc_object_t* obj;
+
+	if(NULL == (obj = _gc_object_check(gc_obj)))
+		ERROR_RETURN_LOG(int, "Invalid GC object");
+
+	if(obj->ent.data == NULL) 
+		ERROR_RETURN_LOG(int, "decref is impossible");
+
+	if(obj->refcnt > 0) obj->refcnt --;
+
+	if(0 == obj->refcnt)
+	{
+		if(NULL == obj->ent.free_func && ERROR_CODE(int) == obj->ent.free_func(obj->ent.data))
+			ERROR_RETURN_LOG(int, "Cannot dispose the actual data object");
+
+		obj->ent.data = NULL;
+	}
+
+	return 0;
 }
