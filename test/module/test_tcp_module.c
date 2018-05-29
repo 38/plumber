@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <time.h>
 #include <errno.h>
 #include <stdio.h>
 #include <itc/module_types.h>
@@ -88,13 +89,15 @@ int do_request(void)
 
 int accept_test(void)
 {
+	srand((unsigned)time(NULL));
+
 	itc_module_pipe_param_t param = {
 		.input_flags = RUNTIME_API_PIPE_INPUT,
 		.output_flags = RUNTIME_API_PIPE_OUTPUT | RUNTIME_API_PIPE_ASYNC,
 		.args = NULL
 	};
 
-	context->pool_conf.port = 9000;
+	context->pool_conf.port = (uint16_t)(rand() % (0xffff - 10000) + 10000);
 	context->async_buf_size = 4;
 	context->sync_write_attempt = 0;
 	pid_t pid;

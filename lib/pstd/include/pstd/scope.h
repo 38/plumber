@@ -89,4 +89,48 @@ int pstd_scope_stream_close(pstd_scope_stream_t* stream);
  **/
 int pstd_scope_stream_ready_event(pstd_scope_stream_t* stream, scope_ready_event_t* buf);
 
+/**
+ * @brief The object that is managed by reference counter
+ * @note Once a RLS object entity is committed in this way, the object will be tracked
+ *       by the reference counter, once the reference counter becomes 0, the object will
+ *       be disposed autoamtically. After that the scope token will be invalidate.
+ *       This is useful if we need some RLS that is used as the temp buffer.
+ **/
+typedef struct {
+	const void*           obj;     /*!< The actual data object */
+} pstd_scope_gc_obj_t;
+
+/**
+ * @brief Add a GC object to scope
+ * @param tid The type Id
+ * @param entity the scope entity object
+ * @param free   the dispose function
+ * @param obj    The buffer used to return object
+ * @return The token or error code
+ **/
+scope_token_t pstd_scope_gc_add(const scope_entity_t* entity, pstd_scope_gc_obj_t ** obj);
+
+/**
+ * @brief Acquire the scope object from the sccope
+ * @note If the RLS object is committed by pstd_scope_gc_add, this function
+ *       should be used to retrive the scope object. 
+ * @param token The target token
+ * @return The gc object
+ **/
+pstd_scope_gc_obj_t* pstd_scope_gc_get(scope_token_t token);
+
+/**
+ * @brief Increase the reference counter
+ * @param obj The gc object to incref
+ * @return status code
+ **/
+int pstd_scope_gc_incref(pstd_scope_gc_obj_t* obj);
+
+/**
+ * @brief Decref the reference counter
+ * @param obj The gc object to decref
+ * @return status code
+ **/
+int pstd_scope_gc_decref(pstd_scope_gc_obj_t* obj);
+
 #endif /* __PSTD_SCOPE_H__ */
