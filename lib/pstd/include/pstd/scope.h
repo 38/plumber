@@ -91,6 +91,10 @@ int pstd_scope_stream_ready_event(pstd_scope_stream_t* stream, scope_ready_event
 
 /**
  * @brief The object that is managed by reference counter
+ * @note Once a RLS object entity is committed in this way, the object will be tracked
+ *       by the reference counter, once the reference counter becomes 0, the object will
+ *       be disposed autoamtically. After that the scope token will be invalidate.
+ *       This is useful if we need some RLS that is used as the temp buffer.
  **/
 typedef struct {
 	const void*           obj;     /*!< The actual data object */
@@ -108,6 +112,8 @@ scope_token_t pstd_scope_gc_add(const scope_entity_t* entity, pstd_scope_gc_obj_
 
 /**
  * @brief Acquire the scope object from the sccope
+ * @note If the RLS object is committed by pstd_scope_gc_add, this function
+ *       should be used to retrive the scope object. 
  * @param token The target token
  * @return The gc object
  **/
