@@ -55,6 +55,13 @@ STATIC_ASSERTION_SIZE(_queue_t, events, 0);
 
 static vector_t* _queues;
 
+typedef struct _used_vec_t {
+	struct _used_vec_t*   next;   /*!< The next used vector */
+	vector_t*             vec;    /*!< The actual vector */
+} _used_vec_t;
+
+static _used_vec_t* _used_vec;
+
 /**
  * @brief The mutex used for the disptacher to take an item from the queue
  **/
@@ -187,6 +194,17 @@ int itc_equeue_finalize()
 			}
 		}
 		vector_free(_queues);
+
+		_used_vec_t* ptr;
+		for(ptr = _used_vec; ptr != NULL;)
+		{
+			_used_vec_t* cur = ptr;
+			ptr = ptr->next;
+			vector_free(cur->vec);
+			free(cur);
+		}
+
+		_used_vec = NULL;
 	}
 	if((errno = pthread_mutex_unlock(&_global_mutex)) != 0)
 	{
@@ -240,10 +258,23 @@ itc_equeue_token_t itc_equeue_module_token(uint32_t size, itc_equeue_event_type_
 	queue->size = q_size;
 
 	stage = 2;
-	next = vector_append(_queues, &queue);
+
+	next = vector_append_keep_old(_queues, &queue);
 	if(NULL == next) ERROR_LOG_GOTO(ERR, "Cannot append the new queue to the queue list");
 
-	_queues = next;
+	if(_queues != next)
+	{
+		_used_vec_t* used = (_used_vec_t*)malloc(sizeof(_used_vec_t*));
+		if(NULL == used)
+			LOG_WARNING_ERRNO("Cannot allocate memory for the used vector");
+		else
+		{
+			used->next = _used_vec;
+			used->vec = _queues;
+		}
+		_queues = next;
+	}
+
 	if((errno = pthread_mutex_unlock(&_global_mutex)) != 0) LOG_WARNING_ERRNO("Cannot release the global mutex");
 
 	LOG_INFO("New module token in the event queue: Token = %x", ret);

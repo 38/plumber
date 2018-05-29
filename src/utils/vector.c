@@ -71,3 +71,38 @@ vector_t* vector_append(vector_t* vec, const void* data)
 
 	return vec;
 }
+
+vector_t* vector_append_keep_old(vector_t* vec, const void* data)
+{
+	if(NULL == vec) return NULL;
+
+	if(vec->_cap == vec->_length)
+	{
+		size_t next_cap = vec->_cap * 2;
+
+		size_t next_size = next_cap * vec->_elem_size + sizeof(vector_t);
+
+		vector_t* tmp = (vector_t*)malloc(next_size);
+		if(NULL == tmp)
+		{
+			LOG_ERROR_ERRNO("Could not resize vector %p", vec);
+			return NULL;
+		}
+
+		memcpy(tmp, vec, vec->_cap * vec->_elem_size + sizeof(vector_t));
+
+		vec = tmp;
+
+		LOG_DEBUG("resized vector %p from size %zu to size %zu", vec, vec->_cap, next_cap);
+
+		vec->_cap = next_cap;
+	}
+
+	if(NULL != data)
+	    memcpy(_vector_get(vec, vec->_length ++), data, vec->_elem_size);
+	else
+	    vec->_length ++;
+
+	return vec;
+
+}

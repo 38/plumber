@@ -29,8 +29,8 @@ typedef struct {
 	uint8_t buffer_valid:1; /*!< the valid dual buffer */
 	itc_module_pipe_param_t accept_param[2]; /*!< the accept param use by this pipe dual buffer */
 	uint32_t started:1; /*!< indicates if this thread has been started */
-	uint32_t killed:1; /*!< indicates if this thread will be killed */
 	thread_t* thread; /*!< the thread handle */
+	uint32_t killed:1; /*!< indicates if this thread will be killed */
 } _thread_data_t;
 
 /**
