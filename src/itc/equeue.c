@@ -264,13 +264,14 @@ itc_equeue_token_t itc_equeue_module_token(uint32_t size, itc_equeue_event_type_
 
 	if(_queues != next)
 	{
-		_used_vec_t* used = (_used_vec_t*)malloc(sizeof(_used_vec_t*));
+		_used_vec_t* used = (_used_vec_t*)malloc(sizeof(_used_vec_t));
 		if(NULL == used)
 			LOG_WARNING_ERRNO("Cannot allocate memory for the used vector");
 		else
 		{
 			used->next = _used_vec;
 			used->vec = _queues;
+			_used_vec = used;
 		}
 		_queues = next;
 	}
