@@ -291,7 +291,7 @@ int pstd_scope_gc_decref(pstd_scope_gc_obj_t* gc_obj)
 
 	if(0 == obj->refcnt)
 	{
-		if(NULL == obj->ent.free_func && ERROR_CODE(int) == obj->ent.free_func(obj->ent.data))
+		if(NULL != obj->ent.free_func && ERROR_CODE(int) == obj->ent.free_func(obj->ent.data))
 			ERROR_RETURN_LOG(int, "Cannot dispose the actual data object");
 
 		obj->ent.data = NULL;

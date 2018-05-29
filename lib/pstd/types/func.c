@@ -32,6 +32,7 @@ pstd_func_t* pstd_func_new(uint64_t trait, void* env, pstd_func_code_t code, pst
 	if(NULL == ret)
 		ERROR_PTR_RETURN_LOG("Cannot create new function object");
 
+	ret->committed = 0;
 	ret->trait = trait;
 	ret->code = code;
 	ret->free = free;
