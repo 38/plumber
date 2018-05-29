@@ -98,3 +98,41 @@ const pstd_func_t* pstd_func_from_rls(scope_token_t token, uint32_t gc)
 
 	return (const pstd_func_t*)pstd_scope_get(token);
 }
+
+uint64_t pstd_func_get_trait(const pstd_func_t* func)
+{
+	if(NULL == func) 
+		ERROR_RETURN_LOG(uint64_t, "Invalid arguments");
+
+	return func->trait;
+}
+
+int pstd_func_invoke(const pstd_func_t* func, void* result, ...)
+{
+	if(NULL == func)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	int rc = 0;
+
+	if(NULL != func->code)
+	{
+		va_list ap;
+		va_start(ap, result);
+
+		rc = func->code(func->env, result, ap);
+
+		va_end(ap);
+	}
+
+	return rc;
+}
+
+pstd_scope_gc_obj_t* pstd_func_get_gc_obj(const pstd_func_t* func)
+{
+	return func == NULL ? NULL : func->gc_obj;
+}
+
+void* pstd_func_get_env(const pstd_func_t* func)
+{
+	return func == NULL ? NULL : func->env;
+}

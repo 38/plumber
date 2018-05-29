@@ -17,9 +17,10 @@ typedef struct _pstd_func_t pstd_func_t;
  * @brief The actual function to run
  * @param env The environment or closure of this function object
  * @param buf The result buffer
+ * @param func_args The function arguments
  * @return The status code of the invocation
  **/
-typedef int (*pstd_func_code_t)(const void* env, void* __restrict buf, ...);
+typedef int (*pstd_func_code_t)(const void* env, void* __restrict buf, va_list func_args);
 
 /**
  * @brief The callback function that is used to dispose a function object
@@ -66,7 +67,7 @@ const pstd_func_t* pstd_func_from_rls(scope_token_t token, uint32_t gc);
  * @param func The function
  * @return The function code or error code
  **/
-uint64_t pstd_func_get_type(const pstd_func_t* func);
+uint64_t pstd_func_get_trait(const pstd_func_t* func);
 
 /**
  * @brief Call the function and put the result to the reulst buffer
