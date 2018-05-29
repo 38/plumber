@@ -23,12 +23,8 @@
 extern "C" {
 #endif
 #include <psnl/dim.h>
-#include <psnl/memobj.h>
 
 #include <psnl/cpu/field.h>
-#include <psnl/cpu/field_cont.h>
-#include <psnl/cpu/rhs.h>
-#include <psnl/cpu/binops.h>
 #ifdef __cplusplus
 }
 #endif

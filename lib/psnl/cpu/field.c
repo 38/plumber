@@ -11,33 +11,22 @@
 #include <pstd.h>
 
 #include <psnl/dim.h>
-#include <psnl/memobj.h>
 #include <psnl/cpu/field.h>
-
-/** TODO: how to autoamtically generate magic number ? */
-#define _FIELD_MAGIC 0xcf276354ff00aabbull
 
 /**
  * @brief The actual data structure used for the Field lives on the CPU
  **/
-typedef struct {
-	size_t     elem_size;      /*!< The element size */
-	uintpad_t  __padding__[0];
-	psnl_dim_t dim[0];         /*!< The dimensional data */
-	char       data[0];        /*!< The actual data section */
-} _data_t;
-STATIC_ASSERTION_SIZE(_data_t, dim, 0);
-STATIC_ASSERTION_SIZE(_data_t, data, 0);
-STATIC_ASSERTION_LAST(_data_t, dim);
-STATIC_ASSERTION_LAST(_data_t, data);
-
-/**
- * @brief The data structure that is used for allocating memory for a field
- **/
-typedef struct {
-	size_t             elem_size;   /*!< The size of the element in the field */
-	const psnl_dim_t*  dim;         /*!< The dimension specification */
-} _create_param_t;
+struct _psnl_cpu_field_t {
+	size_t               elem_size;        /*!< The element size */
+	pstd_scope_gc_obj_t* gc_obj;           /*!< The GC object for this field */
+	uintpad_t            __padding__[0];
+	psnl_dim_t           dim[0];           /*!< The dimensional data */
+	char                 data[0];          /*!< The actual data section */
+};
+STATIC_ASSERTION_SIZE(psnl_cpu_field_t, dim, 0);
+STATIC_ASSERTION_SIZE(psnl_cpu_field_t, data, 0);
+STATIC_ASSERTION_LAST(psnl_cpu_field_t, dim);
+STATIC_ASSERTION_LAST(psnl_cpu_field_t, data);
 
 /**
  * @brief Reperesent the string representation of a field
@@ -47,27 +36,6 @@ typedef struct {
 	const void* data;   /*!< The actual data to be written */
 	size_t      size;   /*!< The size of the struct */
 } _stream_t;
-
-
-/**
- * @brief Convert the memory object from a field dummy type
- * @param field The field type to convert
- * @return the memory object pointer
- **/
-static inline psnl_memobj_t* _get_memory_object(psnl_cpu_field_t* field)
-{
-	return (psnl_memobj_t*)field;
-}
-
-/**
- * @brief Convert the const memory object from a field dummy type
- * @param field The field to convert
- * @return the memory object pointer
- **/
-static inline const psnl_memobj_t* _get_memory_object_const(const psnl_cpu_field_t* field)
-{
-	return (const psnl_memobj_t*)field;
-}
 
 /**
  * @brief Get the padded size from the original one
@@ -81,28 +49,9 @@ static inline size_t _get_padded_size(size_t size)
 	return rem > 0 ? size - rem + sizeof(uintpad_t) : size;
 }
 
-static void* _field_data_new(const void* data)
+static int _field_data_free(void* obj)
 {
-	const _create_param_t* param = (const _create_param_t*)data;
-
-	size_t size = sizeof(_data_t) + psnl_dim_space_size(param->dim) * param->elem_size + _get_padded_size(psnl_dim_data_size(param->dim));
-
-	/* TODO: even though we just allocated from OS at this time, it should be better if we can cache the meomry we are using here */
-	_data_t* ret = (_data_t*)malloc(size);
-
-	if(NULL == ret)
-		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new CPU field");
-
-	memcpy(ret->dim, param->dim, psnl_dim_data_size(param->dim));
-	ret->elem_size = param->elem_size;
-
-	return ret;
-}
-
-static int _field_data_free(void* obj, void* data)
-{
-	(void)data;
-	/* TODO: cache the memory we are using at this point would be really helpful */
+	/* TODO(field memory pool): cache the memory we are using at this point would be really helpful */
 	free(obj);
 	return 0;
 }
@@ -112,19 +61,19 @@ psnl_cpu_field_t* psnl_cpu_field_new(const psnl_dim_t* dim, size_t elem_size)
 	if(NULL == dim || elem_size == 0)
 		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
-	psnl_memobj_param_t obj_desc = {
-		.magic      = _FIELD_MAGIC,
-		.create_cb  = _field_data_new,
-		.dispose_cb = _field_data_free,
-		.dispose_cb_data = NULL
-	};
+	size_t size = sizeof(psnl_cpu_field_t) + psnl_dim_space_size(dim) * elem_size + _get_padded_size(psnl_dim_data_size(dim));
 
-	_create_param_t create_param = {
-		.dim = dim,
-		.elem_size = elem_size
-	};
+	/* TODO(field memory pool): even though we just allocated from OS at this time, it should be better if we can cache the meomry we are using here */
+	psnl_cpu_field_t* ret = (psnl_cpu_field_t*)malloc(size);
 
-	return (psnl_cpu_field_t*)psnl_memobj_new(obj_desc, &create_param);
+	if(NULL == ret)
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new CPU field");
+
+	memcpy(ret->dim, dim, psnl_dim_data_size(dim));
+	ret->elem_size = elem_size;
+	ret->gc_obj = NULL;
+
+	return ret;
 }
 
 
@@ -133,27 +82,20 @@ int psnl_cpu_field_free(psnl_cpu_field_t* field)
 	if(NULL == field)
 		ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	int committed = psnl_memobj_is_committed(_get_memory_object(field));
-
-	if(ERROR_CODE(int) == committed || committed > 0)
+	if(field->gc_obj != NULL)
 		ERROR_RETURN_LOG(int, "Refuse to dispose a committed RLS object");
 
-	return psnl_memobj_free(_get_memory_object(field));
+	return _field_data_free(field);
 }
 
 int psnl_cpu_field_incref(const psnl_cpu_field_t* field)
 {
-	return psnl_memobj_incref(_get_memory_object_const(field));
+	return pstd_scope_gc_incref(field->gc_obj);
 }
 
 int psnl_cpu_field_decref(const psnl_cpu_field_t* field)
 {
-	return psnl_memobj_decref(_get_memory_object_const(field));
-}
-
-static int _free(void* mem)
-{
-	return psnl_memobj_free((psnl_memobj_t*)mem);
+	return pstd_scope_gc_decref(field->gc_obj);
 }
 
 static void* _open(const void* mem)
@@ -163,7 +105,7 @@ static void* _open(const void* mem)
 	if(NULL == ret)
 		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the stream object");
 	
-	const _data_t* data = (const _data_t*)psnl_memobj_get_const((const psnl_memobj_t*)mem, _FIELD_MAGIC);
+	const psnl_cpu_field_t* data = (const psnl_cpu_field_t*)mem;
 	
 	ret->size = _get_padded_size(psnl_dim_data_size(data->dim)) + psnl_dim_data_size(data->dim) * data->elem_size;
 
@@ -203,27 +145,19 @@ scope_token_t psnl_cpu_field_commit(psnl_cpu_field_t* field)
 	if(NULL == field)
 		ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
 
-	int is_cmt = psnl_memobj_is_committed(_get_memory_object_const(field));
-
-	if(ERROR_CODE(int) == is_cmt)
-		ERROR_RETURN_LOG(scope_token_t, "Cannot check if the field has been committed");
-
-	if(is_cmt)
+	if(field->gc_obj != NULL)
 		ERROR_RETURN_LOG(scope_token_t, "Cannot re-committed a token that is already in RLS");
-
-	if(ERROR_CODE(int) == psnl_memobj_set_committed(_get_memory_object(field), 1))
-		ERROR_RETURN_LOG(scope_token_t, "Cannot set the commit flag");
 
 	scope_entity_t ent = {
 		.data = field,
-		.free_func = _free,
+		.free_func = _field_data_free,
 		.open_func = _open,
 		.close_func = _close,
 		.eos_func   = _eos,
 		.read_func  = _read
 	};
 
-	return pstd_scope_add(&ent);
+	return pstd_scope_gc_add(&ent, &field->gc_obj);
 }
 
 void* psnl_cpu_field_get_data(psnl_cpu_field_t* field, psnl_dim_t const ** dim_buf)
@@ -231,15 +165,10 @@ void* psnl_cpu_field_get_data(psnl_cpu_field_t* field, psnl_dim_t const ** dim_b
 	if(NULL == field)
 		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
-	_data_t* data = (_data_t*)psnl_memobj_get(_get_memory_object(field), _FIELD_MAGIC);
-
-	if(NULL == data)
-		ERROR_PTR_RETURN_LOG("Cannot get the field object from the managed reference object");
-
 	if(NULL != dim_buf) 
-		*dim_buf = data->dim;
+		*dim_buf = field->dim;
 
-	return data->data + _get_padded_size(psnl_dim_data_size(data->dim));
+	return field->data + _get_padded_size(psnl_dim_data_size(field->dim));
 }
 
 const void* psnl_cpu_field_get_data_const(const psnl_cpu_field_t* field, psnl_dim_t const** dim_buf)
@@ -247,16 +176,10 @@ const void* psnl_cpu_field_get_data_const(const psnl_cpu_field_t* field, psnl_di
 	if(NULL == field)
 		ERROR_PTR_RETURN_LOG("Invalid arguments");
 	
-	const _data_t* data = (const _data_t*)psnl_memobj_get_const(_get_memory_object_const(field), _FIELD_MAGIC);
-
-	if(NULL == data)
-		ERROR_PTR_RETURN_LOG("Cannot get the field object from the managed reference object");
-
-	
 	if(NULL != dim_buf) 
-		*dim_buf = data->dim;
+		*dim_buf = field->dim;
 
-	return data->data + _get_padded_size(psnl_dim_data_size(data->dim));
+	return field->data + _get_padded_size(psnl_dim_data_size(field->dim));
 }
 
 const psnl_cpu_field_t* psnl_cpu_field_from_rls(scope_token_t token)
@@ -264,7 +187,9 @@ const psnl_cpu_field_t* psnl_cpu_field_from_rls(scope_token_t token)
 	if(ERROR_CODE(scope_token_t) == token)
 		ERROR_PTR_RETURN_LOG("Invlaid arguments");
 
-	return (const psnl_cpu_field_t*)pstd_scope_get(token);
+	pstd_scope_gc_obj_t* gc_obj = pstd_scope_gc_get(token);
+
+	return gc_obj == NULL ? NULL : gc_obj->obj;
 }
 
 /**
