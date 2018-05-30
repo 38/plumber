@@ -25,6 +25,8 @@ extern "C" {
 #include <psnl/dim.h>
 
 #include <psnl/cpu/field.h>
+
+#include <psnl/expr.h>
 #ifdef __cplusplus
 }
 #endif
