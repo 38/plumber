@@ -374,7 +374,7 @@ static inline void _strip_whilespace_and_comment(lexer_t* lexer)
 static lexer_token_t* _parse_number(lexer_t* lexer)
 {
 	int ch = _peek(lexer);
-	int64_t value = 0;
+	uint64_t value = 0;
 	int sign = 1;
 	while(ch == '-' || ch == '+')
 	{
@@ -405,7 +405,7 @@ static lexer_token_t* _parse_number(lexer_t* lexer)
 				_consume(lexer, 1);
 			}
 
-			return valid ? _num_token(lexer, sign * value) : NULL;
+			return valid ? _num_token(lexer, sign * (int64_t)value) : NULL;
 		}
 		else
 		{
@@ -419,7 +419,7 @@ static lexer_token_t* _parse_number(lexer_t* lexer)
 				ch = _peek(lexer);
 			}
 
-			return _num_token(lexer, sign * value);
+			return _num_token(lexer, sign * (int64_t)value);
 		}
 	}
 	else
@@ -435,7 +435,7 @@ static lexer_token_t* _parse_number(lexer_t* lexer)
 		}
 
 		if(ch != '.' && ch != 'e')
-		    return _num_token(lexer, sign * value);
+		    return _num_token(lexer, sign * (int64_t)value);
 		else
 		{
 			double fval = (double)value;

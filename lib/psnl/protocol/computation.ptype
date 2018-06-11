@@ -1,0 +1,10 @@
+/**
+ * Copyright (C) 2018, Hao Hou
+ **/
+
+package plumber.std.numeric;
+
+/* The continuation object */
+type Computation {
+	request_local_token     token@COMPUTATION_OBJECT;   /*!< The continuation object */
+};

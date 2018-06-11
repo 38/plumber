@@ -1,0 +1,8 @@
+set(TYPE shared-library)
+set(LOCAL_CFLAGS "-fPIC")
+set(LOCAL_LIBS pstd)
+set(INSTALL "yes")
+set(PACKAGE_CONF_INSTALL_PATH "include/psnl")
+list(APPEND LOCAL_SOURCE cpu)
+install_includes("${SOURCE_PATH}/include" "include/psnl" "*.h")
+install_plumber_headers("include/psnl")

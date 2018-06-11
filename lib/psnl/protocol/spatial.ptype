@@ -1,0 +1,23 @@
+/**
+ * Copyright (C) 2018, Hao Hou
+ **/
+package plumber.std.numeric;
+
+/**
+ * A spatial object is an RLS object that can be randomly accessed by a vector of integer.
+ * The type specification should include the dimension information as param for example 
+ *     DoubleField @dim(2) 
+ **/
+type SpatialObject {
+	request_local_token       token@CPU_SPATIAL_OBJECT;    /*!< The actual RLS object used for a Spatial Object */
+};
+
+/**
+ * A field is the an RLS object that associated to a SpatialObject that has RAM as storage
+ **/
+type FieldObject : SpatialObject {};
+
+/**
+ * Represent a field with double typed cells
+ **/
+type DoubleField : FieldObject {};
