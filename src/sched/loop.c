@@ -11,6 +11,7 @@
 #include <plumber.h>
 #include <error.h>
 #include <barrier.h>
+#include <tsan.h>
 #include <arch/arch.h>
 #include <utils/log.h>
 #include <utils/thread.h>
@@ -241,10 +242,7 @@ static inline int _context_free(sched_loop_t* ctx)
 	return rc;
 }
 
-#ifdef SANITIZER
-__attribute__((no_sanitize_thread))
-#endif
-static int _check_killed_flag(void)
+TSAN_EXCLUDE static int _check_killed_flag(void)
 {
 	return _killed;
 }

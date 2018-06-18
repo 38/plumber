@@ -28,6 +28,7 @@
 #include <sys/time.h>
 
 #include <error.h>
+#include <tsan.h>
 
 #include <utils/log.h>
 #include <utils/thread.h>
@@ -260,10 +261,7 @@ static inline int _notify_compeleted_awaiters(itc_equeue_token_t token, int set_
  * @brief Update the ready async processor thread counter
  * @note I believe this is an example for the TSAN false positive
  **/
-#if defined(SANITIZER)
-__attribute__((no_sanitize_thread))
-#endif
-static inline void _incrment_num_ready(void)
+TSAN_EXCLUDE static void _incrment_num_ready(void)
 {
 	uint32_t old;
 	do {
@@ -271,10 +269,10 @@ static inline void _incrment_num_ready(void)
 	}while(!__sync_bool_compare_and_swap(&_ctx.num_ready, old, old + 1));
 }
 
-#if defined(SANITIZER)
-__attribute__((no_sanitize_thread))
-#endif
-static inline uint32_t _check_killed(void)
+/**
+ * @brief The helper function that excluded from the Thread Sanitizer
+ **/
+TSAN_EXCLUDE static uint32_t _check_killed(void)
 {
 	return _ctx.killed;
 }

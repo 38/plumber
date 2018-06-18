@@ -12,6 +12,7 @@
 
 #include <error.h>
 #include <barrier.h>
+#include <tsan.h>
 #include <utils/log.h>
 #include <utils/thread.h>
 #include <utils/static_assertion.h>
@@ -51,10 +52,7 @@ __thread uint32_t itc_eloop_thread_killed;
  **/
 static _thread_data_t* _thread_data;
 
-#ifdef SANITIZER
-__attribute__((no_sanitize_thread))
-#endif
-static uint32_t _check_killed_flag(void)
+TSAN_EXCLUDE static uint32_t _check_killed_flag(void)
 {
 	return _self->killed;
 }

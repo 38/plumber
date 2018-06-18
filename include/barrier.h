@@ -18,4 +18,32 @@
  **/
 #define BARRIER() asm volatile ("" : : : "memory")
 
+#define BARRIER_FULL() __sync_synchronize()
+
+#if defined(__i386__) || defined(__amd64__)
+
+#	define BARRIER_LL() BARRIER()
+
+#	define BARRIER_LS() BARRIER()
+
+#	define BARRIER_SS() BARRIER()
+
+#	define BARRIER_SL() BARRIER_FULL()
+
+#elif defined(__arm32__)
+
+#	define BARRIER_LL() BARRIER_FULL()
+
+#	define BARRIER_LS() BARRIER_FULL()
+
+#	define BARRIER_SS() BARRIER_FULL()
+
+#	define BARRIER_SL() BARRIER_FULL()
+
+#else 
+
+#	error("Unsupported CPU type");
+
+#endif
+
 #endif

@@ -20,6 +20,7 @@
 
 #include <error.h>
 #include <predict.h>
+#include <tsan.h>
 #include <utils/log.h>
 #include <utils/thread.h>
 #include <utils/string.h>
@@ -84,11 +85,11 @@ static volatile uint32_t _next_thread_id = 0;
  * @brief get the thread id of current thread
  * @return the thread id
  **/
-#if !defined(STACK_SIZE) && defined(SANITIZER)
-/* We actually believe the data race reported by TSAN is a false positive*/
-__attribute__((no_sanitize_thread))
-#endif 
+#if defined(STACK_SIZE)
 static inline uint32_t _get_thread_id(void)
+#else
+TSAN_EXCLUDE static inline uint32_t _get_thread_id(void)
+#endif 
 {
 #ifdef STACK_SIZE
 	return thread_get_current_stack()->id;
@@ -304,7 +305,7 @@ uint32_t thread_get_id()
 	return _get_thread_id();
 }
 
-static void* _thread_main(void* data)
+TSAN_EXCLUDE static void* _thread_main(void* data)
 {
 #ifdef STACK_SIZE
 	thread_stack_t* stack = thread_get_current_stack();

@@ -12,6 +12,7 @@
 
 #include <error.h>
 #include <fallthrough.h>
+#include <tsan.h>
 #include <barrier.h>
 #include <arch/arch.h>
 
@@ -317,6 +318,16 @@ itc_equeue_token_t itc_equeue_scheduler_token()
 	return ret;
 }
 
+TSAN_EXCLUDE static _queue_t* _get_owned_queue(itc_equeue_token_t token)
+{
+	return *VECTOR_GET(_queue_t*, _queues, token);
+}
+
+TSAN_EXCLUDE static int _check_sched_needs_event(const _queue_t* queue)
+{
+	return ITC_EQUEUE_EVENT_MASK_ALLOWS(_sched_waiting, queue->type);
+}
+
 int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 {
 	if(token == _SCHED_TOKEN)
@@ -329,9 +340,10 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 	else if(event.type != ITC_EQUEUE_EVENT_TYPE_IO && event.type != ITC_EQUEUE_EVENT_TYPE_TASK)
 	    ERROR_RETURN_LOG(int, "Invalid event type");
 
-	/* TODO: TSAN error, the queue might be changed by itc_equeue_module_token, while another put is already running 
-	 *       Even if this is not likely to happen, but it may cause crash */
-	_queue_t* queue = *VECTOR_GET(_queue_t*, _queues, token);
+
+	/* Actually, this is OK, because although _queues might be out-of-dated, however, we have kept all version of previously allocated vector */
+	_queue_t* queue = _get_owned_queue(token);
+	
 	if(NULL == queue)
 	    ERROR_RETURN_LOG(int, "Cannot get the queue for token %u", token);
 
@@ -376,15 +388,15 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 
 	uint64_t next_position = (queue->rear) & (queue->size - 1);
 	queue->events[next_position] = event;
-	/* make sure that the data get ready first, then inc the pointer */
-	BARRIER();
 
-	/* TODO: TSAN error, TSAN reports an error at this point, since the data is changed without lock
-	 *       and then readed, make sure this is OK. If yes, add code make TSAN doesn't complain */
+	/* At this point we only care about the time the CPU write the event array
+	 * should be earlier than write back the rear counter, so we only needs to 
+	 * synchonrize two store instruction, otherwise it's Ok */
+	BARRIER_SS();
+
 	arch_atomic_sw_increment_u32(&queue->rear);
 
-	/* TODO: TSAN error, seems Ok, but we need make sure */
-	if(ITC_EQUEUE_EVENT_MASK_ALLOWS(_sched_waiting, queue->type))
+	if(_check_sched_needs_event(queue))
 	{
 		_sched_waiting = 0;
 
@@ -442,12 +454,20 @@ uint32_t itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t type_
 	for(ret = 0; ret < buffer_size && (queue->rear - queue->front - ret) != 0; ret ++)
 	    buffer[ret] = queue->events[(queue->front + ret) & (queue->size - 1)];
 
-	BARRIER();
+	/* At this point, what we should make sure is the event is completed transfer to 
+	 * the buffer array before the CPU write the front counter, so any load should 
+	 * complete before we actually write to the counter */
+	BARRIER_LS();
 
 	queue->front += ret;
 
-	BARRIER();
-
+	/* This is totally Ok, even if the reodering happens by either hardware and compiler,
+	 * since the worst case of data race at this point is the dispatcher unable to wake
+	 * the event loop at this time (But it should be able to)
+	 * However, this doesn't affect correctness, the only change should be lower effeciency
+	 * for the event dispatching workflow. 
+	 * Since this is so rare, it's even not a big concern
+	 **/
 	if((queue->rear - queue->front + ret) == queue->size)
 	{
 		LOG_DEBUG("scheduler thread: notifying the more free space in the queue to token %zu", i);
@@ -479,6 +499,11 @@ int itc_equeue_empty(itc_equeue_token_t token)
 
 }
 
+TSAN_EXCLUDE static int _check_killed_flag(const volatile int* killed)
+{
+	return killed != NULL && *killed != 0;
+}
+
 int itc_equeue_wait(itc_equeue_token_t token, const volatile int* killed, itc_equeue_wait_interrupt_t* interrupt)
 {
 	if(token != _SCHED_TOKEN) ERROR_RETURN_LOG(int, "Cannot call this function from the event thread");
@@ -495,7 +520,7 @@ int itc_equeue_wait(itc_equeue_token_t token, const volatile int* killed, itc_eq
 
 	itc_equeue_event_mask_t mask = (1u << ITC_EQUEUE_EVENT_TYPE_COUNT) - 1;
 
-	while(killed == NULL || *killed == 0 /* TODO: At this point TSAN may complain */)
+	while(!_check_killed_flag(killed))
 	{
 		size_t i;
 
