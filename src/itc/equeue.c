@@ -275,12 +275,12 @@ itc_equeue_token_t itc_equeue_module_token(uint32_t size, itc_equeue_event_type_
 		}
 		_queues = next;
 	}
+	
+	queue->type = type;
 
 	if((errno = pthread_mutex_unlock(&_global_mutex)) != 0) LOG_WARNING_ERRNO("Cannot release the global mutex");
 
 	LOG_INFO("New module token in the event queue: Token = %x", ret);
-
-	queue->type = type;
 
 	return ret;
 ERR:
@@ -329,6 +329,8 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 	else if(event.type != ITC_EQUEUE_EVENT_TYPE_IO && event.type != ITC_EQUEUE_EVENT_TYPE_TASK)
 	    ERROR_RETURN_LOG(int, "Invalid event type");
 
+	/* TODO: TSAN error, the queue might be changed by itc_equeue_module_token, while another put is already running 
+	 *       Even if this is not likely to happen, but it may cause crash */
 	_queue_t* queue = *VECTOR_GET(_queue_t*, _queues, token);
 	if(NULL == queue)
 	    ERROR_RETURN_LOG(int, "Cannot get the queue for token %u", token);
@@ -376,8 +378,12 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 	queue->events[next_position] = event;
 	/* make sure that the data get ready first, then inc the pointer */
 	BARRIER();
+
+	/* TODO: TSAN error, TSAN reports an error at this point, since the data is changed without lock
+	 *       and then readed, make sure this is OK. If yes, add code make TSAN doesn't complain */
 	arch_atomic_sw_increment_u32(&queue->rear);
 
+	/* TODO: TSAN error, seems Ok, but we need make sure */
 	if(ITC_EQUEUE_EVENT_MASK_ALLOWS(_sched_waiting, queue->type))
 	{
 		_sched_waiting = 0;
@@ -473,7 +479,7 @@ int itc_equeue_empty(itc_equeue_token_t token)
 
 }
 
-int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait_interrupt_t* interrupt)
+int itc_equeue_wait(itc_equeue_token_t token, const volatile int* killed, itc_equeue_wait_interrupt_t* interrupt)
 {
 	if(token != _SCHED_TOKEN) ERROR_RETURN_LOG(int, "Cannot call this function from the event thread");
 
@@ -489,7 +495,7 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
 
 	itc_equeue_event_mask_t mask = (1u << ITC_EQUEUE_EVENT_TYPE_COUNT) - 1;
 
-	while(killed == NULL || *killed == 0)
+	while(killed == NULL || *killed == 0 /* TODO: At this point TSAN may complain */)
 	{
 		size_t i;
 

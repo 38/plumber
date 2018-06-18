@@ -71,12 +71,16 @@ static _thread_page_pool_t* _local_page_pool_list = NULL;
 
 static int _pool_disabled = 0;
 
-pthread_mutex_t mutex;
+static pthread_mutex_t _local_pool_mutex;
 
 int mempool_page_init()
 {
 	_free_list = NULL;
 	_num_free_pages = 0;
+
+	if(0 != (errno = pthread_mutex_init(&_local_pool_mutex, NULL)))
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the thread local page pool mutex");
+
 	return 0;
 }
 
@@ -104,6 +108,9 @@ int mempool_page_finalize()
 		}
 		free(curpool);
 	}
+
+	if(0 != (errno = pthread_mutex_destroy(&_local_pool_mutex)))
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot destory the thread local page pool mutex");
 
 	return 0;
 }
@@ -202,17 +209,29 @@ static inline int _check_local_pool(void)
 {
 	if(NULL == _local_page_pool)
 	{
+		LOG_DEBUG("No thread local page pool allocated, try to make a new one");
+
+		if(0 != (errno = pthread_mutex_lock(&_local_pool_mutex)))
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the thread local page pool mutex");
+
 		_local_page_pool = (_thread_page_pool_t*)malloc(sizeof(_thread_page_pool_t));
 		if(NULL == _local_page_pool)
-		    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate the thread local page pool");
+		    ERROR_LOG_ERRNO_GOTO(ALLOC_FAIL, "Cannot allocate the thread local page pool");
 		_local_page_pool->page_list_begin = _local_page_pool->page_list_end = _local_page_pool->exceeded = NULL;
 		_local_page_pool->page_count = 0;
 		_local_page_pool->next = _local_page_pool_list;
 		_local_page_pool_list = _local_page_pool;
 		LOG_DEBUG("Thread local page pool has been initialized");
+
+		if(0 != (errno = pthread_mutex_unlock(&_local_pool_mutex)))
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot release the thread local page pool mutex");
 	}
 
 	return 0;
+
+ALLOC_FAIL:
+	pthread_mutex_unlock(&_local_pool_mutex);
+	return ERROR_CODE(int);
 }
 void* mempool_page_alloc()
 {

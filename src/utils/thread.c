@@ -78,12 +78,16 @@ static __thread thread_t* _thread_obj = NULL;
 /**
  * @brief used to assign an untagged thread a thread id
  **/
-static uint32_t _next_thread_id = 0;
+static volatile uint32_t _next_thread_id = 0;
 
 /**
  * @brief get the thread id of current thread
  * @return the thread id
  **/
+#if !defined(STACK_SIZE) && defined(SANITIZER)
+/* We actually believe the data race reported by TSAN is a false positive*/
+__attribute__((no_sanitize_thread))
+#endif 
 static inline uint32_t _get_thread_id(void)
 {
 #ifdef STACK_SIZE

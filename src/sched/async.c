@@ -120,12 +120,12 @@ typedef struct {
  *        for both reader and writer.
  **/
 static struct {
-	uint32_t             init:1;    /*!< Indicates if the async task processor has been initialized */
-	uint32_t             killed:1;  /*!< Indicates if the entire Async Task Processor has been killed */
+	uint32_t             init:1;          /*!< Indicates if the async task processor has been initialized */
 	uint32_t             q_mutex_init:1;  /*!< If queue mutex has been initalized */
 	uint32_t             al_mutex_init:1; /*!< If the waiting list mutex has been initialized */
 	uint32_t             q_cond_init:1;   /*!< If the queue condvar has been initialized */
 	volatile uint32_t    num_ready;       /*!< The number of threads that gets ready */
+	volatile uint32_t    killed:1;        /*!< Indicates if the entire Async Task Processor has been killed */
 
 	/*********** The queue related data ***************/
 	uint32_t             q_cap;    /*!< The capacity of the queue */
@@ -257,6 +257,29 @@ static inline int _notify_compeleted_awaiters(itc_equeue_token_t token, int set_
 }
 
 /**
+ * @brief Update the ready async processor thread counter
+ * @note I believe this is an example for the TSAN false positive
+ **/
+#if defined(SANITIZER)
+__attribute__((no_sanitize_thread))
+#endif
+static inline void _incrment_num_ready(void)
+{
+	uint32_t old;
+	do {
+		old = _ctx.num_ready;
+	}while(!__sync_bool_compare_and_swap(&_ctx.num_ready, old, old + 1));
+}
+
+#if defined(SANITIZER)
+__attribute__((no_sanitize_thread))
+#endif
+static inline uint32_t _check_killed(void)
+{
+	return _ctx.killed;
+}
+
+/**
  * @brief The main function of the async processor
  * @param data The thread data
  * @return status code
@@ -272,12 +295,10 @@ static void* _async_processor_main(void* data)
 	if(ERROR_CODE(itc_equeue_token_t) == token)
 	    ERROR_PTR_RETURN_LOG("Cannot get the enent queue token for the async processing thread");
 
-	uint32_t old;
-	do {
-		old = _ctx.num_ready;
-	}while(!__sync_bool_compare_and_swap(&_ctx.num_ready, old, old + 1));
+	_incrment_num_ready();
 
-	for(;!_ctx.killed;)
+
+	for(;!_check_killed();)
 	{
 		/* We need to reset the previous task at this point, and the task should be able find by the scheudler thread
 		 * with the completion event. However, if the task failed to post to the event queue, then it's the point to
@@ -299,7 +320,7 @@ static void* _async_processor_main(void* data)
 		abstime.tv_sec = now.tv_sec+1;
 		abstime.tv_nsec = 0;
 
-		while(_ctx.q_front == _ctx.q_rear && !_ctx.killed)
+		while(_ctx.q_front == _ctx.q_rear && !_check_killed())
 		{
 			if((errno = pthread_cond_timedwait(&_ctx.q_cond, &_ctx.q_mutex, &abstime)) != 0 && errno != EINTR && errno != ETIMEDOUT)
 			    ERROR_LOG_ERRNO_GOTO(UNLOCK, "Cannot wait for the reader cond var");
@@ -312,7 +333,7 @@ static void* _async_processor_main(void* data)
 			abstime.tv_sec ++;
 		}
 
-		if(_ctx.killed) goto UNLOCK;
+		if(_check_killed()) goto UNLOCK;
 
 		/* At this point we can claim the task */
 		thread_data->task = _ctx.q_data[(_ctx.q_front ++) & (_ctx.q_cap - 1)];

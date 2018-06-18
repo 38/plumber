@@ -208,7 +208,7 @@ int itc_equeue_empty(itc_equeue_token_t token);
  * @param interrupt The interrupt callback
  * @return status code
  **/
-int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait_interrupt_t* interrupt);
+int itc_equeue_wait(itc_equeue_token_t token, const volatile int* killed, itc_equeue_wait_interrupt_t* interrupt);
 
 /**
  * @brief Interrupt the wait execution and make interrupt callback runs

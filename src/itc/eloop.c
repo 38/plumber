@@ -28,9 +28,8 @@ typedef struct {
 	itc_module_type_t module_type; /*!< the type code of the module */
 	uint8_t buffer_valid:1; /*!< the valid dual buffer */
 	itc_module_pipe_param_t accept_param[2]; /*!< the accept param use by this pipe dual buffer */
-	uint32_t started:1; /*!< indicates if this thread has been started */
 	thread_t* thread; /*!< the thread handle */
-	uint32_t killed:1; /*!< indicates if this thread will be killed */
+	volatile uint32_t killed:1; /*!< indicates if this thread will be killed */
 } _thread_data_t;
 
 /**
@@ -52,6 +51,14 @@ __thread uint32_t itc_eloop_thread_killed;
  **/
 static _thread_data_t* _thread_data;
 
+#ifdef SANITIZER
+__attribute__((no_sanitize_thread))
+#endif
+static uint32_t _check_killed_flag(void)
+{
+	return _self->killed;
+}
+
 static inline void* _module_event_loop_main(void* data)
 {
 	thread_set_name("PbEventLoop");
@@ -70,7 +77,7 @@ static inline void* _module_event_loop_main(void* data)
 	if(ERROR_CODE(itc_equeue_token_t) == token)
 	    ERROR_PTR_RETURN_LOG("Cannot allocate token from the event queue from module #%"PRIu32, _self->module_type);
 
-	for(;!_self->killed;)
+	for(;!_check_killed_flag();)
 	{
 		itc_equeue_event_t event;
 
@@ -113,7 +120,7 @@ static inline void _on_thread_killed(int signo)
 
 	LOG_INFO("Stopping Event Loop for module %u", _self->module_type);
 
-	if(_self->killed)
+	if(_check_killed_flag())
 	{
 		itc_eloop_thread_killed = 1;
 		itc_module_loop_killed(_self->module_type);
@@ -146,7 +153,7 @@ static inline int _init_eloop(void)
 	{
 		_thread_data[j].module_type = modules[j];
 		_thread_data[j].killed = 0;
-		_thread_data[j].started = 0;
+		_thread_data[j].thread = NULL;
 		_thread_data[j].buffer_valid = 0;
 		_thread_data[j].accept_param[0].input_flags = RUNTIME_API_PIPE_INPUT;
 		_thread_data[j].accept_param[0].output_flags = RUNTIME_API_PIPE_OUTPUT;
@@ -160,7 +167,7 @@ static inline int _init_eloop(void)
 	return 0;
 }
 
-int itc_eloop_start(void)
+int itc_eloop_start(const itc_module_pipe_param_t* pipe_param)
 {
 	if(ERROR_CODE(int) == _init_eloop())
 	    ERROR_RETURN_LOG(int, "Cannot initialize the event loop");
@@ -173,16 +180,16 @@ int itc_eloop_start(void)
 	if(sigaction(_SIGTHREADKILL, &act, NULL) < 0)
 	    ERROR_RETURN_LOG_ERRNO(int, "Cannot install signal handler");
 
+	if(NULL != pipe_param && ERROR_CODE(int) == itc_eloop_set_all_accept_param(*pipe_param))
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot set the pipe parameter");
+
 	uint32_t i;
 	for(i = 0; i < _thread_count; i ++)
 	{
 		if(NULL == (_thread_data[i].thread = thread_new(_module_event_loop_main, _thread_data + i, THREAD_TYPE_EVENT)))
 		    LOG_WARNING("Cannot create new thread for the event loop of ITC module %s", itc_module_get_name(_thread_data[i].module_type, NULL, 0));
 		else
-		{
-			_thread_data[i].started = 1;
 			LOG_INFO("Event loop for ITC module %s is started", itc_module_get_name(_thread_data[i].module_type, NULL, 0));
-		}
 	}
 
 	/* block the signal on non-event loop threads */
@@ -207,7 +214,9 @@ int itc_eloop_finalize(void)
 	uint32_t has_started = 0;
 	for(i = 0;  i < _thread_count; i ++)
 	{
-		if(_thread_data[i].started) has_started = 1;
+		if(_thread_data[i].thread != NULL) 
+			has_started = 1;
+
 		_thread_data[i].killed = 1;
 	}
 	if(has_started)
@@ -215,7 +224,7 @@ int itc_eloop_finalize(void)
 		for(i = 0; i < _thread_count; i ++)
 		{
 			thread_kill(_thread_data[i].thread, _SIGTHREADKILL);
-			if(_thread_data[i].started == 0) continue;
+			if(_thread_data[i].thread == NULL) continue;
 			void* ret;
 			if(thread_free(_thread_data[i].thread, &ret) < 0)
 			{
