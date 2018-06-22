@@ -88,7 +88,7 @@ static volatile uint32_t _next_thread_id = 0;
 #if defined(STACK_SIZE)
 static inline uint32_t _get_thread_id(void)
 #else
-TSAN_EXCLUDE static inline uint32_t _get_thread_id(void)
+TSAN_EXCLUDE static uint32_t _get_thread_id(void)
 #endif 
 {
 #ifdef STACK_SIZE

@@ -328,6 +328,16 @@ TSAN_EXCLUDE static int _check_sched_needs_event(const _queue_t* queue)
 	return ITC_EQUEUE_EVENT_MASK_ALLOWS(_sched_waiting, queue->type);
 }
 
+TSAN_EXCLUDE static void _update_rear_counter(_queue_t* queue)
+{
+	arch_atomic_sw_increment_u32(&queue->rear);
+}
+
+TSAN_EXCLUDE static void _clear_waiting_flag(void)
+{
+	_sched_waiting = 0;
+}
+
 int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 {
 	if(token == _SCHED_TOKEN)
@@ -394,11 +404,12 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 	 * synchonrize two store instruction, otherwise it's Ok */
 	BARRIER_SS();
 
-	arch_atomic_sw_increment_u32(&queue->rear);
+	_update_rear_counter(queue);
 
 	if(_check_sched_needs_event(queue))
 	{
-		_sched_waiting = 0;
+
+		_clear_waiting_flag();
 
 		LOG_DEBUG("token %u: notifiying the schduler thread to read this element", token);
 
@@ -416,6 +427,11 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 	}
 
 	return 0;
+}
+
+TSAN_EXCLUDE static void _update_front_counter(_queue_t* queue, uint32_t new_front)
+{
+	arch_atomic_sw_assignment_u32(&queue->front, new_front);
 }
 
 uint32_t itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t type_mask, itc_equeue_event_t* buffer, uint32_t buffer_size)
@@ -459,7 +475,8 @@ uint32_t itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t type_
 	 * complete before we actually write to the counter */
 	BARRIER_LS();
 
-	queue->front += ret;
+	_update_front_counter(queue, queue->front + ret);
+
 
 	/* This is totally Ok, even if the reodering happens by either hardware and compiler,
 	 * since the worst case of data race at this point is the dispatcher unable to wake

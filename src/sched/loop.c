@@ -142,7 +142,7 @@ static itc_module_type_t _mod_mem = ERROR_CODE(itc_module_type_t);
  * @param scheduler The scheduler to check
  * @return the result
  **/
-static inline int _scheduler_saturated(sched_loop_t* scheduler)
+TSAN_EXCLUDE static int _scheduler_saturated(sched_loop_t* scheduler)
 {
 	uint32_t pending_reqs = scheduler->pending_reqs_id_end - scheduler->pending_reqs_id_begin;
 	uint32_t running_reqs = scheduler->num_running_reqs;
@@ -247,6 +247,12 @@ TSAN_EXCLUDE static int _check_killed_flag(void)
 	return _killed;
 }
 
+TSAN_EXCLUDE static int _should_wake_for_new_slot(const sched_loop_t* context)
+{
+	return _dispatcher_waiting_event &&
+		   (context->rear - context->front == context->size - 1);
+}
+
 /**
  * @brief The scheduler main function
  * @param data The scheduler context
@@ -323,7 +329,7 @@ static inline void* _sched_main(void* data)
 		uint32_t position = context->front & (context->size - 1);
 		itc_equeue_event_t current = context->events[position];
 
-		BARRIER();
+		BARRIER_LS();
 
 		arch_atomic_sw_increment_u32(&context->front);
 
@@ -332,8 +338,7 @@ static inline void* _sched_main(void* data)
 		/* At this point, we have at least one empty slot for the next event, so we need to
 		 * check if the dispatcher is waiting for event, then we need to activate the pending
 		 * task resolve callback when the scheduler queue is previously full */
-		if(_dispatcher_waiting_event &&
-		   (context->rear - context->front == context->size - 1) &&
+		if(_should_wake_for_new_slot(context) &&
 		   ERROR_CODE(int) == itc_equeue_wait_interrupt())
 		    LOG_WARNING("Cannot invoke the wait interrupt callback");
 
@@ -361,7 +366,7 @@ static inline void* _sched_main(void* data)
 			     * and then actually mark the event has been poped out. */
 			    arch_atomic_sw_increment_u32(&context->num_running_reqs);
 
-			    BARRIER();
+			    BARRIER_SS();
 
 			    arch_atomic_sw_increment_u32(&context->pending_reqs_id_begin);
 
@@ -549,6 +554,11 @@ static itc_equeue_event_mask_t _interrupt_handler(void* pl)
 	return ret;
 }
 
+TSAN_EXCLUDE static void _update_scheduler_rear(sched_loop_t* scheduler)
+{
+	arch_atomic_sw_increment_u32(&scheduler->rear);
+}
+
 /**
  * @brief The dispatcher main function
  * @return status code
@@ -715,10 +725,10 @@ EXIT_LOOP:
 			if(event.type == ITC_EQUEUE_EVENT_TYPE_IO)
 			    arch_atomic_sw_increment_u32(&scheduler->pending_reqs_id_end);
 
-			BARRIER();
+			BARRIER_SS();
 			/* We only needs notify the worker when all the dispatching are done with this one */
 			int needs_notify = scheduler->front == scheduler->rear;
-			arch_atomic_sw_increment_u32(&scheduler->rear);
+			_update_scheduler_rear(scheduler);
 
 			if(needs_notify)
 			{
