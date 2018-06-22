@@ -98,6 +98,17 @@ static inline void vector_clear(vector_t* vec)
  **/
 vector_t* vector_append(vector_t* vec, const void* data);
 
+/**
+ * @brief Similar to the vector append, but once the vector needs to resize, do not dispose
+ *        the old pointer, allocate a new one
+ * @note  This is useful when we are in a multithreading situation, eventhough the vector has changed but the old pointer
+ *        is still avaliable for access
+ * @param vec The vector
+ * @param data The actual data, if NULL is passed, expand the capacity only
+ * @return the vector after the operation, NULL on error
+ **/
+vector_t* vector_append_keep_old(vector_t* vec, const void* data);
+
 #endif /* __VECTOR_H__ */
 
 

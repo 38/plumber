@@ -12,6 +12,7 @@
 
 #include <error.h>
 #include <fallthrough.h>
+#include <tsan.h>
 #include <barrier.h>
 #include <arch/arch.h>
 
@@ -54,6 +55,13 @@ STATIC_ASSERTION_LAST(_queue_t, events);
 STATIC_ASSERTION_SIZE(_queue_t, events, 0);
 
 static vector_t* _queues;
+
+typedef struct _used_vec_t {
+	struct _used_vec_t*   next;   /*!< The next used vector */
+	vector_t*             vec;    /*!< The actual vector */
+} _used_vec_t;
+
+static _used_vec_t* _used_vec;
 
 /**
  * @brief The mutex used for the disptacher to take an item from the queue
@@ -187,6 +195,17 @@ int itc_equeue_finalize()
 			}
 		}
 		vector_free(_queues);
+
+		_used_vec_t* ptr;
+		for(ptr = _used_vec; ptr != NULL;)
+		{
+			_used_vec_t* cur = ptr;
+			ptr = ptr->next;
+			vector_free(cur->vec);
+			free(cur);
+		}
+
+		_used_vec = NULL;
 	}
 	if((errno = pthread_mutex_unlock(&_global_mutex)) != 0)
 	{
@@ -240,15 +259,29 @@ itc_equeue_token_t itc_equeue_module_token(uint32_t size, itc_equeue_event_type_
 	queue->size = q_size;
 
 	stage = 2;
-	next = vector_append(_queues, &queue);
+
+	next = vector_append_keep_old(_queues, &queue);
 	if(NULL == next) ERROR_LOG_GOTO(ERR, "Cannot append the new queue to the queue list");
 
-	_queues = next;
+	if(_queues != next)
+	{
+		_used_vec_t* used = (_used_vec_t*)malloc(sizeof(_used_vec_t));
+		if(NULL == used)
+			LOG_WARNING_ERRNO("Cannot allocate memory for the used vector");
+		else
+		{
+			used->next = _used_vec;
+			used->vec = _queues;
+			_used_vec = used;
+		}
+		_queues = next;
+	}
+	
+	queue->type = type;
+
 	if((errno = pthread_mutex_unlock(&_global_mutex)) != 0) LOG_WARNING_ERRNO("Cannot release the global mutex");
 
 	LOG_INFO("New module token in the event queue: Token = %x", ret);
-
-	queue->type = type;
 
 	return ret;
 ERR:
@@ -285,6 +318,26 @@ itc_equeue_token_t itc_equeue_scheduler_token()
 	return ret;
 }
 
+TSAN_EXCLUDE static _queue_t* _get_owned_queue(itc_equeue_token_t token)
+{
+	return *VECTOR_GET(_queue_t*, _queues, token);
+}
+
+TSAN_EXCLUDE static int _check_sched_needs_event(const _queue_t* queue)
+{
+	return ITC_EQUEUE_EVENT_MASK_ALLOWS(_sched_waiting, queue->type);
+}
+
+TSAN_EXCLUDE static void _update_rear_counter(_queue_t* queue)
+{
+	arch_atomic_sw_increment_u32(&queue->rear);
+}
+
+TSAN_EXCLUDE static void _clear_waiting_flag(void)
+{
+	_sched_waiting = 0;
+}
+
 int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 {
 	if(token == _SCHED_TOKEN)
@@ -297,7 +350,10 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 	else if(event.type != ITC_EQUEUE_EVENT_TYPE_IO && event.type != ITC_EQUEUE_EVENT_TYPE_TASK)
 	    ERROR_RETURN_LOG(int, "Invalid event type");
 
-	_queue_t* queue = *VECTOR_GET(_queue_t*, _queues, token);
+
+	/* Actually, this is OK, because although _queues might be out-of-dated, however, we have kept all version of previously allocated vector */
+	_queue_t* queue = _get_owned_queue(token);
+	
 	if(NULL == queue)
 	    ERROR_RETURN_LOG(int, "Cannot get the queue for token %u", token);
 
@@ -342,13 +398,18 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 
 	uint64_t next_position = (queue->rear) & (queue->size - 1);
 	queue->events[next_position] = event;
-	/* make sure that the data get ready first, then inc the pointer */
-	BARRIER();
-	arch_atomic_sw_increment_u32(&queue->rear);
 
-	if(ITC_EQUEUE_EVENT_MASK_ALLOWS(_sched_waiting, queue->type))
+	/* At this point we only care about the time the CPU write the event array
+	 * should be earlier than write back the rear counter, so we only needs to 
+	 * synchonrize two store instruction, otherwise it's Ok */
+	BARRIER_SS();
+
+	_update_rear_counter(queue);
+
+	if(_check_sched_needs_event(queue))
 	{
-		_sched_waiting = 0;
+
+		_clear_waiting_flag();
 
 		LOG_DEBUG("token %u: notifiying the schduler thread to read this element", token);
 
@@ -366,6 +427,11 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 	}
 
 	return 0;
+}
+
+TSAN_EXCLUDE static void _update_front_counter(_queue_t* queue, uint32_t new_front)
+{
+	arch_atomic_sw_assignment_u32(&queue->front, new_front);
 }
 
 uint32_t itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t type_mask, itc_equeue_event_t* buffer, uint32_t buffer_size)
@@ -404,12 +470,21 @@ uint32_t itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t type_
 	for(ret = 0; ret < buffer_size && (queue->rear - queue->front - ret) != 0; ret ++)
 	    buffer[ret] = queue->events[(queue->front + ret) & (queue->size - 1)];
 
-	BARRIER();
+	/* At this point, what we should make sure is the event is completed transfer to 
+	 * the buffer array before the CPU write the front counter, so any load should 
+	 * complete before we actually write to the counter */
+	BARRIER_LS();
 
-	queue->front += ret;
+	_update_front_counter(queue, queue->front + ret);
 
-	BARRIER();
 
+	/* This is totally Ok, even if the reodering happens by either hardware and compiler,
+	 * since the worst case of data race at this point is the dispatcher unable to wake
+	 * the event loop at this time (But it should be able to)
+	 * However, this doesn't affect correctness, the only change should be lower effeciency
+	 * for the event dispatching workflow. 
+	 * Since this is so rare, it's even not a big concern
+	 **/
 	if((queue->rear - queue->front + ret) == queue->size)
 	{
 		LOG_DEBUG("scheduler thread: notifying the more free space in the queue to token %zu", i);
@@ -441,7 +516,12 @@ int itc_equeue_empty(itc_equeue_token_t token)
 
 }
 
-int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait_interrupt_t* interrupt)
+TSAN_EXCLUDE static int _check_killed_flag(const volatile int* killed)
+{
+	return killed != NULL && *killed != 0;
+}
+
+int itc_equeue_wait(itc_equeue_token_t token, const volatile int* killed, itc_equeue_wait_interrupt_t* interrupt)
 {
 	if(token != _SCHED_TOKEN) ERROR_RETURN_LOG(int, "Cannot call this function from the event thread");
 
@@ -457,7 +537,7 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
 
 	itc_equeue_event_mask_t mask = (1u << ITC_EQUEUE_EVENT_TYPE_COUNT) - 1;
 
-	while(killed == NULL || *killed == 0)
+	while(!_check_killed_flag(killed))
 	{
 		size_t i;
 

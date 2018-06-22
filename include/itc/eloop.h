@@ -29,9 +29,16 @@ int itc_eloop_finalize(void);
  * @brief Start the event loops for all event accepting module instances <br/>
  * @details When this function gets called, it will enumerate all the event accepting module instances
  *         and start isolate event loops for each module isntances.
+ * @param pipe_param A pipe initialization parameter. If this is not NULL, the eloop will setup the pipe_param
+ *        for all the thread that is starting in a **thread-safe fashion**.
+ * @note Although it's possible for the scheduler to change the pipe init param after the loop started.
+ *       However, *This is not thread-safe* (See the comment in the code). The entire reason for allowing 
+ *       data race in that point is we assume the need for changing the thread init param dynamically is 
+ *       very rare. So if we add a lock at this point, it's completely an overkill. 
+ *       But be careful when the itc_eloop_set_accept_param or itc_eloop_set_all_accept_param need to be used.
  * @return status code
  **/
-int itc_eloop_start(void);
+int itc_eloop_start(const itc_module_pipe_param_t* pipe_param);
 
 /**
  * @brief set the accept param for a module instance

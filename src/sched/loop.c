@@ -11,6 +11,7 @@
 #include <plumber.h>
 #include <error.h>
 #include <barrier.h>
+#include <tsan.h>
 #include <arch/arch.h>
 #include <utils/log.h>
 #include <utils/thread.h>
@@ -28,12 +29,12 @@ static sched_service_t* _deploying_service;
 /**
  * @brief How many threads has been sucessfuly deployed
  **/
-static uint32_t _deployed_count;
+static volatile uint32_t _deployed_count;
 
 /**
  * @brief indicates if all the loop gets killed
  **/
-static int _killed = 0;
+static volatile int _killed = 0;
 
 /**
  * @brief the number of thread
@@ -55,7 +56,6 @@ static uint32_t _round_robin_move_threshold = 0;
  **/
 struct _sched_loop_t {
 	sched_loop_t* next;              /*!< the next thread in the loop linked list */
-	int       started;               /*!< if the loop has started */
 	thread_t* thread;                /*!< the thread object */
 	uint32_t  thread_id;             /*!< the thread id */
 	uint32_t  front;                 /*!< the front pointer of the queue */
@@ -110,7 +110,7 @@ static uint32_t _dispatcher_waiting = 0;
 /**
  * @brief Indicates if the  dispatcher is waiting for events
  **/
-static uint32_t _dispatcher_waiting_event = 0;
+static volatile uint32_t _dispatcher_waiting_event = 0;
 
 /**
  * @brief the mutex used by the dispatcher
@@ -142,7 +142,7 @@ static itc_module_type_t _mod_mem = ERROR_CODE(itc_module_type_t);
  * @param scheduler The scheduler to check
  * @return the result
  **/
-static inline int _scheduler_saturated(sched_loop_t* scheduler)
+TSAN_EXCLUDE static int _scheduler_saturated(sched_loop_t* scheduler)
 {
 	uint32_t pending_reqs = scheduler->pending_reqs_id_end - scheduler->pending_reqs_id_begin;
 	uint32_t running_reqs = scheduler->num_running_reqs;
@@ -160,7 +160,6 @@ static inline sched_loop_t* _context_new(uint32_t tid)
 	sched_loop_t* ret = (sched_loop_t*)calloc(1, sizeof(sched_loop_t) + sizeof(itc_equeue_event_t) * _queue_size);
 
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the shceduler thread context");
-	ret->started = 0;
 	ret->thread_id = tid;
 	ret->front = ret->rear = 0;
 	ret->size = _queue_size;
@@ -243,6 +242,17 @@ static inline int _context_free(sched_loop_t* ctx)
 	return rc;
 }
 
+TSAN_EXCLUDE static int _check_killed_flag(void)
+{
+	return _killed;
+}
+
+TSAN_EXCLUDE static int _should_wake_for_new_slot(const sched_loop_t* context)
+{
+	return _dispatcher_waiting_event &&
+		   (context->rear - context->front == context->size - 1);
+}
+
 /**
  * @brief The scheduler main function
  * @param data The scheduler context
@@ -252,8 +262,6 @@ static inline void* _sched_main(void* data)
 {
 	thread_set_name("PbWorker");
 	sched_loop_t* context = (sched_loop_t*)data;
-
-	context->started = 1;
 
 	sched_task_context_t* stc = NULL;
 
@@ -269,7 +277,7 @@ static inline void* _sched_main(void* data)
 
 	uint32_t old_service_refcnt = 0;
 
-	for(;!_killed;)
+	for(;!_check_killed_flag();)
 	{
 		if(context->front == context->rear)
 		{
@@ -304,7 +312,7 @@ static inline void* _sched_main(void* data)
 				if(context->rear != context->front) break;
 				if((errno = pthread_cond_timedwait(&context->cond, &context->mutex, &abstime)) != 0 && errno != ETIMEDOUT && errno != EINTR)
 				    LOG_WARNING_ERRNO("Cannot finish pthread_cond_timedwait");
-				if(_killed)
+				if(_check_killed_flag())
 				{
 					if((errno = pthread_mutex_unlock(&context->mutex)) != 0)
 					    LOG_WARNING_ERRNO("Cannot release the scheduler event mutex");
@@ -321,7 +329,7 @@ static inline void* _sched_main(void* data)
 		uint32_t position = context->front & (context->size - 1);
 		itc_equeue_event_t current = context->events[position];
 
-		BARRIER();
+		BARRIER_LS();
 
 		arch_atomic_sw_increment_u32(&context->front);
 
@@ -330,8 +338,7 @@ static inline void* _sched_main(void* data)
 		/* At this point, we have at least one empty slot for the next event, so we need to
 		 * check if the dispatcher is waiting for event, then we need to activate the pending
 		 * task resolve callback when the scheduler queue is previously full */
-		if(_dispatcher_waiting_event &&
-		   (context->rear - context->front == context->size - 1) &&
+		if(_should_wake_for_new_slot(context) &&
 		   ERROR_CODE(int) == itc_equeue_wait_interrupt())
 		    LOG_WARNING("Cannot invoke the wait interrupt callback");
 
@@ -359,7 +366,7 @@ static inline void* _sched_main(void* data)
 			     * and then actually mark the event has been poped out. */
 			    arch_atomic_sw_increment_u32(&context->num_running_reqs);
 
-			    BARRIER();
+			    BARRIER_SS();
 
 			    arch_atomic_sw_increment_u32(&context->pending_reqs_id_begin);
 
@@ -389,7 +396,7 @@ static inline void* _sched_main(void* data)
 
 		uint32_t prev_concurrency = old_service ? sched_task_num_concurrent_requests(stc) : 0;
 
-		while(sched_step_next(stc, _mod_mem) > 0 && !_killed);
+		while(sched_step_next(stc, _mod_mem) > 0 && !_check_killed_flag());
 
 		uint32_t concurrency = sched_task_num_concurrent_requests(stc);
 		arch_atomic_sw_assignment_u32(&context->num_running_reqs, concurrency);
@@ -547,6 +554,11 @@ static itc_equeue_event_mask_t _interrupt_handler(void* pl)
 	return ret;
 }
 
+TSAN_EXCLUDE static void _update_scheduler_rear(sched_loop_t* scheduler)
+{
+	arch_atomic_sw_increment_u32(&scheduler->rear);
+}
+
 /**
  * @brief The dispatcher main function
  * @return status code
@@ -569,7 +581,7 @@ static inline int _dispatcher_main(void)
 
 	_pending_list_t pending_list = {};
 
-	for(;!_killed;)
+	for(;!_check_killed_flag();)
 	{
 		itc_equeue_wait_interrupt_t ir = {
 			.func = _interrupt_handler,
@@ -592,7 +604,7 @@ static inline int _dispatcher_main(void)
 
 		_dispatcher_waiting_event = 0;
 
-		if(_killed) break;
+		if(_check_killed_flag()) break;
 
 		itc_equeue_event_t events[32];
 		uint32_t n_events, i;
@@ -687,7 +699,7 @@ SCHED_WAIT:
 
 					abstime.tv_sec ++;
 
-					if(_killed) goto EXIT_LOOP;
+					if(_check_killed_flag()) goto EXIT_LOOP;
 				}
 				else
 				{
@@ -703,7 +715,7 @@ EXIT_LOOP:
 				}
 			}
 
-			if(_killed) break;
+			if(_check_killed_flag()) break;
 
 			LOG_DEBUG("Round robin dispatcher picked up thread %u", scheduler->thread_id);
 
@@ -713,10 +725,10 @@ EXIT_LOOP:
 			if(event.type == ITC_EQUEUE_EVENT_TYPE_IO)
 			    arch_atomic_sw_increment_u32(&scheduler->pending_reqs_id_end);
 
-			BARRIER();
+			BARRIER_SS();
 			/* We only needs notify the worker when all the dispatching are done with this one */
 			int needs_notify = scheduler->front == scheduler->rear;
-			arch_atomic_sw_increment_u32(&scheduler->rear);
+			_update_scheduler_rear(scheduler);
 
 			if(needs_notify)
 			{
@@ -813,10 +825,7 @@ int sched_loop_start(sched_service_t** service, int fork_twice)
 	};
 
 
-	if(itc_eloop_start() < 0) ERROR_RETURN_LOG(int, "Cannot start the event loop");
-
-	if(itc_eloop_set_all_accept_param(request_param) == ERROR_CODE(int)) ERROR_RETURN_LOG(int, "Cannot set the accept param");
-
+	if(itc_eloop_start(&request_param) < 0) ERROR_RETURN_LOG(int, "Cannot start the event loop");
 
 	_dispatcher_main();
 
@@ -826,13 +835,10 @@ CLEANUP_CTX:
 	{
 		sched_loop_t* cur = ptr;
 		ptr = ptr->next;
-		if(cur->started)
+		if(cur->thread != NULL && thread_free(cur->thread, NULL) == ERROR_CODE(int))
 		{
-			if(thread_free(cur->thread, NULL) < 0)
-			{
-				LOG_ERROR_ERRNO("Cannot join the thread %d", i);
-				rc = ERROR_CODE(int);
-			}
+			LOG_ERROR("Cannot join the thread %d", i);
+			rc = ERROR_CODE(int);
 		}
 		if(_context_free(cur) == ERROR_CODE(int))
 		{

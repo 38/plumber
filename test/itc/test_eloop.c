@@ -102,7 +102,7 @@ int eloop_test(void)
 
 	ASSERT_RETOK(itc_equeue_token_t, token, CLEANUP_NOP);
 
-	ASSERT_OK(itc_eloop_start(), CLEANUP_NOP);
+	ASSERT_OK(itc_eloop_start(NULL), CLEANUP_NOP);
 
 	usleep(10000);
 
