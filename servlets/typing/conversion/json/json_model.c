@@ -196,6 +196,57 @@ ERR:
 	return ERROR_CODE(int);
 }
 
+static int _assert_build_type_model(pipe_t pipe, const char* type_name, void* data)
+{
+	json_model_t* model = (json_model_t*)data;
+
+	if(NULL == (model->ops = (json_model_op_t*)calloc(model->cap = 32, sizeof(json_model_op_t))))
+	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the operation array");
+
+	proto_db_field_info_t info;
+	int adhoc_rc = proto_db_is_adhoc(type_name, &info);
+	if(ERROR_CODE(int) == adhoc_rc)
+	    ERROR_RETURN_LOG(int, "Cannot check if the type is an adhoc type");
+
+	int is_str = 0;
+
+	if(adhoc_rc || (is_str = (strcmp(type_name, "plumber/std/request_local/String") == 0)))
+	{
+		model->ops[0].opcode = JSON_MODEL_OPCODE_WRITE;
+		model->ops[0].size   = info.size;
+
+		if(is_str)
+		    model->ops[0].type = JSON_MODEL_TYPE_STRING;
+		else if(info.primitive_prop & PROTO_DB_FIELD_PROP_REAL)
+		    model->ops[0].type = JSON_MODEL_TYPE_FLOAT;
+		else if(info.primitive_prop & PROTO_DB_FIELD_PROP_SIGNED)
+		    model->ops[0].type = JSON_MODEL_TYPE_SIGNED;
+		else
+		    model->ops[0].type = JSON_MODEL_TYPE_UNSIGNED;
+
+		if(ERROR_CODE(pstd_type_accessor_t) == (model->ops[0].acc = pstd_type_model_get_accessor(model->tm, pipe, is_str ? "token" : "value")))
+		    ERROR_RETURN_LOG(int, "Cannot get the accessor for primitive type %s", type_name);
+		model->nops = 1;
+		return 0;
+	}
+
+	_traverse_data_t td = {
+		.type_model   = model->tm,
+		.json_model   = model,
+		.root_type    = type_name,
+		.field_prefix = ""
+	};
+
+	if(ERROR_CODE(int) == proto_db_type_traverse(type_name, _traverse_type, &td))
+	{
+		_print_libproto_err();
+		ERROR_RETURN_LOG(int, "Cannot traverse the type %s", type_name);
+	}
+
+	return 0;
+
+}
+
 json_model_t* json_model_new(const char* pipe_name, const char* type_name, int input, pstd_type_model_t* type_model, void* mem)
 {
 	if(NULL == pipe_name || NULL == type_name || NULL == mem)
@@ -210,48 +261,10 @@ json_model_t* json_model_new(const char* pipe_name, const char* type_name, int i
 	if(NULL == (ret->name = strdup(pipe_name)))
 	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot dup the pipe name");
 
-	if(NULL == (ret->ops = (json_model_op_t*)calloc(ret->cap = 32, sizeof(json_model_op_t))))
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the operation array");
+	ret->tm = type_model;
 
-	proto_db_field_info_t info;
-	int adhoc_rc = proto_db_is_adhoc(type_name, &info);
-	if(ERROR_CODE(int) == adhoc_rc)
-	    ERROR_PTR_RETURN_LOG("Cannot check if the type is an adhoc type");
-
-	int is_str = 0;
-
-	if(adhoc_rc || (is_str = (strcmp(type_name, "plumber/std/request_local/String") == 0)))
-	{
-		ret->ops[0].opcode = JSON_MODEL_OPCODE_WRITE;
-		ret->ops[0].size   = info.size;
-
-		if(is_str)
-		    ret->ops[0].type = JSON_MODEL_TYPE_STRING;
-		else if(info.primitive_prop & PROTO_DB_FIELD_PROP_REAL)
-		    ret->ops[0].type = JSON_MODEL_TYPE_FLOAT;
-		else if(info.primitive_prop & PROTO_DB_FIELD_PROP_SIGNED)
-		    ret->ops[0].type = JSON_MODEL_TYPE_SIGNED;
-		else
-		    ret->ops[0].type = JSON_MODEL_TYPE_UNSIGNED;
-
-		if(ERROR_CODE(pstd_type_accessor_t) == (ret->ops[0].acc = pstd_type_model_get_accessor(type_model, ret->pipe, is_str ? "token" : "value")))
-		    ERROR_PTR_RETURN_LOG("Cannot get the accessor for primitive type %s", type_name);
-		ret->nops = 1;
-		return ret;
-	}
-
-	_traverse_data_t td = {
-		.type_model   = type_model,
-		.json_model   = ret,
-		.root_type    = type_name,
-		.field_prefix = ""
-	};
-
-	if(ERROR_CODE(int) == proto_db_type_traverse(type_name, _traverse_type, &td))
-	{
-		_print_libproto_err();
-		ERROR_PTR_RETURN_LOG("Cannot traverse the type %s", type_name);
-	}
+	if(ERROR_CODE(int) == pstd_type_model_assert(type_model, ret->pipe, _assert_build_type_model, ret))
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot install the type assertion");
 
 	return ret;
 }

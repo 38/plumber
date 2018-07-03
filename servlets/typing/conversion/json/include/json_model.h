@@ -54,6 +54,7 @@ extern "C" {
 		uint32_t            cap;        /*!< The capacity of the operation array */
 		uint32_t            nops;       /*!< The number of operations we need to be done for this type */
 		json_model_op_t*    ops;        /*!< The operations we need to dump the JSON data to the plumber type */
+		pstd_type_model_t*  tm;         /*!< The type model object */
 	} json_model_t;
 
 	/**

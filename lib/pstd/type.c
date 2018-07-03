@@ -69,8 +69,10 @@ typedef struct _const_t {
  * @brief Represent the type information for one pipe
  **/
 typedef struct {
-	uint32_t                cb_setup:1;    /*!< Indicates if we have already installed the type callback for this type info */
-	uint32_t                init:1;        /*!< If the type info has been initialized */
+	uint32_t                cb_setup:1;      /*!< Indicates if we have already installed the type callback for this type info */
+	uint32_t                init:1;          /*!< If the type info has been initialized */
+	uint32_t                readonly:1;      /*!< Indicates if the type model is readonly */
+	uint32_t                reject_assert:1; /*!< Indicates if the type model should reject any new assertion */
 	pipe_t                  copy_from;     /*!< If given it indicates which pipe we need to copy data from at the begning */
 	char*                   name;          /*!< The name of the type */
 	uint32_t                full_size;     /*!< The size of the header section */
@@ -86,12 +88,12 @@ typedef struct {
  * @brief The type context for a servlet instance
  **/
 struct _pstd_type_model_t {
-	uint32_t                     pipe_cap;    /*!< The pipe info array capacity */
-	runtime_api_pipe_id_t        pipe_max;    /*!< The upper bound of the pipe id */
-	_typeinfo_t*                 type_info;   /*!< The type information */
-	_acc_t                       accessor_cap;/*!< The capacity of the accessor table */
-	_acc_t                       accessor_cnt;/*!< The size of the accessor table */
-	_accessor_t*                 accessor;    /*!< The accessor table */
+	uint32_t                     pipe_cap;        /*!< The pipe info array capacity */
+	runtime_api_pipe_id_t        pipe_max;        /*!< The upper bound of the pipe id */
+	_typeinfo_t*                 type_info;       /*!< The type information */
+	_acc_t                       accessor_cap;    /*!< The capacity of the accessor table */
+	_acc_t                       accessor_cnt;    /*!< The size of the accessor table */
+	_accessor_t*                 accessor;        /*!< The accessor table */
 };
 
 /**
@@ -208,12 +210,20 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 	if(ERROR_CODE(uint32_t) == (typeinfo->full_size = proto_db_type_size(typeinfo->name)))
 	    ERROR_LOG_GOTO(ERR, "Cannot get the full size of type %s", typeinfo->name);
 
-
 	/* Check all the assertions */
+
+	/* We should reject any new type assertion after this,
+	 * otherwise we could have non-terminated type assertion chain */
+	typeinfo->reject_assert = 1;
+
 	_type_assertion_t* assertion;
 	for(assertion = typeinfo->assertion_list; NULL != assertion; assertion = assertion->next)
 	    if(ERROR_CODE(int) == assertion->func(pipe, typename, assertion->data))
 	        ERROR_LOG_GOTO(ERR, "Type assertion failed");
+
+	/* At this point, we should reject any change to this type model,
+	 * because we are determine the actual buffer layout */
+	typeinfo->readonly = 1;
 
 	/* Fetch all the field request */
 	_field_req_t* field_req;
@@ -440,6 +450,15 @@ static inline int _ensure_pipe_typeinfo(pstd_type_model_t* ctx, pipe_t pipe)
  **/
 static inline _acc_t _accessor_alloc(pstd_type_model_t* ctx, pipe_t pipe, const char* field_expr)
 {
+
+	if(ERROR_CODE(int) == _ensure_pipe_typeinfo(ctx, pipe))
+	    ERROR_RETURN_LOG_ERRNO(_acc_t, "Cannot resize the typeinfo array");
+	
+	if(ctx->type_info[PIPE_GET_ID(pipe)].readonly)
+		ERROR_RETURN_LOG(pstd_type_accessor_t, "The type model is read-only, "
+				                               "are you trying to modify a type model"
+											   "outside of initialization stage?");
+
 	if(ctx->accessor_cap <= ctx->accessor_cnt)
 	{
 		_accessor_t* newbuf = (_accessor_t*)realloc(ctx->accessor, sizeof(ctx->accessor[0]) * ctx->accessor_cap * 2);
@@ -462,10 +481,6 @@ static inline _acc_t _accessor_alloc(pstd_type_model_t* ctx, pipe_t pipe, const 
 	memcpy(accessor->field, field_expr, len);
 
 	accessor->pipe = pipe;
-
-	if(ERROR_CODE(int) == _ensure_pipe_typeinfo(ctx, pipe))
-	    ERROR_RETURN_LOG_ERRNO(_acc_t, "Cannot resize the typeinfo array");
-
 	accessor->next = ctx->type_info[PIPE_GET_ID(pipe)].accessor_list;
 	ctx->type_info[PIPE_GET_ID(pipe)].accessor_list = (uint32_t)(accessor - ctx->accessor);
 
@@ -586,11 +601,16 @@ int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_asse
 {
 	if(NULL == model || NULL == assertion || ERROR_CODE(pipe_t) == pipe || RUNTIME_API_PIPE_IS_VIRTUAL(pipe))
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
-
+	
 	if(ERROR_CODE(int) == _ensure_pipe_typeinfo(model, pipe))
 	    ERROR_RETURN_LOG(int, "Cannot resize the typeinfo array");
 
 	_typeinfo_t* typeinfo = model->type_info + PIPE_GET_ID(pipe);
+	
+	if(typeinfo->reject_assert)
+		ERROR_RETURN_LOG(int, "The type model rejects type assert, "
+				              "are you trying to modify an initialized type model?");
+
 
 	_type_assertion_t* obj = (_type_assertion_t*)malloc(sizeof(*obj));
 	if(NULL == obj)
@@ -644,6 +664,11 @@ int pstd_type_model_const(pstd_type_model_t* model, pipe_t pipe, const char* fie
 	    ERROR_RETURN_LOG(int, "Cannot resize the typeinfo arrray");
 
 	_typeinfo_t* typeinfo = model->type_info + PIPE_GET_ID(pipe);
+
+	if(typeinfo->readonly)
+		ERROR_RETURN_LOG(int, "The type model is read-only, "
+				              "are you trying to modify a type model outside of the"
+							  "initialization stage?");
 
 	_const_t* obj = (_const_t*)malloc(sizeof(*obj));
 	if(NULL == obj)

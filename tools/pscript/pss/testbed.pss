@@ -27,7 +27,11 @@ Testbed.embed = function embed(graph, in_ports, out_ports)
 	for(var name in out_ports)
 	{
 		var type = out_ports[name];
-		dst_servlet += " " + name + ":" + type;
+		dst_servlet += " " + name + ":" + (function(t) {
+			if(t == undefined)
+				return "$T";
+			return t;
+		})(type);
 	}
 
 	var ret = {
