@@ -75,8 +75,9 @@ typedef struct {
 		struct {
 			uint32_t         is_eof:1;          /*!< If we have reached the EOF */
 			uint32_t         is_eol:1;          /*!< If we have reached the EOL */
-			uint32_t         is_released:1;     /*!< If the lock has been released */
+			volatile uint32_t is_released:1;     /*!< If the lock has been released */
 			pthread_mutex_t  io_mutex;          /*!< We only allow 1 event poped out each time */
+			pthread_cond_t   io_cond;           /*!< The IO condition variable */
 		} fd;                                   /*!< The FD based context */
 	};
 
@@ -412,6 +413,8 @@ static inline int _ensure_init(_context_t* ctx)
 		if(0 != (errno = pthread_mutex_init(&ctx->fd.io_mutex, NULL)))
 			ERROR_RETURN_LOG_ERRNO(int, "Cannot create the IO mutex for text file");
 
+		if(0 != (errno = pthread_cond_init(&ctx->fd.io_cond, NULL)))
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot create the cond var for the text file");
 
 		int orignal_fl = fcntl(ctx->in_fd, F_GETFL, NULL);
 
@@ -420,6 +423,8 @@ static inline int _ensure_init(_context_t* ctx)
 
 		if(fcntl(ctx->in_fd, F_SETFL, orignal_fl | O_NONBLOCK) < 0)
 			ERROR_RETURN_LOG_ERRNO(int, "Cannot set the input file to non-blocking mode");
+
+		ctx->fd.is_released = 1;
 	}
 
 	return 0;
@@ -581,42 +586,29 @@ static int _accept(void* __restrict ctxmem, const void* __restrict args, void* _
 	}
 	else
 	{
-		for(;;)
+
+		if(0 != (errno = pthread_mutex_lock(&ctx->fd.io_mutex)))
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot lock the IO mutex");
+
+		while(0 == ctx->fd.is_released)
 		{
-			if(ctx->fd.is_eof && ctx->fd.is_released) 
-			{
-				if(0 != (errno = pthread_mutex_unlock(&ctx->fd.io_mutex)))
-					ERROR_RETURN_LOG_ERRNO(int, "Cannot unlock the IO mutex");
-				LOG_NOTICE("End of file reached, terminating the event loop");
-				return ERROR_CODE(int);
-			}
-
-			if(ctx->fd.is_released)
-			{
-				if(0 != (errno = pthread_mutex_unlock(&ctx->fd.io_mutex)))
-					ERROR_RETURN_LOG_ERRNO(int, "Cannot unlock the IO mutex");
-				ctx->fd.is_released = 0;
-			}
-
-			struct timespec abstime;
-			struct timeval now;
-			gettimeofday(&now,NULL);
-			abstime.tv_sec = now.tv_sec + 1;
-			abstime.tv_nsec = 0;
-
-			if(0 == (errno = pthread_mutex_timedlock(&ctx->fd.io_mutex, &abstime)))
-			{
-				ctx->fd.is_eol = 0;
-				break;
-			}
-			else
-			{
-				if(errno == ETIMEDOUT)
-					continue;
-
-				ERROR_RETURN_LOG_ERRNO(int, "Cannot lock the IO mutex");
-			}
+			if(0 != (errno = pthread_cond_wait(&ctx->fd.io_cond, &ctx->fd.io_mutex)))
+				ERROR_RETURN_LOG_ERRNO(int, "Cannot wait for the IO cond var");
 		}
+		
+		ctx->fd.is_released = 0;
+
+		if(0 != (errno = pthread_mutex_unlock(&ctx->fd.io_mutex)))
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot unlock the IO mutex");
+
+		if(ctx->fd.is_eof) 
+		{
+			LOG_NOTICE("Input file %s reached EOF, exiting the event loop", ctx->in_file_path);
+			return ERROR_CODE(int);
+		}
+
+		ctx->fd.is_eof = 0;
+		ctx->fd.is_eol = 0;
 
 		for(;;)
 		{
@@ -626,9 +618,6 @@ static int _accept(void* __restrict ctxmem, const void* __restrict args, void* _
 			
 			if(wrc == 0 && ctx->fd.is_eof)
 			{
-				if(0 != (errno = pthread_mutex_unlock(&ctx->fd.io_mutex)))
-					ERROR_RETURN_LOG_ERRNO(int, "Cannot unlock the IO mutex");
-
 				LOG_NOTICE("End of file reached, terminating the event loop");
 				return ERROR_CODE(int);
 			}
@@ -662,7 +651,16 @@ static int _dealloc(void* __restrict ctxmem, void* __restrict pipe, int error, i
 	}
 	else
 	{
+		if(0 != (errno = pthread_mutex_lock(&ctx->fd.io_mutex)))
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot lock the IO mutex");
+
 		ctx->fd.is_released = 1;
+
+		if(0 != (errno = pthread_cond_signal(&ctx->fd.io_cond)))
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot signal the IO cond var");
+
+		if(0 != (errno = pthread_mutex_unlock(&ctx->fd.io_mutex)))
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot unlock the IO mutex");
 	}
 
 	return 0;
@@ -898,6 +896,7 @@ static void _event_loop_killed(void* __restrict ctx)
 	if(!context->use_mmap)
 	{
 		context->fd.is_eof = 1;
+		context->fd.is_released = 1;
 	}
 }
 
