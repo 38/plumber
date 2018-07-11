@@ -22,6 +22,8 @@
 #include <scope/string.h>
 #include <scope/file.h>
 
+#include <pstd.h>
+
 /**
  * @brief How many times did the python module initialized
  **/
@@ -79,6 +81,44 @@ static inline int _init_ppi(void)
 		{
 			Py_DECREF(servlet_lib_path);
 			ERROR_LOG_GOTO(ERR, "Cannot append the additional library path to the Python library path search dir");
+		}
+	}
+
+	const char* py_path = pstd_libconf_read_string("pyservlet.path", "");
+
+	if(NULL != py_path)
+	{
+		char buf[4096];
+
+		const char* end = py_path;
+		const char* begin = py_path;
+		for(;;end ++)
+		{
+			if(*end == 0 || *end == ':')
+			{
+				if(end - begin > 0)
+				{
+					size_t len = (size_t)(end - begin);
+					if(len + 1> sizeof(buf))
+						LOG_WARNING("Ignored a search path that is too long");
+					else
+					{
+						memcpy(buf, begin, len);
+						buf[len] = 0;
+
+						PyObject* lib_path = PyString_FromString(buf);
+
+						if(lib_path == NULL)
+							ERROR_LOG_GOTO(ERR, "Cannot create new string for the search path");
+
+						if(0 != PyList_Append(path, lib_path))
+							ERROR_LOG_GOTO(ERR, "Cannot append additional lib search path");
+					}
+					begin = end + 1;
+				}
+
+				if(*end == 0) break;
+			}
 		}
 	}
 
