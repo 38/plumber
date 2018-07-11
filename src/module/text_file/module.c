@@ -729,8 +729,6 @@ static size_t _read(void* __restrict ctxmem, void* __restrict buf, size_t n, voi
 					return ERROR_CODE(size_t);
 				else if(wrc == 0 && ctx->fd.is_eof)
 					return 0;
-				else if(wrc > 0)
-					break;
 			}
 
 			if(sz == 0)
