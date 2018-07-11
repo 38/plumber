@@ -247,7 +247,11 @@ static inline int _invoke_servlet_function(servlet_data_t* s, const char* name)
 
 		/* Get the function */
 		PyObject* func = PyObject_GetAttrString(s->module, name);
-		if(NULL == func) goto PYEXIT;
+		if(NULL == func) 
+		{
+			rc = 0;
+			goto PYEXIT;
+		}
 		if(PyCallable_Check(func) < 0) ERROR_LOG_GOTO(PYEXIT, "Attribute %s is not callable", name);
 
 		/* Construct arguments */
