@@ -75,6 +75,7 @@ typedef struct {
 		struct {
 			uint32_t         is_eof:1;          /*!< If we have reached the EOF */
 			uint32_t         is_eol:1;          /*!< If we have reached the EOL */
+			uint32_t         is_released:1;     /*!< If the lock has been released */
 			pthread_mutex_t  io_mutex;          /*!< We only allow 1 event poped out each time */
 		} fd;                                   /*!< The FD based context */
 	};
@@ -240,18 +241,6 @@ static int _cleanup(void* __restrict ctxmem)
 	}
 	else
 	{
-		if(0 != (errno = pthread_mutex_trylock(&ctx->fd.io_mutex)))
-		{
-			if(errno != EBUSY)
-			{
-				rc = ERROR_CODE(int);
-				return rc;
-			}
-		}
-
-		if(0 != (errno = pthread_mutex_unlock(&ctx->fd.io_mutex)))
-			rc = ERROR_CODE(int);
-
 		if(0 != (errno = pthread_mutex_destroy(&ctx->fd.io_mutex)))
 			rc = ERROR_CODE(int);
 	}
@@ -525,6 +514,30 @@ static inline int _ensure_region(_context_t* ctx, _mapped_region_t** region1, _m
 	return 0;
 }
 
+static inline int _wait_for_input_ready(const _context_t* ctx)
+{
+	fd_set set;
+	struct timeval timeout = {
+		.tv_usec = 1000
+	};
+
+	FD_ZERO(&set);
+	FD_SET(ctx->in_fd, &set);
+
+	int src = select(ctx->in_fd + 1, &set, NULL, NULL, &timeout);
+	if(src < 0)
+	{
+		if(errno != EINTR)
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot wait for the FD ready");
+		else
+			return 0;
+	}
+	else if(src == 0)
+		return 0;
+
+	return 1;
+}
+
 static int _accept(void* __restrict ctxmem, const void* __restrict args, void* __restrict inmem, void* __restrict outmem)
 {
 	(void)args;
@@ -570,10 +583,19 @@ static int _accept(void* __restrict ctxmem, const void* __restrict args, void* _
 	{
 		for(;;)
 		{
-			if(ctx->fd.is_eof) 
+			if(ctx->fd.is_eof && ctx->fd.is_released) 
 			{
+				if(0 != (errno = pthread_mutex_unlock(&ctx->fd.io_mutex)))
+					ERROR_RETURN_LOG_ERRNO(int, "Cannot unlock the IO mutex");
 				LOG_NOTICE("End of file reached, terminating the event loop");
 				return ERROR_CODE(int);
+			}
+
+			if(ctx->fd.is_released)
+			{
+				if(0 != (errno = pthread_mutex_unlock(&ctx->fd.io_mutex)))
+					ERROR_RETURN_LOG_ERRNO(int, "Cannot unlock the IO mutex");
+				ctx->fd.is_released = 0;
 			}
 
 			struct timespec abstime;
@@ -594,6 +616,24 @@ static int _accept(void* __restrict ctxmem, const void* __restrict args, void* _
 
 				ERROR_RETURN_LOG_ERRNO(int, "Cannot lock the IO mutex");
 			}
+		}
+
+		for(;;)
+		{
+			int wrc = _wait_for_input_ready(ctx);
+			if(wrc == ERROR_CODE(int))
+				ERROR_RETURN_LOG(int, "Cannot wait for the input FD gets ready");
+			
+			if(wrc == 0 && ctx->fd.is_eof)
+			{
+				if(0 != (errno = pthread_mutex_unlock(&ctx->fd.io_mutex)))
+					ERROR_RETURN_LOG_ERRNO(int, "Cannot unlock the IO mutex");
+
+				LOG_NOTICE("End of file reached, terminating the event loop");
+				return ERROR_CODE(int);
+			}
+
+			if(wrc > 0) break;
 		}
 	}
 
@@ -622,8 +662,7 @@ static int _dealloc(void* __restrict ctxmem, void* __restrict pipe, int error, i
 	}
 	else
 	{
-		if(0 != (errno = pthread_mutex_unlock(&ctx->fd.io_mutex)))
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot unlock the IO mutex");
+		ctx->fd.is_released = 1;
 	}
 
 	return 0;
@@ -680,31 +719,20 @@ static size_t _read(void* __restrict ctxmem, void* __restrict buf, size_t n, voi
 		{
 			char cur_buf;
 
-			fd_set set;
-			struct timeval timeout = {
-				.tv_usec = 100
-			};
-
-			FD_ZERO(&set);
-			FD_SET(ctx->in_fd, &set);
-
-
 			ssize_t sz;
 			while((sz = read(ctx->in_fd, &cur_buf, 1)) < 0)
 			{
 				if(errno != EWOULDBLOCK || errno != EAGAIN)
 					ERROR_RETURN_LOG_ERRNO(size_t, "Cannot read");
 
-				int src = select(1, &set, NULL, NULL, &timeout);
-				if(src < 0)
-					ERROR_RETURN_LOG(size_t, "Cannot wait for the FD ready");
-				else if(src == 0)
-				{
-					/* If we realize that the FD is definitely closed at this time */
-					if(ctx->fd.is_eol || ctx->fd.is_eof)
-						return 0;
-				}
-				else break;
+				int wrc = _wait_for_input_ready(ctx);
+
+				if(wrc == ERROR_CODE(int))
+					return ERROR_CODE(size_t);
+				else if(wrc == 0 && ctx->fd.is_eof)
+					return 0;
+				else if(wrc > 0)
+					break;
 			}
 
 			if(sz == 0)
@@ -869,8 +897,6 @@ static void _event_loop_killed(void* __restrict ctx)
 
 	if(!context->use_mmap)
 	{
-		pthread_mutex_trylock(&context->fd.io_mutex);
-		pthread_mutex_unlock(&context->fd.io_mutex);
 		context->fd.is_eof = 1;
 	}
 }
