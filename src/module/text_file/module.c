@@ -73,8 +73,8 @@ typedef struct {
 		} mmap;                            /*!< The mmap based context */
 
 		struct {
-			uint32_t         is_eof:1;          /*!< If we have reached the EOF */
-			uint32_t         is_eol:1;          /*!< If we have reached the EOL */
+			volatile uint32_t is_eof:1;          /*!< If we have reached the EOF */
+			volatile uint32_t is_eol:1;          /*!< If we have reached the EOL */
 			volatile uint32_t is_released:1;     /*!< If the lock has been released */
 			pthread_mutex_t  io_mutex;          /*!< We only allow 1 event poped out each time */
 			pthread_cond_t   io_cond;           /*!< The IO condition variable */
@@ -607,9 +607,6 @@ static int _accept(void* __restrict ctxmem, const void* __restrict args, void* _
 			return ERROR_CODE(int);
 		}
 
-		ctx->fd.is_eof = 0;
-		ctx->fd.is_eol = 0;
-
 		for(;;)
 		{
 			int wrc = _wait_for_input_ready(ctx);
@@ -624,6 +621,9 @@ static int _accept(void* __restrict ctxmem, const void* __restrict args, void* _
 
 			if(wrc > 0) break;
 		}
+
+		ctx->fd.is_eof = 0;
+		ctx->fd.is_eol = 0;
 	}
 
 	return 0;
@@ -651,16 +651,19 @@ static int _dealloc(void* __restrict ctxmem, void* __restrict pipe, int error, i
 	}
 	else
 	{
-		if(0 != (errno = pthread_mutex_lock(&ctx->fd.io_mutex)))
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot lock the IO mutex");
+		if(purge)
+		{
+			if(0 != (errno = pthread_mutex_lock(&ctx->fd.io_mutex)))
+				ERROR_RETURN_LOG_ERRNO(int, "Cannot lock the IO mutex");
 
-		ctx->fd.is_released = 1;
+			ctx->fd.is_released = 1;
 
-		if(0 != (errno = pthread_cond_signal(&ctx->fd.io_cond)))
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot signal the IO cond var");
+			if(0 != (errno = pthread_cond_signal(&ctx->fd.io_cond)))
+				ERROR_RETURN_LOG_ERRNO(int, "Cannot signal the IO cond var");
 
-		if(0 != (errno = pthread_mutex_unlock(&ctx->fd.io_mutex)))
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot unlock the IO mutex");
+			if(0 != (errno = pthread_mutex_unlock(&ctx->fd.io_mutex)))
+				ERROR_RETURN_LOG_ERRNO(int, "Cannot unlock the IO mutex");
+		}
 	}
 
 	return 0;
@@ -729,6 +732,7 @@ static size_t _read(void* __restrict ctxmem, void* __restrict buf, size_t n, voi
 					return ERROR_CODE(size_t);
 				else if(wrc == 0 && ctx->fd.is_eof)
 					return 0;
+
 			}
 
 			if(sz == 0)
@@ -836,7 +840,7 @@ static int _has_unread(void* __restrict ctxmem, void* __restrict pipe)
 		return handle->offset < handle->line.size;
 	}
 
-	return !ctx->fd.is_eof;
+	return !ctx->fd.is_eof && !ctx->fd.is_eol;
 
 }
 
