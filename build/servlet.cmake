@@ -58,8 +58,8 @@ foreach(servlet_cmake ${servlet_cmakes})
 	endif(NOT "${build_${servlet_config_name}}" STREQUAL "no")
 	append_pakage_configure(${servlet_logical_name} servlet ${build_${servlet_config_name}} ${INSTALL})
 endforeach(servlet_cmake ${servlet_cmakes})
-set(PYSERVLET_INCLUDE ${CMAKE_INSTALL_PREFIX}/include/pservlet)
-set(PYSERVLET_LIBPATH ${CMAKE_INSTALL_PREFIX}/lib)
+set(PLUMBER_INCLUDE_PREFIX ${CMAKE_INSTALL_PREFIX}/include)
+set(PLUMBER_LIB_PATH ${CMAKE_INSTALL_PREFIX}/lib)
 
 if("${SYSNAME}" STREQUAL "Darwin")
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/misc/servlet.mk.darwin.in" 

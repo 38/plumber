@@ -1,6 +1,7 @@
 include build.mk
-PS_INC=@PYSERVLET_INCLUDE@
-PS_LD=@PYSERVLET_LIBPATH@
+
+PLATFORM_INC=-I@PLUMBER_INCLUDE_PREFIX@/pservlet $(foreach i, $(REQUIRES), -I@PLUMBER_INCLUDE_PREFIX@/$(i))
+PLATFORM_LD=-L@PLUMBER_LIB_PATH@ -lpservlet $(foreach i, $(REQUIRES), -l$(i))
 
 CSRC=$(filter %.c, $(SRC))
 CPPSRC=$(filter %.cpp, $(SRC))
@@ -10,20 +11,23 @@ COBJS=$(patsubst %.c,%.o,$(CSRC))
 CPPOBJS=$(patsubst %.cpp,%.o,$(CPPSRC))
 CCOBJS=$(patsubst %.cc,%.o,$(CCSRC))
 
+ifndef LINKER
+	LINKER=$(CC)
+endif
 
 default: lib$(TARGET).so
 
 $(COBJS): %.o: %.c
-	$(CC) -c -fPIC -I$(PS_INC) -o $@ $^ $(CFLAGS)
+	$(CC) -c -fPIC $(PLATFORM_INC) -o $@ $^ $(CFLAGS)
 	
 $(CPPOBJS): %.o: %.cpp
-	$(CXX) -c -fPIC -I$(PS_INC) -o $@ $^ $(CFLAGS)
+	$(CXX) -c -fPIC $(PLATFORM_INC) -o $@ $^ $(CFLAGS)
 
 $(CCOBJS): %.o: %.cc
-	$(CXX) -c -fPIC -I$(PS_INC) -o $@ $^ $(CFLAGS)
+	$(CXX) -c -fPIC $(PLATFORM_INC) -o $@ $^ $(CFLAGS)
 
 lib$(TARGET).so: $(COBJS) $(CPPOBJS) $(CCOBJS) $(OBJS)
-	$(LINKER) -fPIC -shared -Wl,-soname,$@ -o $(OUTPUT)/$@ $^ $(LDFLAGS) -L$(PS_LD) -lpservlet
+	$(LINKER) -fPIC -shared -Wl,-soname,$@ -o $(OUTPUT)/$@ $^ $(LDFLAGS) $(PLATFORM_LD)
 
 .PHONY: clean default
 
