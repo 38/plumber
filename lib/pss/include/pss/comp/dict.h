@@ -16,4 +16,12 @@
  **/
 int pss_comp_dict_parse(pss_comp_t* comp, pss_comp_value_t* buf);
 
+/**
+ * @brief Parse the list literal
+ * @param comp The compiler instance
+ * @param buf  The result buffer
+ * @return status code
+ **/
+int pss_comp_dict_parse_list(pss_comp_t* comp, pss_comp_value_t* buf);
+
 #endif
