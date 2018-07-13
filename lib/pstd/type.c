@@ -453,11 +453,11 @@ static inline _acc_t _accessor_alloc(pstd_type_model_t* ctx, pipe_t pipe, const 
 
 	if(ERROR_CODE(int) == _ensure_pipe_typeinfo(ctx, pipe))
 	    ERROR_RETURN_LOG_ERRNO(_acc_t, "Cannot resize the typeinfo array");
-	
+
 	if(ctx->type_info[PIPE_GET_ID(pipe)].readonly)
-		ERROR_RETURN_LOG(pstd_type_accessor_t, "The type model is read-only, "
-				                               "are you trying to modify a type model"
-											   "outside of initialization stage?");
+	    ERROR_RETURN_LOG(pstd_type_accessor_t, "The type model is read-only, "
+	                                           "are you trying to modify a type model"
+	                                           "outside of initialization stage?");
 
 	if(ctx->accessor_cap <= ctx->accessor_cnt)
 	{
@@ -601,15 +601,15 @@ int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_asse
 {
 	if(NULL == model || NULL == assertion || ERROR_CODE(pipe_t) == pipe || RUNTIME_API_PIPE_IS_VIRTUAL(pipe))
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
-	
+
 	if(ERROR_CODE(int) == _ensure_pipe_typeinfo(model, pipe))
 	    ERROR_RETURN_LOG(int, "Cannot resize the typeinfo array");
 
 	_typeinfo_t* typeinfo = model->type_info + PIPE_GET_ID(pipe);
-	
+
 	if(typeinfo->reject_assert)
-		ERROR_RETURN_LOG(int, "The type model rejects type assert, "
-				              "are you trying to modify an initialized type model?");
+	    ERROR_RETURN_LOG(int, "The type model rejects type assert, "
+	                          "are you trying to modify an initialized type model?");
 
 
 	_type_assertion_t* obj = (_type_assertion_t*)malloc(sizeof(*obj));
@@ -666,9 +666,9 @@ int pstd_type_model_const(pstd_type_model_t* model, pipe_t pipe, const char* fie
 	_typeinfo_t* typeinfo = model->type_info + PIPE_GET_ID(pipe);
 
 	if(typeinfo->readonly)
-		ERROR_RETURN_LOG(int, "The type model is read-only, "
-				              "are you trying to modify a type model outside of the"
-							  "initialization stage?");
+	    ERROR_RETURN_LOG(int, "The type model is read-only, "
+	                          "are you trying to modify a type model outside of the"
+	                          "initialization stage?");
 
 	_const_t* obj = (_const_t*)malloc(sizeof(*obj));
 	if(NULL == obj)

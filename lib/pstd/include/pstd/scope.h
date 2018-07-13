@@ -113,7 +113,7 @@ scope_token_t pstd_scope_gc_add(const scope_entity_t* entity, pstd_scope_gc_obj_
 /**
  * @brief Acquire the scope object from the sccope
  * @note If the RLS object is committed by pstd_scope_gc_add, this function
- *       should be used to retrive the scope object. 
+ *       should be used to retrive the scope object.
  * @param token The target token
  * @return The gc object
  **/

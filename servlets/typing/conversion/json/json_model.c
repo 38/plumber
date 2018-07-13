@@ -264,7 +264,7 @@ json_model_t* json_model_new(const char* pipe_name, const char* type_name, int i
 	ret->tm = type_model;
 
 	if(ERROR_CODE(int) == pstd_type_model_assert(type_model, ret->pipe, _assert_build_type_model, ret))
-		ERROR_PTR_RETURN_LOG_ERRNO("Cannot install the type assertion");
+	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot install the type assertion");
 
 	return ret;
 }

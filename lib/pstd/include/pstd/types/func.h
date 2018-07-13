@@ -9,7 +9,7 @@
 #define __PSTD_FUNC_H__
 
 /**
- * @brief The function object 
+ * @brief The function object
  **/
 typedef struct _pstd_func_t pstd_func_t;
 
@@ -58,8 +58,8 @@ scope_token_t pstd_func_commit(pstd_func_t* func, uint32_t gc);
  * @brief Get a function object from the RLS
  * @param token The token we want to get from the RLS
  * @param gc If the object is managed by gc
- * @return The pointer  to the function o bject 
- **/ 
+ * @return The pointer  to the function o bject
+ **/
 const pstd_func_t* pstd_func_from_rls(scope_token_t token, uint32_t gc);
 
 /**

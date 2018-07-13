@@ -814,14 +814,14 @@ static inline int _parse_list(pss_comp_t* comp, pss_comp_value_t* buf)
 	{
 		const pss_comp_lex_token_t* ahead = pss_comp_peek(comp, 0);
 		if(NULL == ahead)
-			ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
+		    ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
 
 		if(ahead->type == PSS_COMP_LEX_TOKEN_RBRACKET) break;
 
 		if(idx != 0)
 		{
 			if(ahead->type != PSS_COMP_LEX_TOKEN_COMMA)
-				PSS_COMP_RAISE_SYN(int, comp, "Unexpected token, `,' expected");
+			    PSS_COMP_RAISE_SYN(int, comp, "Unexpected token, `,' expected");
 
 			if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
 			    ERROR_RETURN_LOG(int, "Cannot consume ahead token");
@@ -829,34 +829,34 @@ static inline int _parse_list(pss_comp_t* comp, pss_comp_value_t* buf)
 			ahead = pss_comp_peek(comp, 0);
 
 			if(NULL == ahead)
-				ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
+			    ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
 		}
 
 		char key[32];
 		snprintf(key, sizeof(key), "%u", idx);
-		
+
 		pss_comp_value_t val;
 		if(ERROR_CODE(int) == pss_comp_expr_parse(comp, &val))
-			ERROR_RETURN_LOG(int, "Cannot parse the value expression");
+		    ERROR_RETURN_LOG(int, "Cannot parse the value expression");
 
 		if(ERROR_CODE(int) == pss_comp_value_simplify(comp, &val))
-			ERROR_RETURN_LOG(int, "Cannot simplify the value");
+		    ERROR_RETURN_LOG(int, "Cannot simplify the value");
 
 		pss_bytecode_regid_t key_reg = pss_comp_mktmp(comp);
 		if(ERROR_CODE(pss_bytecode_regid_t) == key_reg)
-			ERROR_RETURN_LOG(int, "Cannot allocate register for the key");
+		    ERROR_RETURN_LOG(int, "Cannot allocate register for the key");
 
 		if(!_INST(seg, STR_LOAD, _S(key), _R(key_reg)))
-			PSS_COMP_RAISE_INT(comp, CODE);
+		    PSS_COMP_RAISE_INT(comp, CODE);
 
 		if(!_INST(seg, SET_VAL, _R(val.regs[0].id), _R(buf->regs[0].id), _R(key_reg)))
-			PSS_COMP_RAISE_INT(comp, CODE);
+		    PSS_COMP_RAISE_INT(comp, CODE);
 
 		if(ERROR_CODE(int) == pss_comp_rmtmp(comp, key_reg))
-			ERROR_RETURN_LOG(int, "Cannot release the key register");
+		    ERROR_RETURN_LOG(int, "Cannot release the key register");
 
 		if(ERROR_CODE(int) == pss_comp_value_release(comp, &val))
-			ERROR_RETURN_LOG(int, "Cannot release the value register");
+		    ERROR_RETURN_LOG(int, "Cannot release the value register");
 	}
 
 	if(ERROR_CODE(int) == pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_RBRACKET))

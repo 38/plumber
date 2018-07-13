@@ -566,8 +566,8 @@ int pss_comp_value_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 		    break;
 
 		case PSS_COMP_LEX_TOKEN_LBRACKET:
-			rc = pss_comp_dict_parse_list(comp, buf);
-			break;
+		    rc = pss_comp_dict_parse_list(comp, buf);
+		    break;
 
 		case PSS_COMP_LEX_TOKEN_IDENTIFIER:
 		    rc = _parse_variable_term(comp, seg, buf);

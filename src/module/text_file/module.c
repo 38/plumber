@@ -234,16 +234,16 @@ static int _cleanup(void* __restrict ctxmem)
 		if((void*)-1 != ctx->mmap.in_mapped && NULL != ctx->mmap.in_mapped)
 		{
 			if(munmap(ctx->mmap.in_mapped, ((ctx->mmap.in_mapped_size + _pagesize - 1) / _pagesize) * _pagesize) < 0)
-				rc = ERROR_CODE(int);
+			    rc = ERROR_CODE(int);
 		}
 
 		if(0 != (errno = pthread_mutex_destroy(&ctx->mmap.write_mutex)))
-			rc = ERROR_CODE(int);
+		    rc = ERROR_CODE(int);
 	}
 	else
 	{
 		if(0 != (errno = pthread_mutex_destroy(&ctx->fd.io_mutex)))
-			rc = ERROR_CODE(int);
+		    rc = ERROR_CODE(int);
 	}
 
 	return rc;
@@ -355,21 +355,21 @@ static itc_module_flags_t _get_flags(void* __restrict ctx)
 	if(context->use_mmap)
 	{
 		return ITC_MODULE_FLAGS_EVENT_LOOP |
-			   (context->mmap.in_mapped == NULL &&
-				context->mmap.last_region == NULL &&
-				context->is_init ? ITC_MODULE_FLAGS_EVENT_EXHUASTED : 0);
+		       (context->mmap.in_mapped == NULL &&
+		        context->mmap.last_region == NULL &&
+		        context->is_init ? ITC_MODULE_FLAGS_EVENT_EXHUASTED : 0);
 	}
 	else
 	{
-		return ITC_MODULE_FLAGS_EVENT_LOOP | 
-			   (context->fd.is_eof ? ITC_MODULE_FLAGS_EVENT_EXHUASTED : 0);
+		return ITC_MODULE_FLAGS_EVENT_LOOP |
+		       (context->fd.is_eof ? ITC_MODULE_FLAGS_EVENT_EXHUASTED : 0);
 	}
 }
 
 static inline int _ensure_init(_context_t* ctx)
 {
 	if(ctx->is_init) return 0;
-	
+
 	ctx->is_init = 1;
 
 	if((ctx->in_fd = open(ctx->in_file_path, O_RDONLY)) < 0)
@@ -387,21 +387,21 @@ static inline int _ensure_init(_context_t* ctx)
 	if(ctx->use_mmap)
 	{
 		if(0 != (errno = pthread_mutex_init(&ctx->mmap.write_mutex, NULL)))
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot create the write mutex");
-		
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot create the write mutex");
+
 		if(NULL == (ctx->mmap.lw_buf = thread_pset_new(32, _lw_buf_alloc, _lw_buf_dealloc, ctx)))
-			ERROR_RETURN_LOG(int, "Cannot create the thread local for the local write buffer");
+		    ERROR_RETURN_LOG(int, "Cannot create the thread local for the local write buffer");
 
 		struct stat buf;
 
 		if(fstat(ctx->in_fd, &buf) < 0)
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot access the metadata of the input file");
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot access the metadata of the input file");
 
 		ctx->mmap.in_mapped_size = (size_t)buf.st_size;
 
 		if((void*)-1 == (ctx->mmap.in_mapped = mmap(NULL, ((ctx->mmap.in_mapped_size + _pagesize - 1) / _pagesize) * _pagesize,
-										  PROT_READ, MAP_PRIVATE, ctx->in_fd, 0)))
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot map the file to address");
+		                                  PROT_READ, MAP_PRIVATE, ctx->in_fd, 0)))
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot map the file to address");
 
 		LOG_INFO("Mapped address [%p, %p)", ctx->mmap.in_mapped, (char*)ctx->mmap.in_mapped + ctx->mmap.in_mapped_size);
 
@@ -411,18 +411,18 @@ static inline int _ensure_init(_context_t* ctx)
 	else
 	{
 		if(0 != (errno = pthread_mutex_init(&ctx->fd.io_mutex, NULL)))
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot create the IO mutex for text file");
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot create the IO mutex for text file");
 
 		if(0 != (errno = pthread_cond_init(&ctx->fd.io_cond, NULL)))
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot create the cond var for the text file");
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot create the cond var for the text file");
 
 		int orignal_fl = fcntl(ctx->in_fd, F_GETFL, NULL);
 
 		if(orignal_fl < 0)
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot get the orignal file flag");
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot get the orignal file flag");
 
 		if(fcntl(ctx->in_fd, F_SETFL, orignal_fl | O_NONBLOCK) < 0)
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot set the input file to non-blocking mode");
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot set the input file to non-blocking mode");
 
 		ctx->fd.is_released = 1;
 	}
@@ -533,12 +533,12 @@ static inline int _wait_for_input_ready(const _context_t* ctx)
 	if(src < 0)
 	{
 		if(errno != EINTR)
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot wait for the FD ready");
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot wait for the FD ready");
 		else
-			return 0;
+		    return 0;
 	}
 	else if(src == 0)
-		return 0;
+	    return 0;
 
 	return 1;
 }
@@ -573,7 +573,7 @@ static int _accept(void* __restrict ctxmem, const void* __restrict args, void* _
 		}
 
 		if(ERROR_CODE(int) == _ensure_region(ctx, in->line.regions, in->line.regions + 1, begin, end))
-			ERROR_RETURN_LOG(int, "Cannot make region for next line");
+		    ERROR_RETURN_LOG(int, "Cannot make region for next line");
 
 		ctx->mmap.unread = end;
 
@@ -588,20 +588,20 @@ static int _accept(void* __restrict ctxmem, const void* __restrict args, void* _
 	{
 
 		if(0 != (errno = pthread_mutex_lock(&ctx->fd.io_mutex)))
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot lock the IO mutex");
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot lock the IO mutex");
 
 		while(0 == ctx->fd.is_released)
 		{
 			if(0 != (errno = pthread_cond_wait(&ctx->fd.io_cond, &ctx->fd.io_mutex)))
-				ERROR_RETURN_LOG_ERRNO(int, "Cannot wait for the IO cond var");
+			    ERROR_RETURN_LOG_ERRNO(int, "Cannot wait for the IO cond var");
 		}
-		
+
 		ctx->fd.is_released = 0;
 
 		if(0 != (errno = pthread_mutex_unlock(&ctx->fd.io_mutex)))
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot unlock the IO mutex");
+		    ERROR_RETURN_LOG_ERRNO(int, "Cannot unlock the IO mutex");
 
-		if(ctx->fd.is_eof) 
+		if(ctx->fd.is_eof)
 		{
 			LOG_NOTICE("Input file %s reached EOF, exiting the event loop", ctx->in_file_path);
 			return ERROR_CODE(int);
@@ -611,8 +611,8 @@ static int _accept(void* __restrict ctxmem, const void* __restrict args, void* _
 		{
 			int wrc = _wait_for_input_ready(ctx);
 			if(wrc == ERROR_CODE(int))
-				ERROR_RETURN_LOG(int, "Cannot wait for the input FD gets ready");
-			
+			    ERROR_RETURN_LOG(int, "Cannot wait for the input FD gets ready");
+
 			if(wrc == 0 && ctx->fd.is_eof)
 			{
 				LOG_NOTICE("End of file reached, terminating the event loop");
@@ -637,7 +637,7 @@ static int _dealloc(void* __restrict ctxmem, void* __restrict pipe, int error, i
 	if(ctx->use_mmap)
 	{
 		if(NULL == pipe || handle->line.regions[0] == NULL)
-			ERROR_RETURN_LOG(int, "Invalid arguments");
+		    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 		if(purge)
 		{
@@ -645,7 +645,7 @@ static int _dealloc(void* __restrict ctxmem, void* __restrict pipe, int error, i
 			for(i = 0; i < 2; i ++)
 			{
 				if(handle->line.regions[i] != NULL)
-					_decref_region(handle->line.regions[i]);
+				    _decref_region(handle->line.regions[i]);
 			}
 		}
 	}
@@ -654,15 +654,15 @@ static int _dealloc(void* __restrict ctxmem, void* __restrict pipe, int error, i
 		if(purge)
 		{
 			if(0 != (errno = pthread_mutex_lock(&ctx->fd.io_mutex)))
-				ERROR_RETURN_LOG_ERRNO(int, "Cannot lock the IO mutex");
+			    ERROR_RETURN_LOG_ERRNO(int, "Cannot lock the IO mutex");
 
 			ctx->fd.is_released = 1;
 
 			if(0 != (errno = pthread_cond_signal(&ctx->fd.io_cond)))
-				ERROR_RETURN_LOG_ERRNO(int, "Cannot signal the IO cond var");
+			    ERROR_RETURN_LOG_ERRNO(int, "Cannot signal the IO cond var");
 
 			if(0 != (errno = pthread_mutex_unlock(&ctx->fd.io_mutex)))
-				ERROR_RETURN_LOG_ERRNO(int, "Cannot unlock the IO mutex");
+			    ERROR_RETURN_LOG_ERRNO(int, "Cannot unlock the IO mutex");
 		}
 	}
 
@@ -696,11 +696,11 @@ static size_t _read(void* __restrict ctxmem, void* __restrict buf, size_t n, voi
 		_handle_t* handle = (_handle_t*)pipe;
 
 		if(!handle->is_in)
-			ERROR_RETURN_LOG(size_t, "Input pipe port expected");
+		    ERROR_RETURN_LOG(size_t, "Input pipe port expected");
 
 		size_t bytes_to_read = n;
 		if(bytes_to_read > handle->line.size - handle->offset)
-			bytes_to_read = handle->line.size - handle->offset;
+		    bytes_to_read = handle->line.size - handle->offset;
 
 		memcpy(buf, handle->line.line + handle->offset, bytes_to_read);
 
@@ -714,7 +714,7 @@ static size_t _read(void* __restrict ctxmem, void* __restrict buf, size_t n, voi
 		char *cbuf = (char*)buf;
 
 		if(ctx->fd.is_eol)
-			return 0;
+		    return 0;
 
 		for(;n > 0;rc ++, n --)
 		{
@@ -724,14 +724,14 @@ static size_t _read(void* __restrict ctxmem, void* __restrict buf, size_t n, voi
 			while((sz = read(ctx->in_fd, &cur_buf, 1)) < 0)
 			{
 				if(errno != EWOULDBLOCK || errno != EAGAIN)
-					ERROR_RETURN_LOG_ERRNO(size_t, "Cannot read");
+				    ERROR_RETURN_LOG_ERRNO(size_t, "Cannot read");
 
 				int wrc = _wait_for_input_ready(ctx);
 
 				if(wrc == ERROR_CODE(int))
-					return ERROR_CODE(size_t);
+				    return ERROR_CODE(size_t);
 				else if(wrc == 0 && ctx->fd.is_eof)
-					return 0;
+				    return 0;
 
 			}
 
@@ -790,7 +790,7 @@ static size_t _write(void* __restrict ctxmem, const void* __restrict data, size_
 		if(buf_size < n)
 		{
 			if(_write_fd(ctx, buf->buffer, buf->used) == ERROR_CODE(int))
-				ERROR_RETURN_LOG(size_t, "Cannot write the bufferred data to the file");
+			    ERROR_RETURN_LOG(size_t, "Cannot write the bufferred data to the file");
 
 			buf->used = 0;
 		}
@@ -800,7 +800,7 @@ static size_t _write(void* __restrict ctxmem, const void* __restrict data, size_
 			LOG_DEBUG("The buffer is smaller than the data to write");
 
 			if(ERROR_CODE(int) == _write_fd(ctx, data, n))
-				ERROR_RETURN_LOG(size_t, "Cannot write the required data to the file");
+			    ERROR_RETURN_LOG(size_t, "Cannot write the required data to the file");
 		}
 		else
 		{
@@ -812,12 +812,12 @@ static size_t _write(void* __restrict ctxmem, const void* __restrict data, size_
 	}
 	else
 	{
-		ssize_t write_rc = write(ctx->out_fd, data, n); 
+		ssize_t write_rc = write(ctx->out_fd, data, n);
 
 		if(write_rc < 0)
 		{
 			if(errno == EWOULDBLOCK || errno == EAGAIN)
-				return 0;
+			    return 0;
 			ERROR_RETURN_LOG_ERRNO(size_t, "Cannot write data to the output fd");
 		}
 
@@ -835,7 +835,7 @@ static int _has_unread(void* __restrict ctxmem, void* __restrict pipe)
 		_handle_t* handle = (_handle_t*)pipe;
 
 		if(!handle->is_in)
-			ERROR_RETURN_LOG(int, "Input pipe port expected");
+		    ERROR_RETURN_LOG(int, "Input pipe port expected");
 
 		return handle->offset < handle->line.size;
 	}
@@ -857,7 +857,7 @@ static int _get_internal_buf(void* __restrict ctxmem, void const** __restrict re
 		size_t bytes_to_read = *max_size;
 
 		if(bytes_to_read > handle->line.size - handle->offset)
-			bytes_to_read = handle->line.size - handle->offset;
+		    bytes_to_read = handle->line.size - handle->offset;
 
 		if(bytes_to_read < *min_size)
 		{

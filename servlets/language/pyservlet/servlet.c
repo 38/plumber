@@ -100,7 +100,7 @@ static inline int _init_ppi(void)
 				{
 					size_t len = (size_t)(end - begin);
 					if(len + 1> sizeof(buf))
-						LOG_WARNING("Ignored a search path that is too long");
+					    LOG_WARNING("Ignored a search path that is too long");
 					else
 					{
 						memcpy(buf, begin, len);
@@ -109,10 +109,10 @@ static inline int _init_ppi(void)
 						PyObject* lib_path = PyString_FromString(buf);
 
 						if(lib_path == NULL)
-							ERROR_LOG_GOTO(ERR, "Cannot create new string for the search path");
+						    ERROR_LOG_GOTO(ERR, "Cannot create new string for the search path");
 
 						if(0 != PyList_Append(path, lib_path))
-							ERROR_LOG_GOTO(ERR, "Cannot append additional lib search path");
+						    ERROR_LOG_GOTO(ERR, "Cannot append additional lib search path");
 					}
 					begin = end + 1;
 				}
@@ -247,7 +247,7 @@ static inline int _invoke_servlet_function(servlet_data_t* s, const char* name)
 
 		/* Get the function */
 		PyObject* func = PyObject_GetAttrString(s->module, name);
-		if(NULL == func) 
+		if(NULL == func)
 		{
 			rc = 0;
 			goto PYEXIT;

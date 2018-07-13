@@ -95,7 +95,7 @@ static inline uint64_t _hash(const void* data, size_t count)
 static inline size_t _pad(size_t s)
 {
 	if(s & (sizeof(uintpad_t) - 1))
-		return ((s / sizeof(uintpad_t)) * sizeof(uintpad_t) + sizeof(uintpad_t));
+	    return ((s / sizeof(uintpad_t)) * sizeof(uintpad_t) + sizeof(uintpad_t));
 	return s;
 }
 
