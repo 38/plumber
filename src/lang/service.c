@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include <error.h>
 
@@ -280,7 +281,7 @@ int lang_service_add_edge(lang_service_t* service, int64_t src_nid, const char* 
 #ifdef LOG_ERROR_ENABLED
 		char buf[4096];
 #endif
-		ERROR_RETURN_LOG(int, "Cannot get the PID for the pipe named %s (NID = %ld%s)",
+		ERROR_RETURN_LOG(int, "Cannot get the PID for the pipe named %s (NID = %"PRId64"%s)",
 		                 src_port, src_nid,
 		                 _get_servlet_init_string(service->sid_map[src_nid], buf, sizeof(buf)));
 	}
@@ -290,7 +291,7 @@ int lang_service_add_edge(lang_service_t* service, int64_t src_nid, const char* 
 #ifdef LOG_ERROR_ENABLED
 		char buf[4096];
 #endif
-		ERROR_RETURN_LOG(int, "Cannot get the PID for the pipe named %s (NID = %ld%s)",
+		ERROR_RETURN_LOG(int, "Cannot get the PID for the pipe named %s (NID = %"PRId64"%s)",
 		                  dst_port, src_nid,
 		                 _get_servlet_init_string(service->sid_map[dst_nid], buf, sizeof(buf)));
 

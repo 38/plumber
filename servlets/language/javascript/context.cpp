@@ -461,7 +461,12 @@ char* Servlet::Context::load_script_from_file(const char* filename, const char* 
 	const char* script_path = NULL;
 	char path_buffer[PATH_MAX];
 	struct stat stat_res;
+#ifndef __DARWIN__
 	const char* paths[] = {secure_getenv("JSPATH"), INSTALL_PREFIX"/lib/plumber/javascript", NULL};
+#else
+	const char* paths[] = {getenv("JSPATH"), INSTALL_PREFIX"/lib/plumber/javascript", NULL};
+#endif
+
 	if(access(filename, R_OK) != F_OK || lstat(filename, &stat_res) != 0 || !S_ISREG(stat_res.st_mode))
 	{
 		for(int i = paths[0] == NULL ? 1 : 0; paths[i] != NULL; i ++)

@@ -8,11 +8,13 @@ if("${PLUMBER_V8_CONFIG}" STREQUAL "PLUMBER_V8_CONFIG-NOTFOUND")
 	set(build_language_javascript "no")
 endif("${PLUMBER_V8_CONFIG}" STREQUAL "PLUMBER_V8_CONFIG-NOTFOUND")
 
-find_path(LIBCPP_CONFIG c++/v1/__config)
-if("${LIBCPP_CONFIG}" STREQUAL "LIBCPP_CONFIG-NOTFOUND")
-	message("No libc++ found, disabling javascript servlet")
-	set(build_language_javascript "no")
-endif("${LIBCPP_CONFIG}" STREQUAL "LIBCPP_CONFIG-NOTFOUND")
+if(NOT "${SYSNAME}" STREQUAL "Darwin")
+    find_path(LIBCPP_CONFIG c++/v1/__config)
+    if("${LIBCPP_CONFIG}" STREQUAL "LIBCPP_CONFIG-NOTFOUND")
+        message("No libc++ found, disabling javascript servlet")
+        set(build_language_javascript "no")
+    endif("${LIBCPP_CONFIG}" STREQUAL "LIBCPP_CONFIG-NOTFOUND")
+endif(NOT "${SYSNAME}" STREQUAL "Darwin")
 
 
 if(NOT "${build_language_javascript}" STREQUAL "yes")
