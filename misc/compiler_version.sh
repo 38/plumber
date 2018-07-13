@@ -9,4 +9,4 @@ icc#__INTEL_COMPILER#__INTEL_COMPILER#__INTEL_COMPILER_UPDATE
 clang#__clang_major__#__clang_minor__#__clang_patchlevel__
 #else
 unknown
-#endif' |  $1 -E - | sed --silent '/\(^[^#]..*$\)/s/#/_/gp' | awk -F_ '$1 != "icc"{print} $1 == "icc" {print "icc_"$2/100"_"$3%100"_"$4}'
+#endif' |  $1 -E - | sed -n '/\(^[^#]..*$\)/s/#/_/gp' | awk -F_ '$1 != "icc"{print} $1 == "icc" {print "icc_"$2/100"_"$3%100"_"$4}'
