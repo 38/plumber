@@ -181,7 +181,14 @@ static void _ssl_lock(int mode, int n, const char * file, int line)
  **/
 static unsigned long _ssl_tid(void)
 {
-	  return (unsigned long) pthread_self();
+	union {
+		unsigned long ret;
+		pthread_t     tid;
+	} buf;
+	buf.ret = 0;
+	buf.tid = pthread_self();
+
+	return buf.ret;
 }
 
 /**

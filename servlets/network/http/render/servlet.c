@@ -567,7 +567,9 @@ static int _exec(void* ctxmem)
 
 	if(body_token != 0)
 	{
+#if defined(HAS_ZLIB) || defined(HAS_BROTLI)
 		if(0);
+#endif
 #ifdef HAS_ZLIB
 		else if((algorithm & _ENCODING_GZIP))
 		{
