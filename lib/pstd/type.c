@@ -319,8 +319,19 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 	if(typeinfo->used_size > 0)
 	{
 		runtime_api_pipe_id_t i;
+
+		/* Since accessing an unaligned pointer is a undefined behavior,
+		we should make sure that every _header_buf_t struct is aligned
+		correctly. 
+		For the actual data section, this is not important, because we just
+		use memcpy anyway */
+		uint32_t padded = typeinfo->used_size + (uint32_t)sizeof(_header_buf_t);
+
+		if(padded % sizeof(uintpad_t))
+			padded = (padded / (uint32_t)sizeof(uintpad_t) + 1u) * (uint32_t)sizeof(uintpad_t);
+
 		for(i = (runtime_api_pipe_id_t)(PIPE_GET_ID(pipe) + 1); i < model->pipe_max; i ++)
-		    model->type_info[i].buf_begin += typeinfo->used_size + sizeof(_header_buf_t);
+		    model->type_info[i].buf_begin += padded;
 	}
 
 	typeinfo->init = 1u;
@@ -363,6 +374,9 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 							        delta += sizeof(_header_buf_t);
 							    delta += (uint32_t)(required_size - model->type_info[p[j]].used_size);
 							    model->type_info[p[j]].used_size = required_size;
+
+								if(delta  % sizeof(uintpad_t))
+									delta = (delta / sizeof(uintpad_t) + 1) * sizeof(uintpad_t);
 						    }
 						    j++;
 					    }

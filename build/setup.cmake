@@ -8,7 +8,7 @@ else(APPLE)
 	set(SYSNAME ${CMAKE_SYSTEM_NAME})
 endif(APPLE)
 
-message(${CMAKE_CURRENT_BINARY_DIR})
+message("Current binary directory: ${CMAKE_CURRENT_BINARY_DIR}")
 
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin/lib)

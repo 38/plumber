@@ -186,7 +186,8 @@ static inline uint32_t _parse_argument(const char* pattern, uint32_t argc, char 
 		if(NULL == rc) ERROR_LOG_GOTO(ERR, "Cannot insert the parsed argument to the buffer");
 		*buffer = rc;
 	}
-	goto RET;
+	if(optional || pattern[0] == 0)
+		goto RET;
 ERR:
 	ret = ERROR_CODE(uint32_t);
 	if(*buffer != NULL) _buffer_free(*buffer);
