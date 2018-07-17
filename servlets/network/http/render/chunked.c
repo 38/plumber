@@ -220,8 +220,15 @@ scope_token_t chunked_encode(scope_token_t token, uint8_t chunked_pages)
 
 	if(_page_size == 0) _page_size = (uint32_t)getpagesize();
 
+	union {
+		void* ptr;
+		uintptr_t num;
+	} cvt = {
+		.num = chunked_pages
+	};
+
 	pstd_trans_desc_t desc = {
-		.data = ((char*)0) + chunked_pages,
+		.data = cvt.ptr,
 		.init_func = _init,
 		.feed_func = _feed,
 		.fetch_func = _fetch,
