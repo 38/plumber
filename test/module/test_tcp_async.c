@@ -613,5 +613,7 @@ TEST_LIST_BEGIN
     TEST_CASE(single_async_write),
     TEST_CASE(parallel_write),
     TEST_CASE(cleanup_loop)
+#else
+	{NULL, NULL}
 #endif
 TEST_LIST_END;
