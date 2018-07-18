@@ -86,7 +86,7 @@ macro(build_tool_dir dir)
 								set_source_files_properties(${source} PROPERTIES COMPILE_FLAGS ${CFLAGS})
 								add_executable(${test_name} ${source})
 								set_target_properties(${test_name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${outdir})
-								target_compile_definitions(${test_name} PRIVATE TESTDIR=\"${outdir}\" TESTING_CODE=1)
+								target_compile_definitions(${test_name} PRIVATE TESTDIR=\"${outdir}\" TESTING_CODE=1 TEST_NAME=\"${test_name}\")
 								target_include_directories(${test_name} PUBLIC "${SOURCE_PATH}/include" 
 																			   "${CMAKE_CURRENT_SOURCE_DIR}/${TOOL_DIR}/testenv/include" 
 																			   ${TEST_INCLUDE})

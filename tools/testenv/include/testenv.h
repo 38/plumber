@@ -38,7 +38,9 @@ typedef struct {
 /**
  * @brief this macro is used at the begining of the test case table
  **/
-#define TEST_LIST_BEGIN test_case_t test_list[] = {
+#define TEST_LIST_BEGIN const char* __test_name__ = TEST_NAME; \
+	test_case_t test_list[] = {
+
 	/**
 	* @brief this macro is used at the end of the test case table
 	**/
