@@ -101,6 +101,9 @@ int lang_service_reload(const char* daemon, lang_service_t* service);
 /**
  * @brief Start the hot depoyment within current process
  * @param service The service to deploy
+ * @note This is very similar to lang_service_reload, but it changes the 
+ *       dataflow graph runs in current application, instead of requesting 
+ *       the daemon to update
  * @return status code
  **/
 int lang_service_start_deployment(lang_service_t* service);
