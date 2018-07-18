@@ -1,7 +1,7 @@
 /**
- * Copyright (C) 2017, Hao Hou
+ * Copyright (C) 2017-2018, Hao Hou
  **/
-
+#include <time.h>
 #include <testenv.h>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -72,9 +72,12 @@ static inline void sighand(int signo)
 	int rc = do_request();
 	exit(rc);
 }
+
 int eloop_test(void)
 {
-	context->port = 9000;
+	srand((unsigned)time(NULL));
+	context->port = (uint16_t)(rand() % 32768 + 32768);
+
 	pid_t pid;
 	itc_module_pipe_t *in = NULL, *out = NULL;
 	int status;
@@ -104,7 +107,7 @@ int eloop_test(void)
 
 	ASSERT_OK(itc_eloop_start(), CLEANUP_NOP);
 
-	usleep(10000);
+	usleep(1000000);
 
 	kill(pid, SIGUSR2);
 
