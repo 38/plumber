@@ -42,5 +42,5 @@ before_install:
 
 script:
     - env
-    - if [[ "${TRAVIS_OS_NAME}" == "osx" && "${CC}" == "gcc" ]]; then echo "Pass!"; else cmake . && make && ctest -E "${TEST_EXCLUDED}"; fi
+    - cmake . && make && ctest -E "${TEST_EXCLUDED}"
 
