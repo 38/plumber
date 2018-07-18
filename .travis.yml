@@ -41,5 +41,6 @@ before_install:
     - if [[ "${TRAVIS_OS_NAME}" == "linux" && "${SANITIZER}" == "yes" && "${CC}" == "gcc" ]]; then export LIBS="-fuse-ld=gold"; fi
 
 script:
+    - env
     - cmake . && make && make test
 
