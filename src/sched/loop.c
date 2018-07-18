@@ -752,8 +752,6 @@ NEXT_ITER:
 	if(ERROR_CODE(int) == itc_equeue_release_scheduler_token(sched_token))
 		ERROR_RETURN_LOG(int, "Cannot release the scheduler token");
 
-	_killed = 0;
-
 	LOG_INFO("Dispatcher gets killed");
 
 	return 0;
@@ -865,6 +863,8 @@ CLEANUP_CTX:
 	}
 
 	_scheds = NULL;
+
+	_killed = 0;
 
 	return rc;
 }
