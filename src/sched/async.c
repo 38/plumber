@@ -443,7 +443,7 @@ static lang_prop_value_t _get_prop(const char* symbol, const void* param)
 int sched_async_init()
 {
 	_ctx.q_cap = 65536;
-	_ctx.nthreads = 32;
+	_ctx.nthreads = 1;
 	_ctx.al_cap = 65536;
 	lang_prop_callback_t cb = {
 		.param         = NULL,

@@ -441,6 +441,8 @@ KILLED:
 	if(ERROR_CODE(int) == sched_rscope_finalize_thread())
 	    LOG_WARNING("Cannot finalize the thread locals for the request local scope for thread %u", context->thread_id);
 
+	itc_equeue_wait_interrupt();
+
 	return NULL;
 }
 
@@ -879,7 +881,24 @@ int sched_loop_kill(int no_error)
 
 	LOG_INFO("Service gets killed!");
 
-	_killed = 1;
+	sched_loop_t* sched;
+
+	for(sched = _scheds; sched != NULL; sched = sched->next)
+	{
+		if(0 != (errno = pthread_mutex_lock(&sched->mutex)))
+			LOG_WARNING_ERRNO("Cannot lock the scheduler mutex");
+
+		if(_killed == 0) _killed = 1;
+
+		if(0 != (errno = pthread_cond_signal(&sched->cond)))
+			LOG_WARNING_ERRNO("Cannot notify the scheduler loop for the killed state");
+
+		if(0 != (errno = pthread_mutex_unlock(&sched->mutex)))
+			LOG_WARNING_ERRNO("Cannot unlock the scheduler mutex");
+	}
+
+
+
 	return 0;
 }
 
