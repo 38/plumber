@@ -566,7 +566,6 @@ int parallel_write(void)
 
 int setup(void)
 {
-#ifdef __LINUX__
 	expected_memory_leakage();
 
 	unsigned i;
@@ -585,14 +584,12 @@ int setup(void)
 	}
 	ASSERT_OK(pthread_mutex_init(&sync_mutex, NULL), CLEANUP_NOP);
 	ASSERT_OK(pthread_cond_init(&sync_cond, NULL), CLEANUP_NOP);
-#endif
 
 	return 0;
 }
 
 int teardown(void)
 {
-#ifdef __LINUX__
 	unsigned i;
 	for(i = 0; i < sizeof(conn) / sizeof(*conn); i ++)
 	{
@@ -607,17 +604,12 @@ int teardown(void)
 	}
 	ASSERT_OK(pthread_mutex_destroy(&sync_mutex), CLEANUP_NOP);
 	ASSERT_OK(pthread_cond_destroy(&sync_cond), CLEANUP_NOP);
-#endif
 	return 0;
 }
 
 TEST_LIST_BEGIN
-#ifdef __LINUX__
     TEST_CASE(create_loop),
     TEST_CASE(single_async_write),
     TEST_CASE(parallel_write),
     TEST_CASE(cleanup_loop)
-#else
-	{NULL, NULL}
-#endif
 TEST_LIST_END;

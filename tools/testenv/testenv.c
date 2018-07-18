@@ -130,8 +130,25 @@ ERR:
 	return -1;
 }
 
+static int test_disabled(void)
+{
+	extern const char* __test_name__;
+
+	char env[256];
+	snprintf(env, sizeof(env), "DISABLE_%s", __test_name__);
+
+	const char* result = getenv(env);
+
+	if(NULL != result && atoi(result) > 0)
+		return 1;
+
+	return 0;
+}
+
 int main(void)
 {
+	if(test_disabled()) return 0;
+
 	const char* memchk = getenv("NO_LEAK_CHECK");
 	if(NULL != memchk) __memory_check = 0;
 	int ret = thread_run_test_main(testmain);
