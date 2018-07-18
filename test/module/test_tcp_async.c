@@ -608,8 +608,10 @@ int teardown(void)
 }
 
 TEST_LIST_BEGIN
+#ifdef __LINUX__
     TEST_CASE(create_loop),
     TEST_CASE(single_async_write),
     TEST_CASE(parallel_write),
     TEST_CASE(cleanup_loop)
+#endif
 TEST_LIST_END;
