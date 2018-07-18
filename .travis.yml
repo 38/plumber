@@ -35,7 +35,7 @@ addons:
 
 before_install:
     - if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then brew update; fi
-    - if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then brew install cmake python pkg-config openssl ossp-uuid readline; fi
+    - if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then brew install ossp-uuid; fi
     - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then sudo rm /usr/bin/{gcc,g++}; sudo ln -s /usr/bin/gcc-5 /usr/bin/gcc; sudo ln -s /usr/bin/g++-5 /usr/bin/g++; fi
     - if [[ "${SANITIZER}" == "yes" && "${CC}" == "gcc" ]]; then export LIBS="-fuse-ld=gold"; fi
 
