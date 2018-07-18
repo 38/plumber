@@ -9,6 +9,8 @@
 #include <dirent.h>
 #include <stdio.h>
 
+#include <version.h>
+
 #include <pservlet.h>
 #include <pstd.h>
 #include <pstd/types/string.h>

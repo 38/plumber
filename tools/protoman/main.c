@@ -12,6 +12,8 @@
 #include <errno.h>
 #include <inttypes.h>
 
+#include <version.h>
+
 #include <proto.h>
 #include <proto/cache.h>
 

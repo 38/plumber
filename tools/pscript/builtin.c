@@ -12,6 +12,7 @@
 #include <sys/fcntl.h>
 #include <sys/file.h>
 
+#include <version.h>
 #include <constants.h>
 #include <error.h>
 #include <fallthrough.h>

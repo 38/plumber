@@ -8,11 +8,13 @@
 #include <stdio.h>
 
 #include <config.h>
+#include <version.h>
 
 #include <pservlet.h>
 #include <pstd.h>
 
 #include <options.h>
+
 
 static int _opt_callback_no_val(pstd_option_data_t data)
 {

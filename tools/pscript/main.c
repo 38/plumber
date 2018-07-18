@@ -12,6 +12,7 @@
 #include <dirent.h>
 #include <pthread.h>
 
+#include <version.h>
 #include <constants.h>
 #include <utils/string.h>
 #include <unistd.h>

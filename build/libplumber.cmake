@@ -50,6 +50,7 @@ macro(install_plumber_headers prefix)
 		install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/${INCLUDE_DIR}/${header} DESTINATION "${prefix}/${target_dir}")
 	endforeach(header ${api_headers})
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/config.h DESTINATION "${prefix}")
+	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/version.h DESTINATION "${prefix}")
 endmacro(install_plumber_headers prefix)
 
 macro(install_plumber_logging_utils prefix)

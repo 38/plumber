@@ -10,6 +10,8 @@
 #include <utils/mempool/page.h>
 #include <error.h>
 
+#include <version.h>
+
 
 INIT_VEC(modules) = {
 	INIT_MODULE(utils),

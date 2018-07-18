@@ -1,0 +1,10 @@
+#ifndef __PLUMBER_VERSION_H__
+#define __PLUMBER_VERSION_H__
+
+/** @brief the plumber version number */
+#   define PLUMBER_VERSION @PLUMBER_VERSION@
+
+/** @brief The short version number, used for security reason */
+#	define PLUMBER_VERSION_SHORT "@PLUMBER_VERSION_SHORT@"
+
+#endif /* __PLUMBER_VERSION_H__ */

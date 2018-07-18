@@ -10,6 +10,7 @@
 
 #include <fallthrough.h>
 #include <constants.h>
+#include <version.h>
 
 #include <pss.h>
 #include <plumber.h>

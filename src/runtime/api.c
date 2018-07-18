@@ -9,6 +9,7 @@
 #include <runtime/api.h>
 #include <itc/itc.h>
 
+#include <version.h>
 #include <error.h>
 #include <runtime/pdt.h>
 #include <runtime/servlet.h>
