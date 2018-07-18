@@ -107,13 +107,13 @@ int accept_test(void)
 
 	if(pid == 0)
 	{
+		sleep(1);
 		port = context->pool_conf.port;
 		plumber_finalize();
 		int rc = do_request();
 		exit(rc);
 		return 0;
 	}
-
 
 	ASSERT_OK(itc_module_pipe_accept(mod_tcp, param, &in, &out), goto ERR);
 
@@ -128,7 +128,7 @@ int accept_test(void)
 	ASSERT_OK(itc_module_pipe_deallocate(out), goto ERR);
 	out = NULL;
 
-	sleep(1);
+	sleep(2);
 	ASSERT_OK(module_tcp_pool_poll_event((module_tcp_pool_t*)module_tcp_module_get_pool(itc_module_get_context(mod_tcp))), goto ERR);
 
 	ASSERT_OK(waitpid(pid, &status, 0), goto ERR);
