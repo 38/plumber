@@ -98,4 +98,11 @@ int lang_service_start(lang_service_t* service, int fork_twice);
  **/
 int lang_service_reload(const char* daemon, lang_service_t* service);
 
+/**
+ * @brief Start the hot depoyment within current process
+ * @param service The service to deploy
+ * @return status code
+ **/
+int lang_service_start_deployment(lang_service_t* service);
+
 #endif

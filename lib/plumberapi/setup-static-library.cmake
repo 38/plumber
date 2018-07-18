@@ -1,0 +1,7 @@
+add_library(${target}_static ${SOURCE})
+target_include_directories(${target}_static PUBLIC ${LOCAL_INCLUDE})
+target_link_libraries(${target}_static ${LOCAL_LIBS} ${GLOBAL_LIBS})
+set_target_properties(${target}_static PROPERTIES OUTPUT_NAME ${target})
+if("${INSTALL}" STREQUAL "yes")
+	install(TARGETS ${target}_static DESTINATION ${install_destination})
+endif("${INSTALL}" STREQUAL "yes")

@@ -216,4 +216,12 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
  **/
 int itc_equeue_wait_interrupt(void);
 
+/**
+ * @brief Release the scheduler token. Since it's a singleton, we need to release this token so that
+ *        we can start another dispatcher later
+ * @param token The token to release
+ * @return status code
+ **/
+int itc_equeue_release_scheduler_token(itc_equeue_token_t token);
+
 #endif /*__PLUMBER_QUEUE_H__ */

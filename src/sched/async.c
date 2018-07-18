@@ -621,6 +621,7 @@ int sched_async_kill()
 	else _ctx.q_cond_init = 0;
 
 	_ctx.init = 0;
+	_ctx.killed = 0;
 
 	return rc;
 }

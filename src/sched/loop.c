@@ -749,6 +749,11 @@ NEXT_ITER:
 	if(ERROR_CODE(int) == sched_async_kill())
 	    ERROR_RETURN_LOG(int, "Cannot kill the async processor");
 
+	if(ERROR_CODE(int) == itc_equeue_release_scheduler_token(sched_token))
+		ERROR_RETURN_LOG(int, "Cannot release the scheduler token");
+
+	_killed = 0;
+
 	LOG_INFO("Dispatcher gets killed");
 
 	return 0;
@@ -812,10 +817,16 @@ int sched_loop_start(sched_service_t** service, int fork_twice)
 		.args = NULL
 	};
 
+	static int eloop_started = 0;
 
-	if(itc_eloop_start() < 0) ERROR_RETURN_LOG(int, "Cannot start the event loop");
 
-	if(itc_eloop_set_all_accept_param(request_param) == ERROR_CODE(int)) ERROR_RETURN_LOG(int, "Cannot set the accept param");
+	if(eloop_started == 0 && itc_eloop_start() == ERROR_CODE(int)) 
+		ERROR_RETURN_LOG(int, "Cannot start the event loop");
+	else
+		eloop_started = 1;
+
+	if(itc_eloop_set_all_accept_param(request_param) == ERROR_CODE(int)) 
+		ERROR_RETURN_LOG(int, "Cannot set the accept param");
 
 
 	_dispatcher_main();
@@ -852,6 +863,8 @@ CLEANUP_CTX:
 		LOG_ERROR("Cannot dispose the deploying service");
 		rc = ERROR_CODE(int);
 	}
+
+	_scheds = NULL;
 
 	return rc;
 }

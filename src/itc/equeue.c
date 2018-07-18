@@ -285,6 +285,16 @@ itc_equeue_token_t itc_equeue_scheduler_token()
 	return ret;
 }
 
+int itc_equeue_release_scheduler_token(itc_equeue_token_t token)
+{
+	if(token != _SCHED_TOKEN)
+		ERROR_RETURN_LOG(int, "Invalid arguments: Not a scheduler token");
+
+	_sched_token_called = 0;
+
+	return 0;
+}
+
 int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 {
 	if(token == _SCHED_TOKEN)

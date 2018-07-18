@@ -394,6 +394,30 @@ int lang_service_start(lang_service_t* service, int fork_twice)
 	return 0;
 }
 
+int lang_service_start_deployment(lang_service_t* service)
+{
+	if(NULL == service)
+		ERROR_RETURN_LOG(int, "Invalid arguments");
+	
+	if(service->is_buffer)
+	{
+		sched_service_t* service_obj = sched_service_from_buffer(service->buffer);
+		if(NULL == service_obj)
+		    ERROR_RETURN_LOG(int, "Cannot build the service object from the service buffer");
+
+		if(ERROR_CODE(int) == sched_service_buffer_free(service->buffer))
+		    LOG_WARNING("Cannot dispose the used service buffer");
+
+		service->is_buffer = 0;
+		service->object = service_obj;
+	}
+
+	if(ERROR_CODE(int) == sched_loop_deploy_service_object(service->object))
+		ERROR_RETURN_LOG(int, "Cannot deploy the previous service object");
+
+	return 0;
+}
+
 int lang_service_reload(const char* daemon, lang_service_t* service)
 {
 	if(NULL == daemon || NULL == service)

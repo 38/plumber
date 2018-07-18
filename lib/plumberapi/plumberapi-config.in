@@ -1,0 +1,32 @@
+#!/bin/bash
+OUTPUT=""
+SHARED="no"
+for arg in $@; do
+	case ${arg} in
+		--cflags )
+			OUTPUT=${OUTPUT}" -I@CMAKE_INSTALL_PREFIX@/include/plumberapi __shared_flags__";;
+		--libs )
+			OUTPUT=${OUTPUT}" -L@CMAKE_INSTALL_PREFIX@/lib -lplumberapi -lplumber -lproto -ldl $(pkg-config openssl --libs) -pthread";;
+		--shared )
+			SHARED="yes";;
+		* )
+			echo "Usage $0 --cflag|--libs"
+			exit 1
+	esac
+done
+
+if [ "x${OUTPUT}" = "x" ]
+then
+	echo "Usage $0 --cflag|--libs"
+	exit 1
+fi
+
+if [ "${SHARED}" = "yes" ]
+then
+	OUTPUT=$(echo ${OUTPUT} | sed -e 's/-lplumberapi/-lplumberapi_shared/g' -e 's/__shared_flags__/-fPIC/g')
+else
+	OUTPUT=$(echo ${OUTPUT} | sed -e 's/__shared_flags__//g')
+fi
+
+echo ${OUTPUT}
+
