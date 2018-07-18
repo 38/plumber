@@ -40,5 +40,5 @@ before_install:
     - if [[ "${SANITIZER}" == "yes" && "${CC}" == "gcc" ]]; then export LIBS="-fuse-ld=gold"; fi
 
 script:
-    - lsb_release -a && cmake . && make && make test
+    - cmake . && make && make test
 
