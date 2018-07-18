@@ -23,7 +23,7 @@ fi
 
 if [ "${SHARED}" = "yes" ]
 then
-	OUTPUT=$(echo ${OUTPUT} | sed -e 's/-lplumberapi/-lplumberapi_shared/g' -e 's/__shared_flags__/-fPIC/g')
+	OUTPUT=$(echo ${OUTPUT} | sed -e 's/-lplumber /-lplumber_shared /g' -e 's/__shared_flags__/-fPIC/g')
 else
 	OUTPUT=$(echo ${OUTPUT} | sed -e 's/__shared_flags__//g')
 fi
