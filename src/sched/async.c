@@ -923,7 +923,7 @@ static int _fake_handle_cntl(_fake_handle_t* handle, uint32_t opcode, va_list ap
 
 int sched_async_handle_cntl(runtime_api_async_handle_t* handle, uint32_t opcode, va_list ap)
 {
-#if !defined(__arm__)
+#if !defined(__arm__) && !defined(__arm64__)
 	if(NULL == handle || NULL == ap) ERROR_RETURN_LOG(int, "Invalid arguments");
 #else
 	if(NULL == handle) ERROR_RETURN_LOG(int, "Invalid arguments");

@@ -45,7 +45,6 @@
  **/
 struct _sched_daemon_iter_t {
 	DIR*            dir;   /*!< The directory object */
-	struct dirent   entry; /*!< The directory entry */
 };
 
 /**
@@ -623,32 +622,32 @@ int sched_daemon_list_next(sched_daemon_iter_t* iter, char** name, int* pid)
 	if(NULL == iter || NULL == name || NULL == pid)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
-	struct dirent* result;
+	struct dirent* ent;
 
-	int readdir_rc;
+	errno = 0;
 
-	while((readdir_rc = readdir_r(iter->dir, &iter->entry, &result)) >= 0 && result != NULL)
+	while((ent = readdir(iter->dir)) != NULL)
 	{
-		int rc = _is_running_daemon(iter->entry.d_name, "", pid);
+		int rc = _is_running_daemon(ent->d_name, "", pid);
 		if(ERROR_CODE(int) == rc)
 		    ERROR_LOG_GOTO(ERR, "Cannot examine if the name is a name of Plumber daemon");
 		if(rc == 1)
 		{
-			size_t namelen = strlen(iter->entry.d_name) - sizeof(_lock_suffix) + 1;
+			size_t namelen = strlen(ent->d_name) - sizeof(_lock_suffix) + 1;
 			if(NULL == (*name = (char*)malloc(namelen + 1)))
 			    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the name");
 
-			memcpy(*name, iter->entry.d_name, namelen);
+			memcpy(*name, ent->d_name, namelen);
 			(*name)[namelen] = 0;
 
 			return 1;
 		}
 	}
 
-	if(readdir_rc < 0)
+	if(errno != 0)
 	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the directory entry");
 
-	if(result == NULL)
+	if(ent == NULL)
 	{
 		closedir(iter->dir);
 		free(iter);
