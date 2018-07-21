@@ -1,10 +1,9 @@
 include("${CMAKE_CURRENT_SOURCE_DIR}/build/compiler/shared.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/build/compiler/clang-shared.cmake")
+
 set(COMPILER_CFLAGS "${SHARED_CFLAGS} -Wstrict-overflow=5")
-if("${SYSNAME}" STREQUAL "Darwin")
-    set(COMPILER_CXXFLAGS "${SHARED_CXXFLAGS} -Wstrict-overflow=5")
-else("${SYSNAME}" STREQUAL "Darwin")
-    set(COMPILER_CXXFLAGS "-nostdinc++ -I/usr/include/c++/v1 ${SHARED_CXXFLAGS} -Wstrict-overflow=5")
-endif("${SYSNAME}" STREQUAL "Darwin")
+set(COMPILER_CXXFLAGS "${SHARED_CXXFLAGS} -Wstrict-overflow=5")
+
 if("${LIB_PSS_VM_STACK_LIMIT}" STREQUAL "")
 	set(LIB_PSS_VM_STACK_LIMIT 512)
 endif("${LIB_PSS_VM_STACK_LIMIT}" STREQUAL "")
