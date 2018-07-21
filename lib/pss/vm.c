@@ -973,25 +973,14 @@ int pss_vm_free(pss_vm_t* vm)
 	return rc;
 }
 
-int pss_vm_run_module(pss_vm_t* vm, const pss_bytecode_module_t* module, pss_value_t* retbuf)
+int pss_vm_run_closure(pss_vm_t* vm, pss_value_t closure_value, pss_value_t* retbuf)
 {
-	if(NULL == vm || NULL == module)
+	if(NULL == vm)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(vm->error != PSS_VM_ERROR_NONE)
 	    ERROR_RETURN_LOG(int, "VM is in exception state");
 
-	pss_bytecode_segid_t segid = pss_bytecode_module_get_entry_point(module);
-	if(ERROR_CODE(pss_bytecode_segid_t) == segid)
-	    ERROR_RETURN_LOG(int, "Cannot get the entry point segment ID");
-
-	pss_closure_creation_param_t param = {
-		.module = module,
-		.segid  = segid,
-		.env    = NULL
-	};
-
-	pss_value_t closure_value = pss_value_ref_new(PSS_VALUE_REF_TYPE_CLOSURE, &param);
 	const pss_closure_t* closure = (const pss_closure_t*)pss_value_get_data(closure_value);
 
 	if(NULL == closure) ERROR_RETURN_LOG(int, "Cannot create closure for the entry point");
@@ -1005,9 +994,6 @@ int pss_vm_run_module(pss_vm_t* vm, const pss_bytecode_module_t* module, pss_val
 	vm->stack = this_stack;
 
 	pss_bytecode_regid_t retreg = _exec(vm);
-
-	if(ERROR_CODE(int) == pss_value_decref(closure_value))
-	    ERROR_RETURN_LOG(int, "Cannot diepose the entry point closure");
 
 	if(ERROR_CODE(pss_bytecode_regid_t) == retreg || vm->error != PSS_VM_ERROR_NONE)
 	    ERROR_RETURN_LOG(int, "The virtual machine is in an error state");
@@ -1026,7 +1012,30 @@ int pss_vm_run_module(pss_vm_t* vm, const pss_bytecode_module_t* module, pss_val
 	if(ERROR_CODE(int) == _stack_free(this_stack))
 	    ret = ERROR_CODE(int);
 
+	return ret;
+}
 
+int pss_vm_run_module(pss_vm_t* vm, const pss_bytecode_module_t* module, pss_value_t* retbuf)
+{
+	if(NULL == vm || NULL == module)
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+	
+	pss_bytecode_segid_t segid = pss_bytecode_module_get_entry_point(module);
+	if(ERROR_CODE(pss_bytecode_segid_t) == segid)
+	    ERROR_RETURN_LOG(int, "Cannot get the entry point segment ID");
+
+	pss_closure_creation_param_t param = {
+		.module = module,
+		.segid  = segid,
+		.env    = NULL
+	};
+
+	pss_value_t closure_value = pss_value_ref_new(PSS_VALUE_REF_TYPE_CLOSURE, &param);
+
+	int ret = pss_vm_run_closure(vm, closure_value, retbuf);
+
+	if(ERROR_CODE(int) == pss_value_decref(closure_value))
+	    ERROR_RETURN_LOG(int, "Cannot diepose the entry point closure");
 
 	return ret;
 }

@@ -130,6 +130,15 @@ int pss_vm_free(pss_vm_t* vm);
 int pss_vm_run_module(pss_vm_t* vm, const pss_bytecode_module_t* module, pss_value_t* retbuf);
 
 /**
+ * @brief Run a closure with the PSS VM
+ * @param vm The VM used to run the code
+ * @param module The module to run
+ * @param retbuf The return buffer
+ * @return status code
+ **/
+int pss_vm_run_closure(pss_vm_t* vm, pss_value_t closure_value, pss_value_t* retbuf);
+
+/**
  * @brief Get the last exception occured with the virtual machine
  * @param vm The virtual machine, after we did this, the VM well become a good state again
  * @return The exception description
