@@ -123,6 +123,7 @@ check_c_source_runs("
 #include <stdlib.h> 
 void* malloc(size_t sz)
 {
+	__libc_malloc(sz);
 	exit(0);
 }
 int main()
