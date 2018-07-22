@@ -190,8 +190,21 @@ static inline int _ensure_dir(const char* path)
 		buf[i] = 0;
 		if(*path == '/' && i > 0)
 		{
-			if(access(buf, R_OK) < 0 && mkdir(buf, 0775) < 0)
-			    PROTO_ERR_RAISE_RETURN(int, FILEOP);
+			if(access(buf, R_OK) < 0)
+			{
+				switch(errno)
+				{
+					case ENOENT:
+						if(mkdir(buf, 0775) < 0)
+						   PROTO_ERR_RAISE_RETURN(int, FILEOP);
+						break;
+					case EACCES:
+						/* Since even though the parent is not accessible, but we still can reach the inner one if we could */
+						continue;
+					default:
+						PROTO_ERR_RAISE_RETURN(int, FILEOP);
+				}
+			}
 			else
 			{
 				struct stat stat_result;
