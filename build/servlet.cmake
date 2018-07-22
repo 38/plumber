@@ -82,3 +82,4 @@ endif("${MEMCHECK_TEST}" STREQUAL "yes" AND NOT "${VALGRIND_PROGRAM}" STREQUAL "
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/test/servlet-test-driver.py.in"
 	           "${CMAKE_CURRENT_BINARY_DIR}/servlet-test-driver.py")
 
+find_program(PYTHON_PROGRAM NAMES python PATH ${PYTHON_PREFIX}) 

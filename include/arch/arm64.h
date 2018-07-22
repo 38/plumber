@@ -73,7 +73,7 @@ static int arch_switch_stack(void* baseaddr, size_t size, int (*main)(int, char 
 	(void)argv;
 	return 0;
 }
-#endif 
+#endif
 
 #	endif /* __arm64__ */
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!@PYTHON_PROGRAM@
 import sys, subprocess, os, json
 pscript_path = r"@CMAKE_CURRENT_BINARY_DIR@/bin/pscript"
 pscript_lib  = r"@CMAKE_CURRENT_SOURCE_DIR@/tools/pscript/pss/"
@@ -23,7 +23,7 @@ if os.path.exists(proto_name):
     pi.wait()
 
 
-valgrind = filter(lambda x: x, "@SERVLET_VALGRIND_PARAM@".split(";"))
+valgrind = [x for x in "@SERVLET_VALGRIND_PARAM@".split(";") if x]
 
 cmdline = [pscript_path, "-P", env['PROTO_DB_ROOT'], 
            "-M", pscript_lib, "-S", servlet_path, testing_pss,
@@ -31,7 +31,7 @@ cmdline = [pscript_path, "-P", env['PROTO_DB_ROOT'],
            "-i", r"@CMAKE_CURRENT_SOURCE_DIR@/servlets/{test}/test/{case}/input.txt".format(test = servlet_name, case = case_name),
            "-o", "/dev/stdout"]
 
-print "Running testing PSS script ", " ".join(cmdline)
+print("Running testing PSS script ", " ".join(cmdline))
 
 tester = subprocess.Popen(valgrind + cmdline, stdout = subprocess.PIPE)
 result = tester.wait()
@@ -65,17 +65,17 @@ def print_json(value):
 if result == 0:
     results = parse_result(tester.stdout.readlines())
     expected = parse_result(file(r"@CMAKE_CURRENT_SOURCE_DIR@/servlets/{test}/test/{case}/output.txt".format(test = servlet_name, case = case_name)).readlines())
-    keys = set(results.keys() + expected.keys())
+    keys = set(list(results.keys()) + list(expected.keys()))
     for key in keys:
         actual = results.get(key, "")
         expect = expected.get(key, "")
         if actual != expect:
             print("Case %s failure " % key)
-            print("expected:")
+            print("expected:") 
             print_json(expect)
-            print("but got :")
+            print("but got :") 
             print_json(actual)
             result = 1
 if result == 0:
-    print "All test cases are OK!"
+    print("All test cases are OK!")
 sys.exit(result)

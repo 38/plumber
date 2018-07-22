@@ -397,8 +397,8 @@ int lang_service_start(lang_service_t* service, int fork_twice)
 int lang_service_start_deployment(lang_service_t* service)
 {
 	if(NULL == service)
-		ERROR_RETURN_LOG(int, "Invalid arguments");
-	
+	    ERROR_RETURN_LOG(int, "Invalid arguments");
+
 	if(service->is_buffer)
 	{
 		sched_service_t* service_obj = sched_service_from_buffer(service->buffer);
@@ -413,7 +413,7 @@ int lang_service_start_deployment(lang_service_t* service)
 	}
 
 	if(ERROR_CODE(int) == sched_loop_deploy_service_object(service->object))
-		ERROR_RETURN_LOG(int, "Cannot deploy the previous service object");
+	    ERROR_RETURN_LOG(int, "Cannot deploy the previous service object");
 
 	return 0;
 }

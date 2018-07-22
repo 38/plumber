@@ -187,7 +187,7 @@ static inline uint32_t _parse_argument(const char* pattern, uint32_t argc, char 
 		*buffer = rc;
 	}
 	if(optional || pattern[0] == 0)
-		goto RET;
+	    goto RET;
 ERR:
 	ret = ERROR_CODE(uint32_t);
 	if(*buffer != NULL) _buffer_free(*buffer);

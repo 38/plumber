@@ -13,6 +13,9 @@ import shutil
 #	exit 1
 #fi
 
+def print_func(what, file = sys.stdout):
+    file.write(str(what))
+
 use_valgrind = True
 
 def read_test_case_property(filename):
@@ -38,25 +41,25 @@ def read_test_case_property(filename):
         if inside_expected and line:
             if line[0] == '<':
                 if line[-1] != '>': 
-                    print >>sys.stderr, "E\tInvalid case description syntax"
+                    print_func("E\tInvalid case description syntax", file=sys.stderr)
                     return None, []
                 expected.append(line[1:-1])
             elif line == "CaseEnd":
                 return (name, expected)
-    print >>sys.stderr, "E\tUnexpected end of file, missing EndCase?"
+    print_func("E\tUnexpected end of file, missing EndCase?", file=sys.stderr)
     return None, []
 
 def readenv(name):
     if name in os.environ:
         return os.environ[name]
     else:
-        print >>sys.stderr, "E\tEnvironment variable $OBJDIR is undefined"
+        print_func("E\tEnvironment variable $OBJDIR is undefined", file=sys.stderr)
         exit(1)
 
 def run_test_script(filename):
     name, expected = read_test_case_property(filename)
     if not name: return (name, False, 0)
-    print >>sys.stderr, "I\tLaunching test case %s"%name
+    print_func("I\tLaunching test case %s"%name, file=sys.stderr)
     start_time = time.time()
     if use_valgrind:
         try:
@@ -73,15 +76,15 @@ def run_test_script(filename):
     for lineno, expected_line in enumerate(expected):
         line = proc.stdout.readline()
         if not line or line.strip() != expected_line:
-            print >>sys.stderr, "E\tUnmatched line #%d: expected `%s', got `%s'"%(lineno, expected_line, line.strip())
+            print_func("E\tUnmatched line #%d: expected `%s', got `%s'"%(lineno, expected_line, line.strip()), file=sys.stderr)
             proc.kill();
             return (name, False, time.time() - start_time)
     if proc.stdout.readline():
-        print >>sys.stderr, "E\tOutput limit excceeded"
+        print_func("E\tOutput limit excceeded", file=sys.stderr)
         proc.kill()
         return (name, False, time.time() - start_time)
     if proc.returncode:
-        print >>sys.stderr, "E\tTest case return an non-zero return code"
+        print_func("E\tTest case return an non-zero return code", file=sys.stderr)
         return (name, False, time.time() - start_time)
     return (name, True, time.time() - start_time)
 
@@ -93,7 +96,7 @@ def test_one(filename):
         name, result, exectime = run_test_script(filename)
     except Exception:
         traceback.print_exc()
-    print "Test case %s %s in %.2f ms"%(name, ["failed", "passed"][result], exectime * 1000)
+    print_func("Test case %s %s in %.2f ms"%(name, ["failed", "passed"][result], exectime * 1000))
     return result
 
 def test_all():

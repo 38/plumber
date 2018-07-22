@@ -77,7 +77,7 @@ for root, _, files in os.walk("."):
 		if not re.match(fn,f): continue
 		path="%s/%s"%(root,f)
 		ch, result = format(file(path))
-		if ch: print "Info: file %s has been changed"%path
+		if ch: print("Info: file %s has been changed"%path)
 		f = file(path, "w")
 		f.write(result)
 		f.close()

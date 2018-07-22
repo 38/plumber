@@ -140,7 +140,7 @@ static int test_disabled(void)
 	const char* result = getenv(env);
 
 	if(NULL != result && atoi(result) > 0)
-		return 1;
+	    return 1;
 
 	return 0;
 }

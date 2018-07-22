@@ -752,7 +752,7 @@ NEXT_ITER:
 	    ERROR_RETURN_LOG(int, "Cannot kill the async processor");
 
 	if(ERROR_CODE(int) == itc_equeue_release_scheduler_token(sched_token))
-		ERROR_RETURN_LOG(int, "Cannot release the scheduler token");
+	    ERROR_RETURN_LOG(int, "Cannot release the scheduler token");
 
 	LOG_INFO("Dispatcher gets killed");
 
@@ -820,13 +820,13 @@ int sched_loop_start(sched_service_t** service, int fork_twice)
 	static int eloop_started = 0;
 
 
-	if(eloop_started == 0 && itc_eloop_start() == ERROR_CODE(int)) 
-		ERROR_RETURN_LOG(int, "Cannot start the event loop");
+	if(eloop_started == 0 && itc_eloop_start() == ERROR_CODE(int))
+	    ERROR_RETURN_LOG(int, "Cannot start the event loop");
 	else
-		eloop_started = 1;
+	    eloop_started = 1;
 
-	if(itc_eloop_set_all_accept_param(request_param) == ERROR_CODE(int)) 
-		ERROR_RETURN_LOG(int, "Cannot set the accept param");
+	if(itc_eloop_set_all_accept_param(request_param) == ERROR_CODE(int))
+	    ERROR_RETURN_LOG(int, "Cannot set the accept param");
 
 
 	_dispatcher_main();
@@ -886,15 +886,15 @@ int sched_loop_kill(int no_error)
 	for(sched = _scheds; sched != NULL; sched = sched->next)
 	{
 		if(0 != (errno = pthread_mutex_lock(&sched->mutex)))
-			LOG_WARNING_ERRNO("Cannot lock the scheduler mutex");
+		    LOG_WARNING_ERRNO("Cannot lock the scheduler mutex");
 
 		if(_killed == 0) _killed = 1;
 
 		if(0 != (errno = pthread_cond_signal(&sched->cond)))
-			LOG_WARNING_ERRNO("Cannot notify the scheduler loop for the killed state");
+		    LOG_WARNING_ERRNO("Cannot notify the scheduler loop for the killed state");
 
 		if(0 != (errno = pthread_mutex_unlock(&sched->mutex)))
-			LOG_WARNING_ERRNO("Cannot unlock the scheduler mutex");
+		    LOG_WARNING_ERRNO("Cannot unlock the scheduler mutex");
 	}
 
 

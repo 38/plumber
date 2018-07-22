@@ -19,8 +19,8 @@ typedef struct plumberapi_graph_t plumberapi_graph_t;
 
 /**
  * @brief Represent a node in the dataflow graph
- * @todo Since in the code we actually use sched_service_node_id_t, which is just for the 
- *       node representation. But it's not exposed as an API, so we only can do this. 
+ * @todo Since in the code we actually use sched_service_node_id_t, which is just for the
+ *       node representation. But it's not exposed as an API, so we only can do this.
  *       Think about any workaround so that we can make the code clean
  **/
 typedef uint32_t plumberapi_node_t;
@@ -66,7 +66,7 @@ int plumberapi_graph_free(plumberapi_graph_t* graph);
 plumberapi_node_t plumberapi_graph_add_node(plumberapi_graph_t* graph, char const* node_init_str);
 
 /**
- * @brief Connect two node. 
+ * @brief Connect two node.
  * @param graph The dataflow graph contains the two nodes we want to connect
  * @param from_node The upstream node
  * @param from_port The upstream port
@@ -74,16 +74,16 @@ plumberapi_node_t plumberapi_graph_add_node(plumberapi_graph_t* graph, char cons
  * @param to_port   The dowenstream port
  * @return status code
  **/
-int plumberapi_graph_connect(plumberapi_graph_t* graph, 
-		                     plumberapi_node_t from_node, char const* from_port,
-							 plumberapi_node_t to_node,   char const* to_port);
+int plumberapi_graph_connect(plumberapi_graph_t* graph,
+                             plumberapi_node_t from_node, char const* from_port,
+                             plumberapi_node_t to_node,   char const* to_port);
 
 
 /**
  * @brief Get the type name of the given port of the given node in the graph
  * @param graph The graph where the target nodes is added
  * @param node  The target node
- * @param port  The port name 
+ * @param port  The port name
  * @return The type string or NULL on error
  **/
 const char* plumberapi_graph_port_type(plumberapi_graph_t* graph, plumberapi_node_t node, char const* port);
@@ -99,7 +99,7 @@ char** plumberapi_graph_node_ports(plumberapi_graph_t* graph, plumberapi_node_t 
 
 /**
  * @brief Dispose a used port list result
- * @param list the list to dispose 
+ * @param list the list to dispose
  * @return status code
  **/
 int plumberapi_portlist_free(char** list);
@@ -108,7 +108,7 @@ int plumberapi_portlist_free(char** list);
  * @brief Set the event source of the entire dataflow graph
  * @param graph The dataflow graph
  * @param node The node id
- * @param port The port 
+ * @param port The port
  * @return status code
  **/
 int plumberapi_graph_source(plumberapi_graph_t* graph, plumberapi_node_t node, char const* port);
@@ -130,7 +130,7 @@ int plumberapi_graph_sink(plumberapi_graph_t* graph, plumberapi_node_t node, cha
 int plumberapi_graph_run(plumberapi_graph_t* graph);
 
 /**
- * @brief Get the numeric configuration 
+ * @brief Get the numeric configuration
  * @param key the variable to get
  * @param val The value buffer
  * @return The number of value has been read, error code when error occurs
@@ -140,7 +140,7 @@ int plumberapi_get_num_config(const char* key, int64_t* val);
 /**
  * @brief Set the numeric configuration
  * @param key The key to set
- * @param val The value 
+ * @param val The value
  * @param The number of value accepted by Plumber, error code when error occurs
  **/
 int plumberapi_set_num_config(const char* key, int64_t val);

@@ -1019,7 +1019,7 @@ int pss_vm_run_module(pss_vm_t* vm, const pss_bytecode_module_t* module, pss_val
 {
 	if(NULL == vm || NULL == module)
 	    ERROR_RETURN_LOG(int, "Invalid arguments");
-	
+
 	pss_bytecode_segid_t segid = pss_bytecode_module_get_entry_point(module);
 	if(ERROR_CODE(pss_bytecode_segid_t) == segid)
 	    ERROR_RETURN_LOG(int, "Cannot get the entry point segment ID");
