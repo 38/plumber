@@ -29,7 +29,7 @@ cmdline = [pscript_path, "-P", env['PROTO_DB_ROOT'],
            "-M", pscript_lib, "-S", servlet_path, testing_pss,
            "-s", r"@CMAKE_CURRENT_SOURCE_DIR@/servlets/{test}/test/{case}/servlet-def.pss".format(test = servlet_name, case = case_name),
            "-i", r"@CMAKE_CURRENT_SOURCE_DIR@/servlets/{test}/test/{case}/input.txt".format(test = servlet_name, case = case_name),
-           "-o", "/dev/stdout"]
+           "-o", "@STDOUT_PATH@"]
 
 print("Running testing PSS script ", " ".join(cmdline))
 

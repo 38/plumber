@@ -79,5 +79,11 @@ if("${MEMCHECK_TEST}" STREQUAL "yes" AND NOT "${VALGRIND_PROGRAM}" STREQUAL "VAL
 	list(APPEND SERVLET_VALGRIND_PARAM --error-exitcode=1)
 endif("${MEMCHECK_TEST}" STREQUAL "yes" AND NOT "${VALGRIND_PROGRAM}" STREQUAL "VALGRIND_PROGRAM-NOTFOUND")
 
+if("${SYSNAME}" STREQUAL "Linux")
+	set(STDOUT_PATH "/proc/self/fd/1")
+elseif("${SYSNAME}" STREQUAL "Linux")
+	set(STDOUT_PATH "/dev/stdout")
+endif("${SYSNAME}" STREQUAL "Linux")
+
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/test/servlet-test-driver.py.in"
 	           "${CMAKE_CURRENT_BINARY_DIR}/servlet-test-driver.py")
