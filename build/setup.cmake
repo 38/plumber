@@ -116,3 +116,21 @@ check_include_file("execinfo.h" HAS_EXECINFO_H)
 if(NOT "${HAS_EXECINFO_H}" STREQUAL "1")
 	set(CFLAGS "${CFLAGS} -D__NO_EXECINFO_H__")
 endif(NOT "${HAS_EXECINFO_H}" STREQUAL "1")
+
+include(CheckCSourceRuns)
+
+check_c_source_runs("
+#include <stdlib.h> 
+void* malloc(size_t sz)
+{
+	exit(0);
+}
+int main()
+{
+	malloc(1);
+	return 1;
+}" malloc_ovverridable)
+
+if(NOT "${malloc_ovverridable}" STREQUAL "1")
+	set(CFLAGS "${CFLAGS} -DNO_WEAK_SYM_MALLOC")
+endif(NOT "${malloc_ovverridable}" STREQUAL "1")

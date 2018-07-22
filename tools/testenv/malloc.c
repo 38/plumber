@@ -16,7 +16,7 @@
 
 #include <constants.h>
 
-#if defined(__LINUX__) && !defined(SANITIZER)
+#if defined(__LINUX__) && !defined(SANITIZER) && !defined(NO_WEAK_SYM_MALLOC)
 #define BLOCK_MAGIC_NUMBER  0x4c56f6bcu
 #define _CALLER (__builtin_extract_return_addr(__builtin_return_address(0)))
 extern void* __libc_malloc(size_t size);
@@ -174,7 +174,7 @@ void* realloc(void* ptr, size_t new_size)
 
 int __check_memory_allocation(void)
 {
-#if defined(__LINUX__) && !defined(SANITIZER) && !defined(__NO_EXECINFO_H__)
+#if defined(__LINUX__) && !defined(SANITIZER) && !defined(__NO_EXECINFO_H__)  && !defined(NO_WEAK_SYM_MALLOC)
 	memory_block_t* ptr;
 	for(ptr = __block_list_head; ptr; _num_expected_memory_leakage--, ptr = ptr->next)
 	{
@@ -192,7 +192,8 @@ int __check_memory_allocation(void)
 
 void __print_memory_leakage(void)
 {
-#if defined(__LINUX__) && !defined(SANITIZER)
+#if defined(__LINUX__) && !defined(SANITIZER) && !defined(NO_WEAK_SYM_MALLOC)
+
 	memory_block_t* ptr;
 	for(ptr = __block_list_head; ptr; ptr = ptr->next)
 	{
@@ -215,7 +216,7 @@ void __print_memory_leakage(void)
 }
 void expected_memory_leakage(void)
 {
-#if defined(__LINUX__) && !defined(SANITIZER)
+#if defined(__LINUX__) && !defined(SANITIZER) && !defined(NO_WEAK_SYM_MALLOC)
 	_num_expected_memory_leakage ++;
 #endif
 }
