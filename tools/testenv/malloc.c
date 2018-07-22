@@ -7,7 +7,10 @@
 #include <string.h>
 
 #include <utils/static_assertion.h>
+
+#ifndef __NO_EXECINFO_H__
 #include <execinfo.h>
+#endif
 
 #include <pthread.h>
 
@@ -171,7 +174,7 @@ void* realloc(void* ptr, size_t new_size)
 
 int __check_memory_allocation(void)
 {
-#if defined(__LINUX__) && !defined(SANITIZER)
+#if defined(__LINUX__) && !defined(SANITIZER) && !defined(__NO_EXECINFO_H__)
 	memory_block_t* ptr;
 	for(ptr = __block_list_head; ptr; _num_expected_memory_leakage--, ptr = ptr->next)
 	{
@@ -193,9 +196,16 @@ void __print_memory_leakage(void)
 	memory_block_t* ptr;
 	for(ptr = __block_list_head; ptr; ptr = ptr->next)
 	{
+#ifndef __NO_EXECINFO_H__
 		char** result = backtrace_symbols(&ptr->caller, 1);
+#else
+		char const* result[] = {"unknown_symbol"};
+#endif
 		fprintf(stderr, "Possible %zu bytes memory leak at %p,allocator = %s\n", ptr->size, ptr->data, result[0]);
+
+#ifndef __NO_EXECINFO_H__
 		free(result);
+#endif
 	}
 
 	pthread_mutex_destroy(&_mutex);

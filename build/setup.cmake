@@ -111,3 +111,8 @@ set(CMAKE_LINK_DEPENDS_NO_SHARED true)
 
 set(TESTING_PROTODB_ROOT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TEST_DIR}/protodb.root)
 
+check_include_file("execinfo.h" HAS_EXECINFO_H)
+
+if("${HAS_EXECINFO_H}" STREQUAL "0")
+	set(CFLAGS "${CFLAGS} -D__NO_EXECINFO_H__")
+endif("${HAS_EXECINFO_H}" STREQUAL "0")
