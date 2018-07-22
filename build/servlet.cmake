@@ -81,7 +81,7 @@ endif("${MEMCHECK_TEST}" STREQUAL "yes" AND NOT "${VALGRIND_PROGRAM}" STREQUAL "
 
 if("${SYSNAME}" STREQUAL "Linux")
 	set(STDOUT_PATH "/proc/self/fd/1")
-elseif("${SYSNAME}" STREQUAL "Linux")
+else("${SYSNAME}" STREQUAL "Linux")
 	set(STDOUT_PATH "/dev/stdout")
 endif("${SYSNAME}" STREQUAL "Linux")
 
