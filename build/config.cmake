@@ -162,4 +162,8 @@ if(NOT "${RAPIDJSON_DIR}" STREQUAL "RAPIDJSON_DIR-NOTFOUND")
 	message("Found RapidJSON at ${RAPIDJSON_DIR}")
 endif(NOT "${RAPIDJSON_DIR}" STREQUAL "RAPIDJSON_DIR-NOTFOUND")
 	
+find_program(PYTHON_PROGRAM NAMES python PATH ${PYTHON_PREFIX})
 
+if("${PYTHON_PROGRAM}" STREQUAL "PYTHON_PROGRAM-NOTFOUND")
+	message(FATAL_ERROR "Plumber build system requires python installed (hint: try to use -DPYTHON_PREFIX=<prefix> to fix this)")
+endif("${PYTHON_PROGRAM}" STREQUAL "PYTHON_PROGRAM-NOTFOUND")
