@@ -200,7 +200,7 @@ static inline int _ensure_dir(const char* path)
 						break;
 					case EACCES:
 						/* Since even though the parent is not accessible, but we still can reach the inner one if we could */
-						continue;
+						break;
 					default:
 						PROTO_ERR_RAISE_RETURN(int, FILEOP);
 				}
