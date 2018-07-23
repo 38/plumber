@@ -238,9 +238,9 @@ static inline pss_comp_lex_keyword_t _id_or_keyword(pss_comp_lex_t* lexer, char*
 	return PSS_COMP_LEX_KEYWORD_ERROR;
 }
 
-static inline int _num(pss_comp_lex_t* lex, int32_t* result)
+static inline int _num(pss_comp_lex_t* lex, int64_t* result)
 {
-	int32_t current;
+	int64_t current;
 	if(_peek(lex, 0) == '0')
 	{
 		if(_peek(lex, 1) == 'x')

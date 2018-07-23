@@ -54,7 +54,6 @@ endif(NOT "$ENV{CXX}" STREQUAL "")
 get_default_compiler_flags(CFLAGS ${CMAKE_C_COMPILER} C)
 get_default_compiler_flags(CXXFLAGS ${CMAKE_CXX_COMPILER} CXX)
 
-
 message("Compiler: ${CMAKE_C_COMPILER}")
 message("Log Level: ${LOG}")
 message("Optimization Level: ${OPTLEVEL}")
@@ -135,3 +134,9 @@ int main()
 if(NOT "${malloc_ovverridable}" STREQUAL "1")
 	set(CFLAGS "${CFLAGS} -DNO_WEAK_SYM_MALLOC")
 endif(NOT "${malloc_ovverridable}" STREQUAL "1")
+
+find_program(CCACHE_EXECUTABLE NAMES ccache PATH ${CCACHE_PREFIX})
+if("$ENV{CCACHE}" STREQUAL "yes" AND NOT "${CCACHE_EXECUTABLE}" STREQUAL "CCACHE_EXECUTABLE-NOTFOUND")
+	message("Found compiler cache program ${CCACHE_EXECUTABLE}")
+	set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ${CCACHE_EXECUTABLE})
+endif("$ENV{CCACHE}" STREQUAL "yes" AND NOT "${CCACHE_EXECUTABLE}" STREQUAL "CCACHE_EXECUTABLE-NOTFOUND")
