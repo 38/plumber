@@ -21,7 +21,7 @@ static const char response[] = "HTTP/1.1 200 OK \r\n"
 static const char request[] =  "GET / HTTP/1.1\r\n"
                                "Host: 127.0.0.1\r\n"
                                "\r\n";
-int do_request(void)
+int do_request_once(void)
 {
 	int sock = socket(AF_INET, SOCK_STREAM, 0);
 	struct sockaddr_in addr;
@@ -65,10 +65,20 @@ int do_request(void)
 
 	return 0;
 }
+int do_request(void)
+{
+	int i = 0;
+	for(i = 0; i < 5; i ++)
+	{
+		if(do_request_once() == 0)
+			return 0;
+		usleep(1000000);
+	}
+	return -1;
+}
 static inline void sighand(int signo)
 {
 	(void)signo;
-	usleep(10000);
 	int rc = do_request();
 	exit(rc);
 }
@@ -93,8 +103,7 @@ int eloop_test(void)
 		/* TODO: figure out why OSX fails if we finalize libplumber */
 		plumber_finalize();
 #endif
-		signal(SIGUSR2, sighand);
-		pause();
+		sighand(0);
 		exit(1);
 	}
 
@@ -106,10 +115,6 @@ int eloop_test(void)
 	ASSERT_RETOK(itc_equeue_token_t, token, CLEANUP_NOP);
 
 	ASSERT_OK(itc_eloop_start(), CLEANUP_NOP);
-
-	usleep(1000000);
-
-	kill(pid, SIGUSR2);
 
 	ASSERT_OK(itc_equeue_wait(token, NULL, NULL), CLEANUP_NOP);
 
