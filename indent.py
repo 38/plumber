@@ -127,14 +127,17 @@ def format(fp, verbose = False, color = False):
         if not line.strip(): 
             spaces = 0
         new_line = "%s%s%s\n"%('\t' * idlevel, ' ' * spaces, line.strip())
+        if not pc and spaces and not comment and not string and not char:
+            changed = True
+            result += "// Indent warnning: Suspicous Alighment!\n"
         if new_line != line:
             changed = True
             if color:
                 if verbose: sys.stdout.write("\033[31m-" + line.replace(' ', '_').replace('\t', '    ') + "\033[0m")
                 if verbose: sys.stdout.write("\033[32m+" + new_line.replace(' ', '_').replace('\t', '    ') + "\033[0m")
             else:
-                if verbose: sys.stdout.write(line.replace(' ', '_').replace('\t', '    '))
-                if verbose: sys.stdout.write(new_line.replace(' ', '_').replace('\t', '    '))
+                if verbose: sys.stdout.write("-" + line.replace(' ', '_').replace('\t', '    '))
+                if verbose: sys.stdout.write("+" + new_line.replace(' ', '_').replace('\t', '    '))
         else:
             if verbose: sys.stdout.write(" " + line.replace(' ', '_').replace('\t', '    '))
         result += new_line
@@ -168,10 +171,10 @@ for root, _, files in os.walk("."):
         path="%s/%s"%(root,f)
         ch, result = format(file(path), verbose, color)
         if not dry_run:
-            if ch: print("Info: file %s has been changed"%path)
+            if ch: sys.stderr.write("Info: file %s has been changed\n"%path)
             f = file(path, "w")
             f.write(result)
             f.close()
         else:
-            if ch: print("Info: file %s would be changed"%path)
+            if ch: sys.stderr.write("Info: file %s would be changed\n"%path)
 
