@@ -78,7 +78,7 @@ int itc_equeue_init()
 {
 	int stage = 0;
 	if((errno = pthread_mutex_init(&_global_mutex, NULL)) != 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the global mutex");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the global mutex");
 
 	stage = 1;
 	/* stage 1 */
@@ -86,15 +86,15 @@ int itc_equeue_init()
 	_sched_token_called = 0;
 	_queues = vector_new(sizeof(_queue_t*), ITC_EQUEUE_VEC_INIT_SIZE);
 	if(NULL == _queues)
-	    ERROR_LOG_GOTO(ERR, "Cannot create vector for the queue list");
+		ERROR_LOG_GOTO(ERR, "Cannot create vector for the queue list");
 
 	stage = 2;
 	if((errno = pthread_cond_init(&_take_cond, NULL)) != 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the read condition variable");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the read condition variable");
 
 	stage = 3;
 	if((errno = pthread_mutex_init(&_take_mutex, NULL)) != 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the read condition mutex");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the read condition mutex");
 
 	LOG_DEBUG("Event Queue has been initialized");
 	return 0;
@@ -103,13 +103,13 @@ ERR:
 	switch(stage)
 	{
 		case 3:
-		    pthread_cond_destroy(&_take_cond);
-		    FALLTHROUGH();
+			pthread_cond_destroy(&_take_cond);
+			FALLTHROUGH();
 		case 2:
-		    vector_free(_queues);
-		    FALLTHROUGH();
+			vector_free(_queues);
+			FALLTHROUGH();
 		case 1:
-		    pthread_mutex_destroy(&_global_mutex);
+			pthread_mutex_destroy(&_global_mutex);
 	}
 	return ERROR_CODE(int);
 }
@@ -137,37 +137,37 @@ int itc_equeue_finalize()
 					switch(queue->events[j & (queue->size - 1)].type)
 					{
 						case ITC_EQUEUE_EVENT_TYPE_IO:
-						{
-							itc_module_pipe_t* in = queue->events[j & (queue->size - 1)].io.in;
-							itc_module_pipe_t* out = queue->events[j & (queue->size - 1)].io.out;
+							{
+								itc_module_pipe_t* in = queue->events[j & (queue->size - 1)].io.in;
+								itc_module_pipe_t* out = queue->events[j & (queue->size - 1)].io.out;
 
-							if(in != NULL && itc_module_pipe_deallocate(in) == ERROR_CODE(int))
-							{
-								LOG_ERROR("Cannot deallocate the input event pipe");
-								rc = ERROR_CODE(int);
+								if(in != NULL && itc_module_pipe_deallocate(in) == ERROR_CODE(int))
+								{
+									LOG_ERROR("Cannot deallocate the input event pipe");
+									rc = ERROR_CODE(int);
+								}
+								if(out != NULL && itc_module_pipe_deallocate(out) == ERROR_CODE(int))
+								{
+									LOG_ERROR("Cannot deallocate the output event pipe");
+									rc = ERROR_CODE(int);
+								}
+								break;
 							}
-							if(out != NULL && itc_module_pipe_deallocate(out) == ERROR_CODE(int))
-							{
-								LOG_ERROR("Cannot deallocate the output event pipe");
-								rc = ERROR_CODE(int);
-							}
-							break;
-						}
 						case ITC_EQUEUE_EVENT_TYPE_TASK:
-						{
-							itc_equeue_task_event_t* event = &queue->events[j & (queue->size - 1)].task;
-
-							/* We don't call the cleanup task at this point for now.
-							 * TODO: do we need a way to make it properly cleaned up */
-
-							if(event->async_handle != NULL && ERROR_CODE(int) == sched_async_handle_dispose(event->async_handle))
 							{
-								LOG_ERROR("Cannot deallocatet the task handle");
-								rc = ERROR_CODE(int);
-							}
+								itc_equeue_task_event_t* event = &queue->events[j & (queue->size - 1)].task;
 
-							break;
-						}
+								/* We don't call the cleanup task at this point for now.
+								* TODO: do we need a way to make it properly cleaned up */
+
+								if(event->async_handle != NULL && ERROR_CODE(int) == sched_async_handle_dispose(event->async_handle))
+								{
+									LOG_ERROR("Cannot deallocatet the task handle");
+									rc = ERROR_CODE(int);
+								}
+
+								break;
+							}
 						default:
 						    rc = ERROR_CODE(int);
 						    LOG_ERROR("Invalid type of event");
@@ -226,7 +226,7 @@ itc_equeue_token_t itc_equeue_module_token(uint32_t size, itc_equeue_event_type_
 	vector_t* next;
 	itc_equeue_token_t ret;
 	if((errno = pthread_mutex_lock(&_global_mutex)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(itc_equeue_token_t, "Cannot lock the global mutex");
+		ERROR_RETURN_LOG_ERRNO(itc_equeue_token_t, "Cannot lock the global mutex");
 
 	ret = (_next_token ++);
 	queue = (_queue_t*)calloc(1, sizeof(_queue_t) + sizeof(itc_equeue_event_t) * q_size);
@@ -255,10 +255,10 @@ ERR:
 	switch(stage)
 	{
 		case 2:
-		    pthread_cond_destroy(&queue->put_cond);
-		    FALLTHROUGH();
+			pthread_cond_destroy(&queue->put_cond);
+			FALLTHROUGH();
 		case 1:
-		    pthread_mutex_destroy(&queue->mutex);
+			pthread_mutex_destroy(&queue->mutex);
 	}
 	pthread_mutex_unlock(&_global_mutex);
 	if(NULL != queue) free(queue);
@@ -269,7 +269,7 @@ itc_equeue_token_t itc_equeue_scheduler_token()
 {
 	itc_equeue_token_t ret = ERROR_CODE(itc_equeue_token_t);
 	if((errno = pthread_mutex_lock(&_global_mutex)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(itc_equeue_token_t, "Cannot acquire the global mutex");
+		ERROR_RETURN_LOG_ERRNO(itc_equeue_token_t, "Cannot acquire the global mutex");
 
 	if(_sched_token_called == 0)
 	{
@@ -280,7 +280,7 @@ itc_equeue_token_t itc_equeue_scheduler_token()
 	else LOG_ERROR("Cannot get scheduler token twice");
 
 	if((errno = pthread_mutex_unlock(&_global_mutex)) != 0)
-	    LOG_WARNING_ERRNO("cannot release the global mutex");
+		LOG_WARNING_ERRNO("cannot release the global mutex");
 
 	return ret;
 }
@@ -288,7 +288,7 @@ itc_equeue_token_t itc_equeue_scheduler_token()
 int itc_equeue_release_scheduler_token(itc_equeue_token_t token)
 {
 	if(token != _SCHED_TOKEN)
-	    ERROR_RETURN_LOG(int, "Invalid arguments: Not a scheduler token");
+		ERROR_RETURN_LOG(int, "Invalid arguments: Not a scheduler token");
 
 	_sched_token_called = 0;
 
@@ -298,21 +298,21 @@ int itc_equeue_release_scheduler_token(itc_equeue_token_t token)
 int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 {
 	if(token == _SCHED_TOKEN)
-	    ERROR_RETURN_LOG(int, "Cannot call put method from the scheduler thread");
+		ERROR_RETURN_LOG(int, "Cannot call put method from the scheduler thread");
 
 	if(event.type == ITC_EQUEUE_EVENT_TYPE_IO && (event.io.in == NULL || event.io.out == NULL))
-	    ERROR_RETURN_LOG(int, "Invalid IO event");
+		ERROR_RETURN_LOG(int, "Invalid IO event");
 	else if(event.type == ITC_EQUEUE_EVENT_TYPE_TASK && (event.task.loop == NULL || event.task.task == NULL))
-	    ERROR_RETURN_LOG(int, "Invalid Task event");
+		ERROR_RETURN_LOG(int, "Invalid Task event");
 	else if(event.type != ITC_EQUEUE_EVENT_TYPE_IO && event.type != ITC_EQUEUE_EVENT_TYPE_TASK)
-	    ERROR_RETURN_LOG(int, "Invalid event type");
+		ERROR_RETURN_LOG(int, "Invalid event type");
 
 	_queue_t* queue = *VECTOR_GET(_queue_t*, _queues, token);
 	if(NULL == queue)
-	    ERROR_RETURN_LOG(int, "Cannot get the queue for token %u", token);
+		ERROR_RETURN_LOG(int, "Cannot get the queue for token %u", token);
 
 	if(queue->type != event.type)
-	    ERROR_RETURN_LOG(int, "Invalid event type, the queue do not accept specified event type");
+		ERROR_RETURN_LOG(int, "Invalid event type, the queue do not accept specified event type");
 
 	LOG_DEBUG("token %u: wait for the queue have space for the new event", token);
 
@@ -325,19 +325,19 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 	if(queue->rear == queue->front + queue->size)
 	{
 		if((errno = pthread_mutex_lock(&queue->mutex)) != 0)
-		    ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the queue mutex");
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the queue mutex");
 
 		/* If the queue is currently full, we should make the event loop wait until the scheduler consume at least one event in the queue */
 		while(queue->rear == queue->front + queue->size)
 		{
 			if((errno = pthread_cond_timedwait(&queue->put_cond, &queue->mutex, &abstime)) != 0 && errno != ETIMEDOUT && errno != EINTR)
-			    LOG_WARNING_ERRNO("failed to wait for the cond variable get ready");
+				LOG_WARNING_ERRNO("failed to wait for the cond variable get ready");
 
 			if(itc_eloop_thread_killed == 1)
 			{
 				LOG_INFO("event thread gets killed");
 				if((errno = pthread_mutex_unlock(&queue->mutex)) != 0)
-				    LOG_WARNING_ERRNO("cannot release the queue mutex");
+					LOG_WARNING_ERRNO("cannot release the queue mutex");
 				return 0;
 			}
 
@@ -345,7 +345,7 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 		}
 
 		if((errno = pthread_mutex_unlock(&queue->mutex)) != 0)
-		    LOG_WARNING_ERRNO("cannot release the queue mutex");
+			LOG_WARNING_ERRNO("cannot release the queue mutex");
 	}
 
 	LOG_DEBUG("token %u: now the queue have sufficent space for the new event", token);
@@ -364,13 +364,13 @@ int itc_equeue_put(itc_equeue_token_t token, itc_equeue_event_t event)
 
 		/* Signal the take part */
 		if((errno = pthread_mutex_lock(&_take_mutex)) != 0)
-		    LOG_WARNING_ERRNO("cannot acquire the reader mutex");
+			LOG_WARNING_ERRNO("cannot acquire the reader mutex");
 
 		if((errno = pthread_cond_signal(&_take_cond)) != 0)
-		    LOG_WARNING_ERRNO("cannot send signal to the scheduler thread");
+			LOG_WARNING_ERRNO("cannot send signal to the scheduler thread");
 
 		if((errno = pthread_mutex_unlock(&_take_mutex)) != 0)
-		    LOG_WARNING_ERRNO("cannot release the reader mutex");
+			LOG_WARNING_ERRNO("cannot release the reader mutex");
 
 		LOG_DEBUG("token %u: event message notified", token);
 	}
@@ -407,12 +407,12 @@ uint32_t itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t type_
 	}
 
 	if(i == vector_length(_queues))
-	    ERROR_RETURN_LOG(uint32_t, "Cannot find the event mask = %x", type_mask);
+		ERROR_RETURN_LOG(uint32_t, "Cannot find the event mask = %x", type_mask);
 	else LOG_DEBUG("Found events in queue #%zu, take the first one", i);
 
 
 	for(ret = 0; ret < buffer_size && (queue->rear - queue->front - ret) != 0; ret ++)
-	    buffer[ret] = queue->events[(queue->front + ret) & (queue->size - 1)];
+		buffer[ret] = queue->events[(queue->front + ret) & (queue->size - 1)];
 
 	BARRIER();
 
@@ -424,13 +424,13 @@ uint32_t itc_equeue_take(itc_equeue_token_t token, itc_equeue_event_mask_t type_
 	{
 		LOG_DEBUG("scheduler thread: notifying the more free space in the queue to token %zu", i);
 		if((errno = pthread_mutex_lock(&queue->mutex)) != 0)
-		    LOG_WARNING_ERRNO("cannot acquire the queue mutex for token %zu", i);
+			LOG_WARNING_ERRNO("cannot acquire the queue mutex for token %zu", i);
 
 		if((errno = pthread_cond_signal(&queue->put_cond)) != 0)
-		    LOG_WARNING_ERRNO("cannot notify the queue cond variable for token %zu", i);
+			LOG_WARNING_ERRNO("cannot notify the queue cond variable for token %zu", i);
 
 		if((errno = pthread_mutex_unlock(&queue->mutex)) != 0)
-		    LOG_WARNING_ERRNO("cannot notify release the queue mutex for token %zu", i);
+			LOG_WARNING_ERRNO("cannot notify release the queue mutex for token %zu", i);
 	}
 
 	return ret;
@@ -445,7 +445,7 @@ int itc_equeue_empty(itc_equeue_token_t token)
 		_queue_t* queue = *VECTOR_GET(_queue_t*, _queues, i);
 		if(NULL == queue) ERROR_RETURN_LOG(int, "Cannot get the token local queue %zu", i);
 		if(queue->rear != queue->front)
-		    return 0;
+			return 0;
 	}
 	return 1;
 
@@ -472,15 +472,15 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
 		size_t i;
 
 		if(interrupt != NULL && ITC_EQUEUE_EVENT_MASK_NONE == (mask = interrupt->func(interrupt->data)))
-		    ERROR_RETURN_LOG(int, "The equeue wait interrupt callback returns an error");
+			ERROR_RETURN_LOG(int, "The equeue wait interrupt callback returns an error");
 
 		for(i = 0; i < vector_length(_queues); i ++)
 		{
 			_queue_t* queue = *VECTOR_GET(_queue_t*, _queues, i);
 			if(NULL == queue)
-			    LOG_WARNING("Cannot get the queue for token %zu", i);
+				LOG_WARNING("Cannot get the queue for token %zu", i);
 			else if(ITC_EQUEUE_EVENT_MASK_ALLOWS(mask, queue->type) && queue->rear != queue->front)
-			    break;
+				break;
 		}
 
 		if(i != vector_length(_queues)) break;
@@ -488,7 +488,7 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
 		if(!locked)
 		{
 			if((errno = pthread_mutex_lock(&_take_mutex)) != 0)
-			    ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the reader mutex");
+				ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the reader mutex");
 
 			locked = 1;
 
@@ -498,14 +498,14 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
 		_sched_waiting = mask;
 
 		if((errno = pthread_cond_timedwait(&_take_cond, &_take_mutex, &abstime)) != 0 && errno != EINTR && errno != ETIMEDOUT)
-		    ERROR_RETURN_LOG_ERRNO(int, "Cannot wait for the reader condition variable");
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot wait for the reader condition variable");
 
 		gettimeofday(&now,NULL);
 		abstime.tv_sec = now.tv_sec + 1;
 	}
 
 	if(locked && (errno = pthread_mutex_unlock(&_take_mutex)) != 0)
-	    LOG_WARNING_ERRNO("cannot release the reader mutex");
+		LOG_WARNING_ERRNO("cannot release the reader mutex");
 
 	if(killed != NULL && *killed)
 	{
@@ -519,13 +519,13 @@ int itc_equeue_wait(itc_equeue_token_t token, const int* killed, itc_equeue_wait
 int itc_equeue_wait_interrupt()
 {
 	if((errno = pthread_mutex_lock(&_take_mutex)) != 0)
-	    LOG_WARNING_ERRNO("cannot acquire the reader mutex");
+		LOG_WARNING_ERRNO("cannot acquire the reader mutex");
 
 	if((errno = pthread_cond_signal(&_take_cond)) != 0)
-	    LOG_WARNING_ERRNO("cannot send signal to the scheduler thread");
+		LOG_WARNING_ERRNO("cannot send signal to the scheduler thread");
 
 	if((errno = pthread_mutex_unlock(&_take_mutex)) != 0)
-	    LOG_WARNING_ERRNO("cannot release the reader mutex");
+		LOG_WARNING_ERRNO("cannot release the reader mutex");
 
 	return 0;
 }

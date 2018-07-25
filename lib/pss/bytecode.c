@@ -187,21 +187,21 @@ static inline const pss_bytecode_info_t* _opcode_info(pss_bytecode_opcode_t opco
 	{
 		unsigned i,j;
 		for(i = 0; i < sizeof(_bytecode) / sizeof(_bytecode[0]); i ++)
-		    for(j = i + 1; j < sizeof(_bytecode) / sizeof(_bytecode[0]); j ++)
-		        if(_bytecode[i].opcode > _bytecode[j].opcode)
-		        {
-			        _bytecode_desc_t tmp = _bytecode[i];
-			        _bytecode[i] = _bytecode[j];
-			        _bytecode[j] = tmp;
-		        }
-		sorted = 1;
+			for(j = i + 1; j < sizeof(_bytecode) / sizeof(_bytecode[0]); j ++)
+				if(_bytecode[i].opcode > _bytecode[j].opcode)
+				{
+					_bytecode_desc_t tmp = _bytecode[i];
+					_bytecode[i] = _bytecode[j];
+					_bytecode[j] = tmp;
+				}
+				sorted = 1;
 	}
 #ifdef __clang__
 	if(opcode >= PSS_BYTECODE_OPCODE_COUNT)
 #else
-	if(opcode >= PSS_BYTECODE_OPCODE_COUNT || opcode < 0)
+		if(opcode >= PSS_BYTECODE_OPCODE_COUNT || opcode < 0)
 #endif
-	    ERROR_PTR_RETURN_LOG("Invalid instruction opcode = %x", opcode);
+			ERROR_PTR_RETURN_LOG("Invalid instruction opcode = %x", opcode);
 	return &_bytecode[opcode].info;
 }
 
@@ -218,13 +218,13 @@ static inline int _dump_inst(const _inst_t* inst, FILE* out)
 	if(NULL == info) return ERROR_CODE(int);
 
 	if(1 != fwrite(&inst->opcode, sizeof(inst->opcode), 1, out))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the opcode to the output file");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the opcode to the output file");
 
 	if(info->has_const && 1 != fwrite(&inst->num, sizeof(inst->num), 1, out))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the const number to the output file");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the const number to the output file");
 
 	if(info->num_regs > 0 && 1 != fwrite(inst->reg, sizeof(pss_bytecode_regid_t) * info->num_regs, 1, out))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the register list to the file");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the register list to the file");
 
 	return 0;
 }
@@ -238,16 +238,16 @@ static inline int _dump_inst(const _inst_t* inst, FILE* out)
 static inline int _load_inst(_inst_t* buf, FILE* in)
 {
 	if(1 != fread(&buf->opcode, sizeof(buf->opcode), 1, in))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot read opcode of the instruction");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot read opcode of the instruction");
 
 	const pss_bytecode_info_t* info = _opcode_info(buf->opcode);
 	if(NULL == info) return ERROR_CODE(int);
 
 	if(info->has_const && 1 != fread(&buf->num, sizeof(buf->num), 1, in))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot read the number constant from the instruction");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot read the number constant from the instruction");
 
 	if(info->num_regs > 0 && 1 != fread(buf->reg, sizeof(pss_bytecode_regid_t) * info->num_regs, 1, in))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot read the register operand list");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot read the register operand list");
 
 	buf->label = ERROR_CODE(pss_bytecode_label_t);
 
@@ -265,10 +265,10 @@ static inline int _dump_string(const char* str, FILE* out)
 	uint32_t size = (uint32_t)strlen(str);
 
 	if(1 != fwrite(&size, sizeof(size), 1, out))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot dump size of string to the output file");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot dump size of string to the output file");
 
 	if(size > 0 && 1 != fwrite(str, size, 1, out))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the string content to output file");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the string content to output file");
 
 	return 0;
 }
@@ -282,13 +282,13 @@ static inline char* _load_string(FILE* in)
 {
 	uint32_t size;
 	if(1 != fread(&size, sizeof(size), 1, in))
-	    ERROR_PTR_RETURN_LOG("Cannot read string length from the string table");
+		ERROR_PTR_RETURN_LOG("Cannot read string length from the string table");
 
 	char* ret = (char*)malloc(size + 1);
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the string");
 
 	if(size > 0 && 1 != fread(ret, size, 1, in))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read string content from the input file");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read string content from the input file");
 
 	ret[size] = 0;
 	return ret;
@@ -307,11 +307,11 @@ static inline size_t _table_elem_size(_table_type_t type)
 	switch(type)
 	{
 		case _TABLE_TYPE_REG:
-		    return sizeof(((_table_t*)NULL)->regid[0]);
+			return sizeof(((_table_t*)NULL)->regid[0]);
 		case _TABLE_TYPE_STR:
-		    return sizeof(((_table_t*)NULL)->string[0]);
+			return sizeof(((_table_t*)NULL)->string[0]);
 		case _TABLE_TYPE_INST:
-		    return sizeof(((_table_t*)NULL)->inst[0]);
+			return sizeof(((_table_t*)NULL)->inst[0]);
 		default:
 		    return ERROR_CODE(size_t);
 	}
@@ -328,12 +328,12 @@ static inline _table_t* _table_new(uint32_t cap, _table_type_t type)
 	size_t elem_size = _table_elem_size(type);
 
 	if(ERROR_CODE(size_t) == elem_size)
-	    ERROR_PTR_RETURN_LOG("Invalid type code");
+		ERROR_PTR_RETURN_LOG("Invalid type code");
 
 	_table_t* ret = (_table_t*)malloc(sizeof(_table_t) + elem_size * cap);
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the table");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the table");
 
 	ret->capacity = cap;
 	ret->header.size = 0;
@@ -372,7 +372,7 @@ static inline int _table_free(_table_t* table)
 	if(table->header.type == _TABLE_TYPE_STR)
 	{
 		for(i = 0; i < table->header.size; i ++)
-		    free(table->string[i]);
+			free(table->string[i]);
 	}
 	free(table);
 	return 0;
@@ -387,7 +387,7 @@ static inline int _table_free(_table_t* table)
 static inline int _dump_table(const _table_t* table, FILE* out)
 {
 	if(fwrite(&table->header, sizeof(table->header), 1, out) != 1)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the size of the data table to output file");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the size of the data table to output file");
 
 	uint32_t i;
 	for(i = 0; i < table->header.size; i ++)
@@ -395,16 +395,16 @@ static inline int _dump_table(const _table_t* table, FILE* out)
 		switch(table->header.type)
 		{
 			case _TABLE_TYPE_STR:
-			    if(ERROR_CODE(int) == _dump_string(table->string[i], out))
-			        ERROR_RETURN_LOG(int, "Cannot dump string to file");
-			    break;
+				if(ERROR_CODE(int) == _dump_string(table->string[i], out))
+					ERROR_RETURN_LOG(int, "Cannot dump string to file");
+				break;
 			case _TABLE_TYPE_REG:
-			    if(1 != fwrite(table->regid + i, sizeof(table->regid[i]), 1, out))
-			        ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the register id to the output file");
-			    break;
+				if(1 != fwrite(table->regid + i, sizeof(table->regid[i]), 1, out))
+					ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the register id to the output file");
+				break;
 			case _TABLE_TYPE_INST:
-			    if(ERROR_CODE(int) == _dump_inst(table->inst + i, out))
-			        ERROR_RETURN_LOG_ERRNO(int, "Cannot dump instruction to the output file");
+				if(ERROR_CODE(int) == _dump_inst(table->inst + i, out))
+					ERROR_RETURN_LOG_ERRNO(int, "Cannot dump instruction to the output file");
 		}
 	}
 
@@ -421,41 +421,41 @@ static inline _table_t* _load_table(_table_type_t type, FILE* in)
 {
 	_table_header_t header;
 	if(fread(&header, sizeof(header), 1, in) != 1)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot read the size of the table");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot read the size of the table");
 
 	if(header.type != type)
-	    ERROR_PTR_RETURN_LOG("Header type mismatch");
+		ERROR_PTR_RETURN_LOG("Header type mismatch");
 
 	_table_t* ret = _table_new(header.size, type);
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot create the table in memory");
+		ERROR_PTR_RETURN_LOG("Cannot create the table in memory");
 
 	ret->header = header;
 
 	if(type == _TABLE_TYPE_REG)
 	{
 		if(header.size > 0 && 1 != fread(ret->regid, sizeof(ret->regid[0]) * header.size, 1, in))
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the register ids from the register ID table");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the register ids from the register ID table");
 	}
 	else if(type == _TABLE_TYPE_STR)
 	{
 		uint32_t i;
 		for(i = 0; i < header.size; i ++)
-		    if(NULL == (ret->string[i] = _load_string(in)))
-		        ERROR_LOG_GOTO(STR_ERR, "Cannot read the string table from the input file");
+			if(NULL == (ret->string[i] = _load_string(in)))
+				ERROR_LOG_GOTO(STR_ERR, "Cannot read the string table from the input file");
 		goto RET;
 STR_ERR:
 		for(; i > 0; i --)
-		    free(ret->string[i - 1]);
+			free(ret->string[i - 1]);
 		goto ERR;
 	}
 	else if(type == _TABLE_TYPE_INST)
 	{
 		uint32_t i;
 		for(i = 0; i < header.size; i ++)
-		    if(ERROR_CODE(int) == _load_inst(ret->inst + i , in))
-		        ERROR_LOG_GOTO(ERR, "Cannot read instruction from the input file");
+			if(ERROR_CODE(int) == _load_inst(ret->inst + i , in))
+				ERROR_LOG_GOTO(ERR, "Cannot read instruction from the input file");
 	}
 	else ERROR_LOG_GOTO(ERR, "Invalid table type");
 
@@ -476,13 +476,13 @@ ERR:
 static inline int _dump_segment(const pss_bytecode_segment_t* seg, FILE* out)
 {
 	if(ERROR_CODE(int) == _dump_table(seg->argument_table, out))
-	    ERROR_RETURN_LOG(int, "Cannot dump the argument table to the output file");
+		ERROR_RETURN_LOG(int, "Cannot dump the argument table to the output file");
 
 	if(ERROR_CODE(int) == _dump_table(seg->string_table, out))
-	    ERROR_RETURN_LOG(int, "Cannot dump the string table to output file");
+		ERROR_RETURN_LOG(int, "Cannot dump the string table to output file");
 
 	if(ERROR_CODE(int) == _dump_table(seg->code_table, out))
-	    ERROR_RETURN_LOG(int, "Cannot dump the code table to the output file");
+		ERROR_RETURN_LOG(int, "Cannot dump the code table to the output file");
 
 	return 0;
 }
@@ -496,12 +496,12 @@ static inline int _dump_segment(const pss_bytecode_segment_t* seg, FILE* out)
 static inline int _dump_module(const pss_bytecode_module_t* module, FILE* out)
 {
 	if(1 != fwrite(&module->header, sizeof(module->header), 1, out))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the table header to the file");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot dump the table header to the file");
 
 	uint32_t i;
 	for(i = 0; i < module->header.nseg; i ++)
-	    if(ERROR_CODE(int) == _dump_segment(module->segs[i], out))
-	        ERROR_RETURN_LOG(int, "Cannot dump segment to the bytecode file");
+		if(ERROR_CODE(int) == _dump_segment(module->segs[i], out))
+			ERROR_RETURN_LOG(int, "Cannot dump segment to the bytecode file");
 
 	return 0;
 }
@@ -513,7 +513,7 @@ int pss_bytecode_module_dump(const pss_bytecode_module_t* module, const char* pa
 	if(NULL == fp) ERROR_RETURN_LOG_ERRNO(int, "Cannot open file %s for write", path);
 
 	if(ERROR_CODE(int) == _dump_module(module, fp))
-	    ERROR_LOG_GOTO(ERR, "Cannot dump the bytecode table content");
+		ERROR_LOG_GOTO(ERR, "Cannot dump the bytecode table content");
 
 	fclose(fp);
 	return 0;
@@ -537,10 +537,10 @@ static inline pss_bytecode_module_t* _module_new(uint32_t cap)
 	pss_bytecode_module_t* ret = (pss_bytecode_module_t*)calloc(1, sizeof(pss_bytecode_module_t));
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new module");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new module");
 
 	if(NULL == (ret->segs = (pss_bytecode_segment_t**)malloc(sizeof(pss_bytecode_segment_t*) * cap)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the segment table");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the segment table");
 
 	ret->header.magic_num = _file_magic;
 	ret->header.nseg = 0;
@@ -561,19 +561,19 @@ static inline pss_bytecode_segment_t* _load_segment(FILE* in)
 {
 	pss_bytecode_segment_t* ret = (pss_bytecode_segment_t*)calloc(1, sizeof(pss_bytecode_segment_t));
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new segment");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new segment");
 
 	if(NULL == (ret->argument_table = _load_table(_TABLE_TYPE_REG, in)))
-	    ERROR_LOG_GOTO(ERR, "Cannot load the register table");
+		ERROR_LOG_GOTO(ERR, "Cannot load the register table");
 
 	if(ret->argument_table->header.size > PSS_VM_ARG_MAX)
-	    ERROR_LOG_GOTO(ERR, "Too many arguments defined by the segment");
+		ERROR_LOG_GOTO(ERR, "Too many arguments defined by the segment");
 
 	if(NULL == (ret->string_table = _load_table(_TABLE_TYPE_STR, in)))
-	    ERROR_LOG_GOTO(ERR, "Cannot load the string table");
+		ERROR_LOG_GOTO(ERR, "Cannot load the string table");
 
 	if(NULL == (ret->code_table = _load_table(_TABLE_TYPE_INST, in)))
-	    ERROR_LOG_GOTO(ERR, "Cannot load the instruction table");
+		ERROR_LOG_GOTO(ERR, "Cannot load the instruction table");
 
 	return ret;
 
@@ -608,20 +608,20 @@ pss_bytecode_module_t* pss_bytecode_module_load(const char* path)
 	_module_header_t header;
 
 	if(1 != fread(&header, sizeof(header), 1, fp))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the file header");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the file header");
 
 	if(header.magic_num != _file_magic) ERROR_LOG_ERRNO_GOTO(ERR, "Invalid file format");
 
 	if(NULL == (ret = _module_new(header.nseg)))
-	    ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the module to load");
+		ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the module to load");
 
 	/* Copy the header form the file */
 	ret->header = header;
 	ret->capacity = header.nseg;
 
 	for(i = 0; i < header.nseg; i ++)
-	    if(NULL == (ret->segs[i] = _load_segment(fp)))
-	        ERROR_LOG_GOTO(ERR, "Cannot load the segment");
+		if(NULL == (ret->segs[i] = _load_segment(fp)))
+			ERROR_LOG_GOTO(ERR, "Cannot load the segment");
 
 	fclose(fp);
 	return ret;
@@ -654,7 +654,7 @@ int pss_bytecode_module_free(pss_bytecode_module_t* module)
 	{
 		pss_bytecode_segment_t* seg = module->segs[i];
 		if(ERROR_CODE(int) == pss_bytecode_segment_free(seg))
-		    rc = ERROR_CODE(int);
+			rc = ERROR_CODE(int);
 	}
 
 	free(module->segs);
@@ -666,14 +666,14 @@ int pss_bytecode_module_free(pss_bytecode_module_t* module)
 pss_bytecode_segid_t pss_bytecode_module_append(pss_bytecode_module_t* module, pss_bytecode_segment_t* segment)
 {
 	if(NULL == module || NULL == segment)
-	    ERROR_RETURN_LOG(pss_bytecode_segid_t, "Invalid arguments");
+		ERROR_RETURN_LOG(pss_bytecode_segid_t, "Invalid arguments");
 
 	if(module->header.nseg >= module->capacity)
 	{
 		pss_bytecode_segment_t** new_segs = (pss_bytecode_segment_t**)realloc(module->segs, 2 * module->capacity * sizeof(pss_bytecode_segment_t*));
 
 		if(NULL == new_segs)
-		    ERROR_RETURN_LOG_ERRNO(pss_bytecode_segid_t, "Cannot resize the segment");
+			ERROR_RETURN_LOG_ERRNO(pss_bytecode_segid_t, "Cannot resize the segment");
 
 		module->capacity *= 2;
 		module->segs = new_segs;
@@ -689,7 +689,7 @@ pss_bytecode_segid_t pss_bytecode_module_append(pss_bytecode_module_t* module, p
 const pss_bytecode_segment_t* pss_bytecode_module_get_seg(const pss_bytecode_module_t* module, pss_bytecode_segid_t id)
 {
 	if(NULL == module || ERROR_CODE(pss_bytecode_segid_t) == id)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	if(module->header.nseg <= id) ERROR_PTR_RETURN_LOG("Invalid segment id");
 
@@ -699,7 +699,7 @@ const pss_bytecode_segment_t* pss_bytecode_module_get_seg(const pss_bytecode_mod
 pss_bytecode_segid_t pss_bytecode_module_get_entry_point(const pss_bytecode_module_t* module)
 {
 	if(NULL == module)
-	    ERROR_RETURN_LOG(pss_bytecode_segid_t, "Invalid arguments");
+		ERROR_RETURN_LOG(pss_bytecode_segid_t, "Invalid arguments");
 
 	return module->header.entry_point;
 }
@@ -707,7 +707,7 @@ pss_bytecode_segid_t pss_bytecode_module_get_entry_point(const pss_bytecode_modu
 int pss_bytecode_module_set_entry_point(pss_bytecode_module_t* module, pss_bytecode_segid_t id)
 {
 	if(NULL == module)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	module->header.entry_point = id;
 
@@ -717,21 +717,21 @@ int pss_bytecode_module_set_entry_point(pss_bytecode_module_t* module, pss_bytec
 pss_bytecode_segment_t* pss_bytecode_segment_new(pss_bytecode_regid_t argc, const pss_bytecode_regid_t* argv)
 {
 	if(argc > 0 && argv == NULL)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	pss_bytecode_segment_t* ret = (pss_bytecode_segment_t*)calloc(1, sizeof(pss_bytecode_segment_t));
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new segment");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new segment");
 
 	if(NULL == (ret->argument_table = _table_new((uint32_t)argc, _TABLE_TYPE_REG)))
-	    ERROR_LOG_GOTO(ERR, "Cannot create the argument table");
+		ERROR_LOG_GOTO(ERR, "Cannot create the argument table");
 
 	if(NULL == (ret->string_table = _table_new(PSS_BYTECODE_SEGMENT_STRTAB_INIT_CAP, _TABLE_TYPE_STR)))
-	    ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the string table");
+		ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the string table");
 
 	if(NULL == (ret->code_table = _table_new(PSS_BYTECODE_SEGMENT_CODETAB_INIT_CAP, _TABLE_TYPE_INST)))
-	    ERROR_LOG_GOTO(ERR, "Cannot allocate the code table");
+		ERROR_LOG_GOTO(ERR, "Cannot allocate the code table");
 
 	/* Fill the registers */
 	memcpy(ret->argument_table->regid, argv, sizeof(pss_bytecode_regid_t) * argc);
@@ -754,18 +754,18 @@ ERR:
 int pss_bytecode_segment_free(pss_bytecode_segment_t* segment)
 {
 	if(NULL == segment)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	int rc = 0;
 
 	if(NULL != segment->argument_table && ERROR_CODE(int) == _table_free(segment->argument_table))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(NULL != segment->string_table && ERROR_CODE(int) == _table_free(segment->string_table))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(NULL != segment->code_table && ERROR_CODE(int) == _table_free(segment->code_table))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	free(segment);
 
@@ -791,17 +791,17 @@ pss_bytecode_label_t pss_bytecode_segment_label_alloc(pss_bytecode_segment_t* se
 int pss_bytecode_segment_patch_label(pss_bytecode_segment_t* segment, pss_bytecode_label_t label, pss_bytecode_addr_t addr)
 {
 	if(NULL == segment || ERROR_CODE(pss_bytecode_label_t) == label || ERROR_CODE(pss_bytecode_addr_t) == addr)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	pss_bytecode_addr_t i;
 	for(i = 0; i < segment->code_table->header.size; i ++)
-	    if(segment->code_table->inst[i].label == label)
-	    {
-		    segment->code_table->inst[i].label = ERROR_CODE(pss_bytecode_label_t);
-		    segment->code_table->inst[i].num   = (pss_bytecode_numeric_t)addr;
-	    }
+		if(segment->code_table->inst[i].label == label)
+		{
+			segment->code_table->inst[i].label = ERROR_CODE(pss_bytecode_label_t);
+			segment->code_table->inst[i].num   = (pss_bytecode_numeric_t)addr;
+		}
 
-	return 0;
+		return 0;
 }
 
 pss_bytecode_addr_t  pss_bytecode_segment_append_code(pss_bytecode_segment_t* segment, pss_bytecode_opcode_t opcode, ...)
@@ -809,9 +809,9 @@ pss_bytecode_addr_t  pss_bytecode_segment_append_code(pss_bytecode_segment_t* se
 #ifdef __clang__
 	if(NULL == segment || opcode >= PSS_BYTECODE_OPCODE_COUNT)
 #else
-	if(NULL == segment || opcode < 0 || opcode >= PSS_BYTECODE_OPCODE_COUNT)
+		if(NULL == segment || opcode < 0 || opcode >= PSS_BYTECODE_OPCODE_COUNT)
 #endif
-	    ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid arguments");
+			ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid arguments");
 
 	const pss_bytecode_info_t* info = _opcode_info(opcode);
 
@@ -820,7 +820,7 @@ pss_bytecode_addr_t  pss_bytecode_segment_append_code(pss_bytecode_segment_t* se
 	_table_t* new_table = _table_ensure_space(segment->code_table);
 
 	if(NULL == new_table)
-	    ERROR_RETURN_LOG(pss_bytecode_addr_t, "Cannot enlarge the code table");
+		ERROR_RETURN_LOG(pss_bytecode_addr_t, "Cannot enlarge the code table");
 
 	segment->code_table = new_table;
 
@@ -847,57 +847,57 @@ pss_bytecode_addr_t  pss_bytecode_segment_append_code(pss_bytecode_segment_t* se
 		switch(argtype)
 		{
 			case PSS_BYTECODE_ARGTYPE_REGISTER:
-			{
-				pss_bytecode_regid_t regid = (pss_bytecode_regid_t)va_arg(ap, int);
-				if(regid == ERROR_CODE(pss_bytecode_regid_t))
-				    ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid register argument");
-				if(n_reg >= sizeof(inst->reg) / sizeof(inst->reg[0]))
-				    ERROR_RETURN_LOG(pss_bytecode_addr_t, "Too many operands");
-				inst->reg[n_reg ++] = regid;
-				break;
-			}
+				{
+					pss_bytecode_regid_t regid = (pss_bytecode_regid_t)va_arg(ap, int);
+					if(regid == ERROR_CODE(pss_bytecode_regid_t))
+						ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid register argument");
+					if(n_reg >= sizeof(inst->reg) / sizeof(inst->reg[0]))
+						ERROR_RETURN_LOG(pss_bytecode_addr_t, "Too many operands");
+					inst->reg[n_reg ++] = regid;
+					break;
+				}
 			case PSS_BYTECODE_ARGTYPE_NUMERIC:
-			{
-				if(n_num + n_label + n_str > 0) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Too many numeric argument");
-				pss_bytecode_numeric_t value = va_arg(ap, pss_bytecode_numeric_t);
-				inst->num = value;
-				n_num ++;
-				break;
-			}
+				{
+					if(n_num + n_label + n_str > 0) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Too many numeric argument");
+					pss_bytecode_numeric_t value = va_arg(ap, pss_bytecode_numeric_t);
+					inst->num = value;
+					n_num ++;
+					break;
+				}
 			case PSS_BYTECODE_ARGTYPE_LABEL:
-			{
-				if(n_num + n_label + n_str > 0) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Too many numeric argument");
-				pss_bytecode_label_t label = va_arg(ap, pss_bytecode_label_t);
-				inst->label = (pss_bytecode_numeric_t)label&0xffffffffu;
-				n_label ++;
-				break;
-			}
+				{
+					if(n_num + n_label + n_str > 0) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Too many numeric argument");
+					pss_bytecode_label_t label = va_arg(ap, pss_bytecode_label_t);
+					inst->label = (pss_bytecode_numeric_t)label&0xffffffffu;
+					n_label ++;
+					break;
+				}
 			case PSS_BYTECODE_ARGTYPE_STRING:
-			{
-				if(n_num + n_label + n_str > 0) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Too many string argument");
-				const char* str = va_arg(ap, const char*);
+				{
+					if(n_num + n_label + n_str > 0) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Too many string argument");
+					const char* str = va_arg(ap, const char*);
 
-				if(NULL == str) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid string");
+					if(NULL == str) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid string");
 
-				new_table = _table_ensure_space(segment->string_table);
-				if(NULL == new_table)
-				    ERROR_RETURN_LOG(pss_bytecode_addr_t, "Cannot enlarge the string table");
+					new_table = _table_ensure_space(segment->string_table);
+					if(NULL == new_table)
+						ERROR_RETURN_LOG(pss_bytecode_addr_t, "Cannot enlarge the string table");
 
-				segment->string_table = new_table;
+					segment->string_table = new_table;
 
-				pss_bytecode_numeric_t strid = (pss_bytecode_numeric_t)segment->string_table->header.size;
-				size_t len = strlen(str) + 1;
+					pss_bytecode_numeric_t strid = (pss_bytecode_numeric_t)segment->string_table->header.size;
+					size_t len = strlen(str) + 1;
 
-				if(NULL == (segment->string_table->string[strid] = (char*)malloc(len)))
-				    ERROR_RETURN_LOG_ERRNO(pss_bytecode_addr_t, "Cannot allocate memory for the new string");
+					if(NULL == (segment->string_table->string[strid] = (char*)malloc(len)))
+						ERROR_RETURN_LOG_ERRNO(pss_bytecode_addr_t, "Cannot allocate memory for the new string");
 
-				memcpy(segment->string_table->string[strid], str, len);
-				segment->string_table->header.size ++;
+					memcpy(segment->string_table->string[strid], str, len);
+					segment->string_table->header.size ++;
 
-				inst->num = strid;
-				n_str ++;
-				break;
-			}
+					inst->num = strid;
+					n_str ++;
+					break;
+				}
 			default:
 			    ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid argument type");
 		}
@@ -906,13 +906,13 @@ pss_bytecode_addr_t  pss_bytecode_segment_append_code(pss_bytecode_segment_t* se
 
 	/* Finally we should validate the instruction is well formed */
 	if(n_reg != info->num_regs)
-	    ERROR_RETURN_LOG(pss_bytecode_addr_t, "Wrong number of register arguments");
+		ERROR_RETURN_LOG(pss_bytecode_addr_t, "Wrong number of register arguments");
 
 	if(((info->string_ref && info->has_const) ? 1 : 0) != n_str)
-	    ERROR_RETURN_LOG(pss_bytecode_addr_t, "Wrong number of string arguments");
+		ERROR_RETURN_LOG(pss_bytecode_addr_t, "Wrong number of string arguments");
 
 	if(((info->has_const && !info->string_ref) ? 1 : 0) != (n_num + n_label))
-	    ERROR_RETURN_LOG(pss_bytecode_addr_t, "Wrong number of numeric arguments or label");
+		ERROR_RETURN_LOG(pss_bytecode_addr_t, "Wrong number of numeric arguments or label");
 
 	segment->code_table->header.size ++;
 
@@ -922,7 +922,7 @@ pss_bytecode_addr_t  pss_bytecode_segment_append_code(pss_bytecode_segment_t* se
 pss_bytecode_addr_t  pss_bytecode_segment_length(const pss_bytecode_segment_t* segment)
 {
 	if(NULL == segment)
-	    ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid arguments");
+		ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid arguments");
 
 	return (pss_bytecode_addr_t)segment->code_table->header.size;
 }
@@ -930,14 +930,14 @@ pss_bytecode_addr_t  pss_bytecode_segment_length(const pss_bytecode_segment_t* s
 int pss_bytecode_segment_get_inst(const pss_bytecode_segment_t* segment, pss_bytecode_addr_t addr, pss_bytecode_instruction_t* buf)
 {
 	if(NULL == segment || ERROR_CODE(pss_bytecode_addr_t) == addr || segment->code_table->header.size <= addr || NULL == buf)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	const _inst_t* inst = segment->code_table->inst + addr;
 	if(NULL == inst) ERROR_RETURN_LOG(int, "Invalid address");
 
 	buf->opcode = inst->opcode;
 	if(NULL == (buf->info = _opcode_info(buf->opcode)))
-	    ERROR_RETURN_LOG(int, "Invalid opcode 0x%x", buf->opcode);
+		ERROR_RETURN_LOG(int, "Invalid opcode 0x%x", buf->opcode);
 
 	buf->num = 0;
 	buf->str = NULL;
@@ -949,16 +949,16 @@ int pss_bytecode_segment_get_inst(const pss_bytecode_segment_t* segment, pss_byt
 		if(buf->info->string_ref)
 		{
 			if(num < 0 || num >= segment->string_table->header.size)
-			    ERROR_RETURN_LOG(int, "Invalid string ID");
+				ERROR_RETURN_LOG(int, "Invalid string ID");
 			buf->str = segment->string_table->string[num];
 		}
 		else
-		    buf->num = num;
+			buf->num = num;
 	}
 
 	uint32_t i;
 	for(i = 0; i < buf->info->num_regs; i ++)
-	    buf->reg[i] = inst->reg[i];
+		buf->reg[i] = inst->reg[i];
 
 	return 0;
 }
@@ -966,12 +966,12 @@ int pss_bytecode_segment_get_inst(const pss_bytecode_segment_t* segment, pss_byt
 const char* pss_bytecode_segment_inst_str(const pss_bytecode_segment_t* segment, pss_bytecode_addr_t addr, char* buf, size_t sz)
 {
 	if(NULL == segment || ERROR_CODE(pss_bytecode_addr_t) == addr || segment->code_table->header.size <= addr || buf == NULL)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	pss_bytecode_instruction_t inst;
 
 	if(ERROR_CODE(int) == pss_bytecode_segment_get_inst(segment, addr, &inst))
-	    ERROR_PTR_RETURN_LOG("Cannot get instruction from the code segment");
+		ERROR_PTR_RETURN_LOG("Cannot get instruction from the code segment");
 
 	size_t used = 0;
 
@@ -986,9 +986,9 @@ const char* pss_bytecode_segment_inst_str(const pss_bytecode_segment_t* segment,
 	if(inst.info->has_const)
 	{
 		if(inst.info->string_ref)
-		    _WRITE_BUFFER("(%s)", inst.str);
+			_WRITE_BUFFER("(%s)", inst.str);
 		else
-		    _WRITE_BUFFER("(%"PRId64")", inst.num);
+			_WRITE_BUFFER("(%"PRId64")", inst.num);
 	}
 
 	while(used < 20) _WRITE_BUFFER(" ");
@@ -1007,48 +1007,48 @@ const char* pss_bytecode_segment_inst_str(const pss_bytecode_segment_t* segment,
 int pss_bytecode_segment_logdump(const pss_bytecode_segment_t* segment, FILE* file)
 {
 	if(NULL == segment)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	char buf[1024] = {0};
 
 	uint32_t i, start = 0;
 	for(i = 0; i < segment->argument_table->header.size; i ++)
-	    start += (uint32_t)snprintf(buf + start, sizeof(buf) > start ? sizeof(buf) - start : 0, i ? " R%"PRIu16 : "R%"PRIu16, segment->argument_table->regid[i]);
+		start += (uint32_t)snprintf(buf + start, sizeof(buf) > start ? sizeof(buf) - start : 0, i ? " R%"PRIu16 : "R%"PRIu16, segment->argument_table->regid[i]);
 
 	if(file == NULL)
-	    LOG_INFO("+Segment(%s)", buf);
+		LOG_INFO("+Segment(%s)", buf);
 	else
-	    fprintf(file, "+Segment(%s)\n", buf);
+		fprintf(file, "+Segment(%s)\n", buf);
 
 	for(i = 0; i < segment->code_table->header.size; i ++)
-	    if(file == NULL)
-	        LOG_INFO("| 0x%.6x %s", i, pss_bytecode_segment_inst_str(segment, i, buf, sizeof(buf)));
+		if(file == NULL)
+			LOG_INFO("| 0x%.6x %s", i, pss_bytecode_segment_inst_str(segment, i, buf, sizeof(buf)));
 	    else
-	        fprintf(file,"| 0x%.6x %s\n", i, pss_bytecode_segment_inst_str(segment, i, buf, sizeof(buf)));
+		    fprintf(file,"| 0x%.6x %s\n", i, pss_bytecode_segment_inst_str(segment, i, buf, sizeof(buf)));
 	return 0;
 }
 
 int pss_bytecode_module_logdump(const pss_bytecode_module_t* module, FILE* file)
 {
 	if(NULL == module)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 
 	if(NULL != file)
-	    fprintf(file, "Entry Point: %u\n", module->header.entry_point);
+		fprintf(file, "Entry Point: %u\n", module->header.entry_point);
 	else
-	    LOG_INFO("Entry Point: %u", module->header.entry_point);
+		LOG_INFO("Entry Point: %u", module->header.entry_point);
 
 	uint32_t i;
 	for(i = 0; i < module->header.nseg; i ++)
 	{
 		if(NULL != file)
-		    fprintf(file, "Segment #%u\n", i);
+			fprintf(file, "Segment #%u\n", i);
 		else
-		    LOG_INFO("Segment #%u", i);
+			LOG_INFO("Segment #%u", i);
 
 		if(ERROR_CODE(int) == pss_bytecode_segment_logdump(module->segs[i], file))
-		    ERROR_RETURN_LOG(int, "Cannot dump segment");
+			ERROR_RETURN_LOG(int, "Cannot dump segment");
 	}
 
 	return 0;

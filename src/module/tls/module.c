@@ -152,7 +152,7 @@ static uint32_t _module_instance_count = 0;
 static inline int _match(const char* a, const char* b)
 {
 	for(;*a && *b; a ++, b ++)
-	    if(*a != *b) break;
+		if(*a != *b) break;
 
 	return *b == 0;
 }
@@ -170,9 +170,9 @@ static void _ssl_lock(int mode, int n, const char * file, int line)
 	(void)file;
 	(void)line;
 	if(mode & CRYPTO_LOCK)
-	    pthread_mutex_lock(_ssl_mutex + n);
+		pthread_mutex_lock(_ssl_mutex + n);
 	else
-	    pthread_mutex_unlock(_ssl_mutex + n);
+		pthread_mutex_unlock(_ssl_mutex + n);
 }
 
 /**
@@ -203,11 +203,11 @@ static inline int _thread_init(void)
 	if(_ssl_mutex_count == 0) return 0;
 
 	if(NULL == (_ssl_mutex = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t) * _ssl_mutex_count)))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the ssl mutex array");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the ssl mutex array");
 
 	for(i = 0; i < _ssl_mutex_count; i ++)
-	    if((errno = pthread_mutex_init(_ssl_mutex + i, NULL)) != 0)
-	        ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the mutex");
+		if((errno = pthread_mutex_init(_ssl_mutex + i, NULL)) != 0)
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the mutex");
 
 	CRYPTO_set_id_callback(_ssl_tid);
 	CRYPTO_set_locking_callback(_ssl_lock);
@@ -219,7 +219,7 @@ ERR:
 	{
 		uint32_t j;
 		for(j = 0; j < i; j ++)
-		    pthread_mutex_destroy(_ssl_mutex + i);
+			pthread_mutex_destroy(_ssl_mutex + i);
 		free(_ssl_mutex);
 	}
 	_ssl_mutex = NULL;
@@ -238,8 +238,8 @@ static inline int _thread_finalize(void)
 	int rc = 0;
 
 	for(i = 0; i < _ssl_mutex_count; i ++)
-	    if((errno = pthread_mutex_destroy(_ssl_mutex + i)) != 0)
-	        rc = ERROR_CODE(int);
+		if((errno = pthread_mutex_destroy(_ssl_mutex + i)) != 0)
+			rc = ERROR_CODE(int);
 
 	free(_ssl_mutex);
 	_ssl_mutex = NULL;
@@ -276,20 +276,20 @@ static int _init(void* __restrict ctx, uint32_t argc, char const* __restrict con
 	{
 		char const* param = argv[i];
 		if(_match(param, cert_prefix))
-		    cert_file = param + sizeof(cert_prefix) - 1;
+			cert_file = param + sizeof(cert_prefix) - 1;
 		else if(_match(param, pkey_prefix))
-		    pkey_file = param + sizeof(pkey_prefix) - 1;
+			pkey_file = param + sizeof(pkey_prefix) - 1;
 		else break;
 	}
 
 	LOG_DEBUG("Initialize OpenSSL with Certification %s and Private Key %s", cert_file, pkey_file);
 
 	if(argc - i != 1) ERROR_RETURN_LOG(int, "Invalid module init args, should be"
-	                                        "tls_pipe [cert=<CERT>] [key=<PKEY>] <trans-module-path>");
+		                                    "tls_pipe [cert=<CERT>] [key=<PKEY>] <trans-module-path>");
 
 	/* Find the transportation layer module */
 	if(ERROR_CODE(itc_module_type_t) == (context->transport_mod = itc_modtab_get_module_type_from_path(argv[i])))
-	    ERROR_RETURN_LOG(int, "Cannot get the transportation layer module instance %s", argv[i]);
+		ERROR_RETURN_LOG(int, "Cannot get the transportation layer module instance %s", argv[i]);
 
 	/* Check if the module has the event-accepting flag, the transportation layer module should not have the flag */
 	itc_module_flags_t mf = itc_module_get_flags(context->transport_mod);
@@ -304,7 +304,7 @@ static int _init(void* __restrict ctx, uint32_t argc, char const* __restrict con
 		SSL_load_error_strings();
 		_thread_init();
 		if(ERROR_CODE(int) == module_tls_dra_init())
-		    ERROR_RETURN_LOG(int, "Cannot initialize the DRA callback wrapper");
+			ERROR_RETURN_LOG(int, "Cannot initialize the DRA callback wrapper");
 	}
 
 	_module_instance_count ++;
@@ -312,20 +312,20 @@ static int _init(void* __restrict ctx, uint32_t argc, char const* __restrict con
 	/* Initialize the SSL context for the module instance */
 	const SSL_METHOD *method;
 	if(NULL == (method = SSLv23_server_method()))
-	    ERROR_RETURN_LOG(int, "Cannot get the server method: %s", ERR_error_string(ERR_get_error(), NULL));
+		ERROR_RETURN_LOG(int, "Cannot get the server method: %s", ERR_error_string(ERR_get_error(), NULL));
 
 	if(NULL == (context->ssl_context = SSL_CTX_new(method)))
-	    ERROR_RETURN_LOG(int, "Cannot initialize the server context: %s", ERR_error_string(ERR_get_error(), NULL));
+		ERROR_RETURN_LOG(int, "Cannot initialize the server context: %s", ERR_error_string(ERR_get_error(), NULL));
 
 	/* Load and verify the certificate-key pair */
 	if(SSL_CTX_use_certificate_file(context->ssl_context, cert_file, SSL_FILETYPE_PEM) <= 0)
-	    ERROR_RETURN_LOG(int, "Cannot load the certificate: %s", ERR_error_string(ERR_get_error(), NULL));
+		ERROR_RETURN_LOG(int, "Cannot load the certificate: %s", ERR_error_string(ERR_get_error(), NULL));
 
 	if(SSL_CTX_use_PrivateKey_file(context->ssl_context, pkey_file, SSL_FILETYPE_PEM) <= 0)
-	    ERROR_RETURN_LOG(int, "Cannot load the private key: %s", ERR_error_string(ERR_get_error(), NULL));
+		ERROR_RETURN_LOG(int, "Cannot load the private key: %s", ERR_error_string(ERR_get_error(), NULL));
 
 	if(!SSL_CTX_check_private_key(context->ssl_context))
-	    ERROR_RETURN_LOG(int, "Certificate and Private key are not match: %s", ERR_error_string(ERR_get_error(), NULL));
+		ERROR_RETURN_LOG(int, "Certificate and Private key are not match: %s", ERR_error_string(ERR_get_error(), NULL));
 
 	context->async_write = 1;
 
@@ -359,7 +359,7 @@ static int _cleanup(void* __restrict ctx)
 
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
 	if(NULL !=  context->alpn_protos)
-	    free(context->alpn_protos);
+		free(context->alpn_protos);
 #endif
 
 	if(ERROR_CODE(int) == mempool_objpool_free(context->tls_pool))
@@ -408,7 +408,7 @@ static inline _tls_context_t* _tls_context_new(_module_context_t* context)
 
 	ret->state = _TLS_STATE_CONNECTING;
 	if(NULL == (ret->ssl = SSL_new(context->ssl_context)))
-	    ERROR_PTR_RETURN_LOG("Cannot create new SSL context: %s", ERR_error_string(ERR_get_error(), NULL));
+		ERROR_PTR_RETURN_LOG("Cannot create new SSL context: %s", ERR_error_string(ERR_get_error(), NULL));
 
 	ret->user_state = NULL;
 	ret->dispose_user_state = NULL;
@@ -457,7 +457,7 @@ L_ERR:
 static inline int _user_space_state_dispose(_tls_context_t* tls)
 {
 	if(NULL != tls->user_state && (NULL == tls->dispose_user_state || tls->dispose_user_state(tls->user_state) == ERROR_CODE(int)))
-	    LOG_WARNING("Cannot call the dispose function for the user-defined state, memory leak possible");
+		LOG_WARNING("Cannot call the dispose function for the user-defined state, memory leak possible");
 
 	tls->user_state = NULL;
 
@@ -473,10 +473,10 @@ static inline int _tls_context_free(_tls_context_t* context)
 	if(NULL != context->ssl) SSL_free(context->ssl);
 
 	if(ERROR_CODE(int) == _user_space_state_dispose(context))
-	    ERROR_RETURN_LOG(int, "Cannot dispose the user-space state");
+		ERROR_RETURN_LOG(int, "Cannot dispose the user-space state");
 
 	if(ERROR_CODE(int) == mempool_objpool_dealloc(context->module_context->tls_pool, context))
-	    ERROR_RETURN_LOG(int, "Cannot dispose the used state");
+		ERROR_RETURN_LOG(int, "Cannot dispose the used state");
 
 	if(context->unread_data != NULL) free(context->unread_data);
 
@@ -557,9 +557,9 @@ static inline int _clear_ssl_error(void)
 	if(hook_installed == 0)
 	{
 		if(thread_add_cleanup_hook(_clean_openssl, NULL) == ERROR_CODE(int))
-		    LOG_WARNING("Cannot setup the cleanup hook");
+			LOG_WARNING("Cannot setup the cleanup hook");
 		else
-		    hook_installed = 1;
+			hook_installed = 1;
 	}
 #if 0
 	ERR_clear_error();
@@ -604,16 +604,16 @@ static int _accept(void* __restrict ctx, const void* __restrict args, void* __re
 	if(itc_module_pipe_accept(context->transport_mod, trans_param, &trans_in, &trans_out) == ERROR_CODE(int) ||
 	   NULL == trans_in ||
 	   NULL == trans_out)
-	    ERROR_LOG_GOTO(L_ERR, "Cannot accept connection from transportation layer");
+		ERROR_LOG_GOTO(L_ERR, "Cannot accept connection from transportation layer");
 
 	if(ERROR_CODE(int) == _invoke_pipe_cntl(trans_in, RUNTIME_API_PIPE_CNTL_OPCODE_POP_STATE, &tls_state))
-	    ERROR_LOG_GOTO(L_ERR, "Cannot pop the previous state from the pipe");
+		ERROR_LOG_GOTO(L_ERR, "Cannot pop the previous state from the pipe");
 
 	if(NULL == tls_state)
 	{
 		LOG_DEBUG("The connection has no TLS state been pushed, allocate a new one");
 		if(NULL == (tls_state = _tls_context_new(context)))
-		    ERROR_LOG_GOTO(L_ERR, "Cannot create new TLS context");
+			ERROR_LOG_GOTO(L_ERR, "Cannot create new TLS context");
 		state_owned = 1;
 	}
 
@@ -625,7 +625,7 @@ static int _accept(void* __restrict ctx, const void* __restrict args, void* __re
 	tls_state->user_state_to_push = 0;
 
 	if(_TLS_STATE_DISABLED == tls_state->state)
-	    tls_state->state = _TLS_STATE_CONNECTING;
+		tls_state->state = _TLS_STATE_CONNECTING;
 
 	in->type = _HANDLE_TYPE_IN;
 	in->tls = tls_state;
@@ -659,26 +659,26 @@ static inline void _log_ssl_error(const char* what, int reason, int rc)
 	switch(reason)
 	{
 		case SSL_ERROR_ZERO_RETURN:
-		    LOG_ERROR("TLS error(%s): transporation layer connection is closed", what);
-		    break;
+			LOG_ERROR("TLS error(%s): transporation layer connection is closed", what);
+			break;
 		case SSL_ERROR_WANT_X509_LOOKUP:
-		    LOG_ERROR("TLS error(%s): OpenSSL wants to perform X509 lookup", what);
-		    break;
+			LOG_ERROR("TLS error(%s): OpenSSL wants to perform X509 lookup", what);
+			break;
 		case SSL_ERROR_SYSCALL:
-		    if(rc == 0)
-		        LOG_ERROR("TLS error(%s): System call error: EOF", what);
-		    else
-		        LOG_ERROR("TLS error(%s): System call error: %s", what, strerror(errno));
-		    break;
+			if(rc == 0)
+				LOG_ERROR("TLS error(%s): System call error: EOF", what);
+			else
+				LOG_ERROR("TLS error(%s): System call error: %s", what, strerror(errno));
+			break;
 		case SSL_ERROR_SSL:
-		    error_code = ERR_get_error();
-		    if(error_code == 0 && rc == 0)
-		        LOG_ERROR("TLS error(%s): OpenSSL got EOF", what);
-		    else if(error_code == 0)
-		        LOG_ERROR("TLS error(%s): OpenSSL got an IO error", what);
-		    else
-		        LOG_ERROR("TLS error(%s): %s", what, ERR_error_string(error_code, NULL));
-		    break;
+			error_code = ERR_get_error();
+			if(error_code == 0 && rc == 0)
+				LOG_ERROR("TLS error(%s): OpenSSL got EOF", what);
+			else if(error_code == 0)
+				LOG_ERROR("TLS error(%s): OpenSSL got an IO error", what);
+			else
+				LOG_ERROR("TLS error(%s): %s", what, ERR_error_string(error_code, NULL));
+			break;
 		default:
 		    LOG_ERROR("TLS error(%s): unknown error %d", what, reason);
 	}
@@ -706,8 +706,8 @@ static inline int _ensure_connect(_handle_t* handle)
 			{
 				case SSL_ERROR_WANT_READ:
 				case SSL_ERROR_WANT_WRITE:
-				    LOG_DEBUG("Read/Write failure encountered, deactivate the connection until it gets ready");
-				    return 0;
+					LOG_DEBUG("Read/Write failure encountered, deactivate the connection until it gets ready");
+					return 0;
 				default:
 				    _log_ssl_error("accept", reason, rc);
 				    return ERROR_CODE(int);
@@ -756,23 +756,23 @@ static int _dealloc(void* __restrict ctx, void* __restrict pipe, int error, int 
 		if(((handle->tls->state == _TLS_STATE_CONNECTING) || (flags & RUNTIME_API_PIPE_PERSIST)) && !error)
 		{
 			if(!handle->tls->user_state_to_push && ERROR_CODE(int) == _user_space_state_dispose(handle->tls))
-			    ERROR_RETURN_LOG(int, "Cannot dispose the user-space status");
+				ERROR_RETURN_LOG(int, "Cannot dispose the user-space status");
 			if(_invoke_pipe_cntl(handle->t_pipe, RUNTIME_API_PIPE_CNTL_OPCODE_PUSH_STATE, handle->tls, _tls_context_decref) == ERROR_CODE(int))
-			    ERROR_RETURN_LOG(int, "Cannot push TLS context to the transportation layer pipe");
+				ERROR_RETURN_LOG(int, "Cannot push TLS context to the transportation layer pipe");
 			else
-			    handle->tls->pushed = 1;
+				handle->tls->pushed = 1;
 		}
 		else
 		{
 			if(_invoke_pipe_cntl(handle->t_pipe, RUNTIME_API_PIPE_CNTL_OPCODE_CLR_FLAG, RUNTIME_API_PIPE_PERSIST) == ERROR_CODE(int))
-			    ERROR_RETURN_LOG(int, "Cannot clear the persist flag of the trans_pipe");
+				ERROR_RETURN_LOG(int, "Cannot clear the persist flag of the trans_pipe");
 			if(!handle->tls->pushed && _tls_context_decref(handle->tls) == ERROR_CODE(int))
-			    ERROR_RETURN_LOG(int, "Cannot dispose the TLS context");
+				ERROR_RETURN_LOG(int, "Cannot dispose the TLS context");
 		}
 	}
 
 	if(handle->type == _HANDLE_TYPE_IN)
-	    handle->tls->input_alive = 0;
+		handle->tls->input_alive = 0;
 
 	int rc = itc_module_pipe_deallocate(handle->t_pipe);
 
@@ -800,7 +800,7 @@ static size_t _read(void* __restrict ctx, void* __restrict buffer, size_t bytes_
 
 		size_t nbytes = bytes_to_read;
 		if(nbytes > handle->tls->unread_data_size - handle->tls->unread_data_start)
-		    nbytes = handle->tls->unread_data_size - handle->tls->unread_data_start;
+			nbytes = handle->tls->unread_data_size - handle->tls->unread_data_start;
 
 		memcpy(buffer, handle->tls->unread_data, nbytes);
 
@@ -904,7 +904,7 @@ static size_t _write(void* __restrict ctx, const void* __restrict data, size_t n
 			}
 
 			if(ERROR_CODE(int) == _tls_context_incref(handle->tls))
-			    ERROR_RETURN_LOG(size_t, "Cannot increase the reference counter for the TLS context object");
+				ERROR_RETURN_LOG(size_t, "Cannot increase the reference counter for the TLS context object");
 
 			module_tls_dra_param_t draparam = {
 				.ssl = handle->tls->ssl,
@@ -941,7 +941,7 @@ static size_t _write(void* __restrict ctx, const void* __restrict data, size_t n
 		else rc = itc_module_pipe_write(data, nbytes, handle->t_pipe);
 
 		if(rc == 0)
-		    ERROR_RETURN_LOG(size_t, "Invalid write return code, transportation layer is disconnected?");
+			ERROR_RETURN_LOG(size_t, "Invalid write return code, transportation layer is disconnected?");
 		else if(rc != ERROR_CODE(size_t))
 		{
 			ret += (size_t)rc;
@@ -949,9 +949,9 @@ static size_t _write(void* __restrict ctx, const void* __restrict data, size_t n
 			data = ((const char*)data) + rc;
 		}
 		else if(_should_encrypt(handle))
-		    ERROR_RETURN_LOG(size_t, "TLS write error");
+			ERROR_RETURN_LOG(size_t, "TLS write error");
 		else
-		    ERROR_RETURN_LOG(size_t, "Transportation layer pipe error");
+			ERROR_RETURN_LOG(size_t, "Transportation layer pipe error");
 	}
 
 	return ret;
@@ -969,12 +969,12 @@ static inline int _write_callback(void* __restrict ctx, itc_module_data_source_t
 	(void)ctx;
 	_handle_t* handle = (_handle_t*)out;
 	if(handle->type != _HANDLE_TYPE_OUT)
-	    ERROR_RETURN_LOG(int, "Wrong pipe type: Cannot write from an input TLS pipe");
+		ERROR_RETURN_LOG(int, "Wrong pipe type: Cannot write from an input TLS pipe");
 
 	if(_should_encrypt(handle))
 	{
 		if(ERROR_CODE(int) == _tls_context_incref(handle->tls))
-		    ERROR_RETURN_LOG(int, "Cannot increase the reference counter for the TLS context object");
+			ERROR_RETURN_LOG(int, "Cannot increase the reference counter for the TLS context object");
 
 		module_tls_dra_param_t draparam = {
 			.ssl = handle->tls->ssl,
@@ -1000,9 +1000,9 @@ static int _has_unread(void* __restrict ctx, void* __restrict pipe)
 	_handle_t* handle = (_handle_t*)pipe;
 
 	if(handle->tls->state == _TLS_STATE_CONNECTING)
-	    return 1;
+		return 1;
 	else if(handle->tls->state == _TLS_STATE_DISABLED)
-	    return !itc_module_pipe_eof(handle->t_pipe);
+		return !itc_module_pipe_eof(handle->t_pipe);
 	if(handle->type != _HANDLE_TYPE_IN) ERROR_RETURN_LOG(int, "Wrong pipe type: _HANDLE_TYPE_IN expected");
 
 	return !handle->no_more_input;
@@ -1022,7 +1022,7 @@ static int _push_state(void* __restrict ctx, void* __restrict pipe, void* __rest
 	_handle_t *handle = (_handle_t*) pipe;
 
 	if(NULL != handle->tls->user_state && handle->tls->user_state != state && _user_space_state_dispose(handle->tls) != ERROR_CODE(int))
-	    ERROR_RETURN_LOG(int, "Cannot dispose the previous user-space state");
+		ERROR_RETURN_LOG(int, "Cannot dispose the previous user-space state");
 
 	handle->tls->user_state = state;
 	handle->tls->dispose_user_state = func;
@@ -1072,7 +1072,7 @@ static const char* _get_path(void* __restrict ctx, char* buf, size_t sz)
 	_module_context_t* context = (_module_context_t*)ctx;
 
 	if(NULL == itc_module_get_path(context->transport_mod, buf, sz))
-	    ERROR_PTR_RETURN_LOG("Cannot get the path to transportation layer module");
+		ERROR_PTR_RETURN_LOG("Cannot get the path to transportation layer module");
 
 	return buf;
 }
@@ -1105,7 +1105,7 @@ static int _eom(void* __restrict ctx, void* __restrict pipe, const char* buffer,
 	{
 		LOG_DEBUG("Returning some bytes inside the unread buffer");
 		if(handle->tls->unread_data_size <= handle->tls->unread_data_start)
-		    ERROR_RETURN_LOG(int, "Invalid offset");
+			ERROR_RETURN_LOG(int, "Invalid offset");
 		handle->tls->unread_data_start = (uint32_t)offset;
 
 		return 0;
@@ -1114,7 +1114,7 @@ static int _eom(void* __restrict ctx, void* __restrict pipe, const char* buffer,
 	if(handle->last_read_size <= offset) ERROR_RETURN_LOG(int, "Invalid offset");
 
 	if(NULL == (handle->tls->unread_data = (char*)malloc(handle->last_read_size - offset)))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate buffer for the unread buffer");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate buffer for the unread buffer");
 
 	memcpy(handle->tls->unread_data, buffer + offset, handle->last_read_size - offset);
 	handle->tls->unread_data_start = 0;
@@ -1136,12 +1136,12 @@ static inline int _ssl_cert_chain_append(SSL_CTX* ctx, const char* filename)
 	int    empty = 1;
 
 	if(NULL == (fp = fopen(filename, "r")))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot open cert file %s", filename);
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot open cert file %s", filename);
 
 	while(NULL != (cert = PEM_read_X509(fp, NULL, ctx->default_passwd_callback, ctx->default_passwd_callback_userdata)))
 	{
 		if(SSL_CTX_add_extra_chain_cert(ctx, cert) <= 0)
-		    ERROR_LOG_GOTO(RET, "Cannot add extra cert from file %s: %s", filename, ERR_error_string(ERR_get_error(), NULL));
+			ERROR_LOG_GOTO(RET, "Cannot add extra cert from file %s: %s", filename, ERR_error_string(ERR_get_error(), NULL));
 		else cert = NULL;
 		empty = 0;
 	}
@@ -1201,18 +1201,18 @@ static inline int _alpn_select_protocol(SSL* ssl, const unsigned char** out, uns
 
 	const _alpn_protocol_t* server_proto = ctx->alpn_protos, *client_proto = NULL;
 	for(;NULL != server_proto; server_proto = _get_next_protocol(server_proto))
-	    for(client_proto = client_proto_list;
-	        client_proto != NULL &&
-	        (unsigned int)((client_proto->name + client_proto->length) - in) <= inlen;
-	        client_proto = _get_next_protocol(client_proto))
-	        if(_alpn_protocol_cmp(server_proto->begin, client_proto->begin) == 0)
-	        {
-		        *out = client_proto->name;
-		        *outlen = client_proto->length;
-		        return SSL_TLSEXT_ERR_OK;
-	        }
+		for(client_proto = client_proto_list;
+		    client_proto != NULL &&
+		    (unsigned int)((client_proto->name + client_proto->length) - in) <= inlen;
+		    client_proto = _get_next_protocol(client_proto))
+			if(_alpn_protocol_cmp(server_proto->begin, client_proto->begin) == 0)
+			{
+				*out = client_proto->name;
+				*outlen = client_proto->length;
+				return SSL_TLSEXT_ERR_OK;
+			}
 
-	return SSL_TLSEXT_ERR_ALERT_FATAL;
+			return SSL_TLSEXT_ERR_ALERT_FATAL;
 }
 
 /**
@@ -1242,7 +1242,7 @@ static inline int _setup_alpn_support(_module_context_t* context, const char* or
 	 * In addition we need another trailer 0 */
 	uint8_t* protolist = (uint8_t*)malloc(size + 2);
 	if(NULL == protolist)
-	    ERROR_RETURN_LOG(int, "Cannot allocate memory for the ALPN protocol list");
+		ERROR_RETURN_LOG(int, "Cannot allocate memory for the ALPN protocol list");
 
 	_alpn_protocol_t* protobuf = (_alpn_protocol_t*)protolist;
 	int escape = 0;
@@ -1370,7 +1370,7 @@ static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_
 		else return 0;
 
 		if(options != 0 &&  SSL_CTX_set_options(context->ssl_context, options) <= 0)
-		    ERROR_RETURN_LOG(int, "Cannot set the supported SSL version: %s", ERR_error_string(ERR_get_error(), NULL));
+			ERROR_RETURN_LOG(int, "Cannot set the supported SSL version: %s", ERR_error_string(ERR_get_error(), NULL));
 
 		return 1;
 	}
@@ -1380,7 +1380,7 @@ static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_
 		_SYMBOL(_IS("cipher"))
 		{
 			if(0 == SSL_CTX_set_cipher_list(context->ssl_context, value.str))
-			    ERROR_RETURN_LOG(int, "Cipher string %s could be accepted: %s", value.str, ERR_error_string(ERR_get_error(), NULL));
+				ERROR_RETURN_LOG(int, "Cipher string %s could be accepted: %s", value.str, ERR_error_string(ERR_get_error(), NULL));
 			return 1;
 		}
 		_SYMBOL(_IS("extra_cert_chain"))
@@ -1398,9 +1398,9 @@ static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_
 				{
 					filename[len] = 0;
 					if(ERROR_CODE(int) == _ssl_cert_chain_append(context->ssl_context, filename))
-					    ERROR_RETURN_LOG(int, "Cannot load the certification chain from %s", filename);
+						ERROR_RETURN_LOG(int, "Cannot load the certification chain from %s", filename);
 					else
-					    LOG_DEBUG("Certification %s has been successfully added to the chain", filename);
+						LOG_DEBUG("Certification %s has been successfully added to the chain", filename);
 
 					if(*ch == 0) break;
 
@@ -1414,13 +1414,13 @@ static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_
 			const char* filename = value.str;
 			FILE* fp = fopen(filename, "r");
 			if(NULL == fp)
-			    ERROR_RETURN_LOG_ERRNO(int, "Cannot load dhparam file %s", filename);
+				ERROR_RETURN_LOG_ERRNO(int, "Cannot load dhparam file %s", filename);
 			DH* dh = PEM_read_DHparams(fp, NULL, context->ssl_context->default_passwd_callback, context->ssl_context->default_passwd_callback_userdata);
 			if(NULL == dh)
-			    ERROR_LOG_GOTO(DHPARAM_ERR, "Cannot read the DH params from file %s: %s", filename, ERR_error_string(ERR_get_error(), NULL));
+				ERROR_LOG_GOTO(DHPARAM_ERR, "Cannot read the DH params from file %s: %s", filename, ERR_error_string(ERR_get_error(), NULL));
 
 			if(SSL_CTX_set_tmp_dh(context->ssl_context, dh) <= 0)
-			    ERROR_LOG_GOTO(DHPARAM_ERR, "Cannot set the DH param to the SSL context %s: %s", filename, ERR_error_string(ERR_get_error(), NULL));
+				ERROR_LOG_GOTO(DHPARAM_ERR, "Cannot set the DH param to the SSL context %s: %s", filename, ERR_error_string(ERR_get_error(), NULL));
 
 			fclose(fp);
 			DH_free(dh);
@@ -1438,17 +1438,17 @@ DHPARAM_ERR:
 			if(strcmp(name, "auto") == 0)
 			{
 				if(SSL_CTX_set_ecdh_auto(context->ssl_context, 1) <= 0)
-				    ERROR_RETURN_LOG(int, "Cannot set the ECDH mode to auto %s", ERR_error_string(ERR_get_error(), NULL));
+					ERROR_RETURN_LOG(int, "Cannot set the ECDH mode to auto %s", ERR_error_string(ERR_get_error(), NULL));
 
 				return 1;
 			}
 			int nid = OBJ_sn2nid(name);
 			if(nid <= 0)
-			    ERROR_RETURN_LOG(int, "Cannot get the NID for curve %s: %s", name, ERR_error_string(ERR_get_error(), NULL));
+				ERROR_RETURN_LOG(int, "Cannot get the NID for curve %s: %s", name, ERR_error_string(ERR_get_error(), NULL));
 
 			EC_KEY* ecdh = EC_KEY_new_by_curve_name(nid);
 			if(NULL == ecdh)
-			    ERROR_RETURN_LOG(int, "Cannot get the curve named %s: %s", name, ERR_error_string(ERR_get_error(), NULL));
+				ERROR_RETURN_LOG(int, "Cannot get the curve named %s: %s", name, ERR_error_string(ERR_get_error(), NULL));
 
 			if(SSL_CTX_set_tmp_ecdh(context->ssl_context, ecdh) <= 0)
 			{
@@ -1462,7 +1462,7 @@ DHPARAM_ERR:
 		{
 			const char* origin_list = value.str;
 			if(ERROR_CODE(int) == _setup_alpn_support(context, origin_list))
-			    return ERROR_CODE(int);
+				return ERROR_CODE(int);
 			return 1;
 		}
 #endif
@@ -1483,48 +1483,48 @@ static int  _cntl(void* __restrict context, void* __restrict pipe, uint32_t opco
 	switch(opcode)
 	{
 		case MODULE_TLS_CNTL_ENCRYPTION:
-		{
-			int value = va_arg(va_args, int);
-			if(value == 0)
 			{
-				LOG_DEBUG("Trun off encryption");
-				/* Only change the state when the state is connecting, because
-				 * Either disabled or connected we do not need to do anything */
-				if(handle->tls->state == _TLS_STATE_CONNECTING)
-				    handle->tls->state = _TLS_STATE_DISABLED;
+				int value = va_arg(va_args, int);
+				if(value == 0)
+				{
+					LOG_DEBUG("Trun off encryption");
+					/* Only change the state when the state is connecting, because
+					* Either disabled or connected we do not need to do anything */
+					if(handle->tls->state == _TLS_STATE_CONNECTING)
+						handle->tls->state = _TLS_STATE_DISABLED;
+				}
+				else
+				{
+					LOG_DEBUG("Turn on encryption");
+					/* Only change when the state is disabled */
+					if(handle->tls->state == _TLS_STATE_DISABLED)
+						handle->tls->state = _TLS_STATE_CONNECTING;
+				}
+				break;
 			}
-			else
-			{
-				LOG_DEBUG("Turn on encryption");
-				/* Only change when the state is disabled */
-				if(handle->tls->state == _TLS_STATE_DISABLED)
-				    handle->tls->state = _TLS_STATE_CONNECTING;
-			}
-			break;
-		}
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
 		case MODULE_TLS_CNTL_ALPNPROTO:
-		{
-			char*  buf = va_arg(va_args, char*);
-			size_t  bs  = va_arg(va_args, size_t);
-
-			if(NULL == buf || bs == 0) ERROR_RETURN_LOG(int, "Invalid arguments");
-
-			uint8_t const* intbuf;
-			unsigned int  intsize;
-
-			SSL_get0_alpn_selected(handle->tls->ssl, &intbuf, &intsize);
-
-			if(intsize == 0) buf[0] = 0;
-			else
 			{
-				if(bs > intsize + 1) bs = intsize + 1;
-				memcpy(buf, intbuf, bs - 1);
-				buf[bs-1] = 0;
-			}
+				char*  buf = va_arg(va_args, char*);
+				size_t  bs  = va_arg(va_args, size_t);
 
-			break;
-		}
+				if(NULL == buf || bs == 0) ERROR_RETURN_LOG(int, "Invalid arguments");
+
+				uint8_t const* intbuf;
+				unsigned int  intsize;
+
+				SSL_get0_alpn_selected(handle->tls->ssl, &intbuf, &intsize);
+
+				if(intsize == 0) buf[0] = 0;
+				else
+				{
+					if(bs > intsize + 1) bs = intsize + 1;
+					memcpy(buf, intbuf, bs - 1);
+					buf[bs-1] = 0;
+				}
+
+				break;
+			}
 #endif
 		default:
 		    ERROR_RETURN_LOG(int, "Invalid opcode");

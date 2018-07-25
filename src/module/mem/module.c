@@ -76,7 +76,7 @@ static inline int __buffer_free(_buffer_page_t* page)
 		_buffer_page_t* tmp = page;
 		page = page->next;
 		if(ERROR_CODE(int) == mempool_page_dealloc(tmp))
-		    rc = ERROR_CODE(int);
+			rc = ERROR_CODE(int);
 	}
 	return rc;
 }
@@ -114,7 +114,7 @@ static int _allocate(void* __restrict ctx, uint32_t hint, void* __restrict out, 
 	output->type = _OUTPUT;
 
 	if(NULL == (input->current_page = output->current_page = output->buffer = input->buffer = __buffer_page_new()))
-	    ERROR_RETURN_LOG(int, "Cannot allocate buffer for the mempipie");
+		ERROR_RETURN_LOG(int, "Cannot allocate buffer for the mempipie");
 
 	input->page_offset = output->page_offset = 0;
 	LOG_DEBUG("pipe has been created!");
@@ -141,13 +141,13 @@ static int _get_internal_buf(void* __restrict ctx, void const** __restrict resul
 {
 	(void) ctx;
 	if(NULL == result || NULL == min_size || NULL == max_size)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	module_handle_t* handle = (module_handle_t*)pipe;
 	uint32_t actual_size;
 
 	if(handle->type != _INPUT)
-	    ERROR_RETURN_LOG(int, "Invalid type of pipe, a output pipe cannot be read");
+		ERROR_RETURN_LOG(int, "Invalid type of pipe, a output pipe cannot be read");
 
 
 	if(handle->current_page != NULL)
@@ -197,7 +197,7 @@ static size_t _read(void* __restrict ctx, void* __restrict buffer, size_t nbytes
 	module_handle_t* handle = (module_handle_t*)pipe;
 
 	if(handle->type != _INPUT)
-	    ERROR_RETURN_LOG(size_t, "Invalid type of pipe, a output pipe cannot be read");
+		ERROR_RETURN_LOG(size_t, "Invalid type of pipe, a output pipe cannot be read");
 
 	size_t ret = 0;
 	char * b = (char*)buffer;
@@ -226,7 +226,7 @@ static size_t _write(void* __restrict ctx, const void* __restrict buffer, size_t
 	module_handle_t* handle = (module_handle_t*)pipe;
 
 	if(handle->type != _OUTPUT)
-	    ERROR_RETURN_LOG(size_t, "Invalid type of pipe, a write function cannot take a input pipe");
+		ERROR_RETURN_LOG(size_t, "Invalid type of pipe, a write function cannot take a input pipe");
 
 	const char* b = (const char*)buffer;
 	size_t ret = 0;
@@ -245,9 +245,9 @@ static size_t _write(void* __restrict ctx, const void* __restrict buffer, size_t
 		if(handle->current_page->size == _pagedata_limit)
 		{
 			if(NULL != handle->current_page->next)
-			    ERROR_RETURN_LOG(size_t, "Unexpected current page in a write pipe, code bug!");
+				ERROR_RETURN_LOG(size_t, "Unexpected current page in a write pipe, code bug!");
 			if(NULL == (handle->current_page->next = __buffer_page_new()))
-			    ERROR_RETURN_LOG(size_t, "Cannot create new page for the mempipe");
+				ERROR_RETURN_LOG(size_t, "Cannot create new page for the mempipe");
 			handle->page_offset = 0;
 			handle->current_page = handle->current_page->next;
 		}
@@ -275,10 +275,10 @@ static int _has_unread_data(void* __restrict ctx, void* __restrict data)
 	(void) ctx;
 	module_handle_t* handle = (module_handle_t*) data;
 	if(NULL == handle)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(handle->type != _INPUT)
-	    ERROR_RETURN_LOG(int, "Cannot perform has_unread call on a output pipe");
+		ERROR_RETURN_LOG(int, "Cannot perform has_unread call on a output pipe");
 
 	for(;handle->current_page != NULL && handle->current_page->size <= handle->page_offset;)
 	{

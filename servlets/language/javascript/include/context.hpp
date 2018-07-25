@@ -24,8 +24,8 @@ namespace Servlet{
 		int _for_each(Functor& func, List& list)
 		{
 			for(typename List::iterator it = list.begin(); it != list.end(); it ++)
-			    if(ERROR_CODE(int) == func(it->first, it->second))
-			        ERROR_RETURN_LOG(int, "Cannot process list element");
+				if(ERROR_CODE(int) == func(it->first, it->second))
+					ERROR_RETURN_LOG(int, "Cannot process list element");
 			return 0;
 		}
 

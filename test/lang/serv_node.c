@@ -19,7 +19,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 		}
 
 		if(ERROR_CODE(pipe_t) == pipe_define(argv[i], pf, NULL))
-		    ERROR_RETURN_LOG(int, "Cannot define pipe %s", argv[i]);
+			ERROR_RETURN_LOG(int, "Cannot define pipe %s", argv[i]);
 	}
 
 	return 0;

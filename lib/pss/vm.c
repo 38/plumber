@@ -83,9 +83,9 @@ static inline _stack_t* _stack_new(pss_vm_t* host, const pss_closure_t* closure,
 
 	ret->host = host;
 	if(NULL == (ret->code = pss_closure_get_code(closure)))
-	    ERROR_LOG_GOTO(ERR, "Cannot get the code segment from the closure");
+		ERROR_LOG_GOTO(ERR, "Cannot get the code segment from the closure");
 	if(NULL == (ret->module = pss_closure_get_module(closure)))
-	    ERROR_LOG_GOTO(ERR, "Cannot get the module contains the closure");
+		ERROR_LOG_GOTO(ERR, "Cannot get the module contains the closure");
 	ret->ip = 0;
 	ret->line = 0;
 	ret->func = "<Anonymous>";
@@ -95,14 +95,14 @@ static inline _stack_t* _stack_new(pss_vm_t* host, const pss_closure_t* closure,
 	pss_bytecode_regid_t const* arg_regs;
 	int argc = pss_bytecode_segment_get_args(ret->code, &arg_regs);
 	if(ERROR_CODE(int) == argc)
-	    ERROR_LOG_GOTO(ERR, "Cannot get the number of arguments of the code segment");
+		ERROR_LOG_GOTO(ERR, "Cannot get the number of arguments of the code segment");
 
 	int actual_size = parent == NULL ? 0 : (int)parent->argc;
 
 	if(NULL != parent) parent->argc = 0;
 
 	if(NULL == (ret->frame = pss_closure_get_frame(closure)))
-	    ERROR_LOG_GOTO(ERR, "Cannot duplicate the environment frame");
+		ERROR_LOG_GOTO(ERR, "Cannot duplicate the environment frame");
 
 	if(argc > actual_size) argc = actual_size;
 
@@ -112,10 +112,10 @@ static inline _stack_t* _stack_new(pss_vm_t* host, const pss_closure_t* closure,
 		pss_value_t value = pss_frame_reg_get(parent->frame, parent->arg[i]);
 
 		if(PSS_VALUE_KIND_ERROR == value.kind)
-		    ERROR_LOG_GOTO(ERR, "Cannot get the value of argument %d", i);
+			ERROR_LOG_GOTO(ERR, "Cannot get the value of argument %d", i);
 
 		if(ERROR_CODE(int) == pss_frame_reg_set(ret->frame, arg_regs[i], value))
-		    ERROR_LOG_GOTO(ERR, "Cannot set the value of register %u", arg_regs[i]);
+			ERROR_LOG_GOTO(ERR, "Cannot set the value of register %u", arg_regs[i]);
 	}
 
 	return ret;
@@ -160,7 +160,7 @@ static inline pss_value_t _read_reg(pss_vm_t* vm, const pss_bytecode_instruction
 	pss_bytecode_regid_t regid = inst->reg[idx];
 	pss_value_t val = pss_frame_reg_get(vm->stack->frame, regid);
 	if(val.kind == PSS_VALUE_KIND_ERROR)
-	    vm->error = PSS_VM_ERROR_INTERNAL;
+		vm->error = PSS_VM_ERROR_INTERNAL;
 	return val;
 }
 
@@ -195,7 +195,7 @@ static inline int _is_value_kind(pss_vm_t* vm, pss_value_t value, pss_value_kind
 static inline void* _value_get_ref_data(pss_vm_t* vm, pss_value_t value, pss_value_ref_type_t type, int raise)
 {
 	if(!_is_value_kind(vm, value, PSS_VALUE_KIND_REF, raise))
-	    return NULL;
+		return NULL;
 
 	if(type != pss_value_ref_type(value))
 	{
@@ -244,30 +244,30 @@ static inline int _exec_new(pss_vm_t* vm, const pss_bytecode_instruction_t* inst
 	switch(inst->info->rtype)
 	{
 		case PSS_BYTECODE_RTYPE_DICT:
-		    val = pss_value_ref_new(PSS_VALUE_REF_TYPE_DICT, NULL);
-		    break;
-		case PSS_BYTECODE_RTYPE_CLOSURE:
-		{
-			pss_value_t segval = _read_reg(vm, inst, 0);
-			if(!_is_value_kind(vm, segval, PSS_VALUE_KIND_NUM, 1))
-			    return 0;
-
-			pss_closure_creation_param_t param = {
-				.segid  = (pss_bytecode_segid_t)segval.num,
-				.module = vm->stack->module,
-				.env    = vm->stack->frame
-			};
-
-			val = pss_value_ref_new(PSS_VALUE_REF_TYPE_CLOSURE, &param);
+			val = pss_value_ref_new(PSS_VALUE_REF_TYPE_DICT, NULL);
 			break;
-		}
+		case PSS_BYTECODE_RTYPE_CLOSURE:
+			{
+				pss_value_t segval = _read_reg(vm, inst, 0);
+				if(!_is_value_kind(vm, segval, PSS_VALUE_KIND_NUM, 1))
+					return 0;
+
+				pss_closure_creation_param_t param = {
+					.segid  = (pss_bytecode_segid_t)segval.num,
+					.module = vm->stack->module,
+					.env    = vm->stack->frame
+				};
+
+				val = pss_value_ref_new(PSS_VALUE_REF_TYPE_CLOSURE, &param);
+				break;
+			}
 		default:
 		    vm->error = PSS_VM_ERROR_BYTECODE;
 		    return 0;
 	}
 
 	if(PSS_VALUE_KIND_ERROR == val.kind)
-	    ERROR_RETURN_LOG(int, "Cannot create the requested value");
+		ERROR_RETURN_LOG(int, "Cannot create the requested value");
 
 	if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, target, val))
 	{
@@ -288,20 +288,20 @@ static inline int _exec_load(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 	switch(inst->info->rtype)
 	{
 		case PSS_BYTECODE_RTYPE_INT:
-		    val.kind = PSS_VALUE_KIND_NUM;
-		    val.num = inst->num;
-		    break;
-		case PSS_BYTECODE_RTYPE_STR:
-		{
-			const char* str = inst->str;
-			char* runtime_str = pss_string_concat(str, "");
-			if(NULL == runtime_str) ERROR_RETURN_LOG(int, "Cannot create a runtime string");
-			val = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, runtime_str);
-			if(val.kind == PSS_VALUE_KIND_ERROR) free(runtime_str);
+			val.kind = PSS_VALUE_KIND_NUM;
+			val.num = inst->num;
 			break;
-		}
+		case PSS_BYTECODE_RTYPE_STR:
+			{
+				const char* str = inst->str;
+				char* runtime_str = pss_string_concat(str, "");
+				if(NULL == runtime_str) ERROR_RETURN_LOG(int, "Cannot create a runtime string");
+				val = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, runtime_str);
+				if(val.kind == PSS_VALUE_KIND_ERROR) free(runtime_str);
+				break;
+			}
 		case PSS_BYTECODE_RTYPE_UNDEF:
-		    break;
+			break;
 		default:
 		    vm->error = PSS_VM_ERROR_BYTECODE;
 		    return 0;
@@ -326,11 +326,11 @@ static inline int _exec_dict(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 	{
 		case PSS_BYTECODE_OPCODE_GET_VAL:
 		case PSS_BYTECODE_OPCODE_GET_KEY:
-		    dict_idx = 0, key_idx = 1, reg_idx = 2;
-		    break;
+			dict_idx = 0, key_idx = 1, reg_idx = 2;
+			break;
 		case PSS_BYTECODE_OPCODE_SET_VAL:
-		    reg_idx = 0, dict_idx = 1, key_idx = 2;
-		    break;
+			reg_idx = 0, dict_idx = 1, key_idx = 2;
+			break;
 		default:
 		    vm->error = PSS_VM_ERROR_BYTECODE;
 		    return 0;
@@ -342,15 +342,15 @@ static inline int _exec_dict(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 	if(inst->opcode == PSS_BYTECODE_OPCODE_GET_KEY)
 	{
 		if(!_is_value_kind(vm, keyval, PSS_VALUE_KIND_NUM, 1))
-		    return 0;
+			return 0;
 
 		const char* res_str = pss_dict_get_key(dict, (uint32_t)keyval.num);
 		if(NULL == res_str)
-		    ERROR_RETURN_LOG(int, "Cannot read the key");
+			ERROR_RETURN_LOG(int, "Cannot read the key");
 
 		char* runtime_str = pss_string_concat(res_str, "");
 		if(NULL == runtime_str)
-		    ERROR_RETURN_LOG(int, "Cannot create the runtime string");
+			ERROR_RETURN_LOG(int, "Cannot create the runtime string");
 
 		pss_value_t result = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, runtime_str);
 		if(result.kind == PSS_VALUE_KIND_ERROR)
@@ -376,19 +376,19 @@ static inline int _exec_dict(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 	{
 		pss_value_t value = _read_reg(vm, inst, reg_idx);
 		if(value.kind == PSS_VALUE_KIND_ERROR)
-		    ERROR_RETURN_LOG(int, "Cannot read the source register");
+			ERROR_RETURN_LOG(int, "Cannot read the source register");
 
 		if(ERROR_CODE(int) == pss_dict_set(dict, key, value))
-		    ERROR_RETURN_LOG(int, "Cannot insert the value to the dictionary");
+			ERROR_RETURN_LOG(int, "Cannot insert the value to the dictionary");
 	}
 	else
 	{
 		pss_value_t value = pss_dict_get(dict, key);
 		if(value.kind == PSS_VALUE_KIND_ERROR)
-		    ERROR_RETURN_LOG(int, "Cannot read the dictionary");
+			ERROR_RETURN_LOG(int, "Cannot read the dictionary");
 
 		if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[reg_idx], value))
-		    ERROR_RETURN_LOG(int, "Cannot write the value to the reigster frame");
+			ERROR_RETURN_LOG(int, "Cannot write the value to the reigster frame");
 	}
 
 	return 0;
@@ -418,32 +418,32 @@ static inline int _exec_arithmetic_logic(pss_vm_t* vm, const pss_bytecode_instru
 		switch(inst->opcode)
 		{
 			case PSS_BYTECODE_OPCODE_SUB:
-			    result.num = left.num - right.num;
-			    break;
+				result.num = left.num - right.num;
+				break;
 			case PSS_BYTECODE_OPCODE_MUL:
-			    result.num = left.num * right.num;
-			    break;
+				result.num = left.num * right.num;
+				break;
 			case PSS_BYTECODE_OPCODE_DIV:
 			case PSS_BYTECODE_OPCODE_MOD:
-			    if(right.num == 0)
-			    {
-				    vm->error = PSS_VM_ERROR_ARITHMETIC;
-				    return 0;
-			    }
-			    if(inst->opcode == PSS_BYTECODE_OPCODE_MOD)
-			        result.num = left.num % right.num;
-			    else
-			        result.num = left.num / right.num;
-			    break;
+				if(right.num == 0)
+				{
+					vm->error = PSS_VM_ERROR_ARITHMETIC;
+					return 0;
+				}
+				if(inst->opcode == PSS_BYTECODE_OPCODE_MOD)
+					result.num = left.num % right.num;
+				else
+					result.num = left.num / right.num;
+				break;
 			case PSS_BYTECODE_OPCODE_AND:
-			    result.num = left.num && right.num;
-			    break;
+				result.num = left.num && right.num;
+				break;
 			case PSS_BYTECODE_OPCODE_OR:
-			    result.num = left.num || right.num;
-			    break;
+				result.num = left.num || right.num;
+				break;
 			case PSS_BYTECODE_OPCODE_XOR:
-			    result.num = left.num ^ right.num;
-			    break;
+				result.num = left.num ^ right.num;
+				break;
 			default:
 			    vm->error = PSS_VM_ERROR_BYTECODE;
 			    return 0;
@@ -451,7 +451,7 @@ static inline int _exec_arithmetic_logic(pss_vm_t* vm, const pss_bytecode_instru
 	}
 
 	if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[2], result))
-	    ERROR_RETURN_LOG(int, "Cannot put the value to the register frame");
+		ERROR_RETURN_LOG(int, "Cannot put the value to the register frame");
 
 	return 0;
 }
@@ -472,9 +472,9 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 	{
 		result.kind = PSS_VALUE_KIND_NUM;
 		if(inst->opcode == PSS_BYTECODE_OPCODE_EQ)
-		    result.num = (lundef && rundef);
+			result.num = (lundef && rundef);
 		else if(inst->opcode == PSS_BYTECODE_OPCODE_NE)
-		    result.num = !(lundef && rundef);
+			result.num = !(lundef && rundef);
 		else
 		{
 			vm->error = PSS_VM_ERROR_UNDEF;
@@ -488,26 +488,26 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 		switch(inst->opcode)
 		{
 			case PSS_BYTECODE_OPCODE_ADD:
-			    result.num = left.num + right.num;
-			    break;
+				result.num = left.num + right.num;
+				break;
 			case PSS_BYTECODE_OPCODE_EQ:
-			    result.num = (left.num == right.num);
-			    break;
+				result.num = (left.num == right.num);
+				break;
 			case PSS_BYTECODE_OPCODE_NE:
-			    result.num = (left.num != right.num);
-			    break;
+				result.num = (left.num != right.num);
+				break;
 			case PSS_BYTECODE_OPCODE_LT:
-			    result.num = (left.num < right.num);
-			    break;
+				result.num = (left.num < right.num);
+				break;
 			case PSS_BYTECODE_OPCODE_LE:
-			    result.num = (left.num <= right.num);
-			    break;
+				result.num = (left.num <= right.num);
+				break;
 			case PSS_BYTECODE_OPCODE_GE:
-			    result.num = (left.num >= right.num);
-			    break;
+				result.num = (left.num >= right.num);
+				break;
 			case PSS_BYTECODE_OPCODE_GT:
-			    result.num = (left.num > right.num);
-			    break;
+				result.num = (left.num > right.num);
+				break;
 			default:
 			    vm->error = PSS_VM_ERROR_BYTECODE;
 			    return 0;
@@ -527,44 +527,44 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 		switch(inst->opcode)
 		{
 			case PSS_BYTECODE_OPCODE_ADD:
-			{
-				char* result_str = pss_string_concat(left_str, right_str);
-				if(NULL == result_str)
-				    ERROR_RETURN_LOG(int, "Cannot concate two string");
-
-				result = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, result_str);
-				if(result.kind == PSS_VALUE_KIND_ERROR)
 				{
-					free(result_str);
-					ERROR_RETURN_LOG(int, "Cannot create string value");
+					char* result_str = pss_string_concat(left_str, right_str);
+					if(NULL == result_str)
+						ERROR_RETURN_LOG(int, "Cannot concate two string");
+
+					result = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, result_str);
+					if(result.kind == PSS_VALUE_KIND_ERROR)
+					{
+						free(result_str);
+						ERROR_RETURN_LOG(int, "Cannot create string value");
+					}
+					break;
 				}
-				break;
-			}
 			case PSS_BYTECODE_OPCODE_LE:
 			case PSS_BYTECODE_OPCODE_LT:
 			case PSS_BYTECODE_OPCODE_EQ:
 			case PSS_BYTECODE_OPCODE_GE:
 			case PSS_BYTECODE_OPCODE_GT:
 			case PSS_BYTECODE_OPCODE_NE:
-			{
-				int cmpres = strcmp(left_str, right_str);
+				{
+					int cmpres = strcmp(left_str, right_str);
 
-				result.kind = PSS_VALUE_KIND_NUM;
+					result.kind = PSS_VALUE_KIND_NUM;
 
-				if(inst->opcode == PSS_BYTECODE_OPCODE_LE)
-				    result.num = (cmpres <= 0);
-				else if(inst->opcode == PSS_BYTECODE_OPCODE_LT)
-				    result.num = (cmpres < 0);
-				else if(inst->opcode == PSS_BYTECODE_OPCODE_EQ)
-				    result.num = (cmpres == 0);
-				else if(inst->opcode == PSS_BYTECODE_OPCODE_GE)
-				    result.num = (cmpres >= 0);
-				else if(inst->opcode == PSS_BYTECODE_OPCODE_GT)
-				    result.num = (cmpres > 0);
-				else if(inst->opcode == PSS_BYTECODE_OPCODE_NE)
-				    result.num = (cmpres != 0);
-				break;
-			}
+					if(inst->opcode == PSS_BYTECODE_OPCODE_LE)
+						result.num = (cmpres <= 0);
+					else if(inst->opcode == PSS_BYTECODE_OPCODE_LT)
+						result.num = (cmpres < 0);
+					else if(inst->opcode == PSS_BYTECODE_OPCODE_EQ)
+						result.num = (cmpres == 0);
+					else if(inst->opcode == PSS_BYTECODE_OPCODE_GE)
+						result.num = (cmpres >= 0);
+					else if(inst->opcode == PSS_BYTECODE_OPCODE_GT)
+						result.num = (cmpres > 0);
+					else if(inst->opcode == PSS_BYTECODE_OPCODE_NE)
+						result.num = (cmpres != 0);
+					break;
+				}
 			default:
 			    vm->error = PSS_VM_ERROR_BYTECODE;
 			    return 0;
@@ -596,17 +596,17 @@ static inline int _exec_jump(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 	};
 	pss_value_t target = _read_reg(vm, inst, inst->info->num_regs - 1u);
 	if(!_is_value_kind(vm, target, PSS_VALUE_KIND_NUM, 1))
-	    return 0;
+		return 0;
 
 	if(inst->opcode == PSS_BYTECODE_OPCODE_JZ)
 	{
 		cond = _read_reg(vm, inst, 0);
 		if(!_is_value_kind(vm, cond, PSS_VALUE_KIND_NUM, 1))
-		    return 0;
+			return 0;
 	}
 
 	if(cond.num == 0)
-	    vm->stack->ip = (pss_bytecode_addr_t)(target.num - 1);
+		vm->stack->ip = (pss_bytecode_addr_t)(target.num - 1);
 
 	return 0;
 }
@@ -619,9 +619,9 @@ static inline int _exec_global(pss_vm_t* vm, const pss_bytecode_instruction_t* i
 {
 	uint32_t key_idx, reg_idx;
 	if(inst->opcode == PSS_BYTECODE_OPCODE_GLOBAL_GET)
-	    key_idx = 0, reg_idx = 1;
+		key_idx = 0, reg_idx = 1;
 	else if(inst->opcode == PSS_BYTECODE_OPCODE_GLOBAL_SET)
-	    key_idx = 1, reg_idx = 0;
+		key_idx = 1, reg_idx = 0;
 	else
 	{
 		vm->error = PSS_VM_ERROR_BYTECODE;
@@ -635,31 +635,31 @@ static inline int _exec_global(pss_vm_t* vm, const pss_bytecode_instruction_t* i
 		pss_value_t value = {};
 		/* Try the external global hook if defined */
 		if(vm->external_global_hook.get != NULL)
-		    value = vm->external_global_hook.get(key);
+			value = vm->external_global_hook.get(key);
 
 		/* If we can not find anything with the global hook */
 		if(value.kind == PSS_VALUE_KIND_UNDEF)
-		    value = pss_dict_get(vm->global, key);
+			value = pss_dict_get(vm->global, key);
 
 		if(PSS_VALUE_KIND_ERROR == value.kind)
-		    ERROR_RETURN_LOG(int, "Cannot read the global dictionary");
+			ERROR_RETURN_LOG(int, "Cannot read the global dictionary");
 
 		if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[reg_idx], value))
-		    ERROR_RETURN_LOG(int, "Cannot write the value to register");
+			ERROR_RETURN_LOG(int, "Cannot write the value to register");
 	}
 	else
 	{
 		pss_value_t value = pss_frame_reg_get(vm->stack->frame, inst->reg[reg_idx]);
 
 		if(PSS_VALUE_KIND_ERROR == value.kind)
-		    ERROR_RETURN_LOG(int, "Cannot read the value of the register");
+			ERROR_RETURN_LOG(int, "Cannot read the value of the register");
 
 		int rc = vm->external_global_hook.set != NULL ? vm->external_global_hook.set(key, value) : 0;
 
 		if(ERROR_CODE(int) == rc) ERROR_RETURN_LOG(int, "The external global setter returns an error code");
 
 		if(rc == 0 && ERROR_CODE(int) == pss_dict_set(vm->global, key, value))
-		    ERROR_RETURN_LOG(int, "Cannot write the value to the global dicitonary");
+			ERROR_RETURN_LOG(int, "Cannot write the value to the global dicitonary");
 	}
 
 	return 0;
@@ -678,9 +678,9 @@ static inline int _exec_len(pss_vm_t* vm, const pss_bytecode_instruction_t* inst
 	pss_dict_t* dict;
 
 	if(NULL != str)
-	    result.num = (pss_bytecode_numeric_t)strlen(str);
+		result.num = (pss_bytecode_numeric_t)strlen(str);
 	else if(NULL != (dict = (pss_dict_t*)_value_get_ref_data(vm, value, PSS_VALUE_REF_TYPE_DICT, 0)))
-	    result.num = pss_dict_size(dict);
+		result.num = pss_dict_size(dict);
 	else
 	{
 		vm->error = PSS_VM_ERROR_TYPE;
@@ -688,7 +688,7 @@ static inline int _exec_len(pss_vm_t* vm, const pss_bytecode_instruction_t* inst
 	}
 
 	if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[1], result))
-	    ERROR_RETURN_LOG(int, "Cannot write the result to register frame");
+		ERROR_RETURN_LOG(int, "Cannot write the result to register frame");
 
 	return 0;
 }
@@ -713,7 +713,7 @@ static inline int _exec_builtin(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 	{
 		argv[i] = pss_frame_reg_get(vm->stack->frame, vm->stack->arg[i]);
 		if(argv[i].kind == PSS_VALUE_KIND_ERROR)
-		    ERROR_RETURN_LOG(int, "Cannot get the value from the argument list");
+			ERROR_RETURN_LOG(int, "Cannot get the value from the argument list");
 	}
 
 
@@ -721,13 +721,13 @@ static inline int _exec_builtin(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 	if(result.kind == PSS_VALUE_KIND_ERROR)
 	{
 		if(vm->error == PSS_VM_ERROR_NONE || (pss_vm_error_t)result.num != PSS_VM_ERROR_SECONDARY)
-		    vm->error = (pss_vm_error_t)result.num;
+			vm->error = (pss_vm_error_t)result.num;
 		LOG_ERROR("The builtin function returns an error");
 		return 0;
 	}
 
 	if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[1], result))
-	    ERROR_RETURN_LOG(int, "Cannot set the result value to the register frame");
+		ERROR_RETURN_LOG(int, "Cannot set the result value to the register frame");
 
 	return 0;
 }
@@ -742,7 +742,7 @@ static inline int _exec_call(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 	pss_value_t func = _read_reg(vm, inst, 0);
 
 	if(_is_value_kind(vm, func, PSS_VALUE_KIND_BUILTIN, 0))
-	    return _exec_builtin(vm, inst);
+		return _exec_builtin(vm, inst);
 
 	const pss_closure_t* closure = (const pss_closure_t*)_value_get_ref_data(vm, func, PSS_VALUE_REF_TYPE_CLOSURE, 1);
 	if(NULL == closure) return 0;
@@ -758,11 +758,11 @@ static inline int _exec_call(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 	pss_bytecode_regid_t ret;
 
 	if(ERROR_CODE(pss_bytecode_regid_t) == (ret = _exec(vm)))
-	    return 0;
+		return 0;
 
 	pss_value_t retval = pss_frame_reg_get(vm->stack->frame, ret);
 	if(retval.kind == PSS_VALUE_KIND_ERROR)
-	    ERROR_RETURN_LOG(int, "Cannot fetch the return value of the last function call");
+		ERROR_RETURN_LOG(int, "Cannot fetch the return value of the last function call");
 
 	if(ERROR_CODE(int) == pss_frame_reg_set(this_stack->frame, inst->reg[1], retval))
 	{
@@ -772,7 +772,7 @@ static inline int _exec_call(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 	}
 
 	if(ERROR_CODE(int) == _stack_free(vm->stack))
-	    ERROR_RETURN_LOG(int, "Cannot dispose the stack");
+		ERROR_RETURN_LOG(int, "Cannot dispose the stack");
 
 	vm->stack = this_stack;
 
@@ -787,7 +787,7 @@ static inline int _exec_move(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 	pss_value_t value = _read_reg(vm, inst, 0);
 
 	if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, inst->reg[1], value))
-	    ERROR_RETURN_LOG(int, "Cannot change the value of target register");
+		ERROR_RETURN_LOG(int, "Cannot change the value of target register");
 
 	return 0;
 }
@@ -818,35 +818,35 @@ static inline pss_bytecode_regid_t _exec(pss_vm_t* vm)
 #ifdef LOG_DEBUG_ENABLED
 		static char instbuf[128];
 		if(NULL == (pss_bytecode_segment_inst_str(top->code, top->ip, instbuf, sizeof(instbuf))))
-		    LOG_WARNING("Cannot print current instruction");
+			LOG_WARNING("Cannot print current instruction");
 		else
-		    LOG_DEBUG("Current Instruction: <%p:0x%.8x> %s", top->code, top->ip, instbuf);
+			LOG_DEBUG("Current Instruction: <%p:0x%.8x> %s", top->code, top->ip, instbuf);
 #endif
 
 		int rc = 0;
 		switch(inst.info->operation)
 		{
 			case PSS_BYTECODE_OP_NEW:
-			    rc = _exec_new(vm, &inst);
-			    break;
+				rc = _exec_new(vm, &inst);
+				break;
 			case PSS_BYTECODE_OP_LOAD:
-			    rc = _exec_load(vm, &inst);
-			    break;
+				rc = _exec_load(vm, &inst);
+				break;
 			case PSS_BYTECODE_OP_LEN:
-			    rc = _exec_len(vm, &inst);
-			    break;
+				rc = _exec_len(vm, &inst);
+				break;
 			case PSS_BYTECODE_OP_SETVAL:
 			case PSS_BYTECODE_OP_GETVAL:
 			case PSS_BYTECODE_OP_GETKEY:
-			    rc = _exec_dict(vm, &inst);
-			    break;
+				rc = _exec_dict(vm, &inst);
+				break;
 			case PSS_BYTECODE_OP_CALL:
-			    rc = _exec_call(vm, &inst);
-			    break;
+				rc = _exec_call(vm, &inst);
+				break;
 			case PSS_BYTECODE_OP_JUMP:
 			case PSS_BYTECODE_OP_JZ:
-			    rc = _exec_jump(vm, &inst);
-			    break;
+				rc = _exec_jump(vm, &inst);
+				break;
 			case PSS_BYTECODE_OP_LT:
 			case PSS_BYTECODE_OP_LE:
 			case PSS_BYTECODE_OP_EQ:
@@ -854,8 +854,8 @@ static inline pss_bytecode_regid_t _exec(pss_vm_t* vm)
 			case PSS_BYTECODE_OP_GE:
 			case PSS_BYTECODE_OP_GT:
 			case PSS_BYTECODE_OP_ADD:
-			    rc = _exec_generic(vm, &inst);
-			    break;
+				rc = _exec_generic(vm, &inst);
+				break;
 			case PSS_BYTECODE_OP_SUB:
 			case PSS_BYTECODE_OP_MUL:
 			case PSS_BYTECODE_OP_DIV:
@@ -863,41 +863,41 @@ static inline pss_bytecode_regid_t _exec(pss_vm_t* vm)
 			case PSS_BYTECODE_OP_AND:
 			case PSS_BYTECODE_OP_OR:
 			case PSS_BYTECODE_OP_XOR:
-			    rc = _exec_arithmetic_logic(vm, &inst);
-			    break;
+				rc = _exec_arithmetic_logic(vm, &inst);
+				break;
 			case PSS_BYTECODE_OP_MOVE:
-			    rc = _exec_move(vm, &inst);
-			    break;
+				rc = _exec_move(vm, &inst);
+				break;
 			case PSS_BYTECODE_OP_GLOBALGET:
 			case PSS_BYTECODE_OP_GLOBALSET:
-			    rc = _exec_global(vm, &inst);
-			    break;
+				rc = _exec_global(vm, &inst);
+				break;
 			case PSS_BYTECODE_OP_RETURN:
-			    retreg = inst.reg[0];
-			    break;
+				retreg = inst.reg[0];
+				break;
 			case PSS_BYTECODE_OP_ARG:
-			    if(top->argc >= PSS_VM_ARG_MAX)
-			    {
-				    vm->error = PSS_VM_ERROR_ARGUMENT;
-				    LOG_ERROR("Too many arguments for a function invocation");
-				    rc = ERROR_CODE(int);
-			    }
-			    else top->arg[top->argc ++] = inst.reg[0];
-			    break;
+				if(top->argc >= PSS_VM_ARG_MAX)
+				{
+					vm->error = PSS_VM_ERROR_ARGUMENT;
+					LOG_ERROR("Too many arguments for a function invocation");
+					rc = ERROR_CODE(int);
+				}
+				else top->arg[top->argc ++] = inst.reg[0];
+				break;
 			case PSS_BYTECODE_OP_DEBUGINFO:
-			    if(inst.info->rtype == PSS_BYTECODE_RTYPE_INT)
-			        top->line = (uint32_t)inst.num;
-			    else if(inst.info->rtype == PSS_BYTECODE_RTYPE_STR)
-			        top->func = inst.str;
-			    else vm->error = PSS_VM_ERROR_BYTECODE;
-			    break;
+				if(inst.info->rtype == PSS_BYTECODE_RTYPE_INT)
+					top->line = (uint32_t)inst.num;
+				else if(inst.info->rtype == PSS_BYTECODE_RTYPE_STR)
+					top->func = inst.str;
+				else vm->error = PSS_VM_ERROR_BYTECODE;
+				break;
 			default:
 			    rc = ERROR_CODE(int);
 			    LOG_ERROR("Invalid opration code %u", inst.info->operation);
 		}
 
 		if(rc == ERROR_CODE(int))
-		    vm->error = PSS_VM_ERROR_INTERNAL;
+			vm->error = PSS_VM_ERROR_INTERNAL;
 
 		top->ip ++;
 	}
@@ -907,9 +907,9 @@ static inline pss_bytecode_regid_t _exec(pss_vm_t* vm)
 	{
 		pss_value_t undef = {};
 		if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, 0, undef))
-		    LOG_ERROR("Cannot set the stack frame");
+			LOG_ERROR("Cannot set the stack frame");
 		else
-		    retreg = 0;
+			retreg = 0;
 	}
 
 	if(vm->level == 0) vm->killed = 0;
@@ -931,7 +931,7 @@ pss_vm_t* pss_vm_new()
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the VM");
 
 	if(NULL == (ret->global = pss_dict_new()))
-	    ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the global storage");
+		ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the global storage");
 
 	return ret;
 ERR:
@@ -976,10 +976,10 @@ int pss_vm_free(pss_vm_t* vm)
 int pss_vm_run_closure(pss_vm_t* vm, pss_value_t closure_value, pss_value_t* retbuf)
 {
 	if(NULL == vm)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(vm->error != PSS_VM_ERROR_NONE)
-	    ERROR_RETURN_LOG(int, "VM is in exception state");
+		ERROR_RETURN_LOG(int, "VM is in exception state");
 
 	const pss_closure_t* closure = (const pss_closure_t*)pss_value_get_data(closure_value);
 
@@ -988,7 +988,7 @@ int pss_vm_run_closure(pss_vm_t* vm, pss_value_t closure_value, pss_value_t* ret
 	_stack_t* this_stack;
 
 	if(NULL == (this_stack = _stack_new(vm, closure, NULL)))
-	    ERROR_RETURN_LOG(int, "Cannot create stack for the entry point frame");
+		ERROR_RETURN_LOG(int, "Cannot create stack for the entry point frame");
 
 	this_stack->next = vm->stack;
 	vm->stack = this_stack;
@@ -996,7 +996,7 @@ int pss_vm_run_closure(pss_vm_t* vm, pss_value_t closure_value, pss_value_t* ret
 	pss_bytecode_regid_t retreg = _exec(vm);
 
 	if(ERROR_CODE(pss_bytecode_regid_t) == retreg || vm->error != PSS_VM_ERROR_NONE)
-	    ERROR_RETURN_LOG(int, "The virtual machine is in an error state");
+		ERROR_RETURN_LOG(int, "The virtual machine is in an error state");
 
 	int ret = 0;
 
@@ -1005,12 +1005,12 @@ int pss_vm_run_closure(pss_vm_t* vm, pss_value_t closure_value, pss_value_t* ret
 		*retbuf = pss_frame_reg_get(vm->stack->frame, retreg);
 		if(PSS_VALUE_KIND_ERROR == retbuf->kind) ret = ERROR_CODE(int);
 		else if(ERROR_CODE(int) == pss_value_incref(*retbuf))
-		    ret = ERROR_CODE(int);
+			ret = ERROR_CODE(int);
 	}
 
 	vm->stack = vm->stack->next;
 	if(ERROR_CODE(int) == _stack_free(this_stack))
-	    ret = ERROR_CODE(int);
+		ret = ERROR_CODE(int);
 
 	return ret;
 }
@@ -1018,11 +1018,11 @@ int pss_vm_run_closure(pss_vm_t* vm, pss_value_t closure_value, pss_value_t* ret
 int pss_vm_run_module(pss_vm_t* vm, const pss_bytecode_module_t* module, pss_value_t* retbuf)
 {
 	if(NULL == vm || NULL == module)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	pss_bytecode_segid_t segid = pss_bytecode_module_get_entry_point(module);
 	if(ERROR_CODE(pss_bytecode_segid_t) == segid)
-	    ERROR_RETURN_LOG(int, "Cannot get the entry point segment ID");
+		ERROR_RETURN_LOG(int, "Cannot get the entry point segment ID");
 
 	pss_closure_creation_param_t param = {
 		.module = module,
@@ -1035,7 +1035,7 @@ int pss_vm_run_module(pss_vm_t* vm, const pss_bytecode_module_t* module, pss_val
 	int ret = pss_vm_run_closure(vm, closure_value, retbuf);
 
 	if(ERROR_CODE(int) == pss_value_decref(closure_value))
-	    ERROR_RETURN_LOG(int, "Cannot diepose the entry point closure");
+		ERROR_RETURN_LOG(int, "Cannot diepose the entry point closure");
 
 	return ret;
 }
@@ -1060,7 +1060,7 @@ pss_vm_exception_t* pss_vm_last_exception(pss_vm_t* vm)
 		pss_vm_backtrace_t* new;
 
 		if(NULL == (new = (pss_vm_backtrace_t*)malloc(sizeof(*ret->backtrace))))
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the stack backtrace");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the stack backtrace");
 
 		new->line = cur->line;
 		new->func = cur->func;
@@ -1068,7 +1068,7 @@ pss_vm_exception_t* pss_vm_last_exception(pss_vm_t* vm)
 		ret->backtrace = new;
 
 		if(ERROR_CODE(int) == _stack_free(cur))
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate dispose the used stack frame");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate dispose the used stack frame");
 	}
 
 	vm->stack = NULL;
@@ -1119,7 +1119,7 @@ int pss_vm_set_external_global_callback(pss_vm_t* vm, pss_vm_external_global_ops
 int pss_vm_add_builtin_func(pss_vm_t* vm, const char* name, pss_value_builtin_t func)
 {
 	if(NULL == vm || NULL == name || NULL == func)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	pss_value_t value = {
 		.kind = PSS_VALUE_KIND_BUILTIN,
@@ -1127,7 +1127,7 @@ int pss_vm_add_builtin_func(pss_vm_t* vm, const char* name, pss_value_builtin_t 
 	};
 
 	if(ERROR_CODE(int) == pss_dict_set(vm->global, name, value))
-	    ERROR_RETURN_LOG(int, "Cannot insert the builtin function to the global value");
+		ERROR_RETURN_LOG(int, "Cannot insert the builtin function to the global value");
 
 	return 0;
 }
@@ -1135,10 +1135,10 @@ int pss_vm_add_builtin_func(pss_vm_t* vm, const char* name, pss_value_builtin_t 
 int pss_vm_set_global(pss_vm_t* vm, const char* var, pss_value_t val)
 {
 	if(NULL == vm || NULL == var || val.kind == PSS_VALUE_KIND_ERROR)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(ERROR_CODE(int) == pss_dict_set(vm->global, var, val))
-	    ERROR_RETURN_LOG(int, "Cannot write to the global dictionary");
+		ERROR_RETURN_LOG(int, "Cannot write to the global dictionary");
 
 	return 0;
 }

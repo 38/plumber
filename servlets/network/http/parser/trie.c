@@ -76,9 +76,9 @@ static inline uint32_t _compute_trie_size(const trie_kv_pair_t* data, uint32_t o
 	}
 
 	if(done)
-	    return _compute_trie_size(data + is_word, offset + length, split - is_word) + _compute_trie_size(data + split, offset + length, size - split) + 1;
+		return _compute_trie_size(data + is_word, offset + length, split - is_word) + _compute_trie_size(data + split, offset + length, size - split) + 1;
 	else
-	    return _compute_trie_size(data + is_word, offset + length, size - is_word) + 1;
+		return _compute_trie_size(data + is_word, offset + length, size - is_word) + 1;
 }
 
 static inline void _init_node(trie_t* trie, uint32_t slot, char const* key, uint32_t key_offset, uint32_t key_length, void const* value)
@@ -193,30 +193,30 @@ static inline uint32_t _build_trie(const trie_kv_pair_t* data, uint32_t offset, 
 trie_t* trie_new(trie_kv_pair_t* data, size_t count)
 {
 	if(NULL == data)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	qsort(data, count, sizeof(trie_kv_pair_t), _key_cmp);
 
 	size_t i;
 	for(i = 0; count > 0 && i < count - 1; i ++)
-	    if(strcmp(data[i].key, data[i + 1].key) == 0)
-	        ERROR_PTR_RETURN_LOG("Invalid arguments: Duplicated key found %s", data[i].key);
+		if(strcmp(data[i].key, data[i + 1].key) == 0)
+			ERROR_PTR_RETURN_LOG("Invalid arguments: Duplicated key found %s", data[i].key);
 
 	size_t trie_size = _compute_trie_size(data, 0, count);
 
 	trie_t* ret = (trie_t*)calloc(sizeof(trie_t), 1);
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the trie");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the trie");
 
 	if(trie_size > 0)
 	{
 
 		if(NULL == (ret->node_array = (_trie_node_t*)calloc(sizeof(_trie_node_t), trie_size)))
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the node array");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the node array");
 		if(NULL == (ret->key_data = (char const**)calloc(sizeof(char const*), trie_size)))
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocat ememory for the key data");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocat ememory for the key data");
 		if(NULL == (ret->val_data = (void const**)calloc(sizeof(void const*), trie_size)))
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the val data");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the val data");
 
 		(void)_build_trie(data, 0, (uint32_t)count, ret, 0);
 	}
@@ -234,7 +234,7 @@ ERR:
 int trie_free(trie_t* trie)
 {
 	if(NULL == trie)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(NULL != trie->node_array) free(trie->node_array);
 	if(NULL != trie->key_data) free(trie->key_data);
@@ -252,7 +252,7 @@ static inline int _mem_match(const char* a, const char* b, size_t sz)
 size_t trie_search(const trie_t* trie, trie_search_state_t* state, const char* key, size_t key_size, void const** result)
 {
 	if(NULL == trie || NULL == state || NULL == key || NULL == result || key_size == 0)
-	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 	if(trie->node_array == NULL)
 	{
@@ -288,9 +288,9 @@ size_t trie_search(const trie_t* trie, trie_search_state_t* state, const char* k
 				}
 
 				if(!(cur_node->mask[1] & ch))
-				    goto LEFT;
+					goto LEFT;
 				else
-				    goto RIGHT;
+					goto RIGHT;
 			}
 			else goto MATCH_FAILED;
 		}
@@ -302,7 +302,7 @@ size_t trie_search(const trie_t* trie, trie_search_state_t* state, const char* k
 				uint8_t ch = ((uint8_t)key[0] ^ (uint8_t)cur_key[0]);
 				/* We need to match the first byte */
 				if((ch & cur_node->mask[0]) == 0)
-				    matched_len = 1;
+					matched_len = 1;
 				else goto MATCH_FAILED;
 
 				key ++;
@@ -315,10 +315,10 @@ size_t trie_search(const trie_t* trie, trie_search_state_t* state, const char* k
 				/* We need to match the completed chunks of bytes */
 				uint32_t bytes_to_comp = (uint32_t)(cur_node->length - 1u - matched_len);
 				if(bytes_to_comp > key_size)
-				    bytes_to_comp = (uint32_t)key_size;
+					bytes_to_comp = (uint32_t)key_size;
 
 				if(!_mem_match(key, cur_key + matched_len, bytes_to_comp))
-				    goto MATCH_FAILED;
+					goto MATCH_FAILED;
 
 				matched_len += bytes_to_comp;
 				key += bytes_to_comp;
@@ -347,9 +347,9 @@ size_t trie_search(const trie_t* trie, trie_search_state_t* state, const char* k
 				{
 					/* If we can match the prefix */
 					if(ch & suffix_mask)
-					    goto RIGHT;
+						goto RIGHT;
 					else
-					    goto LEFT;
+						goto LEFT;
 				}
 				else goto MATCH_FAILED;
 			}
@@ -362,9 +362,9 @@ LEFT:
 		if(!cur_node->has_left)
 		{
 			if(cur_val != NULL)
-			    goto MATCH_DONE;
+				goto MATCH_DONE;
 			else
-			    goto MATCH_FAILED;
+				goto MATCH_FAILED;
 		}
 		cur_node = cur_node + 1;
 		cur_key = trie->key_data[(uint32_t)(cur_node - trie->node_array)];

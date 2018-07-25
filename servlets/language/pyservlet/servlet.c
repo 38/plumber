@@ -67,15 +67,15 @@ static inline int _init_ppi(void)
 	/* Let's make the python interpreter able to find what we need */
 	PyObject* path = PySys_GetObject("path");
 	if(NULL == path)
-	    ERROR_LOG_GOTO(ERR, "Cannot get the Python Script search path");
+		ERROR_LOG_GOTO(ERR, "Cannot get the Python Script search path");
 	else if(!PyList_Check(path))
-	    ERROR_LOG_GOTO(ERR, "Unexpected type of sys.path, list expected");
+		ERROR_LOG_GOTO(ERR, "Unexpected type of sys.path, list expected");
 	else
 	{
 		PyObject* servlet_lib_path = PyString_FromString(INSTALL_PREFIX"/lib/plumber/python");
 
 		if(servlet_lib_path == NULL)
-		    ERROR_LOG_GOTO(ERR, "Cannot create new string for the servlet lib path");
+			ERROR_LOG_GOTO(ERR, "Cannot create new string for the servlet lib path");
 
 		if(0 != PyList_Append(path, servlet_lib_path))
 		{
@@ -100,7 +100,7 @@ static inline int _init_ppi(void)
 				{
 					size_t len = (size_t)(end - begin);
 					if(len + 1> sizeof(buf))
-					    LOG_WARNING("Ignored a search path that is too long");
+						LOG_WARNING("Ignored a search path that is too long");
 					else
 					{
 						memcpy(buf, begin, len);
@@ -109,10 +109,10 @@ static inline int _init_ppi(void)
 						PyObject* lib_path = PyString_FromString(buf);
 
 						if(lib_path == NULL)
-						    ERROR_LOG_GOTO(ERR, "Cannot create new string for the search path");
+							ERROR_LOG_GOTO(ERR, "Cannot create new string for the search path");
 
 						if(0 != PyList_Append(path, lib_path))
-						    ERROR_LOG_GOTO(ERR, "Cannot append additional lib search path");
+							ERROR_LOG_GOTO(ERR, "Cannot append additional lib search path");
 					}
 					begin = end + 1;
 				}
@@ -123,22 +123,22 @@ static inline int _init_ppi(void)
 	}
 
 	if(NULL == (_module = builtin_init_module()))
-	    ERROR_LOG_GOTO(ERR, "Cannot initialize the servlet API module");
+		ERROR_LOG_GOTO(ERR, "Cannot initialize the servlet API module");
 
 	if(ERROR_CODE(int) == const_init(_module))
-	    ERROR_LOG_GOTO(ERR, "Cannot initailize the constant");
+		ERROR_LOG_GOTO(ERR, "Cannot initailize the constant");
 
 	if(ERROR_CODE(int) == typemodel_object_init(_module))
-	    ERROR_LOG_GOTO(ERR, "Cannot initialize the typemodel object");
+		ERROR_LOG_GOTO(ERR, "Cannot initialize the typemodel object");
 
 	if(ERROR_CODE(int) == scope_object_init(_module))
-	    ERROR_LOG_GOTO(ERR, "Cannot intialize the ScopeToken");
+		ERROR_LOG_GOTO(ERR, "Cannot intialize the ScopeToken");
 
 	if(ERROR_CODE(int) == scope_string_init(_module))
-	    ERROR_LOG_GOTO(ERR, "Cannot initialize the RLS string object");
+		ERROR_LOG_GOTO(ERR, "Cannot initialize the RLS string object");
 
 	if(ERROR_CODE(int) == scope_file_init(_module))
-	    ERROR_LOG_GOTO(ERR, "Cannot initialize the RLS file object");
+		ERROR_LOG_GOTO(ERR, "Cannot initialize the RLS file object");
 
 	return 0;
 
@@ -209,7 +209,7 @@ static int init(uint32_t argc, char const* const* argv, void* data)
 		args = NULL;  /* The reference has been stolen */
 
 		if(NULL == (servlet->data = PyObject_CallObject(init_func, argstuple)))
-		    ERROR_LOG_GOTO(PYERR, "Cannot call exec function of servlet %s", argv[1]);
+			ERROR_LOG_GOTO(PYERR, "Cannot call exec function of servlet %s", argv[1]);
 	}
 	else ERROR_LOG_GOTO(PYERR, "Cannot find module %s", argv[1]);
 
@@ -271,7 +271,7 @@ static inline int _invoke_servlet_function(servlet_data_t* s, const char* name)
 
 		/* Check the result */
 		if(!PyInt_Check(result))
-		    ERROR_LOG_GOTO(PYERR, "Integer return value expected from function %s", name);
+			ERROR_LOG_GOTO(PYERR, "Integer return value expected from function %s", name);
 
 		PyErr_Clear();
 		rc = (int)PyInt_AsLong(result);

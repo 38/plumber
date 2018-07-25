@@ -51,9 +51,9 @@ static int exec(void* mem)
 	if(sz == ERROR_CODE(size_t)) return ERROR_CODE(int);
 
 	if((data->which & 1) && pipe_write(data->output[0], buffer, sz) == ERROR_CODE(size_t))
-	    return ERROR_CODE(int);
+		return ERROR_CODE(int);
 	if((data->which & 2) && pipe_write(data->output[1], buffer, sz) == ERROR_CODE(size_t))
-	    return ERROR_CODE(int);
+		return ERROR_CODE(int);
 
 	trap(data->id);
 	return 0;

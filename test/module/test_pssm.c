@@ -44,7 +44,7 @@ void* test_thread(void* data)
 {
 	(void) data;
 	if(test_method() == ERROR_CODE(int))
-	    thread_local_test_ok = 0;
+		thread_local_test_ok = 0;
 	return NULL;
 }
 
@@ -53,9 +53,9 @@ int test_thread_local(void)
 	thread_t* thread[32];
 	int i;
 	for(i = 0; i < 32; i ++)
-	    ASSERT_PTR(thread[i] = thread_new(test_thread, NULL, THREAD_TYPE_GENERIC), CLEANUP_NOP);
+		ASSERT_PTR(thread[i] = thread_new(test_thread, NULL, THREAD_TYPE_GENERIC), CLEANUP_NOP);
 	for(i = 0; i < 32; i ++)
-	    ASSERT_OK(thread_free(thread[i], NULL), CLEANUP_NOP);
+		ASSERT_OK(thread_free(thread[i], NULL), CLEANUP_NOP);
 
 	ASSERT_OK(thread_local_test_ok, CLEANUP_NOP);
 
@@ -76,7 +76,7 @@ int setup(void)
 #if __i386__
 	int i;
 	for(i = 0; i < 18; i ++)
-	    expected_memory_leakage();
+		expected_memory_leakage();
 #endif
 	ASSERT_OK(mempool_objpool_disabled(0), CLEANUP_NOP);
 

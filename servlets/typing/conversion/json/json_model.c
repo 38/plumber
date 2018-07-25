@@ -34,7 +34,7 @@ static inline void _print_libproto_err(void)
 	const proto_err_t* err = proto_err_stack();
 	static char buf[1024];
 	for(;err;err = err->child)
-	    LOG_ERROR("Libproto: %s", proto_err_str(err, buf, sizeof(buf)));
+		LOG_ERROR("Libproto: %s", proto_err_str(err, buf, sizeof(buf)));
 #endif
 }
 
@@ -76,15 +76,15 @@ static int _process_scalar(proto_db_field_info_t info, const char* actual_name, 
 
 		/* Since the prefix_size can't be 0, this is safe. But if prefix_size is 0, ((prefix_size - 1) & 0xff + 1) = 256 */
 		if(prefix_size <= 256)
-		    prefix = alloca(((prefix_size - 1) & 0xff) + 1);
+			prefix = alloca(((prefix_size - 1) & 0xff) + 1);
 		else
-		    prefix = malloc(prefix_size);
+			prefix = malloc(prefix_size);
 
 		if(NULL == prefix)
-		    ERROR_RETURN_LOG(int, "Cannot allocate memory for the prefix %s.%s", td->field_prefix, actual_name);
+			ERROR_RETURN_LOG(int, "Cannot allocate memory for the prefix %s.%s", td->field_prefix, actual_name);
 
 		if(td->field_prefix[0] > 0)
-		    snprintf(prefix, prefix_size, "%s.%s", td->field_prefix, actual_name);
+			snprintf(prefix, prefix_size, "%s.%s", td->field_prefix, actual_name);
 		/* If this is a complex field */
 		_traverse_data_t new_td = {
 			.json_model   = td->json_model,
@@ -103,21 +103,21 @@ static int _process_scalar(proto_db_field_info_t info, const char* actual_name, 
 	}
 
 	if(ERROR_CODE(int) == _ensure_space(td->json_model))
-	    ERROR_RETURN_LOG(int, "Cannot ensure the output model has enough space");
+		ERROR_RETURN_LOG(int, "Cannot ensure the output model has enough space");
 	json_model_op_t* op = td->json_model->ops + td->json_model->nops;
 	op->opcode = JSON_MODEL_OPCODE_WRITE;
 	op->size = info.size;
 	if(strcmp(info.type, "plumber/std/request_local/String") == 0)
-	    op->type = JSON_MODEL_TYPE_STRING;
+		op->type = JSON_MODEL_TYPE_STRING;
 	else if(PROTO_DB_FIELD_PROP_REAL & info.primitive_prop)
-	    op->type = JSON_MODEL_TYPE_FLOAT;
+		op->type = JSON_MODEL_TYPE_FLOAT;
 	else if(PROTO_DB_FIELD_PROP_SIGNED & info.primitive_prop)
-	    op->type = JSON_MODEL_TYPE_SIGNED;
+		op->type = JSON_MODEL_TYPE_SIGNED;
 	else
-	    op->type = JSON_MODEL_TYPE_UNSIGNED;
+		op->type = JSON_MODEL_TYPE_UNSIGNED;
 	/* TODO: make sure for the string case we only write the token */
 	if(ERROR_CODE(pstd_type_accessor_t) == (op->acc = pstd_type_model_get_accessor(td->type_model, td->json_model->pipe, actual_name)))
-	    ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.%s", td->root_type, actual_name);
+		ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.%s", td->root_type, actual_name);
 	td->json_model->nops ++;
 	return 0;
 }
@@ -131,14 +131,14 @@ static int _build_dimension(proto_db_field_info_t info, _traverse_data_t* td, ui
 	{
 		size_t rc = (size_t)snprintf(begin, size, "[%u]", i);
 		if(ERROR_CODE(int) == _ensure_space(td->json_model))
-		    ERROR_RETURN_LOG(int, "Cannont ensure the output model has enough space");
+			ERROR_RETURN_LOG(int, "Cannont ensure the output model has enough space");
 		td->json_model->ops[td->json_model->nops].opcode = JSON_MODEL_OPCODE_OPEN_SUBS;
 		td->json_model->ops[td->json_model->nops].index = i;
 		td->json_model->nops ++;
 		if(ERROR_CODE(int) == _build_dimension(info, td, k + 1, actual_name, begin + rc, size - rc))
-		    ERROR_RETURN_LOG(int, "Cannot build the dimensional data");
+			ERROR_RETURN_LOG(int, "Cannot build the dimensional data");
 		if(ERROR_CODE(int) == _ensure_space(td->json_model))
-		    ERROR_RETURN_LOG(int, "Cannont ensure the output model has enough space");
+			ERROR_RETURN_LOG(int, "Cannont ensure the output model has enough space");
 		td->json_model->ops[td->json_model->nops].opcode = JSON_MODEL_OPCODE_CLOSE;
 		td->json_model->nops ++;
 	}
@@ -166,26 +166,26 @@ static int _traverse_type(proto_db_field_info_t info, void* data)
 	}
 
 	if(ERROR_CODE(int) == _ensure_space(td->json_model))
-	    ERROR_RETURN_LOG(int, "Cannot enough the output model has enough space");
+		ERROR_RETURN_LOG(int, "Cannot enough the output model has enough space");
 	td->json_model->ops[td->json_model->nops].opcode = JSON_MODEL_OPCODE_OPEN;
 	if(NULL == (td->json_model->ops[td->json_model->nops].field  = strdup(info.name)))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot dup the field name");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot dup the field name");
 	td->json_model->nops ++;
 
 	char* buf = buf_size < 256 ? (char*)alloca((buf_size&0xff) + 1) : (char*)malloc(buf_size + 1);
 	if(NULL == buf) ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the name buffer");
 
 	if(td->field_prefix[0] == 0)
-	    snprintf(buf, buf_size + 1, "%s", info.name);
+		snprintf(buf, buf_size + 1, "%s", info.name);
 	else
-	    snprintf(buf, buf_size + 1, "%s.%s", td->field_prefix, info.name);
+		snprintf(buf, buf_size + 1, "%s.%s", td->field_prefix, info.name);
 
 
 	if(ERROR_CODE(int) == _build_dimension(info, td, 0, buf, buf + strlen(buf), buf_size + 1))
-	    ERROR_LOG_GOTO(ERR, "Cannot process the field");
+		ERROR_LOG_GOTO(ERR, "Cannot process the field");
 
 	if(ERROR_CODE(int) == _ensure_space(td->json_model))
-	    ERROR_LOG_GOTO(ERR, "Cannot enough the output model has enough space");
+		ERROR_LOG_GOTO(ERR, "Cannot enough the output model has enough space");
 	td->json_model->ops[td->json_model->nops].opcode = JSON_MODEL_OPCODE_CLOSE;
 	td->json_model->nops ++;
 
@@ -201,12 +201,12 @@ static int _assert_build_type_model(pipe_t pipe, const char* type_name, void* da
 	json_model_t* model = (json_model_t*)data;
 
 	if(NULL == (model->ops = (json_model_op_t*)calloc(model->cap = 32, sizeof(json_model_op_t))))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the operation array");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the operation array");
 
 	proto_db_field_info_t info;
 	int adhoc_rc = proto_db_is_adhoc(type_name, &info);
 	if(ERROR_CODE(int) == adhoc_rc)
-	    ERROR_RETURN_LOG(int, "Cannot check if the type is an adhoc type");
+		ERROR_RETURN_LOG(int, "Cannot check if the type is an adhoc type");
 
 	int is_str = 0;
 
@@ -216,16 +216,16 @@ static int _assert_build_type_model(pipe_t pipe, const char* type_name, void* da
 		model->ops[0].size   = info.size;
 
 		if(is_str)
-		    model->ops[0].type = JSON_MODEL_TYPE_STRING;
+			model->ops[0].type = JSON_MODEL_TYPE_STRING;
 		else if(info.primitive_prop & PROTO_DB_FIELD_PROP_REAL)
-		    model->ops[0].type = JSON_MODEL_TYPE_FLOAT;
+			model->ops[0].type = JSON_MODEL_TYPE_FLOAT;
 		else if(info.primitive_prop & PROTO_DB_FIELD_PROP_SIGNED)
-		    model->ops[0].type = JSON_MODEL_TYPE_SIGNED;
+			model->ops[0].type = JSON_MODEL_TYPE_SIGNED;
 		else
-		    model->ops[0].type = JSON_MODEL_TYPE_UNSIGNED;
+			model->ops[0].type = JSON_MODEL_TYPE_UNSIGNED;
 
 		if(ERROR_CODE(pstd_type_accessor_t) == (model->ops[0].acc = pstd_type_model_get_accessor(model->tm, pipe, is_str ? "token" : "value")))
-		    ERROR_RETURN_LOG(int, "Cannot get the accessor for primitive type %s", type_name);
+			ERROR_RETURN_LOG(int, "Cannot get the accessor for primitive type %s", type_name);
 		model->nops = 1;
 		return 0;
 	}
@@ -250,21 +250,21 @@ static int _assert_build_type_model(pipe_t pipe, const char* type_name, void* da
 json_model_t* json_model_new(const char* pipe_name, const char* type_name, int input, pstd_type_model_t* type_model, void* mem)
 {
 	if(NULL == pipe_name || NULL == type_name || NULL == mem)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	json_model_t* ret = (json_model_t*)mem;
 	memset(ret, 0, sizeof(json_model_t));
 
 	if(ERROR_CODE(pipe_t) == (ret->pipe = pipe_define(pipe_name, input ? PIPE_INPUT : PIPE_OUTPUT, type_name)))
-	    ERROR_PTR_RETURN_LOG("Cannot define the output pipes");
+		ERROR_PTR_RETURN_LOG("Cannot define the output pipes");
 
 	if(NULL == (ret->name = strdup(pipe_name)))
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot dup the pipe name");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot dup the pipe name");
 
 	ret->tm = type_model;
 
 	if(ERROR_CODE(int) == pstd_type_model_assert(type_model, ret->pipe, _assert_build_type_model, ret))
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot install the type assertion");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot install the type assertion");
 
 	return ret;
 }
@@ -273,7 +273,7 @@ json_model_t* json_model_new(const char* pipe_name, const char* type_name, int i
 int json_model_free(json_model_t* model)
 {
 	if(NULL == model)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	uint32_t j;
 
@@ -281,8 +281,8 @@ int json_model_free(json_model_t* model)
 	if(model->ops != NULL)
 	{
 		for(j = 0; j < model->nops; j ++)
-		    if(NULL != model->ops[j].field)
-		        free(model->ops[j].field);
+			if(NULL != model->ops[j].field)
+				free(model->ops[j].field);
 		free(model->ops);
 	}
 

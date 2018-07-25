@@ -58,9 +58,9 @@ static inline int _match(const char* a, const char* b, size_t n)
 		int ch_b = b[i];
 
 		if(ch_a >= 'A' && ch_a <= 'Z')
-		    ch_a += 32;
+			ch_a += 32;
 		if(ch_b >= 'A' && ch_b <= 'Z')
-		    ch_b += 32;
+			ch_b += 32;
 
 		if(ch_a != ch_b) return 0;
 	}
@@ -83,27 +83,27 @@ static inline size_t _parse_chunk_trailer(http_response_t* res, const char* data
 		switch(res->parser_state)
 		{
 			case 0:  /* We don't know if it has a trailer */
-			    if(data[i] == '\r') res->parser_state = 1; /* No trailer just \r\n */
-			    else res->parser_state = 2;
-			    break;
+				if(data[i] == '\r') res->parser_state = 1; /* No trailer just \r\n */
+				else res->parser_state = 2;
+				break;
 			case 1:  /* We need to parse the last \n */
-			    if(data[i] == '\n') res->response_completed = 1;
-			    else return ERROR_CODE(size_t);
-			    break;
+				if(data[i] == '\n') res->response_completed = 1;
+				else return ERROR_CODE(size_t);
+				break;
 			case 2: /* In this cases, we need to find \r\n\r\n */
-			    if(data[i] == '\r') res->parser_state = 3;
-			    break;
+				if(data[i] == '\r') res->parser_state = 3;
+				break;
 			case 3:
-			    if(data[i] == '\n') res->parser_state = 4;
-			    else res->parser_state = 2;
-			    break;
+				if(data[i] == '\n') res->parser_state = 4;
+				else res->parser_state = 2;
+				break;
 			case 4:
-			    if(data[i] == '\r') res->parser_state = 5;
-			    else res->parser_state = 2;
-			    break;
+				if(data[i] == '\r') res->parser_state = 5;
+				else res->parser_state = 2;
+				break;
 			case 5:
-			    if(data[i] == '\n') res->response_completed = 1;
-			    else res->parser_state = 2;
+				if(data[i] == '\n') res->response_completed = 1;
+				else res->parser_state = 2;
 		}
 	}
 
@@ -124,32 +124,32 @@ static inline size_t _parse_transfer_encoding(http_response_t* res, const char* 
 	{
 		for(i = 0; i < len && (data[i] == '\t' || data[i] == ' '); i ++);
 		if(i < len && data[i] != '\t' && data[i] != ' ')
-		    res->parser_state = 1;
+			res->parser_state = 1;
 	}
 
 	while(res->parser_state > 0 && res->parser_state < sizeof(_chunked))
 	{
 		if(i < len && data[i] == _chunked[res->parser_state - 1])
-		    res->parser_state ++, i ++;
+			res->parser_state ++, i ++;
 		else if(i < len)
-		    res->parser_state = sizeof(_chunked);
+			res->parser_state = sizeof(_chunked);
 		else return i;
 	}
 
 	if(res->parser_state == sizeof(_chunked) && i < len)
 	{
 		if(data[i] == '\r')
-		    res->parser_state ++, i++;
+			res->parser_state ++, i++;
 		else
-		    i ++;
+			i ++;
 	}
 
 	if(res->parser_state == sizeof(_chunked) + 1 && i < len)
 	{
 		if(i < len && data[i] == '\n')
-		    res->parts = _NONE, i ++, res->size_determined = 1, res->chunked = 1, res->parts = _CH, res->parser_state = 0;
+			res->parts = _NONE, i ++, res->size_determined = 1, res->chunked = 1, res->parts = _CH, res->parser_state = 0;
 		else
-		    return ERROR_CODE(size_t);
+			return ERROR_CODE(size_t);
 	}
 
 	return i;
@@ -168,17 +168,17 @@ static inline size_t _parse_chunk_size(http_response_t* res, const char* data, s
 	if(res->parser_state == 0)
 	{
 		if(i < len && data[i] == '\r')
-		    res->parser_state = 1, i ++;
+			res->parser_state = 1, i ++;
 		else if(i < len)
-		    res->parser_state = 2;
+			res->parser_state = 2;
 	}
 
 	if(res->parser_state == 1)
 	{
 		if(i < len && data[i] == '\n')
-		    res->parser_state = 2, i ++;
+			res->parser_state = 2, i ++;
 		else if(i < len)
-		    return ERROR_CODE(size_t);
+			return ERROR_CODE(size_t);
 	}
 	if(res->parser_state == 2)
 	{
@@ -186,11 +186,11 @@ static inline size_t _parse_chunk_size(http_response_t* res, const char* data, s
 		{
 			char ch = data[i];
 			if(ch >= '0' && ch <= '9')
-			    res->chunk_remaining = res->chunk_remaining * 16 + (uint32_t)(ch - '0');
+				res->chunk_remaining = res->chunk_remaining * 16 + (uint32_t)(ch - '0');
 			else if(ch >= 'a' && ch <= 'f')
-			    res->chunk_remaining = res->chunk_remaining * 16 + (uint32_t)(ch - 'a') + 10;
+				res->chunk_remaining = res->chunk_remaining * 16 + (uint32_t)(ch - 'a') + 10;
 			else if(ch >= 'A' && ch <= 'f')
-			    res->chunk_remaining = res->chunk_remaining * 16 + (uint32_t)(ch - 'A') + 10;
+				res->chunk_remaining = res->chunk_remaining * 16 + (uint32_t)(ch - 'A') + 10;
 			else
 			{
 				res->parser_state = 3;
@@ -204,23 +204,23 @@ static inline size_t _parse_chunk_size(http_response_t* res, const char* data, s
 	{
 		for(; i < len && (data[i] == '\t' || data[i] == ' '); i ++);
 		if(i < len && data[i] != '\t' && data[i] != ' ')
-		    res->parser_state = 4;
+			res->parser_state = 4;
 	}
 
 	if(res->parser_state == 4)
 	{
 		if(i < len && data[i] == '\r')
-		    res->parser_state = 5, i ++;
+			res->parser_state = 5, i ++;
 		else if(i < len)
-		    return ERROR_CODE(size_t);
+			return ERROR_CODE(size_t);
 	}
 
 	if(res->parser_state == 5)
 	{
 		if(i < len && data[i] == '\n')
-		    res->parts = _NONE, i++;
+			res->parts = _NONE, i++;
 		else if(i < len)
-		    return ERROR_CODE(size_t);
+			return ERROR_CODE(size_t);
 	}
 
 	return i;
@@ -240,31 +240,31 @@ static inline size_t _parse_content_length(http_response_t* res, const char* dat
 	{
 		for(i = 0; i < len && (data[i] == '\t' || data[i] == ' '); i ++);
 		if(i < len && data[i] != '\t' && data[i] != ' ')
-		    res->parser_state = 1;
+			res->parser_state = 1;
 	}
 
 	if(res->parser_state == 1)
 	{
 		for(; i < len && (data[i] >= '0' && data[i] <= '9'); i ++)
-		    res->chunk_remaining = res->chunk_remaining * 10 + (unsigned)(data[i] - '0');
+			res->chunk_remaining = res->chunk_remaining * 10 + (unsigned)(data[i] - '0');
 		if(i < len && (data[i] < '0' || data[i] > '9'))
-		    res->parser_state = 2;
+			res->parser_state = 2;
 	}
 
 	if(res->parser_state == 2)
 	{
 		if(i < len && data[i] == '\r')
-		    res->parser_state = 3, i ++;
+			res->parser_state = 3, i ++;
 		else if(i < len)
-		    return ERROR_CODE(size_t);
+			return ERROR_CODE(size_t);
 	}
 
 	if(res->parser_state == 3)
 	{
 		if(i < len && data[i] == '\n')
-		    res->parts = _NONE, i ++, res->size_determined = 1;
+			res->parts = _NONE, i ++, res->size_determined = 1;
 		else if(i < len)
-		    return ERROR_CODE(size_t);
+			return ERROR_CODE(size_t);
 	}
 
 	return i;
@@ -302,7 +302,7 @@ static inline size_t _detect_header(http_response_t* res, const char* data, size
 	{
 		uint8_t to_compare = res->remaining_key_len;
 		if(to_compare > len)
-		    to_compare = (uint8_t)len;
+			to_compare = (uint8_t)len;
 
 		if(_match(data, res->remaining_key, to_compare))
 		{
@@ -313,11 +313,11 @@ static inline size_t _detect_header(http_response_t* res, const char* data, size
 		if(res->remaining_key_len == 0)
 		{
 			if(res->remaining_key == _content_length_key + sizeof(_content_length_key) - 1)
-			    res->parts = _CL, res->parser_state = 0;
+				res->parts = _CL, res->parser_state = 0;
 			else if(res->remaining_key == _body_start + sizeof(_body_start) - 1)
-			    res->parts = _TE, res->parser_state = 0;
+				res->parts = _TE, res->parser_state = 0;
 			else
-			    res->body_started = 1;
+				res->body_started = 1;
 			res->remaining_key = NULL;
 			return to_compare;
 		}
@@ -348,14 +348,14 @@ static inline size_t _detect_header(http_response_t* res, const char* data, size
 		if(!res->size_determined)
 		{
 			if(u64_data == (0x2020202020202020ull | _read_u64(_content_length_key)))
-			    key = _content_length_key, key_len = sizeof(_content_length_key) - 1, parts = _CL;
+				key = _content_length_key, key_len = sizeof(_content_length_key) - 1, parts = _CL;
 
 			if(u64_data == (0x2020202020202020ull | _read_u64(_transfer_encodeing_key)))
-			    key = _transfer_encodeing_key, key_len = sizeof(_transfer_encodeing_key) - 1, parts = _TE;
+				key = _transfer_encodeing_key, key_len = sizeof(_transfer_encodeing_key) - 1, parts = _TE;
 		}
 
 		if((u64_data & 0xffffffff) == 0x2a2d2a2du)
-		    key = _body_start, key_len = sizeof(_body_start) - 1, parts = _NONE;
+			key = _body_start, key_len = sizeof(_body_start) - 1, parts = _NONE;
 
 		if(key != NULL)
 		{
@@ -392,7 +392,7 @@ static inline size_t _detect_header(http_response_t* res, const char* data, size
 int http_response_parse(http_response_t* res, const char* data, size_t len)
 {
 	if(res->response_completed)
-	    return -1;
+		return -1;
 
 	for(;len > 0;)
 	{
@@ -402,14 +402,14 @@ int http_response_parse(http_response_t* res, const char* data, size_t len)
 			switch(res->size_determined ? _NONE : res->parts)
 			{
 				case _NONE:
-				    parsed = _detect_header(res, data, len);
-				    break;
+					parsed = _detect_header(res, data, len);
+					break;
 				case _CL:
-				    parsed = _parse_content_length(res, data, len);
-				    break;
+					parsed = _parse_content_length(res, data, len);
+					break;
 				case _TE:
-				    parsed = _parse_transfer_encoding(res, data, len);
-				    break;
+					parsed = _parse_transfer_encoding(res, data, len);
+					break;
 				default:
 				    ERROR_RETURN_LOG(int, "Code bug: Invalid parser state");
 			}
@@ -433,7 +433,7 @@ int http_response_parse(http_response_t* res, const char* data, size_t len)
 					parsed = _parse_chunk_trailer(res, data, len);
 
 					if(ERROR_CODE(size_t) != parsed && res->response_completed)
-					    return 1;
+						return 1;
 				}
 				else
 				{

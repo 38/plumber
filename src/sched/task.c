@@ -78,7 +78,7 @@ static inline _task_entry_t* _async_comp_dequeue(sched_task_context_t* ctx)
 	if(NULL == ctx->async_completed_head) return NULL;
 	_task_entry_t* ret = ctx->async_completed_head;
 	if(NULL == (ctx->async_completed_head = ret->next))
-	    ctx->async_completed_tail = NULL;
+		ctx->async_completed_tail = NULL;
 	return ret;
 }
 
@@ -94,7 +94,7 @@ static inline void _async_pending_add(sched_task_context_t* ctx, _task_entry_t* 
 	task->prev = NULL;
 
 	if(NULL != ctx->async_pending)
-	    ctx->async_pending->prev = task;
+		ctx->async_pending->prev = task;
 
 	ctx->async_pending = task;
 
@@ -138,7 +138,7 @@ static inline _task_entry_t* _dequeue(sched_task_context_t* ctx)
 	if(ctx->queue_size == 0) return NULL;
 	_task_entry_t* ret = ctx->queue_head;
 	if(NULL == (ctx->queue_head = ctx->queue_head->next))
-	    ctx->queue_tail = NULL;
+		ctx->queue_tail = NULL;
 	ctx->queue_size --;
 	return ret;
 }
@@ -153,7 +153,7 @@ static inline _request_entry_t* _request_entry_new(sched_task_request_t request)
 	LOG_DEBUG("New request entry has been created");
 	_request_entry_t* ret = (_request_entry_t*)mempool_objpool_alloc(_request_pool);
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the new request");
+		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the new request");
 	if(NULL == (ret->scope = sched_rscope_new()))
 	{
 		ERROR_PTR_RETURN_LOG("Cannot create scope object for the new request");
@@ -176,10 +176,10 @@ static inline int _request_entry_free(_request_entry_t* entry)
 {
 	int rc = 0;
 	if(NULL != entry->scope && sched_rscope_free(entry->scope) == ERROR_CODE(int))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(ERROR_CODE(int) == mempool_objpool_dealloc(_request_pool, entry))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	return rc;
 }
@@ -240,7 +240,7 @@ static inline int _request_entry_delete(sched_task_context_t* ctx, sched_task_re
 	else prev->next = to_delete->next;
 
 	if(ERROR_CODE(int) == _request_entry_free(to_delete))
-	    ERROR_RETURN_LOG(int, "Cannot dispose the request entry");
+		ERROR_RETURN_LOG(int, "Cannot dispose the request entry");
 
 	ctx->num_reqs --;
 	return 1;
@@ -288,7 +288,7 @@ static inline _task_entry_t* _task_entry_new(sched_task_context_t* ctx, const sc
 	ret->task.scope = req->scope;
 
 	if(NULL == sched_service_get_incoming_pipes(service, node, &ret->num_required_inputs))
-	    ERROR_LOG_GOTO(ERR, "Cannot get the incoming pipe list");
+		ERROR_LOG_GOTO(ERR, "Cannot get the incoming pipe list");
 
 	ret->num_awaiting_inputs = ret->num_required_inputs;
 	ret->num_cancelled_inputs = 0;
@@ -350,9 +350,9 @@ static inline void _task_table_delete(sched_task_context_t* ctx, _task_entry_t* 
 int sched_task_init()
 {
 	if(NULL == (_task_pool = mempool_objpool_new(sizeof(_task_entry_t))))
-	    ERROR_RETURN_LOG(int, "Cannot create new object pool for the task entry");
+		ERROR_RETURN_LOG(int, "Cannot create new object pool for the task entry");
 	if(NULL == (_request_pool = mempool_objpool_new(sizeof(_request_entry_t))))
-	    ERROR_RETURN_LOG(int, "Cannot create new object pool for the request entry");
+		ERROR_RETURN_LOG(int, "Cannot create new object pool for the request entry");
 	return 0;
 }
 
@@ -361,10 +361,10 @@ sched_task_context_t* sched_task_context_new(sched_loop_t* thread_ctx)
 	sched_task_context_t* ret = (sched_task_context_t*)calloc(1, sizeof(*ret));
 
 	if(NULL == (ret->task_table = (_task_entry_t**)calloc(SCHED_TASK_TABLE_SLOT_SIZE, sizeof(ret->task_table[0]))))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the task hash table");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the task hash table");
 
 	if(NULL == (ret->request_table = (_request_entry_t**)calloc(SCHED_TASK_TABLE_SLOT_SIZE, sizeof(ret->request_table[0]))))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the request hash table");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the request hash table");
 
 	ret->thread_handle = thread_ctx;
 
@@ -382,7 +382,7 @@ ERR:
 int sched_task_context_free(sched_task_context_t* ctx)
 {
 	if(NULL == ctx)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	int i = 0;
 	int rc = 0;
@@ -536,7 +536,7 @@ sched_task_request_t sched_task_new_request(sched_task_context_t* ctx, const sch
 	if(NULL == service || NULL == input_pipe || NULL == output_pipe) ERROR_RETURN_LOG(sched_task_request_t, "Invalid arguments");
 
 	if(NULL == (req_ent = (_request_entry_insert(ctx, ret))))
-	    ERROR_RETURN_LOG(sched_task_request_t, "Cannot create new request entry object");
+		ERROR_RETURN_LOG(sched_task_request_t, "Cannot create new request entry object");
 
 	pipe_model = sched_service_to_pipe_desc(service);
 
@@ -554,7 +554,7 @@ sched_task_request_t sched_task_new_request(sched_task_context_t* ctx, const sch
 	if(in_task->num_awaiting_inputs != 0) ERROR_LOG_GOTO(ERR, "Invalid task: Input pipe should not have pending inputs");
 
 	if(_task_guareentee_instantiated(in_task) == ERROR_CODE(int) || _task_guareentee_instantiated(out_task) == ERROR_CODE(int))
-	    ERROR_LOG_GOTO(ERR, "Cannot instantiate task");
+		ERROR_LOG_GOTO(ERR, "Cannot instantiate task");
 
 	in_task->task.exec_task->pipes[pipe_model->source_pipe_desc] = input_pipe;
 	out_task->task.exec_task->pipes[pipe_model->destination_pipe_desc] = output_pipe;
@@ -576,14 +576,14 @@ ERR:
 static inline int _input_ready(_task_entry_t* entry, itc_module_pipe_t* handle)
 {
 	if(sched_task_pipe_ready(&entry->task) == ERROR_CODE(int))
-	    ERROR_RETURN_LOG(int, "Cannot set the shadow pipe to ready state");
+		ERROR_RETURN_LOG(int, "Cannot set the shadow pipe to ready state");
 
 	int rc;
 	if(ERROR_CODE(int) == (rc = itc_module_is_pipe_cancelled(handle)))
-	    ERROR_RETURN_LOG(int, "Cannot check if the pipe is already cancelled");
+		ERROR_RETURN_LOG(int, "Cannot check if the pipe is already cancelled");
 
 	if(rc != 0 && ERROR_CODE(int) == sched_task_input_cancelled(&entry->task))
-	    ERROR_RETURN_LOG(int, "Cannot notify the cancel state to its owner");
+		ERROR_RETURN_LOG(int, "Cannot notify the cancel state to its owner");
 
 	return 0;
 }
@@ -597,13 +597,13 @@ int sched_task_input_pipe(sched_task_context_t* ctx, const sched_service_t* serv
 
 
 	if(handle != NULL && ERROR_CODE(int) == _task_add_pipe(task, pipe, handle, 1))
-	    ERROR_RETURN_LOG(int, "Cannot add pipe to the task");
+		ERROR_RETURN_LOG(int, "Cannot add pipe to the task");
 
 	/* Because we have a signle thread model for each request, it we can simply that the pipe is ready once is gets assigned */
 	if(!async || (async && handle == NULL))
-	    return _input_ready(task, handle == NULL ? task->task.exec_task->pipes[pipe] : handle);
+		return _input_ready(task, handle == NULL ? task->task.exec_task->pipes[pipe] : handle);
 	else
-	    LOG_DEBUG("The upstream task is an async task, so we don't notify the ready state for now");
+		LOG_DEBUG("The upstream task is an async task, so we don't notify the ready state for now");
 
 	return 0;
 }
@@ -613,7 +613,7 @@ int sched_task_async_completed(sched_task_t* task)
 	/* TODO: this function do not check if the task is an async task, but we need
 	 *       to figure out if we need to check this  */
 	if(NULL == task)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_task_entry_t* task_internal = (_task_entry_t*)task;
 
@@ -626,7 +626,7 @@ int sched_task_async_completed(sched_task_t* task)
 int sched_task_output_pipe(sched_task_t* task, runtime_api_pipe_id_t pipe, itc_module_pipe_t* handle)
 {
 	if(NULL == task || pipe == ERROR_CODE(runtime_api_pipe_id_t) || NULL == handle)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_task_entry_t* task_internal = (_task_entry_t*)task;
 
@@ -636,7 +636,7 @@ int sched_task_output_pipe(sched_task_t* task, runtime_api_pipe_id_t pipe, itc_m
 int sched_task_output_shadow(sched_task_t* task, runtime_api_pipe_id_t pipe, itc_module_pipe_t* handle)
 {
 	if(NULL == task || pipe == ERROR_CODE(runtime_api_pipe_id_t) || NULL == handle)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	int rc_shadow = itc_module_is_pipe_shadow(handle);
 	if(ERROR_CODE(int) == rc_shadow) ERROR_RETURN_LOG(int, "Cannot check if the pipe is shadow");
@@ -668,14 +668,14 @@ __attribute__((used)) static inline const char* _get_task_args(const _task_entry
 	char const* const* argv;
 
 	if(NULL == (argv = sched_service_get_node_args(task->task.service, task->task.node, &argc)))
-	    return NULL;
+		return NULL;
 
 	string_buffer_t sb;
 	string_buffer_open(buffer, size, &sb);
 	int first = 1;
 
 	for(;argc; argc --, argv ++)
-	    if(first) string_buffer_append(argv[0], &sb), first = 0;
+		if(first) string_buffer_append(argv[0], &sb), first = 0;
 	    else string_buffer_appendf(&sb, " %s", argv[0]);
 
 	string_buffer_close(&sb);
@@ -702,9 +702,9 @@ static inline int _pipe_cancel(sched_task_context_t* ctx, const sched_service_t*
 
 	/* If this is a unassigned pipe, basically we needs to mark it as ready, otherwise, it already marked as ready when assign pipe handle to it */
 	if(receiver->task.exec_task == NULL || receiver->task.exec_task->pipes[pid] == NULL)
-	    return sched_task_pipe_ready(&receiver->task);
+		return sched_task_pipe_ready(&receiver->task);
 	else
-	    return 0;
+		return 0;
 }
 
 sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx)
@@ -714,7 +714,7 @@ sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx)
 		_task_entry_t* next = NULL;
 		/* The first thing is we need to look at the compelted async task list, if there's some task, we can move on */
 		if(NULL != (next = _async_comp_dequeue(ctx)))
-		    LOG_DEBUG("Picking up the completed async task from the completion list");
+			LOG_DEBUG("Picking up the completed async task from the completion list");
 		else
 		{
 			next = _dequeue(ctx);
@@ -744,8 +744,8 @@ sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx)
 				if(NULL == result) ERROR_PTR_RETURN_LOG("Cannot get outgoing pipe for task");
 
 				for(i = 0; i < size; i ++)
-				    if(ERROR_CODE(int) == _pipe_cancel(ctx, next->task.service, next->task.request, result[i].destination_node_id, result[i].destination_pipe_desc))
-				        ERROR_PTR_RETURN_LOG("Cannot cancel the downstream pipe");
+					if(ERROR_CODE(int) == _pipe_cancel(ctx, next->task.service, next->task.request, result[i].destination_node_id, result[i].destination_pipe_desc))
+						ERROR_PTR_RETURN_LOG("Cannot cancel the downstream pipe");
 			}
 			else
 			{
@@ -754,8 +754,8 @@ sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx)
 
 				uint32_t i;
 				for(i = 0; i < boundary->count; i ++)
-				    if(ERROR_CODE(int) == _pipe_cancel(ctx, next->task.service, next->task.request, boundary->dest[i].node_id, boundary->dest[i].pipe_desc))
-				        ERROR_PTR_RETURN_LOG("Cannot cancel the cluster boundary pipe");
+					if(ERROR_CODE(int) == _pipe_cancel(ctx, next->task.service, next->task.request, boundary->dest[i].node_id, boundary->dest[i].pipe_desc))
+						ERROR_PTR_RETURN_LOG("Cannot cancel the cluster boundary pipe");
 
 				if(boundary->output_cancelled)
 				{
@@ -774,7 +774,7 @@ sched_task_t* sched_task_next_ready_task(sched_task_context_t* ctx)
 			}
 
 			if(ERROR_CODE(int) == sched_task_free(&next->task))
-			    ERROR_PTR_RETURN_LOG("Cannot dispose the cancelled task");
+				ERROR_PTR_RETURN_LOG("Cannot dispose the cancelled task");
 		}
 		else
 		{
@@ -798,16 +798,16 @@ int sched_task_free(sched_task_t* task)
 	if(NULL == req) rc = ERROR_CODE(int);
 
 	if(NULL != task->exec_task)
-	    rc = runtime_task_free(task->exec_task);
+		rc = runtime_task_free(task->exec_task);
 
 	if(mempool_objpool_dealloc(_task_pool, task) == ERROR_CODE(int))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(NULL != req && 0 == --req->num_pending_tasks)
 	{
 		LOG_DEBUG("Request %"PRIu64" is done", req->request_id);
 		if(ERROR_CODE(int) == _request_entry_delete(ctx, req->request_id))
-		    rc = ERROR_CODE(int);
+			rc = ERROR_CODE(int);
 	}
 
 	return rc;
@@ -816,7 +816,7 @@ int sched_task_free(sched_task_t* task)
 int sched_task_request_status(const sched_task_context_t* ctx, sched_task_request_t request)
 {
 	if(ERROR_CODE(sched_task_request_t) == request)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	return NULL != _request_entry_find(ctx, request);
 }
@@ -824,12 +824,12 @@ int sched_task_request_status(const sched_task_context_t* ctx, sched_task_reques
 int sched_task_launch_async(sched_task_t* task)
 {
 	if(NULL == task || !runtime_task_is_async(task->exec_task))
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 	int rc = sched_async_task_post(task->ctx->thread_handle, task);
 	if(ERROR_CODE_OT(int) == rc)
-	    task->exec_task = NULL;
+		task->exec_task = NULL;
 	if(ERROR_CODE(int) == rc || ERROR_CODE_OT(int) == rc)
-	    ERROR_RETURN_LOG(int, "Cannot post the async task to the async queue");
+		ERROR_RETURN_LOG(int, "Cannot post the async task to the async queue");
 	if(rc > 0)
 	{
 		LOG_DEBUG("The async task has been sent to the task queue");

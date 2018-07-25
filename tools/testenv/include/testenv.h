@@ -41,9 +41,9 @@ typedef struct {
 #define TEST_LIST_BEGIN const char* __test_name__ = TEST_NAME; \
     test_case_t test_list[] = {
 
-	/**
-	* @brief this macro is used at the end of the test case table
-	**/
+    /**
+    * @brief this macro is used at the end of the test case table
+    **/
 #define TEST_LIST_END ,{NULL, NULL}}
 /**
  * A setup function that does nothing

@@ -41,7 +41,7 @@ static pstd_trans_inst_t* _init(void* data)
 
 	_processor_t* proc = pstd_mempool_alloc((uint32_t)size);
 	if(NULL == proc)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the chunked stream processor");
+		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the chunked stream processor");
 
 	memset(proc, 0, size);
 
@@ -49,13 +49,13 @@ static pstd_trans_inst_t* _init(void* data)
 
 	uint8_t i;
 	for(i = 0; i < page_limit; i ++)
-	    if(NULL == (proc->pages[i] = pstd_mempool_page_alloc()))
-	        ERROR_LOG_GOTO(ERR, "Cannot allocate the buffer page");
+		if(NULL == (proc->pages[i] = pstd_mempool_page_alloc()))
+			ERROR_LOG_GOTO(ERR, "Cannot allocate the buffer page");
 	return (pstd_trans_inst_t*)proc;
 ERR:
 	for(i = 0; i < size; i ++)
-	    if(NULL != proc->pages[i])
-	        pstd_mempool_page_dealloc(proc->pages[i]);
+		if(NULL != proc->pages[i])
+			pstd_mempool_page_dealloc(proc->pages[i]);
 	pstd_mempool_free(proc);
 	return NULL;
 }
@@ -75,7 +75,7 @@ static size_t _feed(pstd_trans_inst_t* __restrict stream_proc, const void* __res
 	uint32_t bytes_to_write = proc->page_limit * _page_size - proc->chunck_size;
 
 	if(bytes_to_write > size)
-	    bytes_to_write = (uint32_t)size;
+		bytes_to_write = (uint32_t)size;
 
 	while(bytes_to_write > 0)
 	{
@@ -101,7 +101,7 @@ static size_t _fetch(pstd_trans_inst_t* __restrict stream_proc, void* __restrict
 	_processor_t* proc = (_processor_t*)stream_proc;
 
 	if(!proc->no_more && proc->page_limit * _page_size != proc->chunck_size)
-	    return 0;
+		return 0;
 
 	if(proc->size_length == 0)
 	{
@@ -115,9 +115,9 @@ static size_t _fetch(pstd_trans_inst_t* __restrict stream_proc, void* __restrict
 			{
 				char cur = (char)(blk_size % 16);
 				if(cur < 10)
-				    proc->size_buf[proc->size_length ++] = (char)('0' + cur);
+					proc->size_buf[proc->size_length ++] = (char)('0' + cur);
 				else
-				    proc->size_buf[proc->size_length ++] = (char)('A' + cur - 10);
+					proc->size_buf[proc->size_length ++] = (char)('A' + cur - 10);
 			}
 		}
 	}
@@ -125,7 +125,7 @@ static size_t _fetch(pstd_trans_inst_t* __restrict stream_proc, void* __restrict
 	size_t ret = 0;
 
 	for(;proc->size_length != proc->size_written && size > 0; out = ((char*)out) + 1, size --, ret ++)
-	    *(char*)out = proc->size_buf[proc->size_length - (proc->size_written ++) - 1];
+		*(char*)out = proc->size_buf[proc->size_length - (proc->size_written ++) - 1];
 
 	while(size > 0 && proc->chunck_size > proc->current_offset)
 	{
@@ -134,7 +134,7 @@ static size_t _fetch(pstd_trans_inst_t* __restrict stream_proc, void* __restrict
 
 		uint32_t bytes_to_copy = _page_size - cur_offset;
 		if(bytes_to_copy > proc->chunck_size - proc->current_offset)
-		    bytes_to_copy = proc->chunck_size - proc->current_offset;
+			bytes_to_copy = proc->chunck_size - proc->current_offset;
 		if(bytes_to_copy > size) bytes_to_copy = (uint32_t)size;
 
 		memcpy(out, proc->pages[cur_block] + cur_offset, bytes_to_copy);
@@ -150,35 +150,35 @@ static size_t _fetch(pstd_trans_inst_t* __restrict stream_proc, void* __restrict
 		if(proc->chunck_size >= 2 &&
 		   proc->pages[(proc->chunck_size - 2)/_page_size][(proc->chunck_size - 2)%_page_size] == '\r' &&
 		   proc->pages[(proc->chunck_size - 1)/_page_size][(proc->chunck_size - 1)%_page_size] == '\n')
-		    proc->trailer_state = 2;
+			proc->trailer_state = 2;
 		while(size > 0)
 		{
 			switch(proc->trailer_state)
 			{
 				case 0:
 				case 1:
-				    *(char*)out = proc->trailer_state == 0 ? '\r' : '\n';
-				    out = ((char*)out) + 1;
-				    proc->trailer_state ++;
-				    size --;
-				    ret ++;
-				    break;
+					*(char*)out = proc->trailer_state == 0 ? '\r' : '\n';
+					out = ((char*)out) + 1;
+					proc->trailer_state ++;
+					size --;
+					ret ++;
+					break;
 				case 2:
 				case 3:
 				case 4:
 				case 5:
 				case 6:
-				    if(!proc->no_more)
-				        proc->trailer_state = 0x7f;
-				    else
-				    {
-					    *(char*)out = "0\r\n\r\n"[proc->trailer_state - 2];
-					    out = ((char*)out) + 1;
-					    size --;
-					    ret ++;
-					    proc->trailer_state ++;
-				    }
-				    break;
+					if(!proc->no_more)
+						proc->trailer_state = 0x7f;
+					else
+					{
+						*(char*)out = "0\r\n\r\n"[proc->trailer_state - 2];
+						out = ((char*)out) + 1;
+						size --;
+						ret ++;
+						proc->trailer_state ++;
+					}
+					break;
 				default:
 				    proc->chunck_size = 0;
 				    proc->current_offset = 0;
@@ -203,12 +203,12 @@ static int _cleanup(pstd_trans_inst_t* stream_proc)
 	uint32_t i;
 
 	for(i = 0; i < proc->page_limit; i ++)
-	    if(NULL != proc->pages[i])
-	        if(ERROR_CODE(int) == pstd_mempool_page_dealloc(proc->pages[i]))
-	            rc = ERROR_CODE(int);
+		if(NULL != proc->pages[i])
+			if(ERROR_CODE(int) == pstd_mempool_page_dealloc(proc->pages[i]))
+				rc = ERROR_CODE(int);
 
 	if(ERROR_CODE(int) == pstd_mempool_free(proc))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	return rc;
 }
@@ -216,7 +216,7 @@ static int _cleanup(pstd_trans_inst_t* stream_proc)
 scope_token_t chunked_encode(scope_token_t token, uint8_t chunked_pages)
 {
 	if(ERROR_CODE(scope_token_t) == token || 0 == chunked_pages)
-	    ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
+		ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
 
 	if(_page_size == 0) _page_size = (uint32_t)getpagesize();
 
@@ -237,7 +237,7 @@ scope_token_t chunked_encode(scope_token_t token, uint8_t chunked_pages)
 
 	pstd_trans_t* trans = pstd_trans_new(token, desc);
 	if(NULL == trans)
-	    ERROR_RETURN_LOG(scope_token_t, "Cannot create stream processor object");
+		ERROR_RETURN_LOG(scope_token_t, "Cannot create stream processor object");
 
 	scope_token_t result = pstd_trans_commit(trans);
 

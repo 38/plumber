@@ -50,17 +50,17 @@ static inline int _load_default_module(uint16_t port)
 
 	args[0] = "test";
 	if(itc_modtab_insmod(&module_test_module_def, 1, args) == ERROR_CODE(int))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	args[0] = buf;
 	if(itc_modtab_insmod(&module_tcp_module_def, 1, args) == ERROR_CODE(int))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(itc_modtab_insmod(&module_mem_module_def, 0, NULL) == ERROR_CODE(int))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(itc_modtab_insmod(&module_legacy_file_module_def, 0, NULL) == ERROR_CODE(int))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	return rc;
 }
@@ -83,7 +83,7 @@ static int testmain(void)
 
 
 	if(ERROR_CODE(int) == proto_cache_set_root(TEST_PROTODB_ROOT))
-	    goto ERR;
+		goto ERR;
 
 	if(_load_default_module(8888) < 0)
 	{
@@ -140,7 +140,7 @@ static int test_disabled(void)
 	const char* result = getenv(env);
 
 	if(NULL != result && atoi(result) > 0)
-	    return 1;
+		return 1;
 
 	return 0;
 }

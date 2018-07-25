@@ -43,7 +43,7 @@ class Constant {
 	inline int _setup()
 	{
 		if(ERROR_CODE(int) == _context->constant(_name, _getter))
-		    ERROR_RETURN_LOG(int, "Cannot register the builtin constant %s", _name);
+			ERROR_RETURN_LOG(int, "Cannot register the builtin constant %s", _name);
 		return 0;
 	}
 	Servlet::Context* _context;

@@ -56,20 +56,20 @@ struct ConstantCreator : Creator {
 int Servlet::Global::init()
 {
 	if(_servlet_context == NULL)
-	    ERROR_RETURN_LOG(int, "Invalid servlet context");
+		ERROR_RETURN_LOG(int, "Invalid servlet context");
 
 	v8::Isolate* isolate = Servlet::Context::get_isolate();
 	if(NULL == isolate)
-	    ERROR_RETURN_LOG(int, "Cannot get isolate");
+		ERROR_RETURN_LOG(int, "Cannot get isolate");
 
 	v8::HandleScope handle_scope(isolate);
 	v8::Handle<v8::ObjectTemplate> global = v8::ObjectTemplate::New(isolate);
 
 	if(ERROR_CODE(int) == _servlet_context->for_each_function(FunctionCreator(isolate, global)))
-	    ERROR_RETURN_LOG(int, "Cannot register functions");
+		ERROR_RETURN_LOG(int, "Cannot register functions");
 
 	if(ERROR_CODE(int) == _servlet_context->for_each_const(ConstantCreator(isolate, global)))
-	    ERROR_RETURN_LOG(int, "Cannot register constants");
+		ERROR_RETURN_LOG(int, "Cannot register constants");
 
 	v8::Handle<v8::Context> context = v8::Context::New(isolate, NULL, global);
 

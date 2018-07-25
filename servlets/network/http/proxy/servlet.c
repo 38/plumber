@@ -45,16 +45,16 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	_ctx_t* ctx = (_ctx_t*)ctxmem;
 
 	if(ERROR_CODE(int) == options_parse(argc, argv, &ctx->options))
-	    ERROR_RETURN_LOG(int, "Invalid servlete initialization string");
+		ERROR_RETURN_LOG(int, "Invalid servlete initialization string");
 
 	if(ERROR_CODE(pipe_t) == (ctx->p_request = pipe_define("request", PIPE_INPUT, "plumber/std_servlet/network/http/parser/v0/RequestData")))
-	    ERROR_RETURN_LOG(int, "Cannot define the request pipe");
+		ERROR_RETURN_LOG(int, "Cannot define the request pipe");
 
 	if(ERROR_CODE(pipe_t) == (ctx->p_response = pipe_define("response", PIPE_OUTPUT, "plumber/std_servlet/network/http/proxy/v0/Response")))
-	    ERROR_RETURN_LOG(int, "Cannot define the response pipe");
+		ERROR_RETURN_LOG(int, "Cannot define the response pipe");
 
 	if(ERROR_CODE(int) == connection_pool_init(ctx->options.conn_pool_size, ctx->options.conn_per_peer))
-	    ERROR_RETURN_LOG(int, "Cannot initialize the connection pool for this servlet instance");
+		ERROR_RETURN_LOG(int, "Cannot initialize the connection pool for this servlet instance");
 
 	PSTD_TYPE_MODEL(type_list)
 	{
@@ -75,7 +75,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	};
 
 	if(NULL == (ctx->type_model = PSTD_TYPE_MODEL_BATCH_INIT(type_list)))
-	    ERROR_RETURN_LOG(int, "Cannot initialize the type model");
+		ERROR_RETURN_LOG(int, "Cannot initialize the type model");
 
 	return 0;
 }
@@ -106,42 +106,42 @@ static inline int _construct_request_param(const _ctx_t* ctx, pstd_type_instance
 {
 	uint32_t method_code = PSTD_TYPE_INST_READ_PRIMITIVE(uint32_t, inst, ctx->a_method);
 	if(ERROR_CODE(uint32_t) == method_code)
-	    ERROR_RETURN_LOG(int, "Cannot read the method code");
+		ERROR_RETURN_LOG(int, "Cannot read the method code");
 
 	if(method_code == ctx->method.GET)
-	    buf->method = REQUEST_METHOD_GET;
+		buf->method = REQUEST_METHOD_GET;
 	else if(method_code == ctx->method.PUT)
-	    buf->method = REQUEST_METHOD_PUT;
+		buf->method = REQUEST_METHOD_PUT;
 	else if(method_code == ctx->method.POST)
-	    buf->method = REQUEST_METHOD_POST;
+		buf->method = REQUEST_METHOD_POST;
 	else if(method_code == ctx->method.HEAD)
-	    buf->method = REQUEST_METHOD_HEAD;
+		buf->method = REQUEST_METHOD_HEAD;
 	else if(method_code == ctx->method.DELETE)
-	    buf->method = REQUEST_METHOD_DELETE;
+		buf->method = REQUEST_METHOD_DELETE;
 	else
-	    return 0;
+		return 0;
 
 	if(NULL == (buf->host = pstd_string_get_data_from_accessor(inst, ctx->a_host, NULL)))
-	    ERROR_RETURN_LOG(int, "Cannot read the host from the request");
+		ERROR_RETURN_LOG(int, "Cannot read the host from the request");
 
 	if(NULL == (buf->base_dir = pstd_string_get_data_from_accessor(inst, ctx->a_base_url, "")))
-	    ERROR_RETURN_LOG(int, "Cannot read the base URL from the request");
+		ERROR_RETURN_LOG(int, "Cannot read the base URL from the request");
 
 	if(NULL == (buf->relative_path = pstd_string_get_data_from_accessor(inst, ctx->a_rel_url, "")))
-	    ERROR_RETURN_LOG(int, "Cannot read the relative path from the request");
+		ERROR_RETURN_LOG(int, "Cannot read the relative path from the request");
 
 	if(NULL == (buf->query_param = pstd_string_get_data_from_accessor(inst, ctx->a_query_param, "")))
-	    ERROR_RETURN_LOG(int, "Cannot read the query param from the request");
+		ERROR_RETURN_LOG(int, "Cannot read the query param from the request");
 
 	const pstd_string_t* content_obj = pstd_string_from_accessor(inst, ctx->a_body);
 
 	if(NULL != content_obj)
 	{
 		if(NULL == (buf->content = pstd_string_value(content_obj)))
-		    ERROR_RETURN_LOG(int, "Cannot get the value of the content object");
+			ERROR_RETURN_LOG(int, "Cannot get the value of the content object");
 
 		if(ERROR_CODE(size_t) == (buf->content_len = pstd_string_length(content_obj)))
-		    ERROR_RETURN_LOG(int, "Cannot get the length of the string");
+			ERROR_RETURN_LOG(int, "Cannot get the length of the string");
 	}
 	else
 	{
@@ -165,7 +165,7 @@ static int _exec(void* ctxmem)
 	pstd_type_instance_t* inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model);
 
 	if(NULL == inst)
-	    ERROR_RETURN_LOG(int, "Cannot create type instance from the type model");
+		ERROR_RETURN_LOG(int, "Cannot create type instance from the type model");
 
 	request_param_t rp;
 	switch(_construct_request_param(ctx, inst, &rp))
@@ -178,7 +178,7 @@ static int _exec(void* ctxmem)
 	request_t* req = request_new(&rp, ctx->options.conn_timeout);
 
 	if(NULL == req)
-	    ERROR_LOG_GOTO(ERR,  "Cannot create the request");
+		ERROR_LOG_GOTO(ERR,  "Cannot create the request");
 
 	scope_token_t token = request_commit(req);
 
@@ -189,7 +189,7 @@ static int _exec(void* ctxmem)
 	}
 
 	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, ctx->a_response, token))
-	    ERROR_LOG_GOTO(ERR, "Cannot write the token to the scope");
+		ERROR_LOG_GOTO(ERR, "Cannot write the token to the scope");
 
 	goto RET;
 
@@ -197,7 +197,7 @@ ERR:
 	ret = ERROR_CODE(int);
 RET:
 	if(ERROR_CODE(int) == pstd_type_instance_free(inst))
-	    ERROR_RETURN_LOG(int, "Cannot dispose the instance");
+		ERROR_RETURN_LOG(int, "Cannot dispose the instance");
 
 	return ret;
 }

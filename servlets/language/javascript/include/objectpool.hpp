@@ -103,7 +103,7 @@ namespace Servlet {
 				~Pointer()
 				{
 					if(_just_created && dispose() == ERROR_CODE(int))
-					    LOG_ERROR("Cannot dispose the object");
+						LOG_ERROR("Cannot dispose the object");
 				}
 
 				/**

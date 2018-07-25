@@ -93,7 +93,7 @@ void _wait_main_thread(mocked_connection_t* c)
 	LOG_DEBUG("Wait for the main thread unblock");
 	pthread_mutex_lock(&c->mutex);
 	while(c->block)
-	    pthread_cond_wait(&c->cond, &c->mutex);
+		pthread_cond_wait(&c->cond, &c->mutex);
 	c->block = 1;
 	pthread_mutex_unlock(&c->mutex);
 	LOG_DEBUG("Async thread unblocked");
@@ -102,7 +102,7 @@ ssize_t test_write(int fd, const void* data, size_t sz)
 {
 	LOG_DEBUG("test_write begin");
 	for(conn_id = 0; conn_id < sizeof(conn) / sizeof(*conn);  conn_id ++)
-	    if(conn[conn_id].efd == fd) break;
+		if(conn[conn_id].efd == fd) break;
 	if(conn_id == sizeof(conn) / sizeof(*conn))
 	{
 		conn_id = ERROR_CODE(uint32_t);
@@ -155,7 +155,7 @@ size_t _get_data_1(uint32_t id, void* buffer, size_t size, module_tcp_async_loop
 	data_handle_t* h = (data_handle_t*)module_tcp_async_get_data_handle(loop, conn_id);
 
 	if(h != dh + conn_id)
-	    ERROR_RETURN_LOG(size_t, "unexpected data handler!");
+		ERROR_RETURN_LOG(size_t, "unexpected data handler!");
 
 	_notify_main_thread(AS_GETDATA);
 	if(dh[conn_id].blocks & AS_GETDATA) _wait_main_thread(conn + conn_id);
@@ -181,7 +181,7 @@ int _error_handler_1(uint32_t id, module_tcp_async_loop_t* loop)
 	data_handle_t* h = (data_handle_t*)module_tcp_async_get_data_handle(loop, conn_id);
 
 	if(h != dh + conn_id)
-	    ERROR_RETURN_LOG(int, "unexpected data handler!");
+		ERROR_RETURN_LOG(int, "unexpected data handler!");
 
 	_notify_main_thread(AS_ERROR);
 	if(dh[conn_id].blocks & AS_ERROR) _wait_main_thread(conn + conn_id);
@@ -199,7 +199,7 @@ int _dispose_handler_1(uint32_t id, module_tcp_async_loop_t* loop)
 	data_handle_t* h = (data_handle_t*)module_tcp_async_get_data_handle(loop, conn_id);
 
 	if(h != dh + conn_id)
-	    ERROR_RETURN_LOG(int, "unexpected data handler!");
+		ERROR_RETURN_LOG(int, "unexpected data handler!");
 
 	h->disposed = 1;
 
@@ -221,7 +221,7 @@ static inline void _wait_async_thread(int func)
 	LOG_DEBUG("main thread: waiting for the async thread gets ready");
 	pthread_mutex_lock(&sync_mutex);
 	while(sync_flag != func)
-	    pthread_cond_wait(&sync_cond, &sync_mutex);
+		pthread_cond_wait(&sync_cond, &sync_mutex);
 	sync_flag = -1;
 	pthread_mutex_unlock(&sync_mutex);
 	LOG_DEBUG("main thread: async thread gets ready");
@@ -453,7 +453,7 @@ static inline int _parallel_write(uint32_t n)
 	 * odd connection larger/equal than n/2 in waiting for data state */
 	/* now let the all the even numbered connection write 10 times */
 	for(i = 0; i < n; i ++)
-	    _set_block_bits(i, 0xffffffff ^ AS_GETDATA);  /* unblock the get data call */
+		_set_block_bits(i, 0xffffffff ^ AS_GETDATA);  /* unblock the get data call */
 
 	for(i = 0; i < 10; i ++)
 	{
@@ -486,7 +486,7 @@ static inline int _parallel_write(uint32_t n)
 	{
 		dh[i * 2].stage = 1;
 		if(i % 2 == 1)
-		    _set_connction_busy(i, 0);
+			_set_connction_busy(i, 0);
 	}
 
 
@@ -524,7 +524,7 @@ static inline int _parallel_write(uint32_t n)
 		{
 			conn[1].mocked_err = EINVAL;
 			for(i = 0; i < n; i ++)
-			    _set_block_bits(i, AS_DISPOSE);
+				_set_block_bits(i, AS_DISPOSE);
 			_set_block_bits(1, AS_WRITE | AS_ERROR | AS_DISPOSE);
 			_unblock_async_thread(conn_id);
 			break;

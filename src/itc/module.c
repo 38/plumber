@@ -108,7 +108,7 @@ static inline const itc_modtab_instance_t* _get_module_from_type(itc_module_type
 	static const itc_modtab_instance_t* _instances[(itc_module_type_t)-1];
 
 	if(type == ERROR_CODE(itc_module_type_t))
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	if(_instances[type] == NULL)
 	{
@@ -117,10 +117,10 @@ static inline const itc_modtab_instance_t* _get_module_from_type(itc_module_type
 		/* We need to use CAS here, because there may be multiple thread at this point, and we only want one thread update this */
 		const itc_modtab_instance_t* new_ptr = itc_modtab_get_from_module_type(type);
 		if(NULL == new_ptr)
-		    ERROR_PTR_RETURN_LOG("Cannot find the module instance with module type descriptor 0x%x", type);
+			ERROR_PTR_RETURN_LOG("Cannot find the module instance with module type descriptor 0x%x", type);
 
 		if(!__sync_bool_compare_and_swap(_instances + type, NULL, new_ptr))
-		    LOG_DEBUG("MT: the module instnace table has already been updated");
+			LOG_DEBUG("MT: the module instnace table has already been updated");
 	}
 
 	return _instances[type];
@@ -136,7 +136,7 @@ static inline const itc_modtab_instance_t* _get_module(const itc_module_pipe_t* 
 	if(NULL == handle) return NULL;
 
 	if(ERROR_CODE(itc_module_type_t) == handle->module_type)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	return _get_module_from_type(handle->module_type);
 }
@@ -154,16 +154,16 @@ static inline int _notify_pipe_cancelled(itc_module_pipe_t* handle)
 	itc_module_pipe_t* affected = handle->companion_next;
 
 	for(;affected != handle; affected = affected->companion_next)
-	    if(!affected->stat.i_canclled)
-	    {
-		    if(affected->owner != NULL && sched_task_input_cancelled(affected->owner) == ERROR_CODE(int))
-		        ERROR_RETURN_LOG(int, "Error when trying to notify the ready state");
-		    else
-		        LOG_DEBUG("Notified its companion because of this cancel state");
+		if(!affected->stat.i_canclled)
+		{
+			if(affected->owner != NULL && sched_task_input_cancelled(affected->owner) == ERROR_CODE(int))
+				ERROR_RETURN_LOG(int, "Error when trying to notify the ready state");
+			else
+				LOG_DEBUG("Notified its companion because of this cancel state");
 
-		    affected->stat.i_canclled = 1;
-	    }
-	return 0;
+			affected->stat.i_canclled = 1;
+		}
+		return 0;
 }
 
 /**
@@ -178,7 +178,7 @@ static inline void _update_shared_flags(itc_module_pipe_t* handle)
 	itc_module_pipe_t* affected = handle->companion_next;
 
 	for(;affected != handle; affected = affected->companion_next)
-	    affected->pipe_flags = (affected->pipe_flags & ~RUNTIME_API_PIPE_SHARED_MASK) | options;
+		affected->pipe_flags = (affected->pipe_flags & ~RUNTIME_API_PIPE_SHARED_MASK) | options;
 }
 
 itc_module_flags_t itc_module_get_flags(itc_module_type_t type)
@@ -188,7 +188,7 @@ itc_module_flags_t itc_module_get_flags(itc_module_type_t type)
 	if(NULL == inst) ERROR_RETURN_LOG(itc_module_flags_t, "Cannot get the module instance from type code 0x%x", type);
 
 	if(inst->module->get_flags != NULL)
-	    return inst->module->get_flags(inst->context);
+		return inst->module->get_flags(inst->context);
 
 	/* Otherwise the default flag should be returned */
 	return 0;
@@ -198,14 +198,14 @@ itc_module_type_t* itc_module_get_event_accepting_modules()
 {
 	itc_module_type_t* result = (itc_module_type_t*)calloc((itc_module_type_t)-1, sizeof(itc_module_type_t));
 	if(NULL == result)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the event accepting module list");
+		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the event accepting module list");
 
 	size_t num_modules = 0;
 
 	itc_modtab_dir_iter_t iter;
 
 	if(ERROR_CODE(int) == itc_modtab_open_dir("", &iter))
-	    ERROR_LOG_GOTO(ERR, "Cannot query the module addressing table");
+		ERROR_LOG_GOTO(ERR, "Cannot query the module addressing table");
 
 	const itc_modtab_instance_t* ptr;
 
@@ -259,13 +259,13 @@ int itc_module_pipe_allocate(itc_module_type_t type, uint32_t hint,
 	mempool_objpool_t* pool = inst->handle_pool;
 
 	if(NULL == out_pipe && NULL == in_pipe)
-	    ERROR_RETURN_LOG(int, "Invalid arguments: Both input and output buffer are NULL");
+		ERROR_RETURN_LOG(int, "Invalid arguments: Both input and output buffer are NULL");
 
 	itc_module_pipe_t* __restrict in = (NULL != in_pipe) ? (itc_module_pipe_t*)mempool_objpool_alloc(pool) : NULL;
 	itc_module_pipe_t* __restrict out = (NULL != out_pipe) ? (itc_module_pipe_t*)mempool_objpool_alloc(pool) : NULL;
 
 	if((NULL != in_pipe && NULL == in) || (NULL != out_pipe && NULL == out))
-	    ERROR_LOG_GOTO(ERR, "Cannot allocate memory for pipe allocation");
+		ERROR_LOG_GOTO(ERR, "Cannot allocate memory for pipe allocation");
 
 	if(NULL != out)
 	{
@@ -299,7 +299,7 @@ int itc_module_pipe_allocate(itc_module_type_t type, uint32_t hint,
 
 
 	if(module->allocate(context, hint, (NULL == out) ? NULL : out->data, (NULL == in) ? NULL : in->data, param.args) == ERROR_CODE(int))
-	    ERROR_LOG_GOTO(ERR, "Cannot initialize the pipe instance");
+		ERROR_LOG_GOTO(ERR, "Cannot initialize the pipe instance");
 
 	if(NULL != in_pipe) *in_pipe = in;
 	if(NULL != out_pipe) *out_pipe = out;
@@ -373,11 +373,11 @@ static inline int _skip_header(itc_module_pipe_t* handle, const itc_modtab_insta
 			_INVOKE_MODULE(int, rc, mod, get_internal_buf, &skipped, &header_min_size, &header_max_size, handle->data);
 
 			if(ERROR_CODE(int) == rc)
-			    ERROR_RETURN_LOG(int, "Cannot get the header buffer");
+				ERROR_RETURN_LOG(int, "Cannot get the header buffer");
 
 #ifndef FULL_OPTIMIZATION
 			if(rc > 0 && (header_min_size != bytes_to_ignore || header_max_size != bytes_to_ignore))
-			    ERROR_RETURN_LOG(int, "Module function bug: unexpected memory region size");
+				ERROR_RETURN_LOG(int, "Module function bug: unexpected memory region size");
 #endif
 		}
 
@@ -390,7 +390,7 @@ static inline int _skip_header(itc_module_pipe_t* handle, const itc_modtab_insta
 				size_t read_rc;
 				size_t bytes_to_read = bytes_to_ignore;
 				if(bytes_to_read > sizeof(_junk_buf))
-				    bytes_to_read = sizeof(_junk_buf);
+					bytes_to_read = sizeof(_junk_buf);
 				_INVOKE_MODULE(size_t, read_rc, mod, read, _junk_buf, bytes_to_read, handle->data);
 
 				if(read_rc == ERROR_CODE(size_t))
@@ -429,7 +429,7 @@ int itc_module_pipe_deallocate(itc_module_pipe_t* handle)
 		{
 			size_t bytes_to_write = bytes_to_fill;
 			if(bytes_to_write > sizeof(_junk_buf))
-			    bytes_to_write = sizeof(_junk_buf);
+				bytes_to_write = sizeof(_junk_buf);
 
 			if(bytes_to_write > ereased)
 			{
@@ -442,7 +442,7 @@ int itc_module_pipe_deallocate(itc_module_pipe_t* handle)
 			_INVOKE_MODULE(size_t, rc, mod, write, _junk_buf, bytes_to_write, handle->data);
 
 			if(ERROR_CODE(size_t) == rc)
-			    ERROR_RETURN_LOG(int, "Cannot fill zeros to the buffer");
+				ERROR_RETURN_LOG(int, "Cannot fill zeros to the buffer");
 
 			bytes_to_fill -= rc;
 			handle->processed_header_size += rc;
@@ -459,9 +459,9 @@ int itc_module_pipe_deallocate(itc_module_pipe_t* handle)
 		{
 			handle->stat.i_canclled = 1;
 			if(ERROR_CODE(int) == sched_task_input_cancelled(handle->owner))
-			    ERROR_RETURN_LOG(int, "Cannot cancel the disabled shadow task");
+				ERROR_RETURN_LOG(int, "Cannot cancel the disabled shadow task");
 			else
-			    LOG_DEBUG("The pipe has been successully cancelled because of the disabled falg");
+				LOG_DEBUG("The pipe has been successully cancelled because of the disabled falg");
 		}
 		return 0;
 	}
@@ -480,11 +480,11 @@ int itc_module_pipe_deallocate(itc_module_pipe_t* handle)
 			{
 				_update_shared_flags(handle);
 				if((!handle->stat.o_touched || handle->stat.error) && _notify_pipe_cancelled(handle) == ERROR_CODE(int))
-				    LOG_WARNING("Cannot cancel the unused pipe");
+					LOG_WARNING("Cannot cancel the unused pipe");
 			}
 		}
 		else if(handle->stat.type == _PSTAT_TYPE_INPUT)   /* if it's an accepted pipe and this is the upstream side of the pipe */
-		    _update_shared_flags(handle); /* pass the shared flags to it's companions */
+			_update_shared_flags(handle); /* pass the shared flags to it's companions */
 	}
 
 	_INVOKE_MODULE(int, rc, mod, deallocate, handle->data, handle->stat.error?1:0, last);
@@ -494,7 +494,7 @@ int itc_module_pipe_deallocate(itc_module_pipe_t* handle)
 	handle->companion_next->stat.error = (handle->stat.error || handle->companion_next->stat.error);
 
 	if(mempool_objpool_dealloc(pool, handle) == ERROR_CODE(int))
-	    ERROR_RETURN_LOG(int, "Cannot deallocate the used pipe handle");
+		ERROR_RETURN_LOG(int, "Cannot deallocate the used pipe handle");
 
 	return rc;
 }
@@ -513,7 +513,7 @@ size_t itc_module_pipe_read(void* buffer, size_t nbytes, itc_module_pipe_t* hand
 	int src = 0;
 
 	if((src = _skip_header(handle, mod)) == ERROR_CODE(int))
-	    ERROR_RETURN_LOG(size_t, "Cannot skip the header");
+		ERROR_RETURN_LOG(size_t, "Cannot skip the header");
 
 	if(src == 0)
 	{
@@ -547,13 +547,13 @@ static inline size_t _write_impl(const void* data, size_t nbytes, itc_module_pip
 	size_t filled_start = 0;
 
 	if(bytes_to_fill > 0)
-	    LOG_DEBUG("There are %zu bytes unwritten pipe header, fill zero before move on", bytes_to_fill);
+		LOG_DEBUG("There are %zu bytes unwritten pipe header, fill zero before move on", bytes_to_fill);
 
 	while(bytes_to_fill > 0)
 	{
 		size_t bytes_to_write = bytes_to_fill;
 		if(bytes_to_write > sizeof(_junk_buf))
-		    bytes_to_write = sizeof(_junk_buf);
+			bytes_to_write = sizeof(_junk_buf);
 
 		if(filled_start < bytes_to_write)
 		{
@@ -623,7 +623,7 @@ static inline size_t _rls_stream_read(void* __restrict handle, void* __restrict 
 		runtime_api_scope_ready_event_t event;
 
 		if(ERROR_CODE(int) == (rc = sched_rscope_stream_get_event(stream, &event)))
-		    ERROR_RETURN_LOG(size_t, "Cannot acquire the event buffer");
+			ERROR_RETURN_LOG(size_t, "Cannot acquire the event buffer");
 
 		if(rc == 0)
 		{
@@ -670,7 +670,7 @@ int itc_module_pipe_write_scope_token(runtime_api_scope_token_t token, const run
 
 	stream = sched_rscope_stream_open(token);
 	if(NULL == stream)
-	    ERROR_RETURN_LOG(int, "Cannot open the token stream for read");
+		ERROR_RETURN_LOG(int, "Cannot open the token stream for read");
 
 	itc_module_data_source_t data_source = {
 		.data_handle = stream,
@@ -684,10 +684,10 @@ int itc_module_pipe_write_scope_token(runtime_api_scope_token_t token, const run
 
 	/* Do not dispose the stream when the error code is with ownership transferring */
 	if((rc == 0 || rc == ERROR_CODE(int)) && ERROR_CODE(int) == sched_rscope_stream_close(stream))
-	    ERROR_RETURN_LOG(int, "Cannot dispose the used callback stream");
+		ERROR_RETURN_LOG(int, "Cannot dispose the used callback stream");
 	/* And we need to convert this to normal error code */
 	if(rc == ERROR_CODE_OT(int))
-	    return ERROR_CODE(int);
+		return ERROR_CODE(int);
 
 	return 0;
 }
@@ -695,10 +695,10 @@ int itc_module_pipe_write_scope_token(runtime_api_scope_token_t token, const run
 int itc_module_pipe_write_data_source(itc_module_data_source_t data_source, const runtime_api_scope_token_data_request_t* data_req, itc_module_pipe_t* handle)
 {
 	if(NULL == data_source.read || NULL == data_source.close || NULL == data_source.eos)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(handle->stat.type != _PSTAT_TYPE_OUTPUT)
-	    ERROR_RETURN_LOG(int, "Wrong pipe type");
+		ERROR_RETURN_LOG(int, "Wrong pipe type");
 
 	/* If it's an unassigned pipe, so we tell the caller,
 	 * well we are ok with the callback, and we are done with it
@@ -714,11 +714,11 @@ int itc_module_pipe_write_data_source(itc_module_data_source_t data_source, cons
 		{
 			size_t bytes_to_read = size_rem;
 			if(bytes_to_read > sizeof(buf))
-			    bytes_to_read = sizeof(buf);
+				bytes_to_read = sizeof(buf);
 
 			int eos_rc = data_source.eos(data_source.data_handle);
 			if(ERROR_CODE(int) == eos_rc)
-			    ERROR_RETURN_LOG(int, "end-of-stream call returns an error code");
+				ERROR_RETURN_LOG(int, "end-of-stream call returns an error code");
 			else if(1 == eos_rc)
 			{
 				LOG_DEBUG("RLS token stream is exhuasted by the data request, no DRA needed");
@@ -727,7 +727,7 @@ int itc_module_pipe_write_data_source(itc_module_data_source_t data_source, cons
 
 			size_t bytes_read = data_source.read(data_source.data_handle, buf, bytes_to_read, NULL);
 			if(ERROR_CODE(size_t) == bytes_read || bytes_read > bytes_to_read)
-			    ERROR_RETURN_LOG(int, "Cannot read the token stream");
+				ERROR_RETURN_LOG(int, "Cannot read the token stream");
 
 			/* Once the data source returns 0 bytes, we needs to hand it off, otherwise we just waste CPU */
 			if(bytes_read == 0)
@@ -743,12 +743,12 @@ int itc_module_pipe_write_data_source(itc_module_data_source_t data_source, cons
 			{
 				size_t processed = data_req->data_handler(data_req->context, begin, bytes_read);
 				if(ERROR_CODE(size_t) == processed)
-				    LOG_WARNING("Data request handler failure");
+					LOG_WARNING("Data request handler failure");
 				else if(bytes_read < processed)
-				    LOG_WARNING("Inavlid data handle return size %zu, limit is %zu", processed, bytes_read);
+					LOG_WARNING("Inavlid data handle return size %zu, limit is %zu", processed, bytes_read);
 
 				if(0 == processed)
-				    LOG_DEBUG("Data request handler rejected the new feed, stopping the request");
+					LOG_DEBUG("Data request handler rejected the new feed, stopping the request");
 
 				if(0 == processed || ERROR_CODE(size_t) == processed || bytes_read < processed)
 				{
@@ -756,7 +756,7 @@ int itc_module_pipe_write_data_source(itc_module_data_source_t data_source, cons
 					{
 						size_t write_rc = _write_impl(begin, bytes_read, handle, mod);
 						if(ERROR_CODE(size_t) == write_rc)
-						    ERROR_RETURN_LOG(int, "Cannot write data to pipe");
+							ERROR_RETURN_LOG(int, "Cannot write data to pipe");
 						bytes_read -= write_rc;
 						begin += write_rc;
 					}
@@ -777,19 +777,19 @@ DR_END:
 		{
 			int eos_rc = data_source.eos(data_source.data_handle);
 			if(ERROR_CODE(int) == eos_rc)
-			    ERROR_RETURN_LOG(int, "end-of-stream call returns an error");
+				ERROR_RETURN_LOG(int, "end-of-stream call returns an error");
 			else if(1 == eos_rc) break;
 
 			char* begin;
 			size_t bytes_read = data_source.read(data_source.data_handle, begin = buf, sizeof(buf), NULL);
 			if(ERROR_CODE(size_t) == bytes_read)
-			    ERROR_RETURN_LOG(int, "Cannot read the token stream");
+				ERROR_RETURN_LOG(int, "Cannot read the token stream");
 
 			for(;bytes_read;)
 			{
 				size_t write_rc = _write_impl(begin, bytes_read, handle, mod);
 				if(ERROR_CODE(size_t) == write_rc)
-				    ERROR_RETURN_LOG(int, "Cannot write data to pipe");
+					ERROR_RETURN_LOG(int, "Cannot write data to pipe");
 				bytes_read -= write_rc;
 				begin += write_rc;
 			}
@@ -867,7 +867,7 @@ int itc_module_pipe_accept(itc_module_type_t type, itc_module_pipe_param_t param
 	if(module->accept(context, param.args, in->data, out->data) < 0)
 	{
 		if(!itc_eloop_thread_killed)
-		    LOG_ERROR("Could not listen from the module %s", itc_module_get_name(type, NULL, 0));
+			LOG_ERROR("Could not listen from the module %s", itc_module_get_name(type, NULL, 0));
 		goto ERR;
 	}
 
@@ -895,7 +895,7 @@ int itc_module_pipe_eof(itc_module_pipe_t* handle)
 	if(NULL == handle) return 1;
 
 	if(handle->stat.type != _PSTAT_TYPE_INPUT)
-	    ERROR_RETURN_LOG(int, "Invalid arguments: wrong pipe direction");
+		ERROR_RETURN_LOG(int, "Invalid arguments: wrong pipe direction");
 
 	/* For a disabled downstream, even if the task gets a chance to run, we still need to pretent there's no data at all */
 	if(handle->pipe_flags & RUNTIME_API_PIPE_DISABLED) return 1;
@@ -925,7 +925,7 @@ int itc_module_pipe_eof(itc_module_pipe_t* handle)
 static inline int _get_header_buf(void const** result, size_t nbytes, itc_module_pipe_t* handle)
 {
 	if(NULL == result)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_GET_MODULE(mod, handle, 0);
 
@@ -980,7 +980,7 @@ static inline int _get_header_buf(void const** result, size_t nbytes, itc_module
 static inline int _get_data_body_buf(void const** result, size_t* min_size, size_t* max_size, itc_module_pipe_t* handle)
 {
 	if(NULL == result || NULL == min_size || NULL == max_size)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_GET_MODULE(mod, handle, 0);
 
@@ -998,7 +998,7 @@ static inline int _get_data_body_buf(void const** result, size_t* min_size, size
 
 	if(rc == 0) return 0;
 	else if(rc == ERROR_CODE(int))
-	    ERROR_RETURN_LOG(int, "Cannot skip the header");
+		ERROR_RETURN_LOG(int, "Cannot skip the header");
 
 	rc = 0;
 
@@ -1021,7 +1021,7 @@ static inline int _get_data_body_buf(void const** result, size_t* min_size, size
 static inline size_t _read_header(void* buffer, size_t nbytes, itc_module_pipe_t* handle)
 {
 	if(NULL == buffer || nbytes == ERROR_CODE(size_t))
-	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 	_GET_MODULE(mod, handle, 0);
 
@@ -1037,7 +1037,7 @@ static inline size_t _read_header(void* buffer, size_t nbytes, itc_module_pipe_t
 
 	size_t bytes_to_read = handle->expected_header_size - handle->processed_header_size;
 	if(bytes_to_read > nbytes)
-	    bytes_to_read = nbytes;
+		bytes_to_read = nbytes;
 
 	size_t rc = 0;
 
@@ -1045,9 +1045,9 @@ static inline size_t _read_header(void* buffer, size_t nbytes, itc_module_pipe_t
 	_INVOKE_MODULE(size_t, rc, mod, read, buffer, bytes_to_read, handle->data);
 
 	if(rc == ERROR_CODE(size_t))
-	    handle->stat.error = 1;
+		handle->stat.error = 1;
 	else
-	    handle->processed_header_size += rc;
+		handle->processed_header_size += rc;
 
 	return rc;
 }
@@ -1055,7 +1055,7 @@ static inline size_t _read_header(void* buffer, size_t nbytes, itc_module_pipe_t
 static inline size_t _write_header(const void* data, size_t nbytes, itc_module_pipe_t* handle)
 {
 	if(NULL == data || ERROR_CODE(size_t) == nbytes)
-	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 	_GET_MODULE(mod, handle, 0);
 
@@ -1073,9 +1073,9 @@ static inline size_t _write_header(const void* data, size_t nbytes, itc_module_p
 	_INVOKE_MODULE(size_t, rc, mod, write, data, nbytes, handle->data);
 
 	if(rc == ERROR_CODE(size_t))
-	    handle->stat.error = 1;
+		handle->stat.error = 1;
 	else
-	    handle->processed_header_size += rc;
+		handle->processed_header_size += rc;
 
 	/* This pipe has been touched, which means it's not an empty pipe */
 	if(rc != ERROR_CODE(size_t) && rc > 0) handle->stat.o_touched = 1;
@@ -1100,162 +1100,162 @@ int itc_module_pipe_cntl(itc_module_pipe_t* handle, uint32_t opcode, va_list ap)
 		switch(opcode)
 		{
 			case RUNTIME_API_PIPE_CNTL_OPCODE_GET_FLAGS:
-			{
-				/* For this case, we have parameter to store result */
-				runtime_api_pipe_flags_t* result = va_arg(ap, runtime_api_pipe_flags_t*);
-				if(NULL == result) ERROR_RETURN_LOG(int, "Invalid arguments");
-				*result = handle->pipe_flags;
-				break;
-			}
-			case RUNTIME_API_PIPE_CNTL_OPCODE_SET_FLAG:
-			{
-				runtime_api_pipe_flags_t flags = va_arg(ap, runtime_api_pipe_flags_t);
-				handle->pipe_flags |= flags;
-				break;
-			}
-			case RUNTIME_API_PIPE_CNTL_OPCODE_CLR_FLAG:
-			{
-				runtime_api_pipe_flags_t flags = va_arg(ap, runtime_api_pipe_flags_t);
-				handle->pipe_flags &= ~flags;
-				break;
-			}
-			case RUNTIME_API_PIPE_CNTL_OPCODE_EOM:
-			{
-				const char* buf = va_arg(ap, const char*);
-				size_t offset = va_arg(ap, size_t);
-				_INVOKE_NULLABLE(int, ERROR_CODE(int), eom, buf, offset);
-				return rc;
-			}
-			case RUNTIME_API_PIPE_CNTL_OPCODE_PUSH_STATE:
-			{
-				void* state = va_arg(ap, void*);
-				itc_module_state_dispose_func_t func = va_arg(ap, itc_module_state_dispose_func_t);
-
-				const itc_modtab_instance_t* mod = _get_module((handle));
-
-				if(mod == NULL || mod->module->push_state == NULL)
 				{
-					LOG_DEBUG("We do not support state preserving with the pipe type, just reject the submitted state");
+					/* For this case, we have parameter to store result */
+					runtime_api_pipe_flags_t* result = va_arg(ap, runtime_api_pipe_flags_t*);
+					if(NULL == result) ERROR_RETURN_LOG(int, "Invalid arguments");
+					*result = handle->pipe_flags;
+					break;
+				}
+			case RUNTIME_API_PIPE_CNTL_OPCODE_SET_FLAG:
+				{
+					runtime_api_pipe_flags_t flags = va_arg(ap, runtime_api_pipe_flags_t);
+					handle->pipe_flags |= flags;
+					break;
+				}
+			case RUNTIME_API_PIPE_CNTL_OPCODE_CLR_FLAG:
+				{
+					runtime_api_pipe_flags_t flags = va_arg(ap, runtime_api_pipe_flags_t);
+					handle->pipe_flags &= ~flags;
+					break;
+				}
+			case RUNTIME_API_PIPE_CNTL_OPCODE_EOM:
+				{
+					const char* buf = va_arg(ap, const char*);
+					size_t offset = va_arg(ap, size_t);
+					_INVOKE_NULLABLE(int, ERROR_CODE(int), eom, buf, offset);
+					return rc;
+				}
+			case RUNTIME_API_PIPE_CNTL_OPCODE_PUSH_STATE:
+				{
+					void* state = va_arg(ap, void*);
+					itc_module_state_dispose_func_t func = va_arg(ap, itc_module_state_dispose_func_t);
+
+					const itc_modtab_instance_t* mod = _get_module((handle));
+
+					if(mod == NULL || mod->module->push_state == NULL)
+					{
+						LOG_DEBUG("We do not support state preserving with the pipe type, just reject the submitted state");
+						return 0;
+					}
+
+					int rc = 0;
+					_INVOKE_MODULE(int, rc, mod, push_state, handle->data, state, func);
+
+					if(ERROR_CODE(int) == rc)
+						ERROR_RETURN_LOG(int, "Cannot finish module call to push_state");
+
+					return 1;
+				}
+			case RUNTIME_API_PIPE_CNTL_OPCODE_POP_STATE:
+				{
+					void** buffer = va_arg(ap, void**);
+
+					_GET_MODULE(mod, handle, 0);
+					void *rc = NULL;
+					*buffer = NULL;
+					if(mod->module->pop_state == NULL) return 0;
+					_INVOKE_MODULE(void*, rc, mod, pop_state, handle->data);
+
+					*buffer = rc;
+
 					return 0;
 				}
-
-				int rc = 0;
-				_INVOKE_MODULE(int, rc, mod, push_state, handle->data, state, func);
-
-				if(ERROR_CODE(int) == rc)
-				    ERROR_RETURN_LOG(int, "Cannot finish module call to push_state");
-
-				return 1;
-			}
-			case RUNTIME_API_PIPE_CNTL_OPCODE_POP_STATE:
-			{
-				void** buffer = va_arg(ap, void**);
-
-				_GET_MODULE(mod, handle, 0);
-				void *rc = NULL;
-				*buffer = NULL;
-				if(mod->module->pop_state == NULL) return 0;
-				_INVOKE_MODULE(void*, rc, mod, pop_state, handle->data);
-
-				*buffer = rc;
-
-				return 0;
-			}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_READHDR:
-			{
-				void*  data = va_arg(ap, void*);
-				size_t size = va_arg(ap, size_t);
-				size_t* actual_size = va_arg(ap, size_t*);
+				{
+					void*  data = va_arg(ap, void*);
+					size_t size = va_arg(ap, size_t);
+					size_t* actual_size = va_arg(ap, size_t*);
 
-				if(NULL == actual_size) ERROR_RETURN_LOG(int, "Invalid arguments");
-				size_t rc = _read_header(data, size, handle);
-				if(ERROR_CODE(size_t) == rc)
-				    ERROR_RETURN_LOG(int, "Cannot read the typed header from pipe");
+					if(NULL == actual_size) ERROR_RETURN_LOG(int, "Invalid arguments");
+					size_t rc = _read_header(data, size, handle);
+					if(ERROR_CODE(size_t) == rc)
+						ERROR_RETURN_LOG(int, "Cannot read the typed header from pipe");
 
-				*actual_size = rc;
-				return 0;
-			}
+					*actual_size = rc;
+					return 0;
+				}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_WRITEHDR:
-			{
-				const void* data = va_arg(ap, const void*);
-				size_t      size = va_arg(ap, size_t);
-				size_t* actual_size = va_arg(ap, size_t*);
+				{
+					const void* data = va_arg(ap, const void*);
+					size_t      size = va_arg(ap, size_t);
+					size_t* actual_size = va_arg(ap, size_t*);
 
-				if(NULL == actual_size) ERROR_RETURN_LOG(int, "Invalid arguments");
-				size_t rc = _write_header(data, size, handle);
-				if(ERROR_CODE(size_t) == rc)
-				    ERROR_RETURN_LOG(int, "Cannot write the typed header to pipe");
+					if(NULL == actual_size) ERROR_RETURN_LOG(int, "Invalid arguments");
+					size_t rc = _write_header(data, size, handle);
+					if(ERROR_CODE(size_t) == rc)
+						ERROR_RETURN_LOG(int, "Cannot write the typed header to pipe");
 
-				*actual_size = rc;
-				return 0;
-			}
+					*actual_size = rc;
+					return 0;
+				}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_MODPATH:
-			{
-				char const**  buf = va_arg(ap, char const**);
+				{
+					char const**  buf = va_arg(ap, char const**);
 
-				if(NULL == buf) ERROR_RETURN_LOG(int, "Invalid arguments");
-				_GET_MODULE(mod, handle, ERROR_CODE(int));
+					if(NULL == buf) ERROR_RETURN_LOG(int, "Invalid arguments");
+					_GET_MODULE(mod, handle, ERROR_CODE(int));
 
-				*buf = mod->path;
-				return 0;
-			}
+					*buf = mod->path;
+					return 0;
+				}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_GET_HDR_BUF:
-			{
-				size_t nbytes = va_arg(ap, size_t);
-				void const** buf = va_arg(ap, void const**);
+				{
+					size_t nbytes = va_arg(ap, size_t);
+					void const** buf = va_arg(ap, void const**);
 
-				int rc = _get_header_buf(buf, nbytes, handle);
+					int rc = _get_header_buf(buf, nbytes, handle);
 
-				if(rc == ERROR_CODE(int))
-				    ERROR_RETURN_LOG(int, "Cannot get the header buffer from the pipe");
+					if(rc == ERROR_CODE(int))
+						ERROR_RETURN_LOG(int, "Cannot get the header buffer from the pipe");
 
-				if(rc == 0) *buf = NULL;
+					if(rc == 0) *buf = NULL;
 
-				return 0;
-			}
+					return 0;
+				}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_GET_DATA_BUF:
-			{
-				size_t min_size = 0;
-				size_t max_size = va_arg(ap, size_t);
-				void const** buf = va_arg(ap, void const**);
-				size_t* min_size_buf = va_arg(ap, size_t*);
-				size_t* max_size_buf = va_arg(ap, size_t*);
+				{
+					size_t min_size = 0;
+					size_t max_size = va_arg(ap, size_t);
+					void const** buf = va_arg(ap, void const**);
+					size_t* min_size_buf = va_arg(ap, size_t*);
+					size_t* max_size_buf = va_arg(ap, size_t*);
 
-				if(NULL == min_size_buf || NULL == max_size_buf || min_size_buf == max_size_buf)
-				    ERROR_RETURN_LOG(int, "Invalid arguments");
+					if(NULL == min_size_buf || NULL == max_size_buf || min_size_buf == max_size_buf)
+						ERROR_RETURN_LOG(int, "Invalid arguments");
 
-				int rc = _get_data_body_buf(buf, &min_size, &max_size, handle);
+					int rc = _get_data_body_buf(buf, &min_size, &max_size, handle);
 
-				if(rc == ERROR_CODE(int))
-				    ERROR_RETURN_LOG(int, "Cannot get the data body buffer from the pipe");
+					if(rc == ERROR_CODE(int))
+						ERROR_RETURN_LOG(int, "Cannot get the data body buffer from the pipe");
 
-				if(rc == 0)
-				    *buf = NULL;
+					if(rc == 0)
+						*buf = NULL;
 
-				*min_size_buf = min_size;
-				*max_size_buf = max_size;
+					*min_size_buf = min_size;
+					*max_size_buf = max_size;
 
-				return 0;
-			}
+					return 0;
+				}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_PUT_DATA_BUF:
-			{
-				const void* buf = va_arg(ap, const void*);
-				size_t actual_size = va_arg(ap, size_t);
+				{
+					const void* buf = va_arg(ap, const void*);
+					size_t actual_size = va_arg(ap, size_t);
 
-				if(NULL == buf) ERROR_RETURN_LOG(int, "Invalid arguments");
+					if(NULL == buf) ERROR_RETURN_LOG(int, "Invalid arguments");
 
-				int rc;
+					int rc;
 
-				_GET_MODULE(mod, handle, 0);
+					_GET_MODULE(mod, handle, 0);
 
-				_INVOKE_MODULE(int, rc, mod, release_internal_buf, buf, actual_size, handle->data);
+					_INVOKE_MODULE(int, rc, mod, release_internal_buf, buf, actual_size, handle->data);
 
-				return rc;
-			}
+					return rc;
+				}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_NOP:
-			{
-				return 0;
-			}
+				{
+					return 0;
+				}
 			default:
 			    ERROR_RETURN_LOG(int, "Unknown opcode %x", opcode);
 		}
@@ -1287,13 +1287,13 @@ int itc_module_loop_killed(itc_module_type_t module)
 {
 	const itc_modtab_instance_t* inst = _get_module_from_type(module);
 	if(NULL == inst)
-	    ERROR_RETURN_LOG(int, "Invalid module");
+		ERROR_RETURN_LOG(int, "Invalid module");
 
 	const itc_module_t* mod = inst->module;
 	void* context = inst->context;
 
 	if(mod->event_thread_killed != NULL)
-	    mod->event_thread_killed(context);
+		mod->event_thread_killed(context);
 
 	return 0;
 }
@@ -1311,13 +1311,13 @@ const char* itc_module_get_name(itc_module_type_t module, char* buffer, size_t s
 
 	const itc_modtab_instance_t* inst = _get_module_from_type(module);
 	if(NULL == inst)
-	    ERROR_PTR_RETURN_LOG("Invalid module");
+		ERROR_PTR_RETURN_LOG("Invalid module");
 
 	string_buffer_t sbuf;
 
 	string_buffer_open(buffer, size, &sbuf);
 	if(inst->module->get_path == NULL)
-	    string_buffer_appendf(&sbuf, "Module_%x", module);
+		string_buffer_appendf(&sbuf, "Module_%x", module);
 	else
 	{
 		string_buffer_appendf(&sbuf, "%s(Module_Id: %x)", inst->path, module);
@@ -1338,10 +1338,10 @@ const char* itc_module_get_path(itc_module_type_t module, char* buffer, size_t s
 	const itc_modtab_instance_t* inst = _get_module_from_type(module);
 
 	if(NULL == inst)
-	    ERROR_PTR_RETURN_LOG("Invalid module ID %x", module);
+		ERROR_PTR_RETURN_LOG("Invalid module ID %x", module);
 
 	if(inst->module->get_path == NULL)
-	    ERROR_PTR_RETURN_LOG("Path to the module instance is undefined");
+		ERROR_PTR_RETURN_LOG("Path to the module instance is undefined");
 
 	string_buffer_t sbuf;
 	string_buffer_open(buffer, size, &sbuf);
@@ -1377,7 +1377,7 @@ itc_module_pipe_t* itc_module_pipe_fork(itc_module_pipe_t* handle, runtime_api_p
 
 	const itc_modtab_instance_t* inst;
 	if((inst = _get_module(source_handle)) == NULL)
-	    ERROR_PTR_RETURN_LOG("Invalid source handle");
+		ERROR_PTR_RETURN_LOG("Invalid source handle");
 
 	itc_module_pipe_t* ret = (itc_module_pipe_t*)mempool_objpool_alloc(inst->handle_pool);
 	if(NULL == ret) ERROR_PTR_RETURN_LOG("Cannot allocate memory for the forked pipe");
@@ -1413,9 +1413,9 @@ itc_module_pipe_t* itc_module_pipe_fork(itc_module_pipe_t* handle, runtime_api_p
 	ret->stat.i_canclled = handle->stat.i_canclled;
 
 	if(module->fork == NULL)
-	    ERROR_LOG_GOTO(ERR, "Module doesn't support fork operation");
+		ERROR_LOG_GOTO(ERR, "Module doesn't support fork operation");
 	else if(ERROR_CODE(int) == module->fork(context, ret->data, source_handle->data, args))
-	    ERROR_LOG_GOTO(ERR, "Module function fork retuend with an error code");
+		ERROR_LOG_GOTO(ERR, "Module function fork retuend with an error code");
 
 	return ret;
 ERR:
@@ -1427,7 +1427,7 @@ void* itc_module_get_context(itc_module_type_t type)
 {
 	const itc_modtab_instance_t* inst;
 	if((inst = _get_module_from_type(type)) == NULL)
-	    ERROR_PTR_RETURN_LOG("Invalid source handle");
+		ERROR_PTR_RETURN_LOG("Invalid source handle");
 
 	return inst->context;
 }
@@ -1436,14 +1436,14 @@ int itc_module_on_exit(itc_module_type_t module)
 {
 	const itc_modtab_instance_t* inst;
 	if((inst = _get_module_from_type(module)) == NULL)
-	    ERROR_RETURN_LOG(int, "Invalid target module");
+		ERROR_RETURN_LOG(int, "Invalid target module");
 
 	if(inst->module->on_exit == NULL)
-	    LOG_DEBUG("Ignore the on exit module call for the module %s, because it's not defined by the module", inst->path);
+		LOG_DEBUG("Ignore the on exit module call for the module %s, because it's not defined by the module", inst->path);
 	else if(ERROR_CODE(int) == inst->module->on_exit(inst->context))
-	    ERROR_RETURN_LOG(int, "The on exit module call for module instance %s returns an error code", inst->path);
+		ERROR_RETURN_LOG(int, "The on exit module call for module instance %s returns an error code", inst->path);
 	else
-	    LOG_DEBUG("The on exit module call for module instance %s returns successfully", inst->path);
+		LOG_DEBUG("The on exit module call for module instance %s returns successfully", inst->path);
 
 	return 0;
 }
@@ -1460,13 +1460,13 @@ int itc_module_pipe_set_error(itc_module_pipe_t* handle)
 int itc_module_pipe_is_touched(const itc_module_pipe_t* handle)
 {
 	if(NULL == handle)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if((handle->pipe_flags & RUNTIME_API_PIPE_SHADOW) > 0)
-	   return !(handle->pipe_flags & RUNTIME_API_PIPE_DISABLED);
+		return !(handle->pipe_flags & RUNTIME_API_PIPE_DISABLED);
 
 	if(handle->stat.type != _PSTAT_TYPE_OUTPUT)
-	    ERROR_RETURN_LOG(int, "Wrong pipe types, expected output, got input");
+		ERROR_RETURN_LOG(int, "Wrong pipe types, expected output, got input");
 
 	return handle->stat.o_touched && !handle->stat.error;
 }

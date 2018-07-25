@@ -61,7 +61,7 @@ int do_request_once(void)
 	shutdown(sock, 2);
 
 	if(strcmp(response, buffer) != 0)
-	    return -1;
+		return -1;
 
 	return 0;
 }

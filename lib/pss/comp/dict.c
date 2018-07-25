@@ -122,14 +122,14 @@ static pss_bytecode_regid_t _get_adj_reg(_service_ctx_t* ctx, const char* name, 
 	for(ptr = ctx->nodes[slot]; NULL != ptr && (ptr->hash[0] != hash[0] || ptr->hash[1] != hash[1]) && strcmp(ptr->name, name) != 0; ptr = ptr->next);
 
 	if(NULL != ptr)
-	    return rev ? ptr->rev_reg : ptr->reg;
+		return rev ? ptr->rev_reg : ptr->reg;
 
 	_servlet_t* node = (_servlet_t*)calloc(1, sizeof(*node));
 	if(NULL == node)
-	    return (pss_bytecode_regid_t)pss_comp_raise(ctx->comp, "Cannot allocate memory for the adj list for the servlet node");
+		return (pss_bytecode_regid_t)pss_comp_raise(ctx->comp, "Cannot allocate memory for the adj list for the servlet node");
 
 	if(ERROR_CODE(pss_bytecode_regid_t) == (node->reg = pss_comp_mktmp(ctx->comp)))
-	    ERROR_LOG_ERRNO_GOTO(CREATE_ERR, "Cannot allocate register for the adj list");
+		ERROR_LOG_ERRNO_GOTO(CREATE_ERR, "Cannot allocate register for the adj list");
 
 	if(!_INST(ctx->seg, DICT_NEW, _R(node->reg)))
 	{
@@ -138,7 +138,7 @@ static pss_bytecode_regid_t _get_adj_reg(_service_ctx_t* ctx, const char* name, 
 	}
 
 	if(ERROR_CODE(pss_bytecode_regid_t) == (node->rev_reg = pss_comp_mktmp(ctx->comp)))
-	    ERROR_LOG_ERRNO_GOTO(CREATE_ERR, "Cannot allocate register for the reverse adj list");
+		ERROR_LOG_ERRNO_GOTO(CREATE_ERR, "Cannot allocate register for the reverse adj list");
 
 	if(!_INST(ctx->seg, DICT_NEW, _R(node->rev_reg)))
 	{
@@ -150,7 +150,7 @@ static pss_bytecode_regid_t _get_adj_reg(_service_ctx_t* ctx, const char* name, 
 	node->hash[1] = hash[1];
 
 	if(NULL == (node->name = (char*)malloc(len + 1)))
-	    ERROR_LOG_ERRNO_GOTO(CREATE_ERR, "Cannot allocate memory for the node name");
+		ERROR_LOG_ERRNO_GOTO(CREATE_ERR, "Cannot allocate memory for the node name");
 
 	memcpy(node->name, name, len + 1);
 
@@ -200,14 +200,14 @@ static int _service_ctx_free(_service_ctx_t* ctx)
 				snprintf(buf, sizeof(buf), "%s@%s", pref[j], this->name);
 				pss_bytecode_regid_t regid = pss_comp_mktmp(ctx->comp);
 				if(ERROR_CODE(pss_bytecode_regid_t) == regid)
-				    rc = ERROR_CODE(int);
+					rc = ERROR_CODE(int);
 				else do {
 					if(!_INST(ctx->seg, STR_LOAD, _S(buf), _R(regid)))
-					    goto ERR;
+						goto ERR;
 					if(!_INST(ctx->seg, SET_VAL, _R(regs[j]), _R(ctx->dict), _R(regid)))
-					    goto ERR;
+						goto ERR;
 					if(ERROR_CODE(int) == pss_comp_rmtmp(ctx->comp, regid))
-					    goto ERR;
+						goto ERR;
 					break;
 ERR:
 					pss_comp_raise_internal(ctx->comp, PSS_COMP_INTERNAL_CODE);
@@ -215,7 +215,7 @@ ERR:
 				} while(0);
 
 				if(ERROR_CODE(pss_bytecode_regid_t) != regs[j] && ERROR_CODE(int) == pss_comp_rmtmp(ctx->comp, regs[j]))
-				    rc = ERROR_CODE(int);
+					rc = ERROR_CODE(int);
 			}
 
 			if(NULL != this->name) free(this->name);
@@ -255,19 +255,19 @@ static inline int _append_adj_list(_service_ctx_t* ctx, pss_bytecode_regid_t lis
 	if(ERROR_CODE(pss_bytecode_regid_t) == valreg) ERROR_RETURN_LOG(int, "Cannot allocate register for the val");
 
 	if(!_INST(seg, STR_LOAD, _S(keybuf), _R(keyreg)))
-	    PSS_COMP_RAISE_INT(comp, CODE);
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	if(!_INST(seg, STR_LOAD, _S(valbuf), _R(valreg)))
-	    PSS_COMP_RAISE_INT(comp, CODE);
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	if(!_INST(seg, SET_VAL, _R(valreg), _R(list_reg), _R(keyreg)))
-	    PSS_COMP_RAISE_INT(comp, CODE);
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	if(ERROR_CODE(int) == pss_comp_rmtmp(comp, keyreg))
-	    ERROR_RETURN_LOG(int, "Cannot release the key register");
+		ERROR_RETURN_LOG(int, "Cannot release the key register");
 
 	if(ERROR_CODE(int) == pss_comp_rmtmp(comp, valreg))
-	    ERROR_RETURN_LOG(int, "Cannot release the val register");
+		ERROR_RETURN_LOG(int, "Cannot release the val register");
 
 	return 0;
 }
@@ -276,21 +276,21 @@ static inline int _add_edge(_service_ctx_t* ctx, const char* left_node, const ch
 	pss_comp_t* comp = ctx->comp;
 
 	if(NULL == left_node || NULL == right_node || NULL == left_port || NULL == right_port)
-	    PSS_COMP_RAISE_INT(comp, ARGS);
+		PSS_COMP_RAISE_INT(comp, ARGS);
 
 	pss_bytecode_regid_t list_reg = _get_adj_reg(ctx, left_node, 0);
 	if(ERROR_CODE(pss_bytecode_regid_t) == list_reg)
-	    ERROR_RETURN_LOG(int, "Cannot get the register for the adj list");
+		ERROR_RETURN_LOG(int, "Cannot get the register for the adj list");
 
 	if(ERROR_CODE(int) == _append_adj_list(ctx, list_reg, left_node, left_port, right_port, right_node))
-	    ERROR_RETURN_LOG(int, "Cannot put the edge to the adj list");
+		ERROR_RETURN_LOG(int, "Cannot put the edge to the adj list");
 
 	pss_bytecode_regid_t list_reg_rev = _get_adj_reg(ctx, right_node, 1);
 	if(ERROR_CODE(pss_bytecode_regid_t) == list_reg_rev)
-	    ERROR_RETURN_LOG(int, "Cannot get the register for the reverse adj list");
+		ERROR_RETURN_LOG(int, "Cannot get the register for the reverse adj list");
 
 	if(ERROR_CODE(int) == _append_adj_list(ctx, list_reg_rev, right_node, right_port, left_port, left_node))
-	    ERROR_RETURN_LOG(int, "Cannot put the reverse edge to the revers adj list");
+		ERROR_RETURN_LOG(int, "Cannot put the reverse edge to the revers adj list");
 
 	return 0;
 }
@@ -298,7 +298,7 @@ static inline int _add_edge(_service_ctx_t* ctx, const char* left_node, const ch
 static inline int _add_port(_service_ctx_t* ctx, const char* node, const char* port, const char* name, int input)
 {
 	if(NULL == node || NULL == port)
-	    PSS_COMP_RAISE_INT(ctx->comp, ARGS);
+		PSS_COMP_RAISE_INT(ctx->comp, ARGS);
 
 	pss_comp_t* comp = ctx->comp;
 	pss_bytecode_segment_t* seg = ctx->seg;
@@ -310,24 +310,24 @@ static inline int _add_port(_service_ctx_t* ctx, const char* node, const char* p
 
 	pss_bytecode_regid_t keyreg = pss_comp_mktmp(comp);
 	if(ERROR_CODE(pss_bytecode_regid_t) == keyreg)
-	    ERROR_RETURN_LOG(int, "Cannot allocate key register");
+		ERROR_RETURN_LOG(int, "Cannot allocate key register");
 	pss_bytecode_regid_t valreg = pss_comp_mktmp(comp);
 	if(ERROR_CODE(pss_bytecode_regid_t) == valreg)
-	    ERROR_RETURN_LOG(int, "Cannot allocate val register");
+		ERROR_RETURN_LOG(int, "Cannot allocate val register");
 
 	if(!_INST(seg, STR_LOAD, _S(keybuf), _R(keyreg)))
-	    PSS_COMP_RAISE_INT(comp, CODE);
+		PSS_COMP_RAISE_INT(comp, CODE);
 	if(!_INST(seg, STR_LOAD, _S(valbuf), _R(valreg)))
-	    PSS_COMP_RAISE_INT(comp, CODE);
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	if(!_INST(seg, SET_VAL, _R(valreg), _R(ctx->dict), _R(keyreg)))
-	    PSS_COMP_RAISE_INT(comp, CODE);
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	if(ERROR_CODE(int) == pss_comp_rmtmp(comp, keyreg))
-	    ERROR_RETURN_LOG(int, "Cannot allocate the key register");
+		ERROR_RETURN_LOG(int, "Cannot allocate the key register");
 
 	if(ERROR_CODE(int) == pss_comp_rmtmp(comp, valreg))
-	    ERROR_RETURN_LOG(int, "Cannot allocate the val register");
+		ERROR_RETURN_LOG(int, "Cannot allocate the val register");
 
 	return 0;
 }
@@ -347,9 +347,9 @@ static inline int _pipe_block(_service_ctx_t* context, _pending_list_t* result, 
 static inline void _pending_list_merge(_pending_list_t* first, _pending_list_t* second)
 {
 	if(first->head == NULL)
-	    *first = *second;
+		*first = *second;
 	else if(second->head != NULL)
-	    first->tail->next = second->head, first->tail = second->tail;
+		first->tail->next = second->head, first->tail = second->tail;
 	second->head = second->tail = NULL;
 }
 
@@ -378,31 +378,31 @@ static inline int _process_pending_list(_service_ctx_t* context, _pending_list_t
 			 * In this case, we should use the right node to populate the destination node
 			 **/
 			if(ptr->destination_node == NULL)
-			    ptr->destination_node = (context->level == ptr->level) ? left_node : right_node;
+				ptr->destination_node = (context->level == ptr->level) ? left_node : right_node;
 		}
 		else if(ptr->type == _OUTPUT)
 		{
 			if(ptr->source_node == NULL)
-			    ptr->source_node = (context->level == ptr->level) ? right_node : left_node;
+				ptr->source_node = (context->level == ptr->level) ? right_node : left_node;
 		}
 
 		/* Then if the node is ready to compile, produce the instructions */
 		if(ptr->type == _N2N && ptr->source_node != NULL && ptr->destination_node != NULL)
 		{
 			if(ERROR_CODE(int) == _add_edge(context, ptr->source_node, ptr->source_pipe, ptr->destination_pipe, ptr->destination_node))
-			    ERROR_LOG_GOTO(LOOP_ERR, "Cannot add node to the context");
+				ERROR_LOG_GOTO(LOOP_ERR, "Cannot add node to the context");
 			if(!ptr->stack) free(ptr);
 		}
 		else if(ptr->type == _INPUT && ptr->destination_node  != NULL)
 		{
 			if(ERROR_CODE(int) == _add_port(context, ptr->destination_node, ptr->destination_pipe, ptr->source_pipe, 1))
-			    ERROR_LOG_GOTO(LOOP_ERR, "Cannot add node to the context");
+				ERROR_LOG_GOTO(LOOP_ERR, "Cannot add node to the context");
 			if(!ptr->stack) free(ptr);
 		}
 		else if(ptr->type == _OUTPUT && ptr->source_node != NULL)
 		{
 			if(ERROR_CODE(int) == _add_port(context, ptr->source_node, ptr->source_pipe, ptr->destination_pipe, 0))
-			    ERROR_LOG_GOTO(LOOP_ERR, "Cannot add node to context");
+				ERROR_LOG_GOTO(LOOP_ERR, "Cannot add node to context");
 			if(!ptr->stack) free(ptr);
 		}
 		else
@@ -464,15 +464,15 @@ static inline const char* _consume_and_store(_service_ctx_t* ctx)
 {
 	const pss_comp_lex_token_t* ahead = pss_comp_peek(ctx->comp, 0);
 	if(NULL == ahead)
-	    ERROR_PTR_RETURN_LOG("Cannot peek the token ahead");
+		ERROR_PTR_RETURN_LOG("Cannot peek the token ahead");
 
 	if(ahead->type != PSS_COMP_LEX_TOKEN_IDENTIFIER &&
 	   ahead->type != PSS_COMP_LEX_TOKEN_STRING)
-	    PSS_COMP_RAISE_SYNT_PTR(ctx->comp, "Unexpected token type");
+		PSS_COMP_RAISE_SYNT_PTR(ctx->comp, "Unexpected token type");
 	const char* ret = _get_str(ctx, ahead->value.s);
 
 	if(ERROR_CODE(int) == pss_comp_consume(ctx->comp, 1))
-	    ERROR_PTR_RETURN_LOG("Cannot consume the parsed token");
+		ERROR_PTR_RETURN_LOG("Cannot consume the parsed token");
 
 	return ret;
 }
@@ -490,7 +490,7 @@ static inline int _unbounded_chain(_service_ctx_t* context, _pending_list_t* res
 		const pss_comp_lex_token_t* token2 = pss_comp_peek(context->comp, 2);
 		const char* right_node = NULL;
 		if(NULL == token0 || NULL == token1 || NULL == token2)
-		    ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
+			ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
 
 		if(PSS_COMP_LEX_TOKEN_STRING == token0->type && PSS_COMP_LEX_TOKEN_ARROW == token1->type && PSS_COMP_LEX_TOKEN_STRING == token2->type)
 		{
@@ -502,7 +502,7 @@ static inline int _unbounded_chain(_service_ctx_t* context, _pending_list_t* res
 			const char* dest_pipe = _get_str(context, token2->value.s);
 			if(NULL == dest_pipe) goto ERR;
 			if(ERROR_CODE(int) == pss_comp_consume(context->comp, 3))
-			    ERROR_LOG_GOTO(ERR, "Cannot consume the token ahead");
+				ERROR_LOG_GOTO(ERR, "Cannot consume the token ahead");
 
 			temp.type = _N2N;
 			temp.source_node = left_node;
@@ -520,17 +520,17 @@ static inline int _unbounded_chain(_service_ctx_t* context, _pending_list_t* res
 		{
 			childres.head = childres.tail = NULL;
 			if(ERROR_CODE(int) == _pipe_block(context, &childres, left_node))
-			    ERROR_LOG_GOTO(ERR, "Invalid pipe description block");
+				ERROR_LOG_GOTO(ERR, "Invalid pipe description block");
 			empty = 0;
 		}
 		else break;
 
 		token0 = pss_comp_peek(context->comp, 0);
 		if(PSS_COMP_LEX_TOKEN_IDENTIFIER == token0->type && (NULL == (right_node = _consume_and_store(context))))
-		    ERROR_LOG_GOTO(ERR, "Cannot parse the node name");
+			ERROR_LOG_GOTO(ERR, "Cannot parse the node name");
 
 		if(ERROR_CODE(int) == _process_pending_list(context, &childres, left_node, right_node))
-		    ERROR_LOG_GOTO(ERR, "Cannot process the pending list");
+			ERROR_LOG_GOTO(ERR, "Cannot process the pending list");
 
 		_pending_list_merge(result, &childres);
 
@@ -542,7 +542,7 @@ static inline int _unbounded_chain(_service_ctx_t* context, _pending_list_t* res
 	}
 
 	if(empty)
-	    PSS_COMP_RAISE_SYN_GOTO(ERR, context->comp, "Empty pipe statement is not allowed");
+		PSS_COMP_RAISE_SYN_GOTO(ERR, context->comp, "Empty pipe statement is not allowed");
 
 	return 0;
 ERR:
@@ -554,37 +554,37 @@ ERR:
 static inline int _pipe_input(_service_ctx_t* context, _pending_list_t* result, _pending_edge_t* buf)
 {
 	if(ERROR_CODE(int) == pss_comp_consume(context->comp, 1))
-	    ERROR_RETURN_LOG(int, "Cannot consume the token");
+		ERROR_RETURN_LOG(int, "Cannot consume the token");
 
 	const char* name = NULL;
 	const pss_comp_lex_token_t* ahead = pss_comp_peek(context->comp, 0);
 	if(NULL == ahead)
-	    ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
+		ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
 
 	if(PSS_COMP_LEX_TOKEN_IDENTIFIER == ahead->type)
 	{
 		if(NULL == (name = _consume_and_store(context)))
-		    ERROR_RETURN_LOG(int, "Cannot store the virtual port name");
+			ERROR_RETURN_LOG(int, "Cannot store the virtual port name");
 		if(NULL == (ahead = pss_comp_peek(context->comp, 0)))
-		    ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
+			ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
 	}
 
 	const pss_comp_lex_token_t* ahead1 = pss_comp_peek(context->comp, 1);
 	if(NULL == ahead1) ERROR_RETURN_LOG(int, "Cannot peek the next token");
 
 	if(PSS_COMP_LEX_TOKEN_RPARENTHESIS != ahead->type || PSS_COMP_LEX_TOKEN_ARROW != ahead1->type)
-	    ERROR_RETURN_LOG(int, "Either input port or named port is expected");
+		ERROR_RETURN_LOG(int, "Either input port or named port is expected");
 	if(ERROR_CODE(int) == pss_comp_consume(context->comp, 2))
-	    ERROR_RETURN_LOG(int, "Cannot consume parsed token");
+		ERROR_RETURN_LOG(int, "Cannot consume parsed token");
 
 	const pss_comp_lex_token_t* token = pss_comp_peek(context->comp, 0);
 
 	if(PSS_COMP_LEX_TOKEN_STRING != token->type)
-	    PSS_COMP_RAISE_SYN(int, context->comp, "Pipe name is expected");
+		PSS_COMP_RAISE_SYN(int, context->comp, "Pipe name is expected");
 
 	const char* pipe = NULL;
 	if(NULL == (pipe = _consume_and_store(context)))
-	    ERROR_RETURN_LOG(int, "Cannot store the pipe name");
+		ERROR_RETURN_LOG(int, "Cannot store the pipe name");
 
 	buf->type = _INPUT;
 	buf->source_pipe = name;
@@ -603,11 +603,11 @@ static inline int _pipe_output(_service_ctx_t* context, _pending_list_t* result,
 	if(NULL == pipe_token) ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
 	const char* pipe = NULL;
 	if(NULL == (pipe = _get_str(context, pipe_token->value.s)))
-	    ERROR_RETURN_LOG(int, "Cannot store the pipe name");
+		ERROR_RETURN_LOG(int, "Cannot store the pipe name");
 
 	/* we assume that the caller has alread examined it must be a output pipe */
 	if(ERROR_CODE(int) == pss_comp_consume(context->comp, 3))
-	    ERROR_RETURN_LOG(int, "Cannot consume the token");
+		ERROR_RETURN_LOG(int, "Cannot consume the token");
 
 	const char* name = NULL;
 	const pss_comp_lex_token_t* ahead = pss_comp_peek(context->comp, 0);
@@ -615,7 +615,7 @@ static inline int _pipe_output(_service_ctx_t* context, _pending_list_t* result,
 	if(ahead->type == PSS_COMP_LEX_TOKEN_IDENTIFIER)
 	{
 		if(NULL == (name = _consume_and_store(context)))
-		    ERROR_RETURN_LOG(int, "Cannot store the output port name");
+			ERROR_RETURN_LOG(int, "Cannot store the output port name");
 	}
 
 	if(NULL == (ahead = pss_comp_peek(context->comp, 0))) ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
@@ -623,7 +623,7 @@ static inline int _pipe_output(_service_ctx_t* context, _pending_list_t* result,
 	if(ahead->type == PSS_COMP_LEX_TOKEN_RPARENTHESIS)
 	{
 		if(ERROR_CODE(int) == pss_comp_consume(context->comp, 1))
-		    ERROR_RETURN_LOG(int, "Cannot consume the parsed token");
+			ERROR_RETURN_LOG(int, "Cannot consume the parsed token");
 	}
 	else PSS_COMP_RAISE_SYN(int, context->comp, "Token right parenthesis expected");
 
@@ -654,7 +654,7 @@ static inline int _pipe_statement(_service_ctx_t* context, _pending_list_t* resu
 		empty = 0;
 		/* If there's an input pipe, we should parse the input pipe */
 		if(ERROR_CODE(int) == _pipe_input(context, &input_list, &input_edge))
-		    ERROR_RETURN_LOG(int, "Canont parse the input pipe");
+			ERROR_RETURN_LOG(int, "Canont parse the input pipe");
 
 		_pending_list_merge(result, &input_list);
 		/* Because to token has been alread consumed by _service_graph_pipe_input, so update the token */
@@ -664,13 +664,13 @@ static inline int _pipe_statement(_service_ctx_t* context, _pending_list_t* resu
 		if(PSS_COMP_LEX_TOKEN_IDENTIFIER != token->type)  /* if this is only a () -> "pipe" */
 		{
 			if(ERROR_CODE(int) == _process_pending_list(context, result, left_node, NULL))
-			    ERROR_RETURN_LOG(int, "Cannot process the pending list");
+				ERROR_RETURN_LOG(int, "Cannot process the pending list");
 			return 0;
 		}
 	}
 
 	if(PSS_COMP_LEX_TOKEN_IDENTIFIER == token->type && NULL == (left_node = _consume_and_store(context)))
-	    ERROR_RETURN_LOG(int, "Cannot store the servlet name");
+		ERROR_RETURN_LOG(int, "Cannot store the servlet name");
 
 	const pss_comp_lex_token_t* ahead[3] = {
 		pss_comp_peek(context->comp, 0),
@@ -679,7 +679,7 @@ static inline int _pipe_statement(_service_ctx_t* context, _pending_list_t* resu
 	};
 
 	if(NULL == ahead[0] || NULL == ahead[1] || NULL == ahead[2])
-	    ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
+		ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
 
 	if(ahead[0]->type == PSS_COMP_LEX_TOKEN_STRING &&
 	   ahead[1]->type == PSS_COMP_LEX_TOKEN_ARROW  &&
@@ -689,12 +689,12 @@ static inline int _pipe_statement(_service_ctx_t* context, _pending_list_t* resu
 		_pending_list_t output_list = {NULL, NULL};
 		_pending_edge_t output_edge;
 		if(_pipe_output(context, &output_list, &output_edge, left_node) == ERROR_CODE(int))
-		    ERROR_RETURN_LOG(int, "Invalid output pipe desc");
+			ERROR_RETURN_LOG(int, "Invalid output pipe desc");
 
 		_pending_list_merge(result, &output_list);
 
 		if(ERROR_CODE(int) == _process_pending_list(context, result, left_node, NULL))
-		    ERROR_RETURN_LOG(int, "Cannot process the pending list");
+			ERROR_RETURN_LOG(int, "Cannot process the pending list");
 		return 0;
 	}
 
@@ -702,12 +702,12 @@ static inline int _pipe_statement(_service_ctx_t* context, _pending_list_t* resu
 
 	/* this statement do not have a left node, if parser previously has shifted, we can allow a empty chain */
 	if(ERROR_CODE(int) == _unbounded_chain(context, result, left_node, !empty))
-	    ERROR_RETURN_LOG(int, "Invalid pipe chain");
+		ERROR_RETURN_LOG(int, "Invalid pipe chain");
 
 	if(NULL == (ahead[0] = pss_comp_peek(context->comp, 0)) ||
 	   NULL == (ahead[1] = pss_comp_peek(context->comp, 1)) ||
 	   NULL == (ahead[2] = pss_comp_peek(context->comp, 2)))
-	    ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
+		ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
 
 	const char* right_node = context->right_node;
 
@@ -731,17 +731,17 @@ static inline int _pipe_statement(_service_ctx_t* context, _pending_list_t* resu
 		 * at () -> "xxxx", which means Ok. And what we actually want to do here is to prevent
 		 * parser accept a 0 length statement, which causes the parser fell in to a infinite loop */
 		if(right_node == NULL)
-		    PSS_COMP_RAISE_SYN(int, context->comp, "Unspecified output node");
+			PSS_COMP_RAISE_SYN(int, context->comp, "Unspecified output node");
 
 		/* process the output pipe */
 		_pending_list_t output_list = {NULL, NULL};
 		if(_pipe_output(context, &output_list, &output_edge, right_node) == ERROR_CODE(int))
-		    ERROR_RETURN_LOG(int, "Invalid output pipe desc");
+			ERROR_RETURN_LOG(int, "Invalid output pipe desc");
 		_pending_list_merge(result, &output_list);
 	}
 
 	if(ERROR_CODE(int) == _process_pending_list(context, result, left_node, right_node))
-	    ERROR_RETURN_LOG(int, "Cannot process the pending list");
+		ERROR_RETURN_LOG(int, "Cannot process the pending list");
 
 	return 0;
 }
@@ -750,7 +750,7 @@ static inline int _pipe_block(_service_ctx_t* context, _pending_list_t* result, 
 {
 	context->level ++;
 	if(ERROR_CODE(int) == pss_comp_consume(context->comp, 1))
-	    ERROR_RETURN_LOG(int, "Cannot consume the ahead token");
+		ERROR_RETURN_LOG(int, "Cannot consume the ahead token");
 	for(;;)
 	{
 		const pss_comp_lex_token_t* start = pss_comp_peek(context->comp, 0);
@@ -761,27 +761,27 @@ static inline int _pipe_block(_service_ctx_t* context, _pending_list_t* result, 
 		if(PSS_COMP_LEX_TOKEN_RBRACE == start->type)
 		{
 			if(ERROR_CODE(int) == pss_comp_consume(context->comp, 1))
-			    ERROR_RETURN_LOG(int, "Cannot consume the parsed token");
+				ERROR_RETURN_LOG(int, "Cannot consume the parsed token");
 			break;
 		}
 		if(PSS_COMP_LEX_TOKEN_IDENTIFIER != start->type &&
 		   PSS_COMP_LEX_TOKEN_LPARENTHESIS != start->type &&
 		   PSS_COMP_LEX_TOKEN_LBRACE != start->type &&
 		   PSS_COMP_LEX_TOKEN_STRING != start->type)
-		    PSS_COMP_RAISE_SYN(int, context->comp, "Pipe statment expected");
+			PSS_COMP_RAISE_SYN(int, context->comp, "Pipe statment expected");
 
 		if(ERROR_CODE(int) == _pipe_statement(context, &child, left_node))
-		    ERROR_RETURN_LOG(int, "Invalid pipe statement");
+			ERROR_RETURN_LOG(int, "Invalid pipe statement");
 
 		_pending_list_merge(result, &child);
 
 		if(NULL == (start = pss_comp_peek(context->comp, 0)))
-		    ERROR_RETURN_LOG(int, "Cannot peek the next token");
+			ERROR_RETURN_LOG(int, "Cannot peek the next token");
 
 		if(start->type == PSS_COMP_LEX_TOKEN_SEMICOLON)
 		{
 			if(ERROR_CODE(int) == pss_comp_consume(context->comp, 1))
-			    ERROR_RETURN_LOG(int, "Cannot consume the next token");
+				ERROR_RETURN_LOG(int, "Cannot consume the next token");
 		}
 	}
 
@@ -792,21 +792,21 @@ static inline int _pipe_block(_service_ctx_t* context, _pending_list_t* result, 
 static inline int _parse_list(pss_comp_t* comp, pss_comp_value_t* buf)
 {
 	if(NULL == comp || NULL == buf)
-	    PSS_COMP_RAISE_INT(comp, CODE);
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	pss_bytecode_segment_t* seg = pss_comp_get_code_segment(comp);
 	if(NULL == seg) ERROR_RETURN_LOG(int, "Cannot get the bytecode segment");
 
 	if(ERROR_CODE(int) == pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_LBRACKET))
-	    PSS_COMP_RAISE_SYN(int, comp, "Left parenthesis expected in a list literal");
+		PSS_COMP_RAISE_SYN(int, comp, "Left parenthesis expected in a list literal");
 
 	buf->kind = PSS_COMP_VALUE_KIND_REG;
 	if(ERROR_CODE(pss_bytecode_regid_t) == (buf->regs[0].id = pss_comp_mktmp(comp)))
-	    ERROR_RETURN_LOG(int, "Cannot create the dictionary register");
+		ERROR_RETURN_LOG(int, "Cannot create the dictionary register");
 	buf->regs[0].tmp = 1;
 
 	if(!_INST(seg, DICT_NEW, _R(buf->regs[0].id)))
-	    PSS_COMP_RAISE_INT(comp, CODE);
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	uint32_t idx = 0;
 
@@ -814,22 +814,22 @@ static inline int _parse_list(pss_comp_t* comp, pss_comp_value_t* buf)
 	{
 		const pss_comp_lex_token_t* ahead = pss_comp_peek(comp, 0);
 		if(NULL == ahead)
-		    ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
+			ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
 
 		if(ahead->type == PSS_COMP_LEX_TOKEN_RBRACKET) break;
 
 		if(idx != 0)
 		{
 			if(ahead->type != PSS_COMP_LEX_TOKEN_COMMA)
-			    PSS_COMP_RAISE_SYN(int, comp, "Unexpected token, `,' expected");
+				PSS_COMP_RAISE_SYN(int, comp, "Unexpected token, `,' expected");
 
 			if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
-			    ERROR_RETURN_LOG(int, "Cannot consume ahead token");
+				ERROR_RETURN_LOG(int, "Cannot consume ahead token");
 
 			ahead = pss_comp_peek(comp, 0);
 
 			if(NULL == ahead)
-			    ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
+				ERROR_RETURN_LOG(int, "Cannot peek the ahead token");
 		}
 
 		char key[32];
@@ -837,30 +837,30 @@ static inline int _parse_list(pss_comp_t* comp, pss_comp_value_t* buf)
 
 		pss_comp_value_t val;
 		if(ERROR_CODE(int) == pss_comp_expr_parse(comp, &val))
-		    ERROR_RETURN_LOG(int, "Cannot parse the value expression");
+			ERROR_RETURN_LOG(int, "Cannot parse the value expression");
 
 		if(ERROR_CODE(int) == pss_comp_value_simplify(comp, &val))
-		    ERROR_RETURN_LOG(int, "Cannot simplify the value");
+			ERROR_RETURN_LOG(int, "Cannot simplify the value");
 
 		pss_bytecode_regid_t key_reg = pss_comp_mktmp(comp);
 		if(ERROR_CODE(pss_bytecode_regid_t) == key_reg)
-		    ERROR_RETURN_LOG(int, "Cannot allocate register for the key");
+			ERROR_RETURN_LOG(int, "Cannot allocate register for the key");
 
 		if(!_INST(seg, STR_LOAD, _S(key), _R(key_reg)))
-		    PSS_COMP_RAISE_INT(comp, CODE);
+			PSS_COMP_RAISE_INT(comp, CODE);
 
 		if(!_INST(seg, SET_VAL, _R(val.regs[0].id), _R(buf->regs[0].id), _R(key_reg)))
-		    PSS_COMP_RAISE_INT(comp, CODE);
+			PSS_COMP_RAISE_INT(comp, CODE);
 
 		if(ERROR_CODE(int) == pss_comp_rmtmp(comp, key_reg))
-		    ERROR_RETURN_LOG(int, "Cannot release the key register");
+			ERROR_RETURN_LOG(int, "Cannot release the key register");
 
 		if(ERROR_CODE(int) == pss_comp_value_release(comp, &val))
-		    ERROR_RETURN_LOG(int, "Cannot release the value register");
+			ERROR_RETURN_LOG(int, "Cannot release the value register");
 	}
 
 	if(ERROR_CODE(int) == pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_RBRACKET))
-	    PSS_COMP_RAISE_SYN(int, comp, "Right bracket expected in a list literal");
+		PSS_COMP_RAISE_SYN(int, comp, "Right bracket expected in a list literal");
 
 	return 0;
 }
@@ -868,63 +868,63 @@ static inline int _parse_list(pss_comp_t* comp, pss_comp_value_t* buf)
 static inline int _parse(pss_comp_t* comp, pss_comp_value_t* buf, _service_ctx_t** ctx)
 {
 	if(NULL == comp || NULL == buf)
-	    PSS_COMP_RAISE_INT(comp, CODE);
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	pss_bytecode_segment_t* seg = pss_comp_get_code_segment(comp);
 	if(NULL == seg) ERROR_RETURN_LOG(int, "Cannot get the bytecode segment");
 
 	if(ERROR_CODE(int) == pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_LBRACE))
-	    PSS_COMP_RAISE_SYN(int, comp, "Left parenthesis expected in a dict/service literal");
+		PSS_COMP_RAISE_SYN(int, comp, "Left parenthesis expected in a dict/service literal");
 
 	buf->kind = PSS_COMP_VALUE_KIND_REG;
 	if(ERROR_CODE(pss_bytecode_regid_t) == (buf->regs[0].id = pss_comp_mktmp(comp)))
-	    ERROR_RETURN_LOG(int, "Cannot create the dictionary register");
+		ERROR_RETURN_LOG(int, "Cannot create the dictionary register");
 	buf->regs[0].tmp = 1;
 
 	if(!_INST(seg, DICT_NEW, _R(buf->regs[0].id)))
-	    PSS_COMP_RAISE_INT(comp, CODE);
+		PSS_COMP_RAISE_INT(comp, CODE);
 
 	for(;;)
 	{
 		const pss_comp_lex_token_t* ahead[2] = {pss_comp_peek(comp, 0), pss_comp_peek(comp, 1)};
 		if(NULL == ahead[0] || NULL == ahead[1])
-		    ERROR_RETURN_LOG(int, "Cannot peek the token ahead");
+			ERROR_RETURN_LOG(int, "Cannot peek the token ahead");
 
 		if(ahead[1]->type == PSS_COMP_LEX_TOKEN_COLON_EQUAL ||
 		   ahead[1]->type == PSS_COMP_LEX_TOKEN_COLON)
 		{
 			/* This is a key-value literal */
 			if(ahead[0]->type != PSS_COMP_LEX_TOKEN_STRING && ahead[0]->type != PSS_COMP_LEX_TOKEN_IDENTIFIER)
-			    PSS_COMP_RAISE_SYN(int, comp, "Unexpected token in key-value literal");
+				PSS_COMP_RAISE_SYN(int, comp, "Unexpected token in key-value literal");
 
 			char key[1024];
 			strcpy(key, ahead[0]->value.s);
 
 			if(ERROR_CODE(int) == pss_comp_consume(comp, 2))
-			    ERROR_RETURN_LOG(int, "Cannot consume ahead token");
+				ERROR_RETURN_LOG(int, "Cannot consume ahead token");
 
 			pss_comp_value_t val;
 			if(ERROR_CODE(int) == pss_comp_expr_parse(comp, &val))
-			    ERROR_RETURN_LOG(int, "Cannot parse the value expression");
+				ERROR_RETURN_LOG(int, "Cannot parse the value expression");
 
 			if(ERROR_CODE(int) == pss_comp_value_simplify(comp, &val))
-			    ERROR_RETURN_LOG(int, "Cannot simplify the value");
+				ERROR_RETURN_LOG(int, "Cannot simplify the value");
 
 			pss_bytecode_regid_t key_reg = pss_comp_mktmp(comp);
 			if(ERROR_CODE(pss_bytecode_regid_t) == key_reg)
-			    ERROR_RETURN_LOG(int, "Cannot allocate register for the key");
+				ERROR_RETURN_LOG(int, "Cannot allocate register for the key");
 
 			if(!_INST(seg, STR_LOAD, _S(key), _R(key_reg)))
-			    PSS_COMP_RAISE_INT(comp, CODE);
+				PSS_COMP_RAISE_INT(comp, CODE);
 
 			if(!_INST(seg, SET_VAL, _R(val.regs[0].id), _R(buf->regs[0].id), _R(key_reg)))
-			    PSS_COMP_RAISE_INT(comp, CODE);
+				PSS_COMP_RAISE_INT(comp, CODE);
 
 			if(ERROR_CODE(int) == pss_comp_rmtmp(comp, key_reg))
-			    ERROR_RETURN_LOG(int, "Cannot release the key register");
+				ERROR_RETURN_LOG(int, "Cannot release the key register");
 
 			if(ERROR_CODE(int) == pss_comp_value_release(comp, &val))
-			    ERROR_RETURN_LOG(int, "Cannot release the value register");
+				ERROR_RETURN_LOG(int, "Cannot release the value register");
 		}
 		else if(ahead[0]->type == PSS_COMP_LEX_TOKEN_LPARENTHESIS ||
 		        ahead[0]->type == PSS_COMP_LEX_TOKEN_LBRACE ||
@@ -932,11 +932,11 @@ static inline int _parse(pss_comp_t* comp, pss_comp_value_t* buf, _service_ctx_t
 		{
 			/* This is a service interconnection statement, we parse it differently */
 			if(*ctx == NULL && NULL == (*ctx = _service_ctx_new(comp, seg, buf->regs[0].id)))
-			    ERROR_RETURN_LOG(int, "Cannot create new service context for the service literal");
+				ERROR_RETURN_LOG(int, "Cannot create new service context for the service literal");
 
 			_pending_list_t list = {NULL, NULL};
 			if(ERROR_CODE(int) == _pipe_statement(*ctx, &list, NULL))
-			    ERROR_RETURN_LOG(int, "Cannot parse the pipe statement");
+				ERROR_RETURN_LOG(int, "Cannot parse the pipe statement");
 			else if(NULL != list.head)
 			{
 				_pending_list_free(&list);
@@ -951,12 +951,12 @@ static inline int _parse(pss_comp_t* comp, pss_comp_value_t* buf, _service_ctx_t
 		if(tok_next->type == PSS_COMP_LEX_TOKEN_COMMA || tok_next->type == PSS_COMP_LEX_TOKEN_SEMICOLON)
 		{
 			if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
-			    ERROR_RETURN_LOG(int, "Cannot consume the token");
+				ERROR_RETURN_LOG(int, "Cannot consume the token");
 		}
 	}
 
 	if(ERROR_CODE(int) == pss_comp_expect_token(comp, PSS_COMP_LEX_TOKEN_RBRACE))
-	    ERROR_RETURN_LOG(int, "Right parenthesis expected");
+		ERROR_RETURN_LOG(int, "Right parenthesis expected");
 
 	return 0;
 }
@@ -968,7 +968,7 @@ int pss_comp_dict_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 	int rc = _parse(comp, buf, &ctx);
 
 	if(NULL != ctx && ERROR_CODE(int) == _service_ctx_free(ctx))
-	    ERROR_RETURN_LOG(int, "Cannot dispose the service context for current service literal");
+		ERROR_RETURN_LOG(int, "Cannot dispose the service context for current service literal");
 
 	return rc;
 }

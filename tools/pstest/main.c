@@ -35,16 +35,16 @@ static inline int _load_default_module(void)
 
 	args[0] = "test";
 	if(itc_modtab_insmod(&module_test_module_def, 1, args) == ERROR_CODE(int))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(itc_modtab_insmod(&module_mem_module_def, 0, NULL) == ERROR_CODE(int))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(itc_modtab_insmod(&module_legacy_file_module_def, 0, NULL) == ERROR_CODE(int))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(itc_modtab_insmod(&module_pssm_module_def, 0, NULL) == ERROR_CODE(int))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	return rc;
 }
@@ -86,7 +86,7 @@ static void split(const char* string, char delim, void (*action)(char*))
 			needs_flush = 0;
 		}
 		else
-		    buffer[size++] = *string, needs_flush = 1;
+			buffer[size++] = *string, needs_flush = 1;
 	}
 	if(needs_flush)
 	{
@@ -239,55 +239,55 @@ static void run_task(uint32_t argc, char const* const* argv)
 	}
 	task = runtime_stab_create_exec_task(sid, 0);
 	if(NULL != pipe_redir)
-	    split(pipe_redir, ',', init_pipe);
+		split(pipe_redir, ',', init_pipe);
 
 	runtime_api_pipe_id_t pid;
 	for(pid = 0; pid < task->npipes; pid ++)
-	    if(forks[pid] & RUNTIME_API_PIPE_SHADOW)
-	    {
-		    runtime_api_pipe_id_t target = RUNTIME_API_PIPE_GET_TARGET(forks[pid]);
-		    if(task->pipes[target] == NULL) continue;
-		    itc_module_pipe_t* pipe = itc_module_pipe_fork(task->pipes[target], forks[pid], 0, filenames[pid]);
-		    if(NULL == pipe)
-		    {
-			    LOG_FATAL("Cannot fork the pipe");
-			    exit(1);
-		    }
-		    /* the pipe handle is actually the input side of the pipe, we put here, only want to make it gets disposed after
-		     * the task is deallocated */
-		    task->pipes[pid] = pipe;
-	    }
-
-	if(task->flags & RUNTIME_TASK_FLAG_ACTION_ASYNC)
-	{
-
-		if(NULL == (task->async_handle = sched_async_fake_handle_new()))
+		if(forks[pid] & RUNTIME_API_PIPE_SHADOW)
 		{
-			LOG_FATAL("Cannot create the fake async handle");
+			runtime_api_pipe_id_t target = RUNTIME_API_PIPE_GET_TARGET(forks[pid]);
+			if(task->pipes[target] == NULL) continue;
+			itc_module_pipe_t* pipe = itc_module_pipe_fork(task->pipes[target], forks[pid], 0, filenames[pid]);
+			if(NULL == pipe)
+			{
+				LOG_FATAL("Cannot fork the pipe");
+				exit(1);
+			}
+			/* the pipe handle is actually the input side of the pipe, we put here, only want to make it gets disposed after
+			 * the task is deallocated */
+			task->pipes[pid] = pipe;
+		}
+
+		if(task->flags & RUNTIME_TASK_FLAG_ACTION_ASYNC)
+		{
+
+			if(NULL == (task->async_handle = sched_async_fake_handle_new()))
+			{
+				LOG_FATAL("Cannot create the fake async handle");
+				exit(1);
+			}
+
+			/* If this is an asnyc task, we need to create all its companions */
+			if(ERROR_CODE(int) == runtime_task_async_companions(task, &async_exec, &async_cleanup))
+			{
+				LOG_FATAL("Cannot create the companion");
+				exit(1);
+			}
+		}
+
+		if(runtime_task_start(task) < 0)
+		{
+			LOG_FATAL("Task terminates with an error code");
 			exit(1);
 		}
 
-		/* If this is an asnyc task, we need to create all its companions */
-		if(ERROR_CODE(int) == runtime_task_async_companions(task, &async_exec, &async_cleanup))
+		if(runtime_task_free(task) == ERROR_CODE(int))
 		{
-			LOG_FATAL("Cannot create the companion");
+			LOG_FATAL("Cannot cleanup the task");
 			exit(1);
 		}
-	}
 
-	if(runtime_task_start(task) < 0)
-	{
-		LOG_FATAL("Task terminates with an error code");
-		exit(1);
-	}
-
-	if(runtime_task_free(task) == ERROR_CODE(int))
-	{
-		LOG_FATAL("Cannot cleanup the task");
-		exit(1);
-	}
-
-	task = NULL;
+		task = NULL;
 
 	if(async_exec != NULL && ERROR_CODE(int) == runtime_task_start(async_exec))
 	{
@@ -362,19 +362,19 @@ int _program(int argc, char** argv)
 		switch(c)
 		{
 			case 's':
-			    servlet_path = optarg;
-			    break;
+				servlet_path = optarg;
+				break;
 			case 'p':
-			    pipe_redir = optarg;
-			    break;
+				pipe_redir = optarg;
+				break;
 			case 'l':
-			    list = 1;
-			    break;
+				list = 1;
+				break;
 			case 'h':
-			    display_help(EXIT_SUCCESS);
+				display_help(EXIT_SUCCESS);
 
 			case 'v':
-			    show_version(EXIT_SUCCESS);
+				show_version(EXIT_SUCCESS);
 
 			default:
 			    fprintf(stderr, "Invalid argument %c\n", c);
@@ -385,7 +385,7 @@ int _program(int argc, char** argv)
 	}
 
 	if(NULL == servlet_path)
-	    servlet_path = "";
+		servlet_path = "";
 
 	if(optind == argc)
 	{

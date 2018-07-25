@@ -43,7 +43,7 @@ static inline _mem_node_t* _mem_node_new(size_t size)
 	_mem_node_t* newnode = (_mem_node_t*)malloc(sizeof(_mem_node_t) + size);
 
 	if(NULL == newnode)
-	    ERROR_PTR_RETURN_LOG_ERRNO("cannot allocate memory for new mem node.");
+		ERROR_PTR_RETURN_LOG_ERRNO("cannot allocate memory for new mem node.");
 
 	newnode->size = size;
 	newnode->usedsize = 0;
@@ -57,10 +57,10 @@ mempool_oneway_t* mempool_oneway_new(size_t init_size)
 	mempool_oneway_t* newtable = (mempool_oneway_t*)malloc(sizeof(mempool_oneway_t));
 
 	if(NULL == newtable)
-	    ERROR_PTR_RETURN_LOG_ERRNO("cannot allocate memory for new mem table.");
+		ERROR_PTR_RETURN_LOG_ERRNO("cannot allocate memory for new mem table.");
 
 	if(NULL == (newtable->nodes = _mem_node_new(init_size)))
-	    ERROR_LOG_GOTO(ERR, "cannot allocate the intial memory node");
+		ERROR_LOG_GOTO(ERR, "cannot allocate the intial memory node");
 
 	newtable->size = init_size;
 
@@ -82,17 +82,17 @@ void* mempool_oneway_alloc(mempool_oneway_t* pool, size_t size)
 	size_t newnodesize = pool->size;
 
 	if(0 == size)
-	    ERROR_PTR_RETURN_LOG("invalid size input 0.");
+		ERROR_PTR_RETURN_LOG("invalid size input 0.");
 
 	if(size > remainsize)
 	{
 		if(size > pool->size)
-		    newnodesize = size;
+			newnodesize = size;
 
 		newnode = _mem_node_new(newnodesize);
 
 		if(NULL == newnode)
-		    ERROR_PTR_RETURN_LOG("cannot create new mem node");
+			ERROR_PTR_RETURN_LOG("cannot create new mem node");
 
 		pool->size += newnodesize;
 		newnode->next = pool->nodes;

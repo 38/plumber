@@ -72,14 +72,14 @@ static inline _buffer_t* _buffer_insert(_buffer_t* buffer, pstd_option_param_typ
 	switch(ret->params[ret->size].type = type)
 	{
 		case PSTD_OPTION_TYPE_INT:
-		    ret->params[ret->size].intval = *(const int64_t*)value;
-		    break;
+			ret->params[ret->size].intval = *(const int64_t*)value;
+			break;
 		case PSTD_OPTION_TYPE_DOUBLE:
-		    ret->params[ret->size].doubleval = *(const double*)value;
-		    break;
+			ret->params[ret->size].doubleval = *(const double*)value;
+			break;
 		case PSTD_OPTION_STRING:
-		    ret->params[ret->size].strval = (const char*)value;
-		    break;
+			ret->params[ret->size].strval = (const char*)value;
+			break;
 		default:
 		    ERROR_PTR_RETURN_LOG("Invalid type %d", type);
 	}
@@ -154,31 +154,31 @@ static inline uint32_t _parse_argument(const char* pattern, uint32_t argc, char 
 		switch(pattern[0])
 		{
 			case 0:
-			    return ret;
+				return ret;
 			case 'I':
-			    if(_parse_int(argv[0], &intval) == ERROR_CODE(int))
-			    {
-				    if(optional && ret == 0) goto RET;
-				    else ERROR_LOG_GOTO(ERR, "Invalid argument");
-			    }
-			    val = &intval;
-			    type = PSTD_OPTION_TYPE_INT;
-			    break;
+				if(_parse_int(argv[0], &intval) == ERROR_CODE(int))
+				{
+					if(optional && ret == 0) goto RET;
+					else ERROR_LOG_GOTO(ERR, "Invalid argument");
+				}
+				val = &intval;
+				type = PSTD_OPTION_TYPE_INT;
+				break;
 			case 'D':
-			    if(_parse_double(argv[0], &doubleval) == ERROR_CODE(int))
-			    {
-				    if(optional && ret == 0) goto RET;
-				    else ERROR_LOG_GOTO(ERR, "Invalid argument");
-			    }
-			    val = &doubleval;
-			    type = PSTD_OPTION_TYPE_DOUBLE;
-			    break;
+				if(_parse_double(argv[0], &doubleval) == ERROR_CODE(int))
+				{
+					if(optional && ret == 0) goto RET;
+					else ERROR_LOG_GOTO(ERR, "Invalid argument");
+				}
+				val = &doubleval;
+				type = PSTD_OPTION_TYPE_DOUBLE;
+				break;
 			case 'S':
-			    if(optional && ret == 0 && _is_valid_option(argv[0])) goto RET;
-			    else strval = argv[0];
-			    val = strval;
-			    type = PSTD_OPTION_STRING;
-			    break;
+				if(optional && ret == 0 && _is_valid_option(argv[0])) goto RET;
+				else strval = argv[0];
+				val = strval;
+				type = PSTD_OPTION_STRING;
+				break;
 			default:
 			    continue;
 		}
@@ -187,7 +187,7 @@ static inline uint32_t _parse_argument(const char* pattern, uint32_t argc, char 
 		*buffer = rc;
 	}
 	if(optional || pattern[0] == 0)
-	    goto RET;
+		goto RET;
 ERR:
 	ret = ERROR_CODE(uint32_t);
 	if(*buffer != NULL) _buffer_free(*buffer);
@@ -203,9 +203,9 @@ static inline int _optionscmp(const void* l, const void* r)
 	const pstd_option_t* right = (const pstd_option_t*)r;
 
 	if(left->long_opt != NULL && right->long_opt != NULL)
-	    return strcmp(left->long_opt, right->long_opt);
+		return strcmp(left->long_opt, right->long_opt);
 	else if(left->long_opt != NULL || right->long_opt != NULL)
-	    return (left->long_opt != NULL) - (right->long_opt != NULL);
+		return (left->long_opt != NULL) - (right->long_opt != NULL);
 	else return ((int)left->short_opt) - ((int)right->short_opt);
 }
 
@@ -302,8 +302,8 @@ int pstd_option_handler_print_help(pstd_option_data_t data)
 	size_t max_long_opt_len = 0;
 	uint32_t i;
 	for(i = 0; i < data.option_array_size; i ++)
-	    if(NULL != options[i].long_opt && max_long_opt_len < strlen(options[i].long_opt))
-	        max_long_opt_len = strlen(options[i].long_opt);
+		if(NULL != options[i].long_opt && max_long_opt_len < strlen(options[i].long_opt))
+			max_long_opt_len = strlen(options[i].long_opt);
 
 	if(NULL == fout) fout = stderr;
 

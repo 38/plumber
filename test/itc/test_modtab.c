@@ -52,7 +52,7 @@ int test_opendir(void)
 	int count = 0;
 
 	for(;(entry = itc_modtab_dir_iter_next(&iter)) != NULL; count ++)
-	    LOG_DEBUG("Module 0x%x: @%p with context @%p", entry->module_id, entry->module, entry->context);
+		LOG_DEBUG("Module 0x%x: @%p with context @%p", entry->module_id, entry->module, entry->context);
 
 	ASSERT(N == count, CLEANUP_NOP);
 
@@ -61,7 +61,7 @@ int test_opendir(void)
 	ASSERT_OK(itc_modtab_open_dir("pipe.test.__test_2", &iter), CLEANUP_NOP);
 
 	for(;(entry = itc_modtab_dir_iter_next(&iter)) != NULL; count ++)
-	    LOG_DEBUG("Module 0x%x: @%p with context @%p", entry->module_id, entry->module, entry->context);
+		LOG_DEBUG("Module 0x%x: @%p with context @%p", entry->module_id, entry->module, entry->context);
 
 	ASSERT(50 /* 2xx */ + 10 /* 2x */ + 1  == count, CLEANUP_NOP);
 
@@ -70,7 +70,7 @@ int test_opendir(void)
 	count = 0;
 
 	for(;(entry = itc_modtab_dir_iter_next(&iter)) != NULL; count ++)
-	    LOG_DEBUG("Module 0x%x: @%p with context @%p", entry->module_id, entry->module, entry->context);
+		LOG_DEBUG("Module 0x%x: @%p with context @%p", entry->module_id, entry->module, entry->context);
 
 	ASSERT(N <= count, CLEANUP_NOP);
 

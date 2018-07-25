@@ -27,7 +27,7 @@ static inline int _wait_stage(thread_data_t* data, uint32_t flag)
 {
 	ASSERT_OK(pthread_mutex_lock(&data->mutex), CLEANUP_NOP);
 	while(data->flag <= flag)
-	    ASSERT_OK(pthread_cond_wait(&data->cond, &data->mutex), CLEANUP_NOP);
+		ASSERT_OK(pthread_cond_wait(&data->cond, &data->mutex), CLEANUP_NOP);
 	ASSERT_OK(pthread_mutex_unlock(&data->mutex), CLEANUP_NOP);
 
 	return 0;
@@ -58,7 +58,7 @@ static inline int _sync_stage(uint32_t thread_id, uint32_t stage)
 	ASSERT_OK(pthread_mutex_lock(&data[thread_id].stage_mutex), CLEANUP_NOP);
 
 	while(data[thread_id].stage < stage)
-	    ASSERT_OK(pthread_cond_wait(&data[thread_id].stage_cond, &data[thread_id].stage_mutex), CLEANUP_NOP);
+		ASSERT_OK(pthread_cond_wait(&data[thread_id].stage_cond, &data[thread_id].stage_mutex), CLEANUP_NOP);
 	ASSERT_OK(pthread_mutex_unlock(&data[thread_id].stage_mutex), CLEANUP_NOP);
 	return 0;
 }
@@ -66,7 +66,7 @@ static inline int _sync_stage_all(uint32_t stage)
 {
 	uint32_t i;
 	for(i = 0; i < NTHREADS; i ++)
-	    ASSERT_OK(_sync_stage(i, stage), CLEANUP_NOP);
+		ASSERT_OK(_sync_stage(i, stage), CLEANUP_NOP);
 	return 0;
 }
 static inline int _validate_stage(uint32_t stage)
@@ -74,7 +74,7 @@ static inline int _validate_stage(uint32_t stage)
 	_sync_stage_all(stage);
 	uint32_t i;
 	for(i = 0; i < NTHREADS; i ++)
-	    ASSERT_OK(data[i].rc, CLEANUP_NOP);
+		ASSERT_OK(data[i].rc, CLEANUP_NOP);
 	return 0;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////

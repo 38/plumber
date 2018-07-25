@@ -47,13 +47,13 @@ int plumber_finalize()
 	int rc = 0;
 
 	if(ERROR_CODE(int) == itc_modtab_on_exit())
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(ERROR_CODE(int) == runtime_stab_dispose_all_namespaces())
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(ERROR_CODE(int) == INIT_DO_FINALIZATION(modules))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	return rc;
 }

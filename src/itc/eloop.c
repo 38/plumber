@@ -68,7 +68,7 @@ static inline void* _module_event_loop_main(void* data)
 	itc_equeue_token_t token = itc_equeue_module_token(ITC_MODULE_EVENT_QUEUE_SIZE, ITC_EQUEUE_EVENT_TYPE_IO);
 
 	if(ERROR_CODE(itc_equeue_token_t) == token)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate token from the event queue from module #%"PRIu32, _self->module_type);
+		ERROR_PTR_RETURN_LOG("Cannot allocate token from the event queue from module #%"PRIu32, _self->module_type);
 
 	for(;!_self->killed;)
 	{
@@ -82,7 +82,7 @@ static inline void* _module_event_loop_main(void* data)
 		{
 			itc_module_flags_t flags = itc_module_get_flags(_self->module_type);
 			if(ERROR_CODE(itc_module_flags_t) == flags)
-			    LOG_ERROR("Cannot get the module flags from module #%u", _self->module_type);
+				LOG_ERROR("Cannot get the module flags from module #%u", _self->module_type);
 			if(flags & ITC_MODULE_FLAGS_EVENT_EXHUASTED)
 			{
 				LOG_NOTICE("Event from the module #%u has been exhuasted, exiting the event loop", _self->module_type);
@@ -127,11 +127,11 @@ static inline int _init_eloop(void)
 	itc_module_type_t* modules = NULL;
 
 	if(NULL == (modules = itc_module_get_event_accepting_modules()))
-	    ERROR_RETURN_LOG(int, "Cannot get event accepting modules");
+		ERROR_RETURN_LOG(int, "Cannot get event accepting modules");
 
 	uint32_t i;
 	for(i = 0; modules[i] != ERROR_CODE(itc_module_type_t); i ++)
-	    LOG_INFO("Found Event Accepting Module: %s", itc_module_get_name(modules[i], NULL, 0));
+		LOG_INFO("Found Event Accepting Module: %s", itc_module_get_name(modules[i], NULL, 0));
 
 	_thread_data = (_thread_data_t*)calloc(i, sizeof(_thread_data_t));
 	if(NULL == _thread_data)
@@ -163,7 +163,7 @@ static inline int _init_eloop(void)
 int itc_eloop_start(void)
 {
 	if(ERROR_CODE(int) == _init_eloop())
-	    ERROR_RETURN_LOG(int, "Cannot initialize the event loop");
+		ERROR_RETURN_LOG(int, "Cannot initialize the event loop");
 
 	struct sigaction act;
 	act.sa_handler = _on_thread_killed;
@@ -171,13 +171,13 @@ int itc_eloop_start(void)
 	sigemptyset(&act.sa_mask);
 
 	if(sigaction(_SIGTHREADKILL, &act, NULL) < 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot install signal handler");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot install signal handler");
 
 	uint32_t i;
 	for(i = 0; i < _thread_count; i ++)
 	{
 		if(NULL == (_thread_data[i].thread = thread_new(_module_event_loop_main, _thread_data + i, THREAD_TYPE_EVENT)))
-		    LOG_WARNING("Cannot create new thread for the event loop of ITC module %s", itc_module_get_name(_thread_data[i].module_type, NULL, 0));
+			LOG_WARNING("Cannot create new thread for the event loop of ITC module %s", itc_module_get_name(_thread_data[i].module_type, NULL, 0));
 		else
 		{
 			_thread_data[i].started = 1;
@@ -272,7 +272,7 @@ int itc_eloop_set_all_accept_param(itc_module_pipe_param_t param)
 {
 	uint32_t i;
 	for(i = 0; i < _thread_count; i ++)
-	    _update_accept_param(i, param);
+		_update_accept_param(i, param);
 
 	LOG_DEBUG("Accept param for all module has been successfully updated");
 	return 0;

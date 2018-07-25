@@ -35,7 +35,7 @@ static int exec(void* mem)
 	{
 		uint32_t buf;
 		if(pipe_read(pipe_array_get(ctx->inputs, i), &buf, sizeof(uint32_t)) > 0)
-		    sum += buf;
+			sum += buf;
 	}
 	pipe_write(ctx->output, &sum, sizeof(uint32_t));
 

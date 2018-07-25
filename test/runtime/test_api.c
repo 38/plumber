@@ -24,40 +24,40 @@ static void trap(int id)
 	switch(id)
 	{
 		case 0:
-		    if(intarr[0] < 0) return;
-		    pdt = task->servlet->pdt;
-		    pipe_open_n = (unsigned)intarr[0];
-		    pipe_open_rc = malloc(sizeof(int) * (unsigned)intarr[0]);
-		    if(pipe_open_rc != NULL) memcpy(pipe_open_rc, intarr + 1, sizeof(int) * (unsigned)intarr[0]);
-		    return;
+			if(intarr[0] < 0) return;
+			pdt = task->servlet->pdt;
+			pipe_open_n = (unsigned)intarr[0];
+			pipe_open_rc = malloc(sizeof(int) * (unsigned)intarr[0]);
+			if(pipe_open_rc != NULL) memcpy(pipe_open_rc, intarr + 1, sizeof(int) * (unsigned)intarr[0]);
+			return;
 		case 1:
-		    pipe_open_dup_rc = intarr[0];
-		    return;
+			pipe_open_dup_rc = intarr[0];
+			return;
 		case 2:
-		    if(strcmp(strarr[0], strarr[1]) == 0)
-		        read_write_test_rc = 0;
-		    else
-		        read_write_test_rc = -1;
-		    return;
+			if(strcmp(strarr[0], strarr[1]) == 0)
+				read_write_test_rc = 0;
+			else
+				read_write_test_rc = -1;
+			return;
 		case 3:
-		    if(strcmp(strarr[0], strarr[1]) == 0)
-		        read_inpalce_rc = 0;
-		    else
-		        read_inpalce_rc = 1;
-		    return;
+			if(strcmp(strarr[0], strarr[1]) == 0)
+				read_inpalce_rc = 0;
+			else
+				read_inpalce_rc = 1;
+			return;
 		case 4:
-		    if(intarr[0] != 0) eof_rc = -1;
-		    if(intarr[1] != 0) eof_rc = -1;
-		    break;
+			if(intarr[0] != 0) eof_rc = -1;
+			if(intarr[1] != 0) eof_rc = -1;
+			break;
 		case 5:
-		    cntl_rc = 0;
-		    break;
+			cntl_rc = 0;
+			break;
 		case 35:
-		    cntl_module_rc ++;
-		    break;
+			cntl_module_rc ++;
+			break;
 		case 105:
-		    cntl_module_rc ++;
-		    break;
+			cntl_module_rc ++;
+			break;
 		default:
 		    LOG_WARNING("unknown trap");
 	}
@@ -79,10 +79,10 @@ int test_pipe_open(void)
 	ASSERT_PTR(pdt, CLEANUP_NOP);
 
 	for(i = 0; i < pipe_open_n; i ++)
-	    ASSERT((unsigned)pipe_open_rc[i] == i + 2, CLEANUP_NOP);
+		ASSERT((unsigned)pipe_open_rc[i] == i + 2, CLEANUP_NOP);
 
 	for(i = 0; i < pipe_open_n; i ++)
-	    ASSERT(runtime_pdt_get_flags_by_pd(pdt, (runtime_api_pipe_id_t)(i + 2)) == (runtime_api_pipe_flags_t)(i * 3), CLEANUP_NOP);
+		ASSERT(runtime_pdt_get_flags_by_pd(pdt, (runtime_api_pipe_id_t)(i + 2)) == (runtime_api_pipe_flags_t)(i * 3), CLEANUP_NOP);
 
 	for(i = 0; i < pipe_open_n; i ++)
 	{

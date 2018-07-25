@@ -48,9 +48,9 @@ static itc_module_type_t _limit;
 void itc_modtab_set_handle_header_size(size_t size)
 {
 	if(_header_size == 0)
-	    _header_size = size;
+		_header_size = size;
 	else
-	    LOG_ERROR("Attempt to change the size of handle header!");
+		LOG_ERROR("Attempt to change the size of handle header!");
 }
 
 int itc_modtab_init()
@@ -98,8 +98,8 @@ int itc_modtab_on_exit()
 	int rc = 0;
 	uint32_t i;
 	for(i = 0; i < _limit; i++)
-	    if(_modules[i] != NULL && ERROR_CODE(int) == itc_module_on_exit(_modules[i]->module_id))
-	        rc = ERROR_CODE(int);
+		if(_modules[i] != NULL && ERROR_CODE(int) == itc_module_on_exit(_modules[i]->module_id))
+			rc = ERROR_CODE(int);
 
 	return rc;
 }
@@ -109,8 +109,8 @@ int itc_modtab_finalize()
 	int rc = 0;
 	uint32_t i;
 	for(i = 0; i < _limit; i ++)
-	    if(_modules[i] != NULL && _mod_free(_modules[i]) == ERROR_CODE(int))
-	        rc = ERROR_CODE(int);
+		if(_modules[i] != NULL && _mod_free(_modules[i]) == ERROR_CODE(int))
+			rc = ERROR_CODE(int);
 	return rc;
 }
 
@@ -165,13 +165,13 @@ static inline itc_modtab_instance_t* _mod_load(const itc_module_t* module, uint3
 	/* initialize the context */
 	ret->context = _init_module(module, argc, argv);
 	if(NULL == ret->context && module->context_size > 0)
-	    ERROR_LOG_GOTO(ERR, "Cannot create the context for the module");
+		ERROR_LOG_GOTO(ERR, "Cannot create the context for the module");
 
 	/* Create the memory pool if needed */
 	if((module->accept != NULL || module->allocate != NULL))
 	{
 		if(NULL == (ret->handle_pool = mempool_objpool_new((uint32_t)(_header_size + module->handle_size))))
-		    ERROR_LOG_GOTO(ERR, "Cannot create the memory pool for the module pipe handle");
+			ERROR_LOG_GOTO(ERR, "Cannot create the memory pool for the module pipe handle");
 
 		/* For the event loop thread, we actually creates the module pipe handle frequently, but it will be
 		 * passed to the dispatcher thread, so we want the allocation unit to be large, and allow more items
@@ -182,7 +182,7 @@ static inline itc_modtab_instance_t* _mod_load(const itc_module_t* module, uint3
 		};
 
 		if(ERROR_CODE(int) == mempool_objpool_set_thread_policy(ret->handle_pool, THREAD_TYPE_EVENT, event_loop_policy))
-		    ERROR_LOG_GOTO(ERR, "Cannot setup the event loop policy for the module pipe handle");
+			ERROR_LOG_GOTO(ERR, "Cannot setup the event loop policy for the module pipe handle");
 
 		/* For the AsyncIO thread and worker thread, we just dispose them, but no need for allocating them (This is not true
 		 * because the mem_pipe, etc, but it doesn't hand off the memory to other thread). So for this kinds of thread, we
@@ -194,7 +194,7 @@ static inline itc_modtab_instance_t* _mod_load(const itc_module_t* module, uint3
 		};
 
 		if(ERROR_CODE(int) == mempool_objpool_set_thread_policy(ret->handle_pool, THREAD_TYPE_WORKER | THREAD_TYPE_IO, dispose_policy))
-		    ERROR_LOG_GOTO(ERR, "Cannot setup the IO/Worker policy for the module pipe handle");
+			ERROR_LOG_GOTO(ERR, "Cannot setup the IO/Worker policy for the module pipe handle");
 
 	}
 	else ret->handle_pool = NULL;
@@ -213,7 +213,7 @@ static inline itc_modtab_instance_t* _mod_load(const itc_module_t* module, uint3
 	}
 
 	if(NULL == module->get_path(ret->context, name_buf, bufsize))
-	    LOG_WARNING("Cannot get the path of this module instance, the module may be inaccessible");
+		LOG_WARNING("Cannot get the path of this module instance, the module may be inaccessible");
 
 	/* If the module path is a empty string and has a prefix, strip the last dot */
 	if(*name_buf == 0 && path_buffer != name_buf) name_buf[-1] = 0;
@@ -260,18 +260,18 @@ static inline lang_prop_value_t _get_module_property(const char* symbol, const v
 		switch(value.type)
 		{
 			case ITC_MODULE_PROPERTY_TYPE_INT:
-			    ret.type = LANG_PROP_TYPE_INTEGER;
-			    ret.num  = value.num;
-			    return ret;
+				ret.type = LANG_PROP_TYPE_INTEGER;
+				ret.num  = value.num;
+				return ret;
 			case ITC_MODULE_PROPERTY_TYPE_STRING:
-			    ret.type = LANG_PROP_TYPE_STRING;
-			    ret.str  = value.str;
-			    return ret;
+				ret.type = LANG_PROP_TYPE_STRING;
+				ret.str  = value.str;
+				return ret;
 			case ITC_MODULE_PROPERTY_TYPE_NONE:
-			    ret.type = LANG_PROP_TYPE_NONE;
-			    return ret;
+				ret.type = LANG_PROP_TYPE_NONE;
+				return ret;
 			case ITC_MODULE_PROPERTY_TYPE_ERROR:
-			    return ret;
+				return ret;
 		}
 	}
 	else
@@ -294,7 +294,7 @@ static inline lang_prop_value_t _get_module_property(const char* symbol, const v
 static inline int _set_module_property(const char* symbol, lang_prop_value_t value, const void* data)
 {
 	if(NULL == data || NULL == symbol || LANG_PROP_TYPE_NONE == value.type || LANG_PROP_TYPE_ERROR == value.type)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	const itc_modtab_instance_t* node  = (const itc_modtab_instance_t*)data;
 
@@ -305,13 +305,13 @@ static inline int _set_module_property(const char* symbol, lang_prop_value_t val
 	switch(value.type)
 	{
 		case LANG_PROP_TYPE_INTEGER:
-		    prop.type = ITC_MODULE_PROPERTY_TYPE_INT;
-		    prop.num  = value.num;
-		    break;
+			prop.type = ITC_MODULE_PROPERTY_TYPE_INT;
+			prop.num  = value.num;
+			break;
 		case LANG_PROP_TYPE_STRING:
-		    prop.type = ITC_MODULE_PROPERTY_TYPE_STRING;
-		    prop.str = value.str;
-		    break;
+			prop.type = ITC_MODULE_PROPERTY_TYPE_STRING;
+			prop.str = value.str;
+			break;
 		default:
 		    ERROR_RETURN_LOG(int, "Unsupported module property type");
 	}
@@ -347,9 +347,9 @@ int itc_modtab_insmod(const itc_module_t* module, uint32_t argc, char const* con
 		.symbol_prefix = node->path
 	};
 	if(ERROR_CODE(int) == lang_prop_register_callback(&cb))
-	    LOG_WARNING("Cannot register the callback function for module instance %s", node->path);
+		LOG_WARNING("Cannot register the callback function for module instance %s", node->path);
 	else
-	    LOG_DEBUG("Callback function for module %s has been successfully registered", node->path);
+		LOG_DEBUG("Callback function for module %s has been successfully registered", node->path);
 
 	LOG_INFO("Module %s has been registered as module 0x%x", node->path, _limit);
 	node->module_id = _limit ++;
@@ -381,9 +381,9 @@ static inline int _bsearch(int len, char ch, int* l, int* r)
 			char mc = _path_index[mm]->path[len];
 
 			if(mc < ch)
-			    ll = mm;
+				ll = mm;
 			else
-			    rr = mm;
+				rr = mm;
 		}
 
 		if(rr == *r || ch != _path_index[rr]->path[len]) return 0;
@@ -398,9 +398,9 @@ static inline int _bsearch(int len, char ch, int* l, int* r)
 		char mc = _path_index[mm]->path[len];
 
 		if(mc <= ch)
-		    ll = mm;
+			ll = mm;
 		else
-		    rr = mm;
+			rr = mm;
 	}
 
 	*r = rr;
@@ -411,7 +411,7 @@ const itc_modtab_instance_t* itc_modtab_get_from_path(const char* path)
 {
 	int l = 0, r = _limit, i;
 	for(i = 0; path[i] != 0 && r - l > 1; i ++)
-	    if(_bsearch(i, path[i], &l, &r) == 0) goto NOT_FOUND;
+		if(_bsearch(i, path[i], &l, &r) == 0) goto NOT_FOUND;
 
 	if(r - l > 0 && strcmp(path, _path_index[l]->path) == 0)
 	{
@@ -429,7 +429,7 @@ int itc_modtab_open_dir(const char* path, itc_modtab_dir_iter_t* iter)
 {
 	int l = 0, r = _limit, i;
 	for(i = 0; path[i] != 0 && r - l > 1; i ++)
-	    if(_bsearch(i, path[i], &l, &r) == 0) goto EMPTY;
+		if(_bsearch(i, path[i], &l, &r) == 0) goto EMPTY;
 
 	for(;r > l && path[i] != 0 && _path_index[l]->path[i] == path[i]; i ++);
 

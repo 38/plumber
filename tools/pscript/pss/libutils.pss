@@ -13,9 +13,9 @@
  *       etc. This interface also can provides configuration utils for other library as well.
  *       It requires the PSSM module loaded
  **/
-LibUtils.get_config = function LibUtils.get_config(lib_name, key) 
+LibUtils.get_config = function LibUtils.get_config(lib_name, key)
 {
-	if(plumber.std != 1) 
+	if(plumber.std != 1)
 	{
 		if(module.binary.has_pssm != 1)
 		{
@@ -41,8 +41,8 @@ LibUtils.set_config = function LibUtils.set_config(lib_name, key, val)
 	{
 		log("error", "Only number or string is supported by the library configuration");
 	}
-	
-	if(plumber.std != 1) 
+
+	if(plumber.std != 1)
 	{
 		if(module.binary.has_pssm != 1)
 		{

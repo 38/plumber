@@ -51,7 +51,7 @@ static inline const char* _get_managed_string(_env_t* env, const char* str)
 	int rc = hashmap_insert(env->strings, str, strlen(str) + 1, NULL, 0, &result, 0);
 
 	if(ERROR_CODE(int) == rc)
-	    ERROR_PTR_RETURN_LOG("Cannot look for the string table");
+		ERROR_PTR_RETURN_LOG("Cannot look for the string table");
 
 	return (const char*)result.key_data;
 }
@@ -69,7 +69,7 @@ static inline char const** _dup_type(char const* const* type)
 
 	char const* * ret = (char const**)malloc(sizeof(*ret) * (count + 1));
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the parsed type");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the parsed type");
 
 	memcpy(ret, type, sizeof(*ret) * (count + 1));
 
@@ -95,7 +95,7 @@ static inline char const** _parse_type(_env_t* env, const char* type_expr)
 		/* Strip the leading whitespaces  */
 		int is_alt = 0;
 		for(;type_expr[start] && (type_expr[start] == ' ' || type_expr[start] == '\t' || type_expr[start] == '|'); start ++)
-		    if(type_expr[start] == '|') is_alt = 1;
+			if(type_expr[start] == '|') is_alt = 1;
 
 		/* If it's the alternation operator, we need to add another NULL between two different options */
 		if(is_alt) nsect ++;
@@ -103,7 +103,7 @@ static inline char const** _parse_type(_env_t* env, const char* type_expr)
 		int has_content = 0;
 		/* Go through the simple type or type variable */
 		for(;type_expr[start] && type_expr[start] != ' ' && type_expr[start] != '\t' && type_expr[start] != '|'; start ++)
-		    has_content = 1;
+			has_content = 1;
 
 		if(has_content) nsect ++;
 	}
@@ -112,7 +112,7 @@ static inline char const** _parse_type(_env_t* env, const char* type_expr)
 
 	char const** ret = (char const**)malloc(sizeof(*ret) * (nsect + 2));
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the parsed type expression");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the parsed type expression");
 
 	ret[nsect + 1] = NULL;
 
@@ -123,7 +123,7 @@ static inline char const** _parse_type(_env_t* env, const char* type_expr)
 		/* Strip the leading whitespaces */
 		int is_alt = 0;
 		for(len = 0;*type_expr != 0 && (*type_expr == ' ' || *type_expr == '\t' || *type_expr == '|'); type_expr ++, len ++)
-		    if(*type_expr == '|') is_alt = 1;
+			if(*type_expr == '|') is_alt = 1;
 
 
 		if(is_alt)
@@ -134,7 +134,7 @@ static inline char const** _parse_type(_env_t* env, const char* type_expr)
 
 		/* Then we need to copy all the content to the type buffer */
 		for(len = 0;*type_expr != 0 && *type_expr != ' ' && *type_expr != '\t' && *type_expr != '|'; type_expr ++, len ++)
-		    type_buf[len] = *type_expr;
+			type_buf[len] = *type_expr;
 		type_buf[len] = 0;
 
 		if(type_buf[0] != '$')
@@ -143,10 +143,10 @@ static inline char const** _parse_type(_env_t* env, const char* type_expr)
 			if(type_buf[0] != '@')
 			{
 				if(NULL == (ret[i] = proto_db_get_managed_name(type_buf)))
-				    ERROR_LOG_GOTO(ERR, "Libproto can not find the type named %s", type_buf);
+					ERROR_LOG_GOTO(ERR, "Libproto can not find the type named %s", type_buf);
 			}
 			else if(NULL == (ret[i] = _get_managed_string(env, type_buf)))
-			    ERROR_LOG_GOTO(ERR, "Cannot get the mamanged metadata %s", type_buf);
+				ERROR_LOG_GOTO(ERR, "Cannot get the mamanged metadata %s", type_buf);
 		}
 		else
 		{
@@ -173,28 +173,28 @@ static inline _env_t* _env_new(void)
 {
 	_env_t* ret = (_env_t*)calloc(1, sizeof(*ret));
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the environment table");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the environment table");
 
 	/* TODO: get rid of magic numbers */
 	if(NULL == (ret->namemap = hashmap_new(SCHED_TYPE_ENV_HASH_SIZE, 128)))
-	    ERROR_LOG_ERRNO_GOTO(ERR,"Cannot create the name hash map for the environment table");
+		ERROR_LOG_ERRNO_GOTO(ERR,"Cannot create the name hash map for the environment table");
 
 	if(NULL == (ret->values = vector_new(sizeof(char const* const*), 128)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create the value vector for the environment table");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create the value vector for the environment table");
 
 	if(NULL == (ret->strings = hashmap_new(SCHED_TYPE_ENV_HASH_SIZE, 128)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create the string table for the environment");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create the string table for the environment");
 
 	return ret;
 ERR:
 	if(NULL != ret)
 	{
 		if(NULL != ret->namemap)
-		    hashmap_free(ret->namemap);
+			hashmap_free(ret->namemap);
 		if(NULL != ret->values)
-		    vector_free(ret->values);
+			vector_free(ret->values);
 		if(NULL != ret->strings)
-		    hashmap_free(ret->strings);
+			hashmap_free(ret->strings);
 	}
 
 	return NULL;
@@ -211,10 +211,10 @@ static inline int _env_free(_env_t* env)
 	if(NULL != env)
 	{
 		if(NULL != env->namemap && ERROR_CODE(int) == hashmap_free(env->namemap))
-		    rc = ERROR_CODE(int);
+			rc = ERROR_CODE(int);
 
 		if(NULL != env->strings && ERROR_CODE(int) == hashmap_free(env->strings))
-		    rc = ERROR_CODE(int);
+			rc = ERROR_CODE(int);
 
 		if(NULL != env->values)
 		{
@@ -227,7 +227,7 @@ static inline int _env_free(_env_t* env)
 			}
 
 			if(ERROR_CODE(int) == vector_free(env->values))
-			    rc = ERROR_CODE(int);
+				rc = ERROR_CODE(int);
 		}
 
 		free(env);
@@ -251,10 +251,10 @@ static inline const char* _merge_type(_env_t* env, const char* left, const char*
 		const char* buf[2] = {left, right};
 
 		if(left[0] == '@' && NULL == (buf[0] = _get_managed_string(env, left)))
-		    ERROR_PTR_RETURN_LOG("Cannot get the managed string for metadata %s", left);
+			ERROR_PTR_RETURN_LOG("Cannot get the managed string for metadata %s", left);
 
 		if(right[0] == '@' && NULL == (buf[1] = _get_managed_string(env, right)))
-		    ERROR_PTR_RETURN_LOG("Cannot get the managed string for metadata %s", right);
+			ERROR_PTR_RETURN_LOG("Cannot get the managed string for metadata %s", right);
 
 		if(buf[0] == buf[1]) return buf[0];
 
@@ -289,7 +289,7 @@ static inline int _env_get(const _env_t* env, const char* varname, char const* *
 	int rc;
 	hashmap_find_res_t result;
 	if(ERROR_CODE(int) == (rc = hashmap_find(env->namemap, varname, strlen(varname), &result)))
-	    ERROR_RETURN_LOG(int, "Cannot look up the variable from the environment table");
+		ERROR_RETURN_LOG(int, "Cannot look up the variable from the environment table");
 
 	*resbuf = NULL;
 
@@ -298,7 +298,7 @@ static inline int _env_get(const _env_t* env, const char* varname, char const* *
 	uint32_t idx = *(const uint32_t*)result.val_data;
 
 	if(idx >= vector_length(env->values))
-	    ERROR_RETURN_LOG(int, "Invalid variable ID %u", idx);
+		ERROR_RETURN_LOG(int, "Invalid variable ID %u", idx);
 
 	*resbuf = *VECTOR_GET_CONST(char const* *, env->values, idx);
 
@@ -321,12 +321,12 @@ static inline int _env_get(const _env_t* env, const char* varname, char const* *
 static inline int _env_merge(_env_t* env, const char* varname, char const* const* concrete_type)
 {
 	if(concrete_type[0] == NULL)
-	    ERROR_RETURN_LOG(int, "Concrete type cannot be empty");
+		ERROR_RETURN_LOG(int, "Concrete type cannot be empty");
 
 	char const* * current;
 
 	if(ERROR_CODE(int) == _env_get(env, varname, &current))
-	    ERROR_RETURN_LOG(int, "Cannot look up the environment table");
+		ERROR_RETURN_LOG(int, "Cannot look up the environment table");
 
 
 	if(NULL == current)
@@ -335,13 +335,13 @@ static inline int _env_merge(_env_t* env, const char* varname, char const* const
 		size_t len = strlen(varname);
 		size_t next_id = vector_length(env->values);
 		if(ERROR_CODE(size_t) == next_id)
-		    ERROR_RETURN_LOG(int, "Cannot get the next index");
+			ERROR_RETURN_LOG(int, "Cannot get the next index");
 		if(ERROR_CODE(int) == hashmap_insert(env->namemap, varname, len, &next_id, sizeof(next_id), NULL, 0))
-		    ERROR_RETURN_LOG(int, "Cannot insert the name map to the name map");
+			ERROR_RETURN_LOG(int, "Cannot insert the name map to the name map");
 
 		const char** copied = _dup_type(concrete_type);
 		if(NULL == copied)
-		    ERROR_RETURN_LOG(int, "Cannot duplicate the type");
+			ERROR_RETURN_LOG(int, "Cannot duplicate the type");
 
 		vector_t* new = vector_append(env->values, &copied);
 		if(NULL == new)
@@ -358,17 +358,17 @@ static inline int _env_merge(_env_t* env, const char* varname, char const* const
 		uint32_t i;
 		for(i = 0; concrete_type[i] != NULL && current[i] != NULL; i ++);
 		if(concrete_type[i] != NULL || current[i] != NULL)
-		    ERROR_RETURN_LOG(int, "Cannot merge type due to different length");
+			ERROR_RETURN_LOG(int, "Cannot merge type due to different length");
 
 		for(i = 0; concrete_type[i] != NULL && current[i] != NULL; i ++)
 		{
 			if(concrete_type[i][0] == '$')
-			    ERROR_RETURN_LOG(int, "Invalid arguments: cannot assign a type pattern to a type variable");
+				ERROR_RETURN_LOG(int, "Invalid arguments: cannot assign a type pattern to a type variable");
 
 			const char* merged_type;
 
 			if(NULL == (merged_type = _merge_type(env, concrete_type[i], current[i])))
-			    ERROR_RETURN_LOG(int, "Cannot merge type %s and %s", concrete_type[i], current[i]);
+				ERROR_RETURN_LOG(int, "Cannot merge type %s and %s", concrete_type[i], current[i]);
 
 			current[i] = merged_type;
 		}
@@ -393,13 +393,13 @@ static inline int _solve_ces(const sched_service_t* service, _env_t* env, const 
 		const sched_service_pipe_descriptor_t* pd = incomings + i;
 		const char* sour_type;
 		if(ERROR_CODE(int) == sched_service_get_pipe_type(service, pd->source_node_id, pd->source_pipe_desc, &sour_type))
-		    ERROR_LOG_GOTO(ERR, "Cannot get the actual type for the source pipe endpoint");
+			ERROR_LOG_GOTO(ERR, "Cannot get the actual type for the source pipe endpoint");
 		if(NULL == sour_type)
-		    ERROR_LOG_GOTO(ERR, "We don't know the type of the source endpoint, may be a code bug");
+			ERROR_LOG_GOTO(ERR, "We don't know the type of the source endpoint, may be a code bug");
 
 		const char* dest_expr = sched_service_get_pipe_type_expr(service, pd->destination_node_id, pd->destination_pipe_desc);
 		if(NULL == dest_expr)
-		    ERROR_LOG_GOTO(ERR, "Cannot get the type expression for the destination pipe end point");
+			ERROR_LOG_GOTO(ERR, "Cannot get the type expression for the destination pipe end point");
 
 		LOG_DEBUG("The convertibility equation from pipe <NID=%u, PID=%u> -> <NID=%u, PID=%u>: %s => %s",
 		          pd->source_node_id, pd->source_pipe_desc,
@@ -410,11 +410,11 @@ static inline int _solve_ces(const sched_service_t* service, _env_t* env, const 
 		char const* * parsed_dest_type = NULL;
 		parsed_sour_type = _parse_type(env, sour_type);
 		if(NULL == parsed_sour_type)
-		    ERROR_LOG_GOTO(LOOP_ERR, "Cannot parse the source type for the convertibility equation");
+			ERROR_LOG_GOTO(LOOP_ERR, "Cannot parse the source type for the convertibility equation");
 
 		parsed_dest_type = _parse_type(env, dest_expr);
 		if(NULL == parsed_dest_type)
-		    ERROR_LOG_GOTO(LOOP_ERR, "Cannot parse the destination type for the convertibility equation");
+			ERROR_LOG_GOTO(LOOP_ERR, "Cannot parse the destination type for the convertibility equation");
 
 		uint32_t k;
 		for(k = 0; parsed_sour_type[k] != NULL && parsed_dest_type[k] != NULL; k++)
@@ -428,19 +428,19 @@ static inline int _solve_ces(const sched_service_t* service, _env_t* env, const 
 				char varname[PATH_MAX];
 				uint32_t j;
 				for(j = 1; to_type[j] != 0 && to_type[j] != ' ' && to_type[j] != '\t' && to_type[j] != '|'; j ++)
-				    varname[j - 1] = to_type[j];
+					varname[j - 1] = to_type[j];
 
 				varname[j - 1] = 0;
 
 				if(j == 1)
-				    ERROR_LOG_GOTO(LOOP_ERR, "Invalid type variable name $");
+					ERROR_LOG_GOTO(LOOP_ERR, "Invalid type variable name $");
 
 				if(parsed_dest_type[k + 1] == NULL)
 				{
 					LOG_DEBUG("The trailing type variable %s, capturing everything on the left side", varname);
 
 					if(ERROR_CODE(int) == _env_merge(env, varname, parsed_sour_type + k))
-					    ERROR_LOG_GOTO(LOOP_ERR, "Cannot merge the type expression to the variable");
+						ERROR_LOG_GOTO(LOOP_ERR, "Cannot merge the type expression to the variable");
 				}
 				else
 				{
@@ -449,7 +449,7 @@ static inline int _solve_ces(const sched_service_t* service, _env_t* env, const 
 					const char* simple_type[] = {parsed_sour_type[k], NULL};
 
 					if(ERROR_CODE(int) == _env_merge(env, varname, simple_type))
-					    ERROR_LOG_GOTO(LOOP_ERR, "Cannot merge the type expression to the variable");
+						ERROR_LOG_GOTO(LOOP_ERR, "Cannot merge the type expression to the variable");
 				}
 			}
 			else
@@ -457,7 +457,7 @@ static inline int _solve_ces(const sched_service_t* service, _env_t* env, const 
 				const char* common_ancestor = _merge_type(env, from_type, to_type);
 
 				if(common_ancestor == NULL || strcmp(common_ancestor, to_type) != 0)
-				    ERROR_LOG_GOTO(LOOP_ERR, "Invalid conversion: %s -> %s", from_type, to_type);
+					ERROR_LOG_GOTO(LOOP_ERR, "Invalid conversion: %s -> %s", from_type, to_type);
 			}
 		}
 
@@ -488,7 +488,7 @@ static inline const char* _render_type_name(const char* type_expr, _env_t* env, 
 {
 	char const* * parsed_type = _parse_type(env, type_expr);
 	if(NULL == parsed_type)
-	    ERROR_PTR_RETURN_LOG("Cannot parse the type expression: %s", type_expr);
+		ERROR_PTR_RETURN_LOG("Cannot parse the type expression: %s", type_expr);
 
 	uint32_t      merged_type_cap = 8;
 	uint32_t      merged_type_len = 0;
@@ -496,7 +496,7 @@ static inline const char* _render_type_name(const char* type_expr, _env_t* env, 
 	char const* * merged_type = (char const* *)malloc(sizeof(merged_type[0]) * merged_type_cap);
 
 	if(NULL == merged_type)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the merged type buffer");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the merged type buffer");
 
 	/* This is safe, because the inner loop will exit when it see the first NULL, but if there's
 	 * a first NULL there should be either another NULL or a meaningful block following */
@@ -517,21 +517,21 @@ static inline const char* _render_type_name(const char* type_expr, _env_t* env, 
 				char fieldname[PATH_MAX];
 				const char* start = parsed_type[i] + 1;
 				for(;*start && *start != ' ' && *start != '\t' && *start != '|' && *start != '.'; start ++, len ++)
-				    varname[len] = *start;
+					varname[len] = *start;
 				varname[len] = 0;
 
 				if(ERROR_CODE(int) == _env_get(env, varname, &result))
-				    ERROR_LOG_GOTO(ERR, "Cannot look for %s in the environment table", varname);
+					ERROR_LOG_GOTO(ERR, "Cannot look for %s in the environment table", varname);
 
 				if(*start == '.')
 				{
 					for(start ++; *start && *start != '\t' && *start != ' ' && *start != '|'; start ++, flen ++)
-					    fieldname[flen] = *start;
+						fieldname[flen] = *start;
 					fieldname[flen] = 0;
 
 					const char* underlying = NULL;
 					if(NULL == (underlying = proto_db_field_type(result[0], fieldname)))
-					    ERROR_LOG_GOTO(ERR, "Cannot get the type of field [%s = %s].%s", varname, result[0], fieldname);
+						ERROR_LOG_GOTO(ERR, "Cannot get the type of field [%s = %s].%s", varname, result[0], fieldname);
 
 					LOG_DEBUG("Expand field type expression [%s = %s].%s = %s", varname, result[0], fieldname, underlying);
 
@@ -541,7 +541,7 @@ static inline const char* _render_type_name(const char* type_expr, _env_t* env, 
 
 
 				if(NULL == result)
-				    ERROR_LOG_GOTO(ERR, "Variable %s not found", varname);
+					ERROR_LOG_GOTO(ERR, "Variable %s not found", varname);
 
 			}
 			else
@@ -561,7 +561,7 @@ static inline const char* _render_type_name(const char* type_expr, _env_t* env, 
 						uint32_t next_cap = merged_type_cap * 2;
 						char const* * new_buf = (char const* *)realloc(merged_type, next_cap * sizeof(merged_type[0]));
 						if(NULL == new_buf)
-						    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot resize the merged type buffer");
+							ERROR_LOG_ERRNO_GOTO(ERR, "Cannot resize the merged type buffer");
 						merged_type_cap = next_cap;
 						merged_type = new_buf;
 					}
@@ -570,12 +570,12 @@ static inline const char* _render_type_name(const char* type_expr, _env_t* env, 
 				else
 				{
 					if(sec >= merged_type_len)
-					    ERROR_LOG_GOTO(ERR, "The alternations are in different size");
+						ERROR_LOG_GOTO(ERR, "The alternations are in different size");
 
 					const char* merge_result = _merge_type(env, merged_type[sec], result[j]);
 
 					if(NULL == merge_result)
-					    ERROR_LOG_GOTO(ERR, "Cannot merge type %s and %s", merged_type[sec], result[j]);
+						ERROR_LOG_GOTO(ERR, "Cannot merge type %s and %s", merged_type[sec], result[j]);
 
 					merged_type[sec] = merge_result;
 				}
@@ -593,7 +593,7 @@ static inline const char* _render_type_name(const char* type_expr, _env_t* env, 
 	for(i = 0; i < merged_type_len; i ++)
 	{
 		if(i > 0)
-		    string_buffer_append(" ", &sbuf);
+			string_buffer_append(" ", &sbuf);
 		else
 		{
 			/* We need to calcuate the header size of the buffer */
@@ -626,19 +626,19 @@ static inline int _infer_node(sched_service_t* service, sched_service_node_id_t 
 	const sched_service_pipe_descriptor_t* incomings = sched_service_get_incoming_pipes(service, node, &incoming_count);
 
 	if(NULL == incomings)
-	    ERROR_RETURN_LOG(int, "Cannot get the incoming pipes");
+		ERROR_RETURN_LOG(int, "Cannot get the incoming pipes");
 
 	const sched_service_pipe_descriptor_t* outgoings = sched_service_get_outgoing_pipes(service, node, &outgoing_count);
 
 	if(NULL == outgoings)
-	    ERROR_RETURN_LOG(int, "Cannot get the outgoing pipes");
+		ERROR_RETURN_LOG(int, "Cannot get the outgoing pipes");
 
 	_env_t* env;
 	if((env = _env_new()) == NULL)
-	    ERROR_LOG_GOTO(ERR, "Cannot create the environment table for the servlet type inferrer");
+		ERROR_LOG_GOTO(ERR, "Cannot create the environment table for the servlet type inferrer");
 
 	if(ERROR_CODE(int) == _solve_ces(service, env, incomings, incoming_count))
-	    ERROR_LOG_GOTO(ERR, "Cannot solve the consertibility equation system");
+		ERROR_LOG_GOTO(ERR, "Cannot solve the consertibility equation system");
 
 	uint32_t i;
 	char result[SCHED_TYPE_MAX];
@@ -649,18 +649,18 @@ static inline int _infer_node(sched_service_t* service, sched_service_node_id_t 
 		const char* type_expr = sched_service_get_pipe_type_expr(service, pd->destination_node_id, pd->destination_pipe_desc);
 
 		if(NULL == type_expr)
-		    ERROR_LOG_GOTO(ERR, "Cannot get the type expression for the destination pipe");
+			ERROR_LOG_GOTO(ERR, "Cannot get the type expression for the destination pipe");
 
 		size_t size;
 
 		const char* actual_type = _render_type_name(type_expr, env, result, sizeof(result), &size);
 		if(NULL == actual_type)
-		    ERROR_LOG_GOTO(ERR, "Cannot render the type expression");
+			ERROR_LOG_GOTO(ERR, "Cannot render the type expression");
 
 		LOG_DEBUG("Pipe <NID=%u, PID=%u> has type %s (%zu bytes)", pd->destination_node_id, pd->destination_pipe_desc, actual_type, size);
 
 		if(ERROR_CODE(int) == sched_service_set_pipe_type(service, pd->destination_node_id, pd->destination_pipe_desc, actual_type, size))
-		    ERROR_LOG_GOTO(ERR, "Cannot set the actual type for the pipe");
+			ERROR_LOG_GOTO(ERR, "Cannot set the actual type for the pipe");
 	}
 
 	for(i = 0; i < outgoing_count; i ++)
@@ -669,21 +669,21 @@ static inline int _infer_node(sched_service_t* service, sched_service_node_id_t 
 
 		const char* type_expr = sched_service_get_pipe_type_expr(service, pd->source_node_id, pd->source_pipe_desc);
 		if(NULL == type_expr)
-		    ERROR_LOG_GOTO(ERR, "Cannot get the type expression for the source pipe endpoint");
+			ERROR_LOG_GOTO(ERR, "Cannot get the type expression for the source pipe endpoint");
 
 		size_t size;
 		const char* actual_type = _render_type_name(type_expr, env, result, sizeof(result), &size);
 		if(NULL == actual_type)
-		    ERROR_LOG_GOTO(ERR, "Cannot render the type expression");
+			ERROR_LOG_GOTO(ERR, "Cannot render the type expression");
 
 		LOG_DEBUG("Pipe <NID=%u, PID=%u> has type %s (%zu bytes)", pd->source_node_id, pd->source_pipe_desc, actual_type, size);
 
 		if(ERROR_CODE(int) == sched_service_set_pipe_type(service, pd->source_node_id, pd->source_pipe_desc, actual_type, size))
-		    ERROR_LOG_GOTO(ERR, "Cannot set the actual type for the pipe");
+			ERROR_LOG_GOTO(ERR, "Cannot set the actual type for the pipe");
 	}
 
 	if(ERROR_CODE(int) == (_env_free(env)))
-	    ERROR_RETURN_LOG(int, "Cannot dispose the environment table");
+		ERROR_RETURN_LOG(int, "Cannot dispose the environment table");
 	return 0;
 ERR:
 	if(NULL != env) _env_free(env);
@@ -698,32 +698,32 @@ int sched_type_check(sched_service_t* service)
 	int sp = 1;
 
 	if(NULL == service)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(ERROR_CODE(int) == proto_init())
-	    ERROR_RETURN_LOG(int, "Cannot initialize libproto");
+		ERROR_RETURN_LOG(int, "Cannot initialize libproto");
 
 	size_t num_node = sched_service_get_num_node(service);
 	if(ERROR_CODE(size_t) == num_node)
-	    ERROR_LOG_GOTO(ERR, "Cannot get the number of nodes");
+		ERROR_LOG_GOTO(ERR, "Cannot get the number of nodes");
 
 	if(NULL == (degree = (uint32_t*)malloc(sizeof(degree[0]) * num_node)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate the degree array");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate the degree array");
 
 	if(NULL == (stack = (sched_service_node_id_t*)malloc(sizeof(stack[0]) * num_node)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate the stack array");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate the stack array");
 
 	memset(degree, 0, sizeof(int) * num_node);
 	sched_service_node_id_t i;
 	sched_service_node_id_t input = sched_service_get_input_node(service);
 	if(ERROR_CODE(sched_service_node_id_t) == input)
-	    ERROR_LOG_GOTO(ERR, "Cannot get the input pipe");
+		ERROR_LOG_GOTO(ERR, "Cannot get the input pipe");
 
 	stack[0] = input;
 
 	for(i = 0; i< num_node; i ++)
-	    if(NULL == sched_service_get_incoming_pipes(service, i, degree + i))
-	        ERROR_LOG_GOTO(ERR, "Cannot get the number of incoming pipes");
+		if(NULL == sched_service_get_incoming_pipes(service, i, degree + i))
+			ERROR_LOG_GOTO(ERR, "Cannot get the number of incoming pipes");
 
 	/* Since # of nodes is much less than maxint, so we do not worry about wraparound */
 #pragma GCC diagnostic push
@@ -733,18 +733,18 @@ int sched_type_check(sched_service_t* service)
 		sched_service_node_id_t current = stack[--sp];
 
 		if(ERROR_CODE(int) == _infer_node(service, current))
-		    ERROR_LOG_GOTO(ERR, "Cannot infer the type of pipes for node %u", current);
+			ERROR_LOG_GOTO(ERR, "Cannot infer the type of pipes for node %u", current);
 
 		uint32_t npds;
 		const sched_service_pipe_descriptor_t* pds = sched_service_get_outgoing_pipes(service, current, &npds);
 		if(NULL == pds)
-		    ERROR_LOG_GOTO(ERR, "Cannot get the output pipes");
+			ERROR_LOG_GOTO(ERR, "Cannot get the output pipes");
 
 		for(i = 0; i < npds; i ++)
 		{
 			const sched_service_pipe_descriptor_t* pd = pds + i;
 			if(--degree[pd->destination_node_id] == 0)
-			    stack[sp ++] = pd->destination_node_id;
+				stack[sp ++] = pd->destination_node_id;
 		}
 	}
 #pragma GCC diagnostic pop

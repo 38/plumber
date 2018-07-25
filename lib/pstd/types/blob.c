@@ -59,15 +59,15 @@ static int _process_scalar(proto_db_field_info_t info, const char* actual_name, 
 
 		/* Since the prefix_size can't be 0, this is safe. But if prefix_size is 0, ((prefix_size - 1) & 0xff + 1) = 256 */
 		if(prefix_size <= 256)
-		    prefix = alloca(((prefix_size - 1) & 0xff) + 1);
+			prefix = alloca(((prefix_size - 1) & 0xff) + 1);
 		else
-		    prefix = malloc(prefix_size);
+			prefix = malloc(prefix_size);
 
 		if(NULL == prefix)
-		    ERROR_RETURN_LOG(int, "Cannot allocate memory for the prefix %s.%s", td->field_prefix, actual_name);
+			ERROR_RETURN_LOG(int, "Cannot allocate memory for the prefix %s.%s", td->field_prefix, actual_name);
 
 		if(td->field_prefix[0] != 0)
-		    snprintf(prefix, prefix_size, "%s.%s", td->field_prefix, actual_name);
+			snprintf(prefix, prefix_size, "%s.%s", td->field_prefix, actual_name);
 
 		_traverse_data_t new_td = {
 			.target       = td->target,
@@ -76,7 +76,7 @@ static int _process_scalar(proto_db_field_info_t info, const char* actual_name, 
 		};
 
 		if(ERROR_CODE(int) == proto_db_type_traverse(info.type, _traverse_type, &new_td))
-		    ERROR_LOG_GOTO(COMPOUND_ERR, "Cannot traverse the inner field type %s", td->field_prefix[0] ? prefix : actual_name);
+			ERROR_LOG_GOTO(COMPOUND_ERR, "Cannot traverse the inner field type %s", td->field_prefix[0] ? prefix : actual_name);
 
 		if(prefix_size > 256) free(prefix);
 
@@ -96,7 +96,7 @@ COMPOUND_ERR:
 			uint32_t* new_array = (uint32_t*)realloc(td->target->token_offset, sizeof(uint32_t) * td->target->cap_tokens * 2);
 
 			if(new_array == NULL)
-			    ERROR_RETURN_LOG_ERRNO(int, "Cannot resize the token offset array");
+				ERROR_RETURN_LOG_ERRNO(int, "Cannot resize the token offset array");
 
 			td->target->token_offset = new_array;
 			td->target->cap_tokens *= 2;
@@ -106,10 +106,10 @@ COMPOUND_ERR:
 		uint32_t offset = proto_db_type_offset(td->root_type, actual_name, &size);
 
 		if(ERROR_CODE(uint32_t) == offset)
-		    ERROR_RETURN_LOG(int, "Cannot query the offset of field %s.%s", td->root_type, actual_name);
+			ERROR_RETURN_LOG(int, "Cannot query the offset of field %s.%s", td->root_type, actual_name);
 
 		if(size != sizeof(scope_token_t))
-		    ERROR_RETURN_LOG(int, "Unexpected token size for field %s.%s", td->root_type, actual_name);
+			ERROR_RETURN_LOG(int, "Unexpected token size for field %s.%s", td->root_type, actual_name);
 
 		td->target->token_offset[td->target->num_tokens ++] = offset;
 
@@ -128,7 +128,7 @@ static int _build_dimension(proto_db_field_info_t info, _traverse_data_t* td, ui
 	{
 		size_t rc = (size_t)snprintf(begin, size, "[%u]", i);
 		if(ERROR_CODE(int) == _build_dimension(info, td, k + 1, actual_name, begin + rc, size - rc))
-		    ERROR_RETURN_LOG(int, "Cannot build the dimensional data");
+			ERROR_RETURN_LOG(int, "Cannot build the dimensional data");
 	}
 	return 0;
 }
@@ -138,7 +138,7 @@ static int _traverse_type(proto_db_field_info_t info, void* data)
 	_traverse_data_t* td = (_traverse_data_t*)data;
 
 	if(info.is_alias || info.size == 0)
-	    return 0;
+		return 0;
 
 	/* First we need to figureout the size of the buffer we want to use */
 	size_t buf_size = strlen(td->field_prefix);
@@ -158,12 +158,12 @@ static int _traverse_type(proto_db_field_info_t info, void* data)
 	if(NULL == buf) ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the name buffer");
 
 	if(td->field_prefix[0] == 0)
-	    snprintf(buf, buf_size + 1, "%s", info.name);
+		snprintf(buf, buf_size + 1, "%s", info.name);
 	else
-	    snprintf(buf, buf_size + 1, "%s.%s", td->field_prefix, info.name);
+		snprintf(buf, buf_size + 1, "%s.%s", td->field_prefix, info.name);
 
 	if(ERROR_CODE(int) == _build_dimension(info, td, 0, buf, buf + strlen(buf), buf_size + 1))
-	    ERROR_LOG_GOTO(ERR, "Cannot process the field");
+		ERROR_LOG_GOTO(ERR, "Cannot process the field");
 
 	if(buf_size >= 256) free(buf);
 	return 0;
@@ -185,27 +185,27 @@ static int _offset_compare(const void* a, const void* b)
 pstd_blob_model_t* pstd_blob_model_new(const char* type_name)
 {
 	if(NULL == type_name)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	if(ERROR_CODE(int) == proto_db_init())
-	    ERROR_PTR_RETURN_LOG("Cannot initialize the protocol database");
+		ERROR_PTR_RETURN_LOG("Cannot initialize the protocol database");
 
 	pstd_blob_model_t* ret = (pstd_blob_model_t*)calloc(sizeof(pstd_blob_model_t), 1);
 
 	if(NULL == ret)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the blob model");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the blob model");
 
 	if(NULL == (ret->type_name = strdup(type_name)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the typename");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot duplicate the typename");
 
 	if(ERROR_CODE(uint32_t) == (ret->blob_size = proto_db_type_size(type_name)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot query the size of the type: %s", type_name);
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot query the size of the type: %s", type_name);
 
 	ret->num_tokens = 0;
 	ret->cap_tokens = 32;
 
 	if(NULL == (ret->token_offset = (uint32_t*)malloc(sizeof(uint32_t) * ret->cap_tokens)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the token array");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the token array");
 
 	_traverse_data_t td = {
 		.target       = ret,
@@ -214,10 +214,10 @@ pstd_blob_model_t* pstd_blob_model_new(const char* type_name)
 	};
 
 	if(ERROR_CODE(int) == proto_db_type_traverse(type_name, _traverse_type, &td))
-	    ERROR_LOG_GOTO(ERR, "Cannot traverse the type: %s", type_name);
+		ERROR_LOG_GOTO(ERR, "Cannot traverse the type: %s", type_name);
 
 	if(ERROR_CODE(int) == proto_db_finalize())
-	    LOG_WARNING("Cannot finalize libproto");
+		LOG_WARNING("Cannot finalize libproto");
 
 	qsort(ret->token_offset, ret->num_tokens, sizeof(uint32_t), _offset_compare);
 
@@ -226,9 +226,9 @@ ERR:
 	if(NULL != ret)
 	{
 		if(NULL != ret->token_offset)
-		    free(ret->token_offset);
+			free(ret->token_offset);
 		if(NULL != ret->type_name)
-		    free(ret->type_name);
+			free(ret->type_name);
 		free(ret);
 	}
 	proto_db_finalize();
@@ -246,13 +246,13 @@ uint32_t pstd_blob_model_num_tokens(pstd_blob_model_t* model)
 int pstd_blob_model_free(pstd_blob_model_t* model)
 {
 	if(NULL == model)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(NULL != model->token_offset)
-	    free(model->token_offset);
+		free(model->token_offset);
 
 	if(NULL != model->type_name)
-	    free(model->type_name);
+		free(model->type_name);
 
 	free(model);
 
@@ -264,32 +264,32 @@ pstd_blob_token_idx_t pstd_blob_model_token_idx(const pstd_blob_model_t* model, 
 	pstd_blob_token_idx_t ret = ERROR_CODE(pstd_blob_token_idx_t);
 
 	if(NULL == model || NULL == field_expr)
-	    ERROR_RETURN_LOG(pstd_blob_token_idx_t, "Invalid arguments");
+		ERROR_RETURN_LOG(pstd_blob_token_idx_t, "Invalid arguments");
 
 	if(ERROR_CODE(int) == proto_db_init())
-	    ERROR_LOG_GOTO(RET, "Cannot initialize the protocol data");
+		ERROR_LOG_GOTO(RET, "Cannot initialize the protocol data");
 
 	uint32_t offset;
 	uint32_t size;
 	proto_db_field_prop_t prop;
 
 	if(ERROR_CODE(proto_db_field_prop_t) == (prop = proto_db_field_type_info(model->type_name, field_expr)))
-	    ERROR_LOG_GOTO(RET, "Cannot query the field property for field %s in type %s", field_expr, model->type_name);
+		ERROR_LOG_GOTO(RET, "Cannot query the field property for field %s in type %s", field_expr, model->type_name);
 
 	if(!(prop & PROTO_DB_FIELD_PROP_SCOPE))
-	    ERROR_LOG_GOTO(RET, "Invalid field accessor: not a token accessor field:, %s type: %s", field_expr, model->type_name);
+		ERROR_LOG_GOTO(RET, "Invalid field accessor: not a token accessor field:, %s type: %s", field_expr, model->type_name);
 
 	if(ERROR_CODE(uint32_t) == (offset = proto_db_type_offset(model->type_name, field_expr, &size)))
-	    ERROR_LOG_GOTO(RET, "Cannot query the offset the field %s of type %s", field_expr, model->type_name);
+		ERROR_LOG_GOTO(RET, "Cannot query the offset the field %s of type %s", field_expr, model->type_name);
 
 	if(size != sizeof(scope_token_t))
-	    ERROR_LOG_GOTO(RET, "Unexpected token token size");
+		ERROR_LOG_GOTO(RET, "Unexpected token token size");
 
 	/* Then we need to figure out which one is the field we are looking at */
 	uint32_t left = 0, right = model->num_tokens;
 
 	if(model->num_tokens == 0 || offset <  model->token_offset[0] || model->token_offset[model->num_tokens - 1] < offset)
-	    ERROR_LOG_GOTO(RET, "Cannot find the token offset %u in the blob type model for type %s. (Field expression: %s)", offset, model->type_name, field_expr);
+		ERROR_LOG_GOTO(RET, "Cannot find the token offset %u in the blob type model for type %s. (Field expression: %s)", offset, model->type_name, field_expr);
 
 	while(right - left > 1)
 	{
@@ -302,7 +302,7 @@ pstd_blob_token_idx_t pstd_blob_model_token_idx(const pstd_blob_model_t* model, 
 	ret = left;
 RET:
 	if(ERROR_CODE(int) == proto_db_finalize())
-	    ERROR_RETURN_LOG(pstd_blob_token_idx_t, "Cannot finalize the protocol database");
+		ERROR_RETURN_LOG(pstd_blob_token_idx_t, "Cannot finalize the protocol database");
 
 	return ret;
 }
@@ -310,7 +310,7 @@ RET:
 size_t pstd_blob_model_full_size(const pstd_blob_model_t* model)
 {
 	if(NULL == model)
-	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 	return sizeof(pstd_blob_t) + model->blob_size + sizeof(void*) * model->num_tokens;
 }
@@ -318,7 +318,7 @@ size_t pstd_blob_model_full_size(const pstd_blob_model_t* model)
 size_t pstd_blob_model_data_size(const pstd_blob_model_t* model)
 {
 	if(NULL == model)
-	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 	return model->blob_size;
 }
@@ -326,7 +326,7 @@ size_t pstd_blob_model_data_size(const pstd_blob_model_t* model)
 pstd_blob_t* pstd_blob_new(const pstd_blob_model_t* model, void* memory)
 {
 	if(NULL == model || NULL == memory)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	pstd_blob_t* ret = (pstd_blob_t*)memory;
 
@@ -336,7 +336,7 @@ pstd_blob_t* pstd_blob_new(const pstd_blob_model_t* model, void* memory)
 void* pstd_blob_get_data(pstd_blob_t* blob)
 {
 	if(NULL == blob)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Invalid arguments");
+		ERROR_PTR_RETURN_LOG_ERRNO("Invalid arguments");
 
 	return _BLOB_DATA(blob);
 }
@@ -344,7 +344,7 @@ void* pstd_blob_get_data(pstd_blob_t* blob)
 const void* pstd_blob_get_data_const(const pstd_blob_t* blob)
 {
 	if(NULL == blob)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Invalid arguments");
+		ERROR_PTR_RETURN_LOG_ERRNO("Invalid arguments");
 
 	return _BLOB_DATA(blob);
 }
@@ -355,12 +355,12 @@ const void* pstd_blob_get_data_const(const pstd_blob_t* blob)
 int pstd_blob_read(const pstd_blob_t* blob, const pstd_type_field_t* field, void* data, size_t bufsize)
 {
 	if(NULL == blob || NULL == field || NULL == data || bufsize > field->size)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	size_t bytes_to_read = field->size;
 
 	if(bytes_to_read > bufsize)
-	    bytes_to_read = bufsize;
+		bytes_to_read = bufsize;
 
 	memcpy(data, _BLOB_DATA(blob) + field->offset, field->size);
 
@@ -370,17 +370,17 @@ int pstd_blob_read(const pstd_blob_t* blob, const pstd_type_field_t* field, void
 int pstd_blob_write(pstd_blob_t* blob, const pstd_type_field_t* field, const void* data, size_t size)
 {
 	if(NULL == blob || NULL == field || NULL == data || size > field->size)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	size_t bytes_to_write = size, bytes_to_fill_zero = 0;
 
 	if(size < field->size)
-	    bytes_to_fill_zero = field->size - size;
+		bytes_to_fill_zero = field->size - size;
 
 	memcpy(_BLOB_DATA(blob) + field->offset, data, bytes_to_write);
 
 	if(bytes_to_fill_zero > 0)
-	    memset(_BLOB_DATA(blob) + field->offset + bytes_to_write, 0, bytes_to_fill_zero);
+		memset(_BLOB_DATA(blob) + field->offset + bytes_to_write, 0, bytes_to_fill_zero);
 
 	return 0;
 }
@@ -388,7 +388,7 @@ int pstd_blob_write(pstd_blob_t* blob, const pstd_type_field_t* field, const voi
 int pstd_blob_read_token(const pstd_blob_t* blob, const pstd_blob_model_t* blob_model, pstd_blob_token_idx_t idx, void const * * objbuf)
 {
 	if(NULL == blob || ERROR_CODE(pstd_blob_token_idx_t) == idx || NULL == objbuf || NULL == blob_model ||idx >= blob_model->num_tokens)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	*objbuf = _RLS_DATA_CONST(blob, blob_model)[idx];
 
@@ -399,12 +399,12 @@ int pstd_blob_read_token(const pstd_blob_t* blob, const pstd_blob_model_t* blob_
 int pstd_blob_write_token(pstd_blob_t* blob, const pstd_blob_model_t* blob_model, pstd_blob_token_idx_t idx, scope_token_t token, const void* obj)
 {
 	if(NULL == blob || ERROR_CODE(pstd_blob_token_idx_t) == idx || ERROR_CODE(scope_token_t) == token || 0 == token || NULL == obj || NULL == blob_model)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 #ifndef FULL_OPTIMIZATION
 	const void* rls_obj = pstd_scope_get(token);
 	if(NULL == rls_obj || obj != rls_obj)
-	    ERROR_RETURN_LOG(int, "Invalid arguments, scope token and obj pointer doesn't match");
+		ERROR_RETURN_LOG(int, "Invalid arguments, scope token and obj pointer doesn't match");
 #endif
 
 	_RLS_DATA(blob, blob_model)[idx] = obj;
@@ -419,7 +419,7 @@ int pstd_blob_write_token(pstd_blob_t* blob, const pstd_blob_model_t* blob_model
 int pstd_blob_free(pstd_blob_t* blob)
 {
 	if(NULL == blob)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	return 0;
 }

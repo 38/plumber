@@ -67,7 +67,7 @@ Servlet::DestructorQueue::DestructorQueue()
 Servlet::DestructorQueue::~DestructorQueue()
 {
 	if(ERROR_CODE(int) == flush())
-	    LOG_ERROR("Cannot flush the destructor queue");
+		LOG_ERROR("Cannot flush the destructor queue");
 }
 
 int Servlet::DestructorQueue::add(v8::Persistent<v8::Function>* desc)
@@ -75,7 +75,7 @@ int Servlet::DestructorQueue::add(v8::Persistent<v8::Function>* desc)
 	_node_t* node = new  _node_t(desc);
 
 	if(NULL == node)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot create new node for the destructor");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot create new node for the destructor");
 
 	node->next = _queue;
 

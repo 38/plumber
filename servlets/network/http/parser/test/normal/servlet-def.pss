@@ -1,14 +1,14 @@
 raw_mode = 2;
 
 servlet = {
-    jsonfy_output := "typing/conversion/json --raw --to-json " +
-                    "request:plumber/std_servlet/network/http/parser/v0/RequestData " +
-                    "protocol:plumber/std_servlet/network/http/parser/v0/ProtocolData"
-    parser := "network/http/parser";
-    (input) -> "input" parser {
-        "protocol_data" -> "protocol";
-        "default" -> "request";
-    } jsonfy_output "json" -> (output);
+	jsonfy_output := "typing/conversion/json --raw --to-json " +
+	                "request:plumber/std_servlet/network/http/parser/v0/RequestData " +
+	                "protocol:plumber/std_servlet/network/http/parser/v0/ProtocolData"
+	parser := "network/http/parser";
+	(input) -> "input" parser {
+		"protocol_data" -> "protocol";
+		"default" -> "request";
+	} jsonfy_output "json" -> (output);
 };
 
 servlet_input = "input";

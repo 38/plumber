@@ -54,30 +54,30 @@ int pool_allocation(void)
 
 	void *ptr[4096];
 	for(i = 0; i < 4096; i ++)
-	    ASSERT_PTR(ptr[i] = mempool_objpool_alloc(pool), CLEANUP_NOP);
+		ASSERT_PTR(ptr[i] = mempool_objpool_alloc(pool), CLEANUP_NOP);
 
 	qsort(ptr, 4096, sizeof(void*), compare);
 
 	for(i = 1; i < 4096; i ++)
-	    ASSERT(ptr[i-1] != ptr[i], CLEANUP_NOP);
+		ASSERT(ptr[i-1] != ptr[i], CLEANUP_NOP);
 
 	for(i = 0; i < 4096; i ++)
-	    ASSERT_OK(mempool_objpool_dealloc(pool, ptr[i]), CLEANUP_NOP);
+		ASSERT_OK(mempool_objpool_dealloc(pool, ptr[i]), CLEANUP_NOP);
 
 	uint32_t pc = mempool_objpool_get_page_count(pool);
 
 	qsort(ptr, 4096, sizeof(void*), compare);
 
 	for(i = 1; i < 4096; i ++)
-	    ASSERT(ptr[i-1] != ptr[i], CLEANUP_NOP);
+		ASSERT(ptr[i-1] != ptr[i], CLEANUP_NOP);
 
 	for(i = 0; i < 4096; i ++)
-	    ASSERT_PTR(ptr[i] = mempool_objpool_alloc(pool), CLEANUP_NOP);
+		ASSERT_PTR(ptr[i] = mempool_objpool_alloc(pool), CLEANUP_NOP);
 
 	ASSERT(pc == mempool_objpool_get_page_count(pool), CLEANUP_NOP);
 
 	for(i = 0; i < 4096; i ++)
-	    ASSERT_OK(mempool_objpool_dealloc(pool, ptr[i]), CLEANUP_NOP);
+		ASSERT_OK(mempool_objpool_dealloc(pool, ptr[i]), CLEANUP_NOP);
 
 	ASSERT(pc == mempool_objpool_get_page_count(pool), CLEANUP_NOP);
 	return 0;
@@ -89,17 +89,17 @@ int disabled_pool(void)
 
 	void *ptr[4096];
 	for(i = 0; i < 4096; i ++)
-	    ASSERT_PTR(ptr[i] = mempool_objpool_alloc(pool), CLEANUP_NOP);
+		ASSERT_PTR(ptr[i] = mempool_objpool_alloc(pool), CLEANUP_NOP);
 
 	for(i = 0; i < 4096; i ++)
-	    ASSERT_OK(mempool_objpool_dealloc(pool, ptr[i]), CLEANUP_NOP);
+		ASSERT_OK(mempool_objpool_dealloc(pool, ptr[i]), CLEANUP_NOP);
 
 	ASSERT_OK(mempool_objpool_disabled(1), CLEANUP_NOP);
 
 	void* mem;
 	ASSERT_PTR(mem = mempool_objpool_alloc(pool), CLEANUP_NOP);
 	for(i = 0; i < 4096; i ++)
-	    ASSERT(mem != ptr[i], CLEANUP_NOP);
+		ASSERT(mem != ptr[i], CLEANUP_NOP);
 
 	ASSERT_OK(mempool_objpool_dealloc(pool, mem), CLEANUP_NOP);
 
@@ -107,7 +107,7 @@ int disabled_pool(void)
 
 	ASSERT_PTR(mem = mempool_objpool_alloc(pool), CLEANUP_NOP);
 	for(i = 0; i < 4096; i ++)
-	    if(mem == ptr[i]) break;
+		if(mem == ptr[i]) break;
 	ASSERT(i < 4096, CLEANUP_NOP);
 
 

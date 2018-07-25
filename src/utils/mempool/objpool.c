@@ -156,7 +156,7 @@ static inline uint32_t _get_current_thread_cache_limit(const mempool_objpool_t* 
 	uint32_t idx = _thread_type_to_idx();
 
 	if(PREDICT_FALSE(idx >= THREAD_NUM_TYPES))
-	    return _thread_object_max;
+		return _thread_object_max;
 
 	return pool->policy[idx].cache_limit;
 }
@@ -170,7 +170,7 @@ static inline uint32_t _get_current_global_alloc_unit(const mempool_objpool_t* p
 {
 	uint32_t idx = _thread_type_to_idx();
 	if(PREDICT_FALSE(idx >= THREAD_NUM_TYPES))
-	    return UTILS_THREAD_GENERIC_ALLOC_UNIT;
+		return UTILS_THREAD_GENERIC_ALLOC_UNIT;
 
 	return pool->policy[idx].alloc_unit;
 }
@@ -214,7 +214,7 @@ mempool_objpool_t* mempool_objpool_new(uint32_t size)
 {
 	mempool_objpool_t* ret = (mempool_objpool_t*)malloc(sizeof(mempool_objpool_t));
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the memory pool");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the memory pool");
 
 #ifndef FULL_OPTIMIZATION
 	if(_pagesize == 0) _pagesize = (uint32_t)getpagesize();
@@ -231,10 +231,10 @@ mempool_objpool_t* mempool_objpool_new(uint32_t size)
 	ret->page_count = 0;
 
 	if(NULL == thread_pset_new(1, _thread_pool_alloc , _thread_pool_free, ret, &ret->local_pool))
-	    ERROR_LOG_GOTO(ERR, "Cannot create thread local pointer set as the lcoal thread pool");
+		ERROR_LOG_GOTO(ERR, "Cannot create thread local pointer set as the lcoal thread pool");
 
 	if((errno = pthread_mutex_init(&ret->mutex, NULL)) != 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the mutex for the memory pool");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the mutex for the memory pool");
 
 	int i;
 	for(i = 0; i < THREAD_NUM_TYPES; i ++)
@@ -298,7 +298,7 @@ static uint32_t _global_alloc(mempool_objpool_t* pool, _thread_local_pool_t* tlp
 	uint32_t ret = ERROR_CODE(uint32_t);
 
 	if((errno = pthread_mutex_lock(&pool->mutex)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(uint32_t, "Cannot acquire the pool mutex");
+		ERROR_RETURN_LOG_ERRNO(uint32_t, "Cannot acquire the pool mutex");
 
 	uint32_t to_alloc = _get_current_global_alloc_unit(pool);
 	uint32_t cache_limit = _get_current_thread_cache_limit(pool);
@@ -335,7 +335,7 @@ static uint32_t _global_alloc(mempool_objpool_t* pool, _thread_local_pool_t* tlp
 			LOG_DEBUG("The memory pool has no page for the new object, allocate a new page");
 			_page_t* new_page = _page_new();
 			if(NULL == new_page)
-			    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate new page for the new allocation");
+				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate new page for the new allocation");
 
 			new_page->next = pool->pages;
 			pool->pages = new_page;
@@ -350,9 +350,9 @@ static uint32_t _global_alloc(mempool_objpool_t* pool, _thread_local_pool_t* tlp
 			new_obj->next = NULL;
 			new_obj->prev = end;
 			if(begin == NULL)
-			    begin = end = new_obj;
+				begin = end = new_obj;
 			else
-			    end->next = new_obj, end = new_obj;
+				end->next = new_obj, end = new_obj;
 			count ++;
 		}
 		if(NULL != end) end->next = NULL;
@@ -372,7 +372,7 @@ ERR:
 	}
 RET:
 	if((errno = pthread_mutex_unlock(&pool->mutex)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(uint32_t, "Cannot release the pool mutex");
+		ERROR_RETURN_LOG_ERRNO(uint32_t, "Cannot release the pool mutex");
 	return ret;
 }
 /* Since OSX do not support this trick, we must disable this on darwin */
@@ -389,29 +389,29 @@ static void* _mempool_objpool_alloc_no_check(mempool_objpool_t* pool)
 
 #ifndef FULL_OPTIMIZATION
 	if(PREDICT_FALSE(NULL == tlp))
-	    ERROR_PTR_RETURN_LOG("Cannot acquire the thread local pool for current thread TID=%u", thread_get_id());
+		ERROR_PTR_RETURN_LOG("Cannot acquire the thread local pool for current thread TID=%u", thread_get_id());
 #endif
 
 	if(PREDICT_FALSE(tlp->count == 0))
 	{
 		if(PREDICT_FALSE(ERROR_CODE(uint32_t) == _global_alloc(pool, tlp)))
-		    ERROR_PTR_RETURN_LOG("Cannot allocate memory from the global object memory pool");
+			ERROR_PTR_RETURN_LOG("Cannot allocate memory from the global object memory pool");
 	}
 	else
-	    LOG_DEBUG("The thread-local pool contains unused objects, reuse it");
+		LOG_DEBUG("The thread-local pool contains unused objects, reuse it");
 
 	ret = tlp->end;
 	tlp->end = tlp->end->prev;
 	if(tlp->count == 1)
-	    tlp->begin = tlp->exceeded = NULL;
+		tlp->begin = tlp->exceeded = NULL;
 	else if(PREDICT_FALSE(tlp->exceeded == ret))
-	    tlp->exceeded = NULL;
+		tlp->exceeded = NULL;
 
 	tlp->count --;
 
 #ifndef FULL_OPTIMIZATION
 	if(PREDICT_FALSE(NULL == ret))
-	    LOG_ERROR("Cannot allocate memory from the object pool");
+		LOG_ERROR("Cannot allocate memory from the object pool");
 #endif
 
 	return ret;
@@ -426,7 +426,7 @@ void* mempool_objpool_alloc(mempool_objpool_t* pool)
 	if(PREDICT_FALSE(NULL == pool)) ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	if(PREDICT_FALSE(_is_pool_disabled(pool)))
-	    return malloc(pool->obj_size);
+		return malloc(pool->obj_size);
 	return _mempool_objpool_alloc_no_check(pool);
 }
 
@@ -447,7 +447,7 @@ int mempool_objpool_disabled(int val)
 static inline int _global_dealloc(mempool_objpool_t* pool, _cached_object_t* begin, _cached_object_t* end)
 {
 	if((errno = pthread_mutex_lock(&pool->mutex)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the pool mutex");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the pool mutex");
 
 	end->next = pool->cached;
 	if(NULL != pool->cached) pool->cached->prev = end;
@@ -455,7 +455,7 @@ static inline int _global_dealloc(mempool_objpool_t* pool, _cached_object_t* beg
 	begin->prev = NULL;
 
 	if((errno = pthread_mutex_unlock(&pool->mutex)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot release the pool mutex");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot release the pool mutex");
 
 	return 0;
 }
@@ -464,7 +464,7 @@ __attribute__((noinline)) static int _do_global_dealloc(mempool_objpool_t* pool,
 {
 	_cached_object_t* new_end = tlp->exceeded->prev;
 	if(PREDICT_FALSE(ERROR_CODE(int) == _global_dealloc(pool, tlp->exceeded, tlp->end)))
-	    ERROR_RETURN_LOG(int, "Cannot deallocate the exceeded objects to the global pool");
+		ERROR_RETURN_LOG(int, "Cannot deallocate the exceeded objects to the global pool");
 
 	tlp->exceeded = NULL;
 	tlp->end = new_end;
@@ -484,28 +484,28 @@ static int _mempool_objpool_dealloc_no_check(mempool_objpool_t* pool, void* mem)
 	_thread_local_pool_t* tlp = thread_pset_acquire(&pool->local_pool);
 #ifndef FULL_OPTIMIZATION
 	if(PREDICT_FALSE(NULL == tlp))
-	    ERROR_RETURN_LOG(int, "Cannot acquire the thread local pool for current thread TID=%u", thread_get_id());
+		ERROR_RETURN_LOG(int, "Cannot acquire the thread local pool for current thread TID=%u", thread_get_id());
 #endif
 
 	_cached_object_t* cur = (_cached_object_t*)mem;
 	cur->prev = tlp->end;
 	cur->next = NULL;
 	if(PREDICT_TRUE(tlp->end != NULL))
-	    tlp->end->next = cur;
+		tlp->end->next = cur;
 	else
-	    tlp->begin = cur;
+		tlp->begin = cur;
 
 	tlp->end = cur;
 
 	uint32_t cache_limit = _get_current_thread_cache_limit(pool);
 
 	if(PREDICT_FALSE(tlp->count == cache_limit))
-	    tlp->exceeded = tlp->end;
+		tlp->exceeded = tlp->end;
 
 	tlp->count ++;
 
 	if(PREDICT_FALSE(tlp->count > cache_limit * 2))
-	    return _do_global_dealloc(pool, tlp, cache_limit);
+		return _do_global_dealloc(pool, tlp, cache_limit);
 
 	return 0;
 }
@@ -518,7 +518,7 @@ int mempool_objpool_dealloc(mempool_objpool_t* pool, void* mem)
 #endif
 {
 	if(PREDICT_FALSE(NULL == pool || NULL == mem))
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(PREDICT_FALSE(_is_pool_disabled(pool)))
 	{
@@ -544,24 +544,24 @@ uint32_t mempool_objpool_get_page_count(const mempool_objpool_t* pool)
 int mempool_objpool_set_thread_policy(mempool_objpool_t* pool, unsigned thread_mask, mempool_objpool_tlp_policy_t policy)
 {
 	if(NULL == pool || policy.cache_limit < 1 || policy.alloc_unit == 0)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(pool->page_count > 0)
-	    ERROR_RETURN_LOG(int, "Cannot change the thread policy of a object memory pool which is already in use");
+		ERROR_RETURN_LOG(int, "Cannot change the thread policy of a object memory pool which is already in use");
 
 	thread_type_t type_mask;
 	uint32_t idx = 0;
 	for(type_mask = 1; type_mask < THREAD_TYPE_MAX; type_mask <<= 1, idx ++)
-	    if(thread_mask & type_mask)
-	    {
+		if(thread_mask & type_mask)
+		{
 #ifdef LOG_DEBUG_ENABLED
-		    char thread_name_buf[32];
-		    const char* thread_name = thread_type_name(type_mask, thread_name_buf, sizeof(thread_name_buf));
+			char thread_name_buf[32];
+			const char* thread_name = thread_type_name(type_mask, thread_name_buf, sizeof(thread_name_buf));
 #endif /* LOG_DEBUG_ENABLED */
-		    LOG_DEBUG("Set thread local memory pool policy for thread %s: <cache_limit = %u, alloc_unit = %u>",
-		               thread_name, policy.cache_limit, policy.alloc_unit);
-		    pool->policy[idx] = policy;
-	    }
+			LOG_DEBUG("Set thread local memory pool policy for thread %s: <cache_limit = %u, alloc_unit = %u>",
+			           thread_name, policy.cache_limit, policy.alloc_unit);
+			pool->policy[idx] = policy;
+		}
 
-	return 0;
+		return 0;
 }

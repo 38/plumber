@@ -11,7 +11,7 @@ int test_alloc(void)
 {
 	size_t i;
 	for(i = 0; i < 1234567; i ++)
-	    ASSERT(i == bitmask_alloc(bitmask), CLEANUP_NOP);
+		ASSERT(i == bitmask_alloc(bitmask), CLEANUP_NOP);
 
 	return 0;
 }
@@ -27,7 +27,7 @@ int test_dealloc(void)
 {
 	size_t i;
 	for(i = 0; i < 1234567; i += 3)
-	    ASSERT_OK(bitmask_dealloc(bitmask, i), CLEANUP_NOP);
+		ASSERT_OK(bitmask_dealloc(bitmask, i), CLEANUP_NOP);
 	return 0;
 }
 
@@ -35,7 +35,7 @@ int test_reuse(void)
 {
 	size_t i;
 	for(i = 0; i < 1234567; i += 3)
-	    ASSERT(bitmask_alloc(bitmask) == i, CLEANUP_NOP);
+		ASSERT(bitmask_alloc(bitmask) == i, CLEANUP_NOP);
 
 	ASSERT(bitmask_alloc(bitmask) == (size_t)-1, CLEANUP_NOP);
 	return 0;

@@ -10,7 +10,7 @@ import("dict");
  * @param arguments The actual argument array
  * @return The parsed command line arguments or undefined on error case
  **/
-Options.parse = function Options.parse(template, arguments) 
+Options.parse = function Options.parse(template, arguments)
 {
 	var ret = {
 		"program": arguments[0],
@@ -39,7 +39,7 @@ Options.parse = function Options.parse(template, arguments)
 			if(nargs_min == undefined) nargs_min = 0;
 			if(nargs_max == undefined) nargs_max = nargs_min;
 
-			if(ret["parsed"][arg] == undefined) 
+			if(ret["parsed"][arg] == undefined)
 				ret["parsed"][arg] = List.empty();
 
 			var consumed = 1;
@@ -62,7 +62,7 @@ Options.parse = function Options.parse(template, arguments)
 			}
 
 			ret["parsed"][arg] = List.concat(ret["parsed"][arg], List.slice(arguments, i + 1, i + 1 + nargs_min));
-			
+
 			i += consumed + nargs_min;
 
 			var count = nargs_min;
@@ -100,7 +100,7 @@ Options.parse = function Options.parse(template, arguments)
  * @brief Create a empty template
  * @return The empty template
  **/
-Options.empty_template = function Options.empty_template() 
+Options.empty_template = function Options.empty_template()
 {
 	return {};
 }
@@ -114,7 +114,7 @@ Options.empty_template = function Options.empty_template()
  * @param nargs_max The maximum number of arguments
  * @return nothing
  **/
-Options.add_option = function Options.add_option(template, long, short, desc, nargs_min, nargs_max) 
+Options.add_option = function Options.add_option(template, long, short, desc, nargs_min, nargs_max)
 {
 	if(long == undefined)
 	{
@@ -142,12 +142,12 @@ Options.add_option = function Options.add_option(template, long, short, desc, na
  * @param template The template to print
  * @return nothing
  **/
-Options.print_help = function Options.print_help(template) 
+Options.print_help = function Options.print_help(template)
 {
 	var buffer = List.empty();
 	var size   = {};
 	var keys = List.sort(Dict.keys(template));
-	var get_args = function(opt_data) 
+	var get_args = function(opt_data)
 	{
 		var max = opt_data["nargs_max"];
 		var min = opt_data["nargs_min"];
@@ -189,7 +189,7 @@ Options.print_help = function Options.print_help(template)
 		}
 	}
 
-	var append_line_buf = function(name, val) 
+	var append_line_buf = function(name, val)
 	{
 		line_buf = val;
 		for(var j = 0; j < size[name] - len(val); j ++)

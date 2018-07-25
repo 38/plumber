@@ -43,17 +43,17 @@ re_t* re_new(const char* regex)
 	re_t* ret = (re_t*)calloc(sizeof(re_t), 1);
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the regular expression object");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the regular expression object");
 
 	const char* pcre_err_msg = "";
 	int pcre_err_ofs = 0;
 
 
 	if(NULL == (ret->regex = pcre_compile(regex, 0, &pcre_err_msg, &pcre_err_ofs, NULL)))
-	    ERROR_LOG_GOTO(ERR, "Cannot compile regular expression: %s at %d", pcre_err_msg, pcre_err_ofs);
+		ERROR_LOG_GOTO(ERR, "Cannot compile regular expression: %s at %d", pcre_err_msg, pcre_err_ofs);
 
 	if(NULL == (ret->extra = pcre_study(ret->regex, 0, &pcre_err_msg)) && pcre_err_msg != NULL)
-	    ERROR_LOG_GOTO(ERR, "Cannot optimize the regular expression: %s", pcre_err_msg);
+		ERROR_LOG_GOTO(ERR, "Cannot optimize the regular expression: %s", pcre_err_msg);
 
 	return ret;
 
@@ -86,15 +86,15 @@ static inline int _process_pcre_error_code(const char* msg, int code)
 	switch(code)
 	{
 		case PCRE_ERROR_NOMATCH:
-		    return 0;
+			return 0;
 		case PCRE_ERROR_NULL:
-		    ERROR_RETURN_LOG(int, "%s: Invalid arguments", msg);
+			ERROR_RETURN_LOG(int, "%s: Invalid arguments", msg);
 		case PCRE_ERROR_BADOPTION:
-		    ERROR_RETURN_LOG(int, "%s: Bad options", msg);
+			ERROR_RETURN_LOG(int, "%s: Bad options", msg);
 		case PCRE_ERROR_BADMAGIC:
-		    ERROR_RETURN_LOG(int, "%s: Invalid regex object", msg);
+			ERROR_RETURN_LOG(int, "%s: Invalid regex object", msg);
 		case PCRE_ERROR_NOMEMORY:
-		    ERROR_RETURN_LOG(int, "%s: Out of meomry", msg);
+			ERROR_RETURN_LOG(int, "%s: Out of meomry", msg);
 		default:
 		    ERROR_RETURN_LOG(int, "%s: generic error", msg);
 	}
@@ -103,7 +103,7 @@ static inline int _process_pcre_error_code(const char* msg, int code)
 int re_match_full(re_t* obj, const char* text, size_t len)
 {
 	if(NULL == obj || NULL == obj->regex || NULL == text)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	int ovec[30];
 
@@ -117,7 +117,7 @@ int re_match_full(re_t* obj, const char* text, size_t len)
 int re_match_partial(re_t* obj, const char* text, size_t len)
 {
 	if(NULL == obj || NULL == obj->regex || NULL == text)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	int ovec[30];
 

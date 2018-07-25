@@ -46,13 +46,13 @@ proto_ref_nameref_t* proto_ref_nameref_new(uint32_t capacity)
 {
 	proto_ref_nameref_t* ret = (proto_ref_nameref_t*)malloc(sizeof(proto_ref_nameref_t));
 	if(NULL == ret)
-	    PROTO_ERR_RAISE_RETURN_PTR(ALLOC);
+		PROTO_ERR_RAISE_RETURN_PTR(ALLOC);
 
 	ret->capacity = capacity;
 	ret->size = 0;
 
 	if(NULL == (ret->segments = (_name_seg_t*)malloc(sizeof(_name_seg_t) * capacity)))
-	    PROTO_ERR_RAISE_GOTO(ERR, ALLOC);
+		PROTO_ERR_RAISE_GOTO(ERR, ALLOC);
 
 	return ret;
 
@@ -64,7 +64,7 @@ ERR:
 int proto_ref_nameref_free(proto_ref_nameref_t* ref)
 {
 	if(NULL == ref)
-	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
 	if(NULL != ref->segments)
 	{
@@ -73,7 +73,7 @@ int proto_ref_nameref_free(proto_ref_nameref_t* ref)
 		{
 			_name_seg_t* seg = ref->segments + i;
 			if(seg->sym && seg->value.sym != NULL)
-			    free(seg->value.sym);
+				free(seg->value.sym);
 		}
 
 		free(ref->segments);
@@ -86,7 +86,7 @@ int proto_ref_nameref_free(proto_ref_nameref_t* ref)
 proto_ref_nameref_seg_type_t proto_ref_nameref_get(const proto_ref_nameref_t* ref, uint32_t idx, const char** sym_buf, uint32_t* sub_buf)
 {
 	if(NULL == ref || idx >= ref->size || (sym_buf == NULL && sub_buf == NULL))
-	    PROTO_ERR_RAISE_RETURN(proto_ref_nameref_seg_type_t, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(proto_ref_nameref_seg_type_t, ARGUMENT);
 
 	if(ref->segments[idx].sym && sym_buf != NULL)
 	{
@@ -105,14 +105,14 @@ proto_ref_nameref_seg_type_t proto_ref_nameref_get(const proto_ref_nameref_t* re
 uint32_t proto_ref_nameref_nsegs(const proto_ref_nameref_t* ref)
 {
 	if(NULL == ref)
-	    PROTO_ERR_RAISE_RETURN(uint32_t, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(uint32_t, ARGUMENT);
 	return ref->size;
 }
 
 uint32_t proto_ref_nameref_size(const proto_ref_nameref_t* ref)
 {
 	if(NULL == ref)
-	    PROTO_ERR_RAISE_RETURN(uint32_t, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(uint32_t, ARGUMENT);
 
 	uint32_t ret = 0, i;
 	for(i = 0; i < ref->size; i ++)
@@ -123,9 +123,9 @@ uint32_t proto_ref_nameref_size(const proto_ref_nameref_t* ref)
 		ret += 1;
 
 		if(seg->sym)
-		    ret += (uint32_t)strlen(seg->value.sym) + 1;
+			ret += (uint32_t)strlen(seg->value.sym) + 1;
 		else
-		    ret += (uint32_t)sizeof(seg->value.sub);
+			ret += (uint32_t)sizeof(seg->value.sub);
 	}
 
 	return ret;
@@ -134,7 +134,7 @@ uint32_t proto_ref_nameref_size(const proto_ref_nameref_t* ref)
 const char* proto_ref_nameref_string(const proto_ref_nameref_t* ref, char* buf, size_t sz)
 {
 	if(NULL == ref)
-	    PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
+		PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
 
 	uint32_t i = 0;
 	char* ptr = buf;
@@ -145,9 +145,9 @@ const char* proto_ref_nameref_string(const proto_ref_nameref_t* ref, char* buf, 
 		if(seg->sym)
 		{
 			if(i == 0)
-			    bytes_written = snprintf(ptr, sz, "%s", seg->value.sym);
+				bytes_written = snprintf(ptr, sz, "%s", seg->value.sym);
 			else
-			    bytes_written = snprintf(ptr, sz, ".%s", seg->value.sym);
+				bytes_written = snprintf(ptr, sz, ".%s", seg->value.sym);
 		}
 		else
 		{
@@ -179,7 +179,7 @@ static inline int _nameref_ensure_space(proto_ref_nameref_t* ref)
 		uint32_t new_size = ref->capacity * 2;
 		_name_seg_t* new_seg = (_name_seg_t*)realloc(ref->segments, sizeof(_name_seg_t) * new_size);
 		if(NULL == new_seg)
-		    PROTO_ERR_RAISE_RETURN(int, ALLOC);
+			PROTO_ERR_RAISE_RETURN(int, ALLOC);
 
 		ref->capacity = new_size;
 		ref->segments = new_seg;
@@ -205,7 +205,7 @@ static inline int _typeref_ensure_space(proto_ref_typeref_t* ref, uint32_t segle
 	{
 		char* new_path = (char*)realloc(ref->path, new_cap + 1);
 		if(NULL == new_path)
-		    PROTO_ERR_RAISE_RETURN(int, ALLOC);
+			PROTO_ERR_RAISE_RETURN(int, ALLOC);
 
 		ref->capacity = new_cap;
 		ref->path = new_path;
@@ -217,16 +217,16 @@ static inline int _typeref_ensure_space(proto_ref_typeref_t* ref, uint32_t segle
 int proto_ref_nameref_append_symbol_range(proto_ref_nameref_t* ref, const char* begin, const char* end)
 {
 	if(NULL == ref || NULL == begin || NULL == end || begin >= end)
-	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
 	if(ERROR_CODE(int) == _nameref_ensure_space(ref))
-	    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	_name_seg_t* seg = ref->segments + ref->size;
 	size_t len = (size_t)(end - begin);
 	seg->sym = 1;
 	if(NULL == (seg->value.sym = (char*)malloc(len + 1)))
-	    PROTO_ERR_RAISE_RETURN(int, ALLOC);
+		PROTO_ERR_RAISE_RETURN(int, ALLOC);
 
 	memcpy(seg->value.sym, begin, len);
 	seg->value.sym[len] = 0;
@@ -239,7 +239,7 @@ int proto_ref_nameref_append_symbol_range(proto_ref_nameref_t* ref, const char* 
 int proto_ref_nameref_append_symbol(proto_ref_nameref_t* ref, const char* symbol)
 {
 	if(NULL == ref || NULL == symbol)
-	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
 	size_t len = strlen(symbol);
 
@@ -250,10 +250,10 @@ int proto_ref_nameref_append_symbol(proto_ref_nameref_t* ref, const char* symbol
 int proto_ref_nameref_append_subscript(proto_ref_nameref_t* ref, uint32_t subscript)
 {
 	if(NULL == ref)
-	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
 	if(ERROR_CODE(int) == _nameref_ensure_space(ref))
-	    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	_name_seg_t* seg = ref->segments + ref->size;
 	seg->sym = 0;
@@ -266,54 +266,54 @@ int proto_ref_nameref_append_subscript(proto_ref_nameref_t* ref, uint32_t subscr
 proto_ref_nameref_t* proto_ref_nameref_load(FILE* fp, uint32_t size)
 {
 	if(NULL == fp)
-	    PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
+		PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
 
 	proto_ref_nameref_t* ret = proto_ref_nameref_new(PROTO_REF_NAME_INIT_SIZE);
 
 	size_t bufsize = 128, bufused = 0;
 	char* buf = (char*)malloc(bufsize);
 	if(NULL == buf)
-	    PROTO_ERR_RAISE_GOTO(ERR, ALLOC);
+		PROTO_ERR_RAISE_GOTO(ERR, ALLOC);
 	uint32_t state = 0, i;
 	for(i = 0; i < size; i ++)
 	{
 		int ch = fgetc(fp);
 		if(EOF == ch)
-		    PROTO_ERR_RAISE_GOTO(ERR, ARGUMENT);
+			PROTO_ERR_RAISE_GOTO(ERR, ARGUMENT);
 
 		switch(state)
 		{
 			case 0: /* segment type expected, PROTO_REF_NAMEREF_SEG_TYPE_SUB for subscript, PROTO_REF_NAMEREF_SEG_TYPE_SYM for symbol */
-			    if(ch == PROTO_REF_NAMEREF_SEG_TYPE_SUB)
-			    {
-				    if(size - i - 1 < sizeof(uint32_t))
-				        PROTO_ERR_RAISE_GOTO(ERR, FORMAT);
-				    uint32_t value;
-				    if(1 != fread(&value, sizeof(uint32_t), 1, fp))
-				        PROTO_ERR_RAISE_GOTO(ERR, READ);
-				    if(ERROR_CODE(int) == proto_ref_nameref_append_subscript(ret, value))
-				        PROTO_ERR_RAISE_GOTO(ERR, FAIL);
-				    i += (uint32_t)sizeof(uint32_t);
-			    }
-			    else if(ch == PROTO_REF_NAMEREF_SEG_TYPE_SYM)
-			        state = 1, bufused = 0;
-			    else PROTO_ERR_RAISE_GOTO(ERR, FORMAT);
-			    break;
+				if(ch == PROTO_REF_NAMEREF_SEG_TYPE_SUB)
+				{
+					if(size - i - 1 < sizeof(uint32_t))
+						PROTO_ERR_RAISE_GOTO(ERR, FORMAT);
+					uint32_t value;
+					if(1 != fread(&value, sizeof(uint32_t), 1, fp))
+						PROTO_ERR_RAISE_GOTO(ERR, READ);
+					if(ERROR_CODE(int) == proto_ref_nameref_append_subscript(ret, value))
+						PROTO_ERR_RAISE_GOTO(ERR, FAIL);
+					i += (uint32_t)sizeof(uint32_t);
+				}
+				else if(ch == PROTO_REF_NAMEREF_SEG_TYPE_SYM)
+					state = 1, bufused = 0;
+				else PROTO_ERR_RAISE_GOTO(ERR, FORMAT);
+				break;
 			case 1: /* a subscript */
-			    if(bufused >= bufsize)
-			    {
-				    char* newbuf = (char*)realloc(buf, bufsize * 2);
-				    if(NULL == newbuf)
-				        PROTO_ERR_RAISE_GOTO(ERR, ALLOC);
-				    buf = newbuf;
-				    bufsize *= 2;
-			    }
-			    if(0 == (buf[bufused++] = (char)ch))
-			    {
-				    if(ERROR_CODE(int) == proto_ref_nameref_append_symbol(ret, buf))
-				        PROTO_ERR_RAISE_GOTO(ERR, FAIL);
-				    state = 0;
-			    }
+				if(bufused >= bufsize)
+				{
+					char* newbuf = (char*)realloc(buf, bufsize * 2);
+					if(NULL == newbuf)
+						PROTO_ERR_RAISE_GOTO(ERR, ALLOC);
+					buf = newbuf;
+					bufsize *= 2;
+				}
+				if(0 == (buf[bufused++] = (char)ch))
+				{
+					if(ERROR_CODE(int) == proto_ref_nameref_append_symbol(ret, buf))
+						PROTO_ERR_RAISE_GOTO(ERR, FAIL);
+					state = 0;
+				}
 		}
 	}
 
@@ -330,7 +330,7 @@ ERR:
 int proto_ref_nameref_dump(const proto_ref_nameref_t* ref, FILE* fp)
 {
 	if(NULL == ref || NULL == fp)
-	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
 	uint32_t i;
 	for(i = 0; i < ref->size; i ++)
@@ -340,18 +340,18 @@ int proto_ref_nameref_dump(const proto_ref_nameref_t* ref, FILE* fp)
 		{
 			char type = (char)PROTO_REF_NAMEREF_SEG_TYPE_SYM;
 			if(1 != fwrite(&type, 1, 1, fp))
-			    PROTO_ERR_RAISE_RETURN(int, WRITE);
+				PROTO_ERR_RAISE_RETURN(int, WRITE);
 			size_t size = strlen(seg->value.sym);
 			if(1 != fwrite(seg->value.sym, size + 1, 1, fp))
-			    PROTO_ERR_RAISE_RETURN(int, WRITE);
+				PROTO_ERR_RAISE_RETURN(int, WRITE);
 		}
 		else
 		{
 			char type = (char)PROTO_REF_NAMEREF_SEG_TYPE_SUB;
 			if(1 != fwrite(&type, 1, 1, fp))
-			    PROTO_ERR_RAISE_RETURN(int, WRITE);
+				PROTO_ERR_RAISE_RETURN(int, WRITE);
 			if(1 != fwrite(&seg->value.sub, sizeof(seg->value.sub), 1, fp))
-			    PROTO_ERR_RAISE_RETURN(int, WRITE);
+				PROTO_ERR_RAISE_RETURN(int, WRITE);
 		}
 	}
 
@@ -362,13 +362,13 @@ proto_ref_typeref_t* proto_ref_typeref_new(uint32_t capacity)
 {
 	proto_ref_typeref_t* ret = (proto_ref_typeref_t*)malloc(sizeof(proto_ref_typeref_t));
 	if(NULL == ret)
-	    PROTO_ERR_RAISE_RETURN_PTR(ALLOC);
+		PROTO_ERR_RAISE_RETURN_PTR(ALLOC);
 
 	ret->capacity = capacity;
 	ret->size = 0;
 	/* because we need one more bit for the \0 */
 	if(NULL == (ret->path = (char*)malloc(capacity + 1)))
-	    PROTO_ERR_RAISE_GOTO(ERR, ALLOC);
+		PROTO_ERR_RAISE_GOTO(ERR, ALLOC);
 
 	ret->path[0] = 0;
 	return ret;
@@ -376,7 +376,7 @@ ERR:
 	if(NULL != ret)
 	{
 		if(NULL != ret->path)
-		    free(ret->path);
+			free(ret->path);
 		free(ret);
 	}
 	return NULL;
@@ -385,10 +385,10 @@ ERR:
 int proto_ref_typeref_free(proto_ref_typeref_t* ref)
 {
 	if(NULL == ref)
-	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
 	if(NULL != ref->path)
-	    free(ref->path);
+		free(ref->path);
 
 	free(ref);
 
@@ -398,15 +398,15 @@ int proto_ref_typeref_free(proto_ref_typeref_t* ref)
 int proto_ref_typeref_append(proto_ref_typeref_t* ref, const char* segment)
 {
 	if(NULL == ref || NULL == segment)
-	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
 	uint32_t seglen = (uint32_t)strlen(segment);
 
 	if(ERROR_CODE(int) == _typeref_ensure_space(ref, seglen))
-	    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	if(ref->size > 0)
-	    ref->path[ref->size++] = '/';
+		ref->path[ref->size++] = '/';
 
 	memcpy(ref->path + ref->size, segment, seglen + 1);
 	ref->size += seglen;
@@ -417,7 +417,7 @@ int proto_ref_typeref_append(proto_ref_typeref_t* ref, const char* segment)
 uint32_t proto_ref_typeref_size(const proto_ref_typeref_t* ref)
 {
 	if(NULL == ref)
-	    PROTO_ERR_RAISE_RETURN(uint32_t, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(uint32_t, ARGUMENT);
 
 	return ref->size;
 }
@@ -425,7 +425,7 @@ uint32_t proto_ref_typeref_size(const proto_ref_typeref_t* ref)
 const char* proto_ref_typeref_get_path(const proto_ref_typeref_t* ref)
 {
 	if(NULL == ref)
-	    PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
+		PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
 
 	return ref->path;
 }
@@ -433,10 +433,10 @@ const char* proto_ref_typeref_get_path(const proto_ref_typeref_t* ref)
 int proto_ref_typeref_dump(const proto_ref_typeref_t* ref, FILE* fp)
 {
 	if(NULL == ref || NULL == fp)
-	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
 	if(1 != fwrite(ref->path, ref->size, 1, fp))
-	    PROTO_ERR_RAISE_RETURN(int, WRITE);
+		PROTO_ERR_RAISE_RETURN(int, WRITE);
 
 	return 0;
 }
@@ -444,18 +444,18 @@ int proto_ref_typeref_dump(const proto_ref_typeref_t* ref, FILE* fp)
 proto_ref_typeref_t* proto_ref_typeref_load(FILE* fp, uint32_t size)
 {
 	if(NULL == fp)
-	    PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
+		PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
 
 	proto_ref_typeref_t* ret = proto_ref_typeref_new(size);
 
 	if(1 != fread(ret->path, size, 1, fp))
-	    PROTO_ERR_RAISE_GOTO(ERR, READ);
+		PROTO_ERR_RAISE_GOTO(ERR, READ);
 
 	ret->size = size;
 	ret->path[size] = 0;
 	return ret;
 ERR:
 	if(NULL != ret)
-	    proto_ref_typeref_free(ret);
+		proto_ref_typeref_free(ret);
 	return NULL;
 }

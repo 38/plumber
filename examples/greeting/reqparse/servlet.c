@@ -57,11 +57,11 @@ static int exec(void* args)
 		if(found == 0)
 		{
 			if(ch == '\r' || ch == '\n')
-			    ptr = uakey;
+				ptr = uakey;
 			else if(ptr != NULL && ch == *ptr)
-			    found = !*++ptr;
+				found = !*++ptr;
 			else
-			    ptr = NULL;
+				ptr = NULL;
 		}
 		else if(found == 1)
 		{
@@ -99,7 +99,7 @@ static int exec(void* args)
 #endif
 
 	if(written)
-	    pipe_cntl(ctx->req, PIPE_CNTL_SET_FLAG, PIPE_PERSIST);
+		pipe_cntl(ctx->req, PIPE_CNTL_SET_FLAG, PIPE_PERSIST);
 
 	pstd_bio_free(in);
 	pstd_bio_free(out);

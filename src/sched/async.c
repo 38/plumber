@@ -182,7 +182,7 @@ static inline int _post_task_complete_event(itc_equeue_token_t token, _handle_t*
 			/* Search for the prevoius node */
 			for(;prev != ERROR_CODE(uint32_t) && _ctx.al_list[prev].next == handle->await_id; prev = _ctx.al_list[prev].next);
 			if(prev != ERROR_CODE(uint32_t))
-			    _ctx.al_list[prev].next = _ctx.al_list[handle->await_id].next;
+				_ctx.al_list[prev].next = _ctx.al_list[handle->await_id].next;
 			/* Insert the awaiter to the unused list */
 			_ctx.al_list[handle->await_id].next = _ctx.al_unused;
 			_ctx.al_unused = handle->await_id;
@@ -218,7 +218,7 @@ static inline int _notify_compeleted_awaiters(itc_equeue_token_t token, int set_
 	int rc = 0;
 	/* the first thing we need to do is to clean the awaiting list */
 	if((errno = pthread_mutex_lock(&_ctx.al_mutex)) != 0)
-	    ERROR_RETURN_LOG(int, "Cannot acquire the async task awaiting list mutex");
+		ERROR_RETURN_LOG(int, "Cannot acquire the async task awaiting list mutex");
 	else
 	{
 		/* Here we need to send all the compelted awaiting tasks to the event queue */
@@ -250,7 +250,7 @@ static inline int _notify_compeleted_awaiters(itc_equeue_token_t token, int set_
 			_ctx.al_done = ptr;
 		}
 		if((errno = pthread_mutex_unlock(&_ctx.al_mutex)) != 0)
-		    ERROR_RETURN_LOG(int, "Cannot release the async task awaiting list mutex");
+			ERROR_RETURN_LOG(int, "Cannot release the async task awaiting list mutex");
 	}
 
 	return rc;
@@ -270,7 +270,7 @@ static void* _async_processor_main(void* data)
 	itc_equeue_token_t token = itc_equeue_module_token(ITC_MODULE_EVENT_QUEUE_SIZE, ITC_EQUEUE_EVENT_TYPE_TASK);
 
 	if(ERROR_CODE(itc_equeue_token_t) == token)
-	    ERROR_PTR_RETURN_LOG("Cannot get the enent queue token for the async processing thread");
+		ERROR_PTR_RETURN_LOG("Cannot get the enent queue token for the async processing thread");
 
 	uint32_t old;
 	do {
@@ -287,11 +287,11 @@ static void* _async_processor_main(void* data)
 		/* Before we actually move ahead, we need to look at the awaiter list and make sure
 		 * all the compeleted awaiters has been notified at this time */
 		if(ERROR_CODE(int) == _notify_compeleted_awaiters(token, 0))
-		    LOG_ERROR("Cannot notify the completed awaiters");
+			LOG_ERROR("Cannot notify the completed awaiters");
 
 		/* Then we need to make sure that we have work to do */
 		if((errno = pthread_mutex_lock(&_ctx.q_mutex)) != 0)
-		    ERROR_PTR_RETURN_LOG("Cannot acquire the async task queue mutex");
+			ERROR_PTR_RETURN_LOG("Cannot acquire the async task queue mutex");
 
 		struct timespec abstime;
 		struct timeval now;
@@ -302,12 +302,12 @@ static void* _async_processor_main(void* data)
 		while(_ctx.q_front == _ctx.q_rear && !_ctx.killed)
 		{
 			if((errno = pthread_cond_timedwait(&_ctx.q_cond, &_ctx.q_mutex, &abstime)) != 0 && errno != EINTR && errno != ETIMEDOUT)
-			    ERROR_LOG_ERRNO_GOTO(UNLOCK, "Cannot wait for the reader cond var");
+				ERROR_LOG_ERRNO_GOTO(UNLOCK, "Cannot wait for the reader cond var");
 
 			/* Because it's possible that all the async processing thread is being blocked here, so we need to have a way
 			 * to make it work */
 			if(ERROR_CODE(int) == _notify_compeleted_awaiters(token, 0))
-			    LOG_ERROR("Cannot notify the completed awaiters");
+				LOG_ERROR("Cannot notify the completed awaiters");
 
 			abstime.tv_sec ++;
 		}
@@ -319,11 +319,11 @@ static void* _async_processor_main(void* data)
 
 		/* At the same time, we need to check if this operation unblocks the writer */
 		if(_ctx.q_rear - _ctx.q_front == _ctx.q_cap - 1 && (errno = pthread_cond_signal(&_ctx.q_cond)) != 0)
-		    ERROR_LOG_ERRNO_GOTO(UNLOCK, "Cannot disp notify the writer");
+			ERROR_LOG_ERRNO_GOTO(UNLOCK, "Cannot disp notify the writer");
 
 UNLOCK:
 		if((errno = pthread_mutex_unlock(&_ctx.q_mutex)) != 0)
-		    LOG_ERROR("Cannot release the async task queue mutex");
+			LOG_ERROR("Cannot release the async task queue mutex");
 
 		/* Then we need check if we have picked up a task, if not, we need to wait for another one */
 		if(thread_data->task == NULL) continue;
@@ -337,7 +337,7 @@ UNLOCK:
 		else thread_data->task->status_code = 0;
 
 		if(thread_data->task->await_id == ERROR_CODE(uint32_t))
-		    thread_data->task->state = _STATE_DONE;
+			thread_data->task->state = _STATE_DONE;
 
 		/* Finally we can dispose the task at this point */
 		if(ERROR_CODE(int) == runtime_task_free(thread_data->task->exec_task))
@@ -352,15 +352,15 @@ UNLOCK:
 		{
 			LOG_DEBUG("The task is completed and post the task completion event");
 			if(ERROR_CODE(int) == _post_task_complete_event(token, thread_data->task))
-			    LOG_ERROR("Cannot post the task completion event to the event queue");
+				LOG_ERROR("Cannot post the task completion event to the event queue");
 		}
 		else
-		    LOG_DEBUG("The task is not done yet, waiting for the async_cntl call");
+			LOG_DEBUG("The task is not done yet, waiting for the async_cntl call");
 	}
 
 	/* Before we actually stop running, we need to make sure all the pending task has been handled propertly */
 	if(ERROR_CODE(int) == _notify_compeleted_awaiters(token, 1))
-	    ERROR_PTR_RETURN_LOG("Cannot notify the completed awaiters");
+		ERROR_PTR_RETURN_LOG("Cannot notify the completed awaiters");
 
 	LOG_DEBUG("Async processing thread %p has been killed", thread_data);
 
@@ -391,7 +391,7 @@ static inline int _set_prop(const char* symbol, lang_prop_value_t value, const v
 		for(;desired > 1; desired >>= 1, actual <<= 1);
 		if((uint32_t)value.num > actual) actual <<= 1;
 		if((uint32_t)value.num != actual)
-		    LOG_WARNING("Adjusted the desired async processor queue size from %u to %u", (uint32_t)value.num, actual);
+			LOG_WARNING("Adjusted the desired async processor queue size from %u to %u", (uint32_t)value.num, actual);
 		LOG_DEBUG("Setting the async processor queue size to %u", actual);
 		_ctx.q_cap = actual;
 	}
@@ -464,7 +464,7 @@ int sched_async_start()
 {
 	uint32_t i = 0;
 	if(_ctx.init)
-	    ERROR_RETURN_LOG(int, "Cannot initialize the async task queue twice");
+		ERROR_RETURN_LOG(int, "Cannot initialize the async task queue twice");
 
 	_ctx.num_ready = 0;
 
@@ -472,29 +472,29 @@ int sched_async_start()
 	_ctx.q_front = _ctx.q_rear = 0;
 
 	if((errno = pthread_mutex_init(&_ctx.q_mutex, NULL)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot intialize the queue mutex");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot intialize the queue mutex");
 
 	_ctx.q_mutex_init = 1;
 
 	if((errno = pthread_cond_init(&_ctx.q_cond, NULL)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the queue cond variable");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the queue cond variable");
 
 	_ctx.q_cond_init = 1;
 
 	if((errno = pthread_mutex_init(&_ctx.al_mutex, NULL)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the awaiting list mutex");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot initialize the awaiting list mutex");
 
 	_ctx.al_mutex_init = 1;
 
 	if(NULL == (_ctx.q_data = (_handle_t**)malloc(sizeof(_ctx.q_data[0]) * _ctx.q_cap)))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the queue memory");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the queue memory");
 
 	if(NULL == (_ctx.q_pool = mempool_objpool_new(sizeof(_handle_t))))
-	    ERROR_LOG_GOTO(ERR, "Cannot create memory pool for async handles");
+		ERROR_LOG_GOTO(ERR, "Cannot create memory pool for async handles");
 
 	/* Initialize the awaiting list */
 	if(NULL == (_ctx.al_list = (_awaiter_t*)malloc(sizeof(_awaiter_t) * _ctx.al_cap)))
-	    ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the awaiting task list");
+		ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the awaiting task list");
 
 	_ctx.al_unused = 0;
 
@@ -509,11 +509,11 @@ int sched_async_start()
 
 	/* Then, we need to start the async processing threads */
 	if(NULL == (_ctx.thread_data = (_thread_data_t*)calloc(sizeof(_thread_data_t), _ctx.nthreads)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the async task thread pool");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the async task thread pool");
 
 	for(i = 0; i < _ctx.nthreads; i ++)
-	    if(NULL == (_ctx.thread_data[i].thread = thread_new(_async_processor_main, _ctx.thread_data + i, THREAD_TYPE_ASYNC)))
-	        ERROR_LOG_GOTO(ERR, "Cannot start the new thread for the Async Task Processor");
+		if(NULL == (_ctx.thread_data[i].thread = thread_new(_async_processor_main, _ctx.thread_data + i, THREAD_TYPE_ASYNC)))
+			ERROR_LOG_GOTO(ERR, "Cannot start the new thread for the Async Task Processor");
 
 	/* After that we need wait until everyone gets ready */
 	while(_ctx.num_ready != _ctx.nthreads);
@@ -535,21 +535,21 @@ ERR:
 		pthread_cond_broadcast(&_ctx.q_cond);
 
 		for(i = 0; i < _ctx.nthreads; i ++)
-		    if(_ctx.thread_data[i].thread != NULL)
-		        thread_free(_ctx.thread_data[i].thread, NULL);
+			if(_ctx.thread_data[i].thread != NULL)
+				thread_free(_ctx.thread_data[i].thread, NULL);
 
 		free(_ctx.thread_data);
 	}
 	if(_ctx.al_list != NULL) free(_ctx.al_list);
 
 	if(_ctx.q_mutex_init)
-	    pthread_mutex_destroy(&_ctx.q_mutex);
+		pthread_mutex_destroy(&_ctx.q_mutex);
 
 	if(_ctx.q_cond_init)
-	    pthread_cond_destroy(&_ctx.q_cond);
+		pthread_cond_destroy(&_ctx.q_cond);
 
 	if(_ctx.al_mutex_init)
-	    pthread_mutex_destroy(&_ctx.al_mutex);
+		pthread_mutex_destroy(&_ctx.al_mutex);
 
 	return ERROR_CODE(int);
 }
@@ -565,8 +565,8 @@ int sched_async_kill()
 	pthread_cond_broadcast(&_ctx.q_cond);
 	uint32_t i;
 	for(i = 0; i < _ctx.nthreads; i ++)
-	    if(ERROR_CODE(int) == thread_free(_ctx.thread_data[i].thread, NULL))
-	        rc = ERROR_CODE(int);
+		if(ERROR_CODE(int) == thread_free(_ctx.thread_data[i].thread, NULL))
+			rc = ERROR_CODE(int);
 	free(_ctx.thread_data);
 
 	/* We need to dispose the queue */
@@ -575,25 +575,25 @@ int sched_async_kill()
 		if(_ctx.q_data[i & (_ctx.q_cap - 1)] == NULL) continue;
 		if(_ctx.q_data[i & (_ctx.q_cap - 1)]->exec_task != NULL &&
 		   ERROR_CODE(int) == runtime_task_free(_ctx.q_data[i & (_ctx.q_cap - 1)]->exec_task))
-		    rc = ERROR_CODE(int);
+			rc = ERROR_CODE(int);
 		if(ERROR_CODE(int) == mempool_objpool_dealloc(_ctx.q_pool, _ctx.q_data[i & (_ctx.q_cap - 1)]))
-		    rc = ERROR_CODE(int);
+			rc = ERROR_CODE(int);
 	}
 
 
 	/* At this point we should take care of all the awating tasks */
 	for(i = 0; i < _ctx.al_cap; i ++)
-	    if(_ctx.al_list[i].valid && _ctx.al_list[i].task->state == _STATE_AWAITING)
-	    {
-		    if(ERROR_CODE(int) == mempool_objpool_dealloc(_ctx.q_pool, _ctx.al_list[i].task))
-		        rc = ERROR_CODE(int);
-	    }
+		if(_ctx.al_list[i].valid && _ctx.al_list[i].task->state == _STATE_AWAITING)
+		{
+			if(ERROR_CODE(int) == mempool_objpool_dealloc(_ctx.q_pool, _ctx.al_list[i].task))
+				rc = ERROR_CODE(int);
+		}
 
-	free(_ctx.al_list);
+		free(_ctx.al_list);
 	free(_ctx.q_data);
 
 	if(ERROR_CODE(int) == mempool_objpool_free(_ctx.q_pool))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	_ctx.q_pool = NULL;
 	_ctx.q_data = NULL;
@@ -631,13 +631,13 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	int normal_rc = 1;
 	/* First, let's verify this task is a valid async init task */
 	if(NULL == loop || NULL == task)
-	    ERROR_RETURN_LOG(int, "Invalid argumetns");
+		ERROR_RETURN_LOG(int, "Invalid argumetns");
 
 	if(task->exec_task == NULL)
-	    ERROR_RETURN_LOG(int, "The async processor cannot take an uninstantiated task");
+		ERROR_RETURN_LOG(int, "The async processor cannot take an uninstantiated task");
 
 	if(RUNTIME_TASK_FLAG_GET_ACTION(task->exec_task->flags) != RUNTIME_TASK_FLAG_ACTION_INIT || !runtime_task_is_async(task->exec_task))
-	    ERROR_RETURN_LOG(int, "The async_setup task is expected");
+		ERROR_RETURN_LOG(int, "The async_setup task is expected");
 
 	/* Then let's construct the handle */
 	runtime_task_t *async_exec = NULL;
@@ -646,7 +646,7 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	_handle_t* handle = mempool_objpool_alloc(_ctx.q_pool);
 
 	if(NULL == handle)
-	    ERROR_RETURN_LOG(int, "Cannot allocate memory for the handle");
+		ERROR_RETURN_LOG(int, "Cannot allocate memory for the handle");
 
 	handle->magic_num   = _HANDLE_MAGIC;
 	handle->await_id    = ERROR_CODE(uint32_t);
@@ -661,31 +661,31 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 #ifdef FULL_OPTIMIZATION
 	if(ERROR_CODE(int) == runtime_task_start_async_setup_fast(task->exec_task))
 #else
-	if(ERROR_CODE(int) == runtime_task_start(task->exec_task))
+		if(ERROR_CODE(int) == runtime_task_start(task->exec_task))
 #endif
-	    ERROR_LOG_GOTO(ERR, "The async setup task returns an error code");
+			ERROR_LOG_GOTO(ERR, "The async setup task returns an error code");
 
 	/* Ok it seems the task has been successfully setup, construct its continuation at this point */
 	if(ERROR_CODE(int) == runtime_task_async_companions(task->exec_task, &async_exec, &async_cleanup))
-	    ERROR_LOG_GOTO(ERR, "Cannot Create the companion of the task");
+		ERROR_LOG_GOTO(ERR, "Cannot Create the companion of the task");
 
 	async_setup = task->exec_task;
 	task->exec_task = async_cleanup;
 
 	if(ERROR_CODE(int) == runtime_task_free(async_setup))
-	    ERROR_LOG_GOTO(ERR, "Cannot dispose the async setup task");
+		ERROR_LOG_GOTO(ERR, "Cannot dispose the async setup task");
 
 	handle->exec_task = async_exec;
 
 	if(handle->state == _STATE_CANCELED || handle->state == _STATE_AWAITING)
 	{
 		if(handle->state == _STATE_CANCELED)
-		    LOG_DEBUG("Not going to post the task to the async processor, because it has been canceled");
+			LOG_DEBUG("Not going to post the task to the async processor, because it has been canceled");
 		else
-		    LOG_DEBUG("The async task has been set to awaiting state during initalization, execute step is cancelled");
+			LOG_DEBUG("The async task has been set to awaiting state during initalization, execute step is cancelled");
 
 		if(ERROR_CODE(int) == runtime_task_free(handle->exec_task))
-		    ERROR_LOG_GOTO(ERR, "Cannot dispose the async exec task");
+			ERROR_LOG_GOTO(ERR, "Cannot dispose the async exec task");
 		handle->exec_task = NULL;
 		async_exec = NULL;
 		/* At this point, the handle could be owned by the cleanup task already, so it's ok to return directly */
@@ -696,7 +696,7 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 
 
 	if((errno = pthread_mutex_lock(&_ctx.q_mutex)) != 0)
-	    ERROR_RETURN_LOG(int, "Cannot acquire the queue mutex");
+		ERROR_RETURN_LOG(int, "Cannot acquire the queue mutex");
 
 	/* At this point, we need avoid the dead lock, because the worst case, we have async processing thread waiting for
 	 * the event queue, and the disptacher wait for the worker thread, worker thread wait for another async task at
@@ -705,7 +705,7 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	{
 		LOG_WARNING("Async task queue is full, discarding the task");
 		if((errno = pthread_mutex_unlock(&_ctx.q_mutex)) != 0)
-		    ERROR_RETURN_LOG(int, "Cannot reliease the queue mutex");
+			ERROR_RETURN_LOG(int, "Cannot reliease the queue mutex");
 		goto ERR;
 	}
 
@@ -713,9 +713,9 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 	{
 		LOG_INFO("The async process has been killed!");
 		if(async_exec != NULL && ERROR_CODE(int) == runtime_task_free(async_exec))
-		    normal_rc = ERROR_CODE(int);
+			normal_rc = ERROR_CODE(int);
 		if(ERROR_CODE(int) == mempool_objpool_dealloc(_ctx.q_pool, handle))
-		    normal_rc = ERROR_CODE(int);
+			normal_rc = ERROR_CODE(int);
 		/* What should be keep is the cleanup task, and it should be disposed by the scheduler */
 		goto RET;
 	}
@@ -725,28 +725,28 @@ int sched_async_task_post(sched_loop_t* loop, sched_task_t* task)
 
 	/* If this queue is previously empty, then we need to notify the reader */
 	if(_ctx.q_rear - _ctx.q_front == 1 && (errno = pthread_cond_signal(&_ctx.q_cond)) != 0)
-	    ERROR_RETURN_LOG(int, "Cannot notify the reader about the incoming task");
+		ERROR_RETURN_LOG(int, "Cannot notify the reader about the incoming task");
 
 RET:
 	if((errno = pthread_mutex_unlock(&_ctx.q_mutex)) != 0)
-	    ERROR_RETURN_LOG(int, "Cannot reliease the queue mutex");
+		ERROR_RETURN_LOG(int, "Cannot reliease the queue mutex");
 
 
 	return normal_rc;
 ERR:
 
 	if(async_exec != NULL)
-	    runtime_task_free(async_exec);
+		runtime_task_free(async_exec);
 
 	if(async_cleanup != NULL)
 	{
 		handle->status_code = ERROR_CODE(int);
 		if(ERROR_CODE(int) == runtime_task_start(async_cleanup))
-		    LOG_WARNING("The async cleanup task returns an error code");
+			LOG_WARNING("The async cleanup task returns an error code");
 	}
 
 	if(NULL != handle)
-	    mempool_objpool_dealloc(_ctx.q_pool, handle);
+		mempool_objpool_dealloc(_ctx.q_pool, handle);
 
 	return ERROR_CODE(int);
 }
@@ -757,10 +757,10 @@ int sched_async_handle_dispose(runtime_api_async_handle_t* handle)
 	_handle_t* mem = (_handle_t*)handle;
 
 	if(NULL != mem && mem->magic_num == _FAKE_HANDLE_MAGIC)
-	    return sched_async_fake_handle_free(handle);
+		return sched_async_fake_handle_free(handle);
 
 	if(NULL == mem || mem->magic_num != _HANDLE_MAGIC)
-	    ERROR_RETURN_LOG(int, "Invalid arguments: Invalid async task handle");
+		ERROR_RETURN_LOG(int, "Invalid arguments: Invalid async task handle");
 
 	return mempool_objpool_dealloc(_ctx.q_pool, mem);
 }
@@ -771,16 +771,16 @@ int sched_async_handle_set_await(runtime_api_async_handle_t* handle)
 	_handle_t* task = (_handle_t*)handle;
 
 	if(NULL == task || task->magic_num != _HANDLE_MAGIC)
-	    ERROR_RETURN_LOG(int, "Invalid arguments: Invalid aync task handle");
+		ERROR_RETURN_LOG(int, "Invalid arguments: Invalid aync task handle");
 
 	if(task->await_id != ERROR_CODE(uint32_t))
-	    ERROR_RETURN_LOG(int, "Cannot set the task to wait mode twice");
+		ERROR_RETURN_LOG(int, "Cannot set the task to wait mode twice");
 
 	if((errno = pthread_mutex_lock(&_ctx.al_mutex)) != 0)
-	    ERROR_RETURN_LOG(int, "Cannot acquire the async task waiting list mutex");
+		ERROR_RETURN_LOG(int, "Cannot acquire the async task waiting list mutex");
 
 	if(ERROR_CODE(uint32_t) == _ctx.al_unused)
-	    ERROR_LOG_GOTO(EXIT, "Too many tasks in the waiting list, scheduler.async.wait_list_size may be too small");
+		ERROR_LOG_GOTO(EXIT, "Too many tasks in the waiting list, scheduler.async.wait_list_size may be too small");
 
 	uint32_t claimed = _ctx.al_unused;
 	_ctx.al_unused = _ctx.al_list[claimed].next;
@@ -797,7 +797,7 @@ int sched_async_handle_set_await(runtime_api_async_handle_t* handle)
 
 EXIT:
 	if((errno = pthread_mutex_unlock(&_ctx.al_mutex)) != 0)
-	    ERROR_RETURN_LOG(int, "Cannot release the async task waiting list mutex");
+		ERROR_RETURN_LOG(int, "Cannot release the async task waiting list mutex");
 
 	return rc;
 }
@@ -808,13 +808,13 @@ int sched_async_handle_await_complete(runtime_api_async_handle_t* handle, int st
 	_handle_t *task = (_handle_t*)handle;
 
 	if(NULL == task || task->magic_num != _HANDLE_MAGIC)
-	    ERROR_RETURN_LOG(int, "Invalid arguments: Invalid aync task handle");
+		ERROR_RETURN_LOG(int, "Invalid arguments: Invalid aync task handle");
 
 	if(task->await_id == ERROR_CODE(uint32_t))
-	    ERROR_RETURN_LOG(int, "Invalid arguments: The async task is not in the wait mode");
+		ERROR_RETURN_LOG(int, "Invalid arguments: The async task is not in the wait mode");
 
 	if((errno = pthread_mutex_lock(&_ctx.al_mutex)) != 0)
-	    ERROR_RETURN_LOG(int, "Cannot acquire the async task waiting list mutex");
+		ERROR_RETURN_LOG(int, "Cannot acquire the async task waiting list mutex");
 
 	uint32_t slot = task->await_id;
 
@@ -840,19 +840,19 @@ int sched_async_handle_await_complete(runtime_api_async_handle_t* handle, int st
 	rc = 0;
 EXIT:
 	if((errno = pthread_mutex_unlock(&_ctx.al_mutex)) != 0)
-	    ERROR_RETURN_LOG(int, "Cannot release the async task waiting list mutex");
+		ERROR_RETURN_LOG(int, "Cannot release the async task waiting list mutex");
 
 	if(rc == 0)
 	{
 		/* Let's notify the async thread on this */
 		if((errno = pthread_mutex_lock(&_ctx.q_mutex)) != 0)
-		    ERROR_RETURN_LOG(int, "Cannot acquire the async processor queue mutex");
+			ERROR_RETURN_LOG(int, "Cannot acquire the async processor queue mutex");
 
 		if((errno = pthread_cond_signal(&_ctx.q_cond)) != 0)
-		    ERROR_RETURN_LOG(int, "Cannot notify the async processing thread on the task ready event");
+			ERROR_RETURN_LOG(int, "Cannot notify the async processing thread on the task ready event");
 
 		if((errno = pthread_mutex_unlock(&_ctx.q_mutex)) != 0)
-		    ERROR_RETURN_LOG(int, "Cannot release the async processor queue mutex");
+			ERROR_RETURN_LOG(int, "Cannot release the async processor queue mutex");
 	}
 
 	return rc;
@@ -863,7 +863,7 @@ int sched_async_handle_status_code(runtime_api_async_handle_t* handle, int* resb
 	_handle_t* task = (_handle_t*)handle;
 
 	if(NULL == task || _HANDLE_MAGIC != task->magic_num || NULL == resbuf)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	*resbuf = task->status_code;
 
@@ -875,13 +875,13 @@ int sched_async_handle_cancel(runtime_api_async_handle_t* handle, int status)
 	_handle_t* task = (_handle_t*)handle;
 
 	if(NULL == task || _HANDLE_MAGIC != task->magic_num)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(ERROR_CODE(int) == status)
-	    task->status_code = ERROR_CODE(int);
+		task->status_code = ERROR_CODE(int);
 
 	if(task->state != _STATE_EXEC && task->state != _STATE_INIT)
-	    ERROR_RETURN_LOG(int, "Cannot cancel a started async task");
+		ERROR_RETURN_LOG(int, "Cannot cancel a started async task");
 
 	task->state = _STATE_CANCELED;
 
@@ -895,25 +895,25 @@ static int _fake_handle_cntl(_fake_handle_t* handle, uint32_t opcode, va_list ap
 	switch(opcode)
 	{
 		case RUNTIME_API_ASYNC_CNTL_OPCODE_SET_WAIT:
-		{
-			handle->completed = 0u;
-			return 0;
-		}
+			{
+				handle->completed = 0u;
+				return 0;
+			}
 		case RUNTIME_API_ASYNC_CNTL_OPCODE_NOTIFY_WAIT:
-		{
-			handle->completed = 1u;
-			return 0;
-		}
+			{
+				handle->completed = 1u;
+				return 0;
+			}
 		case RUNTIME_API_ASYNC_CNTL_OPCODE_RETCODE:
-		{
-			int* buf = va_arg(ap, int*);
-			*buf = 0;
-			return 0;
-		}
+			{
+				int* buf = va_arg(ap, int*);
+				*buf = 0;
+				return 0;
+			}
 		case RUNTIME_API_ASYNC_CNTL_OPCODE_CANCEL:
-		{
-			return 0;
-		}
+			{
+				return 0;
+			}
 		default:
 		    LOG_ERROR("Invalid async_cntl opcode");
 	}
@@ -930,29 +930,29 @@ int sched_async_handle_cntl(runtime_api_async_handle_t* handle, uint32_t opcode,
 #endif
 
 	if(((_fake_handle_t*)handle)->magic_num == _FAKE_HANDLE_MAGIC)
-	    return _fake_handle_cntl((_fake_handle_t*)handle, opcode, ap);
+		return _fake_handle_cntl((_fake_handle_t*)handle, opcode, ap);
 
 	switch(opcode)
 	{
 		case RUNTIME_API_ASYNC_CNTL_OPCODE_SET_WAIT:
-		{
-			return sched_async_handle_set_await(handle);
-		}
+			{
+				return sched_async_handle_set_await(handle);
+			}
 		case RUNTIME_API_ASYNC_CNTL_OPCODE_NOTIFY_WAIT:
-		{
-			int status_code =  va_arg(ap, int);
-			return sched_async_handle_await_complete(handle, status_code);
-		}
+			{
+				int status_code =  va_arg(ap, int);
+				return sched_async_handle_await_complete(handle, status_code);
+			}
 		case RUNTIME_API_ASYNC_CNTL_OPCODE_RETCODE:
-		{
-			int* buf = va_arg(ap, int*);
-			return sched_async_handle_status_code(handle, buf);
-		}
+			{
+				int* buf = va_arg(ap, int*);
+				return sched_async_handle_status_code(handle, buf);
+			}
 		case RUNTIME_API_ASYNC_CNTL_OPCODE_CANCEL:
-		{
-			int status_code = va_arg(ap, int);
-			return sched_async_handle_cancel(handle, status_code);
-		}
+			{
+				int status_code = va_arg(ap, int);
+				return sched_async_handle_cancel(handle, status_code);
+			}
 		default:
 		    LOG_ERROR("Invalid async_cntl opcode");
 	}

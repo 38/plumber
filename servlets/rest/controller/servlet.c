@@ -77,7 +77,7 @@ typedef struct {
 static inline int _fill_const(pstd_type_model_t* model, pipe_t pipe, const char* field, uint32_t* buf)
 {
 	if(ERROR_CODE(int) == PSTD_TYPE_MODEL_ADD_CONST(model, pipe, field, buf))
-	    ERROR_RETURN_LOG(int, "Cannot read the constant named %s from pipe 0x%x", field, pipe);
+		ERROR_RETURN_LOG(int, "Cannot read the constant named %s from pipe 0x%x", field, pipe);
 	return 0;
 }
 
@@ -92,7 +92,7 @@ static inline int _cmp(const void* a, const void* b)
 static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 {
 	if(argc < 2)
-	    ERROR_RETURN_LOG(int, "Usage: %s [parent:resource] | [resource]", argv[0]);
+		ERROR_RETURN_LOG(int, "Usage: %s [parent:resource] | [resource]", argv[0]);
 
 	context_t* ctx = (context_t*)ctxbuf;
 
@@ -104,35 +104,35 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 		argv ++;
 		argc --;
 		if(argc < 2)
-		    ERROR_RETURN_LOG(int, "Usage: %s [parent:resource] | [resource]", argv[-1]);
+			ERROR_RETURN_LOG(int, "Usage: %s [parent:resource] | [resource]", argv[-1]);
 	}
 
 	ctx->model    = NULL;
 	ctx->count = argc - 1;
 
 	if(NULL == (ctx->resources = (resource_ctx_t*)calloc(argc - 1, sizeof(ctx->resources[0]))))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the resources");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the resources");
 
 	if(NULL == (ctx->model = pstd_type_model_new()))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot create the type model");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot create the type model");
 
 	if(ERROR_CODE(pipe_t) == (ctx->request = pipe_define("request", PIPE_INPUT, "plumber/std_servlet/network/http/parser/v0/RequestData")))
-	    ERROR_RETURN_LOG(int, "Cannot define the requested pipe");
+		ERROR_RETURN_LOG(int, "Cannot define the requested pipe");
 
 #define _READ_CONST_CHK(p, base, name) (ERROR_CODE(int) ==  _fill_const(ctx->model, ctx->p, #name, &ctx->base.name))
 	if(_READ_CONST_CHK(request, method_code, METHOD_GET) ||
 	   _READ_CONST_CHK(request, method_code, METHOD_POST) ||
 	   _READ_CONST_CHK(request, method_code, METHOD_DELETE))
-	    return ERROR_CODE(int);
+		return ERROR_CODE(int);
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->method_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "method")))
-	    ERROR_RETURN_LOG(int, "Cannot get the accessor for request.method");
+		ERROR_RETURN_LOG(int, "Cannot get the accessor for request.method");
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->path_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "relative_url.token")))
-	    ERROR_RETURN_LOG(int, "Cannot get the accessor for request.path");
+		ERROR_RETURN_LOG(int, "Cannot get the accessor for request.path");
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->param_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "query_param.token")))
-	    ERROR_RETURN_LOG(int, "Cannot get the accessor for request.method");
+		ERROR_RETURN_LOG(int, "Cannot get the accessor for request.method");
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->data_acc = pstd_type_model_get_accessor(ctx->model, ctx->request, "body.token")))
-	    ERROR_RETURN_LOG(int, "Cannot get the accessor for request.method");
+		ERROR_RETURN_LOG(int, "Cannot get the accessor for request.method");
 
 	uint32_t i, j;
 
@@ -141,13 +141,13 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 		resource_ctx_t* res = ctx->resources + i - 1;
 		for(j = 0; argv[i][j] && argv[i][j] != ':'; j ++);
 		if(argv[i][j] == ':' && NULL == (res->parent_name = strndup(argv[i], j)))
-		    ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the parent name");
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the parent name");
 		const char* resname = argv[i] + ((argv[i][j] == 0) ? 0 : j + 1);
 		if(NULL == (res->res_name = strdup(resname)))
-		    ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the resource name");
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot duplicate the resource name");
 
 		if(ERROR_CODE(pipe_t) == (res->output = pipe_define(res->res_name, PIPE_OUTPUT, "plumber/std_servlet/rest/controller/v0/Command")))
-		    ERROR_RETURN_LOG(int, "Cannot define the request pipe");
+			ERROR_RETURN_LOG(int, "Cannot define the request pipe");
 
 		if(i == 1 && (_READ_CONST_CHK(resources[i - 1].output, opcode, CREATE) ||
 		              _READ_CONST_CHK(resources[i - 1].output, opcode, DELETE) ||
@@ -155,20 +155,20 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 		              _READ_CONST_CHK(resources[i - 1].output, opcode, QUERY)  ||
 		              _READ_CONST_CHK(resources[i - 1].output, opcode, CONTENT) ||
 		              _READ_CONST_CHK(resources[i - 1].output, opcode, EXISTS)))
-		    return ERROR_CODE(int);
+			return ERROR_CODE(int);
 
 		if(ERROR_CODE(pstd_type_accessor_t) == (res->opcode_acc =pstd_type_model_get_accessor(ctx->model, res->output, "opcode")))
-		    ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.opcode", ctx->resources[i - 1].res_name);
+			ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.opcode", ctx->resources[i - 1].res_name);
 		if(ERROR_CODE(pstd_type_accessor_t) == (res->parent_id_acc =pstd_type_model_get_accessor(ctx->model, res->output, "parent_id")))
-		    ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.parent_id", ctx->resources[i - 1].res_name);
+			ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.parent_id", ctx->resources[i - 1].res_name);
 		if(ERROR_CODE(pstd_type_accessor_t) == (res->object_id_acc =pstd_type_model_get_accessor(ctx->model, res->output, "object_id")))
-		    ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.object_id", ctx->resources[i - 1].res_name);
+			ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.object_id", ctx->resources[i - 1].res_name);
 		if(ERROR_CODE(pstd_type_accessor_t) == (res->param_acc =pstd_type_model_get_accessor(ctx->model, res->output, "param.token")))
-		    ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.param", ctx->resources[i - 1].res_name);
+			ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.param", ctx->resources[i - 1].res_name);
 		if(ERROR_CODE(pstd_type_accessor_t) == (res->content_acc =pstd_type_model_get_accessor(ctx->model, res->output, "content.token")))
-		    ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.param", ctx->resources[i - 1].res_name);
+			ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.param", ctx->resources[i - 1].res_name);
 		if(ERROR_CODE(pstd_type_accessor_t) == (res->pathsfx_acc = pstd_type_model_get_accessor(ctx->model, res->output, "path.token")))
-		    ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.path", ctx->resources[i - 1].res_name);
+			ERROR_RETURN_LOG(int, "Cannot get the accessor for %s.path", ctx->resources[i - 1].res_name);
 	}
 
 	qsort(ctx->resources, ctx->count, sizeof(resource_ctx_t), _cmp);
@@ -177,276 +177,276 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	{
 		if(ctx->resources[i].parent_name == NULL) continue;
 		for(j = 0; j < ctx->count; j ++)
-		    if(strcmp(ctx->resources[i].parent_name, ctx->resources[j].res_name) == 0)
-		    {
-			    if(i == j) ERROR_RETURN_LOG(int, "Self referencing is not allowed");
-			    ctx->resources[i].parent = ctx->resources + j;
-			    break;
-		    }
-	}
-
-	for(i = 0; i < ctx->count; i ++)
-	    if(ctx->resources[i].parent_name != NULL && ctx->resources[i].parent == NULL)
-	        ERROR_RETURN_LOG(int, "Undefined resource type: %s", ctx->resources[i].parent_name);
-
-	return 0;
-}
-
-static int _unload(void* ctxbuf)
-{
-	int rc = 0;
-	context_t* ctx = (context_t*)ctxbuf;
-
-	if(NULL != ctx->model && ERROR_CODE(int) == pstd_type_model_free(ctx->model))
-	    rc = ERROR_CODE(int);
-
-	if(NULL != ctx->resources)
-	{
-		uint32_t i;
-		for(i = 0; i < ctx->count; i ++)
-		{
-			free(ctx->resources[i].res_name);
-			free(ctx->resources[i].parent_name);
-		}
-		free(ctx->resources);
-	}
-
-	return rc;
-}
-
-static inline const char* _read_string(pstd_type_instance_t* inst, pstd_type_accessor_t acc)
-{
-	scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, acc);
-	if(ERROR_CODE(scope_token_t) == token) return NULL;
-
-	const pstd_string_t* ps = pstd_string_from_rls(token);
-
-	if(ps == NULL) return NULL;
-
-	return pstd_string_value(ps);
-}
-
-/**
- * @brief search for the first element bound of the element which is strictly larger than ch
- **/
-static inline uint32_t _search(const context_t* ctx, char ch, uint32_t n, uint32_t l, uint32_t r)
-{
-	/* If all the elements is larger than ch, which means the bound should be [l,l) */
-	if(ctx->resources[l].res_name[n] > ch)
-	    return l;
-
-	/* Search for the last item which ctx->resources[x]->res_name[n] <= ch */
-	while(r - l > 1)
-	{
-		uint32_t m = (l + r) / 2;
-		if(ctx->resources[m].res_name[n] <= ch) l = m;
-		else r = m;
-	}
-
-	return r;
-}
-
-static inline object_id_t* _parse_object_id(char const** path, object_id_t* buf)
-{
-	const char* begin = *path;
-	/* Step1: strip the leading slash */
-	while(*begin == '/') begin ++;
-
-	/* Step2: delete the object id */
-	if(*begin == '$')
-	{
-		begin ++;
-		const char* end = begin;
-		while(*end && *end != '/') end ++;
-		if(sizeof(*buf) == bsr64_to_bin(begin, end, buf->u8, sizeof(*buf)))
-		    return NULL;
-		*path = end;
-		return buf;
-	}
-
-	return NULL;
-}
-
-static inline const resource_ctx_t* _parse_resource_type(char const* * path, const context_t* ctx)
-{
-	const char* begin = *path;
-	while(*begin == '/') begin ++;
-	if(*begin == '/') begin ++;
-	uint32_t l = 0, r = ctx->count, i;
-	/* Do the binary search */
-	for(i = 0;*begin != 0 && *begin != '/' && r - l > 1; begin ++, i ++)
-	{
-		char ch = *begin;
-		l =_search(ctx, (char)(ch - 1), i, l, r);
-		if(r - l < 1 || ctx->resources[l].res_name[i] != begin[0])
-		    return NULL;
-		r = _search(ctx, ch, i, l, r);
-		if(r - l < 1 || ctx->resources[r - 1].res_name[i] != begin[0])
-		    return NULL;
-	}
-	for(;*begin != 0 && *begin != '/'; begin ++, i ++)
-	    if(ctx->resources[l].res_name[i] != *begin)
-	        return NULL;
-
-	*path = begin;
-
-	return ctx->resources + l;
-}
-
-static int _exec(void* ctxbuf)
-{
-	int rc = 0;
-	const context_t* ctx = (context_t*)ctxbuf;
-
-	pstd_type_instance_t* inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->model);
-	if(NULL == inst) ERROR_RETURN_LOG(int, "Cannot create the type instance for the type model");
-
-	const char* path = _read_string(inst, ctx->path_acc);
-
-	/* If the path is empty, it means we can not do anything on this request */
-	if(NULL == path) goto EXIT_NORMALLY;
-
-	/* we need to detect the parent id */
-	object_id_t parent_id_buf = {};
-	object_id_t* parent_id = _parse_object_id(&path, &parent_id_buf);
-
-	/* Then we need to parse the resource type */
-	const resource_ctx_t* res_ctx = _parse_resource_type(&path, ctx);
-	if(NULL == res_ctx) goto EXIT_NORMALLY; /* This means we can not handle this request */
-
-	/* Parse the object id */
-	object_id_t object_id_buf = {};
-	object_id_t* object_id = _parse_object_id(&path, &object_id_buf);
-
-	uint32_t method = PSTD_TYPE_INST_READ_PRIMITIVE(uint32_t, inst, ctx->method_acc);
-	if(ERROR_CODE(uint32_t) == method) ERROR_LOG_GOTO(EXIT, "Cannot read method code from the request input");
-
-	scope_token_t param_token, data_token;
-	if(ERROR_CODE(scope_token_t) == (param_token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->param_acc)))
-	    ERROR_LOG_GOTO(EXIT, "Cannot read the RLS token for param");
-
-	if(ERROR_CODE(scope_token_t) == (data_token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->data_acc)))
-	    ERROR_LOG_GOTO(EXIT, "Cannot read the RLS token for data");
-
-	uint32_t storage_opcode = ERROR_CODE(uint32_t);
-
-	if(method == ctx->method_code.METHOD_POST)
-	{
-		if(object_id == NULL)
-		{
-			/* This means we want to create a new resource */
-			storage_opcode = ctx->opcode.CREATE;
-			object_id = &object_id_buf;
-			if((parent_id == NULL) ^ (res_ctx->parent == NULL))
+			if(strcmp(ctx->resources[i].parent_name, ctx->resources[j].res_name) == 0)
 			{
-				LOG_DEBUG("Creating a isolated resource which should have a parent or a attached resource which should be isolated"
-				          "is perhibited");
-				goto EXIT_NORMALLY;
-
+				if(i == j) ERROR_RETURN_LOG(int, "Self referencing is not allowed");
+				ctx->resources[i].parent = ctx->resources + j;
+				break;
 			}
-			if(ctx->no_random)
-			    memset(object_id_buf.uuid, 255, sizeof(object_id_buf.uuid));
+			}
+
+			for(i = 0; i < ctx->count; i ++)
+				if(ctx->resources[i].parent_name != NULL && ctx->resources[i].parent == NULL)
+					ERROR_RETURN_LOG(int, "Undefined resource type: %s", ctx->resources[i].parent_name);
+
+		return 0;
+	}
+
+	static int _unload(void* ctxbuf)
+	{
+		int rc = 0;
+		context_t* ctx = (context_t*)ctxbuf;
+
+		if(NULL != ctx->model && ERROR_CODE(int) == pstd_type_model_free(ctx->model))
+			rc = ERROR_CODE(int);
+
+		if(NULL != ctx->resources)
+		{
+			uint32_t i;
+			for(i = 0; i < ctx->count; i ++)
+			{
+				free(ctx->resources[i].res_name);
+				free(ctx->resources[i].parent_name);
+			}
+			free(ctx->resources);
+		}
+
+		return rc;
+	}
+
+	static inline const char* _read_string(pstd_type_instance_t* inst, pstd_type_accessor_t acc)
+	{
+		scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, acc);
+		if(ERROR_CODE(scope_token_t) == token) return NULL;
+
+		const pstd_string_t* ps = pstd_string_from_rls(token);
+
+		if(ps == NULL) return NULL;
+
+		return pstd_string_value(ps);
+	}
+
+	/**
+	* @brief search for the first element bound of the element which is strictly larger than ch
+	**/
+	static inline uint32_t _search(const context_t* ctx, char ch, uint32_t n, uint32_t l, uint32_t r)
+	{
+		/* If all the elements is larger than ch, which means the bound should be [l,l) */
+		if(ctx->resources[l].res_name[n] > ch)
+			return l;
+
+		/* Search for the last item which ctx->resources[x]->res_name[n] <= ch */
+		while(r - l > 1)
+		{
+			uint32_t m = (l + r) / 2;
+			if(ctx->resources[m].res_name[n] <= ch) l = m;
+			else r = m;
+		}
+
+		return r;
+	}
+
+	static inline object_id_t* _parse_object_id(char const** path, object_id_t* buf)
+	{
+		const char* begin = *path;
+		/* Step1: strip the leading slash */
+		while(*begin == '/') begin ++;
+
+		/* Step2: delete the object id */
+		if(*begin == '$')
+		{
+			begin ++;
+			const char* end = begin;
+			while(*end && *end != '/') end ++;
+			if(sizeof(*buf) == bsr64_to_bin(begin, end, buf->u8, sizeof(*buf)))
+				return NULL;
+			*path = end;
+			return buf;
+		}
+
+		return NULL;
+	}
+
+	static inline const resource_ctx_t* _parse_resource_type(char const* * path, const context_t* ctx)
+	{
+		const char* begin = *path;
+		while(*begin == '/') begin ++;
+		if(*begin == '/') begin ++;
+		uint32_t l = 0, r = ctx->count, i;
+		/* Do the binary search */
+		for(i = 0;*begin != 0 && *begin != '/' && r - l > 1; begin ++, i ++)
+		{
+			char ch = *begin;
+			l =_search(ctx, (char)(ch - 1), i, l, r);
+			if(r - l < 1 || ctx->resources[l].res_name[i] != begin[0])
+				return NULL;
+			r = _search(ctx, ch, i, l, r);
+			if(r - l < 1 || ctx->resources[r - 1].res_name[i] != begin[0])
+				return NULL;
+		}
+		for(;*begin != 0 && *begin != '/'; begin ++, i ++)
+			if(ctx->resources[l].res_name[i] != *begin)
+				return NULL;
+
+		*path = begin;
+
+		return ctx->resources + l;
+	}
+
+	static int _exec(void* ctxbuf)
+	{
+		int rc = 0;
+		const context_t* ctx = (context_t*)ctxbuf;
+
+		pstd_type_instance_t* inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->model);
+		if(NULL == inst) ERROR_RETURN_LOG(int, "Cannot create the type instance for the type model");
+
+		const char* path = _read_string(inst, ctx->path_acc);
+
+		/* If the path is empty, it means we can not do anything on this request */
+		if(NULL == path) goto EXIT_NORMALLY;
+
+		/* we need to detect the parent id */
+		object_id_t parent_id_buf = {};
+		object_id_t* parent_id = _parse_object_id(&path, &parent_id_buf);
+
+		/* Then we need to parse the resource type */
+		const resource_ctx_t* res_ctx = _parse_resource_type(&path, ctx);
+		if(NULL == res_ctx) goto EXIT_NORMALLY; /* This means we can not handle this request */
+
+		/* Parse the object id */
+		object_id_t object_id_buf = {};
+		object_id_t* object_id = _parse_object_id(&path, &object_id_buf);
+
+		uint32_t method = PSTD_TYPE_INST_READ_PRIMITIVE(uint32_t, inst, ctx->method_acc);
+		if(ERROR_CODE(uint32_t) == method) ERROR_LOG_GOTO(EXIT, "Cannot read method code from the request input");
+
+		scope_token_t param_token, data_token;
+		if(ERROR_CODE(scope_token_t) == (param_token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->param_acc)))
+			ERROR_LOG_GOTO(EXIT, "Cannot read the RLS token for param");
+
+		if(ERROR_CODE(scope_token_t) == (data_token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, ctx->data_acc)))
+			ERROR_LOG_GOTO(EXIT, "Cannot read the RLS token for data");
+
+		uint32_t storage_opcode = ERROR_CODE(uint32_t);
+
+		if(method == ctx->method_code.METHOD_POST)
+		{
+			if(object_id == NULL)
+			{
+				/* This means we want to create a new resource */
+				storage_opcode = ctx->opcode.CREATE;
+				object_id = &object_id_buf;
+				if((parent_id == NULL) ^ (res_ctx->parent == NULL))
+				{
+					LOG_DEBUG("Creating a isolated resource which should have a parent or a attached resource which should be isolated"
+					      "is perhibited");
+					goto EXIT_NORMALLY;
+
+				}
+				if(ctx->no_random)
+					memset(object_id_buf.uuid, 255, sizeof(object_id_buf.uuid));
+				else
+					uuid_generate(object_id_buf.uuid);
+			}
 			else
-			    uuid_generate(object_id_buf.uuid);
+			{
+				/* This means we want to modify an existing resource */
+				storage_opcode = ctx->opcode.MODIFY;
+				parent_id = NULL;  /* we ignore the parent id in this case */
+			}
+
 		}
-		else
+		else if(method == ctx->method_code.METHOD_DELETE)
 		{
-			/* This means we want to modify an existing resource */
-			storage_opcode = ctx->opcode.MODIFY;
-			parent_id = NULL;  /* we ignore the parent id in this case */
+			if(object_id != NULL)
+			{
+				storage_opcode = ctx->opcode.DELETE;
+				parent_id = NULL;    /* we ignore the parent id */
+			}
 		}
-
-	}
-	else if(method == ctx->method_code.METHOD_DELETE)
-	{
-		if(object_id != NULL)
+		else if(method == ctx->method_code.METHOD_GET)
 		{
-			storage_opcode = ctx->opcode.DELETE;
-			parent_id = NULL;    /* we ignore the parent id */
+			if(object_id == NULL)
+			{
+				storage_opcode = ctx->opcode.QUERY;
+			}
+			else
+			{
+				storage_opcode = ctx->opcode.CONTENT;
+				parent_id = NULL;   /* we ignore the parent id */
+			}
 		}
-	}
-	else if(method == ctx->method_code.METHOD_GET)
-	{
-		if(object_id == NULL)
+
+		/* If this happens, it means it's not a valid restful operation */
+		if(ERROR_CODE(uint32_t) == storage_opcode) goto EXIT_NORMALLY;
+
+		/* Construct the output */
+		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, res_ctx->opcode_acc, storage_opcode))
+			ERROR_LOG_GOTO(EXIT, "Cannot write the storage opcode to the output pipe");
+
+		if(parent_id != NULL && ERROR_CODE(int) == pstd_type_instance_write(inst, res_ctx->parent_id_acc, parent_id->u8, sizeof(parent_id->u8)))
+			ERROR_LOG_GOTO(EXIT, "Cannot write the parent id to the storage command output");
+
+		if(object_id != NULL && ERROR_CODE(int) == pstd_type_instance_write(inst, res_ctx->object_id_acc, object_id->u8, sizeof(object_id->u8)))
+			ERROR_LOG_GOTO(EXIT, "Cannot write the object id to the storage command output");
+
+		/* Then we need to copy the parameters and data */
+
+		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, res_ctx->content_acc, data_token))
+			ERROR_LOG_GOTO(EXIT, "Cannot write the data RLS token to the storage command");
+
+		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, res_ctx->param_acc, param_token))
+			ERROR_LOG_GOTO(EXIT, "Cannot write the param RLS token to the storage command");
+
+		/* If the URL contains a parent id, then we need to ask the parent storage controller if the parent exists */
+		if(parent_id != NULL)
 		{
-			storage_opcode = ctx->opcode.QUERY;
+			/* If the resource context do not have a parent resource, things goes wrong */
+			if(res_ctx->parent == NULL) goto EXIT_NORMALLY;
+			if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, res_ctx->parent->opcode_acc, ctx->opcode.EXISTS))
+				ERROR_LOG_GOTO(EXIT, "Cannot write the exists validation opcode to the parent stroage controller");
+
+			if(ERROR_CODE(int) == pstd_type_instance_write(inst, res_ctx->parent->object_id_acc, parent_id->u8, sizeof(parent_id->u8)))
+				ERROR_LOG_GOTO(EXIT, "Cannot write the parent object id to the storage controller");
 		}
-		else
+
+		if(path[0] != 0)
 		{
-			storage_opcode = ctx->opcode.CONTENT;
-			parent_id = NULL;   /* we ignore the parent id */
-		}
-	}
-
-	/* If this happens, it means it's not a valid restful operation */
-	if(ERROR_CODE(uint32_t) == storage_opcode) goto EXIT_NORMALLY;
-
-	/* Construct the output */
-	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, res_ctx->opcode_acc, storage_opcode))
-	    ERROR_LOG_GOTO(EXIT, "Cannot write the storage opcode to the output pipe");
-
-	if(parent_id != NULL && ERROR_CODE(int) == pstd_type_instance_write(inst, res_ctx->parent_id_acc, parent_id->u8, sizeof(parent_id->u8)))
-	    ERROR_LOG_GOTO(EXIT, "Cannot write the parent id to the storage command output");
-
-	if(object_id != NULL && ERROR_CODE(int) == pstd_type_instance_write(inst, res_ctx->object_id_acc, object_id->u8, sizeof(object_id->u8)))
-	    ERROR_LOG_GOTO(EXIT, "Cannot write the object id to the storage command output");
-
-	/* Then we need to copy the parameters and data */
-
-	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, res_ctx->content_acc, data_token))
-	    ERROR_LOG_GOTO(EXIT, "Cannot write the data RLS token to the storage command");
-
-	if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, res_ctx->param_acc, param_token))
-	    ERROR_LOG_GOTO(EXIT, "Cannot write the param RLS token to the storage command");
-
-	/* If the URL contains a parent id, then we need to ask the parent storage controller if the parent exists */
-	if(parent_id != NULL)
-	{
-		/* If the resource context do not have a parent resource, things goes wrong */
-		if(res_ctx->parent == NULL) goto EXIT_NORMALLY;
-		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, res_ctx->parent->opcode_acc, ctx->opcode.EXISTS))
-		    ERROR_LOG_GOTO(EXIT, "Cannot write the exists validation opcode to the parent stroage controller");
-
-		if(ERROR_CODE(int) == pstd_type_instance_write(inst, res_ctx->parent->object_id_acc, parent_id->u8, sizeof(parent_id->u8)))
-		    ERROR_LOG_GOTO(EXIT, "Cannot write the parent object id to the storage controller");
-	}
-
-	if(path[0] != 0)
-	{
-		size_t len;
-		pstd_string_t* path_sfx = pstd_string_new(len = strlen(path));
-		if(NULL == path_sfx) ERROR_LOG_GOTO(EXIT, "Cannot create new PSTD string object for the suffix of the path");
-		if(ERROR_CODE(size_t) == pstd_string_write(path_sfx,  path, len))
-		    ERROR_LOG_GOTO(PATH_SUFIX_ERR, "Cannot write the path suffix to the PSTD string object");
-		scope_token_t scope = pstd_string_commit(path_sfx);
-		if(ERROR_CODE(scope_token_t) == scope)
-		    ERROR_LOG_GOTO(PATH_SUFIX_ERR, "Cannot commit the PSTD string object to RLS");
-		if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, res_ctx->pathsfx_acc, scope))
-		    ERROR_LOG_GOTO(EXIT, "Cannot write the scope token to pipe");
-		goto PATH_SUFIX_SUCC;
+			size_t len;
+			pstd_string_t* path_sfx = pstd_string_new(len = strlen(path));
+			if(NULL == path_sfx) ERROR_LOG_GOTO(EXIT, "Cannot create new PSTD string object for the suffix of the path");
+			if(ERROR_CODE(size_t) == pstd_string_write(path_sfx,  path, len))
+				ERROR_LOG_GOTO(PATH_SUFIX_ERR, "Cannot write the path suffix to the PSTD string object");
+			scope_token_t scope = pstd_string_commit(path_sfx);
+			if(ERROR_CODE(scope_token_t) == scope)
+				ERROR_LOG_GOTO(PATH_SUFIX_ERR, "Cannot commit the PSTD string object to RLS");
+			if(ERROR_CODE(int) == PSTD_TYPE_INST_WRITE_PRIMITIVE(inst, res_ctx->pathsfx_acc, scope))
+				ERROR_LOG_GOTO(EXIT, "Cannot write the scope token to pipe");
+			goto PATH_SUFIX_SUCC;
 PATH_SUFIX_ERR:
-		pstd_string_free(path_sfx);
-		goto EXIT;
+			pstd_string_free(path_sfx);
+			goto EXIT;
 PATH_SUFIX_SUCC:
-		/* Just avoid label in the end of block */
-		(void)0;
-	}
+			/* Just avoid label in the end of block */
+			(void)0;
+		}
 
 
 EXIT_NORMALLY:
-	rc = 0;
-	goto EXIT;
+		rc = 0;
+		goto EXIT;
 EXIT:
-	if(ERROR_CODE(int) == pstd_type_instance_free(inst))
-	    ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
-	return rc;
-}
+		if(ERROR_CODE(int) == pstd_type_instance_free(inst))
+			ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
+		return rc;
+	}
 
-SERVLET_DEF = {
-	.desc    = "Simple RESTful API Controller",
-	.version = 0x0,
-	.size    = sizeof(context_t),
-	.init    = _init,
-	.unload  = _unload,
-	.exec    = _exec
-};
+	SERVLET_DEF = {
+		.desc    = "Simple RESTful API Controller",
+		.version = 0x0,
+		.size    = sizeof(context_t),
+		.init    = _init,
+		.unload  = _unload,
+		.exec    = _exec
+	};

@@ -98,7 +98,7 @@ _JSFUNCTION(define)
 		args.GetReturnValue().Set((int32_t)pipe_define(name, (pipe_flags_t)flags, type_expr));
 	}
 	else
-	    args.GetReturnValue().Set((int32_t)pipe_define(name, (pipe_flags_t)flags, NULL));
+		args.GetReturnValue().Set((int32_t)pipe_define(name, (pipe_flags_t)flags, NULL));
 }
 
 _JSFUNCTION(import)
@@ -106,13 +106,13 @@ _JSFUNCTION(import)
 	_JSFUNCTION_INIT;
 
 	if(args.Length() <= 0 || args.Length() > 3)
-	    _JS_THROW(Error, "Invalid arguments");
+		_JS_THROW(Error, "Invalid arguments");
 
 	_READ_STR(filename, 0);
 	char* script = NULL;
 
 	if(args.Length() == 1)
-	    script = Servlet::Context::load_script_from_file(filename);
+		script = Servlet::Context::load_script_from_file(filename);
 	else if(args.Length() == 2)
 	{
 		_READ_STR(header, 1);
@@ -125,7 +125,7 @@ _JSFUNCTION(import)
 		script = Servlet::Context::load_script_from_file(filename, header, trailer);
 	}
 	else
-	    _JS_THROW(Error, "Wrong # of arguments");
+		_JS_THROW(Error, "Wrong # of arguments");
 
 	if(NULL == script) _JS_THROW(Error, "Cannot load script file");
 
@@ -134,7 +134,7 @@ _JSFUNCTION(import)
 	if(NULL != script) delete[] script;
 
 	if(ERROR_CODE(int) == rc)
-	    return;
+		return;
 }
 
 _JSFUNCTION(read)
@@ -155,7 +155,7 @@ _JSFUNCTION(read)
 	if(blob.is_null()) _JS_THROW(Error, "Interal Error: Cannot create object");
 
 	if(blob->init(howmany == (size_t)-1 ? 4096 : howmany) == ERROR_CODE(int))
-	    _JS_THROW(Error, "Interal Error: Cannot initialize the blob buffer");
+		_JS_THROW(Error, "Interal Error: Cannot initialize the blob buffer");
 
 	size_t offset = 0;
 
@@ -167,17 +167,17 @@ _JSFUNCTION(read)
 		if(bytes_to_read > howmany) bytes_to_read = howmany;
 
 		if(ERROR_CODE(int) == blob->ensure_space(bytes_to_read))
-		    _JS_THROW(Error, "Internal Error: Error while resizing the blob buffer");
+			_JS_THROW(Error, "Internal Error: Error while resizing the blob buffer");
 
 		char* buffer = &(*blob)[offset];
 
 		size_t bytes_read = pipe_read((pipe_t)pipe, buffer, bytes_to_read);
 		if(bytes_read == 0) break;
 		if(bytes_read == ERROR_CODE(size_t))
-		    _JS_THROW(Error, "pipe read error");
+			_JS_THROW(Error, "pipe read error");
 
 		if(ERROR_CODE(int) == blob->append(bytes_read))
-		    _JS_THROW(Error, "Internal error: Error while writing blob buffer");
+			_JS_THROW(Error, "Internal error: Error while writing blob buffer");
 
 		if(bytes_read == 0) break;
 
@@ -209,7 +209,7 @@ struct _SentinelData {
 		Servlet::DestructorQueue* queue = Servlet::Context::get_destructor_queue();
 
 		if(NULL == queue)
-		    LOG_ERROR("Cannot get the destructor queue for current thread");
+			LOG_ERROR("Cannot get the destructor queue for current thread");
 
 		queue->flush();
 
@@ -226,9 +226,9 @@ struct _SentinelData {
 		Servlet::DestructorQueue* queue = Servlet::Context::get_destructor_queue();
 
 		if(NULL == queue)
-		    LOG_ERROR("Cannot get the destructor queue for current thread");
+			LOG_ERROR("Cannot get the destructor queue for current thread");
 		else if(queue->add(callback) == ERROR_CODE(int))
-		    LOG_ERROR("Cannot add the destructor to the queue");
+			LOG_ERROR("Cannot add the destructor to the queue");
 	}
 };
 
@@ -257,7 +257,7 @@ _JSFUNCTION(handle_dispose)
 	if(NULL == pool) _JS_THROW(Error, "Internal Error");
 
 	if(ERROR_CODE(int) == pool->dispose_object(handle))
-	    _JS_THROW(Error, "Cannot dispose object");
+		_JS_THROW(Error, "Cannot dispose object");
 
 	return;
 }
@@ -289,7 +289,7 @@ _JSFUNCTION(blob_size)
 static inline char* _read_blob(uint32_t handle, int32_t offset, int32_t& size)
 {
 	if(offset < 0 || size < 0 || handle == ERROR_CODE(uint32_t))
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	Servlet::ObjectPool::Pool* pool = Servlet::Context::get_object_pool();
 	if(NULL == pool) ERROR_PTR_RETURN_LOG("Cannot get the object pool");
@@ -307,14 +307,14 @@ static inline char* _read_blob(uint32_t handle, int32_t offset, int32_t& size)
 		uint32_t append_size = (uint32_t)(offset + size + 1) - (uint32_t)blob->size();
 
 		if(blob->ensure_space(append_size) == ERROR_CODE(int))
-		    ERROR_PTR_RETURN_LOG("Cannot resize buffer");
+			ERROR_PTR_RETURN_LOG("Cannot resize buffer");
 
 		buffer = &(*blob)[(size_t)offset];
 
 		memset(buffer + (blob->size() - (uint32_t)offset), 0, append_size);
 
 		if(blob->append(append_size) == ERROR_CODE(int))
-		    ERROR_PTR_RETURN_LOG("Cannot allocate buffer");
+			ERROR_PTR_RETURN_LOG("Cannot allocate buffer");
 	}
 
 	return &(*blob)[(size_t)offset];
@@ -332,16 +332,16 @@ _JSFUNCTION(blob_get)
 	char* buffer;
 
 	if(NULL == (buffer = _read_blob((uint32_t)handle_s, offset, size)))
-	    _JS_THROW(Error, "Blob read error");
+		_JS_THROW(Error, "Blob read error");
 
 	v8::Local<v8::Value> result;
 
 	LOG_DEBUG("%d bytes has been read", size);
 
 	if(retstr)
-	    result = v8::String::NewFromUtf8(isolate, buffer, v8::String::NewStringType::kNormalString, size);
+		result = v8::String::NewFromUtf8(isolate, buffer, v8::String::NewStringType::kNormalString, size);
 	else
-	    result = v8::ArrayBuffer::New(isolate, buffer, (size_t)size);
+		result = v8::ArrayBuffer::New(isolate, buffer, (size_t)size);
 
 	args.GetReturnValue().Set(result);
 }
@@ -362,17 +362,17 @@ _JSFUNCTION(write)
 		const char* data = NULL;
 		v8::Local<v8::ArrayBuffer> buffer = v8::Local<v8::ArrayBuffer>::Cast(args[1]);
 		if(buffer.IsEmpty())
-		    _JS_THROW(Error, "Invalid buffer");
+			_JS_THROW(Error, "Invalid buffer");
 		data = (const char*)buffer->GetContents().Data();
 
 		if(NULL != data)
-		    rc = pipe_write(pipe, data, buffer->ByteLength());
+			rc = pipe_write(pipe, data, buffer->ByteLength());
 	}
 	else
 	{
 		_READ_STR(data, 1);
 		if(NULL != data)
-		    rc = pipe_write(pipe, data, strlen(data));
+			rc = pipe_write(pipe, data, strlen(data));
 	}
 
 	if(ERROR_CODE(size_t) == rc) _JS_THROW(Error, "Pipe write error");
@@ -407,19 +407,19 @@ _JSFUNCTION(set_flag)
 	pipe_flags_t flags = (pipe_flags_t)flag_s;
 
 	if(pipe == ERROR_CODE(pipe_t) || flags == ERROR_CODE(pipe_flags_t))
-	    _JS_THROW(Error, "Invalid arguments");
+		_JS_THROW(Error, "Invalid arguments");
 
 	if(value)
 	{
 		LOG_DEBUG("Set flags from javascript %x", flags);
 		if(ERROR_CODE(int) == pipe_cntl(pipe, PIPE_CNTL_SET_FLAG, flags))
-		    _JS_THROW(Error, "Cannot set flags");
+			_JS_THROW(Error, "Cannot set flags");
 	}
 	else
 	{
 		LOG_DEBUG("Clear flags from javascript %x", flags);
 		if(ERROR_CODE(int) == pipe_cntl(pipe, PIPE_CNTL_CLR_FLAG, flags))
-		    _JS_THROW(Error, "Cannot clear flags");
+			_JS_THROW(Error, "Cannot clear flags");
 	}
 
 }
@@ -432,11 +432,11 @@ _JSFUNCTION(get_flags)
 
 	pipe_t pipe = (pipe_t)pipe_s;
 	if(pipe == ERROR_CODE(pipe_t))
-	    _JS_THROW(Error, "Invalid arguments");
+		_JS_THROW(Error, "Invalid arguments");
 
 	pipe_flags_t result;
 	if(ERROR_CODE(int) == pipe_cntl(pipe, PIPE_CNTL_GET_FLAGS, &result))
-	    _JS_THROW(Error, "Cannot read the pipe flags");
+		_JS_THROW(Error, "Cannot read the pipe flags");
 
 	args.GetReturnValue().Set(result);
 }
@@ -454,21 +454,21 @@ _JSFUNCTION(unread)
 	size_t offset = (size_t)offset_s;
 
 	if(ERROR_CODE(pipe_t) == pipe || ERROR_CODE(uint32_t) == handle || ERROR_CODE(size_t) == offset)
-	    _JS_THROW(Error, "Invalid arguments");
+		_JS_THROW(Error, "Invalid arguments");
 
 	Servlet::ObjectPool::Pool* obj_pool = Servlet::Context::get_object_pool();
 	if(NULL == obj_pool)
-	    _JS_THROW(Error, "Internal Error: Cannot get the object pool for current thread");
+		_JS_THROW(Error, "Internal Error: Cannot get the object pool for current thread");
 
 	Servlet::ObjectPool::Pool::Pointer<Servlet::Blob> ptr = obj_pool->get<Servlet::Blob>(handle);
 	if(ptr.is_null())
-	    _JS_THROW(Error, "Blob object not found");
+		_JS_THROW(Error, "Blob object not found");
 
 	const char* buffer = &(*ptr)[0];
 
 	int rc = pipe_cntl(pipe, PIPE_CNTL_EOM, buffer, offset);
 	if(rc == ERROR_CODE(int))
-	    _JS_THROW(Error, "Cannot complete pipe operation PIPE_CNTL_EOM");
+		_JS_THROW(Error, "Cannot complete pipe operation PIPE_CNTL_EOM");
 }
 
 static inline int _dispose_state(void* state)
@@ -487,19 +487,19 @@ _JSFUNCTION(push_state)
 
 	pipe_t pipe = (pipe_t)pipe_s;
 	if(ERROR_CODE(pipe_t) == pipe)
-	    _JS_THROW(Error, "Invalid arguments");
+		_JS_THROW(Error, "Invalid arguments");
 
 	size_t len = strlen(data);
 	//TODO: use the memory pool
 	char* state = (char*)malloc(len + 1);
 	if(NULL == state)
-	    _JS_THROW(Error, "Internal Error: Cannot allocate memory for the new state");
+		_JS_THROW(Error, "Internal Error: Cannot allocate memory for the new state");
 
 	memcpy(state, data, len + 1);
 	int rc = pipe_cntl(pipe, PIPE_CNTL_PUSH_STATE, state, _dispose_state);
 
 	if(ERROR_CODE(int) == rc)
-	    _JS_THROW(Error, "Cannot complete pipe operation PIPE_CNTL_PUSH_STATE");
+		_JS_THROW(Error, "Cannot complete pipe operation PIPE_CNTL_PUSH_STATE");
 }
 
 _JSFUNCTION(pop_state)
@@ -510,19 +510,19 @@ _JSFUNCTION(pop_state)
 
 	pipe_t pipe = (pipe_t)pipe_s;
 	if(ERROR_CODE(pipe_t) == pipe)
-	    _JS_THROW(Error, "Invalid arguments");
+		_JS_THROW(Error, "Invalid arguments");
 
 	const char* state = NULL;
 	int rc = pipe_cntl(pipe, PIPE_CNTL_POP_STATE, &state);
 	if(ERROR_CODE(int) == rc)
-	    _JS_THROW(Error, "Cannot complete operation PIPE_CNTL_POP_STATE");
+		_JS_THROW(Error, "Cannot complete operation PIPE_CNTL_POP_STATE");
 
 	/* If the state is empty, return undefined directly */
 	if(NULL == state) return;
 
 	v8::Local<v8::Value> result = v8::String::NewFromUtf8(isolate, state);
 	if(result.IsEmpty())
-	    _JS_THROW(Error, "Internal Error: Cannot construct state variable");
+		_JS_THROW(Error, "Internal Error: Cannot construct state variable");
 
 	args.GetReturnValue().Set(result);
 }

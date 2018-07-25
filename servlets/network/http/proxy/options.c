@@ -10,17 +10,17 @@ static int _opt_handle(pstd_option_data_t data)
 	switch(data.current_option->short_opt)
 	{
 		case 'p':
-		    opt->conn_pool_size = (uint32_t)data.param_array[0].intval;
-		    goto OPT_CHK;
+			opt->conn_pool_size = (uint32_t)data.param_array[0].intval;
+			goto OPT_CHK;
 		case 'P':
-		    opt->conn_per_peer = (uint32_t)data.param_array[0].intval;
-		    goto OPT_CHK;
+			opt->conn_per_peer = (uint32_t)data.param_array[0].intval;
+			goto OPT_CHK;
 		case 'T':
-		    opt->conn_timeout = (uint32_t)data.param_array[0].intval;
+			opt->conn_timeout = (uint32_t)data.param_array[0].intval;
 OPT_CHK:
-		    if(data.param_array[0].intval < 0)
-		        ERROR_RETURN_LOG(int, "Invalid parameter");
-		    break;
+			if(data.param_array[0].intval < 0)
+				ERROR_RETURN_LOG(int, "Invalid parameter");
+			break;
 		default:
 		    ERROR_RETURN_LOG(int, "Unrecoginized options");
 	}
@@ -66,17 +66,17 @@ static pstd_option_t _options[] = {
 int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 {
 	if(NULL == argv || NULL == buf)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	buf->conn_pool_size = 1024;
 	buf->conn_per_peer = 32;
 	buf->conn_timeout = 30;
 
 	if(ERROR_CODE(int) == pstd_option_sort(_options, sizeof(_options) / sizeof(_options[0])))
-	    ERROR_RETURN_LOG(int, "Cannot sort the options");
+		ERROR_RETURN_LOG(int, "Cannot sort the options");
 
 	if(ERROR_CODE(uint32_t) == pstd_option_parse(_options, sizeof(_options) / sizeof(_options[0]), argc, argv, buf))
-	    ERROR_RETURN_LOG(int, "Cannot parse the servlet init stirng");
+		ERROR_RETURN_LOG(int, "Cannot parse the servlet init stirng");
 
 	return 0;
 }

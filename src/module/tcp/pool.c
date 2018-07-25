@@ -161,26 +161,26 @@ static inline int _init_conn_info(module_tcp_pool_t* pool, uint32_t capacity)
 	if(q_size < capacity) q_size <<= 1;
 
 	if(pool->conn_info.bitmask != NULL || pool->conn_info.index != NULL || pool->conn_info.conn != NULL)
-	    ERROR_RETURN_LOG(int, "cannot reinitialize the connection info object");
+		ERROR_RETURN_LOG(int, "cannot reinitialize the connection info object");
 
 	if(NULL == (pool->conn_info.bitmask = bitmask_new(capacity)))
-	    ERROR_RETURN_LOG(int, "cannot create new bitmask for the connection pool");
+		ERROR_RETURN_LOG(int, "cannot create new bitmask for the connection pool");
 
 	if(NULL == (pool->conn_info.index = (uint32_t*)malloc(capacity * sizeof(uint32_t))))
-	    ERROR_RETURN_LOG(int, "cannot allocate index array for the connection pool");
+		ERROR_RETURN_LOG(int, "cannot allocate index array for the connection pool");
 
 	if(NULL == (pool->conn_info.conn = (_node_t*)malloc(sizeof(_node_t) * capacity)))
-	    ERROR_RETURN_LOG(int, "cannot allocate the connection array for the connection pool");
+		ERROR_RETURN_LOG(int, "cannot allocate the connection array for the connection pool");
 
 	if(NULL == (pool->conn_info.queue = (_queue_message_t*)malloc(sizeof(_queue_message_t) * q_size)))
-	    ERROR_RETURN_LOG(int, "cannot allocate the release message queue");
+		ERROR_RETURN_LOG(int, "cannot allocate the release message queue");
 	else
-	    LOG_DEBUG("allocate the release message queue with %"PRIu32" slots", q_size);
+		LOG_DEBUG("allocate the release message queue with %"PRIu32" slots", q_size);
 
 	pool->conn_info.q_mask = q_size - 1;
 
 	if((errno = pthread_mutex_init(&pool->conn_info.q_mutex, NULL)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "cannot initialize the message queue mutex");
+		ERROR_RETURN_LOG_ERRNO(int, "cannot initialize the message queue mutex");
 
 	pool->conn_info.heap_limit = pool->conn_info.active_limit = pool->conn_info.wait_limit = 0;
 
@@ -197,8 +197,8 @@ static inline int _finalize_conn_info(module_tcp_pool_t* pool)
 	int rc = 0;
 	uint32_t i;
 	for(i = 0; i < pool->conn_info.nconnections; i ++)
-	    if(ERROR_CODE(int) == _release_connection_object(pool, i))
-	        LOG_WARNING("Cannot release connection object, memory or FD leak is possible");
+		if(ERROR_CODE(int) == _release_connection_object(pool, i))
+			LOG_WARNING("Cannot release connection object, memory or FD leak is possible");
 
 	if(NULL != pool->conn_info.bitmask) rc = bitmask_free(pool->conn_info.bitmask);
 
@@ -240,16 +240,16 @@ static inline module_tcp_pool_t* _pool_new(int master)
 	module_tcp_pool_t* ret = (module_tcp_pool_t*)calloc(1, sizeof(module_tcp_pool_t));
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the connection pool object");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the connection pool object");
 
 	if(master)
 	{
 		if((errno = pthread_mutex_init(&ret->master_mutex, NULL)) != 0)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the master mutex");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the master mutex");
 		else mutex_created = 1;
 
 		if((errno = pthread_cond_init(&ret->master_cond, NULL)) != 0)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the master condvar");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the master condvar");
 		else cond_created = 1;
 	}
 
@@ -258,7 +258,7 @@ static inline module_tcp_pool_t* _pool_new(int master)
 
 	/* Create the poll object  */
 	if(NULL == (ret->poll_obj = os_event_poll_new()))
-	    ERROR_LOG_GOTO(ERR, "Cannot create poll object");
+		ERROR_LOG_GOTO(ERR, "Cannot create poll object");
 
 	/* Create the event fd used for the message queue */
 	os_event_desc_t desc = {
@@ -269,7 +269,7 @@ static inline module_tcp_pool_t* _pool_new(int master)
 	};
 
 	if(ERROR_CODE(int) == (ret->event_fd = os_event_poll_add(ret->poll_obj, &desc)))
-	    ERROR_LOG_GOTO(ERR, "Cannot create user space event");
+		ERROR_LOG_GOTO(ERR, "Cannot create user space event");
 
 	return ret;
 
@@ -314,14 +314,14 @@ int module_tcp_pool_free(module_tcp_pool_t* pool)
 	if(pool->event_fd >= 0) close(pool->event_fd);
 
 	if(NULL != pool->poll_obj && ERROR_CODE(int) == os_event_poll_free(pool->poll_obj))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(pool->master == NULL)
 	{
 		if((errno = pthread_mutex_destroy(&pool->master_mutex)) != 0)
-		    rc = ERROR_CODE(int);
+			rc = ERROR_CODE(int);
 		if((errno = pthread_cond_destroy(&pool->master_cond)) != 0)
-		    rc = ERROR_CODE(int);
+			rc = ERROR_CODE(int);
 	}
 
 	free(pool);
@@ -349,7 +349,7 @@ static inline int _init_socket(module_tcp_pool_t* pool)
 		if(!pool->conf.ipv6)
 		{
 			if((pool->socket_fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-			    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create socket for TCP pipe module");
+				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create socket for TCP pipe module");
 
 			pool->saddr.sin_family = AF_INET;
 			pool->saddr.sin_addr.s_addr = inet_addr(pool->conf.bind_addr);
@@ -360,37 +360,37 @@ static inline int _init_socket(module_tcp_pool_t* pool)
 		else
 		{
 			if(strcmp(pool->conf.bind_addr, "0.0.0.0") == 0)
-			    pool->conf.bind_addr = "::";
+				pool->conf.bind_addr = "::";
 
 			if((pool->socket_fd = socket(PF_INET6, SOCK_STREAM, IPPROTO_TCP)) < 0)
-			    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create socket for TCP pipe module");
+				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create socket for TCP pipe module");
 			pool->saddr6.sin6_family = AF_INET6;
 			pool->saddr6.sin6_port   = htons(pool->conf.port);
 			if(inet_pton(AF_INET6, pool->conf.bind_addr, &pool->saddr6.sin6_addr) < 0)
-			    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot parse the ipv6 address %s", pool->conf.bind_addr);
+				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot parse the ipv6 address %s", pool->conf.bind_addr);
 			sockaddr = (struct sockaddr*)&pool->saddr6;
 			sockaddr_size = sizeof(struct sockaddr_in6);
 		}
 
 		if(pool->conf.reuseaddr &&
 		   setsockopt(pool->socket_fd, SOL_SOCKET, SO_REUSEADDR, (char*)&pool->conf.reuseaddr, sizeof(pool->conf.reuseaddr)) < 0)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the reuseaddr option");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the reuseaddr option");
 
 		if(_set_nonblock(pool->socket_fd) == ERROR_CODE(int))
-		    ERROR_LOG_GOTO(ERR, "Cannot set the socket FD to non-blocking mode");
+			ERROR_LOG_GOTO(ERR, "Cannot set the socket FD to non-blocking mode");
 
 		if(bind(pool->socket_fd, sockaddr, sockaddr_size) < 0)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot bind address");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot bind address");
 
 		if(listen(pool->socket_fd, pool->conf.tcp_backlog) < 0)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot listen TCP port %"PRIu16, pool->conf.port);
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot listen TCP port %"PRIu16, pool->conf.port);
 	}
 	else
 	{
 		if(pool->master->conf.ipv6)
-		    pool->saddr6 = pool->master->saddr6;
+			pool->saddr6 = pool->master->saddr6;
 		else
-		    pool->saddr = pool->master->saddr;
+			pool->saddr = pool->master->saddr;
 		pool->socket_fd = pool->master->socket_fd;
 	}
 
@@ -404,7 +404,7 @@ static inline int _init_socket(module_tcp_pool_t* pool)
 	};
 
 	if(ERROR_CODE(int) == os_event_poll_add(pool->poll_obj, &event))
-	    ERROR_LOG_GOTO(ERR, "Cannot add socket FD to the poll list");
+		ERROR_LOG_GOTO(ERR, "Cannot add socket FD to the poll list");
 
 	LOG_DEBUG("TCP Socket has been initialized on %s:%"PRIu16, pool->conf.bind_addr, pool->conf.port);
 	return 0;
@@ -417,22 +417,22 @@ ERR:
 int module_tcp_pool_configure(module_tcp_pool_t* pool, const module_tcp_pool_configure_t* conf)
 {
 	if(NULL == pool || (NULL == conf && pool->master == NULL))
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	pool->loop_killed = 0;
 
 	if(NULL != pool->conn_info.bitmask)
-	    ERROR_RETURN_LOG(int, "FIXME: Reconfiguration of a connection pool is not allowed");
+		ERROR_RETURN_LOG(int, "FIXME: Reconfiguration of a connection pool is not allowed");
 
 	if(NULL == conf)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 
 	if(pool->master == NULL)
 	{
 		pool->conf = *conf;
 		if((errno = pthread_mutex_lock(&pool->master_mutex)) != 0)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot acquire the master mutex for the master connection pool");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot acquire the master mutex for the master connection pool");
 
 		if(_init_socket(pool) == ERROR_CODE(int)) goto MASTER_ERR;
 
@@ -440,11 +440,11 @@ int module_tcp_pool_configure(module_tcp_pool_t* pool, const module_tcp_pool_con
 		{
 			LOG_DEBUG("Notifying the forks");
 			if((errno = pthread_cond_broadcast(&pool->master_cond)) != 0)
-			    ERROR_LOG_ERRNO_GOTO(MASTER_ERR, "Cannot broadcast the master connected signal");
+				ERROR_LOG_ERRNO_GOTO(MASTER_ERR, "Cannot broadcast the master connected signal");
 		}
 
 		if((errno = pthread_mutex_unlock(&pool->master_mutex)) != 0)
-		    LOG_WARNING_ERRNO("Cannot reloase the master mutex");
+			LOG_WARNING_ERRNO("Cannot reloase the master mutex");
 
 		goto CONT;
 MASTER_ERR:
@@ -455,7 +455,7 @@ MASTER_ERR:
 	{
 		LOG_DEBUG("Waiting for the master pool gets ready");
 		if((errno = pthread_mutex_lock(&pool->master->master_mutex)) != 0)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot acquire the master mutex for the forked connection pool");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot acquire the master mutex for the forked connection pool");
 
 		int cond_rc = 0;
 		while(pool->master->socket_fd <= 0 && (cond_rc = pthread_cond_wait(&pool->master->master_cond, &pool->master->master_mutex)) < 0);
@@ -464,7 +464,7 @@ MASTER_ERR:
 
 
 		if((errno = pthread_mutex_unlock(&pool->master->master_mutex)) != 0)
-		    LOG_WARNING_ERRNO("Cannot reloase the master mutex");
+			LOG_WARNING_ERRNO("Cannot reloase the master mutex");
 
 		LOG_DEBUG("The master connection pool gets ready");
 
@@ -519,9 +519,9 @@ static inline void _heapify(module_tcp_pool_t* pool, uint32_t idx)
 	{
 		uint32_t min_idx = idx;
 		if(idx * 2 + 1 < pool->conn_info.heap_limit && pool->conn_info.conn[idx * 2 + 1].ts < pool->conn_info.conn[min_idx].ts)
-		    min_idx = idx * 2 + 1;
+			min_idx = idx * 2 + 1;
 		if(idx * 2 + 2 < pool->conn_info.heap_limit && pool->conn_info.conn[idx * 2 + 2].ts < pool->conn_info.conn[min_idx].ts)
-		    min_idx = idx * 2 + 2;
+			min_idx = idx * 2 + 2;
 		if(idx == min_idx) break;
 		_swap(pool, idx, min_idx);
 		idx = min_idx;
@@ -537,7 +537,7 @@ static inline void _heapify(module_tcp_pool_t* pool, uint32_t idx)
 static inline void _decrease(module_tcp_pool_t* pool, uint32_t idx)
 {
 	for(;idx > 0 && pool->conn_info.conn[(idx - 1) / 2].ts > pool->conn_info.conn[idx].ts; idx = (idx - 1) / 2)
-	    _swap(pool, idx, (idx - 1) / 2);
+		_swap(pool, idx, (idx - 1) / 2);
 }
 
 //TODO: remodel this
@@ -554,11 +554,11 @@ static inline int _connection_close(module_tcp_pool_t* pool, uint32_t idx)
 
 	/* release the connection object */
 	if(ERROR_CODE(int) == _release_connection_object(pool, idx))
-	    LOG_WARNING("Cannot release the connection object, memory or FD leaking is possible");
+		LOG_WARNING("Cannot release the connection object, memory or FD leaking is possible");
 
 	/* free the index it occupied */
 	if(bitmask_dealloc(pool->conn_info.bitmask, pool->conn_info.conn[idx].id) == ERROR_CODE(int))
-	    LOG_WARNING("Cannot deallocate the used connection object index %"PRIu32, pool->conn_info.conn[idx].id);
+		LOG_WARNING("Cannot deallocate the used connection object index %"PRIu32, pool->conn_info.conn[idx].id);
 
 	/* If this index is in the range of inactive heap, remove it from the inactive heap first */
 	if(idx < pool->conn_info.heap_limit)
@@ -639,7 +639,7 @@ static inline int _connection_activate(module_tcp_pool_t* pool, uint32_t idx)
 
 	/** Remove it from the poll_obj's list, so that it won't trigger poll awake since then */
 	if(ERROR_CODE(int) == os_event_poll_del(pool->poll_obj, pool->conn_info.conn[idx].fd, 1))
-	    ERROR_RETURN_LOG(int, "Cannot remove the connection object %"PRIu32" from the poll object list", pool->conn_info.conn[idx].id);
+		ERROR_RETURN_LOG(int, "Cannot remove the connection object %"PRIu32" from the poll object list", pool->conn_info.conn[idx].id);
 
 	/* Remove it from the inactive heap */
 	_swap(pool, idx, --pool->conn_info.heap_limit);
@@ -759,9 +759,9 @@ static inline const char* _get_peer_name(int sockfd, int ipv6, char* buffer)
 	const char* result = NULL;
 
 	if(ipv6)
-	    result = inet_ntop(AF_INET6, &addr.ipv6.sin6_addr, buffer, INET6_ADDRSTRLEN);
+		result = inet_ntop(AF_INET6, &addr.ipv6.sin6_addr, buffer, INET6_ADDRSTRLEN);
 	else
-	    result = inet_ntop(AF_INET, &addr.ipv4.sin_addr, buffer, INET_ADDRSTRLEN);
+		result = inet_ntop(AF_INET, &addr.ipv4.sin_addr, buffer, INET_ADDRSTRLEN);
 
 	if(NULL == result)
 	{
@@ -844,7 +844,7 @@ ERR:
 	if(errno != EAGAIN && errno != EWOULDBLOCK)
 	{
 		if(errno != ENFILE && errno != EMFILE)
-		    LOG_ERROR("unexpected error code: %s", strerror(errno));
+			LOG_ERROR("unexpected error code: %s", strerror(errno));
 		else
 		{
 #ifdef LOG_WARNING_ENABLED
@@ -890,9 +890,9 @@ static inline void _print_queue_message(module_tcp_pool_t* pool, const _queue_me
 		    LOG_WARNING("Invalid message type");
 	}
 	if(cont)
-	    LOG_DEBUG("Continuation QM: operation = \"%s\", target-id = %"PRIu32", target-pos = %"PRIu32, msg_name, msg->id, pos);
+		LOG_DEBUG("Continuation QM: operation = \"%s\", target-id = %"PRIu32", target-pos = %"PRIu32, msg_name, msg->id, pos);
 	else
-	    LOG_DEBUG("QM #%"PRIu64": operation = \"%s\", target-id = %"PRIu32", target-pos = %"PRIu32, idx, msg_name, msg->id, pos);
+		LOG_DEBUG("QM #%"PRIu64": operation = \"%s\", target-id = %"PRIu32", target-pos = %"PRIu32, idx, msg_name, msg->id, pos);
 }
 #else
 {
@@ -916,16 +916,16 @@ static inline int _process_queue_message(module_tcp_pool_t* pool, const _queue_m
 	switch(msg->type)
 	{
 		case _QM_DEACTIVATE:
-		    pool->conn_info.conn[id].data = msg->data;
-		    rc = _connection_deactivate(pool, id, now);
-		    break;
+			pool->conn_info.conn[id].data = msg->data;
+			rc = _connection_deactivate(pool, id, now);
+			break;
 		case _QM_CLOSE:
-		    rc = _connection_close(pool, id);
-		    break;
+			rc = _connection_close(pool, id);
+			break;
 		case _QM_CHECKIN:
-		    pool->conn_info.conn[id].data = msg->data;
-		    rc = _connection_checkin(pool, id);
-		    break;
+			pool->conn_info.conn[id].data = msg->data;
+			rc = _connection_checkin(pool, id);
+			break;
 		default:
 		    ERROR_RETURN_LOG(int, "Unknown message type, code bug!");
 	}
@@ -945,7 +945,7 @@ static inline int _queue_message_exec(module_tcp_pool_t* pool, time_t now)
 	LOG_DEBUG("Performing queue message operations");
 
 	if(ERROR_CODE(int) == os_event_user_event_consume(pool->poll_obj, pool->event_fd))
-	    ERROR_RETURN_LOG(int, "Cannot consume user event");
+		ERROR_RETURN_LOG(int, "Cannot consume user event");
 
 	uint32_t limit = pool->conn_info.q_rear;
 	BARRIER();
@@ -957,7 +957,7 @@ static inline int _queue_message_exec(module_tcp_pool_t* pool, time_t now)
 		_print_queue_message(pool, msg, 0, current);
 
 		if(_process_queue_message(pool, msg, now) == ERROR_CODE(int))
-		    ERROR_RETURN_LOG(int, "Cannot perform the queue message operation");
+			ERROR_RETURN_LOG(int, "Cannot perform the queue message operation");
 
 		BARRIER();
 		arch_atomic_sw_increment_u32(&pool->conn_info.q_front);
@@ -978,7 +978,7 @@ static inline int _poll_event(module_tcp_pool_t* pool)
 	{
 		time_to_sleep = pool->conf.min_timeout;
 		if(pool->conn_info.conn[0].ts + pool->conf.ttl >= now + time_to_sleep)
-		    time_to_sleep = pool->conn_info.conn[0].ts + pool->conf.ttl - now;
+			time_to_sleep = pool->conn_info.conn[0].ts + pool->conf.ttl - now;
 	}
 
 	int timeout = (time_to_sleep > 0) ? (int)time_to_sleep * 1000 : -1;
@@ -991,16 +991,16 @@ static inline int _poll_event(module_tcp_pool_t* pool)
 	}
 
 	if(timeout > 0)
-	    LOG_DEBUG("waiting for socket events for up to %d ms", timeout);
+		LOG_DEBUG("waiting for socket events for up to %d ms", timeout);
 	else
-	    LOG_DEBUG("waiting for socket event");
+		LOG_DEBUG("waiting for socket event");
 
 	int result = os_event_poll_wait(pool->poll_obj, pool->conf.event_size, timeout);
 
 	if(pool->unaccepted_conn) incoming = 1;
 
 	if(result == ERROR_CODE(int))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot poll event");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot poll event");
 	else
 	{
 		for(i = 0; i < result; i ++)
@@ -1033,7 +1033,7 @@ static inline int _poll_event(module_tcp_pool_t* pool)
 
 	/* kick the timeout client out */
 	for(;pool->conn_info.heap_limit > 0 && pool->conn_info.conn[0].ts + pool->conf.ttl <= now; _connection_close(pool, 0))
-	    LOG_DEBUG("closing timed out connection %d", pool->conn_info.conn[0].fd);
+		LOG_DEBUG("closing timed out connection %d", pool->conn_info.conn[0].fd);
 
 	/* Process incoming request */
 	if(incoming)
@@ -1109,22 +1109,22 @@ static inline int _init_connection_release_message(module_tcp_pool_t* pool, _que
 	switch(mode)
 	{
 		case MODULE_TCP_POOL_RELEASE_MODE_WAIT_FOR_DATA:
-		    LOG_DEBUG("QM#%"PRIu32": deactivate the connection object %"PRIu32" from active list to inactive heap", pool->conn_info.q_rear, id);
-		    msg->type = _QM_DEACTIVATE;
-		    msg->id   = id;
-		    msg->data = data;
-		    return 0;
+			LOG_DEBUG("QM#%"PRIu32": deactivate the connection object %"PRIu32" from active list to inactive heap", pool->conn_info.q_rear, id);
+			msg->type = _QM_DEACTIVATE;
+			msg->id   = id;
+			msg->data = data;
+			return 0;
 		case MODULE_TCP_POOL_RELEASE_MODE_PURGE:
-		    LOG_DEBUG("QM#%"PRIu32": close the connection object %"PRIu32" as required", pool->conn_info.q_rear, id);
-		    msg->type = _QM_CLOSE;
-		    msg->id   = id;
-		    return 0;
+			LOG_DEBUG("QM#%"PRIu32": close the connection object %"PRIu32" as required", pool->conn_info.q_rear, id);
+			msg->type = _QM_CLOSE;
+			msg->id   = id;
+			return 0;
 		case MODULE_TCP_POOL_RELEASE_MODE_WAIT_FOR_READ:
-		    LOG_DEBUG("QM#%"PRIu32": check in the connection object %"PRIu32" from active list to wait list", pool->conn_info.q_rear, id);
-		    msg->type = _QM_CHECKIN;
-		    msg->id   = id;
-		    msg->data = data;
-		    return 0;
+			LOG_DEBUG("QM#%"PRIu32": check in the connection object %"PRIu32" from active list to wait list", pool->conn_info.q_rear, id);
+			msg->type = _QM_CHECKIN;
+			msg->id   = id;
+			msg->data = data;
+			return 0;
 		default:
 		    ERROR_RETURN_LOG(int, "Invalid mode swtich %d", mode);
 	}
@@ -1135,12 +1135,12 @@ int module_tcp_pool_connection_release(module_tcp_pool_t* pool, uint32_t id, voi
 	if(NULL == pool) ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if((errno = pthread_mutex_lock(&pool->conn_info.q_mutex)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the global message queue mutex");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot acquire the global message queue mutex");
 
 	if(_init_connection_release_message(pool, pool->conn_info.queue + (pool->conn_info.q_rear & pool->conn_info.q_mask), id, data, mode) == ERROR_CODE(int))
 	{
 		if((errno = pthread_mutex_unlock(&pool->conn_info.q_mutex)) != 0)
-		    LOG_ERROR_ERRNO("Cannot release the global message queue mutex");
+			LOG_ERROR_ERRNO("Cannot release the global message queue mutex");
 		ERROR_RETURN_LOG(int, "Cannot initialize the connection release message");
 	}
 
@@ -1149,7 +1149,7 @@ int module_tcp_pool_connection_release(module_tcp_pool_t* pool, uint32_t id, voi
 	arch_atomic_sw_increment_u32(&pool->conn_info.q_rear);
 
 	if((errno = pthread_mutex_unlock(&pool->conn_info.q_mutex)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot release the global message queue mutex");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot release the global message queue mutex");
 
 	uint64_t val = 1;
 	if(write(pool->event_fd, &val, sizeof(val)) > 0)
@@ -1158,7 +1158,7 @@ int module_tcp_pool_connection_release(module_tcp_pool_t* pool, uint32_t id, voi
 		return 0;
 	}
 	else
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot write to the event fd");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot write to the event fd");
 }
 
 void module_tcp_pool_loop_killed(module_tcp_pool_t* pool)

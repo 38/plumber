@@ -18,13 +18,13 @@ static inline runtime_stab_entry_t _load(const char* type)
 		{
 			_args[nargs][len] = *type;
 			if(_args[nargs][len] == '_')
-			    _args[nargs][len] = ' ';
+				_args[nargs][len] = ' ';
 			len ++;
 		}
 		_args[nargs][len] = 0;
 
 		while(*type == ' ')
-		    type ++;
+			type ++;
 	}
 
 	return runtime_stab_load(nargs, args, NULL);

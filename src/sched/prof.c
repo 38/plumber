@@ -121,7 +121,7 @@ int sched_prof_new(const sched_service_t* service, sched_prof_t** result)
 
 	sched_service_node_id_t serv_size = (sched_service_node_id_t)sched_service_get_num_node(service);
 	if(ERROR_CODE(sched_service_node_id_t) == serv_size)
-	    ERROR_RETURN_LOG(int, "Cannot get the size of the service");
+		ERROR_RETURN_LOG(int, "Cannot get the size of the service");
 
 	sched_prof_t* ret = NULL;
 	ret = (sched_prof_t*)malloc(sizeof(sched_prof_t));
@@ -130,7 +130,7 @@ int sched_prof_new(const sched_service_t* service, sched_prof_t** result)
 	if(NULL == ret) ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the profiler");
 	ret->serv_size = serv_size;
 	if(NULL == (ret->thread_data = thread_pset_new(SCHED_PROF_INIT_THREAD_CAPACITY, _prof_array_new, _prof_array_free, ret)))
-	    ERROR_LOG_GOTO(ERR, "Cannot create thread data array");
+		ERROR_LOG_GOTO(ERR, "Cannot create thread data array");
 	*result = ret;
 	return 0;
 ERR:
@@ -153,18 +153,18 @@ int sched_prof_free(sched_prof_t* prof)
 int sched_prof_start_timer(sched_prof_t* prof, sched_service_node_id_t node)
 {
 	if(NULL == prof || ERROR_CODE(sched_service_node_id_t) == node || node >= prof->serv_size)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_prof_array_t* acc = (_prof_array_t*)thread_pset_acquire(prof->thread_data);
 	if(NULL == acc)
-	    ERROR_RETURN_LOG(int, "Cannot get the profiler instance for this thread");
+		ERROR_RETURN_LOG(int, "Cannot get the profiler instance for this thread");
 
 	if(acc->cur_node != ERROR_CODE(sched_service_node_id_t))
-	    ERROR_RETURN_LOG(int, "Previous profiler session is not closed yet");
+		ERROR_RETURN_LOG(int, "Previous profiler session is not closed yet");
 
 	acc->cur_node = node;
 	if(clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &acc->start_time) < 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot get the start timestamp");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot get the start timestamp");
 
 	return 0;
 }
@@ -175,9 +175,9 @@ int sched_prof_stop_timer(sched_prof_t* prof)
 
 	_prof_array_t* acc = (_prof_array_t*)thread_pset_acquire(prof->thread_data);
 	if(NULL == acc)
-	    ERROR_RETURN_LOG(int, "Cannot get the profiler instance for this thread");
+		ERROR_RETURN_LOG(int, "Cannot get the profiler instance for this thread");
 	if(acc->cur_node == ERROR_CODE(sched_service_node_id_t))
-	    ERROR_RETURN_LOG(int, "Timer is not started yet");
+		ERROR_RETURN_LOG(int, "Timer is not started yet");
 
 	_accu_t* cell = acc->data + acc->cur_node;
 
@@ -185,15 +185,15 @@ int sched_prof_stop_timer(sched_prof_t* prof)
 
 	struct timespec end_time;
 	if(clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_time) < 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot get the end timestamp");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot get the end timestamp");
 
 
 	uint64_t time = ((uint64_t)(end_time.tv_sec - acc->start_time.tv_sec) * 1000000000ull);
 
 	if(end_time.tv_nsec > acc->start_time.tv_nsec)
-	    time += (uint64_t)(end_time.tv_nsec - acc->start_time.tv_nsec);
+		time += (uint64_t)(end_time.tv_nsec - acc->start_time.tv_nsec);
 	else
-	    time -= (uint64_t)(acc->start_time.tv_nsec - end_time.tv_nsec);
+		time -= (uint64_t)(acc->start_time.tv_nsec - end_time.tv_nsec);
 
 	cell->exec_count ++;
 	cell->total_time += time;
@@ -207,16 +207,16 @@ int sched_prof_flush(sched_prof_t* prof)
 
 	_prof_array_t* acc = (_prof_array_t*)thread_pset_acquire(prof->thread_data);
 	if(NULL == acc)
-	    ERROR_RETURN_LOG(int, "Cannot get the profiler instance for this thread");
+		ERROR_RETURN_LOG(int, "Cannot get the profiler instance for this thread");
 
 	sched_service_node_id_t size = prof->serv_size, i;
 
 	if(_prof_output == NULL)
 	{
 		for(i = 0; i < size; i ++)
-		    LOG_NOTICE("Profiler: Thread=%u\tNode=%u\tCount=%"PRIu64"\tTime=%"PRIu64">\tAverage %lf",
-		                thread_get_id(), i, acc->data[i].exec_count, acc->data[i].total_time,
-		                ((double)acc->data[i].total_time) / (double)acc->data[i].exec_count);
+			LOG_NOTICE("Profiler: Thread=%u\tNode=%u\tCount=%"PRIu64"\tTime=%"PRIu64">\tAverage %lf",
+			            thread_get_id(), i, acc->data[i].exec_count, acc->data[i].total_time,
+			            ((double)acc->data[i].total_time) / (double)acc->data[i].exec_count);
 	}
 	else
 	{
@@ -244,7 +244,7 @@ static inline int _set_prop(const char* symbol, lang_prop_value_t value, const v
 {
 	(void) data;
 	if(NULL == symbol || LANG_PROP_TYPE_ERROR == value.type || LANG_PROP_TYPE_NONE == value.type)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 	if(strcmp(symbol, "enabled") == 0)
 	{
 		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
@@ -291,7 +291,7 @@ int sched_prof_init()
 	};
 
 	if(ERROR_CODE(int) == lang_prop_register_callback(&cb))
-	    ERROR_RETURN_LOG(int, "Cannot register callback for the runtime prop callback");
+		ERROR_RETURN_LOG(int, "Cannot register callback for the runtime prop callback");
 
 	return 0;
 }

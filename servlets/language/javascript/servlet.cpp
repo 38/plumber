@@ -19,7 +19,7 @@ using namespace std;
 int init(uint32_t argc, char const* const* argv, void* data)
 {
 	if(argc < 2)
-	    ERROR_RETURN_LOG(int, "Javascript Servlet expectes at least one argument");
+		ERROR_RETURN_LOG(int, "Javascript Servlet expectes at least one argument");
 
 	Servlet::Context* context = NULL;
 	try
@@ -27,10 +27,10 @@ int init(uint32_t argc, char const* const* argv, void* data)
 		context = new(data)Servlet::Context();
 
 		if(ERROR_CODE(int) == Servlet::constants_init(context))
-		    ERROR_RETURN_LOG(int, "Cannot initialize the constants");
+			ERROR_RETURN_LOG(int, "Cannot initialize the constants");
 
 		if(ERROR_CODE(int) == Servlet::builtin_init(context))
-		    ERROR_RETURN_LOG(int, "Cannot initialize the builtin functions");
+			ERROR_RETURN_LOG(int, "Cannot initialize the builtin functions");
 
 		//      Because V8 dosen't allow the context forked to another isolate, so we
 		//      Need to initialize the isolate each time a new thread is asking for the context.
@@ -45,7 +45,7 @@ int init(uint32_t argc, char const* const* argv, void* data)
 		//		2. Inject servlet context to the context (parse from JSON)
 
 		if(context == NULL || ERROR_CODE(int) == context->setup(argv[1], argc - 2, argv + 2))
-		    ERROR_RETURN_LOG(int, "Cannot call the initialization function");
+			ERROR_RETURN_LOG(int, "Cannot call the initialization function");
 	}
 	catch(std::exception& ex)
 	{
@@ -53,7 +53,7 @@ int init(uint32_t argc, char const* const* argv, void* data)
 		ERROR_RETURN_LOG(int, "Cannot initialize the context: %s", ex.what());
 	}
 	if(context->ensure_thread_ready() == ERROR_CODE(int))
-	    ERROR_RETURN_LOG(int, "Cannot initialize the thread local context");
+		ERROR_RETURN_LOG(int, "Cannot initialize the thread local context");
 
 	return 0;
 }

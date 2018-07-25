@@ -62,23 +62,23 @@ lexer_t* lexer_new(const char* filename)
 	ret->line = ret->column = 0;
 
 	if(NULL != (ret->filename = (char*)malloc(fn_len + 1)))
-	    memcpy(ret->filename, filename, fn_len + 1);
+		memcpy(ret->filename, filename, fn_len + 1);
 	else ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the filename");
 
 	if(fseek(fp, 0, SEEK_END) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot seek to the end of the file");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot seek to the end of the file");
 
 	if((size = ftell(fp)) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot get the size of the file: %s", filename);
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot get the size of the file: %s", filename);
 
 	if(fseek(fp, 0, SEEK_SET) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot seek back to the start of the file");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot seek back to the start of the file");
 
 	if(NULL == (ret->buffer = (char*)malloc((size_t)(size + 1))))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the source buffer");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the source buffer");
 
 	if(size > 0 && fread(ret->buffer, (size_t)size, 1, fp) != 1)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the source file to buffer");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read the source file to buffer");
 
 	ret->buffer[size] = 0;
 	ret->next = ret->buffer;
@@ -94,7 +94,7 @@ ERR:
 		free(ret);
 	}
 	if(NULL != fp)
-	    fclose(fp);
+		fclose(fp);
 	return NULL;
 }
 
@@ -281,7 +281,7 @@ static inline int _peek_ahead(lexer_t* lexer, const char* id)
 	const char* src = lexer->next;
 	int match = 1;
 	for(;*id && *src && match; id++, src ++)
-	    match &= (*id == *src);
+		match &= (*id == *src);
 	return (match && *id == 0 && !_is_idcharset(*src));
 }
 
@@ -314,7 +314,7 @@ static inline void _strip_whilespace_and_comment(lexer_t* lexer)
 	{
 		// strip the white space first
 		while(_is_whitespace(ch = _peek(lexer)))
-		    _consume(lexer, 1);
+			_consume(lexer, 1);
 
 		//then strip the comment
 		if(ch == '#')
@@ -347,13 +347,13 @@ static inline void _strip_whilespace_and_comment(lexer_t* lexer)
 					switch(state)
 					{
 						case 0:
-						    if(ch == '*') state = 1;
-						    break;
+							if(ch == '*') state = 1;
+							break;
 						case 1:
-						    if(ch == '/') state = 2;
-						    else if(ch == '*') state = 1;
-						    else state = 0;
-						    break;
+							if(ch == '/') state = 2;
+							else if(ch == '*') state = 1;
+							else state = 0;
+							break;
 						default:
 						    state = 0;
 					}
@@ -394,11 +394,11 @@ static lexer_token_t* _parse_number(lexer_t* lexer)
 			{
 				ch = _peek(lexer);
 				if(_INRANGE(ch, '0', '9'))
-				    value = (value * 16) + (uint32_t)(ch - '0');
+					value = (value * 16) + (uint32_t)(ch - '0');
 				else if(_INRANGE(ch, 'A', 'F'))
-				    value = (value * 16) + (uint32_t)(ch - 'A' + 10);
+					value = (value * 16) + (uint32_t)(ch - 'A' + 10);
 				else if(_INRANGE(ch, 'a', 'f'))
-				    value = (value * 16) + (uint32_t)(ch - 'a' + 10);
+					value = (value * 16) + (uint32_t)(ch - 'a' + 10);
 				else break;
 
 				valid = 1;
@@ -412,7 +412,7 @@ static lexer_token_t* _parse_number(lexer_t* lexer)
 			for(;;)
 			{
 				if(_INRANGE(ch, '0', '7'))
-				    value = (value * 8) + (uint32_t)(ch - '0');
+					value = (value * 8) + (uint32_t)(ch - '0');
 				else break;
 
 				_consume(lexer, 1);
@@ -427,7 +427,7 @@ static lexer_token_t* _parse_number(lexer_t* lexer)
 		for(;;)
 		{
 			if(_INRANGE(ch, '0', '9'))
-			    value = (value * 10) + (uint32_t)(ch - '0');
+				value = (value * 10) + (uint32_t)(ch - '0');
 			else break;
 
 			_consume(lexer, 1);
@@ -435,7 +435,7 @@ static lexer_token_t* _parse_number(lexer_t* lexer)
 		}
 
 		if(ch != '.' && ch != 'e')
-		    return _num_token(lexer, sign * (int64_t)value);
+			return _num_token(lexer, sign * (int64_t)value);
 		else
 		{
 			double fval = (double)value;
@@ -448,7 +448,7 @@ static lexer_token_t* _parse_number(lexer_t* lexer)
 				{
 					ch = _peek(lexer);
 					if(_INRANGE(ch, '0', '9'))
-					    fval += mul * (ch - '0') * mul;
+						fval += mul * (ch - '0') * mul;
 					else break;
 					_consume(lexer, 1);
 				}
@@ -462,7 +462,7 @@ static lexer_token_t* _parse_number(lexer_t* lexer)
 					ch = _peek(lexer);
 					if(ch == '+') ;
 					else if(ch == '-')
-					    mul = mul > 1 ? 0.1 : 10.0;
+						mul = mul > 1 ? 0.1 : 10.0;
 					else break;
 					_consume(lexer, 1);
 				}
@@ -473,14 +473,14 @@ static lexer_token_t* _parse_number(lexer_t* lexer)
 				for(;;)
 				{
 					if(_INRANGE(ch, '0', '9'))
-					    pow = pow * 10 + ch - '0';
+						pow = pow * 10 + ch - '0';
 					else break;
 					_consume(lexer, 1);
 					ch = _peek(lexer);
 				}
 
 				for(;pow; pow /= 2, mul *= mul)
-				    if(pow&1) exp *= mul;
+					if(pow&1) exp *= mul;
 			}
 			return _float_token(lexer, sign * exp * fval);
 		}

@@ -257,7 +257,7 @@ static inline void* thread_pset_acquire(thread_pset_t* pset)
 
 	/* If the pointer for the thread is already there */
 	if(PREDICT_TRUE(current->size > tid))
-	    return current->ptr[tid];
+		return current->ptr[tid];
 
 	return _thread_allocate_current_pointer(pset, tid);
 }

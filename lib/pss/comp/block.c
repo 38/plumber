@@ -33,10 +33,10 @@ int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token
 	if(NULL == comp) PSS_COMP_RAISE_INT(comp, ARGS);
 
 	if(first_token != PSS_COMP_LEX_TOKEN_NAT && ERROR_CODE(int) == pss_comp_expect_token(comp, first_token))
-	    ERROR_RETURN_LOG(int, "Unexpected beginging of the header");
+		ERROR_RETURN_LOG(int, "Unexpected beginging of the header");
 
 	if(ERROR_CODE(int) == pss_comp_open_scope(comp))
-	    ERROR_RETURN_LOG(int, "Cannot open scope");
+		ERROR_RETURN_LOG(int, "Cannot open scope");
 
 	uint32_t last_stmt_line = ERROR_CODE(uint32_t);
 
@@ -46,12 +46,12 @@ int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token
 	{
 		const pss_comp_lex_token_t* ahead = pss_comp_peek(comp, 0);
 		if(NULL == ahead)
-		    ERROR_RETURN_LOG(int, "Cannot peek ahead token");
+			ERROR_RETURN_LOG(int, "Cannot peek ahead token");
 
 		if(ahead->type == last_token)
 		{
 			if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
-			    ERROR_RETURN_LOG(int, "Cannot consume token");
+				ERROR_RETURN_LOG(int, "Cannot consume token");
 			break;
 		}
 
@@ -59,22 +59,22 @@ int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token
 
 		if(ahead->type == PSS_COMP_LEX_TOKEN_SEMICOLON ||
 		   ahead->type == PSS_COMP_LEX_TOKEN_LBRACE)
-		    last_stmt_line = ERROR_CODE(uint32_t);
+			last_stmt_line = ERROR_CODE(uint32_t);
 		else
 		{
 			if(ahead->line == last_stmt_line)
-			    PSS_COMP_RAISE_SYN(int, comp, "';' expected");
+				PSS_COMP_RAISE_SYN(int, comp, "';' expected");
 			update_last_line = 1;
 		}
 
 		if(result.kind != PSS_COMP_VALUE_KIND_INVALID && ERROR_CODE(int) == pss_comp_value_release(comp, &result))
-		    ERROR_RETURN_LOG(int, "Cannot release the expression result");
+			ERROR_RETURN_LOG(int, "Cannot release the expression result");
 
 		if(ERROR_CODE(int) == pss_comp_stmt_parse(comp, repl_mode?&result:NULL))
-		    ERROR_RETURN_LOG(int, "Cannot parse the next statement");
+			ERROR_RETURN_LOG(int, "Cannot parse the next statement");
 
 		if(update_last_line && ERROR_CODE(uint32_t) == (last_stmt_line = pss_comp_last_consumed_line(comp)))
-		    ERROR_RETURN_LOG(int, "Cannot get the line number of the last consumed line");
+			ERROR_RETURN_LOG(int, "Cannot get the line number of the last consumed line");
 
 	}
 
@@ -84,17 +84,17 @@ int pss_comp_block_parse(pss_comp_t* comp, pss_comp_lex_token_type_t first_token
 		if(NULL == seg) ERROR_RETURN_LOG(int, "Cannot get current bytecode segment");
 
 		if(ERROR_CODE(int) == pss_comp_value_simplify(comp, &result))
-		    ERROR_RETURN_LOG(int, "Cannot simplify the result value");
+			ERROR_RETURN_LOG(int, "Cannot simplify the result value");
 
 		if(!_INST(seg, RETURN, _R(result.regs[0].id)))
-		    PSS_COMP_RAISE_INT(comp, CODE);
+			PSS_COMP_RAISE_INT(comp, CODE);
 
 		if(ERROR_CODE(int) == pss_comp_value_release(comp, &result))
-		    ERROR_RETURN_LOG(int, "Cannot release the value");
+			ERROR_RETURN_LOG(int, "Cannot release the value");
 	}
 
 	if(ERROR_CODE(int) == pss_comp_close_scope(comp))
-	    ERROR_RETURN_LOG(int, "Cannot close scope");
+		ERROR_RETURN_LOG(int, "Cannot close scope");
 
 	return 0;
 }

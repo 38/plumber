@@ -119,23 +119,23 @@ static void* worker_func(void* ptr_id)
 				switch(state)
 				{
 					case 0:
-					    if(ch == '\r') state = 1;
-					    break;
+						if(ch == '\r') state = 1;
+						break;
 					case 1:
-					    if(ch == '\n') state = 2;
-					    else if(ch == '\r') state = 1;
-					    else state = 0;
-					    break;
+						if(ch == '\n') state = 2;
+						else if(ch == '\r') state = 1;
+						else state = 0;
+						break;
 					case 2:
-					    if(ch == '\r') state = 3;
-					    else state = 0;
-					    break;
+						if(ch == '\r') state = 3;
+						else state = 0;
+						break;
 					case 3:
-					    if(ch == '\n') state = 4;
-					    else if(ch == '\r') state = 1;
-					    else state = 0;
+						if(ch == '\n') state = 4;
+						else if(ch == '\r') state = 1;
+						else state = 0;
 					case 4:
-					    break;
+						break;
 				}
 			}
 			if(state == 4)
@@ -265,7 +265,7 @@ int main(void)
 		{
 			f = -1;
 			for(i = 0; i < NTHREAD && f == -1; i ++)
-			    if(t_st[i] != 1) f = i;
+				if(t_st[i] != 1) f = i;
 			if(f != -1 && t_st[f] == 0 && r_flag == 1) break;
 			else if(f != -1 && t_st[f] >= 2) break;
 			fprintf(tl, "%16.6lf	S	0\n", get_ts());
@@ -278,22 +278,22 @@ int main(void)
 		switch(t_st[f])
 		{
 			case 2:
-			    module_tcp_pool_connection_release(pool, t_id[f], t_bf[f], MODULE_TCP_POOL_RELEASE_MODE_AUTO);
-			    t_st[f] = 0;
-			    break;
+				module_tcp_pool_connection_release(pool, t_id[f], t_bf[f], MODULE_TCP_POOL_RELEASE_MODE_AUTO);
+				t_st[f] = 0;
+				break;
 			case 3:
-			    module_tcp_pool_connection_release(pool, t_id[f], NULL, MODULE_TCP_POOL_RELEASE_MODE_PURGE);
-			    t_st[f] = 0;
-			    break;
+				module_tcp_pool_connection_release(pool, t_id[f], NULL, MODULE_TCP_POOL_RELEASE_MODE_PURGE);
+				t_st[f] = 0;
+				break;
 			case 0:
-			    LOG_DEBUG("Assign connection object %"PRIu32" to thread %d", conn.idx , f);
-			    t_st[f] = 1;
-			    t_id[f] = conn.idx;
-			    t_fd[f] = conn.fd;
-			    t_bf[f] = (buffer_t*)conn.data;
-			    pthread_mutex_lock(&r_mutex);
-			    r_flag = 0;
-			    pthread_mutex_unlock(&r_mutex);
+				LOG_DEBUG("Assign connection object %"PRIu32" to thread %d", conn.idx , f);
+				t_st[f] = 1;
+				t_id[f] = conn.idx;
+				t_fd[f] = conn.fd;
+				t_bf[f] = (buffer_t*)conn.data;
+				pthread_mutex_lock(&r_mutex);
+				r_flag = 0;
+				pthread_mutex_unlock(&r_mutex);
 		}
 		pthread_mutex_unlock(t_mutex + f);
 		pthread_cond_signal(t_cond + f);

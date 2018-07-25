@@ -194,9 +194,9 @@ static PyTypeObject _py_type = {
 int scope_object_init(PyObject* module)
 {
 	if(NULL == module)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 	if(PyType_Ready(&_py_type) == -1)
-	    ERROR_RETURN_LOG(int, "Cannot initialize the python object");
+		ERROR_RETURN_LOG(int, "Cannot initialize the python object");
 
 	union {
 		PyObject*    obj;
@@ -208,13 +208,13 @@ int scope_object_init(PyObject* module)
 	Py_INCREF(cvt.obj);
 
 	if(PyModule_AddObject(module, "RLS_Object",  cvt.obj) == -1)
-	    ERROR_RETURN_LOG(int, "Caonnot add scope token type to module");
+		ERROR_RETURN_LOG(int, "Caonnot add scope token type to module");
 
 	if(PyModule_AddIntConstant(module, "SCOPE_TYPE_STRING", SCOPE_OBJECT_TYPE_STRING) == -1)
-	    ERROR_RETURN_LOG(int, "Cannot add SCOPE_OBJECT_TYPE_STRING to the module");
+		ERROR_RETURN_LOG(int, "Cannot add SCOPE_OBJECT_TYPE_STRING to the module");
 
 	if(PyModule_AddIntConstant(module, "SCOPE_TYPE_FILE", SCOPE_OBJECT_TYPE_FILE) == -1)
-	    ERROR_RETURN_LOG(int, "Cannot add SCOPE_TYPE_FILE to the module");
+		ERROR_RETURN_LOG(int, "Cannot add SCOPE_TYPE_FILE to the module");
 
 	return 0;
 }
@@ -222,7 +222,7 @@ int scope_object_init(PyObject* module)
 int scope_object_register_type_ops(scope_object_type_t type, scope_object_ops_t ops)
 {
 	if(type >= SCOPE_OBJECT_TYPE_COUNT || ops.create == NULL || ops.dispose == NULL || ops.commit == NULL)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_obj_ops[type] = ops;
 
@@ -245,7 +245,7 @@ const void* scope_object_retrieve(scope_object_type_t type, PyObject* object)
 	}
 
 	if(ERROR_CODE(scope_token_t) == obj->token)
-	    return obj->owned;
+		return obj->owned;
 
 	return obj->in_scope;
 }

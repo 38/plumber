@@ -56,13 +56,13 @@ static int module_init(void* __restrict ctx, uint32_t argc, char const* __restri
 	for(i = 0; i < argc; i ++)
 	{
 		if(strcmp(argv[i], "--event-loop") == 0)
-		    context->event_loop = 1;
+			context->event_loop = 1;
 		else if(context->name == NULL)
-		    context->name = argv[i];
+			context->name = argv[i];
 	}
 
 	if(context->name == NULL)
-	    context->name = "__default__";
+		context->name = "__default__";
 
 	return 0;
 }
@@ -107,7 +107,7 @@ static int deallocate(void* __restrict ctx, void* __restrict pipe, int error, in
 	{
 		LOG_DEBUG("pipe has been disposed");
 		if(handle->buffer != request_buffer && handle->buffer != response_buffer)
-		    free(handle->buffer);
+			free(handle->buffer);
 		return 0;
 	}
 

@@ -41,7 +41,7 @@ int test_schema_validate_valid(void)
 
 	uint32_t i;
 	for(i = 0; i < sizeof(value_text) / sizeof(value_text[0]); i ++)
-	    ASSERT(1 == jsonschema_validate_str(schema, value_text[i], 0), CLEANUP_NOP);
+		ASSERT(1 == jsonschema_validate_str(schema, value_text[i], 0), CLEANUP_NOP);
 
 	return 0;
 }
@@ -61,7 +61,7 @@ int test_schema_validate_invalid(void)
 
 	uint32_t i;
 	for(i = 0; i < sizeof(value_text) / sizeof(value_text[0]); i ++)
-	    ASSERT(0 == jsonschema_validate_str(schema, value_text[i], 0), CLEANUP_NOP);
+		ASSERT(0 == jsonschema_validate_str(schema, value_text[i], 0), CLEANUP_NOP);
 
 	return 0;
 }
@@ -132,7 +132,7 @@ int test_schema_update(void)
 int setup(void)
 {
 	if(ERROR_CODE(int) == jsonschema_log_set_write_callback(log_write_va))
-	    ERROR_RETURN_LOG(int, "Cannot set the log write callback");
+		ERROR_RETURN_LOG(int, "Cannot set the log write callback");
 	/* For the libstdc++ emergency_pool, we could call __gnu_cxx::__freeres if possible */
 	expected_memory_leakage();
 	return 0;

@@ -124,10 +124,10 @@ static inline int _memory_block_free(_block_t* memory_block)
 	int ret = 0;
 
 	if(NULL != memory_block->memory->free_func && ERROR_CODE(int) == memory_block->memory->free_func(memory_block->memory->data))
-	    ret = ERROR_CODE(int);
+		ret = ERROR_CODE(int);
 
 	if(ERROR_CODE(int) == pstd_mempool_free(memory_block))
-	    ret = ERROR_CODE(int);
+		ret = ERROR_CODE(int);
 
 	return ret;
 }
@@ -136,12 +136,12 @@ static inline _block_t* _stream_block_new(scope_token_t token)
 {
 	_block_t* ret = pstd_mempool_alloc(sizeof(_block_t) + sizeof(_rls_stream_t));
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate a new stream block object");
+		ERROR_PTR_RETURN_LOG("Cannot allocate a new stream block object");
 
 	pstd_scope_stream_t* stream = pstd_scope_stream_open(token);
 
 	if(NULL == stream)
-	    ERROR_LOG_GOTO(ERR, "Cannot open the RLS token %u as stream", token);
+		ERROR_LOG_GOTO(ERR, "Cannot open the RLS token %u as stream", token);
 
 	ret->type = _BLOCK_TYPE_STREAM;
 	ret->next = NULL;
@@ -157,10 +157,10 @@ static inline int _stream_block_free(_block_t* stream_block)
 {
 	int ret = 0;
 	if(ERROR_CODE(int) == pstd_scope_stream_close(stream_block->stream->stream))
-	    ret = ERROR_CODE(int);
+		ret = ERROR_CODE(int);
 
 	if(ERROR_CODE(int) == pstd_mempool_free(stream_block))
-	    ret = ERROR_CODE(int);
+		ret = ERROR_CODE(int);
 
 	return ret;
 }
@@ -170,11 +170,11 @@ static inline int _block_free(_block_t* block)
 	switch(block->type)
 	{
 		case _BLOCK_TYPE_PAGE:
-		    return _page_block_free(block);
+			return _page_block_free(block);
 		case _BLOCK_TYPE_MEMORY:
-		    return _memory_block_free(block);
+			return _memory_block_free(block);
 		case _BLOCK_TYPE_STREAM:
-		    return _stream_block_free(block);
+			return _stream_block_free(block);
 	}
 
 	return ERROR_CODE(int);
@@ -185,7 +185,7 @@ static inline int _ostream_free(pstd_ostream_t* ostream, int app_space)
 	int rc = 0;
 
 	if(app_space && ostream->commited)
-	    ERROR_RETURN_LOG(int, "Cannot dispose a commited RLS object");
+		ERROR_RETURN_LOG(int, "Cannot dispose a commited RLS object");
 
 	_block_t* ptr;
 	for(ptr = ostream->list_begin; NULL != ptr;)
@@ -194,7 +194,7 @@ static inline int _ostream_free(pstd_ostream_t* ostream, int app_space)
 		ptr = ptr->next;
 
 		if(ERROR_CODE(int) == _block_free(this))
-		    rc = ERROR_CODE(int);
+			rc = ERROR_CODE(int);
 	}
 
 	return rc;
@@ -203,12 +203,12 @@ static inline int _ostream_free(pstd_ostream_t* ostream, int app_space)
 pstd_ostream_t* pstd_ostream_new(void)
 {
 	if(pagesize == 0)
-	    pagesize = (size_t)getpagesize();
+		pagesize = (size_t)getpagesize();
 
 	pstd_ostream_t* ret = (pstd_ostream_t*)pstd_mempool_alloc(sizeof(*ret));
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the ostream RLS object");
+		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the ostream RLS object");
 
 	ret->commited = 0;
 	ret->opened = 0;
@@ -226,7 +226,7 @@ int pstd_ostream_write(pstd_ostream_t* stream, const void* buf, size_t sz)
 {
 	/* Bascially once the ostream is commited, we can't change anything */
 	if(NULL == stream || NULL == buf || stream->opened)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	while(sz > 0)
 	{
@@ -236,19 +236,19 @@ int pstd_ostream_write(pstd_ostream_t* stream, const void* buf, size_t sz)
 		{
 			_block_t* new_block = _page_block_new();
 			if(NULL == new_block)
-			    ERROR_RETURN_LOG(int, "Cannot allocate new block page");
+				ERROR_RETURN_LOG(int, "Cannot allocate new block page");
 
 			if(stream->list_end != NULL)
-			    stream->list_end->next = new_block;
+				stream->list_end->next = new_block;
 			else
-			    stream->list_begin = new_block;
+				stream->list_begin = new_block;
 			stream->list_end = new_block;
 		}
 
 		uint32_t bytes_to_write = (uint32_t)_page_block_bytes_availiable(stream->list_end);
 
 		if(bytes_to_write > sz)
-		    bytes_to_write = (uint32_t)sz;
+			bytes_to_write = (uint32_t)sz;
 
 		memcpy(stream->list_end->page->data + stream->list_end->page->size, buf, bytes_to_write);
 
@@ -263,7 +263,7 @@ int pstd_ostream_write(pstd_ostream_t* stream, const void* buf, size_t sz)
 int pstd_ostream_write_owner_pointer(pstd_ostream_t* stream, void* buf, int (*free_func)(void*), size_t sz)
 {
 	if(NULL == stream || NULL == buf || stream->opened)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(stream->list_end != NULL && stream->list_end->type == _BLOCK_TYPE_PAGE && sz <= _page_block_bytes_availiable(stream->list_end))
 	{
@@ -271,19 +271,19 @@ int pstd_ostream_write_owner_pointer(pstd_ostream_t* stream, void* buf, int (*fr
 		memcpy(stream->list_end->page->data + stream->list_end->page->size, buf, sz);
 
 		if(NULL != free_func && ERROR_CODE(int) == free_func(buf))
-		    ERROR_RETURN_LOG(int, "Cannot dispose the used memory buffer");
+			ERROR_RETURN_LOG(int, "Cannot dispose the used memory buffer");
 
 		return 0;
 	}
 
 	_block_t* new_block = _memory_block_new(buf, sz, free_func);
 	if(new_block == NULL)
-	    ERROR_RETURN_LOG(int, "Cannot allocate next memory block");
+		ERROR_RETURN_LOG(int, "Cannot allocate next memory block");
 
 	if(stream->list_end != NULL)
-	    stream->list_end->next = new_block;
+		stream->list_end->next = new_block;
 	else
-	    stream->list_begin = new_block;
+		stream->list_begin = new_block;
 	stream->list_end = new_block;
 
 	return 0;
@@ -292,17 +292,17 @@ int pstd_ostream_write_owner_pointer(pstd_ostream_t* stream, void* buf, int (*fr
 int pstd_ostream_write_scope_token(pstd_ostream_t* stream, scope_token_t token)
 {
 	if(NULL == stream || 0 == token || ERROR_CODE(scope_token_t) == token || stream->opened)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_block_t* new_block = _stream_block_new(token);
 
 	if(NULL == new_block)
-	    ERROR_RETURN_LOG(int, "Cannot allocate next stream block");
+		ERROR_RETURN_LOG(int, "Cannot allocate next stream block");
 
 	if(stream->list_end != NULL)
-	    stream->list_end->next = new_block;
+		stream->list_end->next = new_block;
 	else
-	    stream->list_begin = new_block;
+		stream->list_begin = new_block;
 	stream->list_end = new_block;
 
 	return 0;
@@ -329,7 +329,7 @@ int pstd_ostream_printf(pstd_ostream_t* stream, const char* fmt, ...)
 	if(rc >= 0 && (size_t)rc > _bsz)
 	{
 		if(NULL == (_b = (char*)malloc((size_t)rc + 1)))
-		    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the result buffer");
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the result buffer");
 		rc = vsnprintf(_b, (size_t)rc + 1, fmt, ap);
 	}
 	va_end(ap);
@@ -337,17 +337,17 @@ int pstd_ostream_printf(pstd_ostream_t* stream, const char* fmt, ...)
 #pragma clang diagnostic pop
 #endif
 	if(rc < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "vsnprintf returns an error");
+		ERROR_LOG_ERRNO_GOTO(ERR, "vsnprintf returns an error");
 
 	if(_b == _lb)
 	{
 		if(ERROR_CODE(int) == pstd_ostream_write(stream, _lb, (size_t)rc))
-		    ERROR_LOG_GOTO(ERR, "Cannot write the result data to buffer");
+			ERROR_LOG_GOTO(ERR, "Cannot write the result data to buffer");
 	}
 	else
 	{
 		if(ERROR_CODE(int) == pstd_ostream_write_owner_pointer(stream, _b, _printf_buf_free, (size_t)rc))
-		    ERROR_LOG_GOTO(ERR, "Cannot write pass the data buffer to the stream");
+			ERROR_LOG_GOTO(ERR, "Cannot write pass the data buffer to the stream");
 	}
 
 	return 0;
@@ -373,7 +373,7 @@ static void* _open(const void* ostream)
 	};
 
 	if(cvt.cos->opened == 1)
-	    ERROR_PTR_RETURN_LOG("Cannot open an ostream twice");
+		ERROR_PTR_RETURN_LOG("Cannot open an ostream twice");
 
 	cvt.ret->opened = 1;
 
@@ -401,56 +401,56 @@ static size_t _read(void* __restrict stream_mem, void* __restrict buf, size_t co
 		switch(stream->list_begin->type)
 		{
 			case _BLOCK_TYPE_PAGE:
-			{
-				if(bytes_to_read > stream->list_begin->page->size - stream->list_begin->page->read)
 				{
-					bytes_to_read = stream->list_begin->page->size - stream->list_begin->page->read;
-					block_exhuated = 1;
+					if(bytes_to_read > stream->list_begin->page->size - stream->list_begin->page->read)
+					{
+						bytes_to_read = stream->list_begin->page->size - stream->list_begin->page->read;
+						block_exhuated = 1;
+					}
+					memcpy(buf, stream->list_begin->page->data + stream->list_begin->page->read, bytes_to_read);
+					bytes_read = bytes_to_read;
+					stream->list_begin->page->read += (uint32_t)bytes_read;
+					break;
 				}
-				memcpy(buf, stream->list_begin->page->data + stream->list_begin->page->read, bytes_to_read);
-				bytes_read = bytes_to_read;
-				stream->list_begin->page->read += (uint32_t)bytes_read;
-				break;
-			}
 			case _BLOCK_TYPE_MEMORY:
-			{
-				if(bytes_to_read > stream->list_begin->memory->size - stream->list_begin->memory->read)
 				{
-					bytes_to_read = stream->list_begin->memory->size - stream->list_begin->memory->read;
-					block_exhuated = 1;
+					if(bytes_to_read > stream->list_begin->memory->size - stream->list_begin->memory->read)
+					{
+						bytes_to_read = stream->list_begin->memory->size - stream->list_begin->memory->read;
+						block_exhuated = 1;
+					}
+					memcpy(buf, ((char*)stream->list_begin->memory->data) + stream->list_begin->memory->read, bytes_to_read);
+
+					bytes_read = bytes_to_read;
+
+					stream->list_begin->memory->read += (uint32_t)bytes_read;
+					break;
+
 				}
-				memcpy(buf, ((char*)stream->list_begin->memory->data) + stream->list_begin->memory->read, bytes_to_read);
-
-				bytes_read = bytes_to_read;
-
-				stream->list_begin->memory->read += (uint32_t)bytes_read;
-				break;
-
-			}
 			case _BLOCK_TYPE_STREAM:
-			{
-				bytes_read = pstd_scope_stream_read(stream->list_begin->stream->stream, buf, bytes_to_read);
-				if(ERROR_CODE(size_t) == bytes_read)
-				    ERROR_RETURN_LOG(size_t, "Inner RLS returns a read error");
-
-				if(bytes_read == 0)
 				{
-					int eos_rc = pstd_scope_stream_eof(stream->list_begin->stream->stream);
-					if(ERROR_CODE(int) == eos_rc)
-					    ERROR_RETURN_LOG(size_t, "Cannot check if the innter RLS reached end-of-stream");
-					block_exhuated = (eos_rc > 0);
+					bytes_read = pstd_scope_stream_read(stream->list_begin->stream->stream, buf, bytes_to_read);
+					if(ERROR_CODE(size_t) == bytes_read)
+						ERROR_RETURN_LOG(size_t, "Inner RLS returns a read error");
+
+					if(bytes_read == 0)
+					{
+						int eos_rc = pstd_scope_stream_eof(stream->list_begin->stream->stream);
+						if(ERROR_CODE(int) == eos_rc)
+							ERROR_RETURN_LOG(size_t, "Cannot check if the innter RLS reached end-of-stream");
+						block_exhuated = (eos_rc > 0);
+					}
+					break;
 				}
-				break;
-			}
 		}
 
 		if(block_exhuated)
 		{
 			_block_t* this = stream->list_begin;
 			if(NULL == (stream->list_begin = stream->list_begin->next))
-			    stream->list_end = NULL;
+				stream->list_end = NULL;
 			if(ERROR_CODE(int) == _block_free(this))
-			    ERROR_RETURN_LOG(size_t, "Cannot dispose the exhuated data block");
+				ERROR_RETURN_LOG(size_t, "Cannot dispose the exhuated data block");
 		}
 		else if(bytes_read == 0) break;  /* In this case the inner RLS is stall, thus we need to stop at this point */
 
@@ -474,11 +474,11 @@ static int _eos(const void* stream_mem)
 		switch(stream->list_begin->type)
 		{
 			case _BLOCK_TYPE_PAGE:
-			    return stream->list_begin->page->read >= stream->list_begin->page->size;
+				return stream->list_begin->page->read >= stream->list_begin->page->size;
 			case _BLOCK_TYPE_MEMORY:
-			    return stream->list_begin->memory->read >= stream->list_begin->memory->size;
+				return stream->list_begin->memory->read >= stream->list_begin->memory->size;
 			case _BLOCK_TYPE_STREAM:
-			    return pstd_scope_stream_eof(stream->list_begin->stream->stream);
+				return pstd_scope_stream_eof(stream->list_begin->stream->stream);
 		}
 
 		return  ERROR_CODE(int);
@@ -497,9 +497,9 @@ static int _event(void* __restrict stream_mem, runtime_api_scope_ready_event_t* 
 	{
 		case _BLOCK_TYPE_PAGE:
 		case _BLOCK_TYPE_MEMORY:
-		    return 0;
+			return 0;
 		case _BLOCK_TYPE_STREAM:
-		    return pstd_scope_stream_ready_event(stream->list_begin->stream->stream, event_buf);
+			return pstd_scope_stream_ready_event(stream->list_begin->stream->stream, event_buf);
 	}
 
 	return ERROR_CODE(int);
@@ -509,7 +509,7 @@ static int _event(void* __restrict stream_mem, runtime_api_scope_ready_event_t* 
 scope_token_t pstd_ostream_commit(pstd_ostream_t* stream)
 {
 	if(NULL == stream || stream->commited)
-	    ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
+		ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
 
 	scope_entity_t ent = {
 		.data = stream,

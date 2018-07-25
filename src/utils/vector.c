@@ -65,9 +65,9 @@ vector_t* vector_append(vector_t* vec, const void* data)
 	}
 
 	if(NULL != data)
-	    memcpy(_vector_get(vec, vec->_length ++), data, vec->_elem_size);
+		memcpy(_vector_get(vec, vec->_length ++), data, vec->_elem_size);
 	else
-	    vec->_length ++;
+		vec->_length ++;
 
 	return vec;
 }

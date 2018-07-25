@@ -95,7 +95,7 @@ static inline uint64_t _hash(const void* data, size_t count)
 static inline size_t _pad(size_t s)
 {
 	if(s & (sizeof(uintpad_t) - 1))
-	    return ((s / sizeof(uintpad_t)) * sizeof(uintpad_t) + sizeof(uintpad_t));
+		return ((s / sizeof(uintpad_t)) * sizeof(uintpad_t) + sizeof(uintpad_t));
 	return s;
 }
 
@@ -219,12 +219,12 @@ int hashmap_insert(hashmap_t* hashmap, const void* key_data, size_t key_size,
 		else if(rc->val_size == val_size)
 		{
 			if(val_size > 0)
-			    memcpy(_VAL((_node_t*)rc), val_data, val_size);
+				memcpy(_VAL((_node_t*)rc), val_data, val_size);
 			_fill_result(result, rc);
 			return 1;
 		}
 		else
-		    ERROR_RETURN_LOG(int, "attempt put value data in different size to the same item");
+			ERROR_RETURN_LOG(int, "attempt put value data in different size to the same item");
 	}
 
 	_node_t* node = _node_alloc(hashmap, key_data, key_size, val_data, val_size);
@@ -240,7 +240,7 @@ int hashmap_insert(hashmap_t* hashmap, const void* key_data, size_t key_size,
 	hashmap->slots[slot_idx] = node;
 
 	if(NULL != result)
-	    _fill_result(result, node);
+		_fill_result(result, node);
 	return 1;
 }
 

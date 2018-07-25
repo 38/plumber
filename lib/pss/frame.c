@@ -47,7 +47,7 @@ static inline _node_t* _node_new(int leaf)
 	_node_t* ret = (_node_t*)calloc(1, size);
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new node");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new node");
 
 	return ret;
 }
@@ -106,10 +106,10 @@ static inline _node_t* _cow_write(_node_t* root, pss_bytecode_regid_t left, pss_
 			if(root->child->right != NULL) ERROR_PTR_RETURN_LOG("Code bug: unevenly initialized left child and right child");
 
 			if(NULL == (root->child->left = _node_new(right - left == 3)))
-			    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the left child");
+				ERROR_PTR_RETURN_LOG("Cannot allocate memory for the left child");
 
 			if(NULL == (root->child->right = _node_new(right - left == 3)))
-			    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the right child");
+				ERROR_PTR_RETURN_LOG("Cannot allocate memory for the right child");
 
 			root->child->left->refcnt = root->child->right->refcnt = 1;
 		}
@@ -121,7 +121,7 @@ static inline _node_t* _cow_write(_node_t* root, pss_bytecode_regid_t left, pss_
 			_node_t* node = _node_new(right - left == 1);
 
 			if(ERROR_CODE(int) == pss_value_incref(node->value = root->value))
-			    ERROR_PTR_RETURN_LOG("Cannot increase the ref counter of the value");
+				ERROR_PTR_RETURN_LOG("Cannot increase the ref counter of the value");
 
 			node->refcnt = 1;
 			root->refcnt --;
@@ -138,17 +138,17 @@ static inline _node_t* _cow_write(_node_t* root, pss_bytecode_regid_t left, pss_
 		*parent = root;
 
 		if (target < mid)
-		    right = mid, parent = &root->child->left, root = root->child->left;
+			right = mid, parent = &root->child->left, root = root->child->left;
 		else if (mid < target)
-		    left = (pss_bytecode_regid_t)(mid + 1u), parent = &root->child->right, root = root->child->right;
+			left = (pss_bytecode_regid_t)(mid + 1u), parent = &root->child->right, root = root->child->right;
 		else  break;
 	}
 
 	if(ERROR_CODE(int) == pss_value_decref(root->value))
-	    ERROR_PTR_RETURN_LOG("Cannot decrease the ref counter of the previous value");
+		ERROR_PTR_RETURN_LOG("Cannot decrease the ref counter of the previous value");
 
 	if(ERROR_CODE(int) == pss_value_incref(root->value = value))
-	    ERROR_PTR_RETURN_LOG("Cannot increase the ref counter of the value");
+		ERROR_PTR_RETURN_LOG("Cannot increase the ref counter of the value");
 
 	return ret;
 }
@@ -233,7 +233,7 @@ pss_value_t pss_frame_reg_get(const pss_frame_t* frame, pss_bytecode_regid_t reg
 	const _node_t* node;
 
 	if(NULL != (node = _cow_get(frame->root, (pss_bytecode_regid_t)0, (pss_bytecode_regid_t)-1, regid)))
-	    ret = node->value;
+		ret = node->value;
 
 	return ret;
 }
@@ -241,12 +241,12 @@ pss_value_t pss_frame_reg_get(const pss_frame_t* frame, pss_bytecode_regid_t reg
 int pss_frame_reg_set(pss_frame_t* frame, pss_bytecode_regid_t regid, pss_value_t value)
 {
 	if(NULL == frame || ERROR_CODE(pss_bytecode_regid_t) == regid || value.kind == PSS_VALUE_KIND_ERROR)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_node_t* node = _cow_write(frame->root, (pss_bytecode_regid_t)0, (pss_bytecode_regid_t)-1, regid, value);
 
 	if(NULL == node)
-	    ERROR_RETURN_LOG(int, "Cannot write the frame to register");
+		ERROR_RETURN_LOG(int, "Cannot write the frame to register");
 
 	frame->root = node;
 
@@ -258,7 +258,7 @@ int pss_frame_reg_move(pss_frame_t* frame, pss_bytecode_regid_t from, pss_byteco
 	pss_value_t value  = pss_frame_reg_get(frame, from);
 
 	if(ERROR_CODE(int) == pss_frame_reg_set(frame, to, value))
-	    ERROR_RETURN_LOG(int, "Cannot move the register values");
+		ERROR_RETURN_LOG(int, "Cannot move the register values");
 
 	return 0;
 }

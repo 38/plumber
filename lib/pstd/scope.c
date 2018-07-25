@@ -16,7 +16,7 @@ static inline pipe_t _ensure_pipe(pipe_t current, const char* func)
 	if(ERROR_CODE(pipe_t) == ret)
 	{
 		if(ERROR_CODE(pipe_t) == (ret = module_require_function("plumber.std", func)))
-		    ERROR_RETURN_LOG(pipe_t, "Cannot find servlet module function plumber.std.%s make sure you have installed pssm module", func);
+			ERROR_RETURN_LOG(pipe_t, "Cannot find servlet module function plumber.std.%s make sure you have installed pssm module", func);
 	}
 
 	return ret;
@@ -34,7 +34,7 @@ scope_token_t pstd_scope_add(const scope_entity_t* entity)
 	scope_token_t ret;
 
 	if(ERROR_CODE(int) == pipe_cntl(scope_add, PIPE_CNTL_INVOKE, entity, &ret))
-	    ERROR_RETURN_LOG(scope_token_t, "Cannot finish the pipe_cntl call");
+		ERROR_RETURN_LOG(scope_token_t, "Cannot finish the pipe_cntl call");
 
 	return ret;
 }
@@ -46,7 +46,7 @@ scope_token_t pstd_scope_copy(scope_token_t token, void** resbuf)
 	scope_token_t ret;
 
 	if(ERROR_CODE(int) == pipe_cntl(scope_copy, PIPE_CNTL_INVOKE, token, &ret, resbuf))
-	    ERROR_RETURN_LOG(scope_token_t, "Cannot finish the pipe_cntl call");
+		ERROR_RETURN_LOG(scope_token_t, "Cannot finish the pipe_cntl call");
 
 	return ret;
 }
@@ -58,7 +58,7 @@ const void* pstd_scope_get(scope_token_t token)
 	const void* ret;
 
 	if(ERROR_CODE(int) == pipe_cntl(scope_get, PIPE_CNTL_INVOKE, token, &ret))
-	    ERROR_PTR_RETURN_LOG("Cannot finish the pipe_cntl call");
+		ERROR_PTR_RETURN_LOG("Cannot finish the pipe_cntl call");
 
 	return ret;
 }
@@ -70,7 +70,7 @@ pstd_scope_stream_t* pstd_scope_stream_open(scope_token_t token)
 	void* ret = NULL;
 
 	if(ERROR_CODE(int) == pipe_cntl(scope_stream_open, PIPE_CNTL_INVOKE, token, &ret))
-	    ERROR_PTR_RETURN_LOG("Cannot finish the pipe_cntl call");
+		ERROR_PTR_RETURN_LOG("Cannot finish the pipe_cntl call");
 
 	return (pstd_scope_stream_t*)ret;
 }
@@ -82,7 +82,7 @@ size_t pstd_scope_stream_read(pstd_scope_stream_t* stream, void* buf, size_t siz
 	size_t ret = 0;
 
 	if(ERROR_CODE(int) == pipe_cntl(scope_stream_read, PIPE_CNTL_INVOKE, stream, buf, size, &ret))
-	    ERROR_RETURN_LOG(size_t, "Cannot finish the pipe_cntl call");
+		ERROR_RETURN_LOG(size_t, "Cannot finish the pipe_cntl call");
 
 	return ret;
 }
@@ -94,7 +94,7 @@ int pstd_scope_stream_eof(const pstd_scope_stream_t* stream)
 	int ret = 0;
 
 	if(ERROR_CODE(int) == pipe_cntl(scope_stream_eof, PIPE_CNTL_INVOKE, stream, &ret))
-	    ERROR_RETURN_LOG(int, "Cannot finish the pipe_cntl call");
+		ERROR_RETURN_LOG(int, "Cannot finish the pipe_cntl call");
 
 	return ret;
 }
@@ -113,7 +113,7 @@ int pstd_scope_stream_ready_event(pstd_scope_stream_t* stream, scope_ready_event
 	int ret = 0;
 
 	if(ERROR_CODE(int) == pipe_cntl(scope_stream_ready_event, PIPE_CNTL_INVOKE, stream, buf, &ret))
-	    ERROR_RETURN_LOG(int, "Cannot finish the pipe_cntl call");
+		ERROR_RETURN_LOG(int, "Cannot finish the pipe_cntl call");
 
 	return ret;
 }
@@ -142,7 +142,7 @@ static inline _gc_object_t* _gc_object_check(pstd_scope_gc_obj_t* gc_obj)
 	_gc_object_t* obj = (_gc_object_t*)addr;
 
 	if(obj->magic != _GC_MAGIC)
-	    ERROR_PTR_RETURN_LOG("Invaid object");
+		ERROR_PTR_RETURN_LOG("Invaid object");
 
 	return obj;
 }
@@ -161,7 +161,7 @@ static int _gc_free(void* ptr)
 	 * Just call the free function before we dispose the wrapper itself */
 	if(gc->ent.data != NULL && gc->ent.free_func != NULL &&
 	   ERROR_CODE(int) == gc->ent.free_func(gc->ent.data))
-	    ERROR_RETURN_LOG(int, "Cannot dispose the object");
+		ERROR_RETURN_LOG(int, "Cannot dispose the object");
 
 	return pstd_mempool_free(ptr);
 }
@@ -176,20 +176,20 @@ static void* _gc_copy(const void* ptr)
 
 	/* Check if we can copy it */
 	if(gc->ent.data == NULL || gc->ent.copy_func == NULL)
-	    ERROR_PTR_RETURN_LOG("Copy is impossible");
+		ERROR_PTR_RETURN_LOG("Copy is impossible");
 
 	/* Allocate new GC wrapper for the result */
 	_gc_object_t* obj = (_gc_object_t*)pstd_mempool_alloc(sizeof(_gc_object_t));
 
 	if(NULL == obj)
-	    ERROR_PTR_RETURN_LOG("Allocation failure");
+		ERROR_PTR_RETURN_LOG("Allocation failure");
 
 	/* Ok, let's copy the data */
 	memcpy(obj, gc, sizeof(_gc_object_t));
 
 	/* Then copy the inner object */
 	if(NULL == (obj->ent.data = obj->ent.copy_func(gc->ent.data)))
-	    ERROR_LOG_GOTO(ERR, "Cannot copy the inner data object");
+		ERROR_LOG_GOTO(ERR, "Cannot copy the inner data object");
 
 	/* Nothing has reference to it */
 	obj->refcnt = 0;
@@ -205,7 +205,7 @@ static void* _gc_open(const void* ptr)
 	const _gc_object_t* gc = (const _gc_object_t*)ptr;
 
 	if(gc->ent.data == NULL || gc->ent.open_func == NULL)
-	    ERROR_PTR_RETURN_LOG("Copy is impossible");
+		ERROR_PTR_RETURN_LOG("Copy is impossible");
 
 	return gc->ent.open_func(gc->ent.data);
 }
@@ -213,12 +213,12 @@ static void* _gc_open(const void* ptr)
 scope_token_t pstd_scope_gc_add(const scope_entity_t* entity, pstd_scope_gc_obj_t ** objbuf)
 {
 	if(NULL == entity)
-	    ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
+		ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
 
 	_gc_object_t* obj = (_gc_object_t*)pstd_mempool_alloc(sizeof(_gc_object_t));
 
 	if(NULL == obj)
-	    ERROR_RETURN_LOG(scope_token_t, "Allocation failure");
+		ERROR_RETURN_LOG(scope_token_t, "Allocation failure");
 
 	obj->magic = _GC_MAGIC;
 	obj->refcnt = 0;
@@ -237,7 +237,7 @@ scope_token_t pstd_scope_gc_add(const scope_entity_t* entity, pstd_scope_gc_obj_
 	};
 
 	if(NULL != objbuf)
-	    *objbuf = obj->gc_obj;
+		*objbuf = obj->gc_obj;
 
 	return pstd_scope_add(&gc_ent);
 }
@@ -259,15 +259,15 @@ pstd_scope_gc_obj_t* pstd_scope_gc_get(scope_token_t token)
 int pstd_scope_gc_incref(pstd_scope_gc_obj_t* gc_obj)
 {
 	if(NULL == gc_obj)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_gc_object_t* obj;
 
 	if(NULL == (obj = _gc_object_check(gc_obj)))
-	    ERROR_RETURN_LOG(int, "Invalid GC object");
+		ERROR_RETURN_LOG(int, "Invalid GC object");
 
 	if(obj->ent.data == NULL)
-	    ERROR_RETURN_LOG(int, "incref is impossible");
+		ERROR_RETURN_LOG(int, "incref is impossible");
 
 	obj->refcnt ++;
 
@@ -277,22 +277,22 @@ int pstd_scope_gc_incref(pstd_scope_gc_obj_t* gc_obj)
 int pstd_scope_gc_decref(pstd_scope_gc_obj_t* gc_obj)
 {
 	if(NULL == gc_obj)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_gc_object_t* obj;
 
 	if(NULL == (obj = _gc_object_check(gc_obj)))
-	    ERROR_RETURN_LOG(int, "Invalid GC object");
+		ERROR_RETURN_LOG(int, "Invalid GC object");
 
 	if(obj->ent.data == NULL)
-	    ERROR_RETURN_LOG(int, "decref is impossible");
+		ERROR_RETURN_LOG(int, "decref is impossible");
 
 	if(obj->refcnt > 0) obj->refcnt --;
 
 	if(0 == obj->refcnt)
 	{
 		if(NULL != obj->ent.free_func && ERROR_CODE(int) == obj->ent.free_func(obj->ent.data))
-		    ERROR_RETURN_LOG(int, "Cannot dispose the actual data object");
+			ERROR_RETURN_LOG(int, "Cannot dispose the actual data object");
 
 		obj->ent.data = NULL;
 	}

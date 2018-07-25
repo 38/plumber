@@ -85,7 +85,7 @@ static inline v8::Isolate* _get_isolate()
 {
 	Servlet::Isolate* isolate_wrapper = (Servlet::Isolate*)pstd_thread_local_get(_isolate_collection);
 	if(NULL == isolate_wrapper)
-	    ERROR_PTR_RETURN_LOG("Cannot get the isolate object");
+		ERROR_PTR_RETURN_LOG("Cannot get the isolate object");
 	return isolate_wrapper->get();
 }
 
@@ -238,7 +238,7 @@ Servlet::Context::~Context()
 	}
 
 	if(NULL != _thread_context)
-	    pstd_thread_local_free(_thread_context);
+		pstd_thread_local_free(_thread_context);
 
 	if(NULL != _main_script) delete[] _main_script;
 	if(NULL != _main_script_filename) delete[] _main_script_filename;
@@ -254,20 +254,20 @@ void* Servlet::Context::thread_init()
 		if(NULL == ret) ERROR_PTR_RETURN_LOG("Cannot create new global");
 
 		if(ERROR_CODE(int) == ret->init())
-		    _E("Cannot initialize the thread local global");
+			_E("Cannot initialize the thread local global");
 
 		/* Run the main script */
 		v8::Isolate* isolate = _get_isolate();
 		if(NULL == isolate)
-		    _E("Cannot get current isolate");
+			_E("Cannot get current isolate");
 
 		v8::Persistent<v8::Context>& context = ret->get();
 
 		if(this->_run_script(isolate, context, "__import(\"__init__.js\");", "<initializer>") == ERROR_CODE(int))
-		    _E("Cannot run the initializer code");
+			_E("Cannot run the initializer code");
 
 		if(this->_run_script(isolate, context, _main_script, _main_script_filename) == ERROR_CODE(int))
-		    _E("Cannot run the main script code");
+			_E("Cannot run the main script code");
 
 		if(_context_json == NULL)
 		{
@@ -281,7 +281,7 @@ void* Servlet::Context::thread_init()
 			_ScopeArrayWatcher<v8::Handle<v8::Value> > scope_watcher(args);
 
 			for(uint32_t i = 0; i < _argc; i ++)
-			    args[i] = v8::String::NewFromUtf8(isolate, _argv[i]);
+				args[i] = v8::String::NewFromUtf8(isolate, _argv[i]);
 
 			v8::TryCatch trycatch(isolate);
 			v8::Handle<v8::Value> result = func->Call(local_context->Global(), (int)_argc, args);
@@ -379,7 +379,7 @@ int Servlet::Context::exec()
 int Servlet::Context::builtin_func(const char* name, v8::FunctionCallback func)
 {
 	if(NULL == name || NULL == func)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_func_list.push_back(make_pair(name, func));
 
@@ -389,7 +389,7 @@ int Servlet::Context::builtin_func(const char* name, v8::FunctionCallback func)
 int Servlet::Context::constant(const char* name, v8::AccessorGetterCallback callback)
 {
 	if(NULL == name || NULL == callback)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_const_list.push_back(make_pair(name, callback));
 
@@ -401,7 +401,7 @@ int Servlet::Context::setup(const char* filename, uint32_t argc, char const * co
 	if(_init_count == 0)
 	{
 		if(NULL == (_isolate_collection = pstd_thread_local_new(_isolate_new, _isolate_free, NULL)))
-		    ERROR_RETURN_LOG(int, "Cannot create thread local for the threads");
+			ERROR_RETURN_LOG(int, "Cannot create thread local for the threads");
 
 		if(NULL == (_thread_object_pools = pstd_thread_local_new(_object_pool_new, _object_pool_free, NULL)))
 		{
@@ -421,7 +421,7 @@ int Servlet::Context::setup(const char* filename, uint32_t argc, char const * co
 		v8::V8::InitializeExternalStartupData(PLUMBER_V8_BLOB_DATA_PATH);
 
 		if(NULL == (_platform = v8::platform::CreateDefaultPlatform()))
-		    ERROR_RETURN_LOG(int, "Cannot create platform");
+			ERROR_RETURN_LOG(int, "Cannot create platform");
 
 		v8::V8::InitializePlatform(_platform);
 		v8::V8::Initialize();
@@ -429,7 +429,7 @@ int Servlet::Context::setup(const char* filename, uint32_t argc, char const * co
 	_init_count ++;
 
 	if(NULL == (_thread_context = pstd_thread_local_new(_thread_context_new, _thread_context_free, this)))
-	    ERROR_RETURN_LOG(int, "Cannot create thread local for the global context");
+		ERROR_RETURN_LOG(int, "Cannot create thread local for the global context");
 
 	_main_script = Servlet::Context::load_script_from_file(filename);
 
@@ -447,7 +447,7 @@ int Servlet::Context::setup(const char* filename, uint32_t argc, char const * co
 int Servlet::Context::ensure_thread_ready()
 {
 	if(NULL == pstd_thread_local_get(_thread_context))
-	    ERROR_RETURN_LOG(int, "The thread local context is not initialized");
+		ERROR_RETURN_LOG(int, "The thread local context is not initialized");
 	return 0;
 }
 
@@ -456,7 +456,7 @@ int Servlet::Context::ensure_thread_ready()
 char* Servlet::Context::load_script_from_file(const char* filename, const char* header, const char* trailer)
 {
 	if(NULL == filename)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	const char* script_path = NULL;
 	char path_buffer[PATH_MAX];
@@ -493,9 +493,9 @@ char* Servlet::Context::load_script_from_file(const char* filename, const char* 
 	else script_path = filename;
 
 	if(NULL == script_path)
-	    ERROR_PTR_RETURN_LOG("Cannot find script file %s", filename);
+		ERROR_PTR_RETURN_LOG("Cannot find script file %s", filename);
 	else
-	    LOG_INFO("Source code file %s has been loaded", filename);
+		LOG_INFO("Source code file %s has been loaded", filename);
 
 	FILE* fp = fopen(script_path, "r");
 	long script_size;
@@ -520,7 +520,7 @@ char* Servlet::Context::load_script_from_file(const char* filename, const char* 
 	fclose(fp);
 
 	if(size < (size_t)script_size)
-	    LOG_WARNING_ERRNO("Cannot read the file %s to the end", script_path);
+		LOG_WARNING_ERRNO("Cannot read the file %s to the end", script_path);
 
 	memcpy(script, header, (size_t)header_size);
 	memcpy(script + header_size + size, trailer, (size_t)trailer_size);
@@ -543,7 +543,7 @@ v8::Isolate* Servlet::Context::get_isolate()
 int Servlet::Context::import_script(v8::Isolate* isolate, const char* program_text, const char* filename)
 {
 	if(NULL == program_text)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(filename == NULL) filename = "<anonymous>";
 

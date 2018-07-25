@@ -31,7 +31,7 @@ static inline const char* bsr64_from_bin(const void* bin, size_t count, char* bu
 		uint64_t v48 = 0xffff000000000000ull;
 		v48 |= *(const uint64_t*)begin;
 		for(;v48 != 0xffff && bufsize > 0; v48 >>= 6, bufsize --)
-		    *(buffer++) = _val2ch[v48&63];
+			*(buffer++) = _val2ch[v48&63];
 	}
 
 	uint32_t rem = 8;

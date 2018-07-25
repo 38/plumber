@@ -19,7 +19,7 @@ Dict.map = function Dict.map (func, dictionary)
 }
 
 /**
- * @brief Get the list of the keys 
+ * @brief Get the list of the keys
  * @param dictionary The target dictionary
  * @return The list that contains all the keys of the target dictionary
  **/

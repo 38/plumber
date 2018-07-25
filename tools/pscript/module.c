@@ -69,9 +69,9 @@ static pss_bytecode_module_t* _try_load_module_from_buffer(const char* file, con
 	pss_comp_error_t* err = NULL;
 
 	if(NULL == (lexer = pss_comp_lex_new(file, code, code_size)))
-	    ERROR_LOG_GOTO(_ERR, "Cannot create lexer");
+		ERROR_LOG_GOTO(_ERR, "Cannot create lexer");
 	if(NULL == (module = pss_bytecode_module_new()))
-	    ERROR_LOG_GOTO(_ERR, "Cannot create module instance");
+		ERROR_LOG_GOTO(_ERR, "Cannot create module instance");
 	pss_comp_option_t opt = {
 		.lexer = lexer,
 		.module = module,
@@ -79,17 +79,17 @@ static pss_bytecode_module_t* _try_load_module_from_buffer(const char* file, con
 		.repl  = (repl != 0)
 	};
 	if(ERROR_CODE(int) == pss_comp_compile(&opt, &err))
-	    ERROR_LOG_GOTO(_ERR, "Can not compile the source code");
+		ERROR_LOG_GOTO(_ERR, "Can not compile the source code");
 
 	if(ERROR_CODE(int) == pss_comp_lex_free(lexer))
-	    LOG_WARNING("Cannot dispose the lexer instance");
+		LOG_WARNING("Cannot dispose the lexer instance");
 	return module;
 _ERR:
 	if(NULL != err)
 	{
 		const pss_comp_error_t* this;
 		for(this = err; NULL != this; this = this->next)
-		    fprintf(stderr, "%s:%u:%u:error: %s\n", this->filename, this->line + 1, this->column + 1, this->message);
+			fprintf(stderr, "%s:%u:%u:error: %s\n", this->filename, this->line + 1, this->column + 1, this->message);
 		pss_comp_free_error(err);
 	}
 
@@ -102,7 +102,7 @@ pss_bytecode_module_t* module_from_buffer(const char* code, uint32_t code_size, 
 {
 	pss_bytecode_module_t* module = NULL;
 	if(NULL == (module = _try_load_module_from_buffer("<stdin>", code, code_size, debug, repl)))
-	    return NULL;
+		return NULL;
 	uint64_t hash[2] = {0, 0};
 	_add_module_to_list(module, hash);
 	return module;
@@ -119,7 +119,7 @@ static int _try_load_module(const char* source_path, const char* compiled_path, 
 	{
 		LOG_DEBUG("Found compiled PSS module at %s", compiled_path);
 		if(NULL == (*ret = pss_bytecode_module_load(compiled_path)))
-		    ERROR_RETURN_LOG(int, "Cannot alod module from file %s", compiled_path);
+			ERROR_RETURN_LOG(int, "Cannot alod module from file %s", compiled_path);
 		return 1;
 	}
 	else if(ERROR_CODE(time_t) != source_ts)
@@ -130,28 +130,28 @@ static int _try_load_module(const char* source_path, const char* compiled_path, 
 		FILE* fp = NULL;
 
 		if(NULL == code)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for code");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for code");
 		code[source_sz] = 0;
 
 		fp = fopen(source_path, "r");
 		if(NULL == fp)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open the source code file");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open the source code file");
 
 		if(source_sz != 0 && fread(code, (size_t)source_sz, 1, fp) != 1)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read file");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot read file");
 
 		if(fclose(fp) < 0)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot close file");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot close file");
 		else
-		    fp = NULL;
+			fp = NULL;
 
 		if(NULL == (module = _try_load_module_from_buffer(source_path, code, (unsigned)(source_sz + 1), (uint32_t)debug, 0)))
-		    goto ERR;
+			goto ERR;
 
 		free(code);
 
 		if(compiled_path != NULL && dump_compiled && ERROR_CODE(int) == pss_bytecode_module_dump(module, compiled_path))
-		    LOG_WARNING("Cannot dump the compiled module to file");
+			LOG_WARNING("Cannot dump the compiled module to file");
 
 		*ret = module;
 
@@ -198,7 +198,7 @@ pss_bytecode_module_t* module_from_file(const char* name, int load_compiled, int
 		char compiled_path[PATH_MAX];
 		size_t len = strlen(name);
 		if(len > 4 && 0 == strcmp(name + len - 4, ".pss"))
-		    len -= 4;
+			len -= 4;
 		else
 		{
 			/* Try to load the fullpath and do not dump the psm if the filename is not end with pss */
@@ -216,9 +216,9 @@ pss_bytecode_module_t* module_from_file(const char* name, int load_compiled, int
 		module_name[len] = 0;
 		snprintf(source_path, sizeof(source_path), "%s/%s.pss", _search_path[i], module_name);
 		if(compiled_output == NULL)
-		    snprintf(compiled_path, sizeof(compiled_path), "%s/%s.psm", _search_path[i], module_name);
+			snprintf(compiled_path, sizeof(compiled_path), "%s/%s.psm", _search_path[i], module_name);
 		else
-		    snprintf(compiled_path, sizeof(compiled_path), "%s", compiled_output);
+			snprintf(compiled_path, sizeof(compiled_path), "%s", compiled_output);
 
 		_compute_hash(source_path, hash);
 		int rc = _try_load_module(source_path, compiled_path, load_compiled, dump_compiled, debug, &ret);
@@ -242,7 +242,7 @@ int module_is_loaded(const char* name)
 		char source_path[PATH_MAX];
 		size_t len = strlen(name);
 		if(len > 4 && 0 == strcmp(name + len - 4, ".pss"))
-		    len -= 4;
+			len -= 4;
 		else
 		{
 			/* Try to load the fullpath and do not dump the psm if the filename is not end with pss */
@@ -269,7 +269,7 @@ int module_unload_all()
 		ptr = ptr->next;
 
 		if(ERROR_CODE(int) == pss_bytecode_module_free(this->module))
-		    rc = ERROR_CODE(int);
+			rc = ERROR_CODE(int);
 
 		free(this);
 	}

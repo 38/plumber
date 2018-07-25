@@ -134,7 +134,7 @@ static inline void* _page_alloc(int n)
 {
 	void* ret = NULL;
 	if(posix_memalign(&ret, _get_page_size(), _get_page_size() * (size_t)n) < 0)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate a full page");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate a full page");
 
 	return ret;
 }
@@ -191,7 +191,7 @@ static inline int _global_dealloc(_page_t* begin, _page_t* end, size_t n)
 		BARRIER();
 
 		if(__sync_bool_compare_and_swap(&_free_list, old_head, begin))
-		    break;
+			break;
 	}
 
 	LOG_DEBUG("%zu pages has been return to the global pool", n);
@@ -204,7 +204,7 @@ static inline int _check_local_pool(void)
 	{
 		_local_page_pool = (_thread_page_pool_t*)malloc(sizeof(_thread_page_pool_t));
 		if(NULL == _local_page_pool)
-		    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate the thread local page pool");
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate the thread local page pool");
 		_local_page_pool->page_list_begin = _local_page_pool->page_list_end = _local_page_pool->exceeded = NULL;
 		_local_page_pool->page_count = 0;
 		_local_page_pool->next = _local_page_pool_list;
@@ -222,7 +222,7 @@ void* mempool_page_alloc()
 	}
 
 	if(_check_local_pool() == ERROR_CODE(int))
-	    ERROR_PTR_RETURN_LOG("cannot initialize the local pool");
+		ERROR_PTR_RETURN_LOG("cannot initialize the local pool");
 
 	_page_t* ret = NULL;
 
@@ -233,11 +233,11 @@ void* mempool_page_alloc()
 		_local_page_pool->page_list_begin = _local_page_pool->page_list_begin->next;
 		_local_page_pool->page_count --;
 		if(_local_page_pool->exceeded != NULL)
-		    _local_page_pool->exceeded = _local_page_pool->exceeded->next;
+			_local_page_pool->exceeded = _local_page_pool->exceeded->next;
 		if(_local_page_pool->page_list_begin != NULL)
-		    _local_page_pool->page_list_begin->prev = NULL;
+			_local_page_pool->page_list_begin->prev = NULL;
 		else
-		    _local_page_pool->page_list_end = NULL;
+			_local_page_pool->page_list_end = NULL;
 	}
 
 	if(NULL == ret) return _global_alloc();
@@ -254,22 +254,22 @@ int mempool_page_dealloc(void* mem)
 	}
 
 	if(_check_local_pool() == ERROR_CODE(int))
-	    ERROR_RETURN_LOG(int, "cannot initialize the local pool");
+		ERROR_RETURN_LOG(int, "cannot initialize the local pool");
 
 	_page_t* page = (_page_t*)mem;
 
 	page->next = _local_page_pool->page_list_begin;
 	page->prev = NULL;
 	if(_local_page_pool->page_list_begin != NULL)
-	    _local_page_pool->page_list_begin->prev = page;
+		_local_page_pool->page_list_begin->prev = page;
 	_local_page_pool->page_list_begin = page;
 	if(_local_page_pool->page_list_end == NULL) _local_page_pool->page_list_end = page;
 
 
 	if(_local_page_pool->page_count ++ == _max_thread_cached_pages)
-	    _local_page_pool->exceeded = _local_page_pool->page_list_end;
+		_local_page_pool->exceeded = _local_page_pool->page_list_end;
 	else if(_local_page_pool->exceeded != NULL)
-	    _local_page_pool->exceeded = _local_page_pool->exceeded->prev;
+		_local_page_pool->exceeded = _local_page_pool->exceeded->prev;
 
 	int rc = 0;
 

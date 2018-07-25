@@ -71,7 +71,7 @@ int run(void)
 	thread_t* t[N];
 	uint32_t i;
 	for(i = 0; i < N; i ++)
-	    ASSERT_PTR(t[i] = thread_new(thread_main, NULL, THREAD_TYPE_GENERIC), CLEANUP_NOP);
+		ASSERT_PTR(t[i] = thread_new(thread_main, NULL, THREAD_TYPE_GENERIC), CLEANUP_NOP);
 
 	for(i = 0; i < N; i ++)
 	{
@@ -85,12 +85,12 @@ int dispose(void)
 {
 	uint32_t i, j = 0;
 	for(i = 0; i < 2 * N; i ++)
-	    if(data[i] == 10) j ++;
+		if(data[i] == 10) j ++;
 	ASSERT(j == N, CLEANUP_NOP);
 
 	j = 0;
 	for(i = 0; i < 2 * N; i ++)
-	    if(data[i] == 10) j ++;
+		if(data[i] == 10) j ++;
 	ASSERT(j == N, CLEANUP_NOP);
 
 	ASSERT_OK(thread_pset_free(pset1), CLEANUP_NOP);
@@ -123,7 +123,7 @@ void* test_thread_main(void* arg)
 	for(i = 0; i < NT; i ++)
 	{
 		if(thread_add_cleanup_hook(cleanup, flag + i) == ERROR_CODE(int))
-		    return NULL;
+			return NULL;
 	}
 	flag[n] |= 0x2;
 
@@ -152,7 +152,7 @@ int thread_obj(void)
 	}
 
 	for(i = 0; i < NT; i ++)
-	    ASSERT(flag[i] == 0x7, CLEANUP_NOP);
+		ASSERT(flag[i] == 0x7, CLEANUP_NOP);
 
 	return 0;
 }
@@ -162,7 +162,7 @@ int setup(void)
 #if __i386__
 	int i;
 	for(i = 0; i < 19; i ++)
-	    expected_memory_leakage();
+		expected_memory_leakage();
 #endif
 	return 0;
 }

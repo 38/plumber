@@ -74,7 +74,7 @@ static size_t _page_size;
 int module_tls_dra_init()
 {
 	if(NULL == (_dra_pool = mempool_objpool_new(sizeof(_dra_t))))
-	    ERROR_RETURN_LOG(int, "Cannot allocate memory pool for the DRA callback object");
+		ERROR_RETURN_LOG(int, "Cannot allocate memory pool for the DRA callback object");
 
 	_page_size = (size_t)getpagesize();
 
@@ -83,11 +83,11 @@ int module_tls_dra_init()
 	for(;pool_size < _page_size; pool_size *= 2, pool_count ++);
 
 	if(NULL == (_small_buffer_pool = (mempool_objpool_t**)calloc(pool_count, sizeof(mempool_objpool_t*))))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the small buffer pools");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the small buffer pools");
 
 	for(pool_size = 32, i = 0; pool_size < _page_size; pool_size *= 2, i ++)
-	    if(NULL == (_small_buffer_pool[i] = mempool_objpool_new((uint32_t)pool_size)))
-	        ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the small buffer pool with size %zu", pool_size);
+		if(NULL == (_small_buffer_pool[i] = mempool_objpool_new((uint32_t)pool_size)))
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the small buffer pool with size %zu", pool_size);
 
 	return 0;
 
@@ -95,8 +95,8 @@ ERR:
 	if(NULL != _small_buffer_pool)
 	{
 		for(i = 0; i < pool_count; i ++)
-		    if(NULL != _small_buffer_pool[i] && ERROR_CODE(int) == mempool_objpool_free(_small_buffer_pool[i]))
-		        LOG_WARNING("Cannot dispose the small buffer pool");
+			if(NULL != _small_buffer_pool[i] && ERROR_CODE(int) == mempool_objpool_free(_small_buffer_pool[i]))
+				LOG_WARNING("Cannot dispose the small buffer pool");
 
 		free(_small_buffer_pool);
 	}
@@ -124,13 +124,13 @@ int module_tls_dra_finalize()
 		size_t pool_size;
 		unsigned i = 0;
 		for(pool_size = 32; pool_size < _page_size; pool_size *= 2, i ++)
-		    if(NULL != _small_buffer_pool[i] && ERROR_CODE(int) == mempool_objpool_free(_small_buffer_pool[i]))
-		    {
-			    LOG_ERROR("Cannot dispose the small buffer pool for size %zu", pool_size);
-			    rc = ERROR_CODE(int);
-		    }
+			if(NULL != _small_buffer_pool[i] && ERROR_CODE(int) == mempool_objpool_free(_small_buffer_pool[i]))
+			{
+				LOG_ERROR("Cannot dispose the small buffer pool for size %zu", pool_size);
+				rc = ERROR_CODE(int);
+			}
 
-		free(_small_buffer_pool);
+			free(_small_buffer_pool);
 	}
 
 	return rc;
@@ -172,7 +172,7 @@ static inline _dra_t* _buffer_dra_new(module_tls_dra_param_t draparam, const voi
 	_dra_t* ret = (_dra_t*)mempool_objpool_alloc(_dra_pool);
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate new DRA object");
+		ERROR_PTR_RETURN_LOG("Cannot allocate new DRA object");
 
 	ret->ssl = draparam.ssl;
 	ret->bio_ctx = draparam.bio;
@@ -184,15 +184,15 @@ static inline _dra_t* _buffer_dra_new(module_tls_dra_param_t draparam, const voi
 	if(small_pool == NULL)
 	{
 		if(NULL == (ret->buffer_page = (int8_t*)mempool_page_alloc()))
-		    ERROR_LOG_GOTO(ERR, "Cannot allocate the buffer page");
+			ERROR_LOG_GOTO(ERR, "Cannot allocate the buffer page");
 		ret->data_size = size;
 		if(ret->data_size > _page_size)
-		    ret->data_size = _page_size;
+			ret->data_size = _page_size;
 	}
 	else
 	{
 		if(NULL == (ret->buffer_page = (int8_t*)mempool_objpool_alloc(small_pool)))
-		    ERROR_LOG_GOTO(ERR, "Cannot allocate the buffer page from small buffer pool");
+			ERROR_LOG_GOTO(ERR, "Cannot allocate the buffer page from small buffer pool");
 
 		ret->data_size = size;
 	}
@@ -220,14 +220,14 @@ static inline _dra_t* _callback_dra_new(module_tls_dra_param_t draparam, itc_mod
 	_dra_t* ret = (_dra_t*)mempool_objpool_alloc(_dra_pool);
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate new DRA object");
+		ERROR_PTR_RETURN_LOG("Cannot allocate new DRA object");
 
 	ret->ssl = draparam.ssl;
 	ret->bio_ctx = draparam.bio;
 	ret->dra_counter = draparam.dra_counter;
 	ret->conn = draparam.conn;
 	if(NULL == (ret->buffer_page = (int8_t*)mempool_page_alloc()))
-	    ERROR_LOG_GOTO(ERR, "Cannot allocate the buffer page");
+		ERROR_LOG_GOTO(ERR, "Cannot allocate the buffer page");
 
 	ret->callback = data_source;
 	ret->buffer_begin = ret->buffer_end = NULL;
@@ -252,12 +252,12 @@ static inline int _dra_free(_dra_t* dra)
 	switch(dra->type)
 	{
 		case _DATA_SRC:
-		    if(dra->callback.close != NULL && ERROR_CODE(int) == dra->callback.close(dra->callback.data_handle))
-		        rc = ERROR_CODE(int);
-		    break;
+			if(dra->callback.close != NULL && ERROR_CODE(int) == dra->callback.close(dra->callback.data_handle))
+				rc = ERROR_CODE(int);
+			break;
 		case _DATA_BUF:
-		    pool = _get_small_object_pool(dra->data_size);
-		    break;
+			pool = _get_small_object_pool(dra->data_size);
+			break;
 		default:
 		    ERROR_RETURN_LOG(int, "Invalid DRA type");
 	}
@@ -265,14 +265,14 @@ static inline int _dra_free(_dra_t* dra)
 	if(NULL != dra->buffer_page)
 	{
 		if(NULL == pool && ERROR_CODE(int) == mempool_page_dealloc(dra->buffer_page))
-		    rc = ERROR_CODE(int);
+			rc = ERROR_CODE(int);
 
 		if(NULL != pool && ERROR_CODE(int) == mempool_objpool_dealloc(pool, dra->buffer_page))
-		    rc = ERROR_CODE(int);
+			rc = ERROR_CODE(int);
 	}
 
 	if(ERROR_CODE(int) == mempool_objpool_dealloc(_dra_pool, dra))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	return rc;
 }
@@ -327,22 +327,22 @@ static inline size_t _dra_read(void* __restrict handle, void* __restrict buffer,
 	if(dra->buffer_begin - dra->buffer_end == 0)
 	{
 		if(dra->type == _DATA_BUF)
-		    LOG_DEBUG("Current data buffer DRA is exhausted, stopping");
+			LOG_DEBUG("Current data buffer DRA is exhausted, stopping");
 		else if(dra->type == _DATA_SRC)
 		{
 			LOG_DEBUG("The DRA data source buffer doesn't contains any data, try to load data");
 
 			int eos_rc;
 			if(ERROR_CODE(int) == (eos_rc = dra->callback.eos(dra->callback.data_handle)))
-			    ERROR_LOG_GOTO(ERR, "EOS callback of RLS byte stream returns an error");
+				ERROR_LOG_GOTO(ERR, "EOS callback of RLS byte stream returns an error");
 
 			if(eos_rc)
-			    LOG_DEBUG("Current data source DRA is exhausted, stopping");
+				LOG_DEBUG("Current data source DRA is exhausted, stopping");
 			else
 			{
 				size_t rc = dra->callback.read(dra->callback.data_handle, dra->buffer_page, _page_size, eb);
 				if(ERROR_CODE(size_t) == rc)
-				    ERROR_LOG_GOTO(ERR, "Cannot read data from the RLS byte stream");
+					ERROR_LOG_GOTO(ERR, "Cannot read data from the RLS byte stream");
 
 				dra->buffer_begin = dra->buffer_page;
 				dra->buffer_end = dra->buffer_page + rc;
@@ -359,13 +359,13 @@ static inline size_t _dra_read(void* __restrict handle, void* __restrict buffer,
 		size_t after = dra->bio_ctx->bufsize;
 
 		if(ERROR_CODE(size_t) == raw_bytes_written)
-		    ERROR_LOG_GOTO(ERR, "Cannot write raw bytes to SSL context");
+			ERROR_LOG_GOTO(ERR, "Cannot write raw bytes to SSL context");
 
 		ret += before - after;
 		dra->buffer_begin += raw_bytes_written;
 
 		if(raw_bytes_written == 0)
-		    LOG_DEBUG("The transporation layer buffer is full, exiting");
+			LOG_DEBUG("The transporation layer buffer is full, exiting");
 	}
 
 	goto RET;
@@ -393,12 +393,12 @@ static inline int _dra_eos(const void* __restrict handle)
 	switch(dra->type)
 	{
 		case _DATA_SRC:
-		    if(ERROR_CODE(int) == (ret = dra->callback.eos(dra->callback.data_handle)))
-		        ERROR_RETURN_LOG(int, "The inner callback's eos function returns an error");
-		    FALLTHROUGH();
+			if(ERROR_CODE(int) == (ret = dra->callback.eos(dra->callback.data_handle)))
+				ERROR_RETURN_LOG(int, "The inner callback's eos function returns an error");
+			FALLTHROUGH();
 		case _DATA_BUF:
-		    ret = ret && (dra->buffer_begin == dra->buffer_end);
-		    break;
+			ret = ret && (dra->buffer_begin == dra->buffer_end);
+			break;
 		default:
 		    ERROR_RETURN_LOG(int, "Invalid TLS DRA type");
 	}
@@ -419,7 +419,7 @@ static inline int _dra_close(void* __restrict handle)
 	uint32_t new_val;
 
 	if(ERROR_CODE(int) == _dra_free(dra))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	/* We need a CAS derement here, because this function may be called from both IO loop and worker thread */
 	do {
@@ -460,28 +460,28 @@ static inline int _start_dra(_dra_t* dra)
 	switch(itc_module_pipe_write_data_source(data_source, NULL, dra->bio_ctx->pipe))
 	{
 		case ERROR_CODE(int):
-		    /* The inner data source may be closed by the read function, but it's disposed anyway after this line of code */
-		    _dra_close(dra);
-		    FALLTHROUGH();
+			/* The inner data source may be closed by the read function, but it's disposed anyway after this line of code */
+			_dra_close(dra);
+			FALLTHROUGH();
 
 		case ERROR_CODE_OT(int):
-		    /* If the inner data source is killed by the transporation layer module, do not kill it twice! */
-		    LOG_ERROR( "Cannot write the callback function to the transporation layer");
+			/* If the inner data source is killed by the transporation layer module, do not kill it twice! */
+			LOG_ERROR( "Cannot write the callback function to the transporation layer");
 
-		    /* Adjust the proper return value */
-		    if(dra->type == _DATA_SRC)
-		        return ERROR_CODE_OT(int);
-		    else
-		        return  ERROR_CODE(int);
+			/* Adjust the proper return value */
+			if(dra->type == _DATA_SRC)
+				return ERROR_CODE_OT(int);
+			else
+				return  ERROR_CODE(int);
 		case 0:
-		    /* Because it's success state, so we are good, the caller will assume the callback has been taken care of by this function */
-		    if(ERROR_CODE(int) == _dra_close(dra))
-		        ERROR_RETURN_LOG(int, "Cannot close the TLS DRA data stream callback");
-		    break;
+			/* Because it's success state, so we are good, the caller will assume the callback has been taken care of by this function */
+			if(ERROR_CODE(int) == _dra_close(dra))
+				ERROR_RETURN_LOG(int, "Cannot close the TLS DRA data stream callback");
+			break;
 		case  1:
-		    /* The owership has been taken by the transporation layer, we are free */
-		    LOG_DEBUG("The DRA data source callback has been accepted by the transporation layer module");
-		    break;
+			/* The owership has been taken by the transporation layer, we are free */
+			LOG_DEBUG("The DRA data source callback has been accepted by the transporation layer module");
+			break;
 		default:
 		    ERROR_RETURN_LOG(int, "Code bug: Invalid return value from itc_module_pipe_write_data_source");
 	}
@@ -493,11 +493,11 @@ int module_tls_dra_write_callback(module_tls_dra_param_t draparam, itc_module_da
 {
 	if(NULL == draparam.ssl || NULL == draparam.bio || NULL == draparam.dra_counter || NULL == draparam.conn ||
 	   source.read == NULL || source.eos == NULL || source.close == NULL)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_dra_t* dra = _callback_dra_new(draparam, source);
 	if(NULL == dra)
-	    ERROR_RETURN_LOG(int, "Cannot create new DRA callback wrapper");
+		ERROR_RETURN_LOG(int, "Cannot create new DRA callback wrapper");
 
 	return _start_dra(dra);
 }
@@ -506,28 +506,28 @@ int module_tls_dra_write_callback(module_tls_dra_param_t draparam, itc_module_da
 size_t module_tls_dra_write_buffer(module_tls_dra_param_t draparam, const char* data, size_t size)
 {
 	 if(NULL == data || NULL == draparam.ssl || NULL == draparam.bio || NULL == draparam.dra_counter || NULL == draparam.conn)
-	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 
 	if(0 == *draparam.dra_counter)
 	{
 		LOG_DEBUG("There's no undergoing DRA, rejecting all the write request");
 		if(ERROR_CODE(int) == module_tls_module_conn_data_release(draparam.conn))
-		    ERROR_RETURN_LOG(size_t, "Cannot release the DRA connection object");
+			ERROR_RETURN_LOG(size_t, "Cannot release the DRA connection object");
 		return 0;
 	}
 
 
 	_dra_t* dra = _buffer_dra_new(draparam, data, size);
 	if(NULL == dra)
-	    ERROR_RETURN_LOG(size_t, "Cannot create the DRA buffer wrapper");
+		ERROR_RETURN_LOG(size_t, "Cannot create the DRA buffer wrapper");
 
 	size_t ret = dra->data_size;
 
 	int rc = _start_dra(dra);
 
 	if(rc == ERROR_CODE(int) || rc == ERROR_CODE_OT(int))
-	    return ERROR_CODE(size_t);
+		return ERROR_CODE(size_t);
 
 	return ret;
 }

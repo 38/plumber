@@ -103,8 +103,8 @@ static int check_specified_options(const char* allowed, const int* options)
 {
 	int i;
 	for(i = 0; i < 128; i ++)
-	    if(options[i] && strchr(allowed, (char)i) == NULL)
-	        return 0;
+		if(options[i] && strchr(allowed, (char)i) == NULL)
+			return 0;
 	return 1;
 }
 
@@ -160,26 +160,26 @@ static int parse_args(int argc, char** argv, program_option_t* out)
 			_OPCASE('v', CMD_VERSION);
 			_OPCASE('S', CMD_SYNTAX);
 			case 'R':
-			    out->db_root = optarg;
-			    break;
+				out->db_root = optarg;
+				break;
 			case 'f':
-			    out->force = 1;
-			    break;
+				out->force = 1;
+				break;
 			case 'd':
-			    out->dry_run = 1;
-			    break;
+				out->dry_run = 1;
+				break;
 			case 'y':
-			    out->default_yes = 1;
-			    break;
+				out->default_yes = 1;
+				break;
 			case 'p':
-			    out->padding_size = (uint32_t)atoi(optarg);
-			    break;
+				out->padding_size = (uint32_t)atoi(optarg);
+				break;
 			case 'q':
-			    log_level(ERROR);
-			    break;
+				log_level(ERROR);
+				break;
 			case 'B':
-			    out->show_base_type = 1;
-			    break;
+				out->show_base_type = 1;
+				break;
 			default:
 			    return ERROR_CODE(int);
 		}
@@ -211,10 +211,10 @@ static int parse_args(int argc, char** argv, program_option_t* out)
 	}
 
 	if(out->command == CMD_NOP)
-	    ERROR_RETURN_LOG(int, "Missing an operation command");
+		ERROR_RETURN_LOG(int, "Missing an operation command");
 
 	if((out->command & TARGET) && out->target == NULL)
-	    ERROR_RETURN_LOG(int, "Missing operation target");
+		ERROR_RETURN_LOG(int, "Missing operation target");
 
 	return 0;
 }
@@ -222,7 +222,7 @@ static int parse_args(int argc, char** argv, program_option_t* out)
 __attribute__((noreturn)) static void properly_exit(int code)
 {
 	if(ERROR_CODE(int) == proto_finalize())
-	    log_libproto_error(__FILE__, __LINE__);
+		log_libproto_error(__FILE__, __LINE__);
 	exit(code);
 }
 static program_option_t program_option;
@@ -233,7 +233,7 @@ static int op_compare(const void* left, const void* right)
 	const sandbox_op_t* rop = (const sandbox_op_t*)right;
 
 	if(lop->opcode != rop->opcode)
-	    return (int)lop->opcode - (int)rop->opcode;
+		return (int)lop->opcode - (int)rop->opcode;
 
 	return strcmp(lop->target, rop->target);
 }
@@ -243,7 +243,7 @@ static int confirm_operation(sandbox_t* sandbox, const program_option_t* option)
 	sandbox_op_t ops[1024];
 	_PRINT_STDERR("Validating....");
 	if(ERROR_CODE(int) == sandbox_dry_run(sandbox, ops, sizeof(ops) / sizeof(ops[0])))
-	    ERROR_RETURN_LOG(int, "Sandbox validation failed");
+		ERROR_RETURN_LOG(int, "Sandbox validation failed");
 	uint32_t n, i, last_opcode = SANDBOX_NOMORE;
 	for(n = 0; n < sizeof(ops) / sizeof(ops[0]) && ops[n].opcode != SANDBOX_NOMORE; n ++);
 	qsort(ops, n, sizeof(sandbox_op_t), op_compare);
@@ -283,7 +283,7 @@ static int confirm_operation(sandbox_t* sandbox, const program_option_t* option)
 		if(ch == -1) yes = 0;
 	}
 	if(yes && sandbox_commit(sandbox) == ERROR_CODE(int))
-	    ERROR_RETURN_LOG(int, "Cannot update the database");
+		ERROR_RETURN_LOG(int, "Cannot update the database");
 	else if(yes) _PRINT_STDERR("Operation sucessfully posted");
 	else _PRINT_STDERR("Modification reverted");
 	return 0;
@@ -293,20 +293,20 @@ static int do_remove(const program_option_t* option)
 	sandbox_t* sandbox = sandbox_new(SANDBOX_INSERT_ONLY);
 	uint32_t i;
 	if(NULL == sandbox)
-	    ERROR_RETURN_LOG(int, "Cannot create sandbox for the install command");
+		ERROR_RETURN_LOG(int, "Cannot create sandbox for the install command");
 	for(i = 0; i < option->target_count; i ++)
 	{
 		if(ERROR_CODE(int) == sandbox_delete_type(sandbox, option->target[i]))
-		    LOG_WARNING("Cannot insert deletion operation to sandbox");
+			LOG_WARNING("Cannot insert deletion operation to sandbox");
 	}
 
 	if(confirm_operation(sandbox, option) == ERROR_CODE(int))
-	    goto ERR;
+		goto ERR;
 
 	return sandbox_free(sandbox);
 ERR:
 	if(NULL != sandbox)
-	    sandbox_free(sandbox);
+		sandbox_free(sandbox);
 	return 1;
 
 }
@@ -320,14 +320,14 @@ static int do_install(int is_update, const program_option_t* option)
 	sandbox_t* sandbox = sandbox_new(sf);
 	uint32_t i;
 	if(NULL == sandbox)
-	    ERROR_RETURN_LOG(int, "Cannot create sandbox for the install command");
+		ERROR_RETURN_LOG(int, "Cannot create sandbox for the install command");
 
 	for(i = 0; i < option->target_count; i ++)
 	{
 		compiler_result_t *result = NULL;
 		lexer_t* lexer = lexer_new(option->target[i]);
 		if(NULL == lexer)
-		    ERROR_LOG_GOTO(ITER_ERR, "Cannot create lexer for file %s", option->target[i]);
+			ERROR_LOG_GOTO(ITER_ERR, "Cannot create lexer for file %s", option->target[i]);
 
 		_PRINT_STDERR("Compiling type description file %s", option->target[i]);
 
@@ -337,7 +337,7 @@ static int do_install(int is_update, const program_option_t* option)
 		};
 
 		if(NULL == (result = compiler_compile(opt)))
-		    ERROR_LOG_GOTO(ITER_ERR, "Cannot compile the type description file");
+			ERROR_LOG_GOTO(ITER_ERR, "Cannot compile the type description file");
 
 		compiler_type_t* type;
 		for(type = result->type_list; type != NULL; type = type->next)
@@ -346,30 +346,30 @@ static int do_install(int is_update, const program_option_t* option)
 			static char buf[1024];
 			snprintf(buf, sizeof(buf), "%s/%s", type->package, type->name);
 			if(sandbox_insert_type(sandbox, buf, proto) == ERROR_CODE(int))
-			    ERROR_LOG_GOTO(ITER_ERR, "Cannot add protocol %s to sandbox", buf);
+				ERROR_LOG_GOTO(ITER_ERR, "Cannot add protocol %s to sandbox", buf);
 			else type->proto_type = NULL;  /* Because the sandbox steal the ownership */
 		}
 
 		if(ERROR_CODE(int) == compiler_result_free(result))
-		    ERROR_LOG_GOTO(ITER_ERR, "Cannot dispose the compiler result");
+			ERROR_LOG_GOTO(ITER_ERR, "Cannot dispose the compiler result");
 		if(ERROR_CODE(int) == lexer_free(lexer))
-		    ERROR_LOG_GOTO(ITER_ERR, "Cannot dispose the lexer");
+			ERROR_LOG_GOTO(ITER_ERR, "Cannot dispose the lexer");
 		continue;
 ITER_ERR:
 		if(result != NULL)
-		    compiler_result_free(result);
+			compiler_result_free(result);
 		if(lexer != NULL)
-		    lexer_free(lexer);
+			lexer_free(lexer);
 		goto ERR;
 	}
 
 	if(confirm_operation(sandbox, option) == ERROR_CODE(int))
-	    goto ERR;
+		goto ERR;
 
 	return sandbox_free(sandbox);
 ERR:
 	if(NULL != sandbox)
-	    sandbox_free(sandbox);
+		sandbox_free(sandbox);
 	return 1;
 }
 
@@ -380,7 +380,7 @@ static int _filename_filter(const struct dirent* ent)
 	if(ent->d_type == DT_DIR) return 1;
 	size_t len = strlen(ent->d_name);
 	if(len > sizeof(ext) - 1 && strcmp(ext, ent->d_name + len - sizeof(ext) + 1) == 0)
-	    return 1;
+		return 1;
 	return 0;
 }
 
@@ -398,7 +398,7 @@ static int do_list(char* bufptr, const program_option_t* option)
 	int num_dirent, i;
 	struct dirent **result = NULL;
 	if((num_dirent = scandir(pathbuf, &result, _filename_filter, alphasort)) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot access directory %s", pathbuf);
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot access directory %s", pathbuf);
 
 	int rc = 0;
 
@@ -409,7 +409,7 @@ static int do_list(char* bufptr, const program_option_t* option)
 		if(ent->d_type == DT_DIR)
 		{
 			if(bufptr + len > pathbuf_end - 2)
-			    len = (size_t)(pathbuf_end - bufptr - 2);
+				len = (size_t)(pathbuf_end - bufptr - 2);
 			memcpy(bufptr, ent->d_name, len);
 			bufptr[len] = '/';
 			bufptr[len + 1] = 0;
@@ -418,9 +418,9 @@ static int do_list(char* bufptr, const program_option_t* option)
 		else
 		{
 			if(bufptr + len - sizeof(ext) >= pathbuf_end - 1)
-			    len = (size_t)(pathbuf_end - bufptr) - sizeof(ext);
+				len = (size_t)(pathbuf_end - bufptr) - sizeof(ext);
 			else
-			    len -= sizeof(ext) - 1;
+				len -= sizeof(ext) - 1;
 			memcpy(bufptr, ent->d_name, len);
 			bufptr[len] = 0;
 			_PRINT_INFO("%s", relpath_begin);
@@ -434,8 +434,8 @@ CLEANUP:
 	if(NULL != result)
 	{
 		for(i = 0; i < num_dirent; i ++)
-		    if(NULL != result[i])
-		        free(result[i]);
+			if(NULL != result[i])
+				free(result[i]);
 		free(result);
 	}
 	return 0;
@@ -518,7 +518,7 @@ ENT_ERR:
 		log_libproto_error(__FILE__, __LINE__);
 	}
 	for(j = 0; rdeps[j] != NULL; j ++)
-	    _PRINT_INFO("                      %s", rdeps[j]);
+		_PRINT_INFO("                      %s", rdeps[j]);
 
 	_PRINT_INFO("     Memory layout:");
 	for(j = 0; j < proto_type_get_size(proto); j ++)
@@ -592,7 +592,7 @@ ENT_ERR:
 			{
 				uint32_t k;
 				for(k = 0; k < ent->header.dimlen; k ++)
-				    printf("[%u]", ent->dimension[k]);
+					printf("[%u]", ent->dimension[k]);
 			}
 			else if(ent->header.metadata && !ent->metadata->flags.numeric.invalid)
 			{
@@ -619,7 +619,7 @@ ENT_ERR:
 			puts("}");
 		}
 		else
-		    printf("           [Alias] => 0x%.8x - 0x%.8x:\t%s -> %s\n", offset, offset + size, symbol, target);
+			printf("           [Alias] => 0x%.8x - 0x%.8x:\t%s -> %s\n", offset, offset + size, symbol, target);
 		continue;
 
 LAYOUT_ERR:
@@ -650,7 +650,7 @@ static int do_syntax(const program_option_t* option)
 		compiler_result_t *result = NULL;
 		lexer_t* lexer = lexer_new(option->target[i]);
 		if(NULL == lexer)
-		    ERROR_LOG_GOTO(ITER_ERR, "Cannot create lexer for file %s", option->target[i]);
+			ERROR_LOG_GOTO(ITER_ERR, "Cannot create lexer for file %s", option->target[i]);
 
 		_PRINT_STDERR("Checking syntax for %s", option->target[i]);
 
@@ -660,12 +660,12 @@ static int do_syntax(const program_option_t* option)
 		};
 
 		if(NULL == (result = compiler_compile(opt)))
-		    ERROR_LOG_GOTO(ITER_ERR, "Cannot compile the type description file");
+			ERROR_LOG_GOTO(ITER_ERR, "Cannot compile the type description file");
 
 		if(ERROR_CODE(int) == compiler_result_free(result))
-		    LOG_ERROR("Cannot dispose the compiler result");
+			LOG_ERROR("Cannot dispose the compiler result");
 		if(ERROR_CODE(int) == lexer_free(lexer))
-		    LOG_ERROR("Cannot dispose the lexer");
+			LOG_ERROR("Cannot dispose the lexer");
 		continue;
 ITER_ERR:
 		return 1;
@@ -682,42 +682,42 @@ int main(int argc, char** argv)
 	}
 
 	if(ERROR_CODE(int) == proto_init())
-	    LOG_LIBPROTO_ERROR_RETURN(int);
+		LOG_LIBPROTO_ERROR_RETURN(int);
 
 	int ret_code = 0;
 
 	if(program_option.db_root != NULL && proto_cache_set_root(program_option.db_root) == ERROR_CODE(int))
-	    LOG_LIBPROTO_ERROR_RETURN(int);
+		LOG_LIBPROTO_ERROR_RETURN(int);
 
 	if(NULL == (program_option.db_root = proto_cache_get_root()))
-	    LOG_LIBPROTO_ERROR_RETURN(int);
+		LOG_LIBPROTO_ERROR_RETURN(int);
 
 	switch(program_option.command)
 	{
 		case CMD_VERSION:
-		    display_version();
-		    properly_exit(0);
+			display_version();
+			properly_exit(0);
 		case CMD_HELP:
-		    display_help();
-		    properly_exit(0);
+			display_help();
+			properly_exit(0);
 		case CMD_INSTALL:
-		    ret_code = do_install(0, &program_option);
-		    break;
+			ret_code = do_install(0, &program_option);
+			break;
 		case CMD_UPDATE:
-		    ret_code = do_install(1, &program_option);
-		    break;
+			ret_code = do_install(1, &program_option);
+			break;
 		case CMD_LIST_TYPES:
-		    ret_code = do_list(NULL, &program_option);
-		    break;
+			ret_code = do_list(NULL, &program_option);
+			break;
 		case CMD_SHOW_INFO:
-		    ret_code = show_info(&program_option);
-		    break;
+			ret_code = show_info(&program_option);
+			break;
 		case CMD_REMOVE:
-		    ret_code = do_remove(&program_option);
-		    break;
+			ret_code = do_remove(&program_option);
+			break;
 		case CMD_SYNTAX:
-		    ret_code = do_syntax(&program_option);
-		    break;
+			ret_code = do_syntax(&program_option);
+			break;
 		default:
 		    display_help();
 		    properly_exit(1);

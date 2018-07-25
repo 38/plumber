@@ -5,7 +5,7 @@
 /**
  * @brief Traverse the service
  * @param serv The service to traverse
- * @param handler The handle function dictionary: 
+ * @param handler The handle function dictionary:
  *                <node, function node_handle(node_name, node_def)>                                Traverse the node
  *                <pipe, function pipe_handle(src_node, src_port, dst_node, dst_port)>             Traverse the pipe
  *                <rev_pipe, function rev_pipe_handle(src_node, src_port, dest_node, dest_port)>   Traverse the inversed pipe
@@ -32,7 +32,7 @@ Service.for_each_element = function Service.for_each_element(serv, handler)
 	{
 		var sp = split(key, "@");
 		var lsp = len(sp);
-		if(lsp == 1) 
+		if(lsp == 1)
 			node_handle(key, serv[key]);
 		else
 		{
@@ -97,7 +97,7 @@ Service.add_node = function Service.add_node(serv, name, init_arg)
  * @param dst_node The node of the destination
  * @return nothing
  **/
-Service.add_pipe = function Service.add_pipe(serv, src_node, src_port, dst_port, dst_node) 
+Service.add_pipe = function Service.add_pipe(serv, src_node, src_port, dst_port, dst_node)
 {
 	if(serv["@"+ src_node] == undefined)
 		serv["@" + src_node] = {};
@@ -111,20 +111,20 @@ Service.add_pipe = function Service.add_pipe(serv, src_node, src_port, dst_port,
  * @brief Add the input port
  * @param serv The target service graph
  * @param name The name of the port
- * @param node The node name 
+ * @param node The node name
  * @param port The name of the port
  * @return nothing
  **/
 Service.add_in_port = function Service.add_in_port(serv, name, node, port)
 {
-	serv["@input@" + name] = node + "@" + port; 
+	serv["@input@" + name] = node + "@" + port;
 }
 
 /**
  * @brief Add the output port
  * @param serv The target service graph
  * @param name The name of the port
- * @param node The node name 
+ * @param node The node name
  * @param port The name of the port
  * @return nothing
  **/
@@ -133,16 +133,16 @@ Service.add_out_port = function Service.add_out_port(serv, name, node, port)
 	serv["@output@" + name] = node + "@" + port;
 }
 
-var _add_merger_or_splitter = function _add_merger_or_splitter(serv, splitter, merger) 
+var _add_merger_or_splitter = function _add_merger_or_splitter(serv, splitter, merger)
 {
 	var downstream = {};
 	var upstream = {};
 	var inputs = {};
 	var outputs = {};
 	var _get_pipe_handle = function(result) {
-		return function _pipe(src_node, src_port, dst_node, dst_port) 
+		return function _pipe(src_node, src_port, dst_node, dst_port)
 		{
-			var key = dst_node + "@" + dst_port; 
+			var key = dst_node + "@" + dst_port;
 			var val = src_node + "@" + src_port;
 			if(result[key] == undefined) result[key] = {};
 			var n = len(result[key]);
@@ -150,9 +150,9 @@ var _add_merger_or_splitter = function _add_merger_or_splitter(serv, splitter, m
 		}
 	}
 
-	var _get_io_handle = function(result) 
+	var _get_io_handle = function(result)
 	{
-		return function _io_port(node, port) 
+		return function _io_port(node, port)
 		{
 			if(result[""] == undefined) result[""] = {}
 			var n = len(result[""]);
@@ -160,7 +160,7 @@ var _add_merger_or_splitter = function _add_merger_or_splitter(serv, splitter, m
 		}
 	}
 
-	var _get_port_handle = function(input_result, output_result) 
+	var _get_port_handle = function(input_result, output_result)
 	{
 		return function _port(name, node, port, dir)
 		{
@@ -174,7 +174,7 @@ var _add_merger_or_splitter = function _add_merger_or_splitter(serv, splitter, m
 	}
 
 	Service.for_each_element(serv, {
-		pipe: _get_pipe_handle(upstream), 
+		pipe: _get_pipe_handle(upstream),
 		rev_pipe: _get_pipe_handle(downstream)
 	});
 
@@ -182,7 +182,7 @@ var _add_merger_or_splitter = function _add_merger_or_splitter(serv, splitter, m
 	{
 		var name, args, is_merge, set, sp;
 
-		if(typeof(from) == "dict") 
+		if(typeof(from) == "dict")
 		{
 			sp = split(to, "@");
 			name = "__merger_";
@@ -229,13 +229,13 @@ var _add_merger_or_splitter = function _add_merger_or_splitter(serv, splitter, m
 	}
 
 	/* for(var input in inputs)
-		_modify_graph(input, inputs[input]); */
+	    _modify_graph(input, inputs[input]); */
 
 	for(var from_str in downstream)
 		_modify_graph(from_str, downstream[from_str]);
 
 	/*for(var output in outputs)
-		_modify_graph(outputs[output], output); */
+	    _modify_graph(outputs[output], output); */
 
 	for(var to_str in upstream)
 		_modify_graph(upstream[to_str], to_str);
@@ -249,7 +249,7 @@ var _add_merger_or_splitter = function _add_merger_or_splitter(serv, splitter, m
  *       But later we may use this function to rewrite the graph thus we can deploy it
  *       for a cluster
  **/
-Service.preprocess = function Service.preprocess(serv) 
+Service.preprocess = function Service.preprocess(serv)
 {
 	_add_merger_or_splitter(serv, "dataflow/dup", "dataflow/firstnonempty");
 }
@@ -258,12 +258,12 @@ Service.preprocess = function Service.preprocess(serv)
  * @brief Build the exotic service object from the service description
  * @param serv The service to build
  * @note This function actually convert the dictionary based service description to the
- *       internal object used by Plumber framework to run the application. 
+ *       internal object used by Plumber framework to run the application.
  * @return The newly created exotic service object
  **/
 Service.build = function(serv)
 {
-	var _build = function _build_impl(serv, obj, build, prefix, nodemap) 
+	var _build = function _build_impl(serv, obj, build, prefix, nodemap)
 	{
 		_add_merger_or_splitter(serv, "dataflow/dup", "dataflow/firstnonempty");
 		var nodes = {};
@@ -289,12 +289,12 @@ Service.build = function(serv)
 				if(nodemap != undefined) nodemap[prefix + "@" + name] = nodes[name];
 			}
 		};
-		var pipe_handler = function _pipe_handler(src_node, src_port, dst_node, dst_port) 
+		var pipe_handler = function _pipe_handler(src_node, src_port, dst_node, dst_port)
 		{
 			var src = _deref_port(src_node, src_port);
 			var dst = _deref_port(dst_node, dst_port);
 
-			if(src == "__dummy__" || dst == "__dummy__") 
+			if(src == "__dummy__" || dst == "__dummy__")
 				return undefined;
 
 			__service_pipe(obj, src["node"], src["port"], dst["node"], dst["port"]);
@@ -315,18 +315,18 @@ Service.build = function(serv)
 		var output_handler = function _output_handler(node, port)
 		{
 			var target = _deref_port(node, port);
-			
+
 			if(target == "__dummy__")
 				log("warning", "Invalid use of dummy port as output");
-			
+
 			__service_output(obj, target["node"], target["port"]);
 		};
 
-		Service.for_each_element(serv, {node: node_handler}); 
+		Service.for_each_element(serv, {node: node_handler});
 		Service.for_each_element(serv, {pipe: pipe_handler, port: port_handler, input: input_handler, output: output_handler});
 		return ports;
 	}
-	
+
 	return function Service.build(serv, nodemap) {
 		var obj = __service_new();
 		_build(serv, obj, _build, "", nodemap);
@@ -337,13 +337,13 @@ Service.build = function(serv)
 /**
  * @brief Start the given service graph
  * @param serv The service graph to start
- * @note This function will convert the PScript interpreter to the serving mode. 
+ * @note This function will convert the PScript interpreter to the serving mode.
  *       However, if the runtime.daemon.id is not an empty string.
- *       The application won't run in current process, instead it start a deamon 
+ *       The application won't run in current process, instead it start a deamon
  *       runs the service
  * @return nothing
  **/
-Service.start = function Service.start(serv) 
+Service.start = function Service.start(serv)
 {
 	var serv_obj = Service.build(serv);
 	__service_start(serv_obj);
@@ -354,13 +354,13 @@ Service.start = function Service.start(serv)
  * @param serv The target service
  * @return nothing
  **/
-Service.visualize = function Service.visualize(serv) 
+Service.visualize = function Service.visualize(serv)
 {
 	print("digraph {");
-	
+
 	var obj = __service_new();
 
-	var node_handler = function node_handler(name, def) 
+	var node_handler = function node_handler(name, def)
 	{
 		var type = typeof(def);
 		var ports;
@@ -410,20 +410,20 @@ Service.visualize = function Service.visualize(serv)
 				}
 				return ret + "}";
 			}
-			var nodestr = "\tnode_" + name + "[shape = Mrecord, label = \"{" + 
-						  	_dump_ports(ports["input"], {}) + 
-							"|{<P__null__>N|" + name + "|<P__error__>E}|" + 
-							_dump_ports(ports["output"], {__null__:1, __error__:1}) + "}\"];"
+			var nodestr = "\tnode_" + name + "[shape = Mrecord, label = \"{" +
+			                  _dump_ports(ports["input"], {}) +
+			                "|{<P__null__>N|" + name + "|<P__error__>E}|" +
+			                _dump_ports(ports["output"], {__null__:1, __error__:1}) + "}\"];"
 			print(nodestr);
 		}
 	}
-	
+
 	var _p = function (node, port)
 	{
 		return "node_" + node + ":P" + port;
 	}
 
-	var pipe_handler = function _pipe_handler(src_node, src_port, dst_node, dst_port) 
+	var pipe_handler = function _pipe_handler(src_node, src_port, dst_node, dst_port)
 	{
 		print("\t" + _p(src_node, src_port) + "->" + _p(dst_node, dst_port));
 	}
@@ -434,11 +434,11 @@ Service.visualize = function Service.visualize(serv)
 		print("\t" + port_node + "[shape = ellipse, label=\"" + name + "\"];");
 		if(dir == "input")
 			print("\t" + port_node + "->" + _p(node, port));
-		else 
+		else
 			print("\t" + _p(node, port) + "->" + port_node);
 	}
 
-	var input_handler = function _input_handler(node, port) 
+	var input_handler = function _input_handler(node, port)
 	{
 		print("\tinput[shape = ellipse];");
 		print("\tinput->" + _p(node, port));
@@ -448,7 +448,7 @@ Service.visualize = function Service.visualize(serv)
 		print("\toutput[shape = ellipse];");
 		print("\t" + _p(node, port) + "->output;");
 	}
-	
+
 	Service.for_each_element(serv, {node: node_handler, pipe: pipe_handler, port: port_handler, input: input_handler, output: output_handler});
 
 	print("}");
@@ -459,7 +459,7 @@ Service.visualize = function Service.visualize(serv)
  * @param serv The service to print
  * @return The dictionary that contains all the type information
  **/
-Service.typeinfo = function typeinfo(serv) 
+Service.typeinfo = function typeinfo(serv)
 {
 	var ret = {};
 	var nodes = {};
@@ -467,7 +467,7 @@ Service.typeinfo = function typeinfo(serv)
 	var port_list = {};
 	for(var node in nodes)
 		port_list[node] = __service_node_ports(obj, nodes[node]);
-	
+
 	for(var node in nodes)
 	{
 		var nid = nodes[node];

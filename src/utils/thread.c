@@ -121,7 +121,7 @@ static
 void* _thread_allocate_current_pointer(thread_pset_t* pset, uint32_t tid)
 {
 	if((errno = pthread_mutex_lock(&pset->resize_lock)) != 0)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot acquire the resize lock");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot acquire the resize lock");
 
 	/* Then the thread should be the only one executing this code,
 	 * At the same time, we need to check again, in case the pointer
@@ -130,7 +130,7 @@ void* _thread_allocate_current_pointer(thread_pset_t* pset, uint32_t tid)
 	if(current->size > tid)
 	{
 		if((errno = pthread_mutex_unlock(&pset->resize_lock)) != 0)
-		    LOG_WARNING_ERRNO("Cannot release the resize lock");
+			LOG_WARNING_ERRNO("Cannot release the resize lock");
 		return current->ptr[tid];
 	}
 
@@ -142,7 +142,7 @@ void* _thread_allocate_current_pointer(thread_pset_t* pset, uint32_t tid)
 	thread_pointer_array_t* new_array = (thread_pointer_array_t*)malloc(new_size * sizeof(void*) + sizeof(thread_pointer_array_t));
 	uint32_t i = 1;
 	if(NULL == new_array)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the new array");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the new array");
 
 	new_array->size = new_size;
 
@@ -153,7 +153,7 @@ void* _thread_allocate_current_pointer(thread_pset_t* pset, uint32_t tid)
 	for(i = current->size; i < new_size; i ++)
 	{
 		if(NULL == (new_array->ptr[i] = pset->alloc(i, pset->data)))
-		    ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the new pointer");
+			ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the new pointer");
 	}
 
 	new_array->unused = current;
@@ -161,18 +161,18 @@ void* _thread_allocate_current_pointer(thread_pset_t* pset, uint32_t tid)
 	pset->array = new_array;
 
 	if((errno = pthread_mutex_unlock(&pset->resize_lock)) != 0)
-	    LOG_WARNING_ERRNO("Cannot release the resize lock");
+		LOG_WARNING_ERRNO("Cannot release the resize lock");
 
 	return pset->array->ptr[tid];
 ERR:
 	if((errno = pthread_mutex_unlock(&pset->resize_lock)) != 0)
-	    LOG_WARNING_ERRNO("Cannot release the resize lock");
+		LOG_WARNING_ERRNO("Cannot release the resize lock");
 
 	if(new_array != NULL)
 	{
 		for(; i >= current->size; i --)
-		    if(new_array->ptr[i] != NULL)
-		        pset->dealloc(new_array->ptr[i], pset->data);
+			if(new_array->ptr[i] != NULL)
+				pset->dealloc(new_array->ptr[i], pset->data);
 		free(new_array);
 	}
 
@@ -188,7 +188,7 @@ static inline void* _get_current_pointer(thread_pset_t* pset)
 
 	/* If the pointer for the thread is already there */
 	if(PREDICT_TRUE(current->size > tid))
-	    return current->ptr[tid];
+		return current->ptr[tid];
 
 	return _thread_allocate_current_pointer(pset, tid);
 }
@@ -197,7 +197,7 @@ static inline void* _get_current_pointer(thread_pset_t* pset)
 thread_pset_t* _thread_pset_new_impl(uint32_t init_size, thread_pset_allocate_t alloc, thread_pset_deallocate_t dealloc, const void* data, ...)
 {
 	if(NULL == alloc || NULL == dealloc || init_size == 0 || init_size == ERROR_CODE(uint32_t))
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	void* mem = NULL;
 
@@ -215,17 +215,17 @@ thread_pset_t* _thread_pset_new_impl(uint32_t init_size, thread_pset_allocate_t 
 	ret->array = NULL;
 
 	if((errno = pthread_mutex_init(&ret->resize_lock, NULL)) != 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the resize lock");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot initialize the resize lock");
 
 	ret->alloc = alloc;
 	ret->dealloc = dealloc;
 
 	if(NULL == (ret->array = (thread_pointer_array_t*)calloc(1, sizeof(thread_pointer_array_t) + sizeof(void*) * init_size)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the poitner array");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the poitner array");
 
 	for(i = 0; i < init_size; i ++)
-	    if(NULL == (ret->array->ptr[i] = alloc(i, data)))
-	        ERROR_LOG_GOTO(ERR, "Cannot create new pointer for thread %u", i);
+		if(NULL == (ret->array->ptr[i] = alloc(i, data)))
+			ERROR_LOG_GOTO(ERR, "Cannot create new pointer for thread %u", i);
 
 	ret->array->size = init_size;
 	ret->data = data;
@@ -233,12 +233,12 @@ thread_pset_t* _thread_pset_new_impl(uint32_t init_size, thread_pset_allocate_t 
 	return ret;
 ERR:
 	if(mutex_init && (errno = pthread_mutex_unlock(&ret->resize_lock)) != 0)
-	    LOG_WARNING_ERRNO("Cannot dispose the resize lock");
+		LOG_WARNING_ERRNO("Cannot dispose the resize lock");
 	if(NULL != ret->array)
 	{
 		uint32_t j;
 		for(j = 0; j < i; j ++)
-		    dealloc(ret->array->ptr[j], data);
+			dealloc(ret->array->ptr[j], data);
 		free(ret->array);
 	}
 	free(ret);
@@ -259,13 +259,13 @@ int thread_pset_free(thread_pset_t* pset)
 
 	uint32_t i;
 	for(i = 0; i < pset->array->size; i ++)
-	    if(pset->dealloc(pset->array->ptr[i], pset->data) == ERROR_CODE(int))
-	    {
-		    LOG_WARNING("Cannot dispose the pointer for thread %u", i);
-		    rc = ERROR_CODE(int);
-	    }
+		if(pset->dealloc(pset->array->ptr[i], pset->data) == ERROR_CODE(int))
+		{
+			LOG_WARNING("Cannot dispose the pointer for thread %u", i);
+			rc = ERROR_CODE(int);
+		}
 
-	thread_pointer_array_t* ptr, *tmp;
+		thread_pointer_array_t* ptr, *tmp;
 	for(ptr = pset->array; ptr != NULL; )
 	{
 		tmp = ptr;
@@ -282,7 +282,7 @@ void* thread_pset_acquire(thread_pset_t* pset)
 {
 #ifndef FULL_OPTIMIZATION
 	if(PREDICT_FALSE(NULL == pset))
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 #endif
 	return _get_current_pointer(pset);
 }
@@ -317,8 +317,8 @@ static void* _thread_main(void* data)
 
 	_cleanup_hook_t* ptr;
 	for(ptr = thread->hooks; NULL != ptr; ptr = ptr->next)
-	    if(ERROR_CODE(int) == ptr->func(thread->arg, ptr->arg))
-	        LOG_WARNING("Thread cleanup function <func = %p, arg = %p> returned with an error", ptr->func, ptr->arg);
+		if(ERROR_CODE(int) == ptr->func(thread->arg, ptr->arg))
+			LOG_WARNING("Thread cleanup function <func = %p, arg = %p> returned with an error", ptr->func, ptr->arg);
 
 	return ret;
 }
@@ -342,9 +342,9 @@ int thread_run_test_main(thread_test_main_t func)
 
 	uintptr_t offset = (STACK_SIZE - ((uintptr_t)ret->mem) % STACK_SIZE) % STACK_SIZE;
 	if(offset >= sizeof(thread_stack_t))
-	    ret->stack = (thread_stack_t*)(ret->mem + offset - sizeof(thread_stack_t));
+		ret->stack = (thread_stack_t*)(ret->mem + offset - sizeof(thread_stack_t));
 	else
-	    ret->stack = (thread_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(thread_stack_t));
+		ret->stack = (thread_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(thread_stack_t));
 
 	ret->stack->thread = NULL;
 	ret->stack->type = THREAD_TYPE_GENERIC;
@@ -352,16 +352,16 @@ int thread_run_test_main(thread_test_main_t func)
 	pthread_attr_t attr;
 	void* rc;
 	if((errno = pthread_attr_init(&attr)) != 0)
-	    goto ERR;
+		goto ERR;
 
 	if((errno = pthread_attr_setstack(&attr, ret->stack->base, STACK_SIZE)) != 0)
-	    goto ERR;
+		goto ERR;
 
 	if((errno = pthread_create(&ret->handle, &attr, _start_main, func)) != 0)
-	    goto ERR;
+		goto ERR;
 
 	if((errno = pthread_join(ret->handle, &rc)) != 0)
-	    goto ERR;
+		goto ERR;
 
 	free(ret);
 
@@ -383,7 +383,7 @@ thread_t* thread_new(thread_main_t main, void* data, thread_type_t type)
 	{
 		thread_type_t mask;
 		for(mask = 1; mask != 0; mask *= 2)
-		    if(type == mask) break;
+			if(type == mask) break;
 
 		if(mask == 0) ERROR_PTR_RETURN_LOG("Invalid thread type");
 	}
@@ -397,26 +397,26 @@ thread_t* thread_new(thread_main_t main, void* data, thread_type_t type)
 #ifdef STACK_SIZE
 	uintptr_t offset = (STACK_SIZE - ((uintptr_t)ret->mem) % STACK_SIZE) % STACK_SIZE;
 	if(offset >= sizeof(thread_stack_t))
-	    ret->stack = (thread_stack_t*)(ret->mem + offset - sizeof(thread_stack_t));
+		ret->stack = (thread_stack_t*)(ret->mem + offset - sizeof(thread_stack_t));
 	else
-	    ret->stack = (thread_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(thread_stack_t));
+		ret->stack = (thread_stack_t*)(ret->mem + offset + STACK_SIZE - sizeof(thread_stack_t));
 
 	ret->stack->thread = ret;
 	ret->stack->type = type;
 
 	pthread_attr_t attr;
 	if((errno = pthread_attr_init(&attr)) != 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create attribute of the thread");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create attribute of the thread");
 
 	if((errno = pthread_attr_setstack(&attr, ret->stack->base, STACK_SIZE)) != 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the base address of the stack");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot set the base address of the stack");
 
 	if((errno = pthread_create(&ret->handle, &attr, _thread_main, ret)) != 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot start the thread");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot start the thread");
 #else
 	ret->type = type;
 	if((errno = pthread_create(&ret->handle, NULL, _thread_main, ret)) != 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot start the thread");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot start the thread");
 #endif
 
 	return ret;
@@ -459,7 +459,7 @@ int thread_kill(thread_t* thread, int signal)
 	if(NULL == thread) ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if((errno = pthread_kill(thread->handle, signal)) != 0 && errno != ESRCH)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot send signal to target thread");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot send signal to target thread");
 
 	return 0;
 }
@@ -507,7 +507,7 @@ thread_type_t thread_get_current_type()
 const char* thread_type_name(thread_type_t type, char* buf, size_t size)
 {
 	if(NULL == buf)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	string_buffer_t sbuf;
 
@@ -516,14 +516,14 @@ const char* thread_type_name(thread_type_t type, char* buf, size_t size)
 	thread_type_t mask;
 	uint32_t i, first = 1;
 	for(mask = 1, i = 0; mask < THREAD_TYPE_MAX && NULL != _type_name[i]; mask <<= 1, i ++)
-	    if(type & mask)
-	    {
-		    if(first) string_buffer_appendf(&sbuf, "[%s", _type_name[i]);
-		    else      string_buffer_appendf(&sbuf, ",%s", _type_name[i]);
-		    first = 0;
-	    }
+		if(type & mask)
+		{
+			if(first) string_buffer_appendf(&sbuf, "[%s", _type_name[i]);
+			else      string_buffer_appendf(&sbuf, ",%s", _type_name[i]);
+			first = 0;
+		}
 
-	string_buffer_append("]", &sbuf);
+		string_buffer_append("]", &sbuf);
 
 	return string_buffer_close(&sbuf);
 }
@@ -535,9 +535,9 @@ int thread_start_with_aligned_stack(int (*main)(int argc, char** argv), int argc
 
 	uintptr_t offset = (STACK_SIZE - ((uintptr_t)th.mem) % STACK_SIZE) % STACK_SIZE;
 	if(offset >= sizeof(thread_stack_t))
-	    th.stack = (thread_stack_t*)(th.mem + offset - sizeof(thread_stack_t));
+		th.stack = (thread_stack_t*)(th.mem + offset - sizeof(thread_stack_t));
 	else
-	    th.stack = (thread_stack_t*)(th.mem + offset + STACK_SIZE - sizeof(thread_stack_t));
+		th.stack = (thread_stack_t*)(th.mem + offset + STACK_SIZE - sizeof(thread_stack_t));
 
 	th.stack->thread = &th;
 	th.stack->type = THREAD_TYPE_GENERIC;

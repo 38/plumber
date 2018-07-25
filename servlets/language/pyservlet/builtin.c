@@ -53,10 +53,10 @@ static PyObject* _pyservlet_read(PyObject* self, PyObject* args)
 		if(bytes_read == 0) break;
 
 		if(NULL == (current_part = PyString_FromStringAndSize(buffer, (Py_ssize_t)bytes_read)))
-		    ERROR_LOG_GOTO(ERR, "Cannot convert the read data to python object");
+			ERROR_LOG_GOTO(ERR, "Cannot convert the read data to python object");
 
 		if(NULL == result)
-		    result = current_part;
+			result = current_part;
 		else
 		{
 			PyString_Concat(&result, current_part);

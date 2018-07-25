@@ -92,7 +92,7 @@ int pss_comp_lex_free(pss_comp_lex_t* lexer)
 static inline int _peek(pss_comp_lex_t* lexer, uint32_t n)
 {
 	if(lexer->buffer_next + n >= lexer->buffer_limit)
-	    return ERROR_CODE(int);
+		return ERROR_CODE(int);
 	int ret = lexer->buffer[lexer->buffer_next + n];
 	if(0 == ret) return -1;
 	return ret;
@@ -198,8 +198,8 @@ static inline int _match(pss_comp_lex_t* lexer, const char* str)
 {
 	uint32_t i = 0;
 	for(;*str;str++, i ++)
-	    if(_peek(lexer, i) != *str)
-	        return 0;
+		if(_peek(lexer, i) != *str)
+			return 0;
 	if(_in_id_charset(_peek(lexer, i))) return 0;
 	_consume(lexer, i);
 	return 1;
@@ -222,8 +222,8 @@ static inline pss_comp_lex_keyword_t _id_or_keyword(pss_comp_lex_t* lexer, char*
 	int warnned = 0, len = 0;
 
 	for(;_in_id_charset(_peek(lexer, 0)); _consume(lexer, 1))
-	    if(size > 1)
-	        *(buffer ++) = (char)_peek(lexer, 0), size --, len ++;
+		if(size > 1)
+			*(buffer ++) = (char)_peek(lexer, 0), size --, len ++;
 	    else if(!warnned)
 	    {
 		    LOG_WARNING("identifer truncated");
@@ -250,7 +250,7 @@ static inline int _num(pss_comp_lex_t* lex, int64_t* result)
 			*result = 0;
 			int valid = 0;
 			for(;(current = _hex_digit_to_val(_peek(lex, 0))) != ERROR_CODE(int); _consume(lex, 1))
-			    *result = (*result) * 16 + current, valid = 1;
+				*result = (*result) * 16 + current, valid = 1;
 			return valid ? 0 : ERROR_CODE(int);
 		}
 		else if((current = _oct_digit_to_val(_peek(lex, 1))) != ERROR_CODE(int))
@@ -259,7 +259,7 @@ static inline int _num(pss_comp_lex_t* lex, int64_t* result)
 			_consume(lex, 2);
 			*result = current;
 			for(;(current = _oct_digit_to_val(_peek(lex, 0))) != ERROR_CODE(int); _consume(lex, 1))
-			    *result = (*result) * 8 + current;
+				*result = (*result) * 8 + current;
 		}
 		else
 		{
@@ -273,7 +273,7 @@ static inline int _num(pss_comp_lex_t* lex, int64_t* result)
 		*result = current;
 		_consume(lex, 1);
 		for(;(current = _dec_digit_to_val(_peek(lex, 0))) != ERROR_CODE(int); _consume(lex, 1))
-		    *result = (*result) * 10 + current;
+			*result = (*result) * 10 + current;
 	}
 
 	return 0;
@@ -307,83 +307,83 @@ PARSE:
 		switch(state)
 		{
 			case _NORMAL_STR:
-			    if(ch == '\\' && esc) state = _ESC_BEGIN;
-			    else if(ch == '"') state = _STR_END;
-			    else underlying_char = ch;
-			    break;
+				if(ch == '\\' && esc) state = _ESC_BEGIN;
+				else if(ch == '"') state = _STR_END;
+				else underlying_char = ch;
+				break;
 			case _ESC_BEGIN:
-			    switch(ch)
-			    {
-				    case 'a': underlying_char = '\a';  state = _NORMAL_STR; break;
-				    case 'b': underlying_char = '\b';  state = _NORMAL_STR; break;
-				    case 'f': underlying_char = '\f';  state = _NORMAL_STR; break;
-				    case 'n': underlying_char = '\n';  state = _NORMAL_STR; break;
-				    case 'r': underlying_char = '\r';  state = _NORMAL_STR; break;
-				    case 't': underlying_char = '\t';  state = _NORMAL_STR; break;
-				    case 'v': underlying_char = '\v';  state = _NORMAL_STR; break;
-				    case '\\': underlying_char = '\\'; state = _NORMAL_STR; break;
-				    case '\'': underlying_char = '\''; state = _NORMAL_STR; break;
-				    case '\?': underlying_char = '\?'; state = _NORMAL_STR; break;
-				    case '\"': underlying_char = '\"'; state = _NORMAL_STR; break;
-				    default:
-				        if(ch >= '0' && ch <= '8')
-				        {
-					        esc_chr = _oct_digit_to_val(ch);
-					        state = _ESC_OCT_1;
-				        }
-				        else if(ch == 'x')
-				        {
-					        esc_chr = 0;
-					        state = _ESC_HEX;
-				        }
-				        else
-				        {
-					        lex->error = 1;
-					        lex->errstr = "Invalid escape sequence";
-					        state = _ERROR;
-				        }
-			    }
-			    break;
+				switch(ch)
+				{
+					case 'a': underlying_char = '\a';  state = _NORMAL_STR; break;
+					case 'b': underlying_char = '\b';  state = _NORMAL_STR; break;
+					case 'f': underlying_char = '\f';  state = _NORMAL_STR; break;
+					case 'n': underlying_char = '\n';  state = _NORMAL_STR; break;
+					case 'r': underlying_char = '\r';  state = _NORMAL_STR; break;
+					case 't': underlying_char = '\t';  state = _NORMAL_STR; break;
+					case 'v': underlying_char = '\v';  state = _NORMAL_STR; break;
+					case '\\': underlying_char = '\\'; state = _NORMAL_STR; break;
+					case '\'': underlying_char = '\''; state = _NORMAL_STR; break;
+					case '\?': underlying_char = '\?'; state = _NORMAL_STR; break;
+					case '\"': underlying_char = '\"'; state = _NORMAL_STR; break;
+					default:
+					    if(ch >= '0' && ch <= '8')
+					    {
+						    esc_chr = _oct_digit_to_val(ch);
+						    state = _ESC_OCT_1;
+					    }
+					    else if(ch == 'x')
+					    {
+						    esc_chr = 0;
+						    state = _ESC_HEX;
+					    }
+					    else
+					    {
+						    lex->error = 1;
+						    lex->errstr = "Invalid escape sequence";
+						    state = _ERROR;
+					    }
+				}
+				break;
 			case _ESC_OCT_1:
-			    if(ch >= '0' && ch <= '8')
-			    {
-				    esc_chr = esc_chr * 8 + _oct_digit_to_val(ch);
-				    state = _ESC_OCT_2;
-			    }
-			    else
-			    {
-				    state = _NORMAL_STR;
-				    underlying_char = esc_chr;
-				    reparse = 1;
-			    }
-			    break;
+				if(ch >= '0' && ch <= '8')
+				{
+					esc_chr = esc_chr * 8 + _oct_digit_to_val(ch);
+					state = _ESC_OCT_2;
+				}
+				else
+				{
+					state = _NORMAL_STR;
+					underlying_char = esc_chr;
+					reparse = 1;
+				}
+				break;
 			case _ESC_OCT_2:
-			    if(ch >= '0' && ch <= '8')
-			    {
-				    esc_chr = esc_chr * 8 + _oct_digit_to_val(ch);
-				    state = _NORMAL_STR;
-				    underlying_char = esc_chr;
-			    }
-			    else
-			    {
-				    state = _NORMAL_STR;
-				    underlying_char = esc_chr;
-				    reparse = 1;
-			    }
-			    break;
+				if(ch >= '0' && ch <= '8')
+				{
+					esc_chr = esc_chr * 8 + _oct_digit_to_val(ch);
+					state = _NORMAL_STR;
+					underlying_char = esc_chr;
+				}
+				else
+				{
+					state = _NORMAL_STR;
+					underlying_char = esc_chr;
+					reparse = 1;
+				}
+				break;
 			case _ESC_HEX:
-			    if(_hex_digit_to_val(ch) != ERROR_CODE(int))
-			    {
-				    int val = _hex_digit_to_val(ch);
-				    esc_chr = esc_chr * 16 + val;
-			    }
-			    else
-			    {
-				    state = _NORMAL_STR;
-				    underlying_char = esc_chr;
-				    reparse = 1;
-			    }
-			    break;
+				if(_hex_digit_to_val(ch) != ERROR_CODE(int))
+				{
+					int val = _hex_digit_to_val(ch);
+					esc_chr = esc_chr * 16 + val;
+				}
+				else
+				{
+					state = _NORMAL_STR;
+					underlying_char = esc_chr;
+					reparse = 1;
+				}
+				break;
 			case _STR_END: break;
 			case _ERROR: break;
 		}
@@ -420,24 +420,24 @@ static inline int _graphviz_prop(pss_comp_lex_t* lexer, char* buf, size_t sz)
 		switch(state)
 		{
 			case _DOT_CODE:
-			    if(ch == '"') state = _DOT_STRING;
-			    else if(ch == '[')
-			        level_pos = ((level ++) >= 0);
-			    else if(ch == ']')
-			        level_pos = !((level --) <= 1);
-			    break;
+				if(ch == '"') state = _DOT_STRING;
+				else if(ch == '[')
+					level_pos = ((level ++) >= 0);
+				else if(ch == ']')
+					level_pos = !((level --) <= 1);
+				break;
 			case _DOT_STRING:
-			    if(ch == '\\') state = _DOT_ESC;
-			    else if(ch == '"') state = _DOT_CODE;
-			    break;
+				if(ch == '\\') state = _DOT_ESC;
+				else if(ch == '"') state = _DOT_CODE;
+				break;
 			case _DOT_ESC:
-			    state = _DOT_STRING;
+				state = _DOT_STRING;
 		}
 
 		if(level_pos)
 		{
 			if(sz > 1)
-			    *(buf ++) = (char)ch, sz --;
+				*(buf ++) = (char)ch, sz --;
 			else if(!truncated)
 			{
 				LOG_WARNING("Graphviz code truncated");
@@ -621,7 +621,7 @@ int pss_comp_lex_next_token(pss_comp_lex_t* lexer, pss_comp_lex_token_t* buffer)
 				_consume(lexer, 2);
 			}
 			else
-			    _consume(lexer, 1);
+				_consume(lexer, 1);
 			break;
 		}
 		_LEX_CASE('-', PSS_COMP_LEX_TOKEN_MINUS)
@@ -643,7 +643,7 @@ int pss_comp_lex_next_token(pss_comp_lex_t* lexer, pss_comp_lex_token_t* buffer)
 				_consume(lexer, 2);
 			}
 			else
-			    _consume(lexer, 1);
+				_consume(lexer, 1);
 			break;
 		}
 		_LEX_CASE('*', PSS_COMP_LEX_TOKEN_TIMES)
@@ -655,7 +655,7 @@ int pss_comp_lex_next_token(pss_comp_lex_t* lexer, pss_comp_lex_token_t* buffer)
 				_consume(lexer, 2);
 			}
 			else
-			    _consume(lexer, 1);
+				_consume(lexer, 1);
 			break;
 		}
 		_LEX_CASE('/', PSS_COMP_LEX_TOKEN_DIVIDE)
@@ -667,7 +667,7 @@ int pss_comp_lex_next_token(pss_comp_lex_t* lexer, pss_comp_lex_token_t* buffer)
 				_consume(lexer, 2);
 			}
 			else
-			    _consume(lexer, 1);
+				_consume(lexer, 1);
 			break;
 		}
 		_LEX_CASE('%', PSS_COMP_LEX_TOKEN_MODULAR)
@@ -679,7 +679,7 @@ int pss_comp_lex_next_token(pss_comp_lex_t* lexer, pss_comp_lex_token_t* buffer)
 				_consume(lexer, 2);
 			}
 			else
-			    _consume(lexer, 1);
+				_consume(lexer, 1);
 			break;
 		}
 		_LEX_CASE('"', PSS_COMP_LEX_TOKEN_STRING)

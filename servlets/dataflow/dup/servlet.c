@@ -17,15 +17,15 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	context_t* ctx = (context_t*)ctxbuf;
 
 	if(argc != 2)
-	    ERROR_RETURN_LOG(int, "Usage: %s <num-of-outputs>", argv[0]);
+		ERROR_RETURN_LOG(int, "Usage: %s <num-of-outputs>", argv[0]);
 
 	int size = atoi(argv[1]);
 
 	if(ERROR_CODE(pipe_t) == (ctx->input = pipe_define("in", PIPE_INPUT, "$T")))
-	    ERROR_RETURN_LOG(int, "Cannot define the input pipe");
+		ERROR_RETURN_LOG(int, "Cannot define the input pipe");
 
 	if(NULL == (ctx->outputs = pipe_array_new("out#", PIPE_MAKE_SHADOW(ctx->input), "$T", 0, size)))
-	    ERROR_RETURN_LOG(int, "Cannot create outputs");
+		ERROR_RETURN_LOG(int, "Cannot create outputs");
 
 	return 0;
 }
@@ -34,7 +34,7 @@ static int _unload(void* ctxbuf)
 {
 	context_t* ctx = (context_t*)ctxbuf;
 	if(NULL != ctx->outputs && ERROR_CODE(int) == pipe_array_free(ctx->outputs))
-	    ERROR_RETURN_LOG(int, "Cannot dispose the output pipes");
+		ERROR_RETURN_LOG(int, "Cannot dispose the output pipes");
 	return 0;
 }
 

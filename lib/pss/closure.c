@@ -36,13 +36,13 @@ static void* _mkval(void* param)
 	pss_closure_t* ret = (pss_closure_t*)calloc(1, sizeof(ret[0]));
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the closure object");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the closure object");
 
 	if(NULL == (ret->env = pss_frame_new(cp->env)))
-	    ERROR_LOG_GOTO(ERR, "Cannot copy the given environment frame");
+		ERROR_LOG_GOTO(ERR, "Cannot copy the given environment frame");
 
 	if(NULL == (ret->code = pss_bytecode_module_get_seg(cp->module, cp->segid)))
-	    ERROR_LOG_GOTO(ERR, "Cannot get the target segment from the module");
+		ERROR_LOG_GOTO(ERR, "Cannot get the target segment from the module");
 
 	ret->module = cp->module;
 
@@ -66,12 +66,12 @@ static int _free(void* closure_mem)
 {
 	int rc = 0;
 	if(NULL == closure_mem)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	pss_closure_t* closure = (pss_closure_t*)closure_mem;
 
 	if(NULL != closure->env && ERROR_CODE(int) == pss_frame_free(closure->env))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	free(closure);
 	return rc;

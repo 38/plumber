@@ -108,11 +108,11 @@ static inline _node_t* _node_new(const char* typename, size_t count, uint64_t ha
 {
 	_node_t* ret = (_node_t*)calloc(1, sizeof(*ret));
 	if(NULL == ret)
-	    PROTO_ERR_RAISE_RETURN_PTR(ALLOC);
+		PROTO_ERR_RAISE_RETURN_PTR(ALLOC);
 
 	ret->hashcode = hashcode;
 	if(NULL == (ret->path = (char*)malloc(count + 1)))
-	    PROTO_ERR_RAISE_GOTO(ERR, ALLOC);
+		PROTO_ERR_RAISE_GOTO(ERR, ALLOC);
 
 	memcpy(ret->path, typename, count + 1);
 
@@ -121,7 +121,7 @@ ERR:
 	if(NULL != ret)
 	{
 		if(NULL != ret->path)
-		    free(ret->path);
+			free(ret->path);
 		free(ret);
 	}
 
@@ -139,26 +139,26 @@ static inline int _node_free(_node_t* node)
 	int rc = 0;
 
 	if(NULL != node->type && node->own_type && ERROR_CODE(int) == proto_type_free(node->type))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(NULL != node->path)
-	    free(node->path);
+		free(node->path);
 
 	if(NULL != node->revdeps)
 	{
 		uint32_t i;
 		for(i = 0; i < node->revdeps_size; i ++)
-		    free(node->revdeps[i]);
+			free(node->revdeps[i]);
 		free(node->revdeps);
 	}
 
 	if(NULL != node->node_data && NULL != node->dispose_node_data)
-	    rc = node->dispose_node_data(node->node_data);
+		rc = node->dispose_node_data(node->node_data);
 
 	free(node);
 
 	if(ERROR_CODE(int) == rc)
-	    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	return rc;
 }
@@ -171,9 +171,9 @@ static inline int _node_free(_node_t* node)
 static inline int _pending_deleted(const _node_t* node)
 {
 	if(_sandbox_enabled)
-	    return node != NULL && node->type_dirty && node->type == NULL;
+		return node != NULL && node->type_dirty && node->type == NULL;
 	else
-	    return node != NULL && (!node->sandbox && node->type_dirty && node->type == NULL);
+		return node != NULL && (!node->sandbox && node->type_dirty && node->type == NULL);
 }
 
 /**
@@ -195,12 +195,12 @@ static inline int _ensure_dir(const char* path)
 				switch(errno)
 				{
 					case ENOENT:
-					    if(mkdir(buf, 0775) < 0)
-					       PROTO_ERR_RAISE_RETURN(int, FILEOP);
-					    break;
+						if(mkdir(buf, 0775) < 0)
+							PROTO_ERR_RAISE_RETURN(int, FILEOP);
+						break;
 					case EACCES:
-					    /* Since even though the parent is not accessible, but we still can reach the inner one if we could */
-					    break;
+						/* Since even though the parent is not accessible, but we still can reach the inner one if we could */
+						break;
 					default:
 					    PROTO_ERR_RAISE_RETURN(int, FILEOP);
 				}
@@ -209,10 +209,10 @@ static inline int _ensure_dir(const char* path)
 			{
 				struct stat stat_result;
 				if(stat(buf, &stat_result) < 0)
-				    PROTO_ERR_RAISE_RETURN(int, FILEOP);
+					PROTO_ERR_RAISE_RETURN(int, FILEOP);
 
 				if(!S_ISDIR(stat_result.st_mode))
-				    PROTO_ERR_RAISE_RETURN(int, FILEOP);
+					PROTO_ERR_RAISE_RETURN(int, FILEOP);
 			}
 		}
 		buf[i] = *path;
@@ -233,7 +233,7 @@ static inline int _flush_rdeps(_node_t* node)
 	int needs_update = node->rdep_dirty && node->revdeps_ok;
 	int needs_delete = _pending_deleted(node);
 	if(node->sandbox || (!needs_update && !needs_delete))
-	    return 0;
+		return 0;
 
 	snprintf(pathbuf, sizeof(pathbuf), "%s/%s"PROTO_CACHE_REVDEP_FILE_SUFFIX, _root, node->path);
 
@@ -242,15 +242,15 @@ static inline int _flush_rdeps(_node_t* node)
 		if(node->revdeps == NULL) PROTO_ERR_RAISE_RETURN(int, BUG);
 
 		if(ERROR_CODE(int) == _ensure_dir(pathbuf))
-		    PROTO_ERR_RAISE_RETURN(int, FAIL);
+			PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 		FILE* fp = fopen(pathbuf, "w");
 		if(NULL == fp)
-		    PROTO_ERR_RAISE_RETURN(int, FILEOP);
+			PROTO_ERR_RAISE_RETURN(int, FILEOP);
 
 		uint32_t i;
 		for(i = 0; i < node->revdeps_size; i ++)
-		    fprintf(fp, "%s\n", node->revdeps[i]);
+			fprintf(fp, "%s\n", node->revdeps[i]);
 		fclose(fp);
 		node->rdep_dirty = 0u;
 	}
@@ -274,7 +274,7 @@ static inline int _flush_type(_node_t* node)
 	if(!_pending_deleted(node))
 	{
 		if(ERROR_CODE(int) == _ensure_dir(pathbuf) || ERROR_CODE(int) == proto_type_dump(node->type, pathbuf))
-		    PROTO_ERR_RAISE_RETURN(int, FAIL);
+			PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 		node->type_dirty = 0u;
 	}
@@ -292,20 +292,20 @@ static inline int _flush_type(_node_t* node)
 static inline int _ensure_revdeps_cap(_node_t* node)
 {
 	if(node->revdeps == NULL)
-	    node->revdeps_cap = node->revdeps_size = 0;
+		node->revdeps_cap = node->revdeps_size = 0;
 
 	if(node->revdeps_size >= node->revdeps_cap)
 	{
 		uint32_t next_size = node->revdeps_cap * 2;
 		char**   new_array = NULL;
 		if(next_size == 0)
-		    next_size = PROTO_CACHE_REVDEP_INIT_SIZE,
-		    new_array = (char**)malloc(sizeof(*new_array) * (next_size + 1));
+			next_size = PROTO_CACHE_REVDEP_INIT_SIZE,
+			new_array = (char**)malloc(sizeof(*new_array) * (next_size + 1));
 		else
-		    new_array = (char**)realloc(node->revdeps, sizeof(*new_array) * (next_size + 1));
+			new_array = (char**)realloc(node->revdeps, sizeof(*new_array) * (next_size + 1));
 
 		if(NULL == new_array)
-		    PROTO_ERR_RAISE_RETURN(int, ALLOC);
+			PROTO_ERR_RAISE_RETURN(int, ALLOC);
 
 		node->revdeps_cap = next_size;
 		node->revdeps = new_array;
@@ -338,7 +338,7 @@ static inline _node_t* _hash_find(const char* typename, int create)
 
 		_node_t* new_node = _node_new(typename, size, hash);
 		if(NULL == new_node)
-		    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
+			PROTO_ERR_RAISE_RETURN_PTR(FAIL);
 		new_node->next = _hash_table[slot];
 		_hash_table[slot] = new_node;
 		ret = new_node;
@@ -364,14 +364,14 @@ static inline int _hash_delete(_node_t* node)
 
 		/* This means the node is not in the hash table */
 		if(NULL == prev)
-		    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+			PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 	}
 
 	if(prev != NULL) prev->next = node->next;
 	else _hash_table[slot] = node->next;
 
 	if(ERROR_CODE(int) == _node_free(node))
-	    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	return 0;
 }
@@ -393,7 +393,7 @@ static inline int _clear_cache(void)
 			_node_t* cur = ptr;
 			ptr = ptr->next;
 			if(ERROR_CODE(int) == _node_free(cur))
-			    rc = ERROR_CODE(int);
+				rc = ERROR_CODE(int);
 		}
 		_hash_table[i] = NULL;
 	}
@@ -424,10 +424,10 @@ static int _load_revdeps(_node_t* node)
 			size_t len = strlen(buf);
 			for(;len > 0 && (buf[len - 1] == '\r' || buf[len - 1] == '\n'); buf[--len] = 0);
 			if(ERROR_CODE(int) == _ensure_revdeps_cap(node))
-			    PROTO_ERR_RAISE_GOTO(ERR, FAIL);
+				PROTO_ERR_RAISE_GOTO(ERR, FAIL);
 			uint32_t idx = node->revdeps_size;
 			if(NULL == (node->revdeps[idx] = (char*)malloc(len + 1)))
-			    PROTO_ERR_RAISE_GOTO(ERR, READ);
+				PROTO_ERR_RAISE_GOTO(ERR, READ);
 			memcpy(node->revdeps[idx], buf, len + 1);
 			node->revdeps_size ++;
 		}
@@ -435,7 +435,7 @@ static int _load_revdeps(_node_t* node)
 	}
 
 	if(node->revdeps == NULL && ERROR_CODE(int) == _ensure_revdeps_cap(node))
-	    PROTO_ERR_RAISE_GOTO(ERR, FAIL);
+		PROTO_ERR_RAISE_GOTO(ERR, FAIL);
 
 	node->revdeps[node->revdeps_size] = NULL;
 	node->revdeps_ok = 1;
@@ -473,15 +473,15 @@ static inline int _revdep_add(const char* this_type, const char* that_type)
 
 	uint32_t i;
 	for(i = 0; i < node->revdeps_size; i ++)
-	    if(strcmp(that_type, node->revdeps[i]) == 0)
-	        return 0;
+		if(strcmp(that_type, node->revdeps[i]) == 0)
+			return 0;
 
 	if(ERROR_CODE(int) == _ensure_revdeps_cap(node)) PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	size_t len = strlen(that_type);
 	uint32_t idx = node->revdeps_size;
 	if(NULL == (node->revdeps[idx] = (char*)malloc(len + 1)))
-	    PROTO_ERR_RAISE_RETURN(int, ALLOC);
+		PROTO_ERR_RAISE_RETURN(int, ALLOC);
 
 	memcpy(node->revdeps[idx], that_type, len + 1);
 
@@ -518,7 +518,7 @@ static inline int _revdep_remove(const char* this_type, const char* that_type)
 	free(node->revdeps[i]);
 
 	if(i < node->revdeps_size - 1)
-	    memmove(node->revdeps + i, node->revdeps + i + 1, sizeof(node->revdeps[0]) * (node->revdeps_size - i - 1));
+		memmove(node->revdeps + i, node->revdeps + i + 1, sizeof(node->revdeps[0]) * (node->revdeps_size - i - 1));
 
 	node->revdeps[--node->revdeps_size] = NULL;
 	node->rdep_dirty = 1;
@@ -541,7 +541,7 @@ static inline int _update_rdep(const char* typename, const proto_type_t* type, i
 
 	uint32_t i, nent = proto_type_get_size(type);
 	if(nent == ERROR_CODE(uint32_t))
-	    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	for(i = 0; i < nent; i ++)
 	{
@@ -559,10 +559,10 @@ static inline int _update_rdep(const char* typename, const proto_type_t* type, i
 			if(!add)
 			{
 				if(ERROR_CODE(int) == _revdep_remove(node->path, typename))
-				    PROTO_ERR_RAISE_RETURN(int, FAIL);
+					PROTO_ERR_RAISE_RETURN(int, FAIL);
 			}
 			else if(ERROR_CODE(int) == _revdep_add(node->path, typename))
-			    PROTO_ERR_RAISE_RETURN(int, FAIL);
+				PROTO_ERR_RAISE_RETURN(int, FAIL);
 		}
 	}
 	return 0;
@@ -572,7 +572,7 @@ static inline int _update_rdep(const char* typename, const proto_type_t* type, i
 int proto_cache_flush()
 {
 	if(_sandbox_enabled)
-	    PROTO_ERR_RAISE_RETURN(int, DISALLOWED);
+		PROTO_ERR_RAISE_RETURN(int, DISALLOWED);
 
 	int rc = 0;
 	uint32_t i;
@@ -584,11 +584,11 @@ int proto_cache_flush()
 			_node_t* cur = ptr;
 			ptr = ptr->next;
 			if(ERROR_CODE(int) == _flush_rdeps(cur))
-			    rc = ERROR_CODE(int);
+				rc = ERROR_CODE(int);
 			if(ERROR_CODE(int) == _flush_type(cur))
-			    rc = ERROR_CODE(int);
+				rc = ERROR_CODE(int);
 			if(_pending_deleted(ptr) && ERROR_CODE(int) == _hash_delete(cur))
-			    rc = ERROR_CODE(int);
+				rc = ERROR_CODE(int);
 		}
 	}
 	return rc;
@@ -607,7 +607,7 @@ int proto_cache_finalize()
 	rc = _clear_cache();
 
 	if(ERROR_CODE(int) == rc)
-	    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	return 0;
 }
@@ -615,10 +615,10 @@ int proto_cache_finalize()
 int proto_cache_set_root(const char* root)
 {
 	if(NULL == root || _sandbox_enabled)
-	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
 	if(ERROR_CODE(int) == _clear_cache())
-	    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	_root = root;
 
@@ -633,14 +633,14 @@ int proto_cache_set_root(const char* root)
 static inline int _proto_file_exist(const char* path)
 {
 	if(access(path, R_OK) < 0)
-	    return 0;
+		return 0;
 
 	struct stat stat_result;
 	if(stat(path, &stat_result) < 0)
-	    return 0;
+		return 0;
 
 	if(!S_ISREG(stat_result.st_mode))
-	    return 0;
+		return 0;
 
 	return 1;
 }
@@ -663,7 +663,7 @@ static inline int _find_hash_node_with_prefix(const char* prefix_begin, const ch
 	static const char proto_file_suffix[] = PROTO_CACHE_PROTO_FILE_SUFFIX;
 
 	if(root_len + 1 + prefix_len + 1 + name_len + 1 + sizeof(proto_file_suffix) > sizeof(pathbuf))
-	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
 	memcpy(pathbuf, _root, root_len);
 	pathbuf[root_len] = '/';
@@ -716,11 +716,11 @@ static inline _node_t* _get_hash_node_impl(const char* typename, const char* pwd
 
 	/* First attempt the relative path in the cache */
 	if(pwd_begin != NULL && ERROR_CODE(int) == (rc = _find_hash_node_with_prefix(pwd_begin, pwd_end, typename, &ret)))
-	    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
+		PROTO_ERR_RAISE_RETURN_PTR(FAIL);
 	if(rc > 0) goto RET;
 
 	if(ERROR_CODE(int) == (rc = _find_hash_node_with_prefix(NULL, NULL, typename, &ret)))
-	    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
+		PROTO_ERR_RAISE_RETURN_PTR(FAIL);
 	if(rc > 0) goto RET;
 
 	if(raise) PROTO_ERR_RAISE_RETURN_PTR(NOT_FOUND);
@@ -736,13 +736,13 @@ RET:
 		ret->rdep_dirty = 0u;
 		if(ret->node_data != NULL && ret->dispose_node_data != NULL &&
 		   ERROR_CODE(int) == ret->dispose_node_data(ret->node_data))
-		        PROTO_ERR_RAISE_RETURN_PTR(FAIL);
+			    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
 
 		ret->node_data = NULL;
 		ret->dispose_node_data = NULL;
 
 		if(ret->own_type && ret->type != NULL && proto_type_free(ret->type) == ERROR_CODE(int))
-		    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
+			PROTO_ERR_RAISE_RETURN_PTR(FAIL);
 		ret->own_type = 0u;
 		ret->type = NULL;
 
@@ -750,8 +750,8 @@ RET:
 		{
 			uint32_t i;
 			for(i = 0; i < ret->revdeps_size; i ++)
-			    if(NULL != ret->revdeps[i])
-			        free(ret->revdeps[i]);
+				if(NULL != ret->revdeps[i])
+					free(ret->revdeps[i]);
 			free(ret->revdeps);
 			ret->revdeps = NULL;
 		}
@@ -801,17 +801,17 @@ static inline _node_t* _get_hash_node_range_no_raise(const char* typename, const
 int proto_cache_full_type_name_exist(const char* typename)
 {
 	if(NULL == typename)
-	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
 	_node_t* ret;
 
 	if(NULL != (ret = _get_hash_node_no_raise(typename, NULL)) && !_pending_deleted(ret))
-	    return 1;
+		return 1;
 
 	/* It's possible it's in the cache and was pending deleted, in this case, although _get_hash_node_no_raise returns NULL
 	 * and the proto file is on the disk, we still can not say it's exist, because it's virtually deleted */
 	if(NULL != (ret = _hash_find(typename, 0)) && _pending_deleted(ret))
-	    return 0;
+		return 0;
 
 	char pathbuf[PATH_MAX];
 	/* Not found in cache, so try disk */
@@ -824,11 +824,11 @@ int proto_cache_full_type_name_exist(const char* typename)
 const char* proto_cache_full_name(const char* typename, const char* pwd)
 {
 	if(NULL == typename)
-	    PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
+		PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
 
 	_node_t* node = _get_hash_node(typename, pwd);
 	if(NULL == node || _pending_deleted(node))
-	    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
+		PROTO_ERR_RAISE_RETURN_PTR(FAIL);
 
 	return node->path;
 }
@@ -836,24 +836,24 @@ const char* proto_cache_full_name(const char* typename, const char* pwd)
 static inline proto_type_t* _get_type_impl(const char* typename, const char* pwd, void** data)
 {
 	if(NULL == typename)
-	    PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
+		PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
 
 	_node_t* node = _get_hash_node(typename, pwd);
 	if(NULL == node || _pending_deleted(node))
-	    PROTO_ERR_RAISE_RETURN_PTR(NOT_FOUND);
+		PROTO_ERR_RAISE_RETURN_PTR(NOT_FOUND);
 
 	if(node->type == NULL)
 	{
 		char pathbuf[PATH_MAX];
 		snprintf(pathbuf, sizeof(pathbuf), "%s/%s"PROTO_CACHE_PROTO_FILE_SUFFIX, _root, node->path);
 		if(NULL == (node->type = proto_type_load(pathbuf)))
-		    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
+			PROTO_ERR_RAISE_RETURN_PTR(FAIL);
 		node->own_type = 1u;
 		node->type_dirty = 0u;
 	}
 
 	if(NULL != data)
-	    *data = node->node_data;
+		*data = node->node_data;
 
 	return node->type;
 }
@@ -861,30 +861,30 @@ static inline proto_type_t* _get_type_impl(const char* typename, const char* pwd
 int proto_cache_put(const char* typename, proto_type_t* proto)
 {
 	if(NULL == typename || NULL == proto)
-	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
 	char namebuf[PATH_MAX];
 
 	snprintf(namebuf, sizeof(namebuf), "%s/%s"PROTO_CACHE_PROTO_FILE_SUFFIX, _root, typename);
 	_node_t* node = _hash_find(typename, 1);
 	if(NULL == node)
-	    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	if(!_pending_deleted(node) && _proto_file_exist(namebuf))
 	{
 		if(node->type == NULL && NULL == (node->type = _get_type_impl(typename, NULL, NULL)))
-		    PROTO_ERR_RAISE_RETURN(int, FAIL);
+			PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 		if(ERROR_CODE(int) == _update_rdep(typename, node->type, 0))
-		    PROTO_ERR_RAISE_RETURN(int, FAIL);
+			PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 		if(node->type != NULL && node->own_type && ERROR_CODE(int) == proto_type_free(node->type))
-		        PROTO_ERR_RAISE_RETURN(int, FAIL);
+			    PROTO_ERR_RAISE_RETURN(int, FAIL);
 		node->type = NULL;
 
 		if(node->node_data != NULL && node->dispose_node_data != NULL &&
 		   node->dispose_node_data(node->node_data) == ERROR_CODE(int))
-		    PROTO_ERR_RAISE_RETURN(int, FAIL);
+			PROTO_ERR_RAISE_RETURN(int, FAIL);
 		node->node_data = NULL;
 	}
 
@@ -896,7 +896,7 @@ int proto_cache_put(const char* typename, proto_type_t* proto)
 	node->type_dirty = 1u;
 
 	if(ERROR_CODE(int) == _update_rdep(typename, proto, 1))
-	    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	return 0;
 }
@@ -904,7 +904,7 @@ int proto_cache_put(const char* typename, proto_type_t* proto)
 int proto_cache_delete(const char* typename)
 {
 	if(NULL == typename)
-	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
 	char namebuf[PATH_MAX];
 	snprintf(namebuf, sizeof(namebuf), "%s/%s"PROTO_CACHE_PROTO_FILE_SUFFIX, _root, typename);
@@ -913,16 +913,16 @@ int proto_cache_delete(const char* typename)
 	_node_t* node = _hash_find(typename, _sandbox_enabled ? 1 : 0);
 
 	if(NULL == node)
-	    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	if(_proto_file_exist(namebuf) && node->type == NULL && NULL == (node->type = _get_type_impl(typename, NULL, NULL)))
-	    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	if(node->type != NULL && ERROR_CODE(int) == _update_rdep(typename, node->type, 0))
-	    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	if(node->own_type && node->type && ERROR_CODE(int) == proto_type_free(node->type))
-	    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	node->type = NULL;
 	node->type_dirty = 1;
@@ -939,15 +939,15 @@ const proto_type_t* proto_cache_get_type(const char* typename, const char* pwd, 
 char const* const* proto_cache_revdep_get(const char* typename, const char* pwd)
 {
 	if(NULL == typename)
-	    PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
+		PROTO_ERR_RAISE_RETURN_PTR(ARGUMENT);
 
 	_node_t* node = _get_hash_node(typename, pwd);
 
 	if(NULL == node || _pending_deleted(node))
-	    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
+		PROTO_ERR_RAISE_RETURN_PTR(FAIL);
 
 	if(ERROR_CODE(int) == _load_revdeps(node))
-	    PROTO_ERR_RAISE_RETURN_PTR(FAIL);
+		PROTO_ERR_RAISE_RETURN_PTR(FAIL);
 
 	return (char const* const*)node->revdeps;
 }
@@ -956,15 +956,15 @@ char const* const* proto_cache_revdep_get(const char* typename, const char* pwd)
 int proto_cache_attach_type_data(const char* typename, const char* pwd, proto_cache_node_data_dispose_func_t dispose_cb, void* data)
 {
 	if(typename == NULL)
-	    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+		PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 
 	_node_t* node = _get_hash_node(typename, pwd);
 	if(NULL == node || _pending_deleted(node))
-	    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	if(node->node_data != NULL && node->dispose_node_data != NULL &&
 	   ERROR_CODE(int) == node->dispose_node_data(node->node_data))
-	    PROTO_ERR_RAISE_RETURN(int, FAIL);
+		PROTO_ERR_RAISE_RETURN(int, FAIL);
 
 	node->node_data = data;
 	node->dispose_node_data = dispose_cb;

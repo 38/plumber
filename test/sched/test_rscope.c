@@ -70,13 +70,13 @@ int test_multiple_request(void)
 	}
 
 	for(i = 0; i < N; i ++)
-	    ASSERT((int)(i % M) == status[i], goto ERR);
+		ASSERT((int)(i % M) == status[i], goto ERR);
 
 	for(i = 0; i < M; i ++)
-	    ASSERT_OK(sched_rscope_free(scope[i]), CLEANUP_NOP);
+		ASSERT_OK(sched_rscope_free(scope[i]), CLEANUP_NOP);
 
 	for(i = 0; i < N; i ++)
-	    ASSERT(0 == status[i], CLEANUP_NOP);
+		ASSERT(0 == status[i], CLEANUP_NOP);
 	return 0;
 ERR:
 	for(i = 0; i < M; i ++)
@@ -137,13 +137,13 @@ static inline int _stream_obj_eos(const void* handle)
 static inline size_t _stream_obj_read(void* handle, void* buffer, size_t sz)
 {
 	if(NULL == handle || NULL == buffer)
-	    return ERROR_CODE(size_t);
+		return ERROR_CODE(size_t);
 
 	size_t ret;
 	char* result = (char*)buffer;
 	stream_handle_t* hand = (stream_handle_t*)handle;
 	for(ret = 0; hand->current < hand->obj->end && ret < sz; hand->current ++, ret ++)
-	    result[ret] = hand->current;
+		result[ret] = hand->current;
 
 	return ret;
 }

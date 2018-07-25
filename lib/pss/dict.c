@@ -58,7 +58,7 @@ static inline _node_t* _node_new(uint64_t hash[2], const char* key, size_t len)
 	if(NULL == ret) ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the new hash node");
 
 	if(NULL == (ret->key = (char*)malloc(len + 1)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the key string");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the key string");
 
 	memcpy(ret->key, key, len + 1);
 
@@ -137,7 +137,7 @@ static inline int _dict_promote(pss_dict_t* dict)
 			table[slot] = this;
 			chain_len[slot] ++;
 			if(max_chain < chain_len[slot])
-			    max_chain = chain_len[slot];
+				max_chain = chain_len[slot];
 		}
 	}
 
@@ -185,7 +185,7 @@ static inline _node_t* _hash_find(pss_dict_t* dict, const char* key, int create)
 	if(NULL == ret && create)
 	{
 		if(NULL == (ret = _node_new(hash, key, len)))
-		    ERROR_PTR_RETURN_LOG_ERRNO("Cannot create new hash node for global variable %s", key);
+			ERROR_PTR_RETURN_LOG_ERRNO("Cannot create new hash node for global variable %s", key);
 		ret->next = dict->hash[slot];
 		dict->hash[slot] = ret;
 		dict->chain_len[slot] ++;
@@ -201,12 +201,12 @@ static inline _node_t* _hash_find(pss_dict_t* dict, const char* key, int create)
 		dict->keys[dict->nkeys ++] = ret->key;
 
 		if(dict->max_chain < dict->chain_len[slot])
-		    dict->max_chain = dict->chain_len[slot];
+			dict->max_chain = dict->chain_len[slot];
 
 		if(dict->max_chain > PSS_DICT_MAX_CHAIN_THRESHOLD &&
 		   dict->level < PSS_DICT_SIZE_LEVEL - 1u &&
 		   ERROR_CODE(int) == _dict_promote(dict))
-		    ERROR_PTR_RETURN_LOG("Cannot promote the dictionary");
+			ERROR_PTR_RETURN_LOG("Cannot promote the dictionary");
 	}
 
 	return ret;
@@ -216,22 +216,22 @@ pss_dict_t* pss_dict_new()
 {
 	pss_dict_t* ret = (pss_dict_t*)calloc(1, sizeof(*ret));
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the global storage");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the global storage");
 
 	ret->level = 0;
 	ret->nkeys = 0;
 	ret->keycap = 8;
 
 	if(NULL == (ret->keys = (const char**)calloc(ret->keycap, sizeof(ret->keys[0]))))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the dictionary key array");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the dictionary key array");
 
 	ret->max_chain = 0;
 
 	if(NULL == (ret->chain_len = (uint32_t*)calloc(_slot_size[ret->level], sizeof(ret->chain_len[0]))))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the dictionary chain length array");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the dictionary chain length array");
 
 	if(NULL == (ret->hash = (_node_t**)calloc(_slot_size[ret->level], sizeof(ret->hash[0]))))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the hash table slot");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the hash table slot");
 
 	return ret;
 ERR:
@@ -261,7 +261,7 @@ int pss_dict_free(pss_dict_t* dict)
 			_node_t* this = ptr;
 			ptr = ptr->next;
 			if(ERROR_CODE(int) == _node_free(this))
-			    rc = ERROR_CODE(int);
+				rc = ERROR_CODE(int);
 		}
 	}
 
@@ -289,7 +289,7 @@ pss_value_t pss_dict_get(const pss_dict_t* dict, const char* key)
 	pss_value_t value = {};
 
 	if(NULL != node)
-	    value = node->value;
+		value = node->value;
 
 	return value;
 }
@@ -297,20 +297,20 @@ pss_value_t pss_dict_get(const pss_dict_t* dict, const char* key)
 int pss_dict_set(pss_dict_t* dict, const char* key, pss_value_t value)
 {
 	if(NULL == dict || NULL == key || value.kind == PSS_VALUE_KIND_ERROR)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_node_t* node = _hash_find(dict, key, 1);
 
 	if(NULL == node)
-	    ERROR_RETURN_LOG(int, "Error during inserting new entry to the global table");
+		ERROR_RETURN_LOG(int, "Error during inserting new entry to the global table");
 
 	if(ERROR_CODE(int) == pss_value_decref(node->value))
-	    ERROR_RETURN_LOG(int, "Error during decref the old value");
+		ERROR_RETURN_LOG(int, "Error during decref the old value");
 
 	node->value = value;
 
 	if(ERROR_CODE(int) == pss_value_incref(node->value))
-	    ERROR_RETURN_LOG(int, "Error during incref the new value");
+		ERROR_RETURN_LOG(int, "Error during incref the new value");
 
 	return 0;
 }
@@ -352,7 +352,7 @@ static int _free(void* dict_mem)
 static const char* _tostr(const void* dict_mem, char* buf, size_t bufsize)
 {
 	if(NULL == dict_mem || NULL == buf || bufsize < 1)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	const pss_dict_t* dict = (const pss_dict_t*)dict_mem;
 	uint32_t nkeys = pss_dict_size(dict);
@@ -420,18 +420,18 @@ int pss_dict_init()
 
 	uint32_t i, j;
 	for(i = 1; i < sizeof(_slot_size) / sizeof(_slot_size[0]); i ++)
-	    for(_slot_size[i] = 2 * _slot_size[i - 1] + 1; ; _slot_size[i] += 2)
-	    {
-		    for(j = 2; j * j <= _slot_size[i]; j ++)
-		        if(_slot_size[i] % j == 0) break;
-		    if(j * j > _slot_size[i])
-		    {
-			    LOG_DEBUG("The dictionary slot size at level %u has been set to %u", i, _slot_size[i]);
-			    break;
-		    }
-	    }
+		for(_slot_size[i] = 2 * _slot_size[i - 1] + 1; ; _slot_size[i] += 2)
+		{
+			for(j = 2; j * j <= _slot_size[i]; j ++)
+				if(_slot_size[i] % j == 0) break;
+			if(j * j > _slot_size[i])
+			{
+				LOG_DEBUG("The dictionary slot size at level %u has been set to %u", i, _slot_size[i]);
+				break;
+			}
+		}
 
-	pss_value_ref_ops_t ops = {
+		pss_value_ref_ops_t ops = {
 		.mkval = _mkval,
 		.free  = _free,
 		.tostr = _tostr

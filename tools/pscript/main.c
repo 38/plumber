@@ -123,46 +123,46 @@ static int parse_args(int argc, char** argv)
 		switch(c)
 		{
 			case 'v':
-			    display_version();
-			    properly_exit(0);
-			    break;
+				display_version();
+				properly_exit(0);
+				break;
 			case 'M':
-			    module_paths[module_count++] = optarg;
-			    break;
+				module_paths[module_count++] = optarg;
+				break;
 			case 'C':
-			    do_not_compile = 1;
-			    break;
+				do_not_compile = 1;
+				break;
 			case 'c':
-			    compile_only = 1;
-			    break;
+				compile_only = 1;
+				break;
 			case 'o':
-			    compiled_output = optarg;
-			    break;
+				compiled_output = optarg;
+				break;
 			case 'd':
-			    disassemble = 1;
-			    break;
+				disassemble = 1;
+				break;
 			case 'h':
-			    display_help();
-			    properly_exit(0);
-			    break;
+				display_help();
+				properly_exit(0);
+				break;
 			case 'S':
-			    servlet_dirs[servlet_count++] = optarg;
-			    break;
+				servlet_dirs[servlet_count++] = optarg;
+				break;
 			case 'B':
-			    build_mod = 1;
-			    break;
+				build_mod = 1;
+				break;
 			case 'n':
-			    debug = 0;
-			    break;
+				debug = 0;
+				break;
 			case 'L':
-			    log_level = atoi(optarg);
-			    break;
+				log_level = atoi(optarg);
+				break;
 			case 'e':
-			    eval_str = optarg;
-			    break;
+				eval_str = optarg;
+				break;
 			case 'P':
-			    proto_db_root = optarg;
-			    break;
+				proto_db_root = optarg;
+				break;
 			default:
 			    display_help();
 			    properly_exit(1);
@@ -181,9 +181,9 @@ static void _stop(int signo)
 
 	LOG_DEBUG("SIGINT Caught!");
 	if(builtin_service_running())
-	    sched_loop_kill(0);
+		sched_loop_kill(0);
 	else if(current_vm != NULL && ERROR_CODE(int) == pss_vm_kill(current_vm))
-	    LOG_ERROR("Cannot kill current VM");
+		LOG_ERROR("Cannot kill current VM");
 }
 
 static pss_value_t make_argv(int argc, char** argv)
@@ -197,7 +197,7 @@ static pss_value_t make_argv(int argc, char** argv)
 
 	pss_dict_t* dict = (pss_dict_t*)pss_value_get_data(ret);
 	if(NULL == dict)
-	    ERROR_LOG_GOTO(ERR, "Cannot get the dictionary object from the dictionary value");
+		ERROR_LOG_GOTO(ERR, "Cannot get the dictionary object from the dictionary value");
 
 	int i;
 	for(i = 0; i < argc; i ++)
@@ -213,7 +213,7 @@ static pss_value_t make_argv(int argc, char** argv)
 
 		pss_value_t val = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, buf);
 		if(val.kind == PSS_VALUE_KIND_ERROR)
-		    ERROR_LOG_GOTO(ERR, "Cannot create value for argv[%d]", i);
+			ERROR_LOG_GOTO(ERR, "Cannot create value for argv[%d]", i);
 
 		if(ERROR_CODE(int) == pss_dict_set(dict, keybuf, val))
 		{
@@ -298,7 +298,7 @@ static int run_user_script(const char* name, int argc, char** argv)
 		}
 
 		if(ERROR_CODE(int) == pss_vm_free(current_vm))
-		    LOG_WARNING("Cannot dipsoes the VM");
+			LOG_WARNING("Cannot dipsoes the VM");
 	}
 	else if(disassemble)
 	{
@@ -306,7 +306,7 @@ static int run_user_script(const char* name, int argc, char** argv)
 	}
 
 	if(ERROR_CODE(int) == module_unload_all())
-	    LOG_WARNING("Cannot dipsose the module");
+		LOG_WARNING("Cannot dipsose the module");
 
 	return rc;
 }
@@ -347,7 +347,7 @@ static int compile_dir(const char* path)
 		if(dirents[i]->d_type == DT_DIR)
 		{
 			if(ERROR_CODE(int) == compile_dir(pathbuf))
-			    ERROR_LOG_GOTO(ERR, "Cannot compile directory %s", pathbuf);
+				ERROR_LOG_GOTO(ERR, "Cannot compile directory %s", pathbuf);
 		}
 		else
 		{
@@ -356,7 +356,7 @@ static int compile_dir(const char* path)
 			pss_bytecode_module_t* module = module_from_file(pathbuf, 0, 1, (int)debug, NULL);
 
 			if(NULL == module)
-			    ERROR_LOG_GOTO(ERR, "Cannot compile module file %s", dirents[i]->d_name);
+				ERROR_LOG_GOTO(ERR, "Cannot compile module file %s", dirents[i]->d_name);
 		}
 	}
 	goto EXIT;
@@ -376,21 +376,21 @@ static int build_system_module(void)
 {
 	uint32_t i;
 	for(i = 0; module_paths[i]; i ++)
-	    if(strcmp(module_paths[i], ".") && strcmp(module_paths[i], "/"))
-	        if(ERROR_CODE(int) == compile_dir(module_paths[i]))
-	        {
-		        _MESSAGE("Cannot compile module directory %s", module_paths[i]);
-		        module_unload_all();
-		        plumber_finalize();
-		        properly_exit(1);
-	        }
-	return module_unload_all();
+		if(strcmp(module_paths[i], ".") && strcmp(module_paths[i], "/"))
+			if(ERROR_CODE(int) == compile_dir(module_paths[i]))
+			{
+				_MESSAGE("Cannot compile module directory %s", module_paths[i]);
+				module_unload_all();
+				plumber_finalize();
+				properly_exit(1);
+			}
+			return module_unload_all();
 }
 
 static void pscript_write_log(int level, const char* file, const char* function, int line, const char* fmt, va_list ap)
 {
 	if(level <= log_level)
-	    log_write_va(level, file, function, line, fmt, ap);
+		log_write_va(level, file, function, line, fmt, ap);
 }
 
 #ifndef STACK_SIZE
@@ -442,33 +442,33 @@ int _program(int argc, char** argv)
 
 
 	if(runtime_servlet_append_search_path(".") == ERROR_CODE(int))
-	    LOG_WARNING("Cannot add default sevlet search path");
+		LOG_WARNING("Cannot add default sevlet search path");
 
 	for(i = 0; servlet_dirs != NULL && servlet_dirs[i] != NULL; i ++)
-	    if(runtime_servlet_append_search_path(servlet_dirs[i]) == ERROR_CODE(int))
-	        LOG_WARNING("Cannot append servlet search path to servlet search list");
+		if(runtime_servlet_append_search_path(servlet_dirs[i]) == ERROR_CODE(int))
+			LOG_WARNING("Cannot append servlet search path to servlet search list");
 
 	if(runtime_servlet_append_search_path(RUNTIME_SERVLET_DEFAULT_SEARCH_PATH) == ERROR_CODE(int))
-	    LOG_WARNING("Cannot append servlet search path to servlet search list");
+		LOG_WARNING("Cannot append servlet search path to servlet search list");
 
 	if(module_set_search_path(module_paths) == ERROR_CODE(int))
-	    LOG_WARNING("Cannot set the PSS module search path");
+		LOG_WARNING("Cannot set the PSS module search path");
 
 	int rc = 0;
 	if(build_mod)
-	    rc = build_system_module();
+		rc = build_system_module();
 	else if(eval_str != NULL)
-	    rc = cli_eval(eval_str, debug);
+		rc = cli_eval(eval_str, debug);
 	else if(argc - begin == 0)
-	    rc = cli_interactive(debug);
+		rc = cli_interactive(debug);
 	else
-	    rc = run_user_script(argv[begin], argc - begin, argv + begin);
+		rc = run_user_script(argv[begin], argc - begin, argv + begin);
 
 	if(rc == 0) rc = exit_code;
 
 
 	if(pss_finalize() == ERROR_CODE(int))
-	    LOG_WARNING("Cannot finalize libpss");
+		LOG_WARNING("Cannot finalize libpss");
 
 #ifdef GPROFTOOLS
 	ProfilerStop();

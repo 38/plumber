@@ -32,7 +32,7 @@ pstd_bio_t* pstd_bio_new(pipe_t pipe)
 	if(ERROR_CODE(pipe_t) == pipe) ERROR_PTR_RETURN_LOG("Invalid arguments");
 	pipe_flags_t flags;
 	if(pipe_cntl(pipe, PIPE_CNTL_GET_FLAGS, & flags) == ERROR_CODE(int))
-	    ERROR_PTR_RETURN_LOG("Cannot read the pipe flags from the buffer");
+		ERROR_PTR_RETURN_LOG("Cannot read the pipe flags from the buffer");
 
 	pstd_bio_t* ret = (pstd_bio_t*)pstd_mempool_alloc(sizeof(pstd_bio_t));
 	if(NULL == ret) ERROR_PTR_RETURN_LOG("Cannot allocate memory for the new BIO object");
@@ -41,7 +41,7 @@ pstd_bio_t* pstd_bio_new(pipe_t pipe)
 	ret->pipe = pipe;
 	ret->buf_size = PSTD_BIO_INIT_BUF_SIZE;
 	if(NULL == (ret->buf = (char*)malloc(ret->buf_size)))
-	    ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the BIO buffer");
+		ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the BIO buffer");
 	ret->buf_data_begin = ret->buf_data_end = 0;
 	ret->writable = PIPE_FLAGS_IS_WRITABLE(flags);
 
@@ -61,12 +61,12 @@ int pstd_bio_free(pstd_bio_t* pstd_bio)
 	if(NULL == pstd_bio) ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(pstd_bio->writable && ERROR_CODE(int) == pstd_bio_flush(pstd_bio))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(!pstd_bio->writable && pstd_bio->buf_data_begin < pstd_bio->buf_data_end)
-	    pipe_cntl(pstd_bio->pipe, PIPE_CNTL_EOM,
-	              pstd_bio->buf + pstd_bio->buf_data_end - pstd_bio->bytes_last_read,
-	              pstd_bio->bytes_last_read + pstd_bio->buf_data_begin - pstd_bio->buf_data_end);
+		pipe_cntl(pstd_bio->pipe, PIPE_CNTL_EOM,
+		          pstd_bio->buf + pstd_bio->buf_data_end - pstd_bio->bytes_last_read,
+		          pstd_bio->bytes_last_read + pstd_bio->buf_data_begin - pstd_bio->buf_data_end);
 
 	free(pstd_bio->buf);
 	pstd_mempool_free(pstd_bio);
@@ -89,7 +89,7 @@ static inline int _flush(pstd_bio_t* pstd_bio, int all)
 	}
 
 	if(pstd_bio->buf_data_end - pstd_bio->buf_data_begin > 0)
-	    memmove(pstd_bio->buf, pstd_bio->buf + pstd_bio->buf_data_begin, pstd_bio->buf_data_end - pstd_bio->buf_data_begin);
+		memmove(pstd_bio->buf, pstd_bio->buf + pstd_bio->buf_data_begin, pstd_bio->buf_data_end - pstd_bio->buf_data_begin);
 
 	pstd_bio->buf_data_end = pstd_bio->buf_data_end - pstd_bio->buf_data_begin;
 	pstd_bio->buf_data_begin = 0;
@@ -140,13 +140,13 @@ static inline size_t  _get_bufferred_data(pstd_bio_t* pstd_bio, size_t expected_
 		/* If there's no more data, read data to the buffer */
 		pstd_bio->buf_data_begin = 0;
 		if(ERROR_CODE(size_t) == (pstd_bio->bytes_last_read = pstd_bio->buf_data_end = pipe_read(pstd_bio->pipe, pstd_bio->buf, pstd_bio->buf_size)))
-		    ERROR_RETURN_LOG(size_t, "Cannot read from the pipe");
+			ERROR_RETURN_LOG(size_t, "Cannot read from the pipe");
 	}
 
 	void* ret = pstd_bio->buf + pstd_bio->buf_data_begin;
 
 	if(pstd_bio->buf_data_end - pstd_bio->buf_data_begin < expected_size)
-	    expected_size = pstd_bio->buf_data_end - pstd_bio->buf_data_begin;
+		expected_size = pstd_bio->buf_data_end - pstd_bio->buf_data_begin;
 
 	if(expected_size == 0) return 0;
 	*data = ret;
@@ -163,7 +163,7 @@ size_t pstd_bio_read(pstd_bio_t* pstd_bio, void* ptr, size_t size)
 	const void* data = NULL;
 	size_t ret = _get_bufferred_data(pstd_bio, size, &data);
 	if(ERROR_CODE(size_t) == ret)
-	    ERROR_RETURN_LOG(size_t, "Cannot read from BIO read buffer");
+		ERROR_RETURN_LOG(size_t, "Cannot read from BIO read buffer");
 	if(ret > 0 && data != NULL) memcpy(ptr, data, ret);
 	size -= ret;
 
@@ -208,7 +208,7 @@ static inline size_t _write_buffer(pstd_bio_t* pstd_bio, const void* ptr, size_t
 	size -= bytes_can_write;
 
 	if(pstd_bio->buf_data_end == pstd_bio->buf_size && _flush(pstd_bio, 0) == ERROR_CODE(int))
-	    ERROR_RETURN_LOG(size_t, "Cannot write the buffer to pipe");
+		ERROR_RETURN_LOG(size_t, "Cannot write the buffer to pipe");
 
 	return bytes_can_write;
 }
@@ -265,7 +265,7 @@ size_t pstd_bio_vprintf(pstd_bio_t* pstd_bio, const char* fmt, va_list ap)
 	if(rc >= 0 && (size_t)rc > _bsz)
 	{
 		if(NULL == (_b = (char*)malloc((size_t)rc + 1)))
-		    ERROR_RETURN_LOG_ERRNO(size_t, "Cannot allocate memory for the result buffer");
+			ERROR_RETURN_LOG_ERRNO(size_t, "Cannot allocate memory for the result buffer");
 		rc = vsnprintf(_b, (size_t)rc + 1, fmt, ap_copy);
 	}
 	va_end(ap_copy);
@@ -273,7 +273,7 @@ size_t pstd_bio_vprintf(pstd_bio_t* pstd_bio, const char* fmt, va_list ap)
 #pragma clang diagnostic pop
 #endif
 	if(rc < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "vsnprintf returns an error");
+		ERROR_LOG_ERRNO_GOTO(ERR, "vsnprintf returns an error");
 
 	if(ret != ERROR_CODE(size_t))
 	{
@@ -283,19 +283,19 @@ size_t pstd_bio_vprintf(pstd_bio_t* pstd_bio, const char* fmt, va_list ap)
 		{
 			size_t wrc = pstd_bio_write(pstd_bio, p, bytes_to_write);
 			if(ERROR_CODE(size_t) == wrc)
-			    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot write to the BIO object");
+				ERROR_LOG_ERRNO_GOTO(ERR, "Cannot write to the BIO object");
 			bytes_to_write -= wrc;
 			p += wrc;
 		}
 	}
 
 	if(_b != _lb && _b != NULL)
-	    free(_b);
+		free(_b);
 
 	return ret;
 ERR:
 	if(_b != _lb && _b != NULL)
-	    free(_b);
+		free(_b);
 	return ERROR_CODE(size_t);
 }
 
@@ -346,7 +346,7 @@ static inline size_t _data_req_handle(void* __restrict ctx, const void* __restri
 	bio->buf_data_end += size;
 
 	if(bio->buf_size <= bio->buf_data_end && ERROR_CODE(int) == pstd_bio_flush(bio))
-	    ERROR_RETURN_LOG(size_t, "Cannot flush the BIO buffer");
+		ERROR_RETURN_LOG(size_t, "Cannot flush the BIO buffer");
 
 	return size;
 }
@@ -354,12 +354,12 @@ static inline size_t _data_req_handle(void* __restrict ctx, const void* __restri
 int pstd_bio_write_scope_token(pstd_bio_t* pstd_bio, scope_token_t token)
 {
 	if(NULL == pstd_bio || ERROR_CODE(scope_token_t) == token)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 #if 0
 	/* Flush the prevoius bytes first, because we want to preserve the byte order */
 	if(ERROR_CODE(int) == pstd_bio_flush(pstd_bio))
-	    ERROR_RETURN_LOG(int, "Cannot flush the BIO buffer");
+		ERROR_RETURN_LOG(int, "Cannot flush the BIO buffer");
 #endif
 
 	scope_token_data_req_t data_req = {
@@ -370,7 +370,7 @@ int pstd_bio_write_scope_token(pstd_bio_t* pstd_bio, scope_token_t token)
 
 	/* Then directly initialize the scope token write call */
 	if(ERROR_CODE(int) == pipe_write_scope_token(pstd_bio->pipe, token, &data_req))
-	    ERROR_RETURN_LOG(int, "Cannot write the scope token to pipe");
+		ERROR_RETURN_LOG(int, "Cannot write the scope token to pipe");
 
 	return 0;
 }

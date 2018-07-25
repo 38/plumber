@@ -21,7 +21,7 @@ int Servlet::ObjectPool::Pool::_resize()
 	_Pointer* next_array = (_Pointer*)realloc(_pointers, _next_size * sizeof(_Pointer));
 
 	if(NULL == next_array)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot resize memory for the pointer array");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot resize memory for the pointer array");
 
 	for(uint32_t i = _capacity; i < _next_size - 1; i ++)
 	{
@@ -68,7 +68,7 @@ Servlet::ObjectPool::Pool::~Pool()
 			if(NULL == _pointers[i].ptr) continue;
 			int ret = Destructor<>::dispose(_pointers[i].typecode, _pointers[i].ptr);
 			if(ERROR_CODE(int) == ret)
-			    LOG_WARNING("Cannot dipose object at %u, leaking memory", i);
+				LOG_WARNING("Cannot dipose object at %u, leaking memory", i);
 		}
 
 		free(_pointers);
@@ -85,7 +85,7 @@ int Servlet::ObjectPool::Pool::dispose_object(uint32_t id)
 
 	int ret = Destructor<>::dispose(_pointers[id].typecode, _pointers[id].ptr);
 	if(ERROR_CODE(int) == ret)
-	    LOG_WARNING("Cannot dipsoe object #%u, leaking memory", id);
+		LOG_WARNING("Cannot dipsoe object #%u, leaking memory", id);
 
 	_pointers[id].next_unused = _first_unused;
 	_pointers[id].typecode = -1;

@@ -86,7 +86,7 @@ int code_generation_test(void)
 
 		uint32_t j;
 		for(j =0; j < sizeof(expected_inst) / sizeof(expected_inst[0]); j ++)
-		    ASSERT_PTR(pss_bytecode_segment_inst_str(segment, (pss_bytecode_addr_t)j, expected_inst[j], sizeof(expected_inst[j])), CLEANUP_NOP);
+			ASSERT_PTR(pss_bytecode_segment_inst_str(segment, (pss_bytecode_addr_t)j, expected_inst[j], sizeof(expected_inst[j])), CLEANUP_NOP);
 
 		ASSERT_RETOK(pss_bytecode_segid_t, pss_bytecode_module_append(module, segment), CLEANUP_NOP);
 	}

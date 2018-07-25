@@ -20,7 +20,7 @@ Options.add_option(template, "--help", "-h", "Print the help message");
 
 var options = Options.parse(template, argv);
 
-var print_help = function() 
+var print_help = function()
 {
 	print("The servlet test framework");
 	print("Usage: ", options["program"], " [arguments]");
@@ -28,7 +28,7 @@ var print_help = function()
 	Options.print_help(template);
 }
 
-if(options["parsed"]["--help"] != undefined || 
+if(options["parsed"]["--help"] != undefined ||
    len(options["unparsed"]) > 0 ||
    options["parsed"]["--servlet-def"] == undefined ||
    options["parsed"]["--input"] == undefined ||
@@ -62,11 +62,11 @@ if(raw_mode == 1)
 }
 else if(raw_mode == 2)
 {
-    Service.add_node(test_graph, "servlet", servlet);
-    Service.add_in_port(test_graph, "", "servlet", servlet_input);
-    Service.add_out_port(test_graph, "", "servlet", servlet_output);
+	Service.add_node(test_graph, "servlet", servlet);
+	Service.add_in_port(test_graph, "", "servlet", servlet_input);
+	Service.add_out_port(test_graph, "", "servlet", servlet_output);
 
-    Service.start(test_graph);
+	Service.start(test_graph);
 }
 else
 {
@@ -79,7 +79,7 @@ else
 
 	for(var name in servlet_output)
 	{
-		Service.add_out_port(test_graph, name, "servlet", name); 
+		Service.add_out_port(test_graph, name, "servlet", name);
 	}
 
 	Service.add_out_port(test_graph, "error", "servlet", "__error__");

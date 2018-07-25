@@ -32,7 +32,7 @@ static int exec(void* mem)
 	context_t* ctx = (context_t*)mem;
 
 	if(ERROR_CODE(int) == pipe_cntl(pipe_array_get(ctx->outputs, 0), PIPE_CNTL_CLR_FLAG, PIPE_DISABLED))
-	    return ERROR_CODE(int);
+		return ERROR_CODE(int);
 
 	trap(ctx->id);
 

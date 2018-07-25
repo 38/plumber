@@ -41,7 +41,7 @@ sandbox_t* sandbox_new(sandbox_insert_flags_t flags)
 {
 	sandbox_t* ret = (sandbox_t*)malloc(sizeof(*ret));
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the sandbox");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the sandbox");
 
 	ret->oplist = NULL;
 	ret->secondary = NULL;
@@ -77,7 +77,7 @@ static inline int _dispose_oplist(_op_t* oplist)
 		}
 
 		if(NULL != cur->target)
-		    free(cur->target);
+			free(cur->target);
 
 		free(cur);
 	}
@@ -88,15 +88,15 @@ static inline int _dispose_oplist(_op_t* oplist)
 int sandbox_free(sandbox_t* sandbox)
 {
 	if(NULL == sandbox)
-	    ERROR_RETURN_LOG(int, "Invaild arguments");
+		ERROR_RETURN_LOG(int, "Invaild arguments");
 
 	int rc = 0;
 
 	if(ERROR_CODE(int) == _dispose_oplist(sandbox->oplist))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(ERROR_CODE(int) == _dispose_oplist(sandbox->secondary))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	free(sandbox);
 
@@ -113,12 +113,12 @@ static inline _op_t* _new_op_node(const char* typename)
 	_op_t* ret;
 
 	if(NULL == (ret = (_op_t*)calloc(1, sizeof(*ret))))
-	    ERROR_PTR_RETURN_LOG_ERRNO("Canont allocate memory for the sandbox operation");
+		ERROR_PTR_RETURN_LOG_ERRNO("Canont allocate memory for the sandbox operation");
 
 	size_t name_length = strlen(typename);
 
 	if(NULL == (ret->target = (char*)malloc(sizeof(ret->target[0]) * (name_length + 1))))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the target type name for the sandbox operation");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the target type name for the sandbox operation");
 	memcpy(ret->target, typename, name_length + 1);
 
 	return ret;
@@ -144,7 +144,7 @@ static inline _op_t* _get_op_node(sandbox_t* sandbox, const char* typename)
 	if(NULL == ret)
 	{
 		if(NULL == (ret = _new_op_node(typename)))
-		    ERROR_PTR_RETURN_LOG("Cannot create pending operation object");
+			ERROR_PTR_RETURN_LOG("Cannot create pending operation object");
 
 		ret->next = sandbox->oplist;
 		sandbox->oplist = ret;
@@ -156,16 +156,16 @@ static inline _op_t* _get_op_node(sandbox_t* sandbox, const char* typename)
 int sandbox_insert_type(sandbox_t* sandbox, const char* typename, proto_type_t* type)
 {
 	if(NULL == sandbox || NULL == typename || NULL == type)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	int check_result, update;
 	if(ERROR_CODE(int) == (check_result = proto_cache_full_type_name_exist(typename)))
-	    LOG_LIBPROTO_ERROR_RETURN(int);
+		LOG_LIBPROTO_ERROR_RETURN(int);
 
 	if(check_result)
 	{
 		if(sandbox->flags == SANDBOX_INSERT_ONLY)
-		    ERROR_RETURN_LOG(int, "Overriding existing typename %s is not allowed", typename);
+			ERROR_RETURN_LOG(int, "Overriding existing typename %s is not allowed", typename);
 		update = 1;
 	}
 	else update = 0;
@@ -176,10 +176,10 @@ int sandbox_insert_type(sandbox_t* sandbox, const char* typename, proto_type_t* 
 	if(sandbox->flags == SANDBOX_ALLOW_UPDATE || sandbox->flags == SANDBOX_FORCE_UPDATE)
 	{
 		if(op->type_obj != NULL && ERROR_CODE(int) != proto_type_free(op->type_obj))
-		    LOG_LIBPROTO_ERROR_RETURN(int);
+			LOG_LIBPROTO_ERROR_RETURN(int);
 		op->type_obj = NULL;
 	} else if(op->type_obj)
-	    ERROR_RETURN_LOG(int, "Cannot override the exsiting type object %s", typename);
+		ERROR_RETURN_LOG(int, "Cannot override the exsiting type object %s", typename);
 
 	op->type_obj = type;
 	op->is_update = (update != 0);
@@ -189,7 +189,7 @@ int sandbox_insert_type(sandbox_t* sandbox, const char* typename, proto_type_t* 
 int sandbox_delete_type(sandbox_t* sandbox, const char* typename)
 {
 	if(NULL == sandbox || NULL == typename)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_op_t* op = _get_op_node(sandbox, typename);
 
@@ -222,12 +222,12 @@ static inline _op_t* _get_secondary_node(sandbox_t* sandbox, const char* typenam
 	for(ret = sandbox->oplist; NULL != ret && strcmp(ret->target, typename) != 0; ret = ret->next);
 
 	if(NULL == ret)
-	    for(ret = sandbox->secondary; NULL != ret && strcmp(ret->target, typename) != 0; ret = ret->next);
+		for(ret = sandbox->secondary; NULL != ret && strcmp(ret->target, typename) != 0; ret = ret->next);
 
 	if(NULL == ret)
 	{
 		if(NULL == (ret = _new_op_node(typename)))
-		    ERROR_PTR_RETURN_LOG("Cannot create pending operation object");
+			ERROR_PTR_RETURN_LOG("Cannot create pending operation object");
 
 		ret->next = sandbox->secondary;
 		sandbox->secondary = ret;
@@ -251,13 +251,13 @@ static inline char** _dup_rdeps(char const* const* rdeps)
 	for(n = 0; rdeps[n] != NULL; n ++);
 	char** ret = (char**)malloc(sizeof(ret[0]) * (n + 1));
 	if(NULL == ret)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the reverse dependencies");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the reverse dependencies");
 
 	for(i = 0; i < n; i ++)
 	{
 		size_t l = strlen(rdeps[i]);
 		if(NULL == (ret[i] = (char*)malloc(sizeof(ret[i][0]) * (l + 1))))
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for dependency %u", i);
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for dependency %u", i);
 		memcpy(ret[i], rdeps[i], l + 1);
 	}
 
@@ -282,7 +282,7 @@ static inline int _free_rdeps(char** rdeps)
 {
 	uint32_t i;
 	for(i = 0; rdeps[i] != NULL; i ++)
-	    free(rdeps[i]);
+		free(rdeps[i]);
 	free(rdeps);
 	return 0;
 }
@@ -307,7 +307,7 @@ static inline int _virtual_remove_type(sandbox_t* sandbox, const char* typename)
 	if(NULL == rdeps) ERROR_LOG_GOTO(ERR, "Cannot duplicate reverse depenecy list");
 
 	if(ERROR_CODE(int) == proto_cache_delete(typename))
-	    LOG_LIBPROTO_ERROR_GOTO(ERR);
+		LOG_LIBPROTO_ERROR_GOTO(ERR);
 
 	uint32_t i;
 	for(i = 0; NULL != rdeps[i]; i ++)
@@ -315,7 +315,7 @@ static inline int _virtual_remove_type(sandbox_t* sandbox, const char* typename)
 		int created = 0;
 		_op_t* operation = _get_secondary_node(sandbox, rdeps[i], &created);
 		if(NULL == operation)
-		    ERROR_LOG_GOTO(ERR, "Cannot get the secondary operation node for type %s", rdeps[i]);
+			ERROR_LOG_GOTO(ERR, "Cannot get the secondary operation node for type %s", rdeps[i]);
 
 		/*
 		if(operation->type_obj != NULL && ERROR_CODE(int) == proto_type_free(operation->type_obj))
@@ -325,7 +325,7 @@ static inline int _virtual_remove_type(sandbox_t* sandbox, const char* typename)
 		operation->is_update = 0;
 
 		if(created && ERROR_CODE(int) == _virtual_remove_type(sandbox, rdeps[i]))
-		    ERROR_LOG_GOTO(ERR, "Cannot remove the depenency for type %s", rdeps[i]);
+			ERROR_LOG_GOTO(ERR, "Cannot remove the depenency for type %s", rdeps[i]);
 	}
 
 	return _free_rdeps(rdeps);
@@ -346,7 +346,7 @@ static inline int _virtual_removes(sandbox_t* sandbox)
 	for(;operation != NULL; operation = operation->next)
 	{
 		if(operation->type_obj == NULL && ERROR_CODE(int) == _virtual_remove_type(sandbox, operation->target))
-		    ERROR_RETURN_LOG(int, "Cannot virtually remove type %s", operation->target);
+			ERROR_RETURN_LOG(int, "Cannot virtually remove type %s", operation->target);
 	}
 
 	return 0;
@@ -366,7 +366,7 @@ static inline int _virtual_update_types(sandbox_t* sandbox)
 	{
 		if(operation->type_obj == NULL) continue;
 		if(ERROR_CODE(int) == proto_cache_put(operation->target, operation->type_obj))
-		    LOG_LIBPROTO_ERROR_RETURN(int);
+			LOG_LIBPROTO_ERROR_RETURN(int);
 	}
 
 	return 0;
@@ -388,20 +388,20 @@ static inline int _validate_type(sandbox_t* sandbox, const char* typename)
 		if(sandbox->flags == SANDBOX_FORCE_UPDATE)
 		{
 			if(ERROR_CODE(int) == _virtual_remove_type(sandbox, typename))
-			    ERROR_RETURN_LOG(int, "Cannot remove the broken type");
+				ERROR_RETURN_LOG(int, "Cannot remove the broken type");
 			else proto_err_clear();
 
 			int create;
 			_op_t* op = _get_secondary_node(sandbox, typename, &create);
 			if(NULL == op) ERROR_RETURN_LOG(int, "Cannot find the operation node");
 			if(op->type_obj != NULL && ERROR_CODE(int) == proto_type_free(op->type_obj))
-			    LOG_LIBPROTO_ERROR_RETURN(int);
+				LOG_LIBPROTO_ERROR_RETURN(int);
 			op->type_obj = NULL;
 			/* because all it's reverse depenencies are removed, no need to validate anymore */
 			return 0;
 		}
 		else
-		    ERROR_RETURN_LOG(int, "Type %s will be broken", typename);
+			ERROR_RETURN_LOG(int, "Type %s will be broken", typename);
 	}
 
 	char const* const* rdeps_origin = proto_cache_revdep_get(typename, NULL);
@@ -435,7 +435,7 @@ static inline int _validate_sandbox_types(sandbox_t* sandbox)
 	{
 		if(operation->type_obj == NULL) continue;
 		if(ERROR_CODE(int) == _validate_type(sandbox, operation->target))
-		    return ERROR_CODE(int);
+			return ERROR_CODE(int);
 	}
 
 	return 0;
@@ -478,16 +478,16 @@ static inline uint32_t _fill_op_buf(const _op_t* op, sandbox_op_t* buf, size_t s
 int sandbox_dry_run(sandbox_t* sandbox, sandbox_op_t* buf, size_t size)
 {
 	if(NULL == sandbox || NULL == buf)
-	    ERROR_LOG_GOTO(ERR, "Invalid arguments");
+		ERROR_LOG_GOTO(ERR, "Invalid arguments");
 
 	if(ERROR_CODE(int) == _virtual_removes(sandbox))
-	    ERROR_LOG_GOTO(ERR, "Cannot validate all the type removal");
+		ERROR_LOG_GOTO(ERR, "Cannot validate all the type removal");
 
 	if(ERROR_CODE(int) == _virtual_update_types(sandbox))
-	    ERROR_LOG_GOTO(ERR, "Cannot virtually update the types");
+		ERROR_LOG_GOTO(ERR, "Cannot virtually update the types");
 
 	if(ERROR_CODE(int) == _validate_sandbox_types(sandbox))
-	    ERROR_LOG_GOTO(ERR, "Cannot validate the result databaase");
+		ERROR_LOG_GOTO(ERR, "Cannot validate the result databaase");
 
 	proto_cache_sandbox_mode(0);
 
@@ -495,7 +495,7 @@ int sandbox_dry_run(sandbox_t* sandbox, sandbox_op_t* buf, size_t size)
 	for(;NULL != ptr; ptr = ptr->next)
 	{
 		if(ptr->type_obj != NULL && !proto_cache_full_type_name_exist(ptr->target))
-		    ERROR_RETURN_LOG(int, "Type %s is not going to be installed", ptr->target);
+			ERROR_RETURN_LOG(int, "Type %s is not going to be installed", ptr->target);
 
 		uint32_t written = _fill_op_buf(ptr, buf, size);
 		size -= written;
@@ -505,7 +505,7 @@ int sandbox_dry_run(sandbox_t* sandbox, sandbox_op_t* buf, size_t size)
 	for(ptr = sandbox->secondary; NULL != ptr; ptr = ptr->next)
 	{
 		if(ptr->type_obj != NULL && !proto_cache_full_type_name_exist(ptr->target))
-		    ERROR_RETURN_LOG(int, "Type %s is not going to be installed", ptr->target);
+			ERROR_RETURN_LOG(int, "Type %s is not going to be installed", ptr->target);
 
 		uint32_t written = _fill_op_buf(ptr, buf, size);
 		size -= written;
@@ -532,14 +532,14 @@ static inline int _apply_list(_op_t* oplist)
 		if(oplist->type_obj == NULL)
 		{
 			if(proto_cache_delete(oplist->target) == ERROR_CODE(int))
-			    LOG_LIBPROTO_ERROR_RETURN(int);
+				LOG_LIBPROTO_ERROR_RETURN(int);
 		}
 		else
 		{
 			if(proto_cache_put(oplist->target, oplist->type_obj) == ERROR_CODE(int))
-			    LOG_LIBPROTO_ERROR_RETURN(int);
+				LOG_LIBPROTO_ERROR_RETURN(int);
 			else
-			    oplist->type_obj = NULL;  /* Because the put function will take the owership at this time */
+				oplist->type_obj = NULL;  /* Because the put function will take the owership at this time */
 		}
 	}
 
@@ -549,22 +549,22 @@ static inline int _apply_list(_op_t* oplist)
 int sandbox_commit(sandbox_t* sandbox)
 {
 	if(NULL == sandbox)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(0 == sandbox->validated)
-	    ERROR_RETURN_LOG(int, "Sandbox must be validated before commit");
+		ERROR_RETURN_LOG(int, "Sandbox must be validated before commit");
 
 	if(0 != sandbox->posted)
-	    ERROR_RETURN_LOG(int, "Sandbox has already been posted to the system");
+		ERROR_RETURN_LOG(int, "Sandbox has already been posted to the system");
 
 	if(ERROR_CODE(int) == _apply_list(sandbox->oplist))
-	    ERROR_RETURN_LOG(int, "Cannot apply the operation list");
+		ERROR_RETURN_LOG(int, "Cannot apply the operation list");
 
 	if(ERROR_CODE(int) == _apply_list(sandbox->secondary))
-	    ERROR_RETURN_LOG(int, "Cannot apply the secondary operation list");
+		ERROR_RETURN_LOG(int, "Cannot apply the secondary operation list");
 
 	if(ERROR_CODE(int) == proto_cache_flush())
-	    LOG_LIBPROTO_ERROR_RETURN(int);
+		LOG_LIBPROTO_ERROR_RETURN(int);
 
 	sandbox->posted = 1;
 

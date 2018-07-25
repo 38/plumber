@@ -12,10 +12,10 @@ int test_vector_insersion(void)
 {
 	uint32_t i;
 	for(i = 0; i < 5; i ++)
-	    ASSERT_PTR(vec = vector_append(vec, &i) , CLEANUP_NOP);
+		ASSERT_PTR(vec = vector_append(vec, &i) , CLEANUP_NOP);
 
 	for(i = 0; i < 5; i ++)
-	    ASSERT(*VECTOR_GET_CONST(uint32_t, vec, i) == i, CLEANUP_NOP);
+		ASSERT(*VECTOR_GET_CONST(uint32_t, vec, i) == i, CLEANUP_NOP);
 
 	return 0;
 }
@@ -24,10 +24,10 @@ int test_vector_resize(void)
 {
 	uint32_t i;
 	for(i = 5; i < 128; i ++)
-	    ASSERT_PTR(vec = vector_append(vec, &i), CLEANUP_NOP);
+		ASSERT_PTR(vec = vector_append(vec, &i), CLEANUP_NOP);
 
 	for(i = 0; i < 128; i ++)
-	    ASSERT(*VECTOR_GET_CONST(uint32_t, vec, i) == i, CLEANUP_NOP);
+		ASSERT(*VECTOR_GET_CONST(uint32_t, vec, i) == i, CLEANUP_NOP);
 
 	return 0;
 }
@@ -43,7 +43,7 @@ int test_vector_traverse(void)
 	}
 
 	for(i = 0; i < 128; i ++)
-	    ASSERT(*VECTOR_GET_CONST(uint32_t, vec, i) == i * 2, CLEANUP_NOP);
+		ASSERT(*VECTOR_GET_CONST(uint32_t, vec, i) == i * 2, CLEANUP_NOP);
 	return 0;
 }
 

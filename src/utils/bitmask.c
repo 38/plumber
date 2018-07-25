@@ -62,7 +62,7 @@ bitmask_t* bitmask_new(size_t size)
 int bitmask_clear(bitmask_t* bitmask)
 {
 	if(bitmask->nodes > 1)
-	    memset(bitmask->mask, 0, (bitmask->nodes - 1) * sizeof(_node_t));
+		memset(bitmask->mask, 0, (bitmask->nodes - 1) * sizeof(_node_t));
 	bitmask->mask[bitmask->nodes - 1] = ~(( _NODE(1) << (bitmask->bits % _BPN)) - 1);
 	return 0;
 }
@@ -107,7 +107,7 @@ static inline void _bitmask_set(bitmask_t* bitmask, size_t idx, int val)
 size_t bitmask_alloc(bitmask_t* bitmask)
 {
 	if(~bitmask->mask[0] == _NODE(0))
-	    return (size_t)-1;
+		return (size_t)-1;
 
 	size_t idx;
 	for(idx = 0; idx * _BPN + 1 < bitmask->nodes;)
@@ -124,7 +124,7 @@ size_t bitmask_alloc(bitmask_t* bitmask)
 	for(bit = 0; cur&1; cur >>= 1, bit ++);
 
 	if(idx * _BPN + bit >= bitmask->bits - bitmask->last_level_bits)
-	    ret = idx * _BPN + bit + bitmask->last_level_bits - bitmask->bits;
+		ret = idx * _BPN + bit + bitmask->last_level_bits - bitmask->bits;
 	else ret = idx * _BPN + bit + bitmask->last_level_bits +  bitmask->size - bitmask->bits;
 
 	_bitmask_set(bitmask, ret, 1);

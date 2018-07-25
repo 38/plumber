@@ -86,13 +86,13 @@ static mempool_objpool_t* _stream_pool;
 int sched_rscope_init()
 {
 	if(NULL == (_rscope_pool = mempool_objpool_new(sizeof(sched_rscope_t))))
-	    ERROR_RETURN_LOG(int, "Cannot allocate object pool for request local scope objects");
+		ERROR_RETURN_LOG(int, "Cannot allocate object pool for request local scope objects");
 
 	if(NULL == (_stream_pool = mempool_objpool_new(sizeof(sched_rscope_stream_t))))
-	    ERROR_RETURN_LOG(int, "Cannot allocate object pool for byte stream handle objects");
+		ERROR_RETURN_LOG(int, "Cannot allocate object pool for byte stream handle objects");
 
 	if(NULL == (_entity_pool = mempool_objpool_new(sizeof(_scope_entity_t))))
-	    ERROR_RETURN_LOG(int, "Cannot allocate scope entity object pool");
+		ERROR_RETURN_LOG(int, "Cannot allocate scope entity object pool");
 
 	return 0;
 }
@@ -162,7 +162,7 @@ int sched_rscope_init_thread()
 	_entry_table.data     = (_entry_t*)malloc(sizeof(_entry_table.data[0]) * _entry_table.capacity);
 
 	if(NULL == _entry_table.data)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the scope entry table");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the scope entry table");
 
 	return 0;
 }
@@ -175,8 +175,8 @@ int sched_rscope_finalize_thread()
 	{
 		runtime_api_scope_token_t i;
 		for(i = 0; i < _entry_table.unused; i ++)
-		    if(_entry_table.data[i].data != NULL && ERROR_CODE(int) == _dispose_scope_entity(_entry_table.data[i].data))
-		        rc = ERROR_CODE(int);
+			if(_entry_table.data[i].data != NULL && ERROR_CODE(int) == _dispose_scope_entity(_entry_table.data[i].data))
+				rc = ERROR_CODE(int);
 		free(_entry_table.data);
 	}
 
@@ -198,9 +198,9 @@ static inline runtime_api_scope_token_t _entry_alloc(void)
 		_entry_table.cached = _entry_table.data[ret].next;
 
 		if(NULL == (_entry_table.data[ret].data = mempool_objpool_alloc(_entity_pool)))
-		    ERROR_RETURN_LOG_ERRNO(runtime_api_scope_token_t, "Cannot allocate memory for the entity data pool");
+			ERROR_RETURN_LOG_ERRNO(runtime_api_scope_token_t, "Cannot allocate memory for the entity data pool");
 		else
-		    memset(_entry_table.data[ret].data, 0, sizeof(*_entry_table.data[ret].data));
+			memset(_entry_table.data[ret].data, 0, sizeof(*_entry_table.data[ret].data));
 
 		return ret;
 	}
@@ -209,23 +209,23 @@ static inline runtime_api_scope_token_t _entry_alloc(void)
 	if(_entry_table.unused >= _entry_table.capacity)
 	{
 		if(_entry_table.capacity * 2 > SCHED_RSCOPE_ENTRY_TABLE_SIZE_LIMIT)
-		    ERROR_RETURN_LOG(runtime_api_scope_token_t,
-		                     "The entry table size reach the limit "
-		                     "(SCHED_RSCOPE_ENTRY_TABLE_SIZE_LIMIT), which is %u",
-		                     SCHED_RSCOPE_ENTRY_TABLE_SIZE_LIMIT);
+			ERROR_RETURN_LOG(runtime_api_scope_token_t,
+			                 "The entry table size reach the limit "
+			                 "(SCHED_RSCOPE_ENTRY_TABLE_SIZE_LIMIT), which is %u",
+			                 SCHED_RSCOPE_ENTRY_TABLE_SIZE_LIMIT);
 		LOG_DEBUG("Request local scope entry table needs to be resized to %u", _entry_table.capacity * 2);
 		_entry_t* new_table = (_entry_t*)realloc(_entry_table.data, sizeof(_entry_table.data[0]) * _entry_table.capacity * 2);
 		if(NULL == new_table)
-		    ERROR_RETURN_LOG_ERRNO(runtime_api_scope_token_t, "Cannot resize the entry table");
+			ERROR_RETURN_LOG_ERRNO(runtime_api_scope_token_t, "Cannot resize the entry table");
 		_entry_table.data = new_table;
 		_entry_table.capacity *= 2;
 	}
 
 	ret = _entry_table.unused;
 	if(NULL == (_entry_table.data[ret].data = mempool_objpool_alloc(_entity_pool)))
-	    ERROR_RETURN_LOG_ERRNO(runtime_api_scope_token_t, "Cannot allocate memory for the entity data pool");
+		ERROR_RETURN_LOG_ERRNO(runtime_api_scope_token_t, "Cannot allocate memory for the entity data pool");
 	else
-	    memset(_entry_table.data[ret].data, 0, sizeof(*_entry_table.data[ret].data));
+		memset(_entry_table.data[ret].data, 0, sizeof(*_entry_table.data[ret].data));
 
 	_entry_table.data[ret].next = _NULL_ENTRY;
 	_entry_table.unused ++;
@@ -240,7 +240,7 @@ sched_rscope_t* sched_rscope_new()
 	sched_rscope_t* ret = mempool_objpool_alloc(_rscope_pool);
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the request local scope");
+		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the request local scope");
 
 	ret->head = _NULL_ENTRY;
 	ret->id   = next_scope_id ++;
@@ -263,7 +263,7 @@ int sched_rscope_free(sched_rscope_t* scope)
 		_entry_t* entry = _entry_table.data + tok;
 		tok = _entry_table.data[tok].next;
 		if(ERROR_CODE(int) == _dispose_scope_entity(entry->data))
-		    rc = ERROR_CODE(int);
+			rc = ERROR_CODE(int);
 
 		entry->next = _entry_table.cached;
 		entry->data = NULL;
@@ -274,12 +274,12 @@ int sched_rscope_free(sched_rscope_t* scope)
 #endif
 
 	if(ERROR_CODE(int) == mempool_objpool_dealloc(_rscope_pool, scope))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(rc != ERROR_CODE(int))
-	    LOG_DEBUG("Request local scope %"PRIu64" has been disposed", scope_id);
+		LOG_DEBUG("Request local scope %"PRIu64" has been disposed", scope_id);
 	else
-	    LOG_ERROR("Request local scope %"PRIu64" has been disposed with error code", scope_id);
+		LOG_ERROR("Request local scope %"PRIu64" has been disposed with error code", scope_id);
 
 	return rc;
 }
@@ -287,11 +287,11 @@ int sched_rscope_free(sched_rscope_t* scope)
 runtime_api_scope_token_t sched_rscope_add(sched_rscope_t* scope, const runtime_api_scope_entity_t* pointer)
 {
 	if(NULL == scope || NULL == pointer || NULL == pointer->data || NULL == pointer->free_func)
-	    ERROR_RETURN_LOG(runtime_api_scope_token_t, "Invalid arguments");
+		ERROR_RETURN_LOG(runtime_api_scope_token_t, "Invalid arguments");
 
 	runtime_api_scope_token_t ret = _entry_alloc();
 	if(_NULL_ENTRY == ret)
-	    ERROR_RETURN_LOG(runtime_api_scope_token_t, "Cannot allocate new entry for the pointer");
+		ERROR_RETURN_LOG(runtime_api_scope_token_t, "Cannot allocate new entry for the pointer");
 
 	LOG_DEBUG("The pointer has new entry token %u", ret);
 
@@ -310,21 +310,21 @@ runtime_api_scope_token_t sched_rscope_add(sched_rscope_t* scope, const runtime_
 int sched_rscope_copy(sched_rscope_t* scope, runtime_api_scope_token_t token, sched_rscope_copy_result_t* result)
 {
 	if(NULL == scope || _NULL_ENTRY == token || token >= _entry_table.capacity || NULL == result)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	const _entry_t* source = _entry_table.data + token;
 
 	if(NULL == source->data->entity.copy_func)
-	    ERROR_RETURN_LOG(int, "This entry doesn't support copy");
+		ERROR_RETURN_LOG(int, "This entry doesn't support copy");
 
 	runtime_api_scope_entity_t target = source->data->entity;
 	target.data = NULL;
 
 	if(NULL == (target.data = source->data->entity.copy_func(source->data->entity.data)))
-	    ERROR_RETURN_LOG(int, "Cannot copy the data");
+		ERROR_RETURN_LOG(int, "Cannot copy the data");
 
 	if(_NULL_ENTRY == (result->token = sched_rscope_add(scope, &target)))
-	    ERROR_LOG_GOTO(ERR, "Cannot add the copied token to the scope");
+		ERROR_LOG_GOTO(ERR, "Cannot add the copied token to the scope");
 
 	result->ptr = target.data;
 
@@ -333,18 +333,18 @@ int sched_rscope_copy(sched_rscope_t* scope, runtime_api_scope_token_t token, sc
 	return 0;
 ERR:
 	if(NULL != target.data && NULL != target.free_func)
-	    target.free_func(target.data);
+		target.free_func(target.data);
 	return ERROR_CODE(int);
 }
 
 const void* sched_rscope_get(const sched_rscope_t* scope, runtime_api_scope_token_t token)
 {
 	if(NULL == scope || _NULL_ENTRY == token || token >= _entry_table.capacity)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	if(_entry_table.data[token].data->entity.data == NULL ||
 	   _entry_table.data[token].scope_id != scope->id)
-	    ERROR_PTR_RETURN_LOG("Invalid token id, %u does not belong to scope %"PRIu64, token, scope->id);
+		ERROR_PTR_RETURN_LOG("Invalid token id, %u does not belong to scope %"PRIu64, token, scope->id);
 
 	return _entry_table.data[token].data->entity.data;
 }
@@ -352,24 +352,24 @@ const void* sched_rscope_get(const sched_rscope_t* scope, runtime_api_scope_toke
 sched_rscope_stream_t* sched_rscope_stream_open(runtime_api_scope_token_t token)
 {
 	if(_NULL_ENTRY == token || token >= _entry_table.capacity || _entry_table.data[token].data == NULL)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	const _entry_t* target = _entry_table.data + token;
 
 	if(target->data->entity.open_func == NULL || target->data->entity.close_func == NULL ||
 	   target->data->entity.read_func == NULL || target->data->entity.eos_func == NULL)
-	    ERROR_PTR_RETURN_LOG("The byte stream interface is not fully supported by the RLS entity %u",
-	    token);
+		ERROR_PTR_RETURN_LOG("The byte stream interface is not fully supported by the RLS entity %u",
+		token);
 
 	sched_rscope_stream_t* ret = mempool_objpool_alloc(_stream_pool);
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the stream handle object for RLS token %u" , token);
+		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the stream handle object for RLS token %u" , token);
 
 	ret->entity = target->data;
 	ret->token = token;
 	if(NULL == (ret->handle = target->data->entity.open_func(target->data->entity.data)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open the RLS token as a byte stream, RLS token: %u", token);
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open the RLS token as a byte stream, RLS token: %u", token);
 
 	LOG_DEBUG("RLS token %u has been successfully opened as a byte stream", token);
 
@@ -387,7 +387,7 @@ ERR:
 int sched_rscope_stream_close(sched_rscope_stream_t* stream)
 {
 	if(NULL == stream)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	int rc = 0;
 
@@ -419,7 +419,7 @@ int sched_rscope_stream_close(sched_rscope_stream_t* stream)
 int sched_rscope_stream_eos(const sched_rscope_stream_t* stream)
 {
 	if(NULL == stream)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	const _scope_entity_t* target = stream->entity;
 
@@ -429,16 +429,16 @@ int sched_rscope_stream_eos(const sched_rscope_stream_t* stream)
 size_t sched_rscope_stream_read(sched_rscope_stream_t* stream, void* buffer, size_t count)
 {
 	if(NULL == stream || NULL == buffer || count == ERROR_CODE(size_t))
-	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 	const _scope_entity_t* target = stream->entity;
 
 	size_t ret = target->entity.read_func(stream->handle, buffer, count);
 
 	if(ERROR_CODE(size_t) != ret)
-	    LOG_DEBUG("%zu bytes has been read from the RSL stream %u", ret, stream->token);
+		LOG_DEBUG("%zu bytes has been read from the RSL stream %u", ret, stream->token);
 	else
-	    LOG_ERROR("The read callback for RLS stream %u has returned an error", stream->token);
+		LOG_ERROR("The read callback for RLS stream %u has returned an error", stream->token);
 
 	return ret;
 }
@@ -446,12 +446,12 @@ size_t sched_rscope_stream_read(sched_rscope_stream_t* stream, void* buffer, siz
 int sched_rscope_stream_get_event(sched_rscope_stream_t* stream, runtime_api_scope_ready_event_t* buf)
 {
 	if(NULL == stream || NULL == buf)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_scope_entity_t* ent = stream->entity;
 
 	if(ent->entity.event_func == NULL)
-	    return 0;
+		return 0;
 
 	return ent->entity.event_func(stream->handle, buf);
 }

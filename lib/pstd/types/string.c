@@ -59,7 +59,7 @@ pstd_string_t* pstd_string_from_onwership_pointer(char* data, size_t sz)
 	pstd_string_t* ret = pstd_string_new(0);
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate string object");
+		ERROR_PTR_RETURN_LOG("Cannot allocate string object");
 
 	ret->buffer = data;
 	ret->capacity = sz;
@@ -72,12 +72,12 @@ pstd_string_t* pstd_string_from_onwership_pointer(char* data, size_t sz)
 pstd_string_t* pstd_string_new_immutable(const char* data, size_t sz)
 {
 	if(NULL == data || sz == ERROR_CODE(size_t))
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	pstd_string_t* ret = pstd_string_new(0);
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate string object");
+		ERROR_PTR_RETURN_LOG("Cannot allocate string object");
 
 	ret->buffer   = NULL;
 	ret->capacity = 0;
@@ -95,7 +95,7 @@ pstd_string_t* pstd_string_new(size_t initcap)
 	 * which is good for memory allocation performance */
 	pstd_string_t* ret = pstd_mempool_alloc(sizeof(*ret));
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate string object");
+		ERROR_PTR_RETURN_LOG("Cannot allocate string object");
 
 	if(initcap <= sizeof(ret->_def_buf))
 	{
@@ -108,7 +108,7 @@ pstd_string_t* pstd_string_new(size_t initcap)
 		LOG_DEBUG("The required buffer size is larger than 128 bytes, no pooled memory avaliable");
 		ret->capacity = initcap;
 		if(NULL == (ret->buffer = malloc(ret->capacity)))
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate buffer for the string object");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate buffer for the string object");
 	}
 	ret->length = 0;
 	ret->commited = 0;
@@ -129,19 +129,19 @@ static inline int _free_impl(pstd_string_t* str, int user_space_call)
 {
 	int rc = 0;
 	if(NULL == str)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(user_space_call && str->commited)
-	    ERROR_RETURN_LOG(int, "Cannot dispose a committed string from user-space");
+		ERROR_RETURN_LOG(int, "Cannot dispose a committed string from user-space");
 
 	if(NULL != str->buffer)
 	{
 		if(str->buffer != str->_def_buf)
-		    free(str->buffer - str->buffer_offset);
+			free(str->buffer - str->buffer_offset);
 	}
 
 	if(ERROR_CODE(int) == pstd_mempool_free(str))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	return rc;
 
@@ -173,11 +173,11 @@ size_t pstd_string_length(const pstd_string_t* str)
 pstd_string_t* pstd_string_copy_rls(scope_token_t token, scope_token_t* token_buf)
 {
 	if(ERROR_CODE(uint32_t) == token || NULL == token_buf)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	pstd_string_t* ret;
 	if(ERROR_CODE(scope_token_t) == (*token_buf = pstd_scope_copy(token, (void**)&ret)))
-	    ERROR_PTR_RETURN_LOG("Cannot duplicate the token %u", token);
+		ERROR_PTR_RETURN_LOG("Cannot duplicate the token %u", token);
 
 	return ret;
 }
@@ -203,7 +203,7 @@ static inline int _free(void* mem)
 static inline void* _copy(const void* mem)
 {
 	if(NULL == mem)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	const pstd_string_t* ptr = (const pstd_string_t*)mem;
 
@@ -211,12 +211,12 @@ static inline void* _copy(const void* mem)
 	pstd_string_t* ret = pstd_string_new(ptr->buffer != NULL ? ptr->length + 1 : 0);
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot create new string object for the duplication");
+		ERROR_PTR_RETURN_LOG("Cannot create new string object for the duplication");
 
 	if(ret->buffer != NULL)
-	    memcpy(ret->buffer, ptr->buffer, ptr->length + 1);
+		memcpy(ret->buffer, ptr->buffer, ptr->length + 1);
 	else
-	    ret->immutable = ptr->immutable;
+		ret->immutable = ptr->immutable;
 
 	ret->length = ptr->length;
 	ret->commited = 1;   /*!< it's commited by default */
@@ -232,7 +232,7 @@ static inline void* _copy(const void* mem)
 static inline void* _open(const void* mem)
 {
 	if(NULL == mem)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	const pstd_string_t* str = (const pstd_string_t*)mem;
 
@@ -240,7 +240,7 @@ static inline void* _open(const void* mem)
 
 	_stream_t* ret = (_stream_t*)pstd_mempool_alloc(sizeof(*ret));
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the new stream object");
+		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the new stream object");
 
 	ret->string = str;
 	ret->location = 0;
@@ -256,7 +256,7 @@ static inline void* _open(const void* mem)
 static inline int _close(void* stream_mem)
 {
 	if(NULL == stream_mem)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	LOG_DEBUG("Closing the RLS string stream");
 
@@ -271,7 +271,7 @@ static inline int _close(void* stream_mem)
 static inline int _eos(const void* stream_mem)
 {
 	if(NULL == stream_mem)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	const _stream_t* stream = (const _stream_t*)stream_mem;
 
@@ -288,18 +288,18 @@ static inline int _eos(const void* stream_mem)
 static inline size_t _read(void* __restrict stream_mem, void* __restrict buf, size_t count)
 {
 	if(NULL == stream_mem || NULL == buf)
-	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 	_stream_t* stream = (_stream_t*)stream_mem;
 
 	size_t bytes_can_read = count;
 	if(bytes_can_read + stream->location > stream->string->length)
-	    bytes_can_read = stream->string->length - stream->location;
+		bytes_can_read = stream->string->length - stream->location;
 
 	if(stream->string->buffer != NULL)
-	    memcpy(buf, stream->string->buffer + stream->location, bytes_can_read);
+		memcpy(buf, stream->string->buffer + stream->location, bytes_can_read);
 	else
-	    memcpy(buf, stream->string->immutable + stream->location, bytes_can_read);
+		memcpy(buf, stream->string->immutable + stream->location, bytes_can_read);
 
 	stream->location += bytes_can_read;
 	return bytes_can_read;
@@ -308,13 +308,13 @@ static inline size_t _read(void* __restrict stream_mem, void* __restrict buf, si
 scope_token_t pstd_string_commit(pstd_string_t* str)
 {
 	if(NULL == str)
-	    ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
+		ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
 	if(str->commited)
-	    ERROR_RETURN_LOG(scope_token_t, "The string has been commited prevoiusly");
+		ERROR_RETURN_LOG(scope_token_t, "The string has been commited prevoiusly");
 
 	str->commited = 1;
 	if(str->buffer != NULL)
-	    str->buffer[str->length] = 0;
+		str->buffer[str->length] = 0;
 
 	scope_entity_t ent = {
 		.data = str,
@@ -337,7 +337,7 @@ scope_token_t pstd_string_commit(pstd_string_t* str)
 static inline int _ensure_capacity(pstd_string_t* str, size_t required_size)
 {
 	if(str->buffer_offset > 0)
-	    ERROR_RETURN_LOG(int, "Cannot resize a ranged buffer");
+		ERROR_RETURN_LOG(int, "Cannot resize a ranged buffer");
 
 	size_t newcap = str->capacity;
 	for(;newcap < str->length + required_size + 1; newcap *= 2);
@@ -347,13 +347,13 @@ static inline int _ensure_capacity(pstd_string_t* str, size_t required_size)
 	if(str->_def_buf == str->buffer)
 	{
 		if(NULL == (newbuf = (char*)malloc(newcap)))
-		    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate heap memory for the larger buffer: size %zu", newcap);
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate heap memory for the larger buffer: size %zu", newcap);
 		memcpy(newbuf, str->buffer, str->length + 1);
 	}
 	else
 	{
 		if(NULL == (newbuf = (char*)realloc(str->buffer, newcap)))
-		    ERROR_RETURN_LOG_ERRNO(int, "Cannot resize the heap memory buffer to size %zu", newcap);
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot resize the heap memory buffer to size %zu", newcap);
 	}
 
 	str->capacity = newcap;
@@ -365,12 +365,12 @@ static inline int _ensure_capacity(pstd_string_t* str, size_t required_size)
 size_t pstd_string_write(pstd_string_t* str, const char* data, size_t size)
 {
 	if(NULL == str || NULL == data || size == ERROR_CODE(size_t) || str->buffer == NULL)
-	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 	if(size == 0) return 0;
 
 	if(ERROR_CODE(int) == _ensure_capacity(str, size))
-	    ERROR_RETURN_LOG(size_t, "Cannot ensure the string buffer have enough space");
+		ERROR_RETURN_LOG(size_t, "Cannot ensure the string buffer have enough space");
 
 	memcpy(str->buffer + str->length, data, size);
 
@@ -382,7 +382,7 @@ size_t pstd_string_write(pstd_string_t* str, const char* data, size_t size)
 size_t pstd_string_vprintf(pstd_string_t* str, const char* fmt, va_list ap)
 {
 	if(NULL == str || NULL == fmt || str->buffer == NULL)
-	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
 	size_t ret = 0;
 
 	for(;;)
@@ -398,14 +398,14 @@ size_t pstd_string_vprintf(pstd_string_t* str, const char* fmt, va_list ap)
 #pragma clang diagnostic pop
 #endif
 		if(rc < 0)
-		    ERROR_RETURN_LOG(size_t, "Cannot output the formated string to the string buffer");
+			ERROR_RETURN_LOG(size_t, "Cannot output the formated string to the string buffer");
 
 		ret = (size_t)rc;
 
 		if(ret + 1 <= str->capacity - str->length) break;
 
 		if(ERROR_CODE(int) == _ensure_capacity(str, str->capacity - str->length))
-		    ERROR_RETURN_LOG(size_t, "Cannot resize the buffer to fit the buffer size");
+			ERROR_RETURN_LOG(size_t, "Cannot resize the buffer to fit the buffer size");
 	}
 	str->length += ret;
 	return ret;

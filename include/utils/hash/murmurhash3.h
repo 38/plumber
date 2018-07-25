@@ -80,11 +80,11 @@ static inline void murmurhash3_128(const void* key, const size_t len, uint32_t h
 		case 11: k2 ^= ((uint64_t)tail[10]) << 16; FALLTHROUGH();
 		case 10: k2 ^= ((uint64_t)tail[9]) << 8;   FALLTHROUGH();
 		case 9: k2 ^= ((uint64_t)tail[8]) << 0;
-		    k2 *= c2;
-		    k2 = _murmurhash3_rotl64(k2, 33);
-		    k2 *= c1;
-		    out[1] ^= k2;
-		    FALLTHROUGH();
+			k2 *= c2;
+			k2 = _murmurhash3_rotl64(k2, 33);
+			k2 *= c1;
+			out[1] ^= k2;
+			FALLTHROUGH();
 		case 8: k1 ^= ((uint64_t)tail[7]) << 56; FALLTHROUGH();
 		case 7: k1 ^= ((uint64_t)tail[6]) << 48; FALLTHROUGH();
 		case 6: k1 ^= ((uint64_t)tail[5]) << 40; FALLTHROUGH();
@@ -93,10 +93,10 @@ static inline void murmurhash3_128(const void* key, const size_t len, uint32_t h
 		case 3: k1 ^= ((uint64_t)tail[2]) << 16; FALLTHROUGH();
 		case 2: k1 ^= ((uint64_t)tail[1]) << 8;  FALLTHROUGH();
 		case 1: k1 ^= ((uint64_t)tail[0]) << 0;
-		    k1 *= c1;
-		    k1 = _murmurhash3_rotl64(k1, 31);
-		    k1 *= c2;
-		    out[0] ^= k1;
+			k1 *= c1;
+			k1 = _murmurhash3_rotl64(k1, 31);
+			k1 *= c2;
+			out[0] ^= k1;
 	}
 
 	out[0] ^= len;

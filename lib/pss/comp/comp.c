@@ -58,7 +58,7 @@ int pss_comp_compile(pss_comp_option_t* option, pss_comp_error_t** error)
 {
 	int rc = ERROR_CODE(int);
 	if(NULL == option || NULL == option->lexer || NULL == option->module)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	pss_comp_t compiler = {
 		.lexer = option->lexer,
@@ -74,10 +74,10 @@ int pss_comp_compile(pss_comp_option_t* option, pss_comp_error_t** error)
 
 	uint32_t i;
 	for(i = 0; i < _LOOKAHEAD; i ++)
-	compiler.ahead[i].type = PSS_COMP_LEX_TOKEN_NAT;
+		compiler.ahead[i].type = PSS_COMP_LEX_TOKEN_NAT;
 
 	if(NULL == (compiler.env = pss_comp_env_new()))
-	    return pss_comp_raise(&compiler, "Internal error: Cannot current compile time environment");
+		return pss_comp_raise(&compiler, "Internal error: Cannot current compile time environment");
 
 
 	if(ERROR_CODE(int) == pss_comp_open_closure(&compiler, pss_comp_lex_get_filename(compiler.lexer), 0, NULL)) goto ERR;
@@ -87,14 +87,14 @@ int pss_comp_compile(pss_comp_option_t* option, pss_comp_error_t** error)
 	if(ERROR_CODE(pss_bytecode_regid_t) == (entry_point = pss_comp_close_closure(&compiler))) goto ERR;
 
 	if(ERROR_CODE(int) == pss_bytecode_module_set_entry_point(compiler.module, entry_point))
-	    rc = pss_comp_raise(&compiler, "Internal error: Cannot set the entry point for current module");
+		rc = pss_comp_raise(&compiler, "Internal error: Cannot set the entry point for current module");
 	else rc = 0;
 
 ERR:
 	while(compiler.seg_stack_top > 0)
 	{
 		if(NULL != compiler.seg_name_stack[compiler.seg_stack_top-1])
-		    free(compiler.seg_name_stack[compiler.seg_stack_top-1]);
+			free(compiler.seg_name_stack[compiler.seg_stack_top-1]);
 		pss_bytecode_segment_free(compiler.seg_stack[--compiler.seg_stack_top]);
 	}
 	if(NULL != compiler.env) pss_comp_env_free(compiler.env);
@@ -104,7 +104,7 @@ ERR:
 int pss_comp_raise(pss_comp_t* comp, const char* msg, ...)
 {
 	if(NULL == comp || NULL == msg)
-	    ERROR_LOG_GOTO(ERR, "Invalid arguments");
+		ERROR_LOG_GOTO(ERR, "Invalid arguments");
 
 	va_list ap;
 	va_start(ap, msg);
@@ -112,7 +112,7 @@ int pss_comp_raise(pss_comp_t* comp, const char* msg, ...)
 
 	pss_comp_error_t* err = (pss_comp_error_t*)malloc(sizeof(pss_comp_error_t) + (unsigned)bytes_required + 1);
 	if(NULL == err)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the error message");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the error message");
 	vsnprintf(err->message, (unsigned)bytes_required + 1, msg, ap);
 	err->next = *comp->error_buf;
 	*comp->error_buf = err;
@@ -143,20 +143,20 @@ int pss_comp_raise_internal(pss_comp_t* comp, pss_comp_internal_t reason)
 	switch(reason)
 	{
 		case PSS_COMP_INTERNAL_CODE:
-		    pss_comp_raise(comp, "Internal error: Cannot append bytecode to the target instruction table");
-		    break;
+			pss_comp_raise(comp, "Internal error: Cannot append bytecode to the target instruction table");
+			break;
 		case PSS_COMP_INTERNAL_ARGS:
-		    pss_comp_raise(comp, "Internal error: The compilation function has recieved invalid arguments");
-		    break;
+			pss_comp_raise(comp, "Internal error: The compilation function has recieved invalid arguments");
+			break;
 		case PSS_COMP_INTERNAL_BUG:
-		    pss_comp_raise(comp, "Internal error: Compiler bug");
-		    break;
+			pss_comp_raise(comp, "Internal error: Compiler bug");
+			break;
 		case PSS_COMP_INTERNAL_SEG:
-		    pss_comp_raise(comp, "Internal error: Cannot get current code segment to output");
-		    break;
+			pss_comp_raise(comp, "Internal error: Cannot get current code segment to output");
+			break;
 		case PSS_COMP_INTERNAL_MALLOC:
-		    pss_comp_raise(comp, "Internal error: Cannot allocate memory from the OS [errno: %d]", errno);
-		    break;
+			pss_comp_raise(comp, "Internal error: Cannot allocate memory from the OS [errno: %d]", errno);
+			break;
 		default:
 		    LOG_ERROR("Internal error: Invalid reason code");
 	}
@@ -221,13 +221,13 @@ const pss_comp_lex_token_t* pss_comp_peek(pss_comp_t* comp, uint32_t n)
 int pss_comp_consume(pss_comp_t* comp, uint32_t n)
 {
 	if(n > _LOOKAHEAD)
-	    return pss_comp_raise(comp, "Internal error: Consuming %u tokens ahead is not allowed", n);
+		return pss_comp_raise(comp, "Internal error: Consuming %u tokens ahead is not allowed", n);
 
 	uint32_t i;
 	comp->last_consumed_line = comp->ahead[(comp->ahead_begin + n - 1) % _LOOKAHEAD].line;
 
 	for(i = 0; i < n; i ++)
-	    comp->ahead[(i + comp->ahead_begin) % _LOOKAHEAD].type = PSS_COMP_LEX_TOKEN_NAT;
+		comp->ahead[(i + comp->ahead_begin) % _LOOKAHEAD].type = PSS_COMP_LEX_TOKEN_NAT;
 	comp->ahead_begin = (comp->ahead_begin + n) % _LOOKAHEAD;
 	return 0;
 }
@@ -263,10 +263,10 @@ pss_bytecode_segment_t* pss_comp_get_code_segment(pss_comp_t* comp)
 int pss_comp_open_closure(pss_comp_t* comp, const char* id, uint32_t nargs, char const* const* argnames)
 {
 	if(NULL == comp || ERROR_CODE(uint32_t) == nargs || nargs > PSS_VM_ARG_MAX || (NULL == argnames && nargs > 0))
-	    PSS_COMP_RAISE_INT(comp, ARGS);
+		PSS_COMP_RAISE_INT(comp, ARGS);
 
 	if(ERROR_CODE(int) == pss_comp_env_open_scope(comp->env))
-	    return pss_comp_raise(comp, "Internal error: Cannot open the new closure scope");
+		return pss_comp_raise(comp, "Internal error: Cannot open the new closure scope");
 
 	PREDICT_IMPOSSIBLE(nargs > PSS_VM_ARG_MAX);
 	pss_bytecode_regid_t argid[nargs == 0 ? 1 : nargs];
@@ -274,19 +274,19 @@ int pss_comp_open_closure(pss_comp_t* comp, const char* id, uint32_t nargs, char
 	char* name = NULL;
 	uint32_t i;
 	for(i = 0; i < nargs; i ++)
-	    if(1 != pss_comp_env_get_var(comp->env, argnames[i], 1, argid + i))
-	    {
-		    pss_comp_raise(comp, "Internal error: Cannot allocate registers for the argument list");
-		    goto ERR;
-	    }
+		if(1 != pss_comp_env_get_var(comp->env, argnames[i], 1, argid + i))
+		{
+			pss_comp_raise(comp, "Internal error: Cannot allocate registers for the argument list");
+			goto ERR;
+		}
 
-	if(NULL == (segment = pss_bytecode_segment_new((pss_bytecode_regid_t)nargs, argid)))
-	{
-		pss_comp_raise(comp, "Internal error: Cannot create code segment for the new function body");
-		goto ERR;
-	}
+		if(NULL == (segment = pss_bytecode_segment_new((pss_bytecode_regid_t)nargs, argid)))
+		{
+			pss_comp_raise(comp, "Internal error: Cannot create code segment for the new function body");
+			goto ERR;
+		}
 
-	comp->seg_stack[comp->seg_stack_top] = segment;
+		comp->seg_stack[comp->seg_stack_top] = segment;
 	if(NULL != id)
 	{
 		if(NULL == (name = comp->seg_name_stack[comp->seg_stack_top] = strdup(id)))
@@ -327,22 +327,22 @@ int pss_comp_open_closure(pss_comp_t* comp, const char* id, uint32_t nargs, char
 ERR:
 	pss_comp_env_close_scope(comp->env);
 	if(name != NULL)
-	    free(name);
+		free(name);
 	if(segment != NULL)
-	    pss_bytecode_segment_free(segment);
+		pss_bytecode_segment_free(segment);
 	return ERROR_CODE(int);
 }
 
 pss_bytecode_segid_t pss_comp_close_closure(pss_comp_t* comp)
 {
 	if(NULL == comp)
-	    return (pss_bytecode_segid_t)pss_comp_raise(comp, "Internal error: Invalid arguments");
+		return (pss_bytecode_segid_t)pss_comp_raise(comp, "Internal error: Invalid arguments");
 
 	if(comp->seg_stack_top == 0)
-	    return (pss_bytecode_segid_t)pss_comp_raise(comp, "Internal error: Compiler is currently out of any closure");
+		return (pss_bytecode_segid_t)pss_comp_raise(comp, "Internal error: Compiler is currently out of any closure");
 
 	if(ERROR_CODE(int) == pss_comp_env_close_scope(comp->env))
-	    return (pss_bytecode_segid_t)pss_comp_raise(comp, "Internal error: Cannot close the current closure scope");
+		return (pss_bytecode_segid_t)pss_comp_raise(comp, "Internal error: Cannot close the current closure scope");
 
 	pss_bytecode_segment_t* seg = comp->seg_stack[comp->seg_stack_top - 1];
 
@@ -350,7 +350,7 @@ pss_bytecode_segid_t pss_comp_close_closure(pss_comp_t* comp)
 	pss_bytecode_addr_t guard_addr;
 	guard_addr = pss_bytecode_segment_length(seg);
 	if(ERROR_CODE(pss_bytecode_addr_t) == guard_addr)
-	    return (pss_bytecode_segid_t)pss_comp_raise(comp, "Internal error: Cannot get the length of the code segment");
+		return (pss_bytecode_segid_t)pss_comp_raise(comp, "Internal error: Cannot get the length of the code segment");
 
 	do{
 		pss_bytecode_instruction_t inst;
@@ -358,23 +358,23 @@ pss_bytecode_segid_t pss_comp_close_closure(pss_comp_t* comp)
 		   inst.info->operation == PSS_BYTECODE_OP_RETURN) break;
 
 		if(ERROR_CODE(pss_bytecode_addr_t) == (guard_addr = pss_bytecode_segment_append_code(seg, PSS_BYTECODE_OPCODE_UNDEF_LOAD, PSS_BYTECODE_ARG_REGISTER(0), PSS_BYTECODE_ARG_END)))
-		    return (pss_bytecode_segid_t)pss_comp_raise(comp, "Internal error: Cannot append the sentinel instruction to the code segment");
+			return (pss_bytecode_segid_t)pss_comp_raise(comp, "Internal error: Cannot append the sentinel instruction to the code segment");
 		if(ERROR_CODE(pss_bytecode_addr_t) == pss_bytecode_segment_append_code(seg, PSS_BYTECODE_OPCODE_RETURN, PSS_BYTECODE_ARG_REGISTER(0), PSS_BYTECODE_ARG_END))
-		    return (pss_bytecode_segid_t)pss_comp_raise(comp, "Internal error: Cannot append the sentinel instruction to the code segment");
+			return (pss_bytecode_segid_t)pss_comp_raise(comp, "Internal error: Cannot append the sentinel instruction to the code segment");
 	} while(0);
 
 	for(;comp->ctl_stack_top > 0 &&
 	     comp->ctl_stack[comp->ctl_stack_top - 1].seg == seg;
 	     comp->ctl_stack_top --)
-	    if(ERROR_CODE(int) == pss_bytecode_segment_patch_label(seg, comp->ctl_stack[comp->ctl_stack_top - 1].end, guard_addr))
-	        return (pss_bytecode_addr_t)pss_comp_raise(comp, "Internal error: Cannot apply the label address");
+		if(ERROR_CODE(int) == pss_bytecode_segment_patch_label(seg, comp->ctl_stack[comp->ctl_stack_top - 1].end, guard_addr))
+			return (pss_bytecode_addr_t)pss_comp_raise(comp, "Internal error: Cannot apply the label address");
 
 	if(NULL != comp->seg_name_stack[comp->seg_stack_top-1])
-	    free(comp->seg_name_stack[comp->seg_stack_top-1]);
+		free(comp->seg_name_stack[comp->seg_stack_top-1]);
 
 	pss_bytecode_segid_t ret = pss_bytecode_module_append(comp->module, comp->seg_stack[--comp->seg_stack_top]);
 	if(ERROR_CODE(pss_bytecode_segid_t) == ret)
-	    pss_comp_raise(comp,  "Internal error: Cannot append the compiled code segment to module");
+		pss_comp_raise(comp,  "Internal error: Cannot append the compiled code segment to module");
 
 	return ret;
 }
@@ -388,11 +388,11 @@ int pss_comp_open_control_block(pss_comp_t* comp, int loop)
 
 	pss_bytecode_addr_t begin = pss_bytecode_segment_length(seg);
 	if(ERROR_CODE(pss_bytecode_addr_t) == begin)
-	    return pss_comp_raise(comp, "Internal error: Cannot get the length of the code segment");
+		return pss_comp_raise(comp, "Internal error: Cannot get the length of the code segment");
 
 	pss_bytecode_label_t end = pss_bytecode_segment_label_alloc(seg);
 	if(ERROR_CODE(pss_bytecode_label_t) == end)
-	    return pss_comp_raise(comp, "Internal error: Cannot allocate new label");
+		return pss_comp_raise(comp, "Internal error: Cannot allocate new label");
 
 	comp->ctl_stack[comp->ctl_stack_top].begin = begin;
 	comp->ctl_stack[comp->ctl_stack_top].end   = end;
@@ -411,14 +411,14 @@ int pss_comp_close_control_block(pss_comp_t* comp)
 
 	if(NULL == seg) ERROR_RETURN_LOG(int, "Cannot get the code segment for current compiler context");
 	if(0 == comp->ctl_stack_top || comp->ctl_stack[comp->ctl_stack_top - 1].seg != seg)
-	    return pss_comp_raise(comp, "Internal error: The compiler is current out of any control block");
+		return pss_comp_raise(comp, "Internal error: The compiler is current out of any control block");
 
 	pss_bytecode_addr_t current = pss_bytecode_segment_length(seg);
 	if(ERROR_CODE(pss_bytecode_addr_t) == current)
-	    return pss_comp_raise(comp, "Internal error: Cannot get current instruction address");
+		return pss_comp_raise(comp, "Internal error: Cannot get current instruction address");
 
 	if(ERROR_CODE(int) == pss_bytecode_segment_patch_label(seg, comp->ctl_stack[comp->ctl_stack_top - 1].end, current))
-	    return pss_comp_raise(comp, "Internal error: Cannot patch the label with the known address");
+		return pss_comp_raise(comp, "Internal error: Cannot patch the label with the known address");
 
 	comp->ctl_stack_top --;
 
@@ -434,8 +434,8 @@ pss_bytecode_addr_t pss_comp_last_loop_begin(pss_comp_t* comp)
 
 	uint32_t level = comp->ctl_stack_top;
 	for(;level > 0 && seg == comp->ctl_stack[level - 1].seg; level --)
-	    if(comp->ctl_stack[level - 1].loop)
-	        return comp->ctl_stack[level - 1].begin;
+		if(comp->ctl_stack[level - 1].loop)
+			return comp->ctl_stack[level - 1].begin;
 
 	return (pss_bytecode_addr_t)pss_comp_raise(comp, "Internal error: Getting a loop address outside of the loop");
 }
@@ -446,12 +446,12 @@ pss_bytecode_label_t pss_comp_last_loop_end(pss_comp_t* comp)
 
 	pss_bytecode_segment_t* seg = pss_comp_get_code_segment(comp);
 	if(NULL == seg)
-	    return (pss_bytecode_label_t)pss_comp_raise(comp, "Internal error: Cannot get the current code segment");
+		return (pss_bytecode_label_t)pss_comp_raise(comp, "Internal error: Cannot get the current code segment");
 
 	uint32_t level = comp->ctl_stack_top;
 	for(;level > 0 && seg == comp->ctl_stack[level - 1].seg; level --)
-	    if(comp->ctl_stack[level - 1].loop)
-	        return comp->ctl_stack[level - 1].end;
+		if(comp->ctl_stack[level - 1].loop)
+			return comp->ctl_stack[level - 1].end;
 
 	return (pss_bytecode_label_t)pss_comp_raise(comp, "Internal error: Getting a loop address outside of the loop");
 }
@@ -459,13 +459,13 @@ pss_bytecode_label_t pss_comp_last_loop_end(pss_comp_t* comp)
 pss_bytecode_addr_t pss_comp_last_control_block_begin(pss_comp_t* comp, uint32_t n)
 {
 	if(NULL == comp || comp->ctl_stack_top <= n)
-	    return (pss_bytecode_addr_t)pss_comp_raise(comp, "Internal error: Invalid arguments");
+		return (pss_bytecode_addr_t)pss_comp_raise(comp, "Internal error: Invalid arguments");
 
 	pss_bytecode_segment_t* seg = pss_comp_get_code_segment(comp);
 	if(NULL == seg) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Cannot get the code segment for current compiler context");
 
 	if(0 == comp->ctl_stack_top || seg != comp->ctl_stack[comp->ctl_stack_top - 1].seg)
-	    return (pss_bytecode_addr_t)pss_comp_raise(comp, "Internal Error: The compiler is currently out of control block");
+		return (pss_bytecode_addr_t)pss_comp_raise(comp, "Internal Error: The compiler is currently out of control block");
 
 	return comp->ctl_stack[comp->ctl_stack_top - 1 - n].begin;
 }
@@ -473,13 +473,13 @@ pss_bytecode_addr_t pss_comp_last_control_block_begin(pss_comp_t* comp, uint32_t
 pss_bytecode_label_t pss_comp_last_control_block_end(pss_comp_t* comp, uint32_t n)
 {
 	if(NULL == comp || comp->ctl_stack_top <= n)
-	    return (pss_bytecode_label_t)pss_comp_raise(comp, "Internal error: Invalid arguments");
+		return (pss_bytecode_label_t)pss_comp_raise(comp, "Internal error: Invalid arguments");
 
 	pss_bytecode_segment_t* seg = pss_comp_get_code_segment(comp);
 
 	if(NULL == seg) ERROR_RETURN_LOG(pss_bytecode_label_t, "Cannot get the code segment for current compiler context");
 	if(0 == comp->ctl_stack_top || seg != comp->ctl_stack[comp->ctl_stack_top - 1].seg)
-	    return (pss_bytecode_label_t)pss_comp_raise(comp, "Internal Error: The compiler is currently out of control block");
+		return (pss_bytecode_label_t)pss_comp_raise(comp, "Internal Error: The compiler is currently out of control block");
 
 	return comp->ctl_stack[comp->ctl_stack_top - 1 - n].end;
 }
@@ -500,7 +500,7 @@ int pss_comp_open_scope(pss_comp_t* comp)
 	if(NULL == comp) PSS_COMP_RAISE_INT(comp, ARGS);
 
 	if(ERROR_CODE(int) == pss_comp_env_open_scope(comp->env))
-	    return pss_comp_raise(comp, "Internal error: Cannot open a new scope in the compiler environment");
+		return pss_comp_raise(comp, "Internal error: Cannot open a new scope in the compiler environment");
 
 	return 0;
 }
@@ -510,7 +510,7 @@ int pss_comp_close_scope(pss_comp_t* comp)
 	if(NULL == comp) PSS_COMP_RAISE_INT(comp, ARGS);
 
 	if(ERROR_CODE(int) == pss_comp_env_close_scope(comp->env))
-	    return pss_comp_raise(comp, "Internal error: Cannot close a new scope in the compiler environment");
+		return pss_comp_raise(comp, "Internal error: Cannot close a new scope in the compiler environment");
 
 	return 0;
 }
@@ -533,7 +533,7 @@ pss_bytecode_regid_t pss_comp_decl_local_var(pss_comp_t* comp, const char* var)
 
 	int rc = pss_comp_env_get_var(comp->env, var, 1, &regid);
 	if(ERROR_CODE(int) == rc)
-	    return (pss_bytecode_regid_t)pss_comp_raise(comp, "Internal error: Cannot declare new variable in current scope");
+		return (pss_bytecode_regid_t)pss_comp_raise(comp, "Internal error: Cannot declare new variable in current scope");
 
 	return regid;
 }
@@ -544,17 +544,17 @@ pss_bytecode_regid_t pss_comp_mktmp(pss_comp_t* comp)
 
 	pss_bytecode_regid_t ret = pss_comp_env_mktmp(comp->env);
 	if(ERROR_CODE(pss_bytecode_regid_t) == ret)
-	    return (pss_bytecode_regid_t)pss_comp_raise(comp, "Internal error: Cannot allocate a temp register from the environment");
+		return (pss_bytecode_regid_t)pss_comp_raise(comp, "Internal error: Cannot allocate a temp register from the environment");
 	return ret;
 }
 
 int pss_comp_rmtmp(pss_comp_t* comp, pss_bytecode_regid_t regid)
 {
 	if(NULL == comp || ERROR_CODE(pss_bytecode_regid_t) == regid)
-	    PSS_COMP_RAISE_INT(comp, ARGS);
+		PSS_COMP_RAISE_INT(comp, ARGS);
 
 	if(ERROR_CODE(int) == pss_comp_env_rmtmp(comp->env, regid))
-	    return pss_comp_raise(comp, "Internal error: Cannot release the temp register");
+		return pss_comp_raise(comp, "Internal error: Cannot release the temp register");
 
 	return 0;
 }
@@ -567,10 +567,10 @@ int pss_comp_expect_token(pss_comp_t* comp, pss_comp_lex_token_type_t token)
 	if(NULL == next) ERROR_RETURN_LOG(int, "Cannot peek the next token");
 
 	if(next->type != token)
-	    PSS_COMP_RAISE_SYN(int, comp, "Unexpected token");
+		PSS_COMP_RAISE_SYN(int, comp, "Unexpected token");
 
 	if(ERROR_CODE(int) == pss_comp_consume(comp, 1))
-	    ERROR_RETURN_LOG(int, "Cannot consume the last token");
+		ERROR_RETURN_LOG(int, "Cannot consume the last token");
 
 	return 0;
 }
@@ -584,10 +584,10 @@ int pss_comp_expect_keyword(pss_comp_t* comp, pss_comp_lex_keyword_t keyword)
 	if(NULL == next) ERROR_RETURN_LOG(int, "Cannot peek the next token");
 
 	if(next->type != PSS_COMP_LEX_TOKEN_KEYWORD)
-	    PSS_COMP_RAISE_SYN(int, comp, "Unexpected token, keyword expected");
+		PSS_COMP_RAISE_SYN(int, comp, "Unexpected token, keyword expected");
 
 	if(next->value.k != keyword)
-	    PSS_COMP_RAISE_SYN(int, comp, "Unexpected keyword");
+		PSS_COMP_RAISE_SYN(int, comp, "Unexpected keyword");
 
 	return pss_comp_consume(comp, 1);
 }

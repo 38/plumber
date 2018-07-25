@@ -11,7 +11,7 @@ scheduler.worker.nthreads = 4
 serv = {
 	req := "language/pyservlet parser";
 	res := "language/pyservlet writer";
-	
+
 	() -> "in" req {
 		"out" -> "in";
 	} res "out" -> ();

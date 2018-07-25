@@ -1,19 +1,19 @@
 raw_mode = 2;
 
 servlet = {
-    jsonfy_output := "typing/conversion/json --raw --to-json " +
-                    "default:plumber/std_servlet/network/http/parser/v0/RequestData " +
-                    "api:plumber/std_servlet/network/http/parser/v0/RequestData " +
-                    "static:plumber/std_servlet/network/http/parser/v0/RequestData " +
-                    "protocol:plumber/std_servlet/network/http/parser/v0/ProtocolData"
-    parser := "network/http/parser --route name:api;prefix:p.com/api/;upgrade_http:https://p.com/ " +
-                "--route name:static;prefix:p.com/static/;upgrade_http:https://static.p.com/";
-    (input) -> "input" parser {
-        "api" -> "api";
-        "static" -> "static";
-        "protocol_data" -> "protocol";
-        "default" -> "default";
-    } jsonfy_output "json" -> (output);
+	jsonfy_output := "typing/conversion/json --raw --to-json " +
+	                "default:plumber/std_servlet/network/http/parser/v0/RequestData " +
+	                "api:plumber/std_servlet/network/http/parser/v0/RequestData " +
+	                "static:plumber/std_servlet/network/http/parser/v0/RequestData " +
+	                "protocol:plumber/std_servlet/network/http/parser/v0/ProtocolData"
+	parser := "network/http/parser --route name:api;prefix:p.com/api/;upgrade_http:https://p.com/ " +
+	            "--route name:static;prefix:p.com/static/;upgrade_http:https://static.p.com/";
+	(input) -> "input" parser {
+		"api" -> "api";
+		"static" -> "static";
+		"protocol_data" -> "protocol";
+		"default" -> "default";
+	} jsonfy_output "json" -> (output);
 };
 
 servlet_input = "input";

@@ -51,11 +51,11 @@ static inline int _close_fds(int max_fd)
 {
 	int  dirfd = open("/proc/self/fd", O_RDONLY);
 	if(dirfd <= 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot open director /proc/self/fd");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot open director /proc/self/fd");
 
 	DIR* dir = fdopendir(dirfd);
 	if(NULL == dir)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot ceate DIR struct");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot ceate DIR struct");
 
 	for(;;)
 	{
@@ -65,14 +65,14 @@ static inline int _close_fds(int max_fd)
 		if(NULL == dirent)
 		{
 			if(errno != 0)
-			    LOG_WARNING_ERRNO("Cannot readdir");
+				LOG_WARNING_ERRNO("Cannot readdir");
 
 			break;
 		}
 
 		int fd = atoi(dirent->d_name);
 		if(fd > max_fd && fd != dirfd && close(fd) < 0)
-		    LOG_WARNING_ERRNO("Cannot close fd %d", fd);
+			LOG_WARNING_ERRNO("Cannot close fd %d", fd);
 	}
 
 	closedir(dir);
@@ -93,17 +93,17 @@ static inline process_t* _spawn_process(const context_t* context)
 	int in_pipe[2], out_pipe[2], err_pipe[2];
 
 	if(pipe(in_pipe) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create child stdin pipe");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create child stdin pipe");
 
 	if(pipe(out_pipe) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create child stdout pipe");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create child stdout pipe");
 
 	if(pipe(err_pipe) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create child stderr pipe");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot create child stderr pipe");
 
 	pid_t pid = fork();
 	if(pid < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot fork the process");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot fork the process");
 
 	if(pid == 0)
 	{
@@ -112,16 +112,16 @@ static inline process_t* _spawn_process(const context_t* context)
 		int errfd = err_pipe[1];
 
 		if(dup2(infd, STDIN_FILENO) < 0)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot replace the stdin fd");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot replace the stdin fd");
 
 		if(dup2(outfd, STDOUT_FILENO) < 0)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot replace the stdout fd");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot replace the stdout fd");
 
 		if(dup2(errfd, STDERR_FILENO) < 0)
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot replace the stderr fd");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot replace the stderr fd");
 
 		if(ERROR_CODE(int) == _close_fds(2))
-		    LOG_WARNING("Cannot close all the parent-opened FDs");
+			LOG_WARNING("Cannot close all the parent-opened FDs");
 
 		execvp(context->args[0], context->args);
 
@@ -132,13 +132,13 @@ static inline process_t* _spawn_process(const context_t* context)
 
 
 	if(close(in_pipe[0]) < 0)
-	    LOG_WARNING_ERRNO("Cannot close the unused end of the stdin pipe");
+		LOG_WARNING_ERRNO("Cannot close the unused end of the stdin pipe");
 
 	if(close(out_pipe[1]) < 0)
-	    LOG_WARNING_ERRNO("Cannot close the unused end of the stdout pipe");
+		LOG_WARNING_ERRNO("Cannot close the unused end of the stdout pipe");
 
 	if(close(err_pipe[1]) < 0)
-	    LOG_WARNING_ERRNO("Cannot close the unused end of the stderr pipe");
+		LOG_WARNING_ERRNO("Cannot close the unused end of the stderr pipe");
 
 	proc->pid = pid;
 
@@ -147,13 +147,13 @@ static inline process_t* _spawn_process(const context_t* context)
 	proc->err = err_pipe[0];
 
 	if(fcntl(proc->in, F_SETFL, O_NONBLOCK) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot make the stdin file nonblocking");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot make the stdin file nonblocking");
 
 	if(fcntl(proc->out, F_SETFL, O_NONBLOCK) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot make the stdout file nonblocking");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot make the stdout file nonblocking");
 
 	if(fcntl(proc->err, F_SETFL, O_NONBLOCK) < 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot make the stderr file nonblocking");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot make the stderr file nonblocking");
 
 	proc->buf_b = proc->buf_e = NULL;
 
@@ -181,15 +181,15 @@ ERR:
 static inline int _wait_process(process_t* proc, int signal)
 {
 	if(signal > 0 && kill(proc->pid, signal) < 0)
-	    LOG_WARNING_ERRNO("Cannot send signal to the child process");
+		LOG_WARNING_ERRNO("Cannot send signal to the child process");
 
 #ifdef LOG_TRACE_ENABLED
 	int status;
 	if(waitpid(proc->pid, &status, 0) < 0)
 #else
-	if(waitpid(proc->pid, NULL, 0) < 0)
+		if(waitpid(proc->pid, NULL, 0) < 0)
 #endif
-	    LOG_WARNING_ERRNO("Cannot wait for the child process to finish");
+			LOG_WARNING_ERRNO("Cannot wait for the child process to finish");
 
 	LOG_TRACE("The child process is termanted with status code %d", status);
 
@@ -229,10 +229,10 @@ static inline int _init(uint32_t argc, char const* const* argv, void* ctx)
 	context_t* context = (context_t*)ctx;
 
 	if(NULL == (context->args = (char**)malloc(sizeof(char*) * argc)))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the argument array");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the argument array");
 
 	if(argc < 2)
-	    ERROR_RETURN_LOG(int, "Cannot start the exec servlet without param, usage exec <command-line>");
+		ERROR_RETURN_LOG(int, "Cannot start the exec servlet without param, usage exec <command-line>");
 
 	context->args[argc - 1] = NULL;
 
@@ -240,18 +240,18 @@ static inline int _init(uint32_t argc, char const* const* argv, void* ctx)
 	{
 		size_t len = strlen(argv[num_arg_copied + 1]);
 		if(NULL == (context->args[num_arg_copied] = (char*)malloc(len + 1)))
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for argument");
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for argument");
 		memcpy(context->args[num_arg_copied], argv[num_arg_copied + 1], len + 1);
 	}
 
 	if(ERROR_CODE(pipe_t) == (context->input = pipe_define("stdin", PIPE_INPUT, NULL)))
-	    ERROR_LOG_GOTO(ERR, "Cannot define the input pipe");
+		ERROR_LOG_GOTO(ERR, "Cannot define the input pipe");
 
 	if(ERROR_CODE(pipe_t) == (context->output = pipe_define("stdout", PIPE_OUTPUT | PIPE_ASYNC, NULL)))
-	    ERROR_LOG_GOTO(ERR, "Cannot define the output pipe");
+		ERROR_LOG_GOTO(ERR, "Cannot define the output pipe");
 
 	if(ERROR_CODE(pipe_t) == (context->error = pipe_define("stderr", PIPE_OUTPUT | PIPE_ASYNC, NULL)))
-	    ERROR_LOG_GOTO(ERR, "Cannot define the error pipe");
+		ERROR_LOG_GOTO(ERR, "Cannot define the error pipe");
 
 	return 0;
 
@@ -259,7 +259,7 @@ ERR:
 	if(context->args != NULL)
 	{
 		while(num_arg_copied > 0)
-		    free(context->args[-- num_arg_copied]);
+			free(context->args[-- num_arg_copied]);
 		free(context->args);
 	}
 
@@ -274,7 +274,7 @@ static inline int _cleanup(void* ctx)
 	{
 		int i;
 		for(i = 0; context->args[i] != NULL; i ++)
-		    free(context->args[i]);
+			free(context->args[i]);
 		free(context->args);
 	}
 
@@ -299,12 +299,12 @@ static inline int _exec(void* ctx)
 
 
 	if(pipe_cntl(context->input, PIPE_CNTL_POP_STATE, &proc) == ERROR_CODE(int))
-	    ERROR_LOG_GOTO(ERR, "Cannot pop the state from the pipe");
+		ERROR_LOG_GOTO(ERR, "Cannot pop the state from the pipe");
 
 	if(NULL == proc)
 	{
 		if(NULL == (proc = _spawn_process(context)))
-		    ERROR_LOG_GOTO(ERR, "Cannot create child process");
+			ERROR_LOG_GOTO(ERR, "Cannot create child process");
 		else
 		{
 			LOG_DEBUG("The new child process has been spawned for current request");
@@ -350,20 +350,20 @@ static inline int _exec(void* ctx)
 					if(sz == 0)
 					{
 						if(ERROR_CODE(int) == (no_more_data = pstd_bio_eof(in)))
-						    ERROR_LOG_GOTO(ERR, "Cannot check if the input plumber pipe gets the end of stream");
+							ERROR_LOG_GOTO(ERR, "Cannot check if the input plumber pipe gets the end of stream");
 
 						if(!no_more_data)
 						{
 							LOG_DEBUG("The plumber pipe is waiting for data, preserve the process state and move on");
 							if(ERROR_CODE(int) == pipe_cntl(context->input, PIPE_CNTL_SET_FLAG, PIPE_PERSIST))
-							    ERROR_LOG_GOTO(ERR, "Cannot set the pipe to persist mode");
+								ERROR_LOG_GOTO(ERR, "Cannot set the pipe to persist mode");
 
 							if(ERROR_CODE(int) == pipe_cntl(context->input, PIPE_CNTL_PUSH_STATE, proc, _dispose_state))
-							    ERROR_LOG_GOTO(ERR, "Cannot push state");
+								ERROR_LOG_GOTO(ERR, "Cannot push state");
 							goto RET;
 						}
 						else if(close(proc->in) < 0)
-						    ERROR_LOG_GOTO(ERR, "Cannot close the stdin pipe");
+							ERROR_LOG_GOTO(ERR, "Cannot close the stdin pipe");
 						else
 						{
 							LOG_DEBUG("Pipe stdin has been shutted down");
@@ -387,7 +387,7 @@ static inline int _exec(void* ctx)
 					else if(written == -1)
 					{
 						if(errno == EAGAIN || errno == EWOULDBLOCK)
-						    continue;
+							continue;
 						else ERROR_LOG_ERRNO_GOTO(ERR, "Cannot write to stdin pipe");
 					}
 					else proc->buf_b += written;
@@ -407,16 +407,16 @@ static inline int _exec(void* ctx)
 						{
 							LOG_DEBUG("Pipe %s has been shutted down by child process", fd == 1 ? "stdout" : "stderr");
 							if(fd == 1)
-							    stdout_dead = 1;
+								stdout_dead = 1;
 							else
-							    stderr_dead = 1;
+								stderr_dead = 1;
 
 							break;
 						}
 						else if(rdsz < 0)
 						{
 							if(errno == EAGAIN || errno == EWOULDBLOCK)
-							    break;
+								break;
 							else ERROR_LOG_ERRNO_GOTO(ERR, "Cannot write to stdin pipe");
 						}
 						else
@@ -426,7 +426,7 @@ static inline int _exec(void* ctx)
 							{
 								size_t iter_written = pstd_bio_write(fd == 1 ? out : err, buf + written, (size_t)rdsz - written);
 								if(ERROR_CODE(size_t) == iter_written)
-								    ERROR_LOG_GOTO(ERR, "Cannot write stdout data to output pipe");
+									ERROR_LOG_GOTO(ERR, "Cannot write stdout data to output pipe");
 								written += iter_written;
 							}
 						}
@@ -440,16 +440,16 @@ static inline int _exec(void* ctx)
 	LOG_DEBUG("All the pipes are shutted down, waiting the process to terminate");
 
 	if(!proc_pushed && _wait_process(proc, 0) == ERROR_CODE(int))
-	    ERROR_LOG_GOTO(ERR, "Cannot wait for the child process to complete");
+		ERROR_LOG_GOTO(ERR, "Cannot wait for the child process to complete");
 
 	if(ERROR_CODE(int) == pipe_cntl(context->input, PIPE_CNTL_CLR_FLAG, PIPE_PERSIST))
-	    ERROR_LOG_GOTO(ERR, "Cannot clear the persist flag for the input pipe");
+		ERROR_LOG_GOTO(ERR, "Cannot clear the persist flag for the input pipe");
 	goto RET;
 ERR:
 	ret = ERROR_CODE(int);
 	pipe_cntl(context->input, PIPE_CNTL_CLR_FLAG, PIPE_PERSIST);
 	if(NULL != proc && !proc_pushed)
-	    _wait_process(proc, SIGKILL);
+		_wait_process(proc, SIGKILL);
 RET:
 	if(NULL != in) pstd_bio_free(in);
 	if(NULL != out) pstd_bio_free(out);

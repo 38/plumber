@@ -192,22 +192,22 @@ static PyObject* _type_instance_read_int(PyObject* _self, PyObject* args)
 	switch(size)
 	{
 		case 1:
-		    if(is_signed) retval = *typed_buf.i8;
-		    else retval = *typed_buf.u8;
-		    break;
+			if(is_signed) retval = *typed_buf.i8;
+			else retval = *typed_buf.u8;
+			break;
 		case 2:
-		    if(is_signed) retval = *typed_buf.i16;
-		    else retval = *typed_buf.u16;
-		    break;
+			if(is_signed) retval = *typed_buf.i16;
+			else retval = *typed_buf.u16;
+			break;
 		case 4:
-		    if(is_signed) retval = *typed_buf.i32;
-		    else retval = (long)*typed_buf.u32;
-		    break;
+			if(is_signed) retval = *typed_buf.i32;
+			else retval = (long)*typed_buf.u32;
+			break;
 		case 8:
-		    if(is_signed) retval = (long)*typed_buf.i64;
-		    else
-		        return Py_BuildValue("K", *typed_buf.u64);
-		    break;
+			if(is_signed) retval = (long)*typed_buf.i64;
+			else
+				return Py_BuildValue("K", *typed_buf.u64);
+			break;
 		default:
 		    PyErr_SetString(PyExc_RuntimeError, "Code bug!");
 		    return NULL;
@@ -257,11 +257,11 @@ static PyObject* _type_instance_read_float(PyObject* _self, PyObject* args)
 	switch(size)
 	{
 		case 4:
-		    retval = *typed.f;
-		    break;
+			retval = *typed.f;
+			break;
 		case 8:
-		    retval = *typed.d;
-		    break;
+			retval = *typed.d;
+			break;
 		default:
 		    PyErr_SetString(PyExc_RuntimeError, "Code bug!");
 		    return NULL;
@@ -376,7 +376,7 @@ static PyTypeObject _py_type_instance = {
 int typemodel_object_init(PyObject* module)
 {
 	if(NULL == module)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	union {
 		PyTypeObject* tp;
@@ -386,21 +386,21 @@ int typemodel_object_init(PyObject* module)
 	};
 
 	if(PyType_Ready(cvt.tp) == -1)
-	    ERROR_RETURN_LOG(int, "Cannot initialize the type object");
+		ERROR_RETURN_LOG(int, "Cannot initialize the type object");
 
 	Py_INCREF(cvt.obj);
 
 	if(PyModule_AddObject(module, "TypeModel", cvt.obj) == -1)
-	    ERROR_RETURN_LOG(int, "Cannot add type to module");
+		ERROR_RETURN_LOG(int, "Cannot add type to module");
 
 	cvt.tp = &_py_type_instance;
 	if(PyType_Ready(cvt.tp) == -1)
-	    ERROR_RETURN_LOG(int, "Cannot intialize the type object");
+		ERROR_RETURN_LOG(int, "Cannot intialize the type object");
 
 	Py_INCREF(cvt.obj);
 
 	if(PyModule_AddObject(module, "TypeInstance", cvt.obj) == -1)
-	    ERROR_RETURN_LOG(int, "Cannot add type to module");
+		ERROR_RETURN_LOG(int, "Cannot add type to module");
 
 	return 0;
 }

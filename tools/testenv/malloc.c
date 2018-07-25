@@ -150,7 +150,7 @@ void* calloc(size_t nmem, size_t size)
 void* realloc(void* ptr, size_t new_size)
 {
 	if(NULL == ptr)
-	    return _malloc(new_size, _CALLER);
+		return _malloc(new_size, _CALLER);
 
 	memory_block_t* block = (memory_block_t*)(((char*) ptr) - offsetof(memory_block_t, data));
 

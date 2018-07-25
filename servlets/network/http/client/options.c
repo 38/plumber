@@ -12,20 +12,20 @@ static inline int _opt_callback(pstd_option_data_t data)
 	switch(data.current_option->short_opt)
 	{
 		case 'T':
-		    opt->num_threads = (uint32_t)data.param_array[0].intval;
-		    break;
+			opt->num_threads = (uint32_t)data.param_array[0].intval;
+			break;
 		case 'Q':
-		    opt->queue_size  = (uint32_t)data.param_array[0].intval;
-		    break;
+			opt->queue_size  = (uint32_t)data.param_array[0].intval;
+			break;
 		case 'P':
-		    opt->num_parallel = (uint32_t)data.param_array[0].intval;
-		    break;
+			opt->num_parallel = (uint32_t)data.param_array[0].intval;
+			break;
 		case 'H':
-		    opt->save_header = 1;
-		    break;
+			opt->save_header = 1;
+			break;
 		case 'f':
-		    opt->follow_redir = 1;
-		    break;
+			opt->follow_redir = 1;
+			break;
 		default:
 		    ERROR_RETURN_LOG(int, "Invalid options");
 	}
@@ -89,7 +89,7 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 {
 
 	if(ERROR_CODE(uint32_t) == argc || NULL == argv || NULL == buf)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	buf->num_threads  = 1;
 	buf->num_parallel = 128;
@@ -98,10 +98,10 @@ int options_parse(uint32_t argc, char const* const* argv, options_t* buf)
 	buf->follow_redir = 0;
 
 	if(ERROR_CODE(int) == pstd_option_sort(_opts, sizeof(_opts) / sizeof(_opts[0])))
-	    ERROR_RETURN_LOG(int, "Cannot sort the options array");
+		ERROR_RETURN_LOG(int, "Cannot sort the options array");
 
 	if(ERROR_CODE(uint32_t) == pstd_option_parse(_opts, sizeof(_opts) / sizeof(_opts[0]), argc, argv, buf))
-	    ERROR_RETURN_LOG(int, "Cannot parse the servlet initialization string");
+		ERROR_RETURN_LOG(int, "Cannot parse the servlet initialization string");
 
 	return 0;
 }

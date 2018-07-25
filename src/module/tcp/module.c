@@ -162,7 +162,7 @@ static inline int _dispose_user_state(_state_t* state)
 {
 	int rc = 0;
 	if(state->disp != NULL && state->user_space_data != NULL)
-	    rc = state->disp(state->user_space_data);
+		rc = state->disp(state->user_space_data);
 	else if(state->disp == NULL && state->user_space_data != NULL)
 	{
 		LOG_WARNING("there's no dispose function for the user-space state, memory leak is possible");
@@ -182,7 +182,7 @@ static int _dispose_state(void* data)
 	int rc = _dispose_user_state(state);
 	//free(data);
 	if(ERROR_CODE(int) == mempool_page_dealloc(data))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 	return rc;
 }
 
@@ -195,7 +195,7 @@ static inline _async_buf_page_t* _async_buf_data_page_new(void)
 {
 	_async_buf_page_t* ret = (_async_buf_page_t*)mempool_page_alloc();
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for new async write page");
+		ERROR_PTR_RETURN_LOG("Cannot allocate memory for new async write page");
 	ret->next = NULL;
 	ret->nbytes = 0;
 	return ret;
@@ -210,7 +210,7 @@ static inline _async_buf_page_t* _async_buf_data_source_page_new(const itc_modul
 {
 	_async_buf_page_t* ret = (_async_buf_page_t*)mempool_objpool_alloc(_async_data_source_pool);
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the data source page");
+		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the data source page");
 
 	ret->next = NULL;
 	ret->callback = _DATA_SOURCE_CALLBACK;
@@ -227,7 +227,7 @@ static inline _async_handle_t* _async_handle_new(_module_context_t* ctx)
 {
 	_async_handle_t* ret = (_async_handle_t*)mempool_objpool_alloc(_async_handle_pool);
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("cannot allocate memory for new async data handle");
+		ERROR_PTR_RETURN_LOG_ERRNO("cannot allocate memory for new async data handle");
 
 	ret->page_off = 0;
 	ret->page_begin = ret->page_end = NULL;
@@ -275,7 +275,7 @@ static inline int _async_buf_page_free(_async_buf_page_t* page)
 		int rc = page->data_source->close(page->data_source->data_handle);
 
 		if(ERROR_CODE(int) == rc)
-		    LOG_ERROR("Cannot close the data source object properly");
+			LOG_ERROR("Cannot close the data source object properly");
 
 		if(ERROR_CODE(int) == mempool_objpool_dealloc(_async_data_source_pool, page))
 		{
@@ -286,7 +286,7 @@ static inline int _async_buf_page_free(_async_buf_page_t* page)
 		return rc;
 	}
 	else
-	    return mempool_page_dealloc(page);
+		return mempool_page_dealloc(page);
 }
 
 /**
@@ -302,13 +302,13 @@ static inline size_t _async_handle_getdata(uint32_t conn, void* data, size_t siz
 	_async_handle_t* handle = (_async_handle_t*)module_tcp_async_get_data_handle(loop, conn);
 
 	if(NULL == handle)
-	    ERROR_RETURN_LOG_ERRNO(size_t, "cannot get the data handle for connection object %"PRIu32, conn);
+		ERROR_RETURN_LOG_ERRNO(size_t, "cannot get the data handle for connection object %"PRIu32, conn);
 
 	size_t ret = 0;
 	char*  buf = (char*)data;
 
 	if((errno = pthread_mutex_lock(handle->mutex)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(size_t, "cannot acquire the async handle mutex");
+		ERROR_RETURN_LOG_ERRNO(size_t, "cannot acquire the async handle mutex");
 
 	for(;handle->page_begin != NULL && size > 0;)
 	{
@@ -372,9 +372,9 @@ static inline size_t _async_handle_getdata(uint32_t conn, void* data, size_t siz
 			if(handle->page_begin->nbytes <= 0)
 			{
 				if(handle->page_begin->next == NULL)
-				    break;
+					break;
 				else
-				    goto PAGE_EXHAUSTED;
+					goto PAGE_EXHAUSTED;
 			}
 
 
@@ -390,7 +390,7 @@ static inline size_t _async_handle_getdata(uint32_t conn, void* data, size_t siz
 			buf += bytes_to_read;
 
 			if(handle->page_off >= handle->page_begin->nbytes)
-			    goto PAGE_EXHAUSTED;
+				goto PAGE_EXHAUSTED;
 		}
 		continue;
 
@@ -405,9 +405,9 @@ PAGE_EXHAUSTED:
 			handle->page_off = 0;
 			handle->page_begin = handle->page_begin->next;
 			if(ERROR_CODE(int) == module_tcp_async_clear_data_event(loop, conn))
-			    LOG_WARNING("Cannot clear the data event");
+				LOG_WARNING("Cannot clear the data event");
 			if(ERROR_CODE(int) == _async_buf_page_free(tmp))
-			    LOG_WARNING("Cannot deallocate the async buffer page");
+				LOG_WARNING("Cannot deallocate the async buffer page");
 
 			if(handle->page_end == tmp) handle->page_end = NULL;
 
@@ -422,7 +422,7 @@ PAGE_EXHAUSTED:
 	}
 
 	if((errno = pthread_mutex_unlock(handle->mutex)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(size_t, "cannot acquire the async handle mutex");
+		ERROR_RETURN_LOG_ERRNO(size_t, "cannot acquire the async handle mutex");
 
 	return ret;
 }
@@ -438,7 +438,7 @@ static inline int _async_handle_onerror(uint32_t conn, module_tcp_async_loop_t* 
 	_async_handle_t* handle = (_async_handle_t*)module_tcp_async_get_data_handle(loop, conn);
 
 	if(NULL == handle)
-	    ERROR_RETURN_LOG(int, "cannot get the data handle for the connection object %"PRIu32, conn);
+		ERROR_RETURN_LOG(int, "cannot get the data handle for the connection object %"PRIu32, conn);
 
 	handle->error = 1;
 
@@ -460,12 +460,12 @@ static inline int _async_handle_empty(uint32_t conn, module_tcp_async_loop_t* lo
 	_async_handle_t* handle = (_async_handle_t*)module_tcp_async_get_data_handle(loop, conn);
 
 	if(NULL == handle)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot get the data handle for connection object %"PRIu32, conn);
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot get the data handle for connection object %"PRIu32, conn);
 
 	if(handle->page_begin == NULL) return 1;
 
 	if(handle->page_begin->next == NULL && !_async_buf_page_is_data_source(handle->page_begin))
-	    return handle->page_begin->nbytes <= handle->page_off;
+		return handle->page_begin->nbytes <= handle->page_off;
 
 	return 0;
 }
@@ -482,7 +482,7 @@ static inline int _async_handle_dispose(uint32_t conn, module_tcp_async_loop_t* 
 	_async_handle_t* handle = (_async_handle_t*)module_tcp_async_get_data_handle(loop, conn);
 
 	if(NULL == handle)
-	    ERROR_RETURN_LOG_ERRNO(int, "cannot get the data handle for the connection object %"PRIu32, conn);
+		ERROR_RETURN_LOG_ERRNO(int, "cannot get the data handle for the connection object %"PRIu32, conn);
 
 	if(!handle->error)
 	{
@@ -572,12 +572,12 @@ static inline int _init_connection_pool(_module_context_t* __restrict context)
 		LOG_ERROR("Cannot configure the connection pool, retry after %d seconds", context->retry_interval);
 		usleep((uint32_t)(context->retry_interval * 1000000));
 		if(context->retry_interval < 30)
-		    context->retry_interval *= 2;
+			context->retry_interval *= 2;
 		return ERROR_CODE(int);
 	}
 
 	if(!context->pool_initialized)
-	    LOG_DEBUG("TCP Connection pool has been successfully initinalized");
+		LOG_DEBUG("TCP Connection pool has been successfully initinalized");
 
 	context->pool_initialized = 1;
 	return 0;
@@ -586,15 +586,15 @@ static inline int _init_connection_pool(_module_context_t* __restrict context)
 static inline int _module_context_init(_module_context_t* ctx, _module_context_t* master)
 {
 	if(master != NULL &&  master->fork_id != 0)
-	    ERROR_RETURN_LOG(int, "Invalid arguments: Trying start multithreaded event loop on a forked module?");
+		ERROR_RETURN_LOG(int, "Invalid arguments: Trying start multithreaded event loop on a forked module?");
 
 	if(_instance_count == 0)
 	{
 		if(NULL == (_async_handle_pool = mempool_objpool_new(sizeof(_async_handle_t))))
-		    ERROR_RETURN_LOG(int, "Cannot create async handle object pool");
+			ERROR_RETURN_LOG(int, "Cannot create async handle object pool");
 
 		if(NULL == (_async_data_source_pool = mempool_objpool_new(sizeof(_async_buf_page_t) + sizeof(itc_module_data_source_t))))
-		    ERROR_RETURN_LOG(int, "Cannot create async data source object pool");
+			ERROR_RETURN_LOG(int, "Cannot create async data source object pool");
 
 		int pagesize = getpagesize();
 		if(pagesize < 0) ERROR_RETURN_LOG_ERRNO(int, "Cannot get page size");
@@ -607,7 +607,7 @@ static inline int _module_context_init(_module_context_t* ctx, _module_context_t
 	ctx->async_buf_size     = MODULE_TCP_MAX_ASYNC_BUF_SIZE;
 
 	if(ctx->async_buf_size > (uint32_t)getpagesize())
-	    ctx->async_buf_size = (uint32_t)getpagesize();
+		ctx->async_buf_size = (uint32_t)getpagesize();
 
 	ctx->pool_initialized = 0;
 
@@ -616,18 +616,18 @@ static inline int _module_context_init(_module_context_t* ctx, _module_context_t
 	if(NULL == master)
 	{
 		if(NULL == (ctx->conn_pool = module_tcp_pool_new()))
-		    ERROR_RETURN_LOG(int, "Cannot create TCP connection pool");
+			ERROR_RETURN_LOG(int, "Cannot create TCP connection pool");
 		ctx->fork_id = 0;
 	}
 	else
 	{
 		if(ERROR_CODE(int) == (ctx->fork_id = module_tcp_pool_num_forks(master->conn_pool)))
-		    ERROR_RETURN_LOG(int, "Cannot get new port ID");
+			ERROR_RETURN_LOG(int, "Cannot get new port ID");
 
 		ctx->fork_id ++;
 
 		if(NULL == (ctx->conn_pool = module_tcp_pool_fork(master->conn_pool)))
-		    ERROR_RETURN_LOG(int, "Cannot fork TCP connection pool");
+			ERROR_RETURN_LOG(int, "Cannot fork TCP connection pool");
 
 		ctx->pool_conf.port = master->pool_conf.port;
 
@@ -643,7 +643,7 @@ static int _init(void* __restrict ctx, uint32_t argc, char const* __restrict con
 {
 	_module_context_t* context = (_module_context_t*)ctx;
 	if(NULL == context)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	context->pool_conf.port         = 8888;
 	context->pool_conf.bind_addr    = "0.0.0.0";
@@ -678,17 +678,17 @@ static int _init(void* __restrict ctx, uint32_t argc, char const* __restrict con
 			uint32_t j;
 			for(j = 0; module_tcp_module_def.mod_prefix[j] && module_tcp_module_def.mod_prefix[j] == argv[i][j]; j ++);
 			if(module_tcp_module_def.mod_prefix[j] != 0 || argv[i][j] != '.')
-			    ERROR_RETURN_LOG(int, "Invalid arguments: Not a TCP module: %s", argv[i]);
+				ERROR_RETURN_LOG(int, "Invalid arguments: Not a TCP module: %s", argv[i]);
 
 			/* We need to share the port */
 			itc_module_type_t master_type = itc_modtab_get_module_type_from_path(argv[i]);
 
 			if(ERROR_CODE(itc_module_type_t) == master_type)
-			    ERROR_RETURN_LOG(int, "Invalid arguments: TCP module %s not exists", argv[i]);
+				ERROR_RETURN_LOG(int, "Invalid arguments: TCP module %s not exists", argv[i]);
 
 			const itc_modtab_instance_t* master_mod_inst = itc_modtab_get_from_module_type(master_type);
 			if(NULL == master_mod_inst)
-			    ERROR_RETURN_LOG(int, "Cannnot get the master type %u", master_type);
+				ERROR_RETURN_LOG(int, "Cannnot get the master type %u", master_type);
 
 			master = (_module_context_t*)master_mod_inst->context;
 		}
@@ -701,7 +701,7 @@ static int _init(void* __restrict ctx, uint32_t argc, char const* __restrict con
 	}
 
 	if(ERROR_CODE(int) == _module_context_init(context, master))
-	    ERROR_RETURN_LOG(int, "Cannot initialize the TCP module context");
+		ERROR_RETURN_LOG(int, "Cannot initialize the TCP module context");
 
 	return 0;
 }
@@ -715,7 +715,7 @@ static int _accept(void* __restrict ctx, const void* __restrict args, void* __re
 	if(NULL == context) ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(_init_connection_pool(context) == ERROR_CODE(int))
-	    ERROR_RETURN_LOG(int, "Cannot configure the connection pool");
+		ERROR_RETURN_LOG(int, "Cannot configure the connection pool");
 
 	_handle_t* in = (_handle_t*)inbuf;
 	_handle_t* out = (_handle_t*)outbuf;
@@ -783,9 +783,9 @@ static int  _read_to_buffer(_handle_t* handle)
 			else
 			{
 				if(errno != ECONNRESET)
-				    LOG_ERROR_ERRNO("Socket error");
+					LOG_ERROR_ERRNO("Socket error");
 				else
-				    LOG_TRACE_ERRNO("Socket error");
+					LOG_TRACE_ERRNO("Socket error");
 				return ERROR_CODE(int);
 			}
 		}
@@ -807,7 +807,7 @@ static size_t _read(void* __restrict ctx, void* __restrict buffer, size_t bytes_
 	(void) ctx;
 	_handle_t* handle = (_handle_t*)in;
 	if(handle->dir != _DIR_IN)
-	    ERROR_RETURN_LOG(size_t, "Invalid type of handle, expected read, but get write");
+		ERROR_RETURN_LOG(size_t, "Invalid type of handle, expected read, but get write");
 
 	if(handle->state->buffer_exposed)
 	{
@@ -822,7 +822,7 @@ static size_t _read(void* __restrict ctx, void* __restrict buffer, size_t bytes_
 	{
 		handle->last_read_offset = handle->state->total_bytes - handle->state->unread_bytes;
 		if(bytes_from_buffer > handle->state->unread_bytes)
-		    bytes_from_buffer = handle->state->unread_bytes;
+			bytes_from_buffer = handle->state->unread_bytes;
 
 		memmove(buffer, ((char*)handle->state->buffer) + handle->state->total_bytes - handle->state->unread_bytes, bytes_from_buffer);
 
@@ -840,10 +840,10 @@ static int _get_internal_buf(void* __restrict ctx, void const** __restrict resul
 	_handle_t* handle = (_handle_t*)in;
 
 	if(NULL == result || NULL == min || NULL == max)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(handle->dir != _DIR_IN)
-	    ERROR_RETURN_LOG(int, "Invalid type of handle, expected read, but get write");
+		ERROR_RETURN_LOG(int, "Invalid type of handle, expected read, but get write");
 
 	if(handle->state->buffer_exposed)
 	{
@@ -867,7 +867,7 @@ static int _get_internal_buf(void* __restrict ctx, void const** __restrict resul
 	}
 
 	if(bytes_avaiable < *max)
-	    *max = bytes_avaiable;
+		*max = bytes_avaiable;
 
 	*result = ((char*)handle->state->buffer) + handle->state->total_bytes - handle->state->unread_bytes;
 
@@ -882,10 +882,10 @@ static int _release_internal_buf(void* __restrict ctx, void const* __restrict bu
 	_handle_t* handle = (_handle_t*)in;
 
 	if(NULL == buf || actual_size > handle->state->unread_bytes)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(handle->dir != _DIR_IN)
-	    ERROR_RETURN_LOG(int, "Invalid type of handle, expected read, but get write");
+		ERROR_RETURN_LOG(int, "Invalid type of handle, expected read, but get write");
 
 	if(((const char*)handle->state->buffer) + handle->state->total_bytes - handle->state->unread_bytes != (const char*)buf)
 	{
@@ -931,7 +931,7 @@ static inline int _ensure_async_loop_init(_module_context_t* context)
 				LOG_ERROR("Cannot initialize the async loop");
 			}
 			else
-			    LOG_DEBUG("Async IO loop has been initialized!");
+				LOG_DEBUG("Async IO loop has been initialized!");
 		}
 
 		BARRIER();
@@ -952,7 +952,7 @@ static inline int _create_async_handle(_module_context_t* context, _handle_t* ha
 {
 	LOG_DEBUG("Connection object %"PRIu32" has data pending to write, initialize the async object", handle->idx);
 	if(NULL == (handle->async_handle = _async_handle_new(context)))
-	    ERROR_RETURN_LOG(int, "cannot create async handle for the async object");
+		ERROR_RETURN_LOG(int, "cannot create async handle for the async object");
 
 	if(module_tcp_async_write_register(context->async_loop, handle->idx, handle->fd, context->async_buf_size,
 	                                   _async_handle_getdata, _async_handle_empty, _async_handle_dispose,
@@ -980,7 +980,7 @@ static inline size_t _write_async_buf(_module_context_t* context, _handle_t* han
 
 	LOG_DEBUG("writing %zu bytes to the async buffer", nbytes);
 	if((errno = pthread_mutex_lock(handle->async_handle->mutex)) != 0)
-	    ERROR_RETURN_LOG(size_t, "cannot acquire the async object mutex for connection %"PRIu32, handle->idx);
+		ERROR_RETURN_LOG(size_t, "cannot acquire the async object mutex for connection %"PRIu32, handle->idx);
 
 	for(;nbytes > 0;)
 	{
@@ -1010,9 +1010,9 @@ ASYNC_ERR:
 	bytes_written = ERROR_CODE(size_t);
 ASYNC_RET:
 	if((errno = pthread_mutex_unlock(handle->async_handle->mutex)) != 0)
-	    ERROR_RETURN_LOG(size_t, "cannot release the async object mutex for connection %"PRIu32, handle->idx);
+		ERROR_RETURN_LOG(size_t, "cannot release the async object mutex for connection %"PRIu32, handle->idx);
 	if(bytes_written != ERROR_CODE(size_t) && module_tcp_async_write_data_ready(context->async_loop, handle->idx) == ERROR_CODE(int))
-	    ERROR_RETURN_LOG(size_t, "cannot notify the async IO loop");
+		ERROR_RETURN_LOG(size_t, "cannot notify the async IO loop");
 	return bytes_written;
 }
 
@@ -1042,7 +1042,7 @@ static inline size_t _ensure_async_handle(_module_context_t* context, _handle_t*
 			if(rc == -1)
 			{
 				if(errno != EAGAIN && errno != EWOULDBLOCK)
-				    ERROR_RETURN_LOG_ERRNO(size_t, "socket error");
+					ERROR_RETURN_LOG_ERRNO(size_t, "socket error");
 				rc = 0;
 			}
 
@@ -1050,7 +1050,7 @@ static inline size_t _ensure_async_handle(_module_context_t* context, _handle_t*
 		}
 
 		if((nbytes > 0 || create_anyway) && ERROR_CODE(int) == _create_async_handle(context, handle))
-		    ERROR_RETURN_LOG(size_t, "Cannot create async handle for the pipe");
+			ERROR_RETURN_LOG(size_t, "Cannot create async handle for the pipe");
 
 		return (size_t)rc;
 	}
@@ -1060,17 +1060,17 @@ static inline size_t _ensure_async_handle(_module_context_t* context, _handle_t*
 static int _write_callback(void* __restrict ctx, itc_module_data_source_t data_source, void* __restrict out)
 {
 	if(NULL == ctx || NULL == out)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(data_source.read == NULL || data_source.eos == NULL || data_source.close == NULL)
-	    ERROR_RETURN_LOG(int, "Cannot creaete the data source page based on the imcompleted data source");
+		ERROR_RETURN_LOG(int, "Cannot creaete the data source page based on the imcompleted data source");
 
 
 	_handle_t* handle = (_handle_t*)out;
 	_module_context_t* context = (_module_context_t*)ctx;
 
 	if(handle->dir != _DIR_OUT)
-	    ERROR_RETURN_LOG(int, "Invalid type of handle, expected write, but get read");
+		ERROR_RETURN_LOG(int, "Invalid type of handle, expected write, but get read");
 
 	runtime_api_pipe_flags_t flags = itc_module_get_handle_flags(out);
 
@@ -1083,7 +1083,7 @@ static int _write_callback(void* __restrict ctx, itc_module_data_source_t data_s
 		LOG_DEBUG("Async write_callback called");
 
 		if(ERROR_CODE(int) == _ensure_async_loop_init(context))
-		    ERROR_RETURN_LOG(int, "Cannot initialize the async loop");
+			ERROR_RETURN_LOG(int, "Cannot initialize the async loop");
 
 		int eos_rc = ERROR_CODE(int);
 		size_t sync_data_size = 0; /* How many bytes in the sync_data buffer */
@@ -1107,7 +1107,7 @@ static int _write_callback(void* __restrict ctx, itc_module_data_source_t data_s
 				for(sync_data = sync_buf; sync_buf_size > 0;)
 				{
 					if(ERROR_CODE(int) == (eos_rc = data_source.eos(data_source.data_handle)))
-					    ERROR_RETURN_LOG(int, "data_source.eos returns a failure");
+						ERROR_RETURN_LOG(int, "data_source.eos returns a failure");
 
 					if(eos_rc) break;
 
@@ -1120,7 +1120,7 @@ static int _write_callback(void* __restrict ctx, itc_module_data_source_t data_s
 					}
 
 					if(ERROR_CODE(size_t) == bytes_read)
-					    ERROR_RETURN_LOG(int, "Cannot read the data source");
+						ERROR_RETURN_LOG(int, "Cannot read the data source");
 					sync_data_size += bytes_read;
 					sync_buf_size  -= bytes_read;
 				}
@@ -1136,10 +1136,10 @@ static int _write_callback(void* __restrict ctx, itc_module_data_source_t data_s
 			size_t written = _ensure_async_handle(context, handle, sync_data, sync_data_size, data_source_wait || !context->sync_write_attempt);
 
 			if(ERROR_CODE(size_t) == written)
-			    ERROR_RETURN_LOG(int, "Cannot create async handle for the pipe");
+				ERROR_RETURN_LOG(int, "Cannot create async handle for the pipe");
 
 			if(NULL != sync_data)
-			    sync_data += written;
+				sync_data += written;
 		}
 
 		if(NULL != sync_data && sync_buf + sync_data_size > sync_data)
@@ -1151,7 +1151,7 @@ static int _write_callback(void* __restrict ctx, itc_module_data_source_t data_s
 			{
 				size_t rc = _write_async_buf(context, handle, sync_data, bytes_to_write);
 				if(ERROR_CODE(size_t) == rc)
-				    ERROR_RETURN_LOG(int, "Cannot write data to async buffer");
+					ERROR_RETURN_LOG(int, "Cannot write data to async buffer");
 				bytes_to_write -= rc;
 				sync_data += rc;
 			}
@@ -1163,7 +1163,7 @@ static int _write_callback(void* __restrict ctx, itc_module_data_source_t data_s
 
 		/* Make sure the eos call has been called at this point */
 		if(eos_rc == ERROR_CODE(int) && ERROR_CODE(int) == (eos_rc = (data_source.eos(data_source.data_handle))))
-		    ERROR_RETURN_LOG(int, "data_source.eos returns an error status code");
+			ERROR_RETURN_LOG(int, "data_source.eos returns an error status code");
 		if(eos_rc)
 		{
 			LOG_DEBUG("The data stream has been exhausted by the sync write attempt, won't go any further");
@@ -1172,7 +1172,7 @@ static int _write_callback(void* __restrict ctx, itc_module_data_source_t data_s
 
 		LOG_DEBUG("The data source is not exhausted, write it to the async buffer");
 		if((errno = pthread_mutex_lock(handle->async_handle->mutex)) != 0)
-		    ERROR_RETURN_LOG(int, "cannot acquire the async object mutex for connection %"PRIu32, handle->idx);
+			ERROR_RETURN_LOG(int, "cannot acquire the async object mutex for connection %"PRIu32, handle->idx);
 
 		_async_buf_page_t* page = _async_buf_data_source_page_new(data_source);
 		if(NULL == page) ERROR_LOG_GOTO(ASYNC_ERR, "Cannot allocate data source page for the data source");
@@ -1193,7 +1193,7 @@ ASYNC_RET:
 			rc = ERROR_CODE_OT(int);
 		}
 		if(rc != ERROR_CODE(int) && rc != ERROR_CODE_OT(int) && module_tcp_async_write_data_ready(context->async_loop, handle->idx) == ERROR_CODE(int))
-		    ERROR_RETURN_LOG(int, "cannot notify the async IO loop");
+			ERROR_RETURN_LOG(int, "cannot notify the async IO loop");
 		return rc;
 	}
 	else
@@ -1203,14 +1203,14 @@ ASYNC_RET:
 		{
 			int eos_rc = data_source.eos(data_source.data_handle);
 			if(ERROR_CODE(int) == eos_rc)
-			    ERROR_RETURN_LOG(int, "Cannot call the data_source.eos");
+				ERROR_RETURN_LOG(int, "Cannot call the data_source.eos");
 
 			if(eos_rc) break;
 
 			/* TODO: use async buf size doesn't make sense at this point */
 			size_t nbytes = data_source.read(data_source.data_handle, sync_buf, context->async_buf_size, NULL);
 			if(ERROR_CODE(size_t) == nbytes)
-			    ERROR_RETURN_LOG(int, "Cannot read the data_source");
+				ERROR_RETURN_LOG(int, "Cannot read the data_source");
 
 			const int8_t* bytes = sync_buf;
 			for(;nbytes > 0;)
@@ -1223,7 +1223,7 @@ ASYNC_RET:
 					bytes += rc;
 				}
 				else if(errno == EAGAIN || errno == EWOULDBLOCK)
-				    continue;
+					continue;
 				else ERROR_RETURN_LOG(int, "Scoket error");
 			}
 		}
@@ -1241,7 +1241,7 @@ static size_t _write(void* __restrict ctx, const void* __restrict data, size_t n
 	_module_context_t* context = (_module_context_t*)ctx;
 
 	if(handle->dir != _DIR_OUT)
-	    ERROR_RETURN_LOG(size_t, "Invalid type of handle, expected write, but get read");
+		ERROR_RETURN_LOG(size_t, "Invalid type of handle, expected write, but get read");
 
 	runtime_api_pipe_flags_t flags = itc_module_get_handle_flags(out);
 
@@ -1250,12 +1250,12 @@ static size_t _write(void* __restrict ctx, const void* __restrict data, size_t n
 		LOG_DEBUG("Async write called");
 
 		if(ERROR_CODE(int) == _ensure_async_loop_init(context))
-		    ERROR_RETURN_LOG(size_t, "Cannot initialize the async loop");
+			ERROR_RETURN_LOG(size_t, "Cannot initialize the async loop");
 
 		size_t sync_write_bytes = _ensure_async_handle(context, handle, bytes, nbytes, 0);
 
 		if(ERROR_CODE(size_t) == sync_write_bytes)
-		    ERROR_RETURN_LOG(size_t, "Cannot create the async write handle");
+			ERROR_RETURN_LOG(size_t, "Cannot create the async write handle");
 
 		nbytes -= sync_write_bytes;
 		bytes += sync_write_bytes;
@@ -1263,7 +1263,7 @@ static size_t _write(void* __restrict ctx, const void* __restrict data, size_t n
 
 		size_t async_write_bytes = _write_async_buf(context, handle, bytes, nbytes);
 		if(ERROR_CODE(size_t) == async_write_bytes)
-		    ERROR_RETURN_LOG(size_t, "Async write failure");
+			ERROR_RETURN_LOG(size_t, "Async write failure");
 
 		return async_write_bytes + sync_write_bytes;
 	}
@@ -1281,7 +1281,7 @@ static size_t _write(void* __restrict ctx, const void* __restrict data, size_t n
 				bytes += rc;
 			}
 			else if(errno == EAGAIN || errno == EWOULDBLOCK)
-			    continue;
+				continue;
 			else ERROR_RETURN_LOG(size_t, "Scoket error");
 		}
 		return bytes_written;
@@ -1317,7 +1317,7 @@ static int _dealloc(void* __restrict ctx, void* __restrict pipe, int error, int 
 			if(handle->state->user_space_data != NULL && handle->state->user_state_pending == 0)
 			{
 				if(_dispose_user_state(handle->state) == ERROR_CODE(int))
-				    LOG_WARNING("could not deallocate user space state, memory leak is possbile");
+					LOG_WARNING("could not deallocate user space state, memory leak is possbile");
 
 				handle->state->user_space_data = NULL;
 				handle->state->disp = NULL;
@@ -1327,7 +1327,7 @@ static int _dealloc(void* __restrict ctx, void* __restrict pipe, int error, int 
 			{
 				LOG_DEBUG("There's no undergoing async write op, release the connection directly");
 				if(module_tcp_pool_connection_release(context->conn_pool, handle->idx, handle->state, mode) == ERROR_CODE(int))
-				    ERROR_RETURN_LOG(int, "cannot release the connection");
+					ERROR_RETURN_LOG(int, "cannot release the connection");
 			}
 			else
 			{
@@ -1335,7 +1335,7 @@ static int _dealloc(void* __restrict ctx, void* __restrict pipe, int error, int 
 				handle->async_handle->release_mode = mode;
 				handle->async_handle->release_data = handle->state;
 				if(module_tcp_async_write_data_ends(context->async_loop, handle->idx) == ERROR_CODE(int))
-				    ERROR_RETURN_LOG(int, "cannot notify the async IO loop");
+					ERROR_RETURN_LOG(int, "cannot notify the async IO loop");
 			}
 		}
 		else
@@ -1349,7 +1349,7 @@ static int _dealloc(void* __restrict ctx, void* __restrict pipe, int error, int 
 			{
 				LOG_DEBUG("there's no undergoing async write op, release the connection directly");
 				if(module_tcp_pool_connection_release(context->conn_pool, handle->idx, NULL, MODULE_TCP_POOL_RELEASE_MODE_PURGE) == ERROR_CODE(int))
-				    ERROR_RETURN_LOG(int, "cannot purge the connection");
+					ERROR_RETURN_LOG(int, "cannot purge the connection");
 			}
 			else
 			{
@@ -1357,7 +1357,7 @@ static int _dealloc(void* __restrict ctx, void* __restrict pipe, int error, int 
 				handle->async_handle->release_mode = MODULE_TCP_POOL_RELEASE_MODE_PURGE;
 				handle->async_handle->release_data = NULL;
 				if(module_tcp_async_write_data_ends(context->async_loop, handle->idx) == ERROR_CODE(int))
-				    ERROR_RETURN_LOG(int, "cannot notify the async IO loop");
+					ERROR_RETURN_LOG(int, "cannot notify the async IO loop");
 			}
 		}
 	}
@@ -1398,7 +1398,7 @@ static int _push_state(void* __restrict ctx, void* __restrict pipe, void* __rest
 	_handle_t *handle = (_handle_t*) pipe;
 
 	if(handle->state->user_space_data != state && _dispose_user_state(handle->state) == ERROR_CODE(int))
-	    LOG_WARNING("Could not deallocate the previous user state, memory leak possible");
+		LOG_WARNING("Could not deallocate the previous user state, memory leak possible");
 
 	handle->state->user_state_pending = 1;
 
@@ -1444,7 +1444,7 @@ static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* s
 
 	/* Also, any forked event loop do not have permission to access any of the config */
 	if(context->fork_id != 0)
-	    return ret;
+		return ret;
 
 	if(strcmp(sym, "port") == 0) return _make_num(context->pool_conf.port);
 	else if(strcmp(sym, "ttl") == 0) return _make_num(context->pool_conf.ttl);
@@ -1472,7 +1472,7 @@ static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* s
 		return ret;
 	}
 	else if(strcmp(sym, "nforks") == 0)
-	    return _make_num((long long)module_tcp_pool_num_forks(context->conn_pool));
+		return _make_num((long long)module_tcp_pool_num_forks(context->conn_pool));
 
 	return ret;
 }
@@ -1547,9 +1547,9 @@ static const char* _get_path(void* __restrict ctx, char* buf, size_t sz)
 {
 	_module_context_t* context = (_module_context_t*)ctx;
 	if(context->fork_id == 0)
-	    snprintf(buf, sz, "port_%u", context->pool_conf.port);
+		snprintf(buf, sz, "port_%u", context->pool_conf.port);
 	else
-	    snprintf(buf, sz, "port_%u$%d", context->pool_conf.port, context->fork_id);
+		snprintf(buf, sz, "port_%u$%d", context->pool_conf.port, context->fork_id);
 	return buf;
 }
 

@@ -55,21 +55,21 @@ static int _exec(void* data)
 		ASSERT_PTR(result, CLEANUP_NOP);
 		uint32_t j;
 		for(j = 0; j < i; j ++)
-		    ASSERT(results[i] != results[j], CLEANUP_NOP);
+			ASSERT(results[i] != results[j], CLEANUP_NOP);
 	}
 
 	for(i = 0; i < sizeof(results)/sizeof(results[0]); i ++)
-	    memset(results[i], i&0xff, 32);
+		memset(results[i], i&0xff, 32);
 
 	for(i = 0; i < sizeof(results)/sizeof(results[0]); i ++)
 	{
 		uint32_t j = 0;
 		for(j = 0; j < 32; j ++)
-		    ASSERT(((uint8_t*)results[i])[j] == (i&0xff), CLEANUP_NOP);
+			ASSERT(((uint8_t*)results[i])[j] == (i&0xff), CLEANUP_NOP);
 	}
 
 	for(i = 0; i < sizeof(results)/sizeof(results[0]); i ++)
-	    ASSERT_OK(pipe_cntl(ctx->dealloc, PIPE_CNTL_INVOKE,results[i]), CLEANUP_NOP);;
+		ASSERT_OK(pipe_cntl(ctx->dealloc, PIPE_CNTL_INVOKE,results[i]), CLEANUP_NOP);;
 
 	ASSERT_OK(pipe_cntl(ctx->dealloc, PIPE_CNTL_INVOKE, result1), CLEANUP_NOP);
 

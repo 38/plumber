@@ -73,16 +73,16 @@ void proto_err_raise(proto_err_code_t code, uint32_t line, const char* file)
 const char* proto_err_str(const proto_err_t* error, char* buffer, size_t bufsize)
 {
 	if(NULL == error || NULL == buffer || error->code >= PROTO_ERR_CODE_COUNT)
-	    return NULL;
+		return NULL;
 
 	if(error->errnum != 0)
-	    snprintf(buffer, bufsize, "%s: %s (line: %d, file: %s)",
-	             _err_desc[error->code], strerror(error->errnum),
-	             error->line, error->file == NULL ? "unknown" : error->file);
+		snprintf(buffer, bufsize, "%s: %s (line: %d, file: %s)",
+		         _err_desc[error->code], strerror(error->errnum),
+		         error->line, error->file == NULL ? "unknown" : error->file);
 	else
-	    snprintf(buffer, bufsize, "%s (line: %d, file: %s)",
-	             _err_desc[error->code],
-	             error->line, error->file == NULL ? "unknown" : error->file);
+		snprintf(buffer, bufsize, "%s (line: %d, file: %s)",
+		         _err_desc[error->code],
+		         error->line, error->file == NULL ? "unknown" : error->file);
 
 	return buffer;
 }

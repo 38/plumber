@@ -84,14 +84,14 @@ static inline int _free_request_pages(request_t* req)
 	uint32_t i;
 	int rc = 0;
 	for(i = 0; i < req->req_page_count; i ++)
-	    if(req->req_pages[i] != NULL && ERROR_CODE(int) == pstd_mempool_page_dealloc(req->req_pages[i]))
-	        rc = ERROR_CODE(int);
+		if(req->req_pages[i] != NULL && ERROR_CODE(int) == pstd_mempool_page_dealloc(req->req_pages[i]))
+			rc = ERROR_CODE(int);
 
 	if(req->pooled_list && ERROR_CODE(int) == pstd_mempool_free(req->req_pages))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(req->pooled_list == 0)
-	    free(req->req_pages);
+		free(req->req_pages);
 
 	return rc;
 }
@@ -115,7 +115,7 @@ static inline size_t _ensure_request_pages(request_t* req, size_t sz)
 			if(NULL == new_list) ERROR_RETURN_LOG_ERRNO(size_t, "Cannot resize the page buffer");
 
 			if(NULL == prev_list)
-			    memcpy(new_list, req->req_pages, sizeof(char*) * req->req_page_capcity);
+				memcpy(new_list, req->req_pages, sizeof(char*) * req->req_page_capcity);
 
 			memset(new_list + req->req_page_capcity, 0, sizeof(char*) * req->req_page_capcity);
 
@@ -124,14 +124,14 @@ static inline size_t _ensure_request_pages(request_t* req, size_t sz)
 		}
 
 		if(NULL == (req->req_pages[req->req_page_count] = pstd_mempool_page_alloc()))
-		    ERROR_RETURN_LOG(size_t, "Cannot allocate new page");
+			ERROR_RETURN_LOG(size_t, "Cannot allocate new page");
 
 		req->req_page_count ++;
 		req->req_page_offset = 0;
 	}
 
 	if(sz > _PAGESIZE - req->req_page_offset)
-	    sz = _PAGESIZE - req->req_page_offset;
+		sz = _PAGESIZE - req->req_page_offset;
 
 	return sz;
 }
@@ -142,7 +142,7 @@ static inline int _request_buffer_write(request_t* req, const void* data, size_t
 	{
 		size_t bytes_to_write = _ensure_request_pages(req, size);
 		if(ERROR_CODE(size_t) == bytes_to_write)
-		    ERROR_RETURN_LOG(int, "Cannot ensure the request buffer has enough memory");
+			ERROR_RETURN_LOG(int, "Cannot ensure the request buffer has enough memory");
 
 		memcpy(req->req_pages[req->req_page_count - 1] + req->req_page_offset, data, bytes_to_write);
 
@@ -182,7 +182,7 @@ static inline int _populate_request_buffer(request_t* req, const char* base, con
 	_SET_VAR  (_VERB, _method_verb[req->method], _method_verb_size[req->method]);
 	_SET_VAR  (_URL_BASE, base, base_len = strlen(base));
 	if(base_len > 0 && base[base_len - 1] == '/' && path[0] == '/')
-	    path ++;
+		path ++;
 	_SET_VAR  (_URL_REL, path, strlen(path));
 	if(query[0] != 0)
 	{
@@ -202,11 +202,11 @@ static inline int _populate_request_buffer(request_t* req, const char* base, con
 	{
 		int sz = 0;
 		if(beg == (uint64_t)-1)
-		    sz = snprintf(rg_buf, sizeof(rg_buf), "Range: bytes=-%"PRIu64"\r\n", end - 1);
+			sz = snprintf(rg_buf, sizeof(rg_buf), "Range: bytes=-%"PRIu64"\r\n", end - 1);
 		else if(end == (uint64_t) - 1)
-		    sz = snprintf(rg_buf, sizeof(rg_buf), "Range: bytes=%"PRIu64"-\r\n", beg);
+			sz = snprintf(rg_buf, sizeof(rg_buf), "Range: bytes=%"PRIu64"-\r\n", beg);
 		else
-		    sz = snprintf(rg_buf, sizeof(rg_buf), "Range: bytes=%"PRIu64"-%"PRIu64"\r\n", beg, end - 1);
+			sz = snprintf(rg_buf, sizeof(rg_buf), "Range: bytes=%"PRIu64"-%"PRIu64"\r\n", beg, end - 1);
 		_SET_VAR(_RANGE_LINE, rg_buf, (size_t)sz);
 	}
 	_SET_CONST(_MISC_FIELDS, "User-Agent: Plumber(network.http.proxy)/0.1\r\nConnection: keep-alive\r\n");
@@ -216,8 +216,8 @@ static inline int _populate_request_buffer(request_t* req, const char* base, con
 	uint32_t i;
 
 	for(i = 0; i < sizeof(req_data) /sizeof(req_data[0]); i ++)
-	    if(req_data[i] != NULL && ERROR_CODE(int) == _request_buffer_write(req, req_data[i], req_size[i]))
-	        ERROR_RETURN_LOG(int, "Cannot write data to the buffer");
+		if(req_data[i] != NULL && ERROR_CODE(int) == _request_buffer_write(req, req_data[i], req_size[i]))
+			ERROR_RETURN_LOG(int, "Cannot write data to the buffer");
 
 	return 0;
 }
@@ -225,12 +225,12 @@ static inline int _populate_request_buffer(request_t* req, const char* base, con
 request_t* request_new(const request_param_t* param, uint32_t timeout)
 {
 	if(NULL == param->host || param->base_dir == NULL || param->relative_path == NULL)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	request_t* ret = pstd_mempool_alloc(sizeof(request_t));
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the new request object");
+		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the new request object");
 
 	ret->committed = 0;
 	ret->domain = param->host;
@@ -242,10 +242,10 @@ request_t* request_new(const request_param_t* param, uint32_t timeout)
 	{
 		char ch = ret->domain[ret->domain_len];
 		if(ch == ':' || ch == '/' || ch == 0)
-		    break;
+			break;
 
 		if(ret->domain_len == 0xff)
-		    ERROR_LOG_GOTO(ERR, "The domain name is too long");
+			ERROR_LOG_GOTO(ERR, "The domain name is too long");
 	}
 
 	ret->port = 80;
@@ -259,24 +259,24 @@ request_t* request_new(const request_param_t* param, uint32_t timeout)
 		ret->port_str = ret->domain + ret->domain_len + 1;
 
 		for(i = ret->domain_len + 1; ret->domain[i] >= '0' && ret->domain[i] <= '9' && port_num < 0x10000; i ++)
-		    port_num = port_num * 10 + (uint32_t)(ret->domain[i] - '0');
+			port_num = port_num * 10 + (uint32_t)(ret->domain[i] - '0');
 
 		if(port_num >= 0x10000)
-		    ERROR_LOG_GOTO(ERR, "Invalid port number");
+			ERROR_LOG_GOTO(ERR, "Invalid port number");
 
 		ret->port = (uint16_t)port_num;
 		ret->port_str_len = 0xfu & (uint8_t)(i - ret->domain_len - 1);
 		ret->host_len = 0xffu & ((uint8_t)(ret->domain_len + ret->port_str_len) + 1u);
 	}
 	else
-	    ret->host_len = ret->domain_len;
+		ret->host_len = ret->domain_len;
 
 	ret->req_page_capcity = 4;
 	ret->req_page_count = 0;
 	ret->req_page_offset = _PAGESIZE;
 	ret->pooled_list = 1;
 	if(NULL == (ret->req_pages = (char**)pstd_mempool_alloc((uint32_t)(sizeof(char*) * ret->req_page_capcity))))
-	    ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the req page list");
+		ERROR_LOG_GOTO(ERR, "Cannot allocate memory for the req page list");
 
 	memset(ret->req_pages, 0, sizeof(char*) * ret->req_page_capcity);
 
@@ -284,7 +284,7 @@ request_t* request_new(const request_param_t* param, uint32_t timeout)
 	                                               param->base_dir, param->relative_path, param->query_param,
 	                                               param->range_begin, param->range_end,
 	                                               param->content, param->content_len))
-	    ERROR_LOG_GOTO(ERR, "Cannot populate the request buffer");
+		ERROR_LOG_GOTO(ERR, "Cannot populate the request buffer");
 
 	ret->timeout = timeout;
 
@@ -300,7 +300,7 @@ static inline int _request_free(request_t* req)
 	int rc = _free_request_pages(req);
 
 	if(ERROR_CODE(int) == pstd_mempool_free(req))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	return rc;
 }
@@ -309,10 +309,10 @@ static inline int _request_free(request_t* req)
 int request_free(request_t* req)
 {
 	if(NULL == req)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(req->committed)
-	    ERROR_RETURN_LOG(int, "The request has been committed to RLS");
+		ERROR_RETURN_LOG(int, "The request has been committed to RLS");
 
 	return _request_free(req);
 }
@@ -331,7 +331,7 @@ static inline int _connect(_stream_t* stream)
 	int conn_rc = connection_pool_checkout(req->domain, req->domain_len, req->port, &stream->sock);
 
 	if(ERROR_CODE(int) == conn_rc)
-	    ERROR_RETURN_LOG(int, "Cannot checkout the socket to the server from connection pool");
+		ERROR_RETURN_LOG(int, "Cannot checkout the socket to the server from connection pool");
 
 	if(conn_rc == 1)
 	{
@@ -342,11 +342,11 @@ static inline int _connect(_stream_t* stream)
 		if((sz < 0 && errno != EWOULDBLOCK && errno != EAGAIN) || sz == 0)
 		{
 			if(sz < 0)
-			    LOG_DEBUG_ERRNO("The socket fd returns an unexpected FD, closing it and establish a new one");
+				LOG_DEBUG_ERRNO("The socket fd returns an unexpected FD, closing it and establish a new one");
 			else
-			    LOG_DEBUG("The socket is in half-closed state, get rid of that one");
+				LOG_DEBUG("The socket is in half-closed state, get rid of that one");
 			if(close(stream->sock) < 0)
-			    LOG_WARNING_ERRNO("Cannot close the FD");
+				LOG_WARNING_ERRNO("Cannot close the FD");
 			conn_rc = 0;
 		}
 	}
@@ -363,7 +363,7 @@ static inline int _connect(_stream_t* stream)
 
 
 		if(req->port_str == NULL)
-		    memcpy(port_buf, "80", 3);
+			memcpy(port_buf, "80", 3);
 		else
 		{
 			memcpy(port_buf, req->port_str, req->port_str_len);
@@ -380,37 +380,37 @@ static inline int _connect(_stream_t* stream)
 		int rc = getaddrinfo(domain_buf, port_buf, &hints, &result);
 
 		if(rc != 0)
-		    ERROR_RETURN_LOG(int, "Cannot resolve the domain name: %s", gai_strerror(rc));
+			ERROR_RETURN_LOG(int, "Cannot resolve the domain name: %s", gai_strerror(rc));
 
 		for(ptr = result; ptr != NULL; ptr = ptr->ai_next)
 		{
 			if((stream->sock =socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol)) < 0)
-			    LOG_TRACE_ERRNO("Cannot connect to the address %s", req->domain);
+				LOG_TRACE_ERRNO("Cannot connect to the address %s", req->domain);
 
 			if(connect(stream->sock, ptr->ai_addr, ptr->ai_addrlen) >= 0)
 			{
 				LOG_TRACE("The connection has been successfully established to %s", req->domain);
 				int flags = fcntl(stream->sock, F_GETFL, 0);
 				if(flags == -1)
-				    ERROR_LOG_ERRNO_GOTO(CONN_FAIL, "Cannot get the flags for the socket FD");
+					ERROR_LOG_ERRNO_GOTO(CONN_FAIL, "Cannot get the flags for the socket FD");
 
 				if(fcntl(stream->sock, F_SETFL, flags | O_NONBLOCK) < 0)
-				    ERROR_LOG_ERRNO_GOTO(CONN_FAIL, "Cannot set the socket FD to nonblocking mode");
+					ERROR_LOG_ERRNO_GOTO(CONN_FAIL, "Cannot set the socket FD to nonblocking mode");
 
 				conn_rc = 1;
 				break;
 			}
 CONN_FAIL:
 			if(stream->sock >= 0 && close(stream->sock) < 0)
-			    LOG_WARNING("Cannot close the socket fd %d", stream->sock);
+				LOG_WARNING("Cannot close the socket fd %d", stream->sock);
 
 		}
 
 		if(NULL != result)
-		    freeaddrinfo(result);
+			freeaddrinfo(result);
 
 		if(conn_rc == 0)
-		    ERROR_RETURN_LOG_ERRNO(int, "Cannot connect to the server");
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot connect to the server");
 	}
 
 	return 0;
@@ -441,19 +441,19 @@ static int _rls_close(void* obj)
 			if(sz < 0)
 			{
 				if(errno == EPIPE)
-				    LOG_TRACE_ERRNO("Could not read more data, because the socket is half-closed");
+					LOG_TRACE_ERRNO("Could not read more data, because the socket is half-closed");
 				else if(errno == EWOULDBLOCK || errno == EAGAIN)
-				    LOG_TRACE_ERRNO("We are waiting for the connection gets ready, stop");
+					LOG_TRACE_ERRNO("We are waiting for the connection gets ready, stop");
 				else
-				    LOG_WARNING_ERRNO("The remote server peer socket is error");
+					LOG_WARNING_ERRNO("The remote server peer socket is error");
 
 				needs_close = 1;
 			}
 
 			if(sz > 0 && 1 == http_response_parse(&stream->response, buf, (size_t)sz) && http_response_complete(&stream->response))
-			    LOG_DEBUG("We finally figured out where the message ends, checkin the socket instread of close");
+				LOG_DEBUG("We finally figured out where the message ends, checkin the socket instread of close");
 			else
-			    needs_close = 1;
+				needs_close = 1;
 		}
 
 		if(needs_close && close(stream->sock) < 0)
@@ -485,7 +485,7 @@ static void* _rls_open(const void* obj)
 	_stream_t* stream = (_stream_t*)pstd_mempool_alloc(sizeof(_stream_t));
 
 	if(NULL == stream)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the new stream");
+		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the new stream");
 
 	stream->sock = -1;
 	stream->req = req;
@@ -494,7 +494,7 @@ static void* _rls_open(const void* obj)
 	memset(&stream->response, 0, sizeof(stream->response));
 
 	if(ERROR_CODE(int) == _connect(stream))
-	    ERROR_LOG_GOTO(ERR, "Cannot connect to the server");
+		ERROR_LOG_GOTO(ERR, "Cannot connect to the server");
 
 	stream->error = 0;
 
@@ -529,14 +529,14 @@ static size_t _rls_read(void* __restrict obj, void* __restrict buf, size_t count
 		size_t current_page_size = req->req_page_count - 1 == stream->cur_request_page ? req->req_page_offset : _PAGESIZE;
 
 		if(current_page_size - stream->cur_request_page_ofs < bytes_to_write)
-		    bytes_to_write = current_page_size - stream->cur_request_page_ofs;
+			bytes_to_write = current_page_size - stream->cur_request_page_ofs;
 
 		ssize_t bytes_written = write(stream->sock,  req->req_pages[stream->cur_request_page] + stream->cur_request_page_ofs, bytes_to_write);
 
 		if(bytes_written == -1)
 		{
 			if(errno == EWOULDBLOCK || errno == EAGAIN)
-			    return 0;
+				return 0;
 			/* TODO: output the 503 message */
 			stream->error = 1;
 			LOG_TRACE_ERRNO("The socket cannot be written");
@@ -546,7 +546,7 @@ static size_t _rls_read(void* __restrict obj, void* __restrict buf, size_t count
 		stream->cur_request_page_ofs += (uint32_t)bytes_written;
 
 		if(stream->cur_request_page_ofs == _PAGESIZE)
-		    stream->cur_request_page_ofs = 0, stream->cur_request_page ++;
+			stream->cur_request_page_ofs = 0, stream->cur_request_page ++;
 	}
 
 	ssize_t bytes_read = read(stream->sock, buf, count);
@@ -554,7 +554,7 @@ static size_t _rls_read(void* __restrict obj, void* __restrict buf, size_t count
 	if(bytes_read == -1)
 	{
 		if(errno == EWOULDBLOCK || errno == EAGAIN)
-		    return 0;
+			return 0;
 		stream->error = 1;
 		LOG_TRACE_ERRNO("The socket cannot be read");
 		return ERROR_CODE(size_t);
@@ -568,7 +568,7 @@ static size_t _rls_read(void* __restrict obj, void* __restrict buf, size_t count
 
 	int rc = http_response_parse(&stream->response, buf, (size_t)bytes_read);
 	if(rc == ERROR_CODE(int))
-	    ERROR_RETURN_LOG(size_t, "Cannot parse the response");
+		ERROR_RETURN_LOG(size_t, "Cannot parse the response");
 	else if(rc == 0)
 	{
 		LOG_TRACE("The response is not valid anymore, we need to purge the connection");
@@ -597,9 +597,9 @@ static int _rls_event(void* obj, scope_ready_event_t* buf)
 	buf->write = 0;
 
 	if(_end_of_request(stream))
-	    buf->read = 1;
+		buf->read = 1;
 	else
-	    buf->write = 1;
+		buf->write = 1;
 
 	return 1;
 }
@@ -607,7 +607,7 @@ static int _rls_event(void* obj, scope_ready_event_t* buf)
 scope_token_t request_commit(request_t* request)
 {
 	if(NULL == request || request->committed)
-	    ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
+		ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
 
 	scope_entity_t ent = {
 		.data = request,
@@ -623,7 +623,7 @@ scope_token_t request_commit(request_t* request)
 	scope_token_t ret = pstd_scope_add(&ent);
 
 	if(ERROR_CODE(scope_token_t) == ret)
-	    ERROR_RETURN_LOG(scope_token_t, "Cannot add the entity to the scope");
+		ERROR_RETURN_LOG(scope_token_t, "Cannot add the entity to the scope");
 
 	return ret;
 }

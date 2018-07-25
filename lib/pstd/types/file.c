@@ -43,17 +43,17 @@ typedef struct {
 pstd_file_t* pstd_file_new(const char* filename)
 {
 	if(NULL == filename)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	pstd_file_t* ret = (pstd_file_t*)pstd_mempool_alloc(sizeof(pstd_file_t));
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the RLS file object");
+		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the RLS file object");
 
 	size_t len = strlen(filename);
 	if(len < sizeof(ret->_def_buf))
-	    ret->filename = ret->_def_buf;
+		ret->filename = ret->_def_buf;
 	else if(NULL == (ret->filename = (char*)malloc(len + 1)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate filename buffer");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate filename buffer");
 
 	memcpy(ret->filename, filename, len + 1);
 	ret->committed = 0;
@@ -69,7 +69,7 @@ ERR:
 int pstd_file_set_range(pstd_file_t* file, size_t begin, size_t end)
 {
 	if(NULL == file || end < begin)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	file->partial = 1;
 	file->part_beg = begin;
@@ -87,15 +87,15 @@ int pstd_file_set_range(pstd_file_t* file, size_t begin, size_t end)
 static inline int _free_impl(pstd_file_t* file, int allow_committed)
 {
 	if(NULL == file)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(file->committed && !allow_committed)
-	    ERROR_RETURN_LOG(int, "Cannot dispose a committed file RLS object");
+		ERROR_RETURN_LOG(int, "Cannot dispose a committed file RLS object");
 
 	LOG_DEBUG("File RLS for filename %s is being disposed", file->filename);
 
 	if(file->filename != file->_def_buf)
-	    free(file->filename);
+		free(file->filename);
 
 	return pstd_mempool_free(file);
 }
@@ -108,11 +108,11 @@ int pstd_file_free(pstd_file_t* file)
 const pstd_file_t* pstd_file_from_rls(scope_token_t token)
 {
 	if(ERROR_CODE(scope_token_t) == token)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	const pstd_file_t* ret = (const pstd_file_t*)pstd_scope_get(token);
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot get RLS token %u from the request local scope", token);
+		ERROR_PTR_RETURN_LOG("Cannot get RLS token %u from the request local scope", token);
 
 	LOG_DEBUG("File RLS token %u has been acuired", token);
 
@@ -139,10 +139,10 @@ static inline int _read_stat(const pstd_file_t* file)
 
 #ifdef PSTD_FILE_NO_CACHE
 	if(stat(file->filename, (struct stat*)&file->stat) < 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "System call stat returns an unexpected error");
+		ERROR_RETURN_LOG_ERRNO(int, "System call stat returns an unexpected error");
 #else
 	if(pstd_fcache_stat(file->filename, (struct stat*)&file->stat) == ERROR_CODE(int))
-	    ERROR_RETURN_LOG(int, "Cannot get the file metadata from file cache");
+		ERROR_RETURN_LOG(int, "Cannot get the file metadata from file cache");
 #endif
 
 	/* dirty hack, but we still need to do this */
@@ -155,13 +155,13 @@ static inline int _read_stat(const pstd_file_t* file)
 int pstd_file_exist(const pstd_file_t* file)
 {
 	if(NULL == file)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	const char* name = file->filename;
 
 #ifndef PSTD_FILE_NO_CACHE
 	if(pstd_fcache_is_in_cache(name) > 0)
-	    return 1;
+		return 1;
 #endif
 
 	if(access(name, R_OK) != F_OK)
@@ -175,7 +175,7 @@ int pstd_file_exist(const pstd_file_t* file)
 	}
 
 	if(ERROR_CODE(int) == _read_stat(file))
-	    ERROR_RETURN_LOG(int, "Cannot read the file information");
+		ERROR_RETURN_LOG(int, "Cannot read the file information");
 
 	if(S_ISREG(file->stat.st_mode))
 	{
@@ -190,10 +190,10 @@ int pstd_file_exist(const pstd_file_t* file)
 size_t pstd_file_size(const pstd_file_t* file)
 {
 	if(NULL == file)
-	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 	if(ERROR_CODE(int) == _read_stat(file))
-	    ERROR_RETURN_LOG(size_t, "Cannot read the file information");
+		ERROR_RETURN_LOG(size_t, "Cannot read the file information");
 
 	return (size_t)file->stat.st_size;
 }
@@ -202,12 +202,12 @@ size_t pstd_file_size(const pstd_file_t* file)
 FILE* pstd_file_open(const pstd_file_t* file, const char* mode)
 {
 	if(NULL == file || NULL == mode)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	FILE* ret = fopen(file->filename, mode);
 
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot open file %s", file->filename);
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot open file %s", file->filename);
 
 	LOG_DEBUG("File RLS object for %s has been opened as stdio FILE", file->filename);
 
@@ -242,7 +242,7 @@ static inline void* _open(const void* mem)
 	_stream_t* stream = (_stream_t*)pstd_mempool_alloc(sizeof(_stream_t));
 
 	if(NULL == stream)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate meomry for the stream");
+		ERROR_PTR_RETURN_LOG("Cannot allocate meomry for the stream");
 
 	const pstd_file_t* file = (const pstd_file_t*)mem;
 #ifdef PSTD_FILE_NO_CACHE
@@ -251,16 +251,16 @@ static inline void* _open(const void* mem)
 	stream->file = pstd_fcache_open(file->filename);
 #endif
 	if(NULL == stream->file)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open file %s", file->filename);
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot open file %s", file->filename);
 
 	if(file->partial)
 	{
 #ifdef PSTD_FILE_NO_CACHE
 		if(-1 == fseek(stream->file, (off_t)file->part_beg, SEEK_SET))
-		    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot seek file %s", file->filename);
+			ERROR_LOG_ERRNO_GOTO(ERR, "Cannot seek file %s", file->filename);
 #else
 		if(ERROR_CODE(int) == pstd_fcache_seek(stream->file, file->part_beg))
-		    ERROR_LOG_GOTO(ERR, "Cannot seek file %s", file->filename);
+			ERROR_LOG_GOTO(ERR, "Cannot seek file %s", file->filename);
 #endif
 		stream->remaining = file->part_size;
 	}
@@ -295,7 +295,7 @@ static inline int _close(void* stream_mem)
 	fclose(s->file);
 #else
 	if(ERROR_CODE(int) == pstd_fcache_close(s->file))
-	    ERROR_RETURN_LOG(int, "Cannot close the file cache reference");
+		ERROR_RETURN_LOG(int, "Cannot close the file cache reference");
 #endif
 
 	LOG_DEBUG("The byte stream interface for RLS file has been closed");
@@ -314,7 +314,7 @@ static inline int _eos(const void* stream_mem)
 #ifdef PSTD_FILE_NO_CACHE
 	int rc = feof(s->file);
 	if(rc < 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot check if the stream gets the end");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot check if the stream gets the end");
 	return rc > 0;
 #else
 	return pstd_fcache_eof(s->file);
@@ -333,17 +333,17 @@ static inline size_t _read(void* __restrict stream_mem, void* __restrict buf, si
 	_stream_t* s = (_stream_t*)stream_mem;
 
 	if(s->remaining != (size_t)-1 && count > s->remaining)
-	    count = s->remaining;
+		count = s->remaining;
 
 #ifdef PSTD_FILE_NO_CACHE
 	size_t rc = fread(buf, 1, count, s->file);
 	if(rc == 0 && ferror(s->file))
-	    ERROR_RETURN_LOG_ERRNO(size_t, "Cannot read file the RLS file stream");
+		ERROR_RETURN_LOG_ERRNO(size_t, "Cannot read file the RLS file stream");
 
 	LOG_DEBUG("%zu bytes has been read from RLS file byte stream interface", rc);
 
 	if(s->remaining != (size_t)-1)
-	    s->remaining -= rc;
+		s->remaining -= rc;
 
 	return rc;
 #else
@@ -352,7 +352,7 @@ static inline size_t _read(void* __restrict stream_mem, void* __restrict buf, si
 	if(ERROR_CODE(size_t) == rc) return ERROR_CODE(size_t);
 
 	if(s->remaining != (size_t)-1)
-	    s->remaining -= rc;
+		s->remaining -= rc;
 
 	return rc;
 #endif
@@ -361,7 +361,7 @@ static inline size_t _read(void* __restrict stream_mem, void* __restrict buf, si
 scope_token_t pstd_file_commit(pstd_file_t* file)
 {
 	if(NULL == file || file->committed)
-	    ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
+		ERROR_RETURN_LOG(scope_token_t, "Invalid arguments");
 
 	scope_entity_t ent = {
 		.data = file,
@@ -376,7 +376,7 @@ scope_token_t pstd_file_commit(pstd_file_t* file)
 	scope_token_t ret = pstd_scope_add(&ent);
 
 	if(ERROR_CODE(scope_token_t) == ret)
-	    ERROR_RETURN_LOG(scope_token_t, "Cannot add the entity to the scope");
+		ERROR_RETURN_LOG(scope_token_t, "Cannot add the entity to the scope");
 
 	return ret;
 }
@@ -384,7 +384,7 @@ scope_token_t pstd_file_commit(pstd_file_t* file)
 const char* pstd_file_name(const pstd_file_t* file)
 {
 	if(NULL == file)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	return file->filename;
 }

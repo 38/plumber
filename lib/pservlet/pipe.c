@@ -34,7 +34,7 @@ size_t pipe_hdr_read(pipe_t pipe, void* buffer, size_t nbytes)
 
 	int rc = pipe_cntl(pipe, PIPE_CNTL_READHDR, buffer, nbytes, &ret);
 	if(ERROR_CODE(int) == rc)
-	    return ERROR_CODE(size_t);
+		return ERROR_CODE(size_t);
 
 	return ret;
 }
@@ -46,7 +46,7 @@ size_t pipe_hdr_write(pipe_t pipe, const void* buffer, size_t nbytes)
 	int rc = pipe_cntl(pipe, PIPE_CNTL_WRITEHDR, buffer, nbytes, &ret);
 
 	if(ERROR_CODE(int) == rc)
-	    return ERROR_CODE(size_t);
+		return ERROR_CODE(size_t);
 
 	return ret;
 }
@@ -100,7 +100,7 @@ static inline char* _append_num_to_buffer(char* b_begin, char* b_end, int serial
 
 	char* r = b_begin, *l = b_begin;
 	for(;n > 0; n /= 10)
-	    if(r < b_end) *(r ++) = (char)('0' + (n % 10));
+		if(r < b_end) *(r ++) = (char)('0' + (n % 10));
 	b_begin = r;
 	r --;
 	for(;l < r; l++, r--)
@@ -188,12 +188,12 @@ int pipe_set_type_callback(pipe_t pipe, pipe_type_callback_t callback, void* dat
 int pipe_data_get_buf(pipe_t pipe, size_t requested_size, void const** result, size_t* min_size, size_t* max_size)
 {
 	if(NULL == result || NULL == min_size || NULL == max_size)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	int rc = pipe_cntl(pipe, PIPE_CNTL_GET_DATA_BUF, requested_size, result, min_size, max_size);
 
 	if(ERROR_CODE(int) == rc)
-	    return ERROR_CODE(int);
+		return ERROR_CODE(int);
 
 	if(*result == NULL)
 	{
@@ -212,7 +212,7 @@ int pipe_data_release_buf(pipe_t pipe, void const* buffer, size_t actual_size)
 int pipe_hdr_get_buf(pipe_t pipe, size_t nbytes, void const** resbuf)
 {
 	if(ERROR_CODE(int) == pipe_cntl(pipe, PIPE_CNTL_GET_HDR_BUF, nbytes, resbuf))
-	    ERROR_RETURN_LOG(int, "Cannot get header buffer for the pipe");
+		ERROR_RETURN_LOG(int, "Cannot get header buffer for the pipe");
 
 	if(*resbuf == NULL)
 	{
@@ -226,7 +226,7 @@ int pipe_hdr_get_buf(pipe_t pipe, size_t nbytes, void const** resbuf)
 int pipe_batch_init(const pipe_init_param_t* params, size_t count)
 {
 	if(NULL == params)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	size_t i;
 	for(i = 0; i < count; i ++)
@@ -234,10 +234,10 @@ int pipe_batch_init(const pipe_init_param_t* params, size_t count)
 		const pipe_init_param_t* current = params + i;
 
 		if(NULL == current->target)
-		    ERROR_RETURN_LOG(int, "Invalid arguments");
+			ERROR_RETURN_LOG(int, "Invalid arguments");
 
 		if(ERROR_CODE(pipe_t) == (*current->target = pipe_define(current->name, current->flags, current->type)))
-		    ERROR_RETURN_LOG(int, "Cannot initialize pipe `%s'", current->name);
+			ERROR_RETURN_LOG(int, "Cannot initialize pipe `%s'", current->name);
 	}
 
 	return 0;

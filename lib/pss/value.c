@@ -59,10 +59,10 @@ pss_value_t pss_value_ref_new(pss_value_ref_type_t type, void* data)
 	_CHECK_OPS(type, mkval, ERR);
 
 	if(NULL == (value.ref = (pss_value_ref_t*)malloc(sizeof(value.ref[0]))))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the value reference");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the value reference");
 
 	if(NULL == (val = ops->mkval(data)))
-	    ERROR_LOG_GOTO(ERR, "Cannot make value from the input pointer");
+		ERROR_LOG_GOTO(ERR, "Cannot make value from the input pointer");
 
 	value.ref->type = type;
 	value.ref->val = val;
@@ -78,7 +78,7 @@ ERR:
 pss_value_ref_type_t pss_value_ref_type(pss_value_t value)
 {
 	if(value.kind != PSS_VALUE_KIND_REF)
-	    ERROR_RETURN_LOG(pss_value_ref_type_t, "Invalid arguments");
+		ERROR_RETURN_LOG(pss_value_ref_type_t, "Invalid arguments");
 
 	return value.ref->type;
 }
@@ -86,7 +86,7 @@ pss_value_ref_type_t pss_value_ref_type(pss_value_t value)
 int pss_value_incref(pss_value_t value)
 {
 	if(PSS_VALUE_KIND_REF == value.kind)
-	    value.ref->refcnt ++;
+		value.ref->refcnt ++;
 	return 0;
 }
 
@@ -94,7 +94,7 @@ int pss_value_incref(pss_value_t value)
 int pss_value_decref(pss_value_t value)
 {
 	if(PSS_VALUE_KIND_REF != value.kind)
-	    return 0;
+		return 0;
 
 	if(value.ref->refcnt > 0) value.ref->refcnt --;
 
@@ -123,7 +123,7 @@ static inline const char* _value_to_str(pss_value_t value, char* buf, size_t sz)
 	{
 		_CHECK_OPS(value.ref->type, tostr, ERR);
 		if(NULL == (ret = ops->tostr(value.ref->val, buf, sz)))
-		    ERROR_LOG_GOTO(ERR, "Cannot dump the object to string");
+			ERROR_LOG_GOTO(ERR, "Cannot dump the object to string");
 	}
 	else if(value.kind == PSS_VALUE_KIND_NUM)
 	{
@@ -136,7 +136,7 @@ static inline const char* _value_to_str(pss_value_t value, char* buf, size_t sz)
 		ret = buf;
 	}
 	else if(value.kind == PSS_VALUE_KIND_UNDEF)
-	    ret = "undefined";
+		ret = "undefined";
 
 	return ret;
 ERR:
@@ -146,7 +146,7 @@ ERR:
 size_t pss_value_strify_to_buf(pss_value_t value, char* buf, size_t sz)
 {
 	if(value.kind == PSS_VALUE_KIND_ERROR || NULL == buf || sz < 1)
-	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 	const char* str = _value_to_str(value, buf, sz);
 	if(NULL == str) ERROR_RETURN_LOG(size_t, "Cannot stringify the value");
@@ -167,7 +167,7 @@ pss_value_t pss_value_to_str(pss_value_t value)
 {
 	char* buf = NULL;
 	if(PSS_VALUE_KIND_ERROR == value.kind)
-	    ERROR_LOG_GOTO(ERR, "Invalid arguments");
+		ERROR_LOG_GOTO(ERR, "Invalid arguments");
 
 	const char* str = _value_to_str(value, NULL, 0);
 
@@ -187,7 +187,7 @@ int pss_value_ref_set_type_ops(pss_value_ref_type_t type, pss_value_ref_ops_t op
 {
 	_CHECK_TYPE(type, ERR);
 	if(NULL == ops.mkval || NULL == ops.free || NULL == ops.tostr)
-	    ERROR_LOG_GOTO(ERR, "Object operations is not fully defined");
+		ERROR_LOG_GOTO(ERR, "Object operations is not fully defined");
 	_type_ops[type] = ops;
 	return 0;
 ERR:

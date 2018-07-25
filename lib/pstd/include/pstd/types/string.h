@@ -164,7 +164,7 @@ extern "C" {
 		pstd_string_t* str_rls_obj = pstd_string_from_const(str);
 
 		if(NULL == str_rls_obj)
-		    ERROR_RETURN_LOG(scope_token_t, "Cannot create the PSTD string object");
+			ERROR_RETURN_LOG(scope_token_t, "Cannot create the PSTD string object");
 
 		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
 		if(ERROR_CODE(scope_token_t) == str_rls_tok)
@@ -191,7 +191,7 @@ extern "C" {
 		pstd_string_t* str_rls_obj = pstd_string_new_immutable(str, len);
 
 		if(NULL == str_rls_obj)
-		    ERROR_RETURN_LOG(int, "Cannot create the PSTD string object");
+			ERROR_RETURN_LOG(int, "Cannot create the PSTD string object");
 
 		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
 		if(ERROR_CODE(scope_token_t) == str_rls_tok)
@@ -215,7 +215,7 @@ extern "C" {
 	static inline int pstd_string_create_commit_write(pstd_type_instance_t* type_inst, pstd_type_accessor_t accessor, const char* str)
 	{
 		if(NULL == str)
-		    ERROR_RETURN_LOG(int, "Invalid arguments");
+			ERROR_RETURN_LOG(int, "Invalid arguments");
 		return pstd_string_create_commit_write_sz(type_inst, accessor, str, strlen(str));
 	}
 
@@ -234,7 +234,7 @@ extern "C" {
 		pstd_string_t* str_rls_obj = pstd_string_from_onwership_pointer(str, size);
 
 		if(NULL == str_rls_obj)
-		    ERROR_RETURN_LOG(int, "Cannot create PSTD string object");
+			ERROR_RETURN_LOG(int, "Cannot create PSTD string object");
 
 		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
 		if(ERROR_CODE(scope_token_t) == str_rls_tok)
@@ -262,7 +262,7 @@ extern "C" {
 		pstd_string_t* str_rls_obj = pstd_string_from_onwership_pointer_range(str, begin, end);
 
 		if(NULL == str_rls_obj)
-		    ERROR_RETURN_LOG(int, "Cannot create PSTD string object");
+			ERROR_RETURN_LOG(int, "Cannot create PSTD string object");
 
 		scope_token_t str_rls_tok = pstd_string_commit(str_rls_obj);
 		if(ERROR_CODE(scope_token_t) == str_rls_tok)
@@ -287,12 +287,12 @@ extern "C" {
 	static inline int pstd_string_copy_commit_write_sz(pstd_type_instance_t* type_inst, pstd_type_accessor_t accessor, const char* str, size_t sz)
 	{
 		if(NULL == str)
-		    ERROR_RETURN_LOG(int, "Invalid arguments");
+			ERROR_RETURN_LOG(int, "Invalid arguments");
 
 		char* owned_str = (char*)malloc(sz + 1);
 
 		if(NULL == owned_str)
-		    ERROR_RETURN_LOG(int, "Cannot allocate memory for the new string");
+			ERROR_RETURN_LOG(int, "Cannot allocate memory for the new string");
 
 		memcpy(owned_str, str, sz);
 		owned_str[sz] = 0;
@@ -326,7 +326,7 @@ extern "C" {
 	static inline int pstd_string_copy_commit_write(pstd_type_instance_t* type_inst, pstd_type_accessor_t accessor, const char* str)
 	{
 		if(NULL == str)
-		    ERROR_RETURN_LOG(int, "Invalid arguments");
+			ERROR_RETURN_LOG(int, "Invalid arguments");
 		return pstd_string_copy_commit_write_sz(type_inst, accessor, str, strlen(str));
 	}
 
@@ -341,14 +341,14 @@ extern "C" {
 	{
 		scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, type_inst, accessor);
 		if(ERROR_CODE(scope_token_t) == token)
-		    ERROR_PTR_RETURN_LOG("Cannot read the RLS token value with given accessor");
+			ERROR_PTR_RETURN_LOG("Cannot read the RLS token value with given accessor");
 
 		if(0 == token) return defval;
 
 		const pstd_string_t* str_obj = pstd_string_from_rls(token);
 
 		if(NULL == str_obj)
-		    ERROR_PTR_RETURN_LOG("Cannot retrieve the string object from RLS");
+			ERROR_PTR_RETURN_LOG("Cannot retrieve the string object from RLS");
 
 		return pstd_string_value(str_obj);
 	}
@@ -363,7 +363,7 @@ extern "C" {
 	{
 		scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, type_inst, accessor);
 		if(ERROR_CODE(scope_token_t) == token)
-		    ERROR_PTR_RETURN_LOG("Cannot read the RLS token value with given accessor");
+			ERROR_PTR_RETURN_LOG("Cannot read the RLS token value with given accessor");
 
 		if(token == 0) return NULL;
 

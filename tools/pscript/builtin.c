@@ -53,10 +53,10 @@ static pss_value_t _pscript_builtin_lsdaemon(pss_vm_t* vm, uint32_t argc, pss_va
 	ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_DICT, NULL);
 
 	if(ret.kind == PSS_VALUE_KIND_ERROR)
-	    ERROR_LOG_GOTO(ERR, "Cannot create the result dictionary");
+		ERROR_LOG_GOTO(ERR, "Cannot create the result dictionary");
 
 	if(NULL == (ret_dict = (pss_dict_t*)pss_value_get_data(ret)))
-	    ERROR_LOG_GOTO(ERR, "Cannot get the result dictionary object");
+		ERROR_LOG_GOTO(ERR, "Cannot get the result dictionary object");
 
 	char* name;
 	pid_t pid;
@@ -69,12 +69,12 @@ static pss_value_t _pscript_builtin_lsdaemon(pss_vm_t* vm, uint32_t argc, pss_va
 
 		val = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, name);
 		if(val.kind == PSS_VALUE_KIND_ERROR)
-		    ERROR_LOG_GOTO(LIST_APPEND_ERR, "Cannot create new string value for the daemon name");
+			ERROR_LOG_GOTO(LIST_APPEND_ERR, "Cannot create new string value for the daemon name");
 		else
-		    name = NULL;
+			name = NULL;
 
 		if(ERROR_CODE(int) == pss_dict_set(ret_dict, key, val))
-		    ERROR_LOG_ERRNO_GOTO(LIST_APPEND_ERR, "Cannot append the value to the result dictionary");
+			ERROR_LOG_ERRNO_GOTO(LIST_APPEND_ERR, "Cannot append the value to the result dictionary");
 		continue;
 LIST_APPEND_ERR:
 		if(NULL != name) free(name);
@@ -83,7 +83,7 @@ LIST_APPEND_ERR:
 	}
 
 	if(rc == ERROR_CODE(int))
-	    ERROR_LOG_GOTO(ERR, "Cannot traverse the daemon list");
+		ERROR_LOG_GOTO(ERR, "Cannot traverse the daemon list");
 
 	return ret;
 ERR:
@@ -109,14 +109,14 @@ static pss_value_t _pscript_builtin_lsmod(pss_vm_t* vm, uint32_t argc, pss_value
 
 	itc_modtab_dir_iter_t it;
 	if(itc_modtab_open_dir("", &it) == ERROR_CODE(int))
-	    return ret;
+		return ret;
 
 	ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_DICT, NULL);
 	if(ret.kind == PSS_VALUE_KIND_ERROR)
-	    ERROR_LOG_GOTO(ERR, "Cannot create the result dictionary");
+		ERROR_LOG_GOTO(ERR, "Cannot create the result dictionary");
 
 	if(NULL == (ret_dict = (pss_dict_t*)pss_value_get_data(ret)))
-	    ERROR_LOG_GOTO(ERR, "Cannot get the result dictionary object");
+		ERROR_LOG_GOTO(ERR, "Cannot get the result dictionary object");
 
 	const itc_modtab_instance_t* inst;
 	while(NULL != (inst = itc_modtab_dir_iter_next(&it)))
@@ -127,15 +127,15 @@ static pss_value_t _pscript_builtin_lsmod(pss_vm_t* vm, uint32_t argc, pss_value
 		snprintf(key, sizeof(key), "%u", inst->module_id);
 
 		if(NULL == val)
-		    ERROR_LOG_GOTO(ITER_ERR, "Cannot duplicate the module path string");
+			ERROR_LOG_GOTO(ITER_ERR, "Cannot duplicate the module path string");
 
 		pss_value_t v_val = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, val);
 
 		if(v_val.kind == PSS_VALUE_KIND_ERROR)
-		    ERROR_LOG_GOTO(ITER_ERR, "Cannot create value stirng");
+			ERROR_LOG_GOTO(ITER_ERR, "Cannot create value stirng");
 
 		if(ERROR_CODE(int) == pss_dict_set(ret_dict, key, v_val))
-		    ERROR_LOG_GOTO(ITER_ERR, "Cannot put the key to the result dictionary");
+			ERROR_LOG_GOTO(ITER_ERR, "Cannot put the key to the result dictionary");
 		continue;
 ITER_ERR:
 		pss_value_decref(v_val);
@@ -246,23 +246,23 @@ static pss_value_t _pscript_builtin_len(pss_vm_t* vm, uint32_t argc, pss_value_t
 	switch(pss_value_ref_type(argv[0]))
 	{
 		case PSS_VALUE_REF_TYPE_DICT:
-		{
-			pss_dict_t* dict = (pss_dict_t*)pss_value_get_data(argv[0]);
-			if(NULL == dict) break;
-			uint32_t result = pss_dict_size(dict);
-			if(ERROR_CODE(uint32_t) == result) break;
-			ret.kind = PSS_VALUE_KIND_NUM;
-			ret.num = result;
-			break;
-		}
+			{
+				pss_dict_t* dict = (pss_dict_t*)pss_value_get_data(argv[0]);
+				if(NULL == dict) break;
+				uint32_t result = pss_dict_size(dict);
+				if(ERROR_CODE(uint32_t) == result) break;
+				ret.kind = PSS_VALUE_KIND_NUM;
+				ret.num = result;
+				break;
+			}
 		case PSS_VALUE_REF_TYPE_STRING:
-		{
-			const char* str = (const char*)pss_value_get_data(argv[0]);
-			if(NULL == str) break;
-			ret.kind = PSS_VALUE_KIND_NUM;
-			ret.num = (int64_t)strlen(str);
-			break;
-		}
+			{
+				const char* str = (const char*)pss_value_get_data(argv[0]);
+				if(NULL == str) break;
+				ret.kind = PSS_VALUE_KIND_NUM;
+				ret.num = (int64_t)strlen(str);
+				break;
+			}
 		default:
 		    LOG_ERROR("Type error: len fucntion doesn't support the input type");
 		    break;
@@ -377,14 +377,14 @@ static pss_value_t _pscript_builtin_insmod(pss_vm_t* vm, uint32_t argc, pss_valu
 					{
 						char** new_argv = (char**)realloc(argv, sizeof(char*) * module_arg_cap * 2);
 						if(new_argv == NULL)
-						    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot resize the argument buffer");
+							ERROR_LOG_ERRNO_GOTO(ERR, "Cannot resize the argument buffer");
 						module_argv = new_argv;
 						module_arg_cap = module_arg_cap * 2;
 					}
 
 					module_argv[module_argc] = (char*)malloc((size_t)(ptr - begin + 1));
 					if(NULL == module_argv[module_argc])
-					    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allcoate memory for the argument string");
+						ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allcoate memory for the argument string");
 
 					memcpy(module_argv[module_argc], begin, (size_t)(ptr - begin));
 					module_argv[module_argc][ptr-begin] = 0;
@@ -405,7 +405,7 @@ static pss_value_t _pscript_builtin_insmod(pss_vm_t* vm, uint32_t argc, pss_valu
 
 	ret.num = PSS_VM_ERROR_MODULE;
 	if(ERROR_CODE(int) == itc_modtab_insmod(binary, module_argc - 1, (char const* const*) module_argv + 1))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot instantiate the mdoule binary using param");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot instantiate the mdoule binary using param");
 
 	ret.kind = PSS_VALUE_KIND_UNDEF;
 
@@ -417,7 +417,7 @@ CLEANUP:
 	if(NULL != module_argv)
 	{
 		for(i = 0; i < module_argc; i ++)
-		    free(module_argv[i]);
+			free(module_argv[i]);
 
 		free(module_argv);
 	}
@@ -475,14 +475,14 @@ static pss_value_t _pscript_builtin_service_node(pss_vm_t* vm, uint32_t argc, ps
 	};
 
 	if(argc != 2)
-	    return ret;
+		return ret;
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF || argv[1].kind != PSS_VALUE_KIND_REF)
-	    return ret;
+		return ret;
 
 	if(pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_EXOTIC ||
 	   pss_value_ref_type(argv[1]) != PSS_VALUE_REF_TYPE_STRING)
-	    return ret;
+		return ret;
 
 	ret.num = PSS_VM_ERROR_INTERNAL;
 	pss_exotic_t* obj = (pss_exotic_t*)pss_value_get_data(argv[0]);
@@ -495,7 +495,7 @@ static pss_value_t _pscript_builtin_service_node(pss_vm_t* vm, uint32_t argc, ps
 
 	int64_t rc;
 	if(ERROR_CODE(int64_t) == (rc = lang_service_add_node(serv, init_args)))
-	    ret.num = PSS_VM_ERROR_ADD_NODE;
+		ret.num = PSS_VM_ERROR_ADD_NODE;
 	else
 	{
 		ret.kind = PSS_VALUE_KIND_NUM;
@@ -517,10 +517,10 @@ static pss_value_t _pscript_builtin_service_port_type(pss_vm_t* vm, uint32_t arg
 	if(argc != 3) return ret;
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF || argv[1].kind != PSS_VALUE_KIND_NUM || argv[2].kind != PSS_VALUE_KIND_REF)
-	    return ret;
+		return ret;
 
 	if(pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_EXOTIC || pss_value_ref_type(argv[2]) != PSS_VALUE_REF_TYPE_STRING)
-	    return ret;
+		return ret;
 
 	pss_exotic_t* obj = (pss_exotic_t*)pss_value_get_data(argv[0]);
 	lang_service_t* serv = (lang_service_t*)pss_exotic_get_data(obj, LANG_SERVICE_TYPE_MAGIC);
@@ -564,13 +564,13 @@ static pss_value_t _pscript_builtin_service_node_ports(pss_vm_t* vm, uint32_t ar
 	};
 
 	if(argc != 2)
-	    return ret;
+		return ret;
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF || argv[1].kind != PSS_VALUE_KIND_NUM)
-	    return ret;
+		return ret;
 
 	if(pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_EXOTIC)
-	    return ret;
+		return ret;
 
 	pss_exotic_t* obj = (pss_exotic_t*)pss_value_get_data(argv[0]);
 	lang_service_t* serv = (lang_service_t*)pss_exotic_get_data(obj, LANG_SERVICE_TYPE_MAGIC);
@@ -597,9 +597,9 @@ static pss_value_t _pscript_builtin_service_node_ports(pss_vm_t* vm, uint32_t ar
 	pss_dict_t* ret_dict = (pss_dict_t*)pss_value_get_data(ret);
 	if(NULL == ret_dict) ERROR_LOG_GOTO(ERR, "Cannot get the dictionary object from the result value");
 	if(ERROR_CODE(int) == pss_dict_set(ret_dict, "input", in))
-	    ERROR_LOG_GOTO(ERR, "Cannot put the input list to the result dictionary");
+		ERROR_LOG_GOTO(ERR, "Cannot put the input list to the result dictionary");
 	if(ERROR_CODE(int) == pss_dict_set(ret_dict, "output", out))
-	    ERROR_LOG_GOTO(ERR, "Cannot put the output list to the result ditionary");
+		ERROR_LOG_GOTO(ERR, "Cannot put the output list to the result ditionary");
 
 	char keybuf[32];
 	uint32_t begin = 0;
@@ -611,7 +611,7 @@ static pss_value_t _pscript_builtin_service_node_ports(pss_vm_t* vm, uint32_t ar
 		{
 			pss_value_t val = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, names[i]);
 			if(PSS_VALUE_KIND_ERROR == val.kind)
-			    ERROR_LOG_GOTO(ERR, "Cannot create the name string");
+				ERROR_LOG_GOTO(ERR, "Cannot create the name string");
 
 			snprintf(keybuf, sizeof(keybuf), "%d", i - begin);
 			if(ERROR_CODE(int) != pss_dict_set(dict, keybuf, val)) continue;
@@ -653,19 +653,19 @@ static pss_value_t _pscript_builtin_service_pipe(pss_vm_t* vm, uint32_t argc, ps
 	};
 
 	if(argc != 5)
-	    return ret;
+		return ret;
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF ||
 	   argv[1].kind != PSS_VALUE_KIND_NUM || argv[2].kind != PSS_VALUE_KIND_REF ||
 	   argv[3].kind != PSS_VALUE_KIND_NUM || argv[4].kind != PSS_VALUE_KIND_REF)
-	    return ret;
+		return ret;
 
 	if(pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_EXOTIC)
-	    return ret;
+		return ret;
 	if(pss_value_ref_type(argv[2]) != PSS_VALUE_REF_TYPE_STRING)
-	    return ret;
+		return ret;
 	if(pss_value_ref_type(argv[4]) != PSS_VALUE_REF_TYPE_STRING)
-	    return ret;
+		return ret;
 
 	pss_exotic_t* obj = (pss_exotic_t*)pss_value_get_data(argv[0]);
 	lang_service_t* serv = (lang_service_t*)pss_exotic_get_data(obj, LANG_SERVICE_TYPE_MAGIC);
@@ -674,7 +674,7 @@ static pss_value_t _pscript_builtin_service_pipe(pss_vm_t* vm, uint32_t argc, ps
 	const char* src_port = (const char*)pss_value_get_data(argv[2]);
 	const char* dst_port = (const char*)pss_value_get_data(argv[4]);
 	if(src_port == NULL || dst_port == NULL)
-	    return ret;
+		return ret;
 
 	if(ERROR_CODE(int) == lang_service_add_edge(serv, argv[1].num, src_port, argv[3].num, dst_port))
 	{
@@ -694,16 +694,16 @@ static pss_value_t _set_input_or_output(uint32_t argc, pss_value_t* argv, int in
 	};
 
 	if(argc != 3)
-	    return ret;
+		return ret;
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF ||
 	   argv[1].kind != PSS_VALUE_KIND_NUM || argv[2].kind != PSS_VALUE_KIND_REF)
-	    return ret;
+		return ret;
 
 	if(pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_EXOTIC)
-	    return ret;
+		return ret;
 	if(pss_value_ref_type(argv[2]) != PSS_VALUE_REF_TYPE_STRING)
-	    return ret;
+		return ret;
 
 	pss_exotic_t* obj = (pss_exotic_t*)pss_value_get_data(argv[0]);
 	lang_service_t* serv = (lang_service_t*)pss_exotic_get_data(obj, LANG_SERVICE_TYPE_MAGIC);
@@ -714,9 +714,9 @@ static pss_value_t _set_input_or_output(uint32_t argc, pss_value_t* argv, int in
 
 	int rc = 0;
 	if(input)
-	    rc = lang_service_set_input(serv, argv[1].num, port);
+		rc = lang_service_set_input(serv, argv[1].num, port);
 	else
-	    rc = lang_service_set_output(serv, argv[1].num, port);
+		rc = lang_service_set_output(serv, argv[1].num, port);
 
 	if(ERROR_CODE(int) == rc)
 	{
@@ -748,13 +748,13 @@ static pss_value_t _pscript_builtin_service_start(pss_vm_t* vm, uint32_t argc, p
 	};
 
 	if(argc != 1)
-	    return ret;
+		return ret;
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF)
-	    return ret;
+		return ret;
 
 	if(pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_EXOTIC)
-	    return ret;
+		return ret;
 
 	int fork_twice = 0;
 
@@ -798,13 +798,13 @@ static pss_value_t _pscript_builtin_daemon_stop(pss_vm_t* vm, uint32_t argc, pss
 	};
 
 	if(argc != 1)
-	    return ret;
+		return ret;
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF)
-	    return ret;
+		return ret;
 
 	if(pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING)
-	    return ret;
+		return ret;
 
 	const char* daemon = (const char*)pss_value_get_data(argv[0]);
 	if(sched_daemon_stop(daemon) == ERROR_CODE(int))
@@ -826,13 +826,13 @@ static pss_value_t _pscript_builtin_daemon_ping(pss_vm_t* vm, uint32_t argc, pss
 	};
 
 	if(argc != 1)
-	    return ret;
+		return ret;
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF)
-	    return ret;
+		return ret;
 
 	if(pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING)
-	    return ret;
+		return ret;
 
 	const char* daemon = (const char*)pss_value_get_data(argv[0]);
 
@@ -854,10 +854,10 @@ static pss_value_t _pscript_builtin_daemon_reload(pss_vm_t* vm, uint32_t argc, p
 	if(argc != 2) return ret;
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF || pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING)
-	    return ret;
+		return ret;
 
 	if(argv[1].kind != PSS_VALUE_KIND_REF || pss_value_ref_type(argv[1]) != PSS_VALUE_REF_TYPE_EXOTIC)
-	    return ret;
+		return ret;
 
 	pss_exotic_t* obj = (pss_exotic_t*)pss_value_get_data(argv[1]);
 	lang_service_t* serv = (lang_service_t*)pss_exotic_get_data(obj, LANG_SERVICE_TYPE_MAGIC);
@@ -872,9 +872,9 @@ static pss_value_t _pscript_builtin_daemon_reload(pss_vm_t* vm, uint32_t argc, p
 	ret.num = PSS_VM_ERROR_INTERNAL;
 
 	if(lang_service_reload(daemon, serv) ==  ERROR_CODE(int))
-	    LOG_ERROR("Cannot reload the daemon");
+		LOG_ERROR("Cannot reload the daemon");
 	else
-	    ret.kind = PSS_VALUE_KIND_UNDEF;
+		ret.kind = PSS_VALUE_KIND_UNDEF;
 
 	return ret;
 }
@@ -895,33 +895,33 @@ static pss_value_t _pscript_builtin_typeof(pss_vm_t* vm, uint32_t argc, pss_valu
 	switch(argv[0].kind)
 	{
 		case PSS_VALUE_KIND_BUILTIN:
-		    result = "builtin";
-		    break;
+			result = "builtin";
+			break;
 		case PSS_VALUE_KIND_UNDEF:
-		    result = "undefined";
-		    break;
+			result = "undefined";
+			break;
 		case PSS_VALUE_KIND_NUM:
-		    result = "number";
-		    break;
+			result = "number";
+			break;
 		case PSS_VALUE_KIND_REF:
-		    switch(pss_value_ref_type(argv[0]))
-		    {
-			    case PSS_VALUE_REF_TYPE_STRING:
-			        result = "string";
-			        break;
-			    case PSS_VALUE_REF_TYPE_DICT:
-			        result = "dict";
-			        break;
-			    case PSS_VALUE_REF_TYPE_CLOSURE:
-			        result = "closure";
-			        break;
-			    case PSS_VALUE_REF_TYPE_EXOTIC:
-			        result = "exotic";
-			        break;
-			    default:
-			        return ret;
-		    }
-		    break;
+			switch(pss_value_ref_type(argv[0]))
+			{
+				case PSS_VALUE_REF_TYPE_STRING:
+					result = "string";
+					break;
+				case PSS_VALUE_REF_TYPE_DICT:
+					result = "dict";
+					break;
+				case PSS_VALUE_REF_TYPE_CLOSURE:
+					result = "closure";
+					break;
+				case PSS_VALUE_REF_TYPE_EXOTIC:
+					result = "exotic";
+					break;
+				default:
+				    return ret;
+			}
+			break;
 		default:
 		    return ret;
 	}
@@ -935,7 +935,7 @@ static pss_value_t _pscript_builtin_typeof(pss_vm_t* vm, uint32_t argc, pss_valu
 
 	ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, s);
 	if(ret.kind == PSS_VALUE_KIND_ERROR)
-	    free(s);
+		free(s);
 
 	return ret;
 }
@@ -952,7 +952,7 @@ static pss_value_t _pscript_builtin_substr(pss_vm_t* vm, uint32_t argc, pss_valu
 
 	if((PSS_VALUE_KIND_REF != argv[0].kind || pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING) ||
 	   (PSS_VALUE_KIND_NUM != argv[1].kind && PSS_VALUE_KIND_UNDEF != argv[1].kind))
-	    return ret;
+		return ret;
 
 	int64_t left = argv[1].kind == PSS_VALUE_KIND_UNDEF ? 0 : argv[1].num;
 	int64_t right = -1;
@@ -977,11 +977,11 @@ static pss_value_t _pscript_builtin_substr(pss_vm_t* vm, uint32_t argc, pss_valu
 	retstr[right - left] = 0;
 
 	if(right - left > 0)
-	    memcpy(retstr, str + left, (size_t)(right - left));
+		memcpy(retstr, str + left, (size_t)(right - left));
 
 	ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, retstr);
 	if(ret.kind == PSS_VALUE_KIND_ERROR)
-	    free(retstr);
+		free(retstr);
 
 	return ret;
 }
@@ -1005,7 +1005,7 @@ static pss_value_t _pscript_builtin_parse_int(pss_vm_t* vm, uint32_t argc, pss_v
 
 	if((PSS_VALUE_KIND_REF != argv[0].kind || pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING) ||
 	   (argc == 2 && PSS_VALUE_KIND_NUM != argv[1].kind))
-	    return ret;
+		return ret;
 
 	int has_default = (argc == 2);
 	int64_t defval = (argc == 2) ? argv[1].num : 0;
@@ -1017,9 +1017,9 @@ static pss_value_t _pscript_builtin_parse_int(pss_vm_t* vm, uint32_t argc, pss_v
 	if(NULL != next && *next != 0)
 	{
 		if(has_default)
-		    val = defval;
+			val = defval;
 		else
-		    return ret;
+			return ret;
 	}
 
 	ret.num = val;
@@ -1040,7 +1040,7 @@ static pss_value_t _pscript_builtin_charat(pss_vm_t* vm, uint32_t argc, pss_valu
 
 	if((PSS_VALUE_KIND_REF != argv[0].kind || pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING) ||
 	   (PSS_VALUE_KIND_NUM != argv[1].kind))
-	    return ret;
+		return ret;
 
 	int64_t ofs = argv[1].num;
 	const char* str = (const char*)pss_value_get_data(argv[0]);
@@ -1053,7 +1053,7 @@ static pss_value_t _pscript_builtin_charat(pss_vm_t* vm, uint32_t argc, pss_valu
 	}
 
 	if(ofs < 0 || (size_t)ofs >= strlen(str))
-	    return ret;
+		return ret;
 
 	char ch = str[ofs];
 
@@ -1072,11 +1072,11 @@ static pss_value_t _pscript_builtin_split(pss_vm_t* vm, uint32_t argc, pss_value
 	};
 
 	if(argc != 1 && argc != 2)
-	    return ret;
+		return ret;
 
 	if( (PSS_VALUE_KIND_REF != argv[0].kind || pss_value_ref_type(argv[0]) != PSS_VALUE_REF_TYPE_STRING) ||
 	   ((PSS_VALUE_KIND_REF != argv[1].kind || pss_value_ref_type(argv[1]) != PSS_VALUE_REF_TYPE_STRING) && argc == 2))
-	    return ret;
+		return ret;
 
 	const char* sep = " ";
 	const char* str = (const char*)pss_value_get_data(argv[0]);
@@ -1106,9 +1106,9 @@ static pss_value_t _pscript_builtin_split(pss_vm_t* vm, uint32_t argc, pss_value
 		if(*end)
 		{
 			if(*matched == *end)
-			    matched++;
+				matched++;
 			else
-			    end -= (matched - sep), matched = sep;
+				end -= (matched - sep), matched = sep;
 		}
 
 		if(*matched == 0 || *end == 0)
@@ -1156,35 +1156,35 @@ static pss_value_t _pscript_builtin_log(pss_vm_t* vm, uint32_t argc, pss_value_t
 	if(argc != 2) return ret;
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF || PSS_VALUE_REF_TYPE_STRING != pss_value_ref_type(argv[0]))
-	    return ret;
+		return ret;
 
 	if(argv[1].kind != PSS_VALUE_KIND_REF || PSS_VALUE_REF_TYPE_STRING != pss_value_ref_type(argv[1]))
-	    return ret;
+		return ret;
 
 	ret.num = PSS_VM_ERROR_INTERNAL;
 
 	const char* level = (const char*)pss_value_get_data(argv[0]);
 	if(level == NULL)
-	    return ret;
+		return ret;
 	const char* msg = (const char*)pss_value_get_data(argv[1]);
 	if(msg == NULL)
-	    return ret;
+		return ret;
 
 	ret.kind =  PSS_VALUE_KIND_UNDEF;
 	if(strcmp(level, "fatal") == 0)
-	    LOG_FATAL("%s", msg);
+		LOG_FATAL("%s", msg);
 	else if(strcmp(level, "error") == 0)
-	    LOG_ERROR("%s", msg);
+		LOG_ERROR("%s", msg);
 	else if(strcmp(level, "warning") == 0)
-	    LOG_WARNING("%s", msg);
+		LOG_WARNING("%s", msg);
 	else if(strcmp(level, "notice") == 0)
-	    LOG_NOTICE("%s", msg);
+		LOG_NOTICE("%s", msg);
 	else if(strcmp(level, "info") == 0)
-	    LOG_INFO("%s", msg);
+		LOG_INFO("%s", msg);
 	else if(strcmp(level, "trace") == 0)
-	    LOG_TRACE("%s", msg);
+		LOG_TRACE("%s", msg);
 	else if(strcmp(level, "debug") == 0)
-	    LOG_DEBUG("%s", msg);
+		LOG_DEBUG("%s", msg);
 	else
 	{
 		LOG_ERROR("Invalid log level %s", level);
@@ -1201,28 +1201,28 @@ static pss_value_t _pscript_builtin_log_redirect(pss_vm_t* vm, uint32_t argc, ps
 	pss_value_t ret = {.kind = PSS_VALUE_KIND_ERROR, .num = PSS_VM_ERROR_ARGUMENT};
 
 	if(argc != 2 && argc != 3)
-	    return ret;
+		return ret;
 
 	const char* mode = "w";
 
 	if(argv[0].kind != PSS_VALUE_KIND_REF || PSS_VALUE_REF_TYPE_STRING != pss_value_ref_type(argv[0]))
-	    return ret;
+		return ret;
 
 	if(argv[1].kind != PSS_VALUE_KIND_REF || PSS_VALUE_REF_TYPE_STRING != pss_value_ref_type(argv[1]))
-	    return ret;
+		return ret;
 
 	if(argc == 3 && (argv[2].kind != PSS_VALUE_KIND_REF || PSS_VALUE_REF_TYPE_STRING != pss_value_ref_type(argv[2])))
-	    return ret;
+		return ret;
 
 	const char* filename = (const char*)pss_value_get_data(argv[1]);
 
 	if(argc == 3)
-	    mode = (const char*)pss_value_get_data(argv[2]);
+		mode = (const char*)pss_value_get_data(argv[2]);
 
 	const char* level = (const char*)pss_value_get_data(argv[0]);
 
 	if(filename == NULL || mode == NULL || level == NULL)
-	    return ret;
+		return ret;
 
 	int level_num = -1;
 
@@ -1258,7 +1258,7 @@ static pss_value_t _pscript_builtin_exit(pss_vm_t* vm, uint32_t argc, pss_value_
 	if(argc == 1)
 	{
 		if(argv[0].kind != PSS_VALUE_KIND_NUM)
-		    return ret;
+			return ret;
 		rc = (int)argv[0].num;
 	}
 
@@ -1300,19 +1300,19 @@ static pss_value_t _external_get(const char* name)
 	switch(value.type)
 	{
 		case LANG_PROP_TYPE_ERROR:
-		    ret.kind = PSS_VALUE_KIND_ERROR;
-		    ret.num  = PSS_VM_ERROR_INTERNAL;
-		    return ret;
+			ret.kind = PSS_VALUE_KIND_ERROR;
+			ret.num  = PSS_VM_ERROR_INTERNAL;
+			return ret;
 		case LANG_PROP_TYPE_INTEGER:
-		    ret.kind = PSS_VALUE_KIND_NUM;
-		    ret.num  = value.num;
-		    return ret;
+			ret.kind = PSS_VALUE_KIND_NUM;
+			ret.num  = value.num;
+			return ret;
 		case LANG_PROP_TYPE_STRING:
-		    ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, value.str);
-		    return ret;
+			ret = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, value.str);
+			return ret;
 		case LANG_PROP_TYPE_NONE:
-		    ret.kind = PSS_VALUE_KIND_UNDEF;
-		    return ret;
+			ret.kind = PSS_VALUE_KIND_UNDEF;
+			return ret;
 		default:
 		    ret.kind = PSS_VALUE_KIND_ERROR;
 		    ret.num  = PSS_VM_ERROR_FAILED;
@@ -1328,18 +1328,18 @@ static int _external_set(const char* name, pss_value_t data)
 	switch(data.kind)
 	{
 		case PSS_VALUE_KIND_NUM:
-		    val.type = LANG_PROP_TYPE_INTEGER;
-		    val.num  = data.num;
-		    return lang_prop_set(name, val);
+			val.type = LANG_PROP_TYPE_INTEGER;
+			val.num  = data.num;
+			return lang_prop_set(name, val);
 		case PSS_VALUE_KIND_REF:
-		    if(pss_value_ref_type(data) == PSS_VALUE_REF_TYPE_STRING)
-		    {
-			    val.type = LANG_PROP_TYPE_STRING;
-			    if(NULL == (val.str  = pss_value_get_data(data)))
-			        ERROR_RETURN_LOG(int, "Cannot get the string value from the string object");
-			    return lang_prop_set(name, val);
-		    }
-		    FALLTHROUGH("For other reference type, just ignore that");
+			if(pss_value_ref_type(data) == PSS_VALUE_REF_TYPE_STRING)
+			{
+				val.type = LANG_PROP_TYPE_STRING;
+				if(NULL == (val.str  = pss_value_get_data(data)))
+					ERROR_RETURN_LOG(int, "Cannot get the string value from the string object");
+				return lang_prop_set(name, val);
+			}
+			FALLTHROUGH("For other reference type, just ignore that");
 		default:
 		    return 0;
 	}
@@ -1395,12 +1395,12 @@ int builtin_init(pss_vm_t* vm)
 	};
 
 	if(ERROR_CODE(int) == pss_vm_set_external_global_callback(vm, ops))
-	    ERROR_RETURN_LOG(int, "Cannot register the external global accessor");
+		ERROR_RETURN_LOG(int, "Cannot register the external global accessor");
 
 	uint32_t i;
 	for(i = 0; i < sizeof(_builtins) / sizeof(_builtins[0]); i ++)
-	    if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, _builtins[i].name, _builtins[i].func))
-	        ERROR_RETURN_LOG(int, "Cannot register the builtin function '%s'", _builtins[i].name);
+		if(ERROR_CODE(int) == pss_vm_add_builtin_func(vm, _builtins[i].name, _builtins[i].func))
+			ERROR_RETURN_LOG(int, "Cannot register the builtin function '%s'", _builtins[i].name);
 	return 0;
 }
 
@@ -1414,7 +1414,7 @@ void builtin_print_doc(FILE* fp, int print_internals, pss_value_builtin_t func)
 		if(!print_internals && _builtins[i].name[0] == '_') continue;
 		uint32_t name_len = (uint32_t)(strlen(_builtins[i].proto) + 5);
 		if(name_len > space)
-		    space = name_len;
+			space = name_len;
 	}
 	for(i = 0; i < sizeof(_builtins) / sizeof(_builtins[0]); i ++)
 	{
@@ -1423,7 +1423,7 @@ void builtin_print_doc(FILE* fp, int print_internals, pss_value_builtin_t func)
 		fprintf(fp, "    %s", _builtins[i].proto);
 		uint32_t j;
 		for(j = 0; j < space - strlen(_builtins[i].proto) - 4; j ++)
-		    fprintf(fp, " ");
+			fprintf(fp, " ");
 		uint32_t start = space + 3;
 		fprintf(fp, "-> ");
 
@@ -1435,7 +1435,7 @@ void builtin_print_doc(FILE* fp, int print_internals, pss_value_builtin_t func)
 				pos = start;
 				fputc('\n', fp);
 				for(j = 0; j < start; j ++)
-				    fputc(' ', fp);
+					fputc(' ', fp);
 			}
 
 			if(pos != start) fputc(' ', fp), pos ++;

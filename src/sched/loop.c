@@ -175,7 +175,7 @@ static inline sched_loop_t* _context_new(uint32_t tid)
 	return ret;
 COND_ERR:
 	if((errno = pthread_mutex_destroy(&ret->mutex)) != 0)
-	    LOG_WARNING_ERRNO("Cannot dispose the pthread mutex");
+		LOG_WARNING_ERRNO("Cannot dispose the pthread mutex");
 MUTEX_ERR:
 	free(ret);
 	return NULL;
@@ -209,30 +209,30 @@ static inline int _context_free(sched_loop_t* ctx)
 		switch(ctx->events[p].type)
 		{
 			case ITC_EQUEUE_EVENT_TYPE_IO:
-			{
-				if(itc_module_pipe_deallocate(ctx->events[p].io.in) == ERROR_CODE(int))
 				{
-					LOG_ERROR("Cannot deallocate the input pipe");
-					rc = ERROR_CODE(int);
+					if(itc_module_pipe_deallocate(ctx->events[p].io.in) == ERROR_CODE(int))
+					{
+						LOG_ERROR("Cannot deallocate the input pipe");
+						rc = ERROR_CODE(int);
+					}
+					if(itc_module_pipe_deallocate(ctx->events[p].io.out) == ERROR_CODE(int))
+					{
+						LOG_ERROR("Cannot deallocate the output pipe");
+						rc = ERROR_CODE(int);
+					}
+					break;
 				}
-				if(itc_module_pipe_deallocate(ctx->events[p].io.out) == ERROR_CODE(int))
-				{
-					LOG_ERROR("Cannot deallocate the output pipe");
-					rc = ERROR_CODE(int);
-				}
-				break;
-			}
 			case ITC_EQUEUE_EVENT_TYPE_TASK:
-			{
-				/* We don't call the cleanup task at this point for now.
-				 * TODO: do we need a way to make it properly cleaned up */
-				if(NULL != ctx->events[p].task.async_handle && ERROR_CODE(int) == sched_async_handle_dispose(ctx->events[p].task.async_handle))
 				{
-					LOG_ERROR("Cannot dispose the unprocessed async handle");
-					rc = ERROR_CODE(int);
+					/* We don't call the cleanup task at this point for now.
+					* TODO: do we need a way to make it properly cleaned up */
+					if(NULL != ctx->events[p].task.async_handle && ERROR_CODE(int) == sched_async_handle_dispose(ctx->events[p].task.async_handle))
+					{
+						LOG_ERROR("Cannot dispose the unprocessed async handle");
+						rc = ERROR_CODE(int);
+					}
+					break;
 				}
-				break;
-			}
 			default:
 			    LOG_WARNING("Invalid event type in the queue, may indicates code bug");
 		}
@@ -258,10 +258,10 @@ static inline void* _sched_main(void* data)
 	sched_task_context_t* stc = NULL;
 
 	if(NULL == (stc = sched_task_context_new(context)))
-	    ERROR_LOG_ERRNO_GOTO(KILLED, "Cannot initialize the thread locals for the scheduler thread %u", context->thread_id);
+		ERROR_LOG_ERRNO_GOTO(KILLED, "Cannot initialize the thread locals for the scheduler thread %u", context->thread_id);
 
 	if(ERROR_CODE(int) == sched_rscope_init_thread())
-	    ERROR_LOG_ERRNO_GOTO(KILLED, "Cannot initialize the thread locals for request local scope for thread %u", context->thread_id);
+		ERROR_LOG_ERRNO_GOTO(KILLED, "Cannot initialize the thread locals for request local scope for thread %u", context->thread_id);
 
 	LOG_DEBUG("Scheduler %u: loop started", context->thread_id);
 
@@ -287,9 +287,9 @@ static inline void* _sched_main(void* data)
 					LOG_DEBUG("Switching the service graph from %p to %p", _service, current_service);
 					current_service = _deploying_service;
 					if(ERROR_CODE(uint32_t) == (old_service_refcnt = sched_task_num_concurrent_requests(stc)))
-					    LOG_ERROR("Cannot get the number of old service refcount");
+						LOG_ERROR("Cannot get the number of old service refcount");
 					else
-					    LOG_DEBUG("Num of request that using old service graph: %u", old_service_refcnt);
+						LOG_DEBUG("Num of request that using old service graph: %u", old_service_refcnt);
 
 					if(old_service_refcnt == 0)
 					{
@@ -303,11 +303,11 @@ static inline void* _sched_main(void* data)
 				}
 				if(context->rear != context->front) break;
 				if((errno = pthread_cond_timedwait(&context->cond, &context->mutex, &abstime)) != 0 && errno != ETIMEDOUT && errno != EINTR)
-				    LOG_WARNING_ERRNO("Cannot finish pthread_cond_timedwait");
+					LOG_WARNING_ERRNO("Cannot finish pthread_cond_timedwait");
 				if(_killed)
 				{
 					if((errno = pthread_mutex_unlock(&context->mutex)) != 0)
-					    LOG_WARNING_ERRNO("Cannot release the scheduler event mutex");
+						LOG_WARNING_ERRNO("Cannot release the scheduler event mutex");
 					goto KILLED;
 				}
 				abstime.tv_sec ++;
@@ -333,18 +333,18 @@ static inline void* _sched_main(void* data)
 		if(_dispatcher_waiting_event &&
 		   (context->rear - context->front == context->size - 1) &&
 		   ERROR_CODE(int) == itc_equeue_wait_interrupt())
-		    LOG_WARNING("Cannot invoke the wait interrupt callback");
+			LOG_WARNING("Cannot invoke the wait interrupt callback");
 
 		if(_dispatcher_waiting)
 		{
 			if((errno = pthread_mutex_lock(&_dispatcher_mutex)) != 0)
-			    LOG_WARNING_ERRNO("Cannot lock the dispatcher mutex");
+				LOG_WARNING_ERRNO("Cannot lock the dispatcher mutex");
 
 			if((errno = pthread_cond_signal(&_dispatcher_cond)) != 0)
-			    LOG_WARNING_ERRNO("Cannot notify the dispatcher for the avaliable space");
+				LOG_WARNING_ERRNO("Cannot notify the dispatcher for the avaliable space");
 
 			if((errno = pthread_mutex_unlock(&_dispatcher_mutex)) != 0)
-			    LOG_WARNING_ERRNO("Cannot unlock the dispatcher mutex");
+				LOG_WARNING_ERRNO("Cannot unlock the dispatcher mutex");
 		}
 
 		int old_service = 0;
@@ -353,36 +353,36 @@ static inline void* _sched_main(void* data)
 		{
 			case ITC_EQUEUE_EVENT_TYPE_IO:
 
-			    /* At this point, we actually predict the change of the running request,
-			     * otherwise, it's possible that the dispatcher don't know the request is
-			     * starting, so we need to increment the number of running requests first
-			     * and then actually mark the event has been poped out. */
-			    arch_atomic_sw_increment_u32(&context->num_running_reqs);
+				/* At this point, we actually predict the change of the running request,
+				 * otherwise, it's possible that the dispatcher don't know the request is
+				 * starting, so we need to increment the number of running requests first
+				 * and then actually mark the event has been poped out. */
+				arch_atomic_sw_increment_u32(&context->num_running_reqs);
 
-			    BARRIER();
+				BARRIER();
 
-			    arch_atomic_sw_increment_u32(&context->pending_reqs_id_begin);
+				arch_atomic_sw_increment_u32(&context->pending_reqs_id_begin);
 
 
-			    if(sched_task_new_request(stc, current_service, current.io.in, current.io.out) == ERROR_CODE(sched_task_request_t))
-			        LOG_ERROR("Cannot add the incoming request to scheduler");
+				if(sched_task_new_request(stc, current_service, current.io.in, current.io.out) == ERROR_CODE(sched_task_request_t))
+					LOG_ERROR("Cannot add the incoming request to scheduler");
 
-			    uint32_t concurrency = sched_task_num_concurrent_requests(stc);
-			    if(ERROR_CODE(uint32_t) == concurrency)
-			    {
-				    LOG_WARNING("Cannot get the size of concurrent tasks");
-				    break;
-			    }
+				uint32_t concurrency = sched_task_num_concurrent_requests(stc);
+				if(ERROR_CODE(uint32_t) == concurrency)
+				{
+					LOG_WARNING("Cannot get the size of concurrent tasks");
+					break;
+				}
 
-			    /* Finally we update the number of running request to the actual value */
-			    arch_atomic_sw_assignment_u32(&context->num_running_reqs, concurrency);
-			    break;
+				/* Finally we update the number of running request to the actual value */
+				arch_atomic_sw_assignment_u32(&context->num_running_reqs, concurrency);
+				break;
 			case ITC_EQUEUE_EVENT_TYPE_TASK:
-			    if(old_service_refcnt > 0 && current.task.task->service != current_service)
-			        old_service = 1;
-			    if(sched_task_async_completed(current.task.task) == ERROR_CODE(int))
-			        LOG_ERROR("Cannot notify the scheduler about the task completion");
-			    break;
+				if(old_service_refcnt > 0 && current.task.task->service != current_service)
+					old_service = 1;
+				if(sched_task_async_completed(current.task.task) == ERROR_CODE(int))
+					LOG_ERROR("Cannot notify the scheduler about the task completion");
+				break;
 			default:
 			    LOG_ERROR("Invalid task type");
 		}
@@ -403,18 +403,18 @@ static inline void* _sched_main(void* data)
 		   !ITC_EQUEUE_EVENT_MASK_ALLOWS(_last_mask, ITC_EQUEUE_EVENT_TYPE_IO) &&
 		   !_scheduler_saturated(context) &&
 		   ERROR_CODE(int) == itc_equeue_wait_interrupt())
-		    LOG_ERROR("Cannot interrupt the equeue");
+			LOG_ERROR("Cannot interrupt the equeue");
 
 		if(_dispatcher_waiting)
 		{
 			if((errno = pthread_mutex_lock(&_dispatcher_mutex)) != 0)
-			    LOG_WARNING_ERRNO("Cannot lock the dispatcher mutex");
+				LOG_WARNING_ERRNO("Cannot lock the dispatcher mutex");
 
 			if((errno = pthread_cond_signal(&_dispatcher_cond)) != 0)
-			    LOG_WARNING_ERRNO("Cannot notify the dispatcher for the avaliable space");
+				LOG_WARNING_ERRNO("Cannot notify the dispatcher for the avaliable space");
 
 			if((errno = pthread_mutex_unlock(&_dispatcher_mutex)) != 0)
-			    LOG_WARNING_ERRNO("Cannot unlock the dispatcher mutex");
+				LOG_WARNING_ERRNO("Cannot unlock the dispatcher mutex");
 		}
 
 		if(old_service && concurrency < prev_concurrency)
@@ -436,10 +436,10 @@ KILLED:
 	LOG_INFO("Scheduler thread %u gets killed", context->thread_id);
 
 	if(NULL != stc && ERROR_CODE(int) == sched_task_context_free(stc))
-	    LOG_WARNING("Cannot finalize the thread locals for scheduler %d", context->thread_id);
+		LOG_WARNING("Cannot finalize the thread locals for scheduler %d", context->thread_id);
 
 	if(ERROR_CODE(int) == sched_rscope_finalize_thread())
-	    LOG_WARNING("Cannot finalize the thread locals for the request local scope for thread %u", context->thread_id);
+		LOG_WARNING("Cannot finalize the thread locals for the request local scope for thread %u", context->thread_id);
 
 	itc_equeue_wait_interrupt();
 
@@ -454,7 +454,7 @@ KILLED:
 static inline int _start_loop(sched_loop_t* ctx)
 {
 	if(NULL == (ctx->thread = thread_new(_sched_main, ctx, THREAD_TYPE_WORKER)))
-	    ERROR_RETURN_LOG(int, "Cannot start new scheduler thread");
+		ERROR_RETURN_LOG(int, "Cannot start new scheduler thread");
 
 	return 0;
 }
@@ -471,7 +471,7 @@ static itc_equeue_event_mask_t _interrupt_handler(void* pl)
 	{
 		counter  = 0;
 		if(ERROR_CODE(int) == sched_daemon_read_control_sock())
-		    LOG_ERROR("Cannot read the control socket");
+			LOG_ERROR("Cannot read the control socket");
 	}
 
 	/* Step1: try to resolve the pending list first */
@@ -501,7 +501,7 @@ static itc_equeue_event_mask_t _interrupt_handler(void* pl)
 		target_loop->events[target_loop->rear  & (target_loop->size - 1)] = this_event->event;
 
 		if(this_event->event.type == ITC_EQUEUE_EVENT_TYPE_IO)
-		    arch_atomic_sw_increment_u32(&target_loop->pending_reqs_id_end);
+			arch_atomic_sw_increment_u32(&target_loop->pending_reqs_id_end);
 
 		uint32_t needs_notify = (target_loop->rear == target_loop->front);
 		BARRIER();
@@ -510,13 +510,13 @@ static itc_equeue_event_mask_t _interrupt_handler(void* pl)
 		if(needs_notify)
 		{
 			if((errno = pthread_mutex_lock(&target_loop->mutex)) != 0)
-			    LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
+				LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
 
 			if((errno = pthread_cond_signal(&target_loop->cond)) != 0)
-			    LOG_WARNING_ERRNO("Cannot notify new incoming event for the target_loop thread %u", target_loop->thread_id);
+				LOG_WARNING_ERRNO("Cannot notify new incoming event for the target_loop thread %u", target_loop->thread_id);
 
 			if((errno = pthread_mutex_unlock(&target_loop->mutex)) != 0)
-			    LOG_WARNING_ERRNO("Cannot release the thread local mutex");
+				LOG_WARNING_ERRNO("Cannot release the thread local mutex");
 		}
 
 		/* Finally we remove the event from the list */
@@ -533,16 +533,16 @@ static itc_equeue_event_mask_t _interrupt_handler(void* pl)
 		ITC_EQUEUE_EVENT_MASK_ADD(ret, ITC_EQUEUE_EVENT_TYPE_TASK);
 		sched_loop_t* sched;
 		for(sched = _scheds; sched != NULL; sched = sched->next)
-		    if(!_scheduler_saturated(sched))
-		    {
-			    if(!ITC_EQUEUE_EVENT_MASK_ALLOWS(_last_mask, ITC_EQUEUE_EVENT_TYPE_IO))
-			        LOG_DEBUG("The worker thread is not saturated, allow the IO event");
-			    ITC_EQUEUE_EVENT_MASK_ADD(ret, ITC_EQUEUE_EVENT_TYPE_IO);
-			    break;
-		    }
-		if(ITC_EQUEUE_EVENT_MASK_ALLOWS(_last_mask, ITC_EQUEUE_EVENT_TYPE_IO) &&
-		   !ITC_EQUEUE_EVENT_MASK_ALLOWS(ret, ITC_EQUEUE_EVENT_TYPE_IO))
-		    LOG_DEBUG("All worker threads are saturated, stop accepting IO events");
+			if(!_scheduler_saturated(sched))
+			{
+				if(!ITC_EQUEUE_EVENT_MASK_ALLOWS(_last_mask, ITC_EQUEUE_EVENT_TYPE_IO))
+					LOG_DEBUG("The worker thread is not saturated, allow the IO event");
+				ITC_EQUEUE_EVENT_MASK_ADD(ret, ITC_EQUEUE_EVENT_TYPE_IO);
+				break;
+			}
+			if(ITC_EQUEUE_EVENT_MASK_ALLOWS(_last_mask, ITC_EQUEUE_EVENT_TYPE_IO) &&
+			!ITC_EQUEUE_EVENT_MASK_ALLOWS(ret, ITC_EQUEUE_EVENT_TYPE_IO))
+				LOG_DEBUG("All worker threads are saturated, stop accepting IO events");
 	}
 
 	_last_mask = ret;
@@ -559,7 +559,7 @@ static inline int _dispatcher_main(void)
 	thread_set_name("PbDispatcher");
 
 	if(ERROR_CODE(int) == sched_async_start())
-	    ERROR_RETURN_LOG(int, "Cannot start the async task processor");
+		ERROR_RETURN_LOG(int, "Cannot start the async task processor");
 
 	itc_equeue_token_t sched_token = itc_equeue_scheduler_token();
 
@@ -619,9 +619,9 @@ static inline int _dispatcher_main(void)
 			abstime.tv_nsec = 0;
 
 			if(event.type == ITC_EQUEUE_EVENT_TYPE_TASK)
-			    scheduler = event.task.loop;
+				scheduler = event.task.loop;
 			else
-			    scheduler = NULL;
+				scheduler = NULL;
 
 
 			/* The round-robin scheduler try to pick up next worker */
@@ -636,11 +636,11 @@ static inline int _dispatcher_main(void)
 					     (scheduler->rear - scheduler->front >= scheduler->size ||
 					     _scheduler_saturated(scheduler));
 					     scheduler = scheduler->next == NULL ? _scheds : scheduler->next)
-					    first = 0;
+						first = 0;
 					if(scheduler->rear - scheduler->front < _round_robin_move_threshold)
-					    round_robin_start = scheduler;
+						round_robin_start = scheduler;
 					else
-					    round_robin_start = scheduler->next == NULL ? _scheds : scheduler->next;
+						round_robin_start = scheduler->next == NULL ? _scheds : scheduler->next;
 				}
 
 				if((scheduler->rear - scheduler->front >= scheduler->size ||
@@ -678,14 +678,14 @@ SCHED_WAIT:
 					int need_lock = !_dispatcher_waiting;
 					arch_atomic_sw_assignment_u32(&_dispatcher_waiting, 1);
 					if(need_lock && (errno = pthread_mutex_lock(&_dispatcher_mutex)) != 0)
-					    LOG_WARNING_ERRNO("Cannot acquire the dispatcher mutex");
+						LOG_WARNING_ERRNO("Cannot acquire the dispatcher mutex");
 				}
 
 				if(scheduler->rear - scheduler->front >= scheduler->size ||
 				   (event.type == ITC_EQUEUE_EVENT_TYPE_IO && _scheduler_saturated(scheduler)))
 				{
 					if((errno = pthread_cond_timedwait(&_dispatcher_cond, &_dispatcher_mutex, &abstime)) != 0 && errno != ETIMEDOUT && errno != EINTR)
-					    LOG_WARNING_ERRNO("Cannot complete pthread_cond_timewait");
+						LOG_WARNING_ERRNO("Cannot complete pthread_cond_timewait");
 
 					abstime.tv_sec ++;
 
@@ -698,7 +698,7 @@ EXIT_LOOP:
 					{
 						arch_atomic_sw_assignment_u32(&_dispatcher_waiting, 0);
 						if((errno = pthread_mutex_unlock(&_dispatcher_mutex)) != 0)
-						    LOG_WARNING_ERRNO("Cannot rlease the dispatcher mutex");
+							LOG_WARNING_ERRNO("Cannot rlease the dispatcher mutex");
 					}
 
 					break;
@@ -713,7 +713,7 @@ EXIT_LOOP:
 			memcpy(scheduler->events + p, &event, sizeof(event));
 
 			if(event.type == ITC_EQUEUE_EVENT_TYPE_IO)
-			    arch_atomic_sw_increment_u32(&scheduler->pending_reqs_id_end);
+				arch_atomic_sw_increment_u32(&scheduler->pending_reqs_id_end);
 
 			BARRIER();
 			/* We only needs notify the worker when all the dispatching are done with this one */
@@ -723,13 +723,13 @@ EXIT_LOOP:
 			if(needs_notify)
 			{
 				if((errno = pthread_mutex_lock(&scheduler->mutex)) != 0)
-				    LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
+					LOG_WARNING_ERRNO("Cannot acquire the thread local mutex");
 
 				if((errno = pthread_cond_signal(&scheduler->cond)) != 0)
-				    LOG_WARNING_ERRNO("Cannot notify new incoming event for the scheduler thread %u", scheduler->thread_id);
+					LOG_WARNING_ERRNO("Cannot notify new incoming event for the scheduler thread %u", scheduler->thread_id);
 
 				if((errno = pthread_mutex_unlock(&scheduler->mutex)) != 0)
-				    LOG_WARNING_ERRNO("Cannot release the thread local mutex");
+					LOG_WARNING_ERRNO("Cannot release the thread local mutex");
 			}
 NEXT_ITER:
 			(void)0;
@@ -743,16 +743,16 @@ NEXT_ITER:
 		pending_list.list = pending_list.list->next;
 
 		if(this->event.task.async_handle != NULL && ERROR_CODE(int) == sched_async_handle_dispose(this->event.task.async_handle))
-		    LOG_WARNING("Cannot dispose the unprocessed async task handle");
+			LOG_WARNING("Cannot dispose the unprocessed async task handle");
 
 		free(this);
 	}
 
 	if(ERROR_CODE(int) == sched_async_kill())
-	    ERROR_RETURN_LOG(int, "Cannot kill the async processor");
+		ERROR_RETURN_LOG(int, "Cannot kill the async processor");
 
 	if(ERROR_CODE(int) == itc_equeue_release_scheduler_token(sched_token))
-	    ERROR_RETURN_LOG(int, "Cannot release the scheduler token");
+		ERROR_RETURN_LOG(int, "Cannot release the scheduler token");
 
 	LOG_INFO("Dispatcher gets killed");
 
@@ -770,7 +770,7 @@ int sched_loop_start(sched_service_t** service, int fork_twice)
 		LOG_DEBUG("Unspecified ITC communication pipe type, use pipe.mem as default");
 		_mod_mem = itc_modtab_get_module_type_from_path("pipe.mem");
 		if(ERROR_CODE(itc_module_type_t) == _mod_mem)
-		    ERROR_RETURN_LOG(int, "Cannot find the module named pipe.mem, aborting");
+			ERROR_RETURN_LOG(int, "Cannot find the module named pipe.mem, aborting");
 	}
 
 	if(NULL != _scheds) ERROR_RETURN_LOG_ERRNO(int, "Cannot call the sched loop function twice");
@@ -778,7 +778,7 @@ int sched_loop_start(sched_service_t** service, int fork_twice)
 	int daemon_rc;
 
 	if(ERROR_CODE(int) == (daemon_rc = sched_daemon_daemonize(fork_twice)))
-	    ERROR_RETURN_LOG(int, "Cannot make the application a daemon");
+		ERROR_RETURN_LOG(int, "Cannot make the application a daemon");
 
 	/* If we are in fork twice mode, return true directly, since it's going to handle the
 	 * service in another process */
@@ -788,24 +788,24 @@ int sched_loop_start(sched_service_t** service, int fork_twice)
 	sched_loop_t* ptr = NULL;
 
 	for(i = 0; i < _nthreads; i ++)
-	    if(NULL == _context_new(i))
-	        ERROR_LOG_GOTO(CLEANUP_CTX, "Cannot create context for scheduler thread %u", i);
+		if(NULL == _context_new(i))
+			ERROR_LOG_GOTO(CLEANUP_CTX, "Cannot create context for scheduler thread %u", i);
 
 	_service = *service;
 	_deploying_service = NULL;
 
 	if((errno = pthread_mutex_init(&_dispatcher_mutex, NULL)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot init the dispatcher mutex");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot init the dispatcher mutex");
 
 	if((errno = pthread_cond_init(&_dispatcher_cond, NULL)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot init the dispatcher condvar");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot init the dispatcher condvar");
 
 
 	for(ptr = _scheds; ptr != NULL; ptr = ptr->next)
-	    if(_start_loop(ptr) == ERROR_CODE(int))
-	        LOG_WARNING("Cannot start the scheduler thread %d", ptr->thread_id);
+		if(_start_loop(ptr) == ERROR_CODE(int))
+			LOG_WARNING("Cannot start the scheduler thread %d", ptr->thread_id);
 	    else
-	        LOG_INFO("Scheduler thread %d is started", ptr->thread_id);
+		    LOG_INFO("Scheduler thread %d is started", ptr->thread_id);
 
 	const sched_service_pipe_descriptor_t* sdesc = sched_service_to_pipe_desc(*service);
 
@@ -821,12 +821,12 @@ int sched_loop_start(sched_service_t** service, int fork_twice)
 
 
 	if(eloop_started == 0 && itc_eloop_start() == ERROR_CODE(int))
-	    ERROR_RETURN_LOG(int, "Cannot start the event loop");
+		ERROR_RETURN_LOG(int, "Cannot start the event loop");
 	else
-	    eloop_started = 1;
+		eloop_started = 1;
 
 	if(itc_eloop_set_all_accept_param(request_param) == ERROR_CODE(int))
-	    ERROR_RETURN_LOG(int, "Cannot set the accept param");
+		ERROR_RETURN_LOG(int, "Cannot set the accept param");
 
 
 	_dispatcher_main();
@@ -855,7 +855,7 @@ CLEANUP_CTX:
 	/* Finally, we could copy the current service back to the caller, since the original
 	 * service might be disposed before this */
 	if(_service != NULL)
-	    *service = _service;
+		*service = _service;
 
 	/* At the same time, if there's a deplying service, dispose it */
 	if(_deploying_service != NULL && ERROR_CODE(int) == sched_service_free(_deploying_service))
@@ -886,15 +886,15 @@ int sched_loop_kill(int no_error)
 	for(sched = _scheds; sched != NULL; sched = sched->next)
 	{
 		if(0 != (errno = pthread_mutex_lock(&sched->mutex)))
-		    LOG_WARNING_ERRNO("Cannot lock the scheduler mutex");
+			LOG_WARNING_ERRNO("Cannot lock the scheduler mutex");
 
 		if(_killed == 0) _killed = 1;
 
 		if(0 != (errno = pthread_cond_signal(&sched->cond)))
-		    LOG_WARNING_ERRNO("Cannot notify the scheduler loop for the killed state");
+			LOG_WARNING_ERRNO("Cannot notify the scheduler loop for the killed state");
 
 		if(0 != (errno = pthread_mutex_unlock(&sched->mutex)))
-		    LOG_WARNING_ERRNO("Cannot unlock the scheduler mutex");
+			LOG_WARNING_ERRNO("Cannot unlock the scheduler mutex");
 	}
 
 
@@ -905,7 +905,7 @@ int sched_loop_kill(int no_error)
 int sched_loop_set_nthreads(uint32_t n)
 {
 	if(NULL != _scheds)
-	    ERROR_RETURN_LOG(int, "Cannot change the number of thread after the loop started");
+		ERROR_RETURN_LOG(int, "Cannot change the number of thread after the loop started");
 
 	_nthreads = n;
 
@@ -925,7 +925,7 @@ static inline int _set_prop(const char* symbol, lang_prop_value_t value, const v
 {
 	(void) data;
 	if(NULL == symbol || LANG_PROP_TYPE_ERROR == value.type || LANG_PROP_TYPE_NONE == value.type)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 	if(strcmp(symbol, "nthreads") == 0)
 	{
 		if(value.type != LANG_PROP_TYPE_INTEGER) ERROR_RETURN_LOG(int, "Type mismatch");
@@ -943,7 +943,7 @@ static inline int _set_prop(const char* symbol, lang_prop_value_t value, const v
 		if(value.type != LANG_PROP_TYPE_STRING) ERROR_RETURN_LOG(int, "Type mistach");
 		_mod_mem = itc_modtab_get_module_type_from_path(value.str);
 		if(ERROR_CODE(itc_module_type_t) == _mod_mem)
-		    ERROR_RETURN_LOG(int, "Cannot find the module named %s, aborting", value.str);
+			ERROR_RETURN_LOG(int, "Cannot find the module named %s, aborting", value.str);
 		const itc_modtab_instance_t* inst = itc_modtab_get_from_module_type(_mod_mem);
 		if(NULL == inst) ERROR_RETURN_LOG(int, "Cannot get the module instance of module type 0x%x", _mod_mem);
 
@@ -1035,7 +1035,7 @@ int sched_loop_init()
 	};
 
 	if(ERROR_CODE(int) == lang_prop_register_callback(&cb))
-	    ERROR_RETURN_LOG(int, "Cannot register callback for the runtime prop callback");
+		ERROR_RETURN_LOG(int, "Cannot register callback for the runtime prop callback");
 
 	return 0;
 }
@@ -1059,7 +1059,7 @@ int sched_loop_deploy_service_object(sched_service_t* service)
 int sched_loop_deploy_completed()
 {
 	if(NULL == _deploying_service)
-	    return 1;
+		return 1;
 
 	if(_deployed_count == _nthreads)
 	{
@@ -1071,7 +1071,7 @@ int sched_loop_deploy_completed()
 		_deploying_service = NULL;
 
 		if(ERROR_CODE(int) == sched_service_free(old_service))
-		    LOG_WARNING("Cannot dispose the old service");
+			LOG_WARNING("Cannot dispose the old service");
 
 		_deployed_count = 0;
 

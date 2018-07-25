@@ -36,7 +36,7 @@ int const_init(PyObject* module)
 
 	uint32_t i;
 	for(i = 0; i < sizeof(_const) / sizeof(_const[0]); i ++)
-	    if(PyModule_AddIntConstant(module, _const[i].name, _const[i].value) < 0)
-	        ERROR_RETURN_LOG(int, "Cannot register constant %s", _const[i].name);
+		if(PyModule_AddIntConstant(module, _const[i].name, _const[i].value) < 0)
+			ERROR_RETURN_LOG(int, "Cannot register constant %s", _const[i].name);
 	return 0;
 }

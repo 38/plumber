@@ -27,16 +27,16 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	snprintf(buf, sizeof(buf), "$T.%s", field);
 
 	if(ERROR_CODE(pipe_t) == (ctx->input = pipe_define("input", PIPE_INPUT, "$T")))
-	    ERROR_RETURN_LOG(int, "Cannot create the input pipe");
+		ERROR_RETURN_LOG(int, "Cannot create the input pipe");
 
 	if(ERROR_CODE(pipe_t) == (ctx->output = pipe_define("output", PIPE_OUTPUT, buf)))
-	    ERROR_RETURN_LOG(int, "Cannot create the output pipe");
+		ERROR_RETURN_LOG(int, "Cannot create the output pipe");
 
 	if(NULL == (ctx->model = pstd_type_model_new()))
-	    ERROR_RETURN_LOG(int, "Cannot create the type model");
+		ERROR_RETURN_LOG(int, "Cannot create the type model");
 
 	if(ERROR_CODE(pstd_type_accessor_t) == (ctx->accessor = pstd_type_model_get_accessor(ctx->model, ctx->input, field)))
-	    ERROR_RETURN_LOG(int, "Cannot get the type accessor");
+		ERROR_RETURN_LOG(int, "Cannot get the type accessor");
 
 	return 0;
 }
@@ -59,13 +59,13 @@ static int _exec(void* ctxbuf)
 
 	char* buf = NULL, * mem_to_free = NULL;
 	if(sz < 4096)
-	    buf = (char*)alloca(sz);
+		buf = (char*)alloca(sz);
 	else
-	    mem_to_free = buf = (char*)malloc(sz);
+		mem_to_free = buf = (char*)malloc(sz);
 
 	size_t bytes_read = pstd_type_instance_read(inst, ctx->accessor, buf, sz);
 	if(ERROR_CODE(size_t) == bytes_read)
-	    ERROR_LOG_GOTO(ERR, "Cannot read the header");
+		ERROR_LOG_GOTO(ERR, "Cannot read the header");
 
 	const char* begin = buf;
 
@@ -81,7 +81,7 @@ static int _exec(void* ctxbuf)
 
 ERR:
 	if(ERROR_CODE(int) == pstd_type_instance_free(inst))
-	    ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
+		ERROR_RETURN_LOG(int, "Cannot dispose the type instance");
 
 	if(NULL != mem_to_free) free(mem_to_free);
 
@@ -93,7 +93,7 @@ static int _cleanup(void* ctxbuf)
 	context_t* ctx = (context_t*)ctxbuf;
 
 	if(ERROR_CODE(int) == pstd_type_model_free(ctx->model))
-	    ERROR_RETURN_LOG(int, "Cannot dispose the type model");
+		ERROR_RETURN_LOG(int, "Cannot dispose the type model");
 
 	return 0;
 }

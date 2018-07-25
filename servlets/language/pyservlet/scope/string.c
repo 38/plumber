@@ -76,11 +76,11 @@ static PyMethodDef _methods[] = {
 int scope_string_init(PyObject* module)
 {
 	if(ERROR_CODE(int) == scope_object_register_type_ops(SCOPE_OBJECT_TYPE_STRING, _ops))
-	    ERROR_RETURN_LOG(int, "Cannot register the type callback for the string RLS object");
+		ERROR_RETURN_LOG(int, "Cannot register the type callback for the string RLS object");
 
 	PyObject* rls_module = Py_InitModule("pservlet.RLS_String", _methods);
 	if(NULL == rls_module)
-	    ERROR_RETURN_LOG(int, "Cannot create  pservlet.RLS_String module");
+		ERROR_RETURN_LOG(int, "Cannot create  pservlet.RLS_String module");
 
 	if(-1 == PyModule_AddObject(module, "RLS_String", rls_module))
 	{

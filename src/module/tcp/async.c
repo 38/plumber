@@ -231,7 +231,7 @@ static inline _async_obj_state_t _async_obj_get_state(const module_tcp_async_loo
 	for(ret = 0; ret < _NUM_OF_STATES && loop->limits[ret] <= i; ret ++);
 
 	if(ret == _NUM_OF_STATES)
-	    LOG_ERROR("unexpected type of async object");
+		LOG_ERROR("unexpected type of async object");
 
 	return ret;
 }
@@ -288,10 +288,10 @@ static inline void _async_wait_conn_heapify(module_tcp_async_loop_t* loop, uint3
 		uint32_t m_idx = idx;
 		if(idx * 2 + 1 < loop->limits[_ST_WAIT] &&
 		   loop->objects[loop->st_list[idx * 2 + 1]].kickout_ts < loop->objects[loop->st_list[m_idx]].kickout_ts)
-		    m_idx = idx * 2 + 1;
+			m_idx = idx * 2 + 1;
 		if(idx * 2 + 2 < loop->limits[_ST_WAIT] &&
 		   loop->objects[loop->st_list[idx * 2 + 2]].kickout_ts < loop->objects[loop->st_list[m_idx]].kickout_ts)
-		    m_idx = idx * 2 + 2;
+			m_idx = idx * 2 + 2;
 		if(m_idx == idx) return;
 		_swap(loop, m_idx, idx);
 		idx = m_idx;
@@ -306,7 +306,7 @@ static inline void _async_wait_conn_heapify(module_tcp_async_loop_t* loop, uint3
 static inline void _async_wait_conn_decrease(module_tcp_async_loop_t* loop, uint32_t idx)
 {
 	for(;idx > 0 && loop->objects[loop->st_list[(idx - 1)/2]].kickout_ts > loop->objects[loop->st_list[idx]].kickout_ts; idx = (idx - 1) / 2)
-	    _swap(loop, idx, (idx - 1) / 2);
+		_swap(loop, idx, (idx - 1) / 2);
 }
 
 /**
@@ -319,12 +319,12 @@ static inline void _async_wait_conn_decrease(module_tcp_async_loop_t* loop, uint
 static inline int  _async_obj_set_state(module_tcp_async_loop_t* loop, _async_obj_t* async, _async_obj_state_t state)
 {
 	if(state >= _NUM_OF_STATES)
-	    ERROR_RETURN_LOG(int, "invalid state");
+		ERROR_RETURN_LOG(int, "invalid state");
 
 	_async_obj_state_t cur_st = _async_obj_get_state(loop, async);
 
 	if(cur_st >= _NUM_OF_STATES)
-	    ERROR_RETURN_LOG(int, "cannot get current state for connection %"PRIu32, _async_obj_conn_id(loop, async));
+		ERROR_RETURN_LOG(int, "cannot get current state for connection %"PRIu32, _async_obj_conn_id(loop, async));
 
 	if(cur_st == state) return 0;
 
@@ -351,9 +351,9 @@ static inline int  _async_obj_set_state(module_tcp_async_loop_t* loop, _async_ob
 		if(state == _ST_WAIT)
 		{
 			if(async->wait_conn)
-			    async->kickout_ts = time(NULL) + loop->ttl;
+				async->kickout_ts = time(NULL) + loop->ttl;
 			else
-			    async->kickout_ts = time(NULL) + (async->data_event.timeout > loop->data_ttl ? loop->data_ttl : async->data_event.timeout);
+				async->kickout_ts = time(NULL) + (async->data_event.timeout > loop->data_ttl ? loop->data_ttl : async->data_event.timeout);
 
 			/* if this connection is being adding to the wait state, maintain the heap property */
 			_async_wait_conn_decrease(loop, async->index);
@@ -395,12 +395,12 @@ static inline _async_obj_t* _async_obj_get_from_index(module_tcp_async_loop_t* l
 {
 
 	if(idx >= loop->limits[_NUM_OF_STATES - 1])
-	    ERROR_PTR_RETURN_LOG("invalid items in the async object state array");
+		ERROR_PTR_RETURN_LOG("invalid items in the async object state array");
 
 	_async_obj_t* ret = loop->objects + loop->st_list[idx];
 
 	if(ret->index == ERROR_CODE(uint32_t))
-	    ERROR_PTR_RETURN_LOG("connection object %"PRIu32" have no async object attached", loop->st_list[idx]);
+		ERROR_PTR_RETURN_LOG("connection object %"PRIu32" have no async object attached", loop->st_list[idx]);
 
 	return ret;
 }
@@ -429,8 +429,8 @@ static inline _async_obj_state_t _io_ops(module_tcp_async_loop_t* loop, _async_o
 		obj->b_end += rdsz;
 	}
 	else
-	    LOG_DEBUG("Connection object %"PRIu32": there's no space for the new data in the buffer, "
-	              "consuming the existing data first", _async_obj_conn_id(loop,obj));
+		LOG_DEBUG("Connection object %"PRIu32": there's no space for the new data in the buffer, "
+		          "consuming the existing data first", _async_obj_conn_id(loop,obj));
 
 	LOG_DEBUG("Connection object %"PRIu32": buffer range [%zu, %zu)",
 	          _async_obj_conn_id(loop, obj), obj->b_begin, obj->b_end);
@@ -518,7 +518,7 @@ static inline int _async_obj_add_poll(module_tcp_async_loop_t* loop, _async_obj_
 		}
 	};
 	if(ERROR_CODE(int) == os_event_poll_add(loop->poll, &event))
-	    ERROR_RETURN_LOG(int, "Cannot add the async object to the poll wait list");
+		ERROR_RETURN_LOG(int, "Cannot add the async object to the poll wait list");
 
 	LOG_DEBUG("Connection object %"PRIu32" has been added to the poll wait list", _async_obj_conn_id(loop, async));
 
@@ -534,7 +534,7 @@ static inline int _async_obj_add_poll(module_tcp_async_loop_t* loop, _async_obj_
 static inline int _async_obj_del_poll(module_tcp_async_loop_t* loop, _async_obj_t* async)
 {
 	if(ERROR_CODE(int) == os_event_poll_del(loop->poll, async->fd, loop->write == NULL ? 0 : 1))
-	    ERROR_RETURN_LOG(int, "Cannot delete the async object from the poll wait list");
+		ERROR_RETURN_LOG(int, "Cannot delete the async object from the poll wait list");
 	return 0;
 }
 
@@ -601,7 +601,7 @@ static inline int _process_async_objs(module_tcp_async_loop_t* loop)
 
 		/* If the new state incidates the connection is not ready, add it to the wait list */
 		if(next_st == _ST_WAIT && this->wait_conn && _async_obj_add_poll(loop, this) == ERROR_CODE(int))
-		    LOG_WARNING("cannot add the async object to the waiting list");
+			LOG_WARNING("cannot add the async object to the waiting list");
 	}
 
 
@@ -622,7 +622,7 @@ static inline int _process_async_objs(module_tcp_async_loop_t* loop)
 		LOG_DEBUG("calling error handler of connection object %"PRIu32, conn_id);
 
 		if(this->onerror(conn_id, loop) == ERROR_CODE(int))
-		    LOG_WARNING("error while executing the error handler for connection object %"PRIu32, conn_id);
+			LOG_WARNING("error while executing the error handler for connection object %"PRIu32, conn_id);
 
 		/* If the data end message has sent previously, that means we should change the state to finished now.
 		 * Otherwise, the data end message is expected, so that we can update its state to finished at the time
@@ -670,13 +670,13 @@ static inline int _process_async_objs(module_tcp_async_loop_t* loop)
 		uint32_t conn_id = _async_obj_conn_id(loop, this);
 
 		if(ERROR_CODE(int) == module_tcp_async_clear_data_event(loop, conn_id))
-		    LOG_ERROR("Cannot remove the data event FD from the epoll list");
+			LOG_ERROR("Cannot remove the data event FD from the epoll list");
 
 		LOG_DEBUG("handling the async object in finished state for connection object %"PRIu32, conn_id);
 
 		//free(this->io_buffer);
 		if(ERROR_CODE(int) == mempool_page_dealloc(this->io_buffer))
-		    LOG_ERROR("Cannot deallocte the io buffer page");
+			LOG_ERROR("Cannot deallocte the io buffer page");
 
 		this->index = ERROR_CODE(uint32_t);
 
@@ -690,7 +690,7 @@ static inline int _process_async_objs(module_tcp_async_loop_t* loop)
 		 * So it's dengours, because the index array is not yet set to ERROR_CODE(uint32_t), but the new reigsteration
 		 * comes in, and it wil fails */
 		if(this->cleanup(conn_id, loop) == ERROR_CODE(int))
-		    LOG_WARNING("error while executing the cleanup callback for connection object %"PRIu32, conn_id);
+			LOG_WARNING("error while executing the cleanup callback for connection object %"PRIu32, conn_id);
 
 		LOG_TRACE("Async IO operation for connection object %"PRIu32" finished", conn_id);
 	}
@@ -706,7 +706,7 @@ static inline int _process_async_objs(module_tcp_async_loop_t* loop)
 		        sizeof(uint32_t) * (loop->limits[_NUM_OF_STATES - 1] - loop->limits[_ST_FINISHED]));
 	}
 	for(st = _ST_FINISHED; st < _NUM_OF_STATES; st ++)
-	    loop->limits[st] -= fin_size;
+		loop->limits[st] -= fin_size;
 
 	LOG_DEBUG("Async IO iteration finished");
 	_print_async_obj_layout(loop);
@@ -716,11 +716,11 @@ static inline int _process_async_objs(module_tcp_async_loop_t* loop)
 static inline int _process_queue_message(module_tcp_async_loop_t* loop)
 {
 	if(ERROR_CODE(int) == os_event_user_event_consume(loop->poll, loop->event_fd))
-	    ERROR_RETURN_LOG(int, "Cannot consume user event");
+		ERROR_RETURN_LOG(int, "Cannot consume user event");
 
 	LOG_DEBUG("New incoming queue message");
 	if((errno = pthread_mutex_lock(&loop->q_mutex)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "cannot acquire the global queue mutex");
+		ERROR_RETURN_LOG_ERRNO(int, "cannot acquire the global queue mutex");
 
 	for(;loop->q_front != loop->q_rear; loop->q_front ++)
 	{
@@ -741,7 +741,7 @@ static inline int _process_queue_message(module_tcp_async_loop_t* loop)
 			LOG_DEBUG("QM: data ready notification on connection object %"PRIu32, current->conn_id);
 			if(_async_obj_get_state(loop, async) == _ST_WAIT && !async->wait_conn &&
 			   _async_obj_set_state(loop, async, _ST_READY) == ERROR_CODE(int))
-			    LOG_WARNING("cannot set the connection object %"PRIu32" to ready state", current->conn_id);
+				LOG_WARNING("cannot set the connection object %"PRIu32" to ready state", current->conn_id);
 			async->rdy_posted = 0;
 		}
 		else if(current->type == _MT_END)
@@ -760,7 +760,7 @@ static inline int _process_queue_message(module_tcp_async_loop_t* loop)
 				{
 					LOG_ERROR("The connection object %"PRIu32" failed to return the empty state, raising an error", current->conn_id);
 					if(ERROR_CODE(int) == _async_obj_set_state(loop, async, _ST_RAISING))
-					    LOG_WARNING("Cannot set the connection object %"PRIu32" to RAISING state", current->conn_id);
+						LOG_WARNING("Cannot set the connection object %"PRIu32" to RAISING state", current->conn_id);
 				}
 
 				if(is_empty) finished = 1;
@@ -770,7 +770,7 @@ static inline int _process_queue_message(module_tcp_async_loop_t* loop)
 				LOG_DEBUG("connection object %"PRIu32" is currently in %s state, QM %s triggers moving this object to finished list",
 				          current->conn_id, _async_obj_state_str[st] ,_message_str[_MT_END]);
 				if(ERROR_CODE(int) == _async_obj_set_state(loop, async, _ST_FINISHED))
-				    LOG_WARNING("cannot set the connection object %"PRIu32" to FINISHED state", current->conn_id);
+					LOG_WARNING("cannot set the connection object %"PRIu32" to FINISHED state", current->conn_id);
 			}
 		}
 		else if(current->type == _MT_CREATE)
@@ -799,13 +799,13 @@ static inline int _process_queue_message(module_tcp_async_loop_t* loop)
 			loop->st_list[async->index] = current->conn_id;
 			async->wait_conn = 0;
 			if(_async_obj_set_state(loop, async, _ST_WAIT) == ERROR_CODE(int))
-			    LOG_WARNING("cannot set the newly created async object to %s", _async_obj_state_str[_ST_WAIT]);
+				LOG_WARNING("cannot set the newly created async object to %s", _async_obj_state_str[_ST_WAIT]);
 		}
 		else if(current->type == _MT_KILL) LOG_WARNING("kill message can not be handled at this point");
 		else LOG_WARNING("unknown type of queue message");
 	}
 	if((errno = pthread_mutex_unlock(&loop->q_mutex)) != 0)
-	    ERROR_RETURN_LOG_ERRNO(int, "cannot release the global queue mutex");
+		ERROR_RETURN_LOG_ERRNO(int, "cannot release the global queue mutex");
 
 	return 0;
 }
@@ -823,16 +823,16 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 
 	/* Check if we have something to write, we do not want the poll block us */
 	if(_get_num_async_in_state(loop, _ST_READY) > 0)
-	    timeout = 0;
+		timeout = 0;
 	else if(_get_num_async_in_state(loop, _ST_WAIT) > 0)
 	{
 		/* In this case, even though we do not have any connection becomes ready
 		 * the thread needs to wake up and kick out the timed out connections */
 		time_t min_ts = loop->objects[loop->st_list[0]].kickout_ts;
 		if(min_ts > now)
-		    timeout = ((int)(min_ts - now)) * 1000;
+			timeout = ((int)(min_ts - now)) * 1000;
 		else
-		    timeout = 0;
+			timeout = 0;
 	}
 
 	LOG_DEBUG("async IO loop is performing poll, timeout: %d ms", timeout);
@@ -845,7 +845,7 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 	}
 
 	if(result == ERROR_CODE(int))
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot finish poll");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot finish poll");
 	else
 	{
 		int i;
@@ -855,7 +855,7 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 			if(&loop->event_fd == data)
 			{
 				if(_process_queue_message(loop) == ERROR_CODE(int))
-				    LOG_ERROR("Cannot process the queue message");
+					LOG_ERROR("Cannot process the queue message");
 			}
 			else if(*(int*)data == 0)
 			{
@@ -871,10 +871,10 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 				if(_ST_WAIT == state && async->wait_conn)
 				{
 					if(_async_obj_set_state(loop, async, _ST_READY) == ERROR_CODE(int))
-					    ERROR_RETURN_LOG(int, "Cannot set the state of the async object to _ST_READY");
+						ERROR_RETURN_LOG(int, "Cannot set the state of the async object to _ST_READY");
 
 					if(_async_obj_del_poll(loop, async) == ERROR_CODE(int))
-					    ERROR_RETURN_LOG(int, "Cannot remove the async object from poll");
+						ERROR_RETURN_LOG(int, "Cannot remove the async object from poll");
 
 					LOG_DEBUG("Connection object %"PRIu32" has been set to state _ST_READY", _async_obj_conn_id(loop, async));
 				}
@@ -892,7 +892,7 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 				if(_ST_WAIT == state && !async->wait_conn)
 				{
 					if(_async_obj_set_state(loop, async, _ST_READY) == ERROR_CODE(int))
-					    ERROR_RETURN_LOG(int, "Cannot set the state of the async object to _ST_READY");
+						ERROR_RETURN_LOG(int, "Cannot set the state of the async object to _ST_READY");
 
 					LOG_DEBUG("Connection object %"PRIu32" has been set to _ST_READY state", _async_obj_conn_id(loop, async));
 				}
@@ -946,7 +946,7 @@ static inline int _handle_event(module_tcp_async_loop_t* loop)
 
 	/* Process all the async objects */
 	if(_process_async_objs(loop) == ERROR_CODE(int))
-	    ERROR_RETURN_LOG(int, "Cannot process the async objects");
+		ERROR_RETURN_LOG(int, "Cannot process the async objects");
 
 	return 0;
 }
@@ -956,19 +956,19 @@ static inline void* _async_main(void* arg)
 	module_tcp_async_loop_t* loop = (module_tcp_async_loop_t*)arg;
 	LOG_DEBUG("async loop is started!");
 	if((errno = pthread_mutex_lock(&loop->s_mutex)) != 0)
-	    ERROR_PTR_RETURN_LOG_ERRNO("cannot acquire the startup mutex");
+		ERROR_PTR_RETURN_LOG_ERRNO("cannot acquire the startup mutex");
 
 	loop->started = 1;
 	if((errno = pthread_cond_signal(&loop->s_cond)) != 0)
-	    ERROR_PTR_RETURN_LOG_ERRNO("cannot notify the scheduler thread");
+		ERROR_PTR_RETURN_LOG_ERRNO("cannot notify the scheduler thread");
 
 	if((errno = pthread_mutex_unlock(&loop->s_mutex)) != 0)
-	    ERROR_PTR_RETURN_LOG_ERRNO("cannot release the startup mutex");
+		ERROR_PTR_RETURN_LOG_ERRNO("cannot release the startup mutex");
 
 
 	for(;!loop->killed;)
-	    if(_handle_event(loop) == ERROR_CODE(int))
-	        LOG_ERROR("Cannot handle the event");
+		if(_handle_event(loop) == ERROR_CODE(int))
+			LOG_ERROR("Cannot handle the event");
 
 	LOG_INFO("Exiting async loop");
 
@@ -989,12 +989,12 @@ module_tcp_async_loop_t* module_tcp_async_loop_new(uint32_t pool_size, uint32_t 
 	ret->data_ttl = data_ttl;
 
 	if(NULL == (ret->objects = (_async_obj_t*)malloc(sizeof(_async_obj_t) * ret->capacity)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot allocate memory for the async object array");
+		ERROR_LOG_ERRNO_GOTO(ERR, "cannot allocate memory for the async object array");
 	for(i = 0; i < ret->capacity; i ++)
-	    ret->objects[i].index = ERROR_CODE(uint32_t);
+		ret->objects[i].index = ERROR_CODE(uint32_t);
 
 	if(NULL == (ret->st_list = (uint32_t*)malloc(sizeof(uint32_t) * ret->capacity)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot allocate memory for the state list");
+		ERROR_LOG_ERRNO_GOTO(ERR, "cannot allocate memory for the state list");
 
 	tmp = pool_size * _NUM_CONN_MSG_TYPS + 1;
 	size = 1;
@@ -1004,21 +1004,21 @@ module_tcp_async_loop_t* module_tcp_async_loop_new(uint32_t pool_size, uint32_t 
 	ret->q_front = ret->q_rear = 0;
 	LOG_DEBUG("There are %"PRIu32" elements in the message qeueue", size);
 	if(NULL == (ret->queue = (_message_t*)malloc(sizeof(_message_t) * size)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot allocate memory for the message queue");
+		ERROR_LOG_ERRNO_GOTO(ERR, "cannot allocate memory for the message queue");
 
 	if((ret->poll = os_event_poll_new()) == NULL)
-	    ERROR_LOG_GOTO(ERR, "cannot create poll object");
+		ERROR_LOG_GOTO(ERR, "cannot create poll object");
 
 	if((errno = pthread_mutex_init(&ret->q_mutex, NULL)) != 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot initialize the queue mutex");
+		ERROR_LOG_ERRNO_GOTO(ERR, "cannot initialize the queue mutex");
 	ret->i_q_mutex = 1;
 
 	if((errno = pthread_mutex_init(&ret->s_mutex, NULL)) != 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot initialize the startup mutex");
+		ERROR_LOG_ERRNO_GOTO(ERR, "cannot initialize the startup mutex");
 	ret->i_s_mutex = 1;
 
 	if((errno = pthread_cond_init(&ret->s_cond, NULL)) != 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot initialize the startup cond var");
+		ERROR_LOG_ERRNO_GOTO(ERR, "cannot initialize the startup cond var");
 	ret->i_s_cond = 1;
 
 	os_event_desc_t event = {
@@ -1029,21 +1029,21 @@ module_tcp_async_loop_t* module_tcp_async_loop_new(uint32_t pool_size, uint32_t 
 	};
 
 	if(ERROR_CODE(int) == (ret->event_fd = os_event_poll_add(ret->poll, &event)))
-	    ERROR_LOG_GOTO(ERR, "Cnnot add the user event to poll wait list");
+		ERROR_LOG_GOTO(ERR, "Cnnot add the user event to poll wait list");
 
 	/* Finally, start the loop */
 	if(NULL == (ret->loop = thread_new(_async_main, ret, THREAD_TYPE_IO)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot spawn the async loop thread");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot spawn the async loop thread");
 
 	if((errno = pthread_mutex_lock(&ret->s_mutex)) != 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot acquire the startup mutex");
+		ERROR_LOG_ERRNO_GOTO(ERR, "cannot acquire the startup mutex");
 
 	while(!ret->started)
-	    if((errno = pthread_cond_wait(&ret->s_cond, &ret->s_mutex)) != 0)
-	        LOG_ERROR_ERRNO("cannot performe pthread wait");
+		if((errno = pthread_cond_wait(&ret->s_cond, &ret->s_mutex)) != 0)
+			LOG_ERROR_ERRNO("cannot performe pthread wait");
 
 	if((errno = pthread_mutex_unlock(&ret->s_mutex)) != 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot acquire the startup mutex");
+		ERROR_LOG_ERRNO_GOTO(ERR, "cannot acquire the startup mutex");
 
 	return ret;
 ERR:
@@ -1076,7 +1076,7 @@ ERR:
 static inline int _post_message(module_tcp_async_loop_t* loop, _message_type_t type, uint32_t conn_id)
 {
 	if((errno = pthread_mutex_lock(&loop->q_mutex)) != 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot acquire the global queue mutex");
+		ERROR_LOG_ERRNO_GOTO(ERR, "cannot acquire the global queue mutex");
 
 	if(type == _MT_CREATE)
 	{
@@ -1100,19 +1100,19 @@ static inline int _post_message(module_tcp_async_loop_t* loop, _message_type_t t
 		loop->q_rear ++;
 
 		if(type == _MT_READY)
-		    loop->objects[conn_id].rdy_posted = 1;
+			loop->objects[conn_id].rdy_posted = 1;
 	}
 	else LOG_DEBUG("Ignored duplicate %s message on connection object %"PRIu32, _message_str[type], conn_id);
 
 	if((errno = pthread_mutex_unlock(&loop->q_mutex)) != 0)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "cannot release the global queue mutex");
+		ERROR_LOG_ERRNO_GOTO(ERR, "cannot release the global queue mutex");
 
 
 	uint64_t val = 1;
 	if(write(loop->event_fd, &val, sizeof(uint64_t)) > 0)
-	    return 0;
+		return 0;
 	else
-	    ERROR_RETURN_LOG_ERRNO(int, "Cannot write to the event fd");
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot write to the event fd");
 
 ERR:
 	return ERROR_CODE(int);
@@ -1127,10 +1127,10 @@ int module_tcp_async_write_register(module_tcp_async_loop_t* loop,
                                     void* handle)
 {
 	if(NULL == loop || conn_id >= loop->capacity || fd < 0 || get_data == NULL || cleanup == NULL || on_error == NULL || handle == NULL || empty == NULL)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(loop->objects[conn_id].index != ERROR_CODE(uint32_t))
-	    ERROR_RETURN_LOG(int, "the connection object %"PRIu32" has undergoing async operation", conn_id);
+		ERROR_RETURN_LOG(int, "the connection object %"PRIu32" has undergoing async operation", conn_id);
 
 	/* This is safe, because unless the async object released the connection object, it cannot
 	 * be popped up next time. So at this point, there must be no pending queue message for this
@@ -1158,7 +1158,7 @@ int module_tcp_async_write_register(module_tcp_async_loop_t* loop,
 int module_tcp_async_write_data_ends(module_tcp_async_loop_t* loop, uint32_t conn_id)
 {
 	if(NULL == loop || conn_id >= loop->capacity)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	return _post_message(loop, _MT_END, conn_id);
 }
@@ -1166,7 +1166,7 @@ int module_tcp_async_write_data_ends(module_tcp_async_loop_t* loop, uint32_t con
 int module_tcp_async_write_data_ready(module_tcp_async_loop_t* loop, uint32_t conn_id)
 {
 	if(NULL == loop || conn_id >= loop->capacity)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	return _post_message(loop, _MT_READY, conn_id);
 }
@@ -1175,7 +1175,7 @@ int module_tcp_async_write_data_ready(module_tcp_async_loop_t* loop, uint32_t co
 void* module_tcp_async_get_data_handle(module_tcp_async_loop_t* loop, uint32_t conn_id)
 {
 	if(NULL == loop || conn_id >= loop->capacity)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	return loop->objects[conn_id].handle;
 }
@@ -1190,7 +1190,7 @@ int module_tcp_async_loop_free(module_tcp_async_loop_t* loop)
 		loop->killed = 1;
 		BARRIER();
 		if(ERROR_CODE(int) == _post_message(loop, _MT_KILL, 0))
-		    ERROR_RETURN_LOG(int, "Cannot send kill message to the async loop");
+			ERROR_RETURN_LOG(int, "Cannot send kill message to the async loop");
 
 		if(thread_free(loop->loop, NULL) == ERROR_CODE(int))
 		{
@@ -1198,7 +1198,7 @@ int module_tcp_async_loop_free(module_tcp_async_loop_t* loop)
 			rc = ERROR_CODE(int);
 		}
 		else
-		    LOG_DEBUG("Async loop is stopped");
+			LOG_DEBUG("Async loop is stopped");
 
 		uint32_t i;
 		for(i = 0; i < loop->capacity; i ++)
@@ -1224,7 +1224,7 @@ int module_tcp_async_loop_free(module_tcp_async_loop_t* loop)
 	if(NULL != loop->st_list) free(loop->st_list);
 	if(NULL != loop->queue) free(loop->queue);
 	if(NULL != loop->poll && ERROR_CODE(int) == os_event_poll_free(loop->poll))
-	    rc = ERROR_CODE(int);
+		rc = ERROR_CODE(int);
 
 	if(loop->event_fd >= 0) close(loop->event_fd);
 	if(loop->i_q_mutex && (errno = pthread_mutex_destroy(&loop->q_mutex)) != 0)
@@ -1253,11 +1253,11 @@ int module_tcp_async_loop_free(module_tcp_async_loop_t* loop)
 static inline int _get_read_flag(const itc_module_data_source_event_t* event)
 {
 	if(event->read_event && event->write_event)
-	    return 2;
+		return 2;
 	else if(event->read_event)
-	    return 1;
+		return 1;
 	else if(event->write_event)
-	    return 0;
+		return 0;
 	else return -1;
 }
 
@@ -1268,27 +1268,27 @@ int module_tcp_async_set_data_event(module_tcp_async_loop_t* loop, uint32_t conn
 #ifndef FULL_OPTIMIZATION
 
 	if(thread_get_current_type() != THREAD_TYPE_IO)
-	    ERROR_RETURN_LOG(int, "The function shouldn't be called from thread other than IO loop");
+		ERROR_RETURN_LOG(int, "The function shouldn't be called from thread other than IO loop");
 
 	if(event.fd == async->fd)
-	    ERROR_RETURN_LOG(int, "Cannot add the same FD as the data event FD");
+		ERROR_RETURN_LOG(int, "Cannot add the same FD as the data event FD");
 #endif
 
 	if(NULL == loop || conn_id == ERROR_CODE(uint32_t))
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	int flag = _get_read_flag(&event);
 	if(ERROR_CODE(int) == flag)
-	    ERROR_RETURN_LOG(int, "Invalid event description");
+		ERROR_RETURN_LOG(int, "Invalid event description");
 
 	if(async->data_event.fd == event.fd && flag == _get_read_flag(&async->data_event))
-	    return 0;
+		return 0;
 
 	if(async->data_event.fd == event.fd && -1 == _get_read_flag(&async->data_event))
-	    return module_tcp_async_clear_data_event(loop, conn_id);
+		return module_tcp_async_clear_data_event(loop, conn_id);
 
 	if(async->data_event.fd != event.fd && async->data_event.fd != -1 && ERROR_CODE(int) == os_event_poll_del(loop->poll, async->data_event.fd, _get_read_flag(&async->data_event)))
-	    ERROR_RETURN_LOG(int, "Cannot remove the previous registered data event FD");
+		ERROR_RETURN_LOG(int, "Cannot remove the previous registered data event FD");
 
 	os_event_desc_t desc = {
 		.type = OS_EVENT_TYPE_KERNEL,
@@ -1301,14 +1301,14 @@ int module_tcp_async_set_data_event(module_tcp_async_loop_t* loop, uint32_t conn
 	switch(flag)
 	{
 		case 0:
-		    desc.kernel.event = OS_EVENT_KERNEL_EVENT_OUT;
-		    break;
+			desc.kernel.event = OS_EVENT_KERNEL_EVENT_OUT;
+			break;
 		case 1:
-		    desc.kernel.event = OS_EVENT_KERNEL_EVENT_IN;
-		    break;
+			desc.kernel.event = OS_EVENT_KERNEL_EVENT_IN;
+			break;
 		case 2:
-		    desc.kernel.event = OS_EVENT_KERNEL_EVENT_BIDIR;
-		    break;
+			desc.kernel.event = OS_EVENT_KERNEL_EVENT_BIDIR;
+			break;
 		default:
 		    ERROR_RETURN_LOG(int, "Unexpected event flag");
 	}
@@ -1316,12 +1316,12 @@ int module_tcp_async_set_data_event(module_tcp_async_loop_t* loop, uint32_t conn
 	if(async->data_event.fd != event.fd)
 	{
 		if(ERROR_CODE(int) == os_event_poll_add(loop->poll, &desc))
-		    ERROR_RETURN_LOG(int, "Cannot add the data event FD to the poll list");
+			ERROR_RETURN_LOG(int, "Cannot add the data event FD to the poll list");
 	}
 	else
 	{
 		if(ERROR_CODE(int) == os_event_poll_modify(loop->poll, &desc))
-		    ERROR_RETURN_LOG(int, "Cannot modify the data event FD in the poll list");
+			ERROR_RETURN_LOG(int, "Cannot modify the data event FD in the poll list");
 	}
 
 	async->data_event = event;
@@ -1335,19 +1335,19 @@ int module_tcp_async_clear_data_event(module_tcp_async_loop_t* loop, uint32_t co
 #ifndef FULL_OPTIMIZATION
 
 	if(thread_get_current_type() != THREAD_TYPE_IO)
-	    ERROR_RETURN_LOG(int, "The function shouldn't be called from thread other than IO loop");
+		ERROR_RETURN_LOG(int, "The function shouldn't be called from thread other than IO loop");
 
 #endif
 
 	if(NULL == loop || ERROR_CODE(uint32_t) == conn_id)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_async_obj_t* async = loop->objects + conn_id;
 
 	if(async->data_event.fd < 0) return 0;
 
 	if(ERROR_CODE(int) == os_event_poll_del(loop->poll, async->data_event.fd, _get_read_flag(&async->data_event)))
-	    ERROR_RETURN_LOG(int, "Cannot remove the associated FD from the poll object");
+		ERROR_RETURN_LOG(int, "Cannot remove the associated FD from the poll object");
 
 	async->data_event.fd = -1;
 

@@ -44,9 +44,9 @@ static inline void _print_err(const proto_err_t* err)
 	static char buf[1024];
 	const char* msg = proto_err_str(err, buf, sizeof(buf));
 	if(NULL == msg)
-	    LOG_ERROR("<unknown-libproto-error>");
+		LOG_ERROR("<unknown-libproto-error>");
 	else
-	    LOG_ERROR("libproto: %s", msg);
+		LOG_ERROR("libproto: %s", msg);
 }
 
 void log_libproto_error(const char* filename, int lineno)

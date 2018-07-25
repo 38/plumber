@@ -106,33 +106,33 @@ static int _scan_brackets(pss_comp_lex_t* lexer)
 	for(;;)
 	{
 		if(ERROR_CODE(int) == pss_comp_lex_next_token(lexer, &token))
-		    ERROR_RETURN_ACTION(int, b_index = 0);
+			ERROR_RETURN_ACTION(int, b_index = 0);
 		switch(token.type)
 		{
 			case PSS_COMP_LEX_TOKEN_LPARENTHESIS:
-			    bracket_stack[b_index++] = PSS_COMP_LEX_TOKEN_RPARENTHESIS;
-			    break;
+				bracket_stack[b_index++] = PSS_COMP_LEX_TOKEN_RPARENTHESIS;
+				break;
 			case PSS_COMP_LEX_TOKEN_LBRACKET:
-			    bracket_stack[b_index++] = PSS_COMP_LEX_TOKEN_RBRACKET;
-			    break;
+				bracket_stack[b_index++] = PSS_COMP_LEX_TOKEN_RBRACKET;
+				break;
 			case PSS_COMP_LEX_TOKEN_LBRACE:
-			    bracket_stack[b_index++] = PSS_COMP_LEX_TOKEN_RBRACE;
-			    break;
+				bracket_stack[b_index++] = PSS_COMP_LEX_TOKEN_RBRACE;
+				break;
 			case PSS_COMP_LEX_TOKEN_RPARENTHESIS:
 			case PSS_COMP_LEX_TOKEN_RBRACKET:
 			case PSS_COMP_LEX_TOKEN_RBRACE:
-			    if(0 != b_index && token.type == bracket_stack[b_index - 1])
-			    {
-				    b_index --;
-				    break;
-			    }
-			    b_index = 0;
-			    ERROR_RETURN_LOG(int, "Syntax error: unexpected token");
+				if(0 != b_index && token.type == bracket_stack[b_index - 1])
+				{
+					b_index --;
+					break;
+				}
+				b_index = 0;
+				ERROR_RETURN_LOG(int, "Syntax error: unexpected token");
 			case PSS_COMP_LEX_TOKEN_ERROR:
-			    b_index = 0;
-			    ERROR_RETURN_LOG(int, "Lexical error %u:%u: %s", token.line + 1, token.offset + 1, token.value.e);
+				b_index = 0;
+				ERROR_RETURN_LOG(int, "Lexical error %u:%u: %s", token.line + 1, token.offset + 1, token.value.e);
 			case PSS_COMP_LEX_TOKEN_EOF:
-			    return b_index;
+				return b_index;
 			default:
 			    /* Ignore */
 			    break;
@@ -164,7 +164,7 @@ static void _stop(int signo)
 	else if(_vm_running)
 	{
 		if(ERROR_CODE(int) == pss_vm_kill(current_vm))
-		    LOG_ERROR("Cannot kill the VM");
+			LOG_ERROR("Cannot kill the VM");
 		fprintf(stderr, "Keyboard Interrupted\n");
 	}
 }
@@ -200,10 +200,10 @@ static pss_value_t _help(pss_vm_t* vm, uint32_t argc, pss_value_t* argv)
 	int print_internal = 0;
 	pss_value_builtin_t func = NULL;
 	if(argc > 0 && argv[0].kind == PSS_VALUE_KIND_NUM && argv[0].num != 0)
-	    print_internal = 1;
+		print_internal = 1;
 
 	if(argc > 0 && argv[0].kind == PSS_VALUE_KIND_BUILTIN)
-	    print_internal = 1, func = argv[0].builtin;
+		print_internal = 1, func = argv[0].builtin;
 
 	builtin_print_doc(stderr, print_internal, func);
 
@@ -228,7 +228,7 @@ int cli_eval(const char* code, uint32_t debug)
 	}
 
 	if(NULL == (module = module_from_buffer(code, (uint32_t)strlen(code), debug, 1)))
-	    ERROR_LOG_GOTO(ERR, "Cannot parse code");
+		ERROR_LOG_GOTO(ERR, "Cannot parse code");
 
 	_vm_running = 1;
 
@@ -241,7 +241,7 @@ int cli_eval(const char* code, uint32_t debug)
 	{
 		char buf[4096];
 		if(ERROR_CODE(size_t) == pss_value_strify_to_buf(result, buf, sizeof(buf)))
-		    ERROR_LOG_GOTO(ERR, "Type error: Got invalid vlaue");
+			ERROR_LOG_GOTO(ERR, "Type error: Got invalid vlaue");
 
 		printf("%s\n", buf);
 	}
@@ -259,14 +259,14 @@ int cli_eval(const char* code, uint32_t debug)
 	}
 
 	if(result.kind != PSS_VALUE_KIND_UNDEF && ERROR_CODE(int) == pss_value_decref(result))
-	    ERROR_LOG_GOTO(ERR, "Cannot decref the result value");
+		ERROR_LOG_GOTO(ERR, "Cannot decref the result value");
 
 	if(NULL != err)
 	{
 		const pss_comp_error_t* this;
 		for(this = err; NULL != this; this = this->next)
-		    fprintf(stderr, "%u:%u:error: %s\n", this->line + 1,
-		            this->column + 1, this->message);
+			fprintf(stderr, "%u:%u:error: %s\n", this->line + 1,
+			        this->column + 1, this->message);
 		pss_comp_free_error(err);
 		goto ERR;
 	}
@@ -276,10 +276,10 @@ int cli_eval(const char* code, uint32_t debug)
 ERR:
 
 	if(ERROR_CODE(int) == pss_vm_free(current_vm))
-	    ERROR_RETURN_LOG(int, "Cannot free current VM");
+		ERROR_RETURN_LOG(int, "Cannot free current VM");
 
 	if(ERROR_CODE(int) == module_unload_all())
-	    ERROR_RETURN_LOG(int, "Cannot unload modules");
+		ERROR_RETURN_LOG(int, "Cannot unload modules");
 
 	return rc;
 }
@@ -366,7 +366,7 @@ int cli_interactive(uint32_t debug)
 		{
 			_line_list_t *node = (_line_list_t*)malloc(sizeof(*node));
 			if(NULL == node)
-			    ERROR_LOG_GOTO(_END_OF_CODE, "Cannot allocate node for the new line");
+				ERROR_LOG_GOTO(_END_OF_CODE, "Cannot allocate node for the new line");
 
 			uint32_t size = (uint32_t)strlen(line);
 			node->line = line;
@@ -378,11 +378,11 @@ int cli_interactive(uint32_t debug)
 
 			// lexical analysis of a line of code
 			if(NULL == (lexer = pss_comp_lex_new(source_path, head->line, head->size - 1)))
-			    ERROR_LOG_GOTO(_ADD_HISTORY, "Cannot create new lexer");
+				ERROR_LOG_GOTO(_ADD_HISTORY, "Cannot create new lexer");
 
 			int scan_ret = _scan_brackets(lexer);
 			if(ERROR_CODE(int) == scan_ret)
-			    goto _ADD_HISTORY;
+				goto _ADD_HISTORY;
 
 			pss_comp_lex_free(lexer);
 			lexer = NULL;
@@ -408,7 +408,7 @@ _ADD_HISTORY:
 		if(lex_success)
 		{
 			if(NULL == (module = module_from_buffer(code, head->off + head->size, debug, 1)))
-			    goto _END_OF_CODE;
+				goto _END_OF_CODE;
 
 			_vm_running = 1;
 
@@ -443,14 +443,14 @@ _ADD_HISTORY:
 
 _END_OF_CODE:
 		if(result.kind != PSS_VALUE_KIND_UNDEF && ERROR_CODE(int) == pss_value_decref(result))
-		    LOG_ERROR("Cannot decref the result value");
+			LOG_ERROR("Cannot decref the result value");
 		if(NULL != line) free(line);
 		if(NULL != err)
 		{
 			const pss_comp_error_t* this;
 			for(this = err; NULL != this; this = this->next)
-			    fprintf(stderr, "%u:%u:error: %s\n", this->line + 1,
-			            this->column + 1, this->message);
+				fprintf(stderr, "%u:%u:error: %s\n", this->line + 1,
+				        this->column + 1, this->message);
 			pss_comp_free_error(err);
 		}
 		if(NULL != code) free(code);
@@ -460,10 +460,10 @@ _END_OF_CODE:
 	}
 TERMINATE:
 	if(ERROR_CODE(int) == pss_vm_free(current_vm))
-	    ERROR_RETURN_LOG(int, "Cannot free current VM");
+		ERROR_RETURN_LOG(int, "Cannot free current VM");
 
 	if(ERROR_CODE(int) == module_unload_all())
-	    ERROR_RETURN_LOG(int, "Cannot unload modules");
+		ERROR_RETURN_LOG(int, "Cannot unload modules");
 
 	return 0;
 }

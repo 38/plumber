@@ -65,7 +65,7 @@ size_t string_buffer_append_range(const char* begin, const char* end, string_buf
 	size_t to_write = (size_t)(end - begin);
 
 	if(to_write + 1 > buf->size)
-	    to_write = buf->size - 1;
+		to_write = buf->size - 1;
 
 	memcpy(buf->buffer, begin, to_write);
 

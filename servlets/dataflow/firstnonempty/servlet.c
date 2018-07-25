@@ -20,7 +20,7 @@ static int _on_type_determined(pipe_t pipe, const char* type, void* ctxbuf)
 	context_t* ctx = (context_t*)ctxbuf;
 
 	if(ERROR_CODE(int) == proto_init())
-	    ERROR_RETURN_LOG(int, "Cannot initialize libproto");
+		ERROR_RETURN_LOG(int, "Cannot initialize libproto");
 
 	if(ERROR_CODE(uint32_t) == (ctx->header_size = proto_db_type_size(type)))
 	{
@@ -42,13 +42,13 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxbuf)
 	context_t* ctx = (context_t*)ctxbuf;
 
 	if(argc != 2)
-	    ERROR_RETURN_LOG(int, "Usage: %s <number-of-inputs>", argv[0]);
+		ERROR_RETURN_LOG(int, "Usage: %s <number-of-inputs>", argv[0]);
 	ctx->header_size = 0;
 
 	ctx->n = (uint32_t)atoi(argv[1]);
 
 	if(NULL == (ctx->inputs = pipe_array_new("in#", PIPE_INPUT, "$T", 0, (int)ctx->n)))
-	    ERROR_RETURN_LOG(int, "Cannot create the input pipes");
+		ERROR_RETURN_LOG(int, "Cannot create the input pipes");
 
 	if(ERROR_CODE(pipe_t) == (ctx->output = pipe_define("out", PIPE_OUTPUT, "$T")))
 	{
@@ -74,13 +74,13 @@ static int _copy_header(const context_t* ctx, pipe_t pipe)
 	{
 		size_t rc = pipe_hdr_read(pipe, hdrbuf, rem > sizeof(hdrbuf) ? sizeof(hdrbuf) : rem);
 		if(ERROR_CODE(size_t) == rc)
-		    ERROR_RETURN_LOG(int, "Cannot read the typed header");
+			ERROR_RETURN_LOG(int, "Cannot read the typed header");
 
 		if(rc == 0)
 		{
 			int eof_rc = pipe_eof(pipe);
 			if(ERROR_CODE(int) == eof_rc)
-			    ERROR_RETURN_LOG(int, "Cannot check if the pipe stream has reached the end");
+				ERROR_RETURN_LOG(int, "Cannot check if the pipe stream has reached the end");
 			if(eof_rc == 1) ERROR_RETURN_LOG(int, "Incompleted header data");
 			/* Otherwise, we should wait for more data */
 		}
@@ -93,7 +93,7 @@ static int _copy_header(const context_t* ctx, pipe_t pipe)
 		{
 			size_t wrc = pipe_hdr_write(ctx->output, to_write, rc);
 			if(ERROR_CODE(size_t) == wrc)
-			    ERROR_RETURN_LOG(int, "Cannot write the typed header to output");
+				ERROR_RETURN_LOG(int, "Cannot write the typed header to output");
 			rc -= wrc;
 			to_write += wrc;
 		}
@@ -110,7 +110,7 @@ static int _copy_body(const context_t* ctx, pipe_t pipe)
 	for(;;)
 	{
 		if(ERROR_CODE(size_t) == (sz = pipe_read(pipe, buf, sizeof(buf))))
-		    ERROR_RETURN_LOG(int, "Cannot read bytes from header");
+			ERROR_RETURN_LOG(int, "Cannot read bytes from header");
 
 		if(sz == 0) break;
 
@@ -120,7 +120,7 @@ static int _copy_body(const context_t* ctx, pipe_t pipe)
 		{
 			size_t written;
 			if(ERROR_CODE(size_t) == (written = pipe_write(ctx->output, begin, sz)))
-			    ERROR_RETURN_LOG(int, "Cannot write bytes to header");
+				ERROR_RETURN_LOG(int, "Cannot write bytes to header");
 
 			begin += written;
 			sz -= written;
@@ -139,19 +139,19 @@ static int _exec(void* ctxbuf)
 	{
 		pipe_t pipe = pipe_array_get(ctx->inputs, i);
 		if(ERROR_CODE(pipe_t) == pipe)
-		    ERROR_RETURN_LOG(int, "Cannot get the input pipe");
+			ERROR_RETURN_LOG(int, "Cannot get the input pipe");
 
 		int eof_rc = pipe_eof(pipe);
 		if(eof_rc == ERROR_CODE(int))
-		    ERROR_RETURN_LOG(int, "Cannot check if the input stream gets to the end");
+			ERROR_RETURN_LOG(int, "Cannot check if the input stream gets to the end");
 
 		if(eof_rc == 0)
 		{
 			if(ERROR_CODE(int) != _copy_header(ctx, pipe) &&
 			   ERROR_CODE(int) != _copy_body(ctx, pipe))
-			    return 0;
+				return 0;
 			else
-			    ERROR_RETURN_LOG(int, "Cannot copy the input to output");
+				ERROR_RETURN_LOG(int, "Cannot copy the input to output");
 		}
 	}
 

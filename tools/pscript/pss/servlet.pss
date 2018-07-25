@@ -7,11 +7,11 @@
  * @param params The servlet initialization parameters
  * @return The servlet init string
  **/
-Servlet.init = function init(servlet_name, params) 
+Servlet.init = function init(servlet_name, params)
 {
 	var ret = servlet_name ;
 
-	var escape = function escape(str) 
+	var escape = function escape(str)
 	{
 		var ret = "";
 		for(var i = 0; i < len(str); i ++)

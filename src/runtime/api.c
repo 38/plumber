@@ -26,13 +26,13 @@ static inline runtime_task_t* _get_task(runtime_task_flags_t action)
 {
 	runtime_task_t* task = runtime_task_current();
 	if(NULL == task)
-	    ERROR_PTR_RETURN_LOG("unable to invoke the servlet API without a running task");
+		ERROR_PTR_RETURN_LOG("unable to invoke the servlet API without a running task");
 
 	if(NULL == task->servlet)
-	    ERROR_PTR_RETURN_LOG("invalid task");
+		ERROR_PTR_RETURN_LOG("invalid task");
 
 	if(action != (runtime_task_flags_t)-1 && RUNTIME_TASK_FLAG_GET_ACTION(task->flags) != action)
-	    ERROR_PTR_RETURN_LOG("the operation isn't allowed in this task type (0x%.8x)", task->flags);
+		ERROR_PTR_RETURN_LOG("the operation isn't allowed in this task type (0x%.8x)", task->flags);
 
 	return task;
 }
@@ -48,7 +48,7 @@ static inline itc_module_pipe_t* _get_handle(runtime_api_pipe_id_t pid)
 	if(NULL == task) return NULL;
 
 	if(pid == ERROR_CODE(runtime_api_pipe_id_t) || (size_t)pid >= task->npipes)
-	    ERROR_PTR_RETURN_LOG("invalid Pipe ID %u", pid);
+		ERROR_PTR_RETURN_LOG("invalid Pipe ID %u", pid);
 
 	return task->pipes[pid];
 }
@@ -61,7 +61,7 @@ static runtime_api_pipe_t _define(const char* name, runtime_api_pipe_flags_t fla
 	runtime_pdt_t* table = task->servlet->pdt;
 	int rc = runtime_pdt_insert(table, name, flags, type_expr);
 	if(rc == ERROR_CODE(runtime_api_pipe_id_t))
-	    ERROR_RETURN_LOG(runtime_api_pipe_t, "Cannot insert new entry to PDT");
+		ERROR_RETURN_LOG(runtime_api_pipe_t, "Cannot insert new entry to PDT");
 	return RUNTIME_API_PIPE_FROM_ID((runtime_api_pipe_id_t)rc);
 }
 
@@ -163,7 +163,7 @@ static runtime_api_pipe_t _get_module_func(const char* mod_path, const char* fun
 	if(mi->module->get_opcode == NULL) ERROR_RETURN_LOG(runtime_api_pipe_t, "Module callback get_opcode is not supported by module %s", mod_path);
 	uint32_t opcode;
 	if((opcode = mi->module->get_opcode(mi->context, func_name)) == ERROR_CODE(uint32_t))
-	    ERROR_RETURN_LOG(runtime_api_pipe_t, "Cannot get the opcode for operation %s", func_name);
+		ERROR_RETURN_LOG(runtime_api_pipe_t, "Cannot get the opcode for operation %s", func_name);
 
 	return (ret | opcode);
 }
@@ -179,7 +179,7 @@ static int _mod_cntl_prefix(const char* path, uint8_t* result)
 
 	itc_modtab_dir_iter_t iter;
 	if(itc_modtab_open_dir(path ,&iter) == ERROR_CODE(int))
-	    ERROR_RETURN_LOG(uint8_t, "Cannot open the module path %s", path);
+		ERROR_RETURN_LOG(uint8_t, "Cannot open the module path %s", path);
 
 	/* Because we assume all the prefix should have the same module def, so we use the first
 	 * module as the reference to the module instantiated from the same mdoule def */
@@ -201,7 +201,7 @@ static int _mod_cntl_prefix(const char* path, uint8_t* result)
 	/* at the same time, we need to make sure all the module in under this directory are using the same module def */
 	const itc_modtab_instance_t* cur;
 	for(;NULL != (cur = itc_modtab_dir_iter_next(&iter));)
-	    if(cur->module != mi->module) ERROR_RETURN_LOG(int, "The given directory is not homogeneous");
+		if(cur->module != mi->module) ERROR_RETURN_LOG(int, "The given directory is not homogeneous");
 
 	return 0;
 }

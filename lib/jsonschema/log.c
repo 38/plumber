@@ -11,7 +11,7 @@ static jsonschema_log_write_func_t _log_write;
 int jsonschema_log_set_write_callback(jsonschema_log_write_func_t func)
 {
 	if(func == NULL)
-	    return ERROR_CODE(int);
+		return ERROR_CODE(int);
 	_log_write = func;
 	return 0;
 }

@@ -42,7 +42,7 @@ static inline int _allocate(void* __restrict ctx, uint32_t hint, void* __restric
 	(void) hint;
 
 	if(NULL == args || (i_mem == NULL && o_mem == NULL) || (i_mem != NULL && o_mem != NULL))
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_handle_t* pipe = NULL;
 	const char* mode = NULL;
@@ -82,7 +82,7 @@ static size_t _read(void * __restrict ctx, void* __restrict buffer, size_t nbyte
 	size_t rc = fread(buffer, 1, nbytes, pipe->fp);
 
 	for(pipe = pipe->next_fork; NULL != pipe; pipe = pipe->next_fork)
-	    fwrite(buffer, 1, rc, pipe->fp);
+		fwrite(buffer, 1, rc, pipe->fp);
 
 	return rc;
 }
@@ -115,7 +115,7 @@ static size_t _write(void * __restrict ctx, const void* __restrict buffer, size_
 	size_t rc = fwrite(buffer, 1, nbytes, pipe->fp);
 
 	for(pipe = pipe->next_fork; NULL != pipe; pipe = pipe->next_fork)
-	    fwrite(buffer, 1, rc, pipe->fp);
+		fwrite(buffer, 1, rc, pipe->fp);
 
 	return rc;
 

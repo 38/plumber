@@ -39,7 +39,7 @@ static inline const lexer_token_t* _peek(_context_t* context, uint32_t n)
 	uint32_t lh_limit = sizeof(context->lh_buffer) / sizeof(context->lh_buffer[0]);
 
 	if(n > lh_limit || n == 0)
-	    ERROR_PTR_RETURN_LOG("Invalid lookahead number %u", n);
+		ERROR_PTR_RETURN_LOG("Invalid lookahead number %u", n);
 
 	uint32_t i;
 	for(i = 0; i < n; i ++)
@@ -49,7 +49,7 @@ static inline const lexer_token_t* _peek(_context_t* context, uint32_t n)
 		{
 			context->lh_buffer[ofs] = lexer_next_token(context->lexer);
 			if(context->lh_buffer[ofs] == NULL)
-			    ERROR_PTR_RETURN_LOG("error: Cannot get lexer token from lexer");
+				ERROR_PTR_RETURN_LOG("error: Cannot get lexer token from lexer");
 		}
 	}
 
@@ -67,17 +67,17 @@ static inline int _consume(_context_t* context, uint32_t n)
 	uint32_t lh_limit = sizeof(context->lh_buffer) / sizeof(context->lh_buffer[0]);
 
 	if(n > lh_limit)
-	    ERROR_RETURN_LOG(int, "Cannot consume the token that is not in the lookahead buffer");
+		ERROR_RETURN_LOG(int, "Cannot consume the token that is not in the lookahead buffer");
 
 	uint32_t i;
 	for(i = 0; i < n; i ++)
 	{
 		uint32_t ofs = (context->lh_begin + i) % lh_limit;
 		if(NULL == context->lh_buffer[ofs])
-		    ERROR_RETURN_LOG(int, "Cannot consume a token that is not yet in the lookahead buffer");
+			ERROR_RETURN_LOG(int, "Cannot consume a token that is not yet in the lookahead buffer");
 
 		if(ERROR_CODE(int) == lexer_token_free(context->lh_buffer[ofs]))
-		    LOG_WARNING("Error during disposing the consumed token, memory leaked");
+			LOG_WARNING("Error during disposing the consumed token, memory leaked");
 
 		context->lh_buffer[ofs] = NULL;
 	}
@@ -145,35 +145,35 @@ static inline proto_ref_typeref_t* _parse_type_ref(_context_t* ctx)
 	proto_ref_typeref_t* ret;
 
 	if(NULL == (ret = proto_ref_typeref_new(32)))  /* TODO: make this configurable */
-	    _LIB_PROTO_ERROR(ctx, return NULL);
+		_LIB_PROTO_ERROR(ctx, return NULL);
 
 	const lexer_token_t* next_tok = _peek(ctx, 1);
 	if(NULL == next_tok || next_tok->type != LEXER_TOKEN_ID)
-	    _RAISE(ctx, goto ERR, "Syntax error: valid token expected");
+		_RAISE(ctx, goto ERR, "Syntax error: valid token expected");
 
 	for(;;)
 	{
 		if(ERROR_CODE(int) == proto_ref_typeref_append(ret, next_tok->data->id))
-		    _LIB_PROTO_ERROR(ctx, goto ERR);
+			_LIB_PROTO_ERROR(ctx, goto ERR);
 
 		_TRY_CONSUME(ctx, goto ERR, 1);
 
 		if(NULL == (next_tok = _peek(ctx, 1)))
-		    _RAISE(ctx, goto ERR, "error: cannot peek next token");
+			_RAISE(ctx, goto ERR, "error: cannot peek next token");
 
 		if(next_tok->type != LEXER_TOKEN_DOT)
-		    break;
+			break;
 
 		_TRY_CONSUME(ctx, goto ERR, 1);
 
 		if(NULL == (next_tok = _peek(ctx, 1)))
-		    _RAISE(ctx, goto ERR, "error: canont peek next token");
+			_RAISE(ctx, goto ERR, "error: canont peek next token");
 	}
 
 	return ret;
 ERR:
 	if(ret != NULL)
-	    proto_ref_typeref_free(ret);
+		proto_ref_typeref_free(ret);
 	return NULL;
 }
 
@@ -188,7 +188,7 @@ static inline int _parse_subscript(_context_t* ctx, uint32_t* buf, size_t bufsiz
 {
 	const lexer_token_t* tok = _peek(ctx, 1);
 	if(NULL == tok)
-	    _RAISE(ctx, return ERROR_CODE(int), "Internal error: cannot peek token");
+		_RAISE(ctx, return ERROR_CODE(int), "Internal error: cannot peek token");
 
 	if(tok->type != LEXER_TOKEN_LBRACKET) return 0;
 
@@ -199,20 +199,20 @@ static inline int _parse_subscript(_context_t* ctx, uint32_t* buf, size_t bufsiz
 	for(;;)
 	{
 		if(NULL == (tok = _peek(ctx, 1)) || tok->type != LEXER_TOKEN_NUMBER)
-		    _RAISE(ctx, return ERROR_CODE(int), "syntax error: number token expected in the subscript");
+			_RAISE(ctx, return ERROR_CODE(int), "syntax error: number token expected in the subscript");
 
 		if(bufsize > len + 1)
-		    buf[len++] = (uint32_t)tok->data->number;
+			buf[len++] = (uint32_t)tok->data->number;
 
 		_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);
 
 		if(NULL == (tok = _peek(ctx, 1)) || tok->type != LEXER_TOKEN_RBRACKET)
-		    _RAISE(ctx, return ERROR_CODE(int), "syntax error: right-bracket expected");
+			_RAISE(ctx, return ERROR_CODE(int), "syntax error: right-bracket expected");
 
 		_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);
 
 		if(NULL == (tok = _peek(ctx, 1)))
-		    _RAISE(ctx, return ERROR_CODE(int), "error: cannot peek token");
+			_RAISE(ctx, return ERROR_CODE(int), "error: cannot peek token");
 
 		if(tok->type != LEXER_TOKEN_LBRACKET) break;
 
@@ -228,7 +228,7 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 {
 	const lexer_token_t* tok = _peek(ctx, 1);
 	if(NULL == tok)
-	    _RAISE(ctx, return ERROR_CODE(int), "Internal error: cannot peek token");
+		_RAISE(ctx, return ERROR_CODE(int), "Internal error: cannot peek token");
 
 	uint32_t elem_size = tok->data->size;
 	proto_type_atomic_metadata_t metadata = tok->metadata;
@@ -236,7 +236,7 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 	_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);
 
 	if(NULL == (tok = _peek(ctx, 1)) || tok->type != LEXER_TOKEN_ID)
-	    _RAISE(ctx, return ERROR_CODE(int), "snytax error: identifer expected");
+		_RAISE(ctx, return ERROR_CODE(int), "snytax error: identifer expected");
 
 	static char namebuf[128];
 	snprintf(namebuf, sizeof(namebuf), "%s", tok->data->id);
@@ -244,7 +244,7 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 	_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);
 
 	if(NULL == (tok = _peek(ctx, 1)))
-	    _RAISE(ctx, return ERROR_CODE(int), "internal error: cannot peek token");
+		_RAISE(ctx, return ERROR_CODE(int), "internal error: cannot peek token");
 
 	static uint32_t dimensions[128];
 	char typename_buf[4096];
@@ -256,16 +256,16 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 	if(tok->type == LEXER_TOKEN_EQUAL)
 	{
 		if(metadata.flags.numeric.invalid)
-		    _RAISE(ctx, return ERROR_CODE(int), "syntax error: interger expected");
+			_RAISE(ctx, return ERROR_CODE(int), "syntax error: interger expected");
 		/* This is a constant value */
 		_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);
 		if(NULL == (tok = _peek(ctx, 1)))
-		    _RAISE(ctx, return ERROR_CODE(int), "internal error: cannot peek token");
+			_RAISE(ctx, return ERROR_CODE(int), "internal error: cannot peek token");
 
 		if(tok->type == LEXER_TOKEN_NUMBER)
-		    ival = tok->data->number;
+			ival = tok->data->number;
 		else if(tok->type == LEXER_TOKEN_FLOAT_POINT)
-		    dval = tok->data->floatpoint;
+			dval = tok->data->floatpoint;
 		else _RAISE(ctx, return ERROR_CODE(int), "syntax error: number expected");
 
 		if(metadata.flags.numeric.is_real)
@@ -297,7 +297,7 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 	else if(tok->type == LEXER_TOKEN_AT)
 	{
 		if(!metadata.flags.scope.valid)
-		    _RAISE(ctx, return ERROR_CODE(int), "syntax error: scope object type expected");
+			_RAISE(ctx, return ERROR_CODE(int), "syntax error: scope object type expected");
 
 		/* This is a @ cluase for the scope token */
 		_TRY_CONSUME(ctx, return ERROR_CODE(int), 1);
@@ -313,10 +313,10 @@ static inline int _parse_primitive_field(_context_t* ctx, proto_type_t* type)
 	else rc = _parse_subscript(ctx, dimensions, sizeof(dimensions) / sizeof(uint32_t));
 
 	if(rc == ERROR_CODE(int))
-	    return ERROR_CODE(int);
+		return ERROR_CODE(int);
 
 	if(ERROR_CODE(int) == proto_type_append_atomic(type, namebuf, elem_size, ((rc == 0) ? NULL : dimensions), &metadata))
-	    _LIB_PROTO_ERROR(ctx, return ERROR_CODE(int));
+		_LIB_PROTO_ERROR(ctx, return ERROR_CODE(int));
 
 	return 0;
 }
@@ -327,10 +327,10 @@ static inline int _parse_user_type_field(_context_t* ctx, proto_type_t* type)
 	proto_ref_typeref_t* field_type = _parse_type_ref(ctx);
 
 	if(NULL == field_type)
-	    return ERROR_CODE(int);
+		return ERROR_CODE(int);
 
 	if(NULL == (tok = _peek(ctx, 1)) || tok->type != LEXER_TOKEN_ID)
-	    _RAISE(ctx, goto ERR, "snytax error: identifer expected");
+		_RAISE(ctx, goto ERR, "snytax error: identifer expected");
 
 	static char namebuf[128];
 	snprintf(namebuf, sizeof(namebuf), "%s", tok->data->id);
@@ -341,10 +341,10 @@ static inline int _parse_user_type_field(_context_t* ctx, proto_type_t* type)
 	int rc = _parse_subscript(ctx, dimensions, sizeof(dimensions) / sizeof(uint32_t));
 
 	if(rc == ERROR_CODE(int))
-	    return ERROR_CODE(int);
+		return ERROR_CODE(int);
 
 	if(ERROR_CODE(int) == proto_type_append_compound(type, namebuf, rc == 0 ? NULL : dimensions, field_type))
-	    _LIB_PROTO_ERROR(ctx, goto ERR);
+		_LIB_PROTO_ERROR(ctx, goto ERR);
 
 	return 0;
 ERR:
@@ -358,11 +358,11 @@ static inline int _parse_alias_field(_context_t* ctx, proto_type_t* type)
 
 	const lexer_token_t* tok = _peek(ctx, 1);
 	if(NULL == tok || tok->type != LEXER_TOKEN_ID)
-	    _RAISE(ctx, return ERROR_CODE(int), "syntax error: identifer expected");
+		_RAISE(ctx, return ERROR_CODE(int), "syntax error: identifer expected");
 
 	proto_ref_nameref_t* ref = proto_ref_nameref_new(32); /* TODO config */
 	if(NULL == ref)
-	    _LIB_PROTO_ERROR(ctx, return ERROR_CODE(int));
+		_LIB_PROTO_ERROR(ctx, return ERROR_CODE(int));
 
 	int bracket_allowed = 0;
 
@@ -371,49 +371,49 @@ static inline int _parse_alias_field(_context_t* ctx, proto_type_t* type)
 		switch(tok->type)
 		{
 			case LEXER_TOKEN_ID:
-			    if(proto_ref_nameref_append_symbol(ref, tok->data->id) == ERROR_CODE(int))
-			        _LIB_PROTO_ERROR(ctx, goto ERR);
-			    _TRY_CONSUME(ctx, goto ERR, 1);
-			    bracket_allowed = 1;
-			    break;
+				if(proto_ref_nameref_append_symbol(ref, tok->data->id) == ERROR_CODE(int))
+					_LIB_PROTO_ERROR(ctx, goto ERR);
+				_TRY_CONSUME(ctx, goto ERR, 1);
+				bracket_allowed = 1;
+				break;
 			case LEXER_TOKEN_LBRACKET:
-			    if(bracket_allowed)
-			    {
-				    _TRY_CONSUME(ctx, goto ERR, 1);
-				    if(NULL == (tok = _peek(ctx, 1)) || tok->type != LEXER_TOKEN_NUMBER)
-				        _RAISE(ctx, goto ERR, "syntax error: number expected");
-				    if(proto_ref_nameref_append_subscript(ref, (uint32_t)tok->data->number) == ERROR_CODE(int))
-				        _LIB_PROTO_ERROR(ctx, goto ERR);
-				    _TRY_CONSUME(ctx, goto ERR, 1);
-				    if(NULL == (tok = _peek(ctx, 1)) || tok->type != LEXER_TOKEN_RBRACKET)
-				        _RAISE(ctx, goto ERR, "syntax error: right-bracket expected");
-				    _TRY_CONSUME(ctx, goto ERR, 1);
-				    break;
-			    }
-			    FALLTHROUGH("Otherwise it must be the error case");
+				if(bracket_allowed)
+				{
+					_TRY_CONSUME(ctx, goto ERR, 1);
+					if(NULL == (tok = _peek(ctx, 1)) || tok->type != LEXER_TOKEN_NUMBER)
+						_RAISE(ctx, goto ERR, "syntax error: number expected");
+					if(proto_ref_nameref_append_subscript(ref, (uint32_t)tok->data->number) == ERROR_CODE(int))
+						_LIB_PROTO_ERROR(ctx, goto ERR);
+					_TRY_CONSUME(ctx, goto ERR, 1);
+					if(NULL == (tok = _peek(ctx, 1)) || tok->type != LEXER_TOKEN_RBRACKET)
+						_RAISE(ctx, goto ERR, "syntax error: right-bracket expected");
+					_TRY_CONSUME(ctx, goto ERR, 1);
+					break;
+				}
+				FALLTHROUGH("Otherwise it must be the error case");
 			default:
 			    _RAISE(ctx, goto ERR, "syntax error: unexpected token");
 		}
 		if(NULL == (tok = _peek(ctx, 1)))
-		    goto ERR;
+			goto ERR;
 
 		if(tok->type == LEXER_TOKEN_DOT)
 		{
 			_TRY_CONSUME(ctx, goto ERR, 1);
 			if(NULL == (tok = _peek(ctx, 1)))
-			    goto ERR;
+				goto ERR;
 
 			bracket_allowed = 0;
 		}
 		else if(!bracket_allowed || tok->type != LEXER_TOKEN_LBRACKET)
-		    break;
+			break;
 	}
 
 	if(tok->type != LEXER_TOKEN_ID)
-	    _RAISE(ctx, goto ERR, "syntax error: identifer expected");
+		_RAISE(ctx, goto ERR, "syntax error: identifer expected");
 
 	if(ERROR_CODE(int) == proto_type_append_alias(type, tok->data->id, ref))
-	    _LIB_PROTO_ERROR(ctx, goto ERR);
+		_LIB_PROTO_ERROR(ctx, goto ERR);
 
 	ref = NULL;
 
@@ -422,7 +422,7 @@ static inline int _parse_alias_field(_context_t* ctx, proto_type_t* type)
 	return 0;
 ERR:
 	if(NULL != ref)
-	    proto_ref_nameref_free(ref);
+		proto_ref_nameref_free(ref);
 
 	return ERROR_CODE(int);
 }
@@ -441,7 +441,7 @@ static inline int _parse_type(_context_t* ctx)
 	const lexer_token_t* tok = _peek(ctx, 1);
 	proto_ref_typeref_t* basetype = NULL;
 	if(NULL == tok)
-	    _RAISE(ctx, return ERROR_CODE(int), "Internal error: cannot peek token");
+		_RAISE(ctx, return ERROR_CODE(int), "Internal error: cannot peek token");
 
 	type->source = tok->file;
 	type->package = NULL;
@@ -450,60 +450,60 @@ static inline int _parse_type(_context_t* ctx)
 	_TRY_CONSUME(ctx, goto ERR, 1);
 
 	if(NULL == (tok = _peek(ctx, 1)) || tok->type != LEXER_TOKEN_ID)
-	    _RAISE(ctx, goto ERR, "syntax error: identifer expected");
+		_RAISE(ctx, goto ERR, "syntax error: identifer expected");
 
 	snprintf(type->name, sizeof(type->name), "%s", tok->data->id);
 
 	_TRY_CONSUME(ctx, goto ERR, 1);
 
 	if(NULL == (tok = _peek(ctx, 1)))
-	    _RAISE(ctx, goto ERR, "error: can not peek next token");
+		_RAISE(ctx, goto ERR, "error: can not peek next token");
 
 	if(tok->type == LEXER_TOKEN_COLON)
 	{
 		/* Inheritance */
 		_TRY_CONSUME(ctx, goto ERR, 1);
 		if(NULL == (basetype = _parse_type_ref(ctx)))
-		    _RAISE(ctx, goto ERR, "error: can not parse the basetype");
+			_RAISE(ctx, goto ERR, "error: can not parse the basetype");
 		if(NULL == (tok = _peek(ctx, 1)))
-		    _RAISE(ctx, goto ERR, "error: can not peek next token");
+			_RAISE(ctx, goto ERR, "error: can not peek next token");
 	}
 
 	if(tok->type != LEXER_TOKEN_LBRACE)
-	    _RAISE(ctx, goto ERR, "syntax error: left-brace expected");
+		_RAISE(ctx, goto ERR, "syntax error: left-brace expected");
 
 	_TRY_CONSUME(ctx, goto ERR, 1);
 
 	if(NULL == (type->proto_type = proto_type_new(32 /* TODO: config this */, basetype, ctx->options.padding_size)))
-	        _LIB_PROTO_ERROR(ctx, goto ERR);
+		    _LIB_PROTO_ERROR(ctx, goto ERR);
 
 	basetype = NULL;
 
 	for(;;)
 	{
 		if(NULL == (tok = _peek(ctx, 1)))
-		    _RAISE(ctx, goto ERR, "error: cannot peek the next token");
+			_RAISE(ctx, goto ERR, "error: cannot peek the next token");
 
 		switch(tok->type)
 		{
 			case LEXER_TOKEN_TYPE_PRIMITIVE:
-			    if(_parse_primitive_field(ctx, type->proto_type) == ERROR_CODE(int))
-			        _RAISE(ctx, goto ERR, "error: cannot parse the prmitive type");
-			    break;
+				if(_parse_primitive_field(ctx, type->proto_type) == ERROR_CODE(int))
+					_RAISE(ctx, goto ERR, "error: cannot parse the prmitive type");
+				break;
 			case LEXER_TOKEN_ID:
-			    if(_parse_user_type_field(ctx, type->proto_type) == ERROR_CODE(int))
-			        _RAISE(ctx, goto ERR, "error: cannot parse the user-defined typed field");
-			    break;
+				if(_parse_user_type_field(ctx, type->proto_type) == ERROR_CODE(int))
+					_RAISE(ctx, goto ERR, "error: cannot parse the user-defined typed field");
+				break;
 			case LEXER_TOKEN_K_ALIAS:
-			    if(_parse_alias_field(ctx, type->proto_type) == ERROR_CODE(int))
-			        _RAISE(ctx, goto ERR, "error: cannot parse the alias field");
-			    break;
+				if(_parse_alias_field(ctx, type->proto_type) == ERROR_CODE(int))
+					_RAISE(ctx, goto ERR, "error: cannot parse the alias field");
+				break;
 			case LEXER_TOKEN_RBRACE:
-			    _TRY_CONSUME(ctx, goto ERR, 1);
-			    goto TYPE_END;
+				_TRY_CONSUME(ctx, goto ERR, 1);
+				goto TYPE_END;
 			case LEXER_TOKEN_SEMICOLON:
-			    _TRY_CONSUME(ctx, goto ERR, 1);
-			    break;
+				_TRY_CONSUME(ctx, goto ERR, 1);
+				break;
 			default:
 			    _RAISE(ctx, goto ERR, "syntax error: unexpected token");
 		}
@@ -520,11 +520,11 @@ ERR:
 	if(type != NULL)
 	{
 		if(type->proto_type != NULL)
-		    proto_type_free(type->proto_type);
+			proto_type_free(type->proto_type);
 		free(type);
 	}
 	if(NULL != basetype)
-	    proto_ref_typeref_free(basetype);
+		proto_ref_typeref_free(basetype);
 	return 0;
 }
 
@@ -532,7 +532,7 @@ compiler_result_t* compiler_compile(compiler_options_t options)
 {
 	uint32_t i;
 	if(options.lexer == NULL)
-	    ERROR_PTR_RETURN_LOG("Invaild arguments");
+		ERROR_PTR_RETURN_LOG("Invaild arguments");
 
 	_context_t ctx = {
 		.options = options,
@@ -544,33 +544,33 @@ compiler_result_t* compiler_compile(compiler_options_t options)
 
 
 	if(ctx.result == NULL)
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the result");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the result");
 
 	for(;;)
 	{
 		const lexer_token_t* token;
 		if(NULL == (token = _peek(&ctx, 1)))
-		    ERROR_LOG_GOTO(ERR, "Cannot peek the lookahead buffer");
+			ERROR_LOG_GOTO(ERR, "Cannot peek the lookahead buffer");
 		switch(token->type)
 		{
 			case LEXER_TOKEN_EOF:
-			    goto DONE;
+				goto DONE;
 			case LEXER_TOKEN_K_PACKAGE:
-			    _TRY_CONSUME(&ctx, goto ERR, 1);
-			    if(ctx.result->package != NULL)
-			        _RAISE(&ctx, goto ERR,  "syntax error: duplicated package statement");
-			    if(NULL == (ctx.result->package = _parse_type_ref(&ctx)))
-			        goto ERR;
-			    break;
+				_TRY_CONSUME(&ctx, goto ERR, 1);
+				if(ctx.result->package != NULL)
+					_RAISE(&ctx, goto ERR,  "syntax error: duplicated package statement");
+				if(NULL == (ctx.result->package = _parse_type_ref(&ctx)))
+					goto ERR;
+				break;
 
 			case LEXER_TOKEN_K_TYPE:
-			    if(ERROR_CODE(int) == _parse_type(&ctx))
-			        ERROR_LOG_GOTO(ERR, "Cannot parse the type definition block");
-			    break;
+				if(ERROR_CODE(int) == _parse_type(&ctx))
+					ERROR_LOG_GOTO(ERR, "Cannot parse the type definition block");
+				break;
 
 			case LEXER_TOKEN_SEMICOLON:
-			    _consume(&ctx, 1);
-			    break;
+				_consume(&ctx, 1);
+				break;
 			default:
 			    _RAISE(&ctx, goto ERR, "Unexpected token");
 		}
@@ -578,19 +578,19 @@ compiler_result_t* compiler_compile(compiler_options_t options)
 
 DONE:
 	for(i = 0; i < sizeof(ctx.lh_buffer) / sizeof(ctx.lh_buffer[0]); i ++)
-	    if(NULL != ctx.lh_buffer[i])
-	        lexer_token_free(ctx.lh_buffer[i]);
+		if(NULL != ctx.lh_buffer[i])
+			lexer_token_free(ctx.lh_buffer[i]);
 
 	compiler_type_t* curtype;
 	for(curtype = ctx.result->type_list; curtype != NULL; curtype = curtype->next)
-	    if(NULL == (curtype->package = ctx.result->package == NULL ? NULL : proto_ref_typeref_get_path(ctx.result->package)))
-	        goto ERR;
+		if(NULL == (curtype->package = ctx.result->package == NULL ? NULL : proto_ref_typeref_get_path(ctx.result->package)))
+			goto ERR;
 	return ctx.result;
 ERR:
 
 	for(i = 0; i < sizeof(ctx.lh_buffer) / sizeof(ctx.lh_buffer[0]); i ++)
-	    if(NULL != ctx.lh_buffer[i])
-	        lexer_token_free(ctx.lh_buffer[i]);
+		if(NULL != ctx.lh_buffer[i])
+			lexer_token_free(ctx.lh_buffer[i]);
 	if(ctx.result != NULL) compiler_result_free(ctx.result);
 	return NULL;
 }
@@ -600,7 +600,7 @@ int compiler_result_free(compiler_result_t* result)
 	int rc = 0;
 
 	if(NULL == result)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	compiler_type_t* ptr;
 

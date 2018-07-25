@@ -30,7 +30,7 @@ static void match(const char* __restrict buf, size_t n, const char* __restrict p
 		 * is matching. If yes, then we are able to start with matched length 8.
 		 * If it's not, current match should be 0 */
 		if(matched < 1 && *(uint64_t*)(buf + j - matched) == *(uint64_t*)pattern)
-		    matched = 8, j += 8;
+			matched = 8, j += 8;
 
 		char ch = buf[j];
 
@@ -41,13 +41,13 @@ static void match(const char* __restrict buf, size_t n, const char* __restrict p
 			for(;matched > 0 && ch != pattern[matched];
 			     matched = prefix[matched - 1]);
 			if(matched != 0 || (ch == pattern[0]))
-			    matched ++;
+				matched ++;
 		}
 
 		if(ch == '\n')
 		{
 			if(matched == len)
-			    fwrite(buf + line_start, 1, j - line_start + 1, stdout);
+				fwrite(buf + line_start, 1, j - line_start + 1, stdout);
 			matched = 0;
 			line_start = j + 1;
 		}
@@ -65,7 +65,7 @@ int main(int argc, char** argv)
 		    pattern[prefix[i] - 1] != pattern[i];
 		    prefix[i] = prefix[prefix[i] - 2] + 1);
 		if(prefix[i] == 1 && pattern[0] != pattern[i])
-		    prefix[i] = 0;
+			prefix[i] = 0;
 	}
 
 #if 1
@@ -81,7 +81,7 @@ int main(int argc, char** argv)
 	FILE* fp = fopen(argv[1], "r");
 	struct stat st;
 	while(NULL != fgets(buf, sizeof(buf), fp))
-	    match(buf, strlen(buf), pattern, prefix);
+		match(buf, strlen(buf), pattern, prefix);
 #endif
 	return 0;
 }

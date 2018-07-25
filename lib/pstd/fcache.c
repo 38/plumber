@@ -101,7 +101,7 @@ static inline uint32_t _cache_hash_size(void)
 {
 	static uint32_t hash_size = ERROR_CODE(uint32_t);
 	if(hash_size == ERROR_CODE(uint32_t))
-	    hash_size = (uint32_t)pstd_libconf_read_numeric("pstd.fcache.hash_size", PSTD_FCACHE_DEFAULT_HASH_SIZE);
+		hash_size = (uint32_t)pstd_libconf_read_numeric("pstd.fcache.hash_size", PSTD_FCACHE_DEFAULT_HASH_SIZE);
 	return hash_size;
 }
 
@@ -114,7 +114,7 @@ static inline uint32_t _cache_ttl(void)
 {
 	static uint32_t ttl = ERROR_CODE(uint32_t);
 	if(ttl == ERROR_CODE(uint32_t))
-	    ttl = (uint32_t)pstd_libconf_read_numeric("pstd.fcache.cache_ttl", PSTD_FCACHE_DEFAULT_TTL);
+		ttl = (uint32_t)pstd_libconf_read_numeric("pstd.fcache.cache_ttl", PSTD_FCACHE_DEFAULT_TTL);
 	return ttl;
 }
 
@@ -128,7 +128,7 @@ static inline uint32_t _max_file_size(void)
 {
 	static uint32_t max_file_size = ERROR_CODE(uint32_t);
 	if(max_file_size == ERROR_CODE(uint32_t))
-	    max_file_size = (uint32_t)pstd_libconf_read_numeric("pstd.fcache.max_file_size", PSTD_FCACHE_DEFAULT_MAX_FILE_SIZE);
+		max_file_size = (uint32_t)pstd_libconf_read_numeric("pstd.fcache.max_file_size", PSTD_FCACHE_DEFAULT_MAX_FILE_SIZE);
 	return max_file_size;
 }
 
@@ -141,7 +141,7 @@ static inline size_t _max_cache_size(void)
 {
 	static uint32_t max_cache_size = ERROR_CODE(uint32_t);
 	if(max_cache_size == ERROR_CODE(uint32_t))
-	    max_cache_size = (uint32_t)pstd_libconf_read_numeric("pstd.fcache.max_cache_size", PSTD_FCACHE_DEFAULT_MAX_CACHE_SIZE);
+		max_cache_size = (uint32_t)pstd_libconf_read_numeric("pstd.fcache.max_cache_size", PSTD_FCACHE_DEFAULT_MAX_CACHE_SIZE);
 	return  max_cache_size;
 }
 
@@ -166,7 +166,7 @@ static void _clean_cache(void* cache_table)
 
 #ifdef PSTD_FILE_CACHE_STRICT_KEY_COMP
 		if(NULL != entry->filename)
-		    free(entry->filename);
+			free(entry->filename);
 #endif
 	}
 
@@ -183,11 +183,11 @@ static inline int _ensure_thread_init(void)
 	{
 		LOG_DEBUG("The thread local cache is not initialized yet, now doing the initialization");
 		if(NULL == (_cache_table = (_cache_entry_t*)malloc(sizeof(_cache_table[0]) * _cache_hash_size())))
-		    ERROR_RETURN_LOG_ERRNO(int, "Can not allocate memory for the thread local cache");
+			ERROR_RETURN_LOG_ERRNO(int, "Can not allocate memory for the thread local cache");
 
 		uint32_t i;
 		for(i = 0; i < _cache_hash_size(); i ++)
-		    _cache_table[i].valid = 0, _cache_table[i].idx = i;
+			_cache_table[i].valid = 0, _cache_table[i].idx = i;
 
 		if(ERROR_CODE(int) == pstd_onexit(_clean_cache, _cache_table))
 		{
@@ -240,7 +240,7 @@ static inline int _entry_matches(const _cache_entry_t* entry, const uint64_t* ex
 	{
 #ifdef PSTD_FILE_CACHE_STRICT_KEY_COMP
 		if(strcmp(filename, entry->filename) != 0)
-		    return 0;
+			return 0;
 #endif
 		time_t ts = time(NULL);
 		return ((uint32_t)(ts - entry->timestamp) > _cache_ttl()) ? -1 : 1;
@@ -263,9 +263,9 @@ static inline void _lru_add(uint32_t idx)
 	begin[idx].lru_next = _lru_first;
 
 	if(_lru_first != ERROR_CODE(uint32_t))
-	    begin[_lru_first].lru_prev = idx;
+		begin[_lru_first].lru_prev = idx;
 	else
-	    _lru_last = idx;
+		_lru_last = idx;
 
 	_lru_first = idx;
 }
@@ -280,14 +280,14 @@ static inline void _lru_remove(uint32_t idx)
 	_cache_entry_t* begin = _cache_table;
 
 	if(begin[idx].lru_prev != ERROR_CODE(uint32_t))
-	    begin[begin[idx].lru_prev].lru_next = begin[idx].lru_next;
+		begin[begin[idx].lru_prev].lru_next = begin[idx].lru_next;
 	else
-	    _lru_first = begin[idx].lru_next;
+		_lru_first = begin[idx].lru_next;
 
 	if(begin[idx].lru_next != ERROR_CODE(uint32_t))
-	    begin[begin[idx].lru_next].lru_prev = begin[idx].lru_prev;
+		begin[begin[idx].lru_next].lru_prev = begin[idx].lru_prev;
 	else
-	    _lru_last = begin[idx].lru_prev;
+		_lru_last = begin[idx].lru_prev;
 
 }
 
@@ -311,7 +311,7 @@ static inline pstd_fcache_file_t* _create_cached_file(_cache_entry_t* entry)
 {
 	pstd_fcache_file_t* ret = (pstd_fcache_file_t*)pstd_mempool_alloc(sizeof(*ret));
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the cached file");
+		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the cached file");
 
 	ret->cached = 1;
 	ret->cache = entry;
@@ -341,7 +341,7 @@ static inline pstd_fcache_file_t* _create_uncached_file(FILE* fp, const struct s
 {
 	pstd_fcache_file_t* ret = (pstd_fcache_file_t*)pstd_mempool_alloc(sizeof(*ret));
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG("Cannot allocate memory for the file cache reference");
+		ERROR_PTR_RETURN_LOG("Cannot allocate memory for the file cache reference");
 
 	ret->cached = 0;
 	ret->file = fp;
@@ -357,7 +357,7 @@ static inline pstd_fcache_file_t* _create_uncached_file(FILE* fp, const struct s
 		if(flags == -1) ERROR_PTR_RETURN_LOG_ERRNO("Cannot get the FD flags");
 
 		if(-1 == fcntl(fd, F_SETFL, flags | O_NONBLOCK))
-		    ERROR_PTR_RETURN_LOG_ERRNO("Cannot set the FD to nonblocking mode");
+			ERROR_PTR_RETURN_LOG_ERRNO("Cannot set the FD to nonblocking mode");
 	}
 
 	LOG_DEBUG("Load file from disk");
@@ -379,11 +379,11 @@ static inline int _invalidate_cache(_cache_entry_t* entry)
 	_data_size -= entry->size;
 
 	if(entry->data != NULL)
-	    free(entry->data);
+		free(entry->data);
 
 #ifdef PSTD_FILE_CACHE_STRICT_KEY_COMP
 	if(entry->filename != NULL)
-	    free(entry->filename);
+		free(entry->filename);
 #endif
 
 	entry->valid = 0;
@@ -418,10 +418,10 @@ static inline uint32_t _hash_slot(const uint64_t* hash)
 static inline int _is_in_cache(const char* filename, struct stat* buf)
 {
 	if(NULL == filename)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(ERROR_CODE(int) == _ensure_thread_init())
-	    ERROR_RETURN_LOG(int, "Cannot initialize the file cache for current thread");
+		ERROR_RETURN_LOG(int, "Cannot initialize the file cache for current thread");
 
 	size_t f_len = strlen(filename);
 	uint64_t hash[2];
@@ -443,7 +443,7 @@ static inline int _is_in_cache(const char* filename, struct stat* buf)
 	{
 		/* Get the file metadata */
 		if(stat(filename, &entry->stat) < 0)
-		    ERROR_RETURN_LOG_ERRNO(int, "Canot get the stat info of the file %s", filename);
+			ERROR_RETURN_LOG_ERRNO(int, "Canot get the stat info of the file %s", filename);
 
 		if(entry->stat.st_mtime >= entry->timestamp)
 		{
@@ -466,21 +466,21 @@ int pstd_fcache_is_in_cache(const char* filename)
 {
 	int rc = _is_in_cache(filename, NULL);
 	if(ERROR_CODE(int) == rc)
-	    return ERROR_CODE(int);
+		return ERROR_CODE(int);
 	else return rc == 2;
 }
 
 int pstd_fcache_stat(const char* filename, struct stat* buf)
 {
 	if(NULL == buf)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	int rc = _is_in_cache(filename, buf);
 	if(ERROR_CODE(int) == rc)
-	    return ERROR_CODE(int);
+		return ERROR_CODE(int);
 
 	if(rc == 1 || rc == 2)
-	    return 0;
+		return 0;
 
 	if(stat(filename, buf) < 0)
 	{
@@ -494,10 +494,10 @@ int pstd_fcache_stat(const char* filename, struct stat* buf)
 pstd_fcache_file_t* pstd_fcache_open(const char* filename)
 {
 	if(NULL == filename)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	if(ERROR_CODE(int) == _ensure_thread_init())
-	    ERROR_PTR_RETURN_LOG("Cannot initialize the file cache for current thread");
+		ERROR_PTR_RETURN_LOG("Cannot initialize the file cache for current thread");
 
 	size_t f_len = strlen(filename);
 
@@ -520,7 +520,7 @@ pstd_fcache_file_t* pstd_fcache_open(const char* filename)
 	/* Get the file metadata */
 	struct stat st;
 	if(stat(filename, &st) < 0)
-	    ERROR_PTR_RETURN_LOG("Canot get the stat info of the file %s", filename);
+		ERROR_PTR_RETURN_LOG("Canot get the stat info of the file %s", filename);
 
 	/* Since we have 1 sec resolution, it may cause problem, so we want to make sure the time is strictly piror than the cache ts */
 	if(match_rc == -1 && st.st_mtime < entry->timestamp)
@@ -535,7 +535,7 @@ pstd_fcache_file_t* pstd_fcache_open(const char* filename)
 	/* Then we need to know the info about the file anyway, because we must read from disk */
 	FILE* fp = fopen(filename, "rb");
 	if(NULL == fp)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot open file %s", filename);
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot open file %s", filename);
 
 
 	/* This is safe, because the only place that can increase the value of the refcnt is the working thread rather than the
@@ -563,10 +563,10 @@ pstd_fcache_file_t* pstd_fcache_open(const char* filename)
 
 	/* Now lets load this file to cache */
 	if(entry->valid && match_rc == 0)
-	    LOG_DEBUG("We have see a cache conflict, so we will replace the old cache entry with the new one");
+		LOG_DEBUG("We have see a cache conflict, so we will replace the old cache entry with the new one");
 
 	if(ERROR_CODE(int) == _invalidate_cache(entry))
-	    ERROR_LOG_GOTO(ERR, "Cannot invalidate the prevoius cache slot");
+		ERROR_LOG_GOTO(ERR, "Cannot invalidate the prevoius cache slot");
 
 	/* Then we need to enforce the cache size limit */
 	uint32_t cur;
@@ -581,10 +581,10 @@ pstd_fcache_file_t* pstd_fcache_open(const char* filename)
 		{
 			LOG_DEBUG("Cache size limit reached, find victim %u to kill", victim->idx);
 			if(ERROR_CODE(int) == _invalidate_cache(victim))
-			    ERROR_LOG_GOTO(ERR, "Cannot invalidate the victim %u", victim->idx);
+				ERROR_LOG_GOTO(ERR, "Cannot invalidate the victim %u", victim->idx);
 		}
 		else
-		    LOG_DEBUG("The victim %u survived because someone is using it", victim->idx);
+			LOG_DEBUG("The victim %u survived because someone is using it", victim->idx);
 	}
 
 	if(_data_size + (size_t)st.st_size > _max_cache_size())
@@ -602,12 +602,12 @@ pstd_fcache_file_t* pstd_fcache_open(const char* filename)
 	entry->size = (size_t)st.st_size;
 #ifdef PSTD_FILE_CACHE_STRICT_KEY_COMP
 	if(NULL == (entry->filename = (char*)malloc(f_len + 1)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the filename");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the filename");
 	memcpy(entry->filename, filename f_len + 1);
 #endif
 
 	if(NULL == (entry->data = (int8_t*)malloc(entry->size)))
-	    ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the data buffer");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the data buffer");
 
 	size_t off = 0;
 
@@ -615,7 +615,7 @@ pstd_fcache_file_t* pstd_fcache_open(const char* filename)
 	{
 		size_t rc;
 		if(0 == (rc = fread(entry->data + off, 1, entry->size - off, fp)))
-		    ERROR_LOG_ERRNO_GOTO(READ_ERR, "Cannot read the file to page");
+			ERROR_LOG_ERRNO_GOTO(READ_ERR, "Cannot read the file to page");
 
 		off += rc;
 		continue;
@@ -652,7 +652,7 @@ ERR:
 int pstd_fcache_close(pstd_fcache_file_t* file)
 {
 	if(NULL == file)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(file->cached)
 	{
@@ -669,14 +669,14 @@ int pstd_fcache_close(pstd_fcache_file_t* file)
 #pragma GCC diagnostic pop
 		}
 		else
-		    ERROR_RETURN_LOG(int, "Code bug: refcnt is less than 0");
+			ERROR_RETURN_LOG(int, "Code bug: refcnt is less than 0");
 	}
 	else
 	{
 		if(file->file != NULL)
-		    fclose(file->file);
+			fclose(file->file);
 		else
-		    ERROR_RETURN_LOG(int, "Code bug: file pointer is empty");
+			ERROR_RETURN_LOG(int, "Code bug: file pointer is empty");
 	}
 
 	return pstd_mempool_free(file);
@@ -685,7 +685,7 @@ int pstd_fcache_close(pstd_fcache_file_t* file)
 size_t pstd_fcache_size(const pstd_fcache_file_t* file)
 {
 	if(NULL == file)
-	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 	return file->size;
 }
@@ -693,7 +693,7 @@ size_t pstd_fcache_size(const pstd_fcache_file_t* file)
 int pstd_fcache_eof(const pstd_fcache_file_t* file)
 {
 	if(NULL == file)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	return file->offset >= file->size;
 }
@@ -701,18 +701,18 @@ int pstd_fcache_eof(const pstd_fcache_file_t* file)
 int pstd_fcache_seek(pstd_fcache_file_t* file, size_t offset)
 {
 	if(NULL == file)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	if(file->cached)
 	{
 		if(offset > file->cache->size)
-		    ERROR_RETURN_LOG(int, "Invalid offset");
+			ERROR_RETURN_LOG(int, "Invalid offset");
 		file->offset = offset;
 	}
 	else
 	{
 		if(-1 == fseek(file->file, (off_t)offset, SEEK_SET))
-		    ERROR_RETURN_LOG_ERRNO(int, "Cannot seek the file");
+			ERROR_RETURN_LOG_ERRNO(int, "Cannot seek the file");
 	}
 
 	return 0;
@@ -721,14 +721,14 @@ int pstd_fcache_seek(pstd_fcache_file_t* file, size_t offset)
 size_t pstd_fcache_read(pstd_fcache_file_t* file, void* buf, size_t bufsize)
 {
 	if(NULL == file || NULL == buf)
-	    ERROR_RETURN_LOG(size_t, "Invalid arguments");
+		ERROR_RETURN_LOG(size_t, "Invalid arguments");
 
 	if(file->cached)
 	{
 		size_t ret = bufsize;
 
 		if(ret + file->offset > file->cache->size)
-		    ret = file->cache->size - file->offset;
+			ret = file->cache->size - file->offset;
 
 		memcpy(buf, file->cache->data + file->offset, ret);
 		file->offset += ret;
@@ -738,7 +738,7 @@ size_t pstd_fcache_read(pstd_fcache_file_t* file, void* buf, size_t bufsize)
 	{
 		size_t rc = fread(buf, 1, bufsize, file->file);
 		if(rc == 0 && ferror(file->file))
-		    ERROR_RETURN_LOG_ERRNO(size_t, "Cannot read from the file");
+			ERROR_RETURN_LOG_ERRNO(size_t, "Cannot read from the file");
 		else
 		{
 			file->offset += rc;

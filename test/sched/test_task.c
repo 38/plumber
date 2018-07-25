@@ -215,20 +215,20 @@ static inline int request_test(int seed)
 		for(i = 0; i < size; i ++)
 		{
 			if(itc_module_pipe_allocate(mod_test, 0, param, pipes + 0, pipes + 1) == ERROR_CODE(int))
-			    goto LERR;
+				goto LERR;
 			//task->exec_task->pipes[result[i].source_pipe_desc] = pipes[0];
 			if(sched_task_output_pipe(task, result[i].source_pipe_desc, pipes[0]) == ERROR_CODE(int))
-			    goto LERR;
+				goto LERR;
 
 			if(sched_task_input_pipe(stc, task->service, task->request, result[i].destination_node_id, result[i].destination_pipe_desc, pipes[1], 0) < 0)
-			    goto LERR;
+				goto LERR;
 		}
 
 		if(runtime_task_start(task->exec_task) < 0)
-		    goto LERR;
+			goto LERR;
 
 		if(1 != sched_task_request_status(stc, reqid))
-		    goto LERR;
+			goto LERR;
 
 		sched_task_free(task);
 		continue;
@@ -250,7 +250,7 @@ LERR:
 	}
 
 	if(0 != sched_task_request_status(stc, reqid))
-	    return -1;
+		return -1;
 
 	return 0;
 ERR:
@@ -271,7 +271,7 @@ int do_request_test(void)
 {
 	int i = 0;
 	for(; i < 100; i ++)
-	    ASSERT_OK(request_test(i), CLEANUP_NOP);
+		ASSERT_OK(request_test(i), CLEANUP_NOP);
 	return 0;
 }
 int build_service(void)

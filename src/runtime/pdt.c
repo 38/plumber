@@ -89,7 +89,7 @@ int runtime_pdt_free(runtime_pdt_t* table)
 	{
 		_name_entry_t* entry = VECTOR_GET(_name_entry_t, table->vec, i);
 		if(NULL != entry && NULL != entry->type_expr)
-		    free(entry->type_expr);
+			free(entry->type_expr);
 	}
 
 	int rc = vector_free(table->vec);
@@ -100,17 +100,17 @@ int runtime_pdt_free(runtime_pdt_t* table)
 runtime_api_pipe_id_t runtime_pdt_insert(runtime_pdt_t* table, const char* name, runtime_api_pipe_flags_t flags, const char* type_expr)
 {
 	if(NULL == table || NULL == name)
-	    ERROR_RETURN_LOG(runtime_api_pipe_id_t, "Invalid arguments");
+		ERROR_RETURN_LOG(runtime_api_pipe_id_t, "Invalid arguments");
 
 	if(_search_table(table, name) != ERROR_CODE(runtime_api_pipe_id_t))
-	    ERROR_RETURN_LOG(runtime_api_pipe_id_t, "Duplicated pipe name in the same table");
+		ERROR_RETURN_LOG(runtime_api_pipe_id_t, "Duplicated pipe name in the same table");
 
 	char* type_buf = NULL;
 	if(type_expr != NULL)
 	{
 		size_t len = strlen(type_expr);
 		if(NULL == (type_buf = (char*)malloc(len + 1)))
-		    ERROR_RETURN_LOG_ERRNO(runtime_api_pipe_id_t, "Cannot allocate buffer for the type expression");
+			ERROR_RETURN_LOG_ERRNO(runtime_api_pipe_id_t, "Cannot allocate buffer for the type expression");
 		memcpy(type_buf, type_expr, len + 1);
 	}
 
@@ -122,7 +122,7 @@ runtime_api_pipe_id_t runtime_pdt_insert(runtime_pdt_t* table, const char* name,
 	_name_entry_t* last = VECTOR_GET(_name_entry_t, new_vec, id);
 
 	if(NULL == last)
-	    ERROR_LOG_GOTO(ERR, "Can not get the last element in PDT");
+		ERROR_LOG_GOTO(ERR, "Can not get the last element in PDT");
 
 	string_buffer_t namebuf;
 	string_buffer_open(last->name, RUNTIME_PIPE_NAME_LEN, &namebuf);
@@ -137,16 +137,16 @@ runtime_api_pipe_id_t runtime_pdt_insert(runtime_pdt_t* table, const char* name,
 	LOG_DEBUG("New PDT entry (pd=%zu, name=%s, flags=%x)", id, name, flags);
 
 	if(RUNTIME_API_PIPE_IS_INPUT(flags))
-	    table->input_count ++;
+		table->input_count ++;
 	else if(RUNTIME_API_PIPE_IS_OUTPUT(flags))
-	    table->output_count ++;
+		table->output_count ++;
 	else LOG_WARNING("Invalid pipe definition flags 0x%x", flags);
 
 	return (runtime_api_pipe_id_t)id;
 
 ERR:
 	if(NULL != type_buf)
-	    free(type_buf);
+		free(type_buf);
 
 	return ERROR_CODE(runtime_api_pipe_id_t);
 }
@@ -161,7 +161,7 @@ runtime_api_pipe_id_t runtime_pdt_get_pd_by_name(const runtime_pdt_t* table, con
 runtime_api_pipe_flags_t runtime_pdt_get_flags_by_pd(const runtime_pdt_t* table, runtime_api_pipe_id_t pd)
 {
 	if(NULL == table || pd == ERROR_CODE(runtime_api_pipe_id_t) || pd >= vector_length(table->vec))
-	    ERROR_RETURN_LOG(runtime_api_pipe_flags_t, "Invalid arguments");
+		ERROR_RETURN_LOG(runtime_api_pipe_flags_t, "Invalid arguments");
 
 	return VECTOR_GET_CONST(_name_entry_t, table->vec, pd)->flags;
 }
@@ -169,7 +169,7 @@ runtime_api_pipe_flags_t runtime_pdt_get_flags_by_pd(const runtime_pdt_t* table,
 const char* runtime_pdt_get_name(const runtime_pdt_t* table, runtime_api_pipe_id_t pd)
 {
 	if(NULL == table || pd == ERROR_CODE(runtime_api_pipe_id_t) || pd >= vector_length(table->vec))
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	return VECTOR_GET_CONST(_name_entry_t, table->vec, pd)->name;
 }
@@ -198,7 +198,7 @@ runtime_api_pipe_id_t runtime_pdt_output_count(const runtime_pdt_t* table)
 const char* runtime_pdt_type_expr(const runtime_pdt_t* table, runtime_api_pipe_id_t pid)
 {
 	if(NULL == table || ERROR_CODE(runtime_api_pipe_id_t) == pid || pid >= vector_length(table->vec))
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	const char* ret = VECTOR_GET_CONST(_name_entry_t, table->vec, pid)->type_expr;
 	if(NULL == ret) ret = UNTYPED_PIPE_HEADER;
@@ -209,12 +209,12 @@ const char* runtime_pdt_type_expr(const runtime_pdt_t* table, runtime_api_pipe_i
 int runtime_pdt_set_type_hook(runtime_pdt_t* table, runtime_api_pipe_id_t pid, runtime_api_pipe_type_callback_t callback, void* data)
 {
 	if(NULL == table || ERROR_CODE(runtime_api_pipe_id_t) == pid || pid >= vector_length(table->vec))
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_name_entry_t* entry = VECTOR_GET(_name_entry_t, table->vec, pid);
 
 	if(NULL == entry)
-	    ERROR_RETURN_LOG(int, "Cannot access the PDT");
+		ERROR_RETURN_LOG(int, "Cannot access the PDT");
 
 	entry->type_callback = callback;
 	entry->type_callback_data = data;
@@ -225,12 +225,12 @@ int runtime_pdt_set_type_hook(runtime_pdt_t* table, runtime_api_pipe_id_t pid, r
 int runtime_pdt_get_type_hook(const runtime_pdt_t* table, runtime_api_pipe_id_t pid, runtime_api_pipe_type_callback_t* result_func, void** result_data)
 {
 	if(NULL == table || ERROR_CODE(runtime_api_pipe_id_t) == pid || pid >= vector_length(table->vec) || NULL == result_func)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	const _name_entry_t*  entry = VECTOR_GET_CONST(_name_entry_t, table->vec, pid);
 
 	if(NULL == entry)
-	    ERROR_RETURN_LOG(int, "Cannot access the PDT");
+		ERROR_RETURN_LOG(int, "Cannot access the PDT");
 
 	*result_func = entry->type_callback;
 	*result_data = entry->type_callback_data;

@@ -23,7 +23,7 @@ static inline pipe_t _ensure_pipe(pipe_t current, const char* func)
 		ret = module_require_function("plumber.std", func);
 
 		if(ERROR_CODE(pipe_t) == ret)
-		    ERROR_RETURN_LOG(pipe_t, "Cannot get the service module function plumber.std.%s, make sure PSSM is installed", func);
+			ERROR_RETURN_LOG(pipe_t, "Cannot get the service module function plumber.std.%s, make sure PSSM is installed", func);
 	}
 
 	return ret;
@@ -39,11 +39,11 @@ pstd_thread_local_t* pstd_thread_local_new(pstd_thread_local_allocator_t alloc, 
 	_ENSURE_PIPE(thread_local_new, NULL);
 	pstd_thread_local_t* ret = (pstd_thread_local_t*)malloc(sizeof(pstd_thread_local_t));
 	if(NULL == ret)
-	    ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the thread local object");
+		ERROR_PTR_RETURN_LOG_ERRNO("Cannot allocate memory for the thread local object");
 	ret->magic =  _THREAD_LOCAL_MAGIC;
 
 	if(ERROR_CODE(int) == pipe_cntl(thread_local_new, PIPE_CNTL_INVOKE, alloc, dealloc, data, &ret->object))
-	    ERROR_LOG_GOTO(ERR, "Call to plumber.std.thread_local_new has failed");
+		ERROR_LOG_GOTO(ERR, "Call to plumber.std.thread_local_new has failed");
 
 	return ret;
 ERR:
@@ -55,14 +55,14 @@ ERR:
 void* pstd_thread_local_get(pstd_thread_local_t* local)
 {
 	if(local == NULL || local->magic != _THREAD_LOCAL_MAGIC)
-	    ERROR_PTR_RETURN_LOG("Invalid arguments");
+		ERROR_PTR_RETURN_LOG("Invalid arguments");
 
 	_ENSURE_PIPE(thread_local_get, NULL);
 
 	void* ret;
 
 	if(ERROR_CODE(int) == pipe_cntl(thread_local_get, PIPE_CNTL_INVOKE, local->object, &ret))
-	    ERROR_PTR_RETURN_LOG("Call to plumber.std.thread_local_get has failed");
+		ERROR_PTR_RETURN_LOG("Call to plumber.std.thread_local_get has failed");
 
 	return ret;
 }
@@ -70,7 +70,7 @@ void* pstd_thread_local_get(pstd_thread_local_t* local)
 int pstd_thread_local_free(pstd_thread_local_t* local)
 {
 	if(local == NULL || local->magic != _THREAD_LOCAL_MAGIC)
-	    ERROR_RETURN_LOG(int, "Invalid arguments");
+		ERROR_RETURN_LOG(int, "Invalid arguments");
 
 	_ENSURE_PIPE(thread_local_free, ERROR_CODE(int));
 
