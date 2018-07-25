@@ -209,8 +209,8 @@ static PyObject* _type_instance_read_int(PyObject* _self, PyObject* args)
 				return Py_BuildValue("K", *typed_buf.u64);
 			break;
 		default:
-		    PyErr_SetString(PyExc_RuntimeError, "Code bug!");
-		    return NULL;
+			PyErr_SetString(PyExc_RuntimeError, "Code bug!");
+			return NULL;
 	}
 
 	return Py_BuildValue("l", retval);
@@ -263,8 +263,8 @@ static PyObject* _type_instance_read_float(PyObject* _self, PyObject* args)
 			retval = *typed.d;
 			break;
 		default:
-		    PyErr_SetString(PyExc_RuntimeError, "Code bug!");
-		    return NULL;
+			PyErr_SetString(PyExc_RuntimeError, "Code bug!");
+			return NULL;
 	}
 
 	return Py_BuildValue("d", retval);

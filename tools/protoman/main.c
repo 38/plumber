@@ -181,7 +181,7 @@ static int parse_args(int argc, char** argv, program_option_t* out)
 				out->show_base_type = 1;
 				break;
 			default:
-			    return ERROR_CODE(int);
+				return ERROR_CODE(int);
 		}
 	}
 
@@ -201,7 +201,7 @@ static int parse_args(int argc, char** argv, program_option_t* out)
 		CHECK_SPECIFIED_OPTIONS(CMD_SYNTAX,    "S");
 		CHECK_SPECIFIED_OPTIONS(CMD_HELP,       "h");
 		default:
-		    break;
+			break;
 	}
 
 	if(optind < argc)
@@ -719,8 +719,8 @@ int main(int argc, char** argv)
 			ret_code = do_syntax(&program_option);
 			break;
 		default:
-		    display_help();
-		    properly_exit(1);
+			display_help();
+			properly_exit(1);
 	}
 	properly_exit(ret_code);
 }

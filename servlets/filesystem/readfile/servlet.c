@@ -60,7 +60,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 			ctx->http_ctx = http_ctx_new(&ctx->options, ctx->type_model);
 			break;
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid output mode");
+			ERROR_RETURN_LOG(int, "Invalid output mode");
 	}
 
 	if(ctx->out_ctx == NULL)
@@ -101,7 +101,7 @@ static int _unload(void* ctxmem)
 					rc = ERROR_CODE(int);
 				break;
 			default:
-			    ERROR_RETURN_LOG(int, "Invalid output mode");
+				ERROR_RETURN_LOG(int, "Invalid output mode");
 		}
 	}
 
@@ -147,7 +147,7 @@ static int _exec(void* ctxmem)
 			rc = http_ctx_exec(ctx->http_ctx, inst, buf, extname, &input_meta);
 			break;
 		default:
-		        ERROR_LOG_GOTO(ERR, "Invalid output mode");
+			    ERROR_LOG_GOTO(ERR, "Invalid output mode");
 	}
 
 	if(ERROR_CODE(int) == pstd_type_instance_free(inst))

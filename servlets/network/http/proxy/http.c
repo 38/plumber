@@ -411,7 +411,7 @@ int http_response_parse(http_response_t* res, const char* data, size_t len)
 					parsed = _parse_transfer_encoding(res, data, len);
 					break;
 				default:
-				    ERROR_RETURN_LOG(int, "Code bug: Invalid parser state");
+					ERROR_RETURN_LOG(int, "Code bug: Invalid parser state");
 			}
 		}
 		else

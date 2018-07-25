@@ -392,7 +392,7 @@ static inline int _parse_alias_field(_context_t* ctx, proto_type_t* type)
 				}
 				FALLTHROUGH("Otherwise it must be the error case");
 			default:
-			    _RAISE(ctx, goto ERR, "syntax error: unexpected token");
+				_RAISE(ctx, goto ERR, "syntax error: unexpected token");
 		}
 		if(NULL == (tok = _peek(ctx, 1)))
 			goto ERR;
@@ -505,7 +505,7 @@ static inline int _parse_type(_context_t* ctx)
 				_TRY_CONSUME(ctx, goto ERR, 1);
 				break;
 			default:
-			    _RAISE(ctx, goto ERR, "syntax error: unexpected token");
+				_RAISE(ctx, goto ERR, "syntax error: unexpected token");
 		}
 	}
 
@@ -572,7 +572,7 @@ compiler_result_t* compiler_compile(compiler_options_t options)
 				_consume(&ctx, 1);
 				break;
 			default:
-			    _RAISE(&ctx, goto ERR, "Unexpected token");
+				_RAISE(&ctx, goto ERR, "Unexpected token");
 		}
 	}
 

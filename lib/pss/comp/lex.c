@@ -326,22 +326,22 @@ PARSE:
 					case '\?': underlying_char = '\?'; state = _NORMAL_STR; break;
 					case '\"': underlying_char = '\"'; state = _NORMAL_STR; break;
 					default:
-					    if(ch >= '0' && ch <= '8')
-					    {
-						    esc_chr = _oct_digit_to_val(ch);
-						    state = _ESC_OCT_1;
-					    }
-					    else if(ch == 'x')
-					    {
-						    esc_chr = 0;
-						    state = _ESC_HEX;
-					    }
-					    else
-					    {
-						    lex->error = 1;
-						    lex->errstr = "Invalid escape sequence";
-						    state = _ERROR;
-					    }
+						if(ch >= '0' && ch <= '8')
+						{
+							esc_chr = _oct_digit_to_val(ch);
+							state = _ESC_OCT_1;
+						}
+						else if(ch == 'x')
+						{
+							esc_chr = 0;
+							state = _ESC_HEX;
+						}
+						else
+						{
+							lex->error = 1;
+							lex->errstr = "Invalid escape sequence";
+							state = _ERROR;
+						}
 				}
 				break;
 			case _ESC_OCT_1:
@@ -692,29 +692,29 @@ int pss_comp_lex_next_token(pss_comp_lex_t* lexer, pss_comp_lex_token_t* buffer)
 			break;
 		}
 		default:
-		    if(ch >= '0' && ch <= '9')
-		    {
-			    if(_num(lexer, &buffer->value.i) == ERROR_CODE(int))
-			    {
-				    lexer->error = 1;
-				    lexer->errstr = "Invalid number";
-			    }
-			    buffer->type = PSS_COMP_LEX_TOKEN_INTEGER;
-			    break;
-		    }
-		    else
-		    {
-			    pss_comp_lex_keyword_t token = _id_or_keyword(lexer, buffer->value.s, sizeof(buffer->value.s));
-			    if(token == PSS_COMP_LEX_KEYWORD_ERROR)
-			    {
-				    buffer->type = PSS_COMP_LEX_TOKEN_IDENTIFIER;
-			    }
-			    else
-			    {
-				    buffer->type = PSS_COMP_LEX_TOKEN_KEYWORD;
-				    buffer->value.k = token;
-			    }
-		    }
+			if(ch >= '0' && ch <= '9')
+			{
+				if(_num(lexer, &buffer->value.i) == ERROR_CODE(int))
+				{
+					lexer->error = 1;
+					lexer->errstr = "Invalid number";
+				}
+				buffer->type = PSS_COMP_LEX_TOKEN_INTEGER;
+				break;
+			}
+			else
+			{
+				pss_comp_lex_keyword_t token = _id_or_keyword(lexer, buffer->value.s, sizeof(buffer->value.s));
+				if(token == PSS_COMP_LEX_KEYWORD_ERROR)
+				{
+					buffer->type = PSS_COMP_LEX_TOKEN_IDENTIFIER;
+				}
+				else
+				{
+					buffer->type = PSS_COMP_LEX_TOKEN_KEYWORD;
+					buffer->value.k = token;
+				}
+			}
 	}
 
 	if(1 == lexer->error)

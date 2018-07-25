@@ -59,7 +59,7 @@ static void trap(int id)
 			cntl_module_rc ++;
 			break;
 		default:
-		    LOG_WARNING("unknown trap");
+			LOG_WARNING("unknown trap");
 	}
 }
 

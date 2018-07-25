@@ -45,7 +45,7 @@ static int _opt_callback_no_val(pstd_option_data_t data)
 			opt->reverse_proxy = 1;
 			break;
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid option");
+			ERROR_RETURN_LOG(int, "Invalid option");
 	}
 
 	return 0;
@@ -69,7 +69,7 @@ static int _opt_callback_numeric(pstd_option_data_t data)
 			opt->max_chunk_size = ((uint8_t)val & 0xffu);
 			break;
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid option");
+			ERROR_RETURN_LOG(int, "Invalid option");
 	}
 	return 0;
 }
@@ -110,16 +110,16 @@ static int _opt_callback_string(pstd_option_data_t data)
 				ERROR_RETURN_LOG(int, "Invalid options");
 			break;
 		case 's':
-			{
-				target = &opt->server_name;
-				size_t len = strlen(data.param_array[0].strval) + sizeof("Server: \r\n");
-				val = (char*)malloc(len);
-				if(NULL != val)
-					snprintf(val, len, "Server: %s\r\n", data.param_array[0].strval);
-				goto FINISHED;
-			}
+		{
+			target = &opt->server_name;
+			size_t len = strlen(data.param_array[0].strval) + sizeof("Server: \r\n");
+			val = (char*)malloc(len);
+			if(NULL != val)
+				snprintf(val, len, "Server: %s\r\n", data.param_array[0].strval);
+			goto FINISHED;
+		}
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid options");
+			ERROR_RETURN_LOG(int, "Invalid options");
 	}
 
 	val = strdup(data.param_array[0].strval);

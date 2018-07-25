@@ -164,8 +164,8 @@ static int parse_args(int argc, char** argv)
 				proto_db_root = optarg;
 				break;
 			default:
-			    display_help();
-			    properly_exit(1);
+				display_help();
+				properly_exit(1);
 		}
 
 		last_optind = optind;

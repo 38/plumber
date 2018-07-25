@@ -680,7 +680,7 @@ static inline void _log_ssl_error(const char* what, int reason, int rc)
 				LOG_ERROR("TLS error(%s): %s", what, ERR_error_string(error_code, NULL));
 			break;
 		default:
-		    LOG_ERROR("TLS error(%s): unknown error %d", what, reason);
+			LOG_ERROR("TLS error(%s): unknown error %d", what, reason);
 	}
 #endif
 }
@@ -709,8 +709,8 @@ static inline int _ensure_connect(_handle_t* handle)
 					LOG_DEBUG("Read/Write failure encountered, deactivate the connection until it gets ready");
 					return 0;
 				default:
-				    _log_ssl_error("accept", reason, rc);
-				    return ERROR_CODE(int);
+					_log_ssl_error("accept", reason, rc);
+					return ERROR_CODE(int);
 			}
 		}
 		else if(rc == 1)
@@ -1483,51 +1483,51 @@ static int  _cntl(void* __restrict context, void* __restrict pipe, uint32_t opco
 	switch(opcode)
 	{
 		case MODULE_TLS_CNTL_ENCRYPTION:
+		{
+			int value = va_arg(va_args, int);
+			if(value == 0)
 			{
-				int value = va_arg(va_args, int);
-				if(value == 0)
-				{
-					LOG_DEBUG("Trun off encryption");
-					/* Only change the state when the state is connecting, because
-					* Either disabled or connected we do not need to do anything */
-					if(handle->tls->state == _TLS_STATE_CONNECTING)
-						handle->tls->state = _TLS_STATE_DISABLED;
-				}
-				else
-				{
-					LOG_DEBUG("Turn on encryption");
-					/* Only change when the state is disabled */
-					if(handle->tls->state == _TLS_STATE_DISABLED)
-						handle->tls->state = _TLS_STATE_CONNECTING;
-				}
-				break;
+				LOG_DEBUG("Trun off encryption");
+				/* Only change the state when the state is connecting, because
+				 * Either disabled or connected we do not need to do anything */
+				if(handle->tls->state == _TLS_STATE_CONNECTING)
+					handle->tls->state = _TLS_STATE_DISABLED;
 			}
+			else
+			{
+				LOG_DEBUG("Turn on encryption");
+				/* Only change when the state is disabled */
+				if(handle->tls->state == _TLS_STATE_DISABLED)
+					handle->tls->state = _TLS_STATE_CONNECTING;
+			}
+			break;
+		}
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
 		case MODULE_TLS_CNTL_ALPNPROTO:
+		{
+			char*  buf = va_arg(va_args, char*);
+			size_t  bs  = va_arg(va_args, size_t);
+
+			if(NULL == buf || bs == 0) ERROR_RETURN_LOG(int, "Invalid arguments");
+
+			uint8_t const* intbuf;
+			unsigned int  intsize;
+
+			SSL_get0_alpn_selected(handle->tls->ssl, &intbuf, &intsize);
+
+			if(intsize == 0) buf[0] = 0;
+			else
 			{
-				char*  buf = va_arg(va_args, char*);
-				size_t  bs  = va_arg(va_args, size_t);
-
-				if(NULL == buf || bs == 0) ERROR_RETURN_LOG(int, "Invalid arguments");
-
-				uint8_t const* intbuf;
-				unsigned int  intsize;
-
-				SSL_get0_alpn_selected(handle->tls->ssl, &intbuf, &intsize);
-
-				if(intsize == 0) buf[0] = 0;
-				else
-				{
-					if(bs > intsize + 1) bs = intsize + 1;
-					memcpy(buf, intbuf, bs - 1);
-					buf[bs-1] = 0;
-				}
-
-				break;
+				if(bs > intsize + 1) bs = intsize + 1;
+				memcpy(buf, intbuf, bs - 1);
+				buf[bs-1] = 0;
 			}
+
+			break;
+		}
 #endif
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid opcode");
+			ERROR_RETURN_LOG(int, "Invalid opcode");
 	}
 	return 0;
 }

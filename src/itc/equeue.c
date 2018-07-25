@@ -137,40 +137,40 @@ int itc_equeue_finalize()
 					switch(queue->events[j & (queue->size - 1)].type)
 					{
 						case ITC_EQUEUE_EVENT_TYPE_IO:
-							{
-								itc_module_pipe_t* in = queue->events[j & (queue->size - 1)].io.in;
-								itc_module_pipe_t* out = queue->events[j & (queue->size - 1)].io.out;
+						{
+							itc_module_pipe_t* in = queue->events[j & (queue->size - 1)].io.in;
+							itc_module_pipe_t* out = queue->events[j & (queue->size - 1)].io.out;
 
-								if(in != NULL && itc_module_pipe_deallocate(in) == ERROR_CODE(int))
-								{
-									LOG_ERROR("Cannot deallocate the input event pipe");
-									rc = ERROR_CODE(int);
-								}
-								if(out != NULL && itc_module_pipe_deallocate(out) == ERROR_CODE(int))
-								{
-									LOG_ERROR("Cannot deallocate the output event pipe");
-									rc = ERROR_CODE(int);
-								}
-								break;
+							if(in != NULL && itc_module_pipe_deallocate(in) == ERROR_CODE(int))
+							{
+								LOG_ERROR("Cannot deallocate the input event pipe");
+								rc = ERROR_CODE(int);
 							}
+							if(out != NULL && itc_module_pipe_deallocate(out) == ERROR_CODE(int))
+							{
+								LOG_ERROR("Cannot deallocate the output event pipe");
+								rc = ERROR_CODE(int);
+							}
+							break;
+						}
 						case ITC_EQUEUE_EVENT_TYPE_TASK:
+						{
+							itc_equeue_task_event_t* event = &queue->events[j & (queue->size - 1)].task;
+
+							/* We don't call the cleanup task at this point for now.
+							 * TODO: do we need a way to make it properly cleaned up */
+
+							if(event->async_handle != NULL && ERROR_CODE(int) == sched_async_handle_dispose(event->async_handle))
 							{
-								itc_equeue_task_event_t* event = &queue->events[j & (queue->size - 1)].task;
-
-								/* We don't call the cleanup task at this point for now.
-								* TODO: do we need a way to make it properly cleaned up */
-
-								if(event->async_handle != NULL && ERROR_CODE(int) == sched_async_handle_dispose(event->async_handle))
-								{
-									LOG_ERROR("Cannot deallocatet the task handle");
-									rc = ERROR_CODE(int);
-								}
-
-								break;
+								LOG_ERROR("Cannot deallocatet the task handle");
+								rc = ERROR_CODE(int);
 							}
+
+							break;
+						}
 						default:
-						    rc = ERROR_CODE(int);
-						    LOG_ERROR("Invalid type of event");
+							rc = ERROR_CODE(int);
+							LOG_ERROR("Invalid type of event");
 					}
 				}
 				if((errno = pthread_mutex_destroy(&queue->mutex)) != 0)

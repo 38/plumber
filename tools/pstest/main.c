@@ -377,8 +377,8 @@ int _program(int argc, char** argv)
 				show_version(EXIT_SUCCESS);
 
 			default:
-			    fprintf(stderr, "Invalid argument %c\n", c);
-			    display_help(EXIT_FAILURE);
+				fprintf(stderr, "Invalid argument %c\n", c);
+				display_help(EXIT_FAILURE);
 		}
 
 		last_optind = optind;

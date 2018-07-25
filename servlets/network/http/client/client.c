@@ -267,7 +267,7 @@ static int _curl_socket_func(CURL* handle, int fd, int action, void* up, void* s
 			event.events = EPOLLIN | EPOLLOUT;
 			break;
 		default:
-		    return 0;
+			return 0;
 	}
 
 	if(epoll_ctl(req->thread_ctx->epoll_fd, opcode, fd, &event) < 0)

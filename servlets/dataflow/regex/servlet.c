@@ -202,7 +202,7 @@ static int _option_callback(pstd_option_data_t data)
 			ctx->line_buf_size = (uint32_t)data.param_array[0].intval * 1024;
 			break;
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid command line options");
+			ERROR_RETURN_LOG(int, "Invalid command line options");
 	}
 	return 0;
 }

@@ -203,7 +203,7 @@ static inline int _write_status_line(pstd_bio_t* bio, uint16_t status_code)
 		STATUS_PHRASE(510,"Not Extended");
 		STATUS_PHRASE(511,"Network Authentication Required");
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid status code %d", status_code);
+			ERROR_RETURN_LOG(int, "Invalid status code %d", status_code);
 	}
 
 	while(status_size > 0)
@@ -286,8 +286,8 @@ static inline uint32_t _determine_compression_algorithm(const ctx_t *ctx, pstd_t
 						break;
 #endif
 					default:
-					    if(NULL == (ptr = strchr(ptr, ',')))
-						    return ret;
+						if(NULL == (ptr = strchr(ptr, ',')))
+							return ret;
 				}
 			}
 		}

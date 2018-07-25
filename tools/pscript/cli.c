@@ -134,8 +134,8 @@ static int _scan_brackets(pss_comp_lex_t* lexer)
 			case PSS_COMP_LEX_TOKEN_EOF:
 				return b_index;
 			default:
-			    /* Ignore */
-			    break;
+				/* Ignore */
+				break;
 		}
 		// check stack size
 		if(b_index >= (int)(sizeof(bracket_stack) / sizeof(bracket_stack[0])))

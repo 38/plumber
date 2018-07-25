@@ -112,7 +112,7 @@ char* pss_string_literal(const char* str, char* buf, size_t sz)
 			    actual_size ++;
 			    FALLTHROUGH("For the escape char, we need an additional space for the backslash");
 		    default:
-		        actual_size ++;
+			    actual_size ++;
 	    }
 
 	int truncate = 0;

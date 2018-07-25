@@ -887,7 +887,7 @@ static inline void _print_queue_message(module_tcp_pool_t* pool, const _queue_me
 		case _QM_CHECKIN:    msg_name = "check-in-connection"; break;
 		case _QM_CLOSE:      msg_name = "close-connection"; break;
 		default:
-		    LOG_WARNING("Invalid message type");
+			LOG_WARNING("Invalid message type");
 	}
 	if(cont)
 		LOG_DEBUG("Continuation QM: operation = \"%s\", target-id = %"PRIu32", target-pos = %"PRIu32, msg_name, msg->id, pos);
@@ -927,7 +927,7 @@ static inline int _process_queue_message(module_tcp_pool_t* pool, const _queue_m
 			rc = _connection_checkin(pool, id);
 			break;
 		default:
-		    ERROR_RETURN_LOG(int, "Unknown message type, code bug!");
+			ERROR_RETURN_LOG(int, "Unknown message type, code bug!");
 	}
 
 	return rc;
@@ -1126,7 +1126,7 @@ static inline int _init_connection_release_message(module_tcp_pool_t* pool, _que
 			msg->data = data;
 			return 0;
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid mode swtich %d", mode);
+			ERROR_RETURN_LOG(int, "Invalid mode swtich %d", mode);
 	}
 }
 

@@ -158,7 +158,7 @@ int pss_comp_raise_internal(pss_comp_t* comp, pss_comp_internal_t reason)
 			pss_comp_raise(comp, "Internal error: Cannot allocate memory from the OS [errno: %d]", errno);
 			break;
 		default:
-		    LOG_ERROR("Internal error: Invalid reason code");
+			LOG_ERROR("Internal error: Invalid reason code");
 	}
 
 	return ERROR_CODE(int);

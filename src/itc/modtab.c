@@ -313,7 +313,7 @@ static inline int _set_module_property(const char* symbol, lang_prop_value_t val
 			prop.str = value.str;
 			break;
 		default:
-		    ERROR_RETURN_LOG(int, "Unsupported module property type");
+			ERROR_RETURN_LOG(int, "Unsupported module property type");
 	}
 
 	return node->module->set_property(node->context, symbol, prop);

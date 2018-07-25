@@ -22,7 +22,7 @@ OPT_CHK:
 				ERROR_RETURN_LOG(int, "Invalid parameter");
 			break;
 		default:
-		    ERROR_RETURN_LOG(int, "Unrecoginized options");
+			ERROR_RETURN_LOG(int, "Unrecoginized options");
 	}
 
 	return 0;

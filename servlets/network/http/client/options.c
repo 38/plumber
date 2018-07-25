@@ -27,7 +27,7 @@ static inline int _opt_callback(pstd_option_data_t data)
 			opt->follow_redir = 1;
 			break;
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid options");
+			ERROR_RETURN_LOG(int, "Invalid options");
 	}
 
 	return 0;

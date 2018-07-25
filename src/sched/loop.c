@@ -209,32 +209,32 @@ static inline int _context_free(sched_loop_t* ctx)
 		switch(ctx->events[p].type)
 		{
 			case ITC_EQUEUE_EVENT_TYPE_IO:
+			{
+				if(itc_module_pipe_deallocate(ctx->events[p].io.in) == ERROR_CODE(int))
 				{
-					if(itc_module_pipe_deallocate(ctx->events[p].io.in) == ERROR_CODE(int))
-					{
-						LOG_ERROR("Cannot deallocate the input pipe");
-						rc = ERROR_CODE(int);
-					}
-					if(itc_module_pipe_deallocate(ctx->events[p].io.out) == ERROR_CODE(int))
-					{
-						LOG_ERROR("Cannot deallocate the output pipe");
-						rc = ERROR_CODE(int);
-					}
-					break;
+					LOG_ERROR("Cannot deallocate the input pipe");
+					rc = ERROR_CODE(int);
 				}
+				if(itc_module_pipe_deallocate(ctx->events[p].io.out) == ERROR_CODE(int))
+				{
+					LOG_ERROR("Cannot deallocate the output pipe");
+					rc = ERROR_CODE(int);
+				}
+				break;
+			}
 			case ITC_EQUEUE_EVENT_TYPE_TASK:
+			{
+				/* We don't call the cleanup task at this point for now.
+				 * TODO: do we need a way to make it properly cleaned up */
+				if(NULL != ctx->events[p].task.async_handle && ERROR_CODE(int) == sched_async_handle_dispose(ctx->events[p].task.async_handle))
 				{
-					/* We don't call the cleanup task at this point for now.
-					* TODO: do we need a way to make it properly cleaned up */
-					if(NULL != ctx->events[p].task.async_handle && ERROR_CODE(int) == sched_async_handle_dispose(ctx->events[p].task.async_handle))
-					{
-						LOG_ERROR("Cannot dispose the unprocessed async handle");
-						rc = ERROR_CODE(int);
-					}
-					break;
+					LOG_ERROR("Cannot dispose the unprocessed async handle");
+					rc = ERROR_CODE(int);
 				}
+				break;
+			}
 			default:
-			    LOG_WARNING("Invalid event type in the queue, may indicates code bug");
+				LOG_WARNING("Invalid event type in the queue, may indicates code bug");
 		}
 	}
 
@@ -384,7 +384,7 @@ static inline void* _sched_main(void* data)
 					LOG_ERROR("Cannot notify the scheduler about the task completion");
 				break;
 			default:
-			    LOG_ERROR("Invalid task type");
+				LOG_ERROR("Invalid task type");
 		}
 
 		uint32_t prev_concurrency = old_service ? sched_task_num_concurrent_requests(stc) : 0;

@@ -153,7 +153,7 @@ scope_token_t zlib_token_encode(scope_token_t data_token, zlib_token_format_t fo
 				ERROR_LOG_GOTO(ERR, "Cannot itnialize the zlib for gzip");
 			break;
 		default:
-		    ERROR_LOG_GOTO(ERR, "Invalid format option");
+			ERROR_LOG_GOTO(ERR, "Invalid format option");
 	}
 
 	pstd_trans_desc_t desc = {

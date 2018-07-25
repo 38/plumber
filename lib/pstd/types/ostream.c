@@ -401,47 +401,47 @@ static size_t _read(void* __restrict stream_mem, void* __restrict buf, size_t co
 		switch(stream->list_begin->type)
 		{
 			case _BLOCK_TYPE_PAGE:
+			{
+				if(bytes_to_read > stream->list_begin->page->size - stream->list_begin->page->read)
 				{
-					if(bytes_to_read > stream->list_begin->page->size - stream->list_begin->page->read)
-					{
-						bytes_to_read = stream->list_begin->page->size - stream->list_begin->page->read;
-						block_exhuated = 1;
-					}
-					memcpy(buf, stream->list_begin->page->data + stream->list_begin->page->read, bytes_to_read);
-					bytes_read = bytes_to_read;
-					stream->list_begin->page->read += (uint32_t)bytes_read;
-					break;
+					bytes_to_read = stream->list_begin->page->size - stream->list_begin->page->read;
+					block_exhuated = 1;
 				}
+				memcpy(buf, stream->list_begin->page->data + stream->list_begin->page->read, bytes_to_read);
+				bytes_read = bytes_to_read;
+				stream->list_begin->page->read += (uint32_t)bytes_read;
+				break;
+			}
 			case _BLOCK_TYPE_MEMORY:
+			{
+				if(bytes_to_read > stream->list_begin->memory->size - stream->list_begin->memory->read)
 				{
-					if(bytes_to_read > stream->list_begin->memory->size - stream->list_begin->memory->read)
-					{
-						bytes_to_read = stream->list_begin->memory->size - stream->list_begin->memory->read;
-						block_exhuated = 1;
-					}
-					memcpy(buf, ((char*)stream->list_begin->memory->data) + stream->list_begin->memory->read, bytes_to_read);
-
-					bytes_read = bytes_to_read;
-
-					stream->list_begin->memory->read += (uint32_t)bytes_read;
-					break;
-
+					bytes_to_read = stream->list_begin->memory->size - stream->list_begin->memory->read;
+					block_exhuated = 1;
 				}
+				memcpy(buf, ((char*)stream->list_begin->memory->data) + stream->list_begin->memory->read, bytes_to_read);
+
+				bytes_read = bytes_to_read;
+
+				stream->list_begin->memory->read += (uint32_t)bytes_read;
+				break;
+
+			}
 			case _BLOCK_TYPE_STREAM:
-				{
-					bytes_read = pstd_scope_stream_read(stream->list_begin->stream->stream, buf, bytes_to_read);
-					if(ERROR_CODE(size_t) == bytes_read)
-						ERROR_RETURN_LOG(size_t, "Inner RLS returns a read error");
+			{
+				bytes_read = pstd_scope_stream_read(stream->list_begin->stream->stream, buf, bytes_to_read);
+				if(ERROR_CODE(size_t) == bytes_read)
+					ERROR_RETURN_LOG(size_t, "Inner RLS returns a read error");
 
-					if(bytes_read == 0)
-					{
-						int eos_rc = pstd_scope_stream_eof(stream->list_begin->stream->stream);
-						if(ERROR_CODE(int) == eos_rc)
-							ERROR_RETURN_LOG(size_t, "Cannot check if the innter RLS reached end-of-stream");
-						block_exhuated = (eos_rc > 0);
-					}
-					break;
+				if(bytes_read == 0)
+				{
+					int eos_rc = pstd_scope_stream_eof(stream->list_begin->stream->stream);
+					if(ERROR_CODE(int) == eos_rc)
+						ERROR_RETURN_LOG(size_t, "Cannot check if the innter RLS reached end-of-stream");
+					block_exhuated = (eos_rc > 0);
 				}
+				break;
+			}
 		}
 
 		if(block_exhuated)

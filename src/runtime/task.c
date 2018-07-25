@@ -326,7 +326,7 @@ int runtime_task_start(runtime_task_t *task)
 					rc = 0;
 				break;
 			default:
-			    LOG_ERROR("Invalid action bit");
+				LOG_ERROR("Invalid action bit");
 		}
 	}
 	else
@@ -354,7 +354,7 @@ int runtime_task_start(runtime_task_t *task)
 					rc = 0;
 				break;
 			default:
-			    LOG_ERROR("Invalid action bit");
+				LOG_ERROR("Invalid action bit");
 		}
 	}
 

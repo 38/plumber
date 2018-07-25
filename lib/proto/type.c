@@ -75,7 +75,7 @@ static inline int _clean_ref(proto_type_entity_t* ref)
 		case PROTO_TYPE_ENTITY_REF_NONE:
 			break;
 		default:
-		    PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
+			PROTO_ERR_RAISE_RETURN(int, ARGUMENT);
 	}
 
 	if(rc != ERROR_CODE(int))
@@ -466,7 +466,7 @@ static inline int _entity_load(FILE* fp, proto_type_entity_t* buf)
 					PROTO_ERR_RAISE_GOTO(ERR, FAIL);
 				break;
 			default:
-			    PROTO_ERR_RAISE_GOTO(ERR, FORMAT);
+				PROTO_ERR_RAISE_GOTO(ERR, FORMAT);
 		}
 	}
 

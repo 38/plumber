@@ -247,23 +247,23 @@ static inline int _exec_new(pss_vm_t* vm, const pss_bytecode_instruction_t* inst
 			val = pss_value_ref_new(PSS_VALUE_REF_TYPE_DICT, NULL);
 			break;
 		case PSS_BYTECODE_RTYPE_CLOSURE:
-			{
-				pss_value_t segval = _read_reg(vm, inst, 0);
-				if(!_is_value_kind(vm, segval, PSS_VALUE_KIND_NUM, 1))
-					return 0;
+		{
+			pss_value_t segval = _read_reg(vm, inst, 0);
+			if(!_is_value_kind(vm, segval, PSS_VALUE_KIND_NUM, 1))
+				return 0;
 
-				pss_closure_creation_param_t param = {
-					.segid  = (pss_bytecode_segid_t)segval.num,
-					.module = vm->stack->module,
-					.env    = vm->stack->frame
-				};
+			pss_closure_creation_param_t param = {
+				.segid  = (pss_bytecode_segid_t)segval.num,
+				.module = vm->stack->module,
+				.env    = vm->stack->frame
+			};
 
-				val = pss_value_ref_new(PSS_VALUE_REF_TYPE_CLOSURE, &param);
-				break;
-			}
+			val = pss_value_ref_new(PSS_VALUE_REF_TYPE_CLOSURE, &param);
+			break;
+		}
 		default:
-		    vm->error = PSS_VM_ERROR_BYTECODE;
-		    return 0;
+			vm->error = PSS_VM_ERROR_BYTECODE;
+			return 0;
 	}
 
 	if(PSS_VALUE_KIND_ERROR == val.kind)
@@ -292,19 +292,19 @@ static inline int _exec_load(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 			val.num = inst->num;
 			break;
 		case PSS_BYTECODE_RTYPE_STR:
-			{
-				const char* str = inst->str;
-				char* runtime_str = pss_string_concat(str, "");
-				if(NULL == runtime_str) ERROR_RETURN_LOG(int, "Cannot create a runtime string");
-				val = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, runtime_str);
-				if(val.kind == PSS_VALUE_KIND_ERROR) free(runtime_str);
-				break;
-			}
+		{
+			const char* str = inst->str;
+			char* runtime_str = pss_string_concat(str, "");
+			if(NULL == runtime_str) ERROR_RETURN_LOG(int, "Cannot create a runtime string");
+			val = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, runtime_str);
+			if(val.kind == PSS_VALUE_KIND_ERROR) free(runtime_str);
+			break;
+		}
 		case PSS_BYTECODE_RTYPE_UNDEF:
 			break;
 		default:
-		    vm->error = PSS_VM_ERROR_BYTECODE;
-		    return 0;
+			vm->error = PSS_VM_ERROR_BYTECODE;
+			return 0;
 	}
 
 	if(ERROR_CODE(int) == pss_frame_reg_set(vm->stack->frame, target, val))
@@ -332,8 +332,8 @@ static inline int _exec_dict(pss_vm_t* vm, const pss_bytecode_instruction_t* ins
 			reg_idx = 0, dict_idx = 1, key_idx = 2;
 			break;
 		default:
-		    vm->error = PSS_VM_ERROR_BYTECODE;
-		    return 0;
+			vm->error = PSS_VM_ERROR_BYTECODE;
+			return 0;
 	}
 	pss_dict_t* dict = (pss_dict_t*)_value_get_ref_data(vm, _read_reg(vm, inst, dict_idx), PSS_VALUE_REF_TYPE_DICT, 1);
 	if(NULL == dict) return 0;
@@ -445,8 +445,8 @@ static inline int _exec_arithmetic_logic(pss_vm_t* vm, const pss_bytecode_instru
 				result.num = left.num ^ right.num;
 				break;
 			default:
-			    vm->error = PSS_VM_ERROR_BYTECODE;
-			    return 0;
+				vm->error = PSS_VM_ERROR_BYTECODE;
+				return 0;
 		}
 	}
 
@@ -509,8 +509,8 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 				result.num = (left.num > right.num);
 				break;
 			default:
-			    vm->error = PSS_VM_ERROR_BYTECODE;
-			    return 0;
+				vm->error = PSS_VM_ERROR_BYTECODE;
+				return 0;
 		}
 	}
 	else if(NULL != _value_get_ref_data(vm, left, PSS_VALUE_REF_TYPE_STRING, 0) ||
@@ -527,47 +527,47 @@ static inline int _exec_generic(pss_vm_t* vm, const pss_bytecode_instruction_t* 
 		switch(inst->opcode)
 		{
 			case PSS_BYTECODE_OPCODE_ADD:
-				{
-					char* result_str = pss_string_concat(left_str, right_str);
-					if(NULL == result_str)
-						ERROR_RETURN_LOG(int, "Cannot concate two string");
+			{
+				char* result_str = pss_string_concat(left_str, right_str);
+				if(NULL == result_str)
+					ERROR_RETURN_LOG(int, "Cannot concate two string");
 
-					result = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, result_str);
-					if(result.kind == PSS_VALUE_KIND_ERROR)
-					{
-						free(result_str);
-						ERROR_RETURN_LOG(int, "Cannot create string value");
-					}
-					break;
+				result = pss_value_ref_new(PSS_VALUE_REF_TYPE_STRING, result_str);
+				if(result.kind == PSS_VALUE_KIND_ERROR)
+				{
+					free(result_str);
+					ERROR_RETURN_LOG(int, "Cannot create string value");
 				}
+				break;
+			}
 			case PSS_BYTECODE_OPCODE_LE:
 			case PSS_BYTECODE_OPCODE_LT:
 			case PSS_BYTECODE_OPCODE_EQ:
 			case PSS_BYTECODE_OPCODE_GE:
 			case PSS_BYTECODE_OPCODE_GT:
 			case PSS_BYTECODE_OPCODE_NE:
-				{
-					int cmpres = strcmp(left_str, right_str);
+			{
+				int cmpres = strcmp(left_str, right_str);
 
-					result.kind = PSS_VALUE_KIND_NUM;
+				result.kind = PSS_VALUE_KIND_NUM;
 
-					if(inst->opcode == PSS_BYTECODE_OPCODE_LE)
-						result.num = (cmpres <= 0);
-					else if(inst->opcode == PSS_BYTECODE_OPCODE_LT)
-						result.num = (cmpres < 0);
-					else if(inst->opcode == PSS_BYTECODE_OPCODE_EQ)
-						result.num = (cmpres == 0);
-					else if(inst->opcode == PSS_BYTECODE_OPCODE_GE)
-						result.num = (cmpres >= 0);
-					else if(inst->opcode == PSS_BYTECODE_OPCODE_GT)
-						result.num = (cmpres > 0);
-					else if(inst->opcode == PSS_BYTECODE_OPCODE_NE)
-						result.num = (cmpres != 0);
-					break;
-				}
+				if(inst->opcode == PSS_BYTECODE_OPCODE_LE)
+					result.num = (cmpres <= 0);
+				else if(inst->opcode == PSS_BYTECODE_OPCODE_LT)
+					result.num = (cmpres < 0);
+				else if(inst->opcode == PSS_BYTECODE_OPCODE_EQ)
+					result.num = (cmpres == 0);
+				else if(inst->opcode == PSS_BYTECODE_OPCODE_GE)
+					result.num = (cmpres >= 0);
+				else if(inst->opcode == PSS_BYTECODE_OPCODE_GT)
+					result.num = (cmpres > 0);
+				else if(inst->opcode == PSS_BYTECODE_OPCODE_NE)
+					result.num = (cmpres != 0);
+				break;
+			}
 			default:
-			    vm->error = PSS_VM_ERROR_BYTECODE;
-			    return 0;
+				vm->error = PSS_VM_ERROR_BYTECODE;
+				return 0;
 		}
 	}
 	else
@@ -892,8 +892,8 @@ static inline pss_bytecode_regid_t _exec(pss_vm_t* vm)
 				else vm->error = PSS_VM_ERROR_BYTECODE;
 				break;
 			default:
-			    rc = ERROR_CODE(int);
-			    LOG_ERROR("Invalid opration code %u", inst.info->operation);
+				rc = ERROR_CODE(int);
+				LOG_ERROR("Invalid opration code %u", inst.info->operation);
 		}
 
 		if(rc == ERROR_CODE(int))

@@ -377,7 +377,7 @@ int sched_daemon_read_control_sock()
 			LOG_NOTICE("Starting reload process");
 			goto RET;
 		default:
-		    ERROR_LOG_GOTO(ERR, "Invalid opcode");
+			ERROR_LOG_GOTO(ERR, "Invalid opcode");
 	}
 
 	LOG_DEBUG("Command has been processed successfully");

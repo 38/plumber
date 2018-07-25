@@ -1100,164 +1100,164 @@ int itc_module_pipe_cntl(itc_module_pipe_t* handle, uint32_t opcode, va_list ap)
 		switch(opcode)
 		{
 			case RUNTIME_API_PIPE_CNTL_OPCODE_GET_FLAGS:
-				{
-					/* For this case, we have parameter to store result */
-					runtime_api_pipe_flags_t* result = va_arg(ap, runtime_api_pipe_flags_t*);
-					if(NULL == result) ERROR_RETURN_LOG(int, "Invalid arguments");
-					*result = handle->pipe_flags;
-					break;
-				}
+			{
+				/* For this case, we have parameter to store result */
+				runtime_api_pipe_flags_t* result = va_arg(ap, runtime_api_pipe_flags_t*);
+				if(NULL == result) ERROR_RETURN_LOG(int, "Invalid arguments");
+				*result = handle->pipe_flags;
+				break;
+			}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_SET_FLAG:
-				{
-					runtime_api_pipe_flags_t flags = va_arg(ap, runtime_api_pipe_flags_t);
-					handle->pipe_flags |= flags;
-					break;
-				}
+			{
+				runtime_api_pipe_flags_t flags = va_arg(ap, runtime_api_pipe_flags_t);
+				handle->pipe_flags |= flags;
+				break;
+			}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_CLR_FLAG:
-				{
-					runtime_api_pipe_flags_t flags = va_arg(ap, runtime_api_pipe_flags_t);
-					handle->pipe_flags &= ~flags;
-					break;
-				}
+			{
+				runtime_api_pipe_flags_t flags = va_arg(ap, runtime_api_pipe_flags_t);
+				handle->pipe_flags &= ~flags;
+				break;
+			}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_EOM:
-				{
-					const char* buf = va_arg(ap, const char*);
-					size_t offset = va_arg(ap, size_t);
-					_INVOKE_NULLABLE(int, ERROR_CODE(int), eom, buf, offset);
-					return rc;
-				}
+			{
+				const char* buf = va_arg(ap, const char*);
+				size_t offset = va_arg(ap, size_t);
+				_INVOKE_NULLABLE(int, ERROR_CODE(int), eom, buf, offset);
+				return rc;
+			}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_PUSH_STATE:
+			{
+				void* state = va_arg(ap, void*);
+				itc_module_state_dispose_func_t func = va_arg(ap, itc_module_state_dispose_func_t);
+
+				const itc_modtab_instance_t* mod = _get_module((handle));
+
+				if(mod == NULL || mod->module->push_state == NULL)
 				{
-					void* state = va_arg(ap, void*);
-					itc_module_state_dispose_func_t func = va_arg(ap, itc_module_state_dispose_func_t);
-
-					const itc_modtab_instance_t* mod = _get_module((handle));
-
-					if(mod == NULL || mod->module->push_state == NULL)
-					{
-						LOG_DEBUG("We do not support state preserving with the pipe type, just reject the submitted state");
-						return 0;
-					}
-
-					int rc = 0;
-					_INVOKE_MODULE(int, rc, mod, push_state, handle->data, state, func);
-
-					if(ERROR_CODE(int) == rc)
-						ERROR_RETURN_LOG(int, "Cannot finish module call to push_state");
-
-					return 1;
+					LOG_DEBUG("We do not support state preserving with the pipe type, just reject the submitted state");
+					return 0;
 				}
+
+				int rc = 0;
+				_INVOKE_MODULE(int, rc, mod, push_state, handle->data, state, func);
+
+				if(ERROR_CODE(int) == rc)
+					ERROR_RETURN_LOG(int, "Cannot finish module call to push_state");
+
+				return 1;
+			}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_POP_STATE:
-				{
-					void** buffer = va_arg(ap, void**);
+			{
+				void** buffer = va_arg(ap, void**);
 
-					_GET_MODULE(mod, handle, 0);
-					void *rc = NULL;
-					*buffer = NULL;
-					if(mod->module->pop_state == NULL) return 0;
-					_INVOKE_MODULE(void*, rc, mod, pop_state, handle->data);
+				_GET_MODULE(mod, handle, 0);
+				void *rc = NULL;
+				*buffer = NULL;
+				if(mod->module->pop_state == NULL) return 0;
+				_INVOKE_MODULE(void*, rc, mod, pop_state, handle->data);
 
-					*buffer = rc;
+				*buffer = rc;
 
-					return 0;
-				}
+				return 0;
+			}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_READHDR:
-				{
-					void*  data = va_arg(ap, void*);
-					size_t size = va_arg(ap, size_t);
-					size_t* actual_size = va_arg(ap, size_t*);
+			{
+				void*  data = va_arg(ap, void*);
+				size_t size = va_arg(ap, size_t);
+				size_t* actual_size = va_arg(ap, size_t*);
 
-					if(NULL == actual_size) ERROR_RETURN_LOG(int, "Invalid arguments");
-					size_t rc = _read_header(data, size, handle);
-					if(ERROR_CODE(size_t) == rc)
-						ERROR_RETURN_LOG(int, "Cannot read the typed header from pipe");
+				if(NULL == actual_size) ERROR_RETURN_LOG(int, "Invalid arguments");
+				size_t rc = _read_header(data, size, handle);
+				if(ERROR_CODE(size_t) == rc)
+					ERROR_RETURN_LOG(int, "Cannot read the typed header from pipe");
 
-					*actual_size = rc;
-					return 0;
-				}
+				*actual_size = rc;
+				return 0;
+			}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_WRITEHDR:
-				{
-					const void* data = va_arg(ap, const void*);
-					size_t      size = va_arg(ap, size_t);
-					size_t* actual_size = va_arg(ap, size_t*);
+			{
+				const void* data = va_arg(ap, const void*);
+				size_t      size = va_arg(ap, size_t);
+				size_t* actual_size = va_arg(ap, size_t*);
 
-					if(NULL == actual_size) ERROR_RETURN_LOG(int, "Invalid arguments");
-					size_t rc = _write_header(data, size, handle);
-					if(ERROR_CODE(size_t) == rc)
-						ERROR_RETURN_LOG(int, "Cannot write the typed header to pipe");
+				if(NULL == actual_size) ERROR_RETURN_LOG(int, "Invalid arguments");
+				size_t rc = _write_header(data, size, handle);
+				if(ERROR_CODE(size_t) == rc)
+					ERROR_RETURN_LOG(int, "Cannot write the typed header to pipe");
 
-					*actual_size = rc;
-					return 0;
-				}
+				*actual_size = rc;
+				return 0;
+			}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_MODPATH:
-				{
-					char const**  buf = va_arg(ap, char const**);
+			{
+				char const**  buf = va_arg(ap, char const**);
 
-					if(NULL == buf) ERROR_RETURN_LOG(int, "Invalid arguments");
-					_GET_MODULE(mod, handle, ERROR_CODE(int));
+				if(NULL == buf) ERROR_RETURN_LOG(int, "Invalid arguments");
+				_GET_MODULE(mod, handle, ERROR_CODE(int));
 
-					*buf = mod->path;
-					return 0;
-				}
+				*buf = mod->path;
+				return 0;
+			}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_GET_HDR_BUF:
-				{
-					size_t nbytes = va_arg(ap, size_t);
-					void const** buf = va_arg(ap, void const**);
+			{
+				size_t nbytes = va_arg(ap, size_t);
+				void const** buf = va_arg(ap, void const**);
 
-					int rc = _get_header_buf(buf, nbytes, handle);
+				int rc = _get_header_buf(buf, nbytes, handle);
 
-					if(rc == ERROR_CODE(int))
-						ERROR_RETURN_LOG(int, "Cannot get the header buffer from the pipe");
+				if(rc == ERROR_CODE(int))
+					ERROR_RETURN_LOG(int, "Cannot get the header buffer from the pipe");
 
-					if(rc == 0) *buf = NULL;
+				if(rc == 0) *buf = NULL;
 
-					return 0;
-				}
+				return 0;
+			}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_GET_DATA_BUF:
-				{
-					size_t min_size = 0;
-					size_t max_size = va_arg(ap, size_t);
-					void const** buf = va_arg(ap, void const**);
-					size_t* min_size_buf = va_arg(ap, size_t*);
-					size_t* max_size_buf = va_arg(ap, size_t*);
+			{
+				size_t min_size = 0;
+				size_t max_size = va_arg(ap, size_t);
+				void const** buf = va_arg(ap, void const**);
+				size_t* min_size_buf = va_arg(ap, size_t*);
+				size_t* max_size_buf = va_arg(ap, size_t*);
 
-					if(NULL == min_size_buf || NULL == max_size_buf || min_size_buf == max_size_buf)
-						ERROR_RETURN_LOG(int, "Invalid arguments");
+				if(NULL == min_size_buf || NULL == max_size_buf || min_size_buf == max_size_buf)
+					ERROR_RETURN_LOG(int, "Invalid arguments");
 
-					int rc = _get_data_body_buf(buf, &min_size, &max_size, handle);
+				int rc = _get_data_body_buf(buf, &min_size, &max_size, handle);
 
-					if(rc == ERROR_CODE(int))
-						ERROR_RETURN_LOG(int, "Cannot get the data body buffer from the pipe");
+				if(rc == ERROR_CODE(int))
+					ERROR_RETURN_LOG(int, "Cannot get the data body buffer from the pipe");
 
-					if(rc == 0)
-						*buf = NULL;
+				if(rc == 0)
+					*buf = NULL;
 
-					*min_size_buf = min_size;
-					*max_size_buf = max_size;
+				*min_size_buf = min_size;
+				*max_size_buf = max_size;
 
-					return 0;
-				}
+				return 0;
+			}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_PUT_DATA_BUF:
-				{
-					const void* buf = va_arg(ap, const void*);
-					size_t actual_size = va_arg(ap, size_t);
+			{
+				const void* buf = va_arg(ap, const void*);
+				size_t actual_size = va_arg(ap, size_t);
 
-					if(NULL == buf) ERROR_RETURN_LOG(int, "Invalid arguments");
+				if(NULL == buf) ERROR_RETURN_LOG(int, "Invalid arguments");
 
-					int rc;
+				int rc;
 
-					_GET_MODULE(mod, handle, 0);
+				_GET_MODULE(mod, handle, 0);
 
-					_INVOKE_MODULE(int, rc, mod, release_internal_buf, buf, actual_size, handle->data);
+				_INVOKE_MODULE(int, rc, mod, release_internal_buf, buf, actual_size, handle->data);
 
-					return rc;
-				}
+				return rc;
+			}
 			case RUNTIME_API_PIPE_CNTL_OPCODE_NOP:
-				{
-					return 0;
-				}
+			{
+				return 0;
+			}
 			default:
-			    ERROR_RETURN_LOG(int, "Unknown opcode %x", opcode);
+				ERROR_RETURN_LOG(int, "Unknown opcode %x", opcode);
 		}
 	}
 	else

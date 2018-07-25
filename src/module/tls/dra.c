@@ -259,7 +259,7 @@ static inline int _dra_free(_dra_t* dra)
 			pool = _get_small_object_pool(dra->data_size);
 			break;
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid DRA type");
+			ERROR_RETURN_LOG(int, "Invalid DRA type");
 	}
 
 	if(NULL != dra->buffer_page)
@@ -400,7 +400,7 @@ static inline int _dra_eos(const void* __restrict handle)
 			ret = ret && (dra->buffer_begin == dra->buffer_end);
 			break;
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid TLS DRA type");
+			ERROR_RETURN_LOG(int, "Invalid TLS DRA type");
 	}
 
 	return ret;
@@ -483,7 +483,7 @@ static inline int _start_dra(_dra_t* dra)
 			LOG_DEBUG("The DRA data source callback has been accepted by the transporation layer module");
 			break;
 		default:
-		    ERROR_RETURN_LOG(int, "Code bug: Invalid return value from itc_module_pipe_write_data_source");
+			ERROR_RETURN_LOG(int, "Code bug: Invalid return value from itc_module_pipe_write_data_source");
 	}
 
 	return 0;

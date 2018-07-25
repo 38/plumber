@@ -75,7 +75,7 @@ def format(fp, verbose = False):
                                 stack.append((1, set(["{", "~;"]), 1))
                             elif word == "for":
                                 stack.append((1, set(["{", "~;"]), 1))
-                            elif word == "case":
+                            elif word == "case" or word == "default":
                                 stack.append((0, set(["case", "default", "~}"]), 1))
                             if idlevel == -1:
                                 idlevel = len(stack) - (0 if not stack else stack[-1][2])
@@ -94,6 +94,8 @@ def format(fp, verbose = False):
                     if stack and not stack[-1][0] and not pc and ch in stack[-1][1]:
                         stack = stack[:-1]
                     if ch == '{':
+                        if stack and "case" in stack[-1][1] and re.match(".*:[\\n\\r\\t ]*{$", recent):
+                            stack = stack[:-1]
                         stack.append((0, set(["}"]), 1))
                     if ch not in "\t \n\r" and idlevel == -1:
                         idlevel = len(stack) - (0 if not stack else stack[-1][2])

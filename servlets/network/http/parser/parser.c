@@ -560,8 +560,8 @@ static inline const char* _field_value(parser_state_t* state, const char* data, 
 		case _FIELD_NAME_CL:
 			return _content_length(state, data, end, reset);
 		default:
-		    _transite_state(state, _STATE_FIELD_VAL_HOST);
-		    return data;
+			_transite_state(state, _STATE_FIELD_VAL_HOST);
+			return data;
 	}
 }
 
@@ -642,8 +642,8 @@ static inline const char* _field_name_init(parser_state_t* state, const char* da
 				_transite_state(state, _STATE_FIELD_NAME_CONTENT_LEN);
 				return data + 1;
 			default:
-			    _transite_state(state, _STATE_FIELD_NOT_INST);
-			    return data + 1;
+				_transite_state(state, _STATE_FIELD_NOT_INST);
+				return data + 1;
 		}
 	}
 
@@ -681,7 +681,7 @@ static inline size_t _parse_next_buf(parser_state_t* state, const char* data, si
 					ret = _ignore(state, data, end);
 					break;
 				default:
-				    (void)0;
+					(void)0;
 			}
 		}
 		else
@@ -707,7 +707,7 @@ static inline size_t _parse_next_buf(parser_state_t* state, const char* data, si
 					ret = _field_name_init(state, data, end);
 					break;
 				default:
-				    (void)0;
+					(void)0;
 			}
 		}
 

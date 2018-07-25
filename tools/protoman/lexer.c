@@ -355,7 +355,7 @@ static inline void _strip_whilespace_and_comment(lexer_t* lexer)
 							else state = 0;
 							break;
 						default:
-						    state = 0;
+							state = 0;
 					}
 				}
 			}

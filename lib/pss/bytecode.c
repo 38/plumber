@@ -313,7 +313,7 @@ static inline size_t _table_elem_size(_table_type_t type)
 		case _TABLE_TYPE_INST:
 			return sizeof(((_table_t*)NULL)->inst[0]);
 		default:
-		    return ERROR_CODE(size_t);
+			return ERROR_CODE(size_t);
 	}
 }
 
@@ -847,59 +847,59 @@ pss_bytecode_addr_t  pss_bytecode_segment_append_code(pss_bytecode_segment_t* se
 		switch(argtype)
 		{
 			case PSS_BYTECODE_ARGTYPE_REGISTER:
-				{
-					pss_bytecode_regid_t regid = (pss_bytecode_regid_t)va_arg(ap, int);
-					if(regid == ERROR_CODE(pss_bytecode_regid_t))
-						ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid register argument");
-					if(n_reg >= sizeof(inst->reg) / sizeof(inst->reg[0]))
-						ERROR_RETURN_LOG(pss_bytecode_addr_t, "Too many operands");
-					inst->reg[n_reg ++] = regid;
-					break;
-				}
+			{
+				pss_bytecode_regid_t regid = (pss_bytecode_regid_t)va_arg(ap, int);
+				if(regid == ERROR_CODE(pss_bytecode_regid_t))
+					ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid register argument");
+				if(n_reg >= sizeof(inst->reg) / sizeof(inst->reg[0]))
+					ERROR_RETURN_LOG(pss_bytecode_addr_t, "Too many operands");
+				inst->reg[n_reg ++] = regid;
+				break;
+			}
 			case PSS_BYTECODE_ARGTYPE_NUMERIC:
-				{
-					if(n_num + n_label + n_str > 0) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Too many numeric argument");
-					pss_bytecode_numeric_t value = va_arg(ap, pss_bytecode_numeric_t);
-					inst->num = value;
-					n_num ++;
-					break;
-				}
+			{
+				if(n_num + n_label + n_str > 0) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Too many numeric argument");
+				pss_bytecode_numeric_t value = va_arg(ap, pss_bytecode_numeric_t);
+				inst->num = value;
+				n_num ++;
+				break;
+			}
 			case PSS_BYTECODE_ARGTYPE_LABEL:
-				{
-					if(n_num + n_label + n_str > 0) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Too many numeric argument");
-					pss_bytecode_label_t label = va_arg(ap, pss_bytecode_label_t);
-					inst->label = (pss_bytecode_numeric_t)label&0xffffffffu;
-					n_label ++;
-					break;
-				}
+			{
+				if(n_num + n_label + n_str > 0) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Too many numeric argument");
+				pss_bytecode_label_t label = va_arg(ap, pss_bytecode_label_t);
+				inst->label = (pss_bytecode_numeric_t)label&0xffffffffu;
+				n_label ++;
+				break;
+			}
 			case PSS_BYTECODE_ARGTYPE_STRING:
-				{
-					if(n_num + n_label + n_str > 0) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Too many string argument");
-					const char* str = va_arg(ap, const char*);
+			{
+				if(n_num + n_label + n_str > 0) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Too many string argument");
+				const char* str = va_arg(ap, const char*);
 
-					if(NULL == str) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid string");
+				if(NULL == str) ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid string");
 
-					new_table = _table_ensure_space(segment->string_table);
-					if(NULL == new_table)
-						ERROR_RETURN_LOG(pss_bytecode_addr_t, "Cannot enlarge the string table");
+				new_table = _table_ensure_space(segment->string_table);
+				if(NULL == new_table)
+					ERROR_RETURN_LOG(pss_bytecode_addr_t, "Cannot enlarge the string table");
 
-					segment->string_table = new_table;
+				segment->string_table = new_table;
 
-					pss_bytecode_numeric_t strid = (pss_bytecode_numeric_t)segment->string_table->header.size;
-					size_t len = strlen(str) + 1;
+				pss_bytecode_numeric_t strid = (pss_bytecode_numeric_t)segment->string_table->header.size;
+				size_t len = strlen(str) + 1;
 
-					if(NULL == (segment->string_table->string[strid] = (char*)malloc(len)))
-						ERROR_RETURN_LOG_ERRNO(pss_bytecode_addr_t, "Cannot allocate memory for the new string");
+				if(NULL == (segment->string_table->string[strid] = (char*)malloc(len)))
+					ERROR_RETURN_LOG_ERRNO(pss_bytecode_addr_t, "Cannot allocate memory for the new string");
 
-					memcpy(segment->string_table->string[strid], str, len);
-					segment->string_table->header.size ++;
+				memcpy(segment->string_table->string[strid], str, len);
+				segment->string_table->header.size ++;
 
-					inst->num = strid;
-					n_str ++;
-					break;
-				}
+				inst->num = strid;
+				n_str ++;
+				break;
+			}
 			default:
-			    ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid argument type");
+				ERROR_RETURN_LOG(pss_bytecode_addr_t, "Invalid argument type");
 		}
 	}
 	va_end(ap);

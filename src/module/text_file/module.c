@@ -298,7 +298,7 @@ static itc_module_property_value_t _get_prop(void* __restrict ctxmem, const char
 			case O_WRONLY | O_CREAT | O_APPEND:
 				return _make_str("append");
 			default:
-			    return _make_str("invalid mode");
+				return _make_str("invalid mode");
 		}
 	}
 	if(strcmp(sym, "delimitor") == 0)

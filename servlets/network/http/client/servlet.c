@@ -155,7 +155,7 @@ static int _setup_request(CURL* handle, void* data)
 			curl_rc = curl_easy_setopt(handle, CURLOPT_NOBODY, 1);
 			break;
 		default:
-		    curl_rc = CURLE_OK;
+			curl_rc = CURLE_OK;
 	}
 
 	if(CURLE_OK != curl_rc)

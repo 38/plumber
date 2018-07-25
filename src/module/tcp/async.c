@@ -1310,7 +1310,7 @@ int module_tcp_async_set_data_event(module_tcp_async_loop_t* loop, uint32_t conn
 			desc.kernel.event = OS_EVENT_KERNEL_EVENT_BIDIR;
 			break;
 		default:
-		    ERROR_RETURN_LOG(int, "Unexpected event flag");
+			ERROR_RETURN_LOG(int, "Unexpected event flag");
 	}
 
 	if(async->data_event.fd != event.fd)

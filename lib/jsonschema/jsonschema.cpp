@@ -157,9 +157,9 @@ static inline int _schema_free(jsonschema_t* schema)
 			}
 			break;
 		default:
-		    rc = ERROR_CODE(int);
-		    LOG_ERROR("Invalid schema type");
-		    break;
+			rc = ERROR_CODE(int);
+			LOG_ERROR("Invalid schema type");
+			break;
 	}
 	free(schema);
 	return rc;
@@ -368,8 +368,8 @@ static inline jsonschema_t* _primitive_new(const char* desc)
 				nullable = 1;
 				break;
 			default:
-			    /* Simply do nothing */
-			    (void)0;
+				/* Simply do nothing */
+				(void)0;
 		}
 
 		for(;keyword != NULL && keylen > 0 && *keyword == *desc; keyword ++, keylen--, desc ++);
@@ -545,23 +545,23 @@ static inline int _validate_primitive(const _primitive_t* data, uint32_t nullabl
 			 * need this field */
 			return data->bool_schema.allowed;
 		case rapidjson::kStringType:
+		{
+			if(data->string_schema.allowed == 0) return 0;
+			if(data->string_schema.min_len != 0 ||
+			   data->string_schema.max_len != SIZE_MAX)
 			{
-				if(data->string_schema.allowed == 0) return 0;
-				if(data->string_schema.min_len != 0 ||
-				data->string_schema.max_len != SIZE_MAX)
-				{
-					const char* str = object.GetString();
-					if(NULL == str) ERROR_RETURN_LOG(int, "Cannot get the string from JSON string object");
-					size_t len = strlen(str);
-					return data->string_schema.min_len <= len &&
-					   len <= data->string_schema.max_len;
-				}
-				return 1;
+				const char* str = object.GetString();
+				if(NULL == str) ERROR_RETURN_LOG(int, "Cannot get the string from JSON string object");
+				size_t len = strlen(str);
+				return data->string_schema.min_len <= len &&
+				       len <= data->string_schema.max_len;
 			}
+			return 1;
+		}
 		case rapidjson::kNullType:
 			return nullable > 0;
 		default:
-		    return 0;
+			return 0;
 	}
 }
 
@@ -656,13 +656,13 @@ static jsonschema_t* _jsonschema_new(const rapidjson::Value& schema_obj)
 		case rapidjson::kArrayType:
 			return _list_new(schema_obj.GetArray());
 		case rapidjson::kStringType:
-			{
-				const char* str = schema_obj.GetString();
-				if(NULL == str) ERROR_PTR_RETURN_LOG("Cannot get the underlying string");
-				return _primitive_new(str);
-			}
+		{
+			const char* str = schema_obj.GetString();
+			if(NULL == str) ERROR_PTR_RETURN_LOG("Cannot get the underlying string");
+			return _primitive_new(str);
+		}
 		default:
-		    ERROR_PTR_RETURN_LOG("Invalid schema data type");
+			ERROR_PTR_RETURN_LOG("Invalid schema data type");
 	}
 }
 
@@ -907,7 +907,7 @@ int jsonschema_validate_obj(const jsonschema_t* schema, const rapidjson::Value& 
 		case _SCHEMA_TYPE_OBJ:
 			return _validate_obj(schema->obj, schema->nullable, object);
 		default:
-		    ERROR_RETURN_LOG(int, "Code bug: Invalid schema type");
+			ERROR_RETURN_LOG(int, "Code bug: Invalid schema type");
 	}
 }
 
@@ -944,7 +944,7 @@ int jsonschema_update_obj(const jsonschema_t* schema, rapidjson::Value& target, 
 			case _SCHEMA_TYPE_OBJ:
 				return _patch_obj(schema->obj, target, patch, allocator);
 			default:
-			    ERROR_RETURN_LOG(int, "Code bug: Invalid schema type");
+				ERROR_RETURN_LOG(int, "Code bug: Invalid schema type");
 		}
 	}
 

@@ -304,64 +304,64 @@ static inline int _exec_to_json(context_t* ctx, pstd_type_instance_t* inst)
 					switch(op->type)
 					{
 						case JSON_MODEL_TYPE_SIGNED:
-							{
-								int64_t val = 0;
-								if(ERROR_CODE(size_t) == pstd_type_instance_read(inst, op->acc, &val, op->size))
-									ERROR_LOG_GOTO(ERR, "Cannot read data from the typed pipe");
+						{
+							int64_t val = 0;
+							if(ERROR_CODE(size_t) == pstd_type_instance_read(inst, op->acc, &val, op->size))
+								ERROR_LOG_GOTO(ERR, "Cannot read data from the typed pipe");
 
-								if(ERROR_CODE(int) == _write(str, bio, "%" PRId64, val))
-									ERROR_LOG_GOTO(ERR, "Cannot write the JSON value");
-								break;
-							}
+							if(ERROR_CODE(int) == _write(str, bio, "%" PRId64, val))
+								ERROR_LOG_GOTO(ERR, "Cannot write the JSON value");
+							break;
+						}
 						case JSON_MODEL_TYPE_UNSIGNED:
-							{
-								uint64_t val = 0;
-								if(ERROR_CODE(size_t) == pstd_type_instance_read(inst, op->acc, &val, op->size))
-									ERROR_LOG_GOTO(ERR, "Cannot read data from the typed pipe");
+						{
+							uint64_t val = 0;
+							if(ERROR_CODE(size_t) == pstd_type_instance_read(inst, op->acc, &val, op->size))
+								ERROR_LOG_GOTO(ERR, "Cannot read data from the typed pipe");
 
-								if(ERROR_CODE(int) == _write(str, bio, "%" PRIu64, val))
-									ERROR_LOG_GOTO(ERR, "Cannot write the JSON value");
-								break;
-							}
+							if(ERROR_CODE(int) == _write(str, bio, "%" PRIu64, val))
+								ERROR_LOG_GOTO(ERR, "Cannot write the JSON value");
+							break;
+						}
 						case JSON_MODEL_TYPE_FLOAT:
-							{
-								union {
-									double d;
-									float  f;
-								} val;
-								if(ERROR_CODE(size_t) == pstd_type_instance_read(inst, op->acc, &val, op->size))
-									ERROR_LOG_GOTO(ERR, "Cannot read data from the typed pipe");
+						{
+							union {
+								double d;
+								float  f;
+							} val;
+							if(ERROR_CODE(size_t) == pstd_type_instance_read(inst, op->acc, &val, op->size))
+								ERROR_LOG_GOTO(ERR, "Cannot read data from the typed pipe");
 
-								if(sizeof(double) == op->size)
-								{
-									if(ERROR_CODE(int) == _write(str, bio, "%lg", val.d))
-										ERROR_LOG_GOTO(ERR, "Cannot write the JSON value");
-								}
-								else if(ERROR_CODE(int) == _write(str, bio, "%g", val.f))
-									ERROR_LOG_GOTO(ERR, "Cannot write the JSON value");
-								break;
-							}
-						case JSON_MODEL_TYPE_STRING:
+							if(sizeof(double) == op->size)
 							{
-								scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, op->acc);
-								if(ERROR_CODE(scope_token_t) == token)
-									ERROR_LOG_GOTO(ERR, "Cannot read RLS token");
-								if(token != 0)
-								{
-									const pstd_string_t* ps = pstd_string_from_rls(token);
-									if(NULL == ps) ERROR_LOG_GOTO(ERR, "Cannot get the RLS token from the Scope");
-									const char* val = pstd_string_value(ps);
-									if(NULL == val) ERROR_LOG_GOTO(ERR, "Cannot get the string from the RLS string object");
-									if(ERROR_CODE(int) == _write_name(str, bio, "%s", val))
-										ERROR_LOG_GOTO(ERR, "Cannot write the string to JSON represetnation");
-								}
-								else
-								{
-									if(ERROR_CODE(int) == _write(str, bio, "null"))
-										ERROR_LOG_GOTO(ERR, "Cannot write to JSON");
-								}
-								break;
+								if(ERROR_CODE(int) == _write(str, bio, "%lg", val.d))
+									ERROR_LOG_GOTO(ERR, "Cannot write the JSON value");
 							}
+							else if(ERROR_CODE(int) == _write(str, bio, "%g", val.f))
+								ERROR_LOG_GOTO(ERR, "Cannot write the JSON value");
+							break;
+						}
+						case JSON_MODEL_TYPE_STRING:
+						{
+							scope_token_t token = PSTD_TYPE_INST_READ_PRIMITIVE(scope_token_t, inst, op->acc);
+							if(ERROR_CODE(scope_token_t) == token)
+								ERROR_LOG_GOTO(ERR, "Cannot read RLS token");
+							if(token != 0)
+							{
+								const pstd_string_t* ps = pstd_string_from_rls(token);
+								if(NULL == ps) ERROR_LOG_GOTO(ERR, "Cannot get the RLS token from the Scope");
+								const char* val = pstd_string_value(ps);
+								if(NULL == val) ERROR_LOG_GOTO(ERR, "Cannot get the string from the RLS string object");
+								if(ERROR_CODE(int) == _write_name(str, bio, "%s", val))
+									ERROR_LOG_GOTO(ERR, "Cannot write the string to JSON represetnation");
+							}
+							else
+							{
+								if(ERROR_CODE(int) == _write(str, bio, "null"))
+									ERROR_LOG_GOTO(ERR, "Cannot write to JSON");
+							}
+							break;
+						}
 					}
 			}
 		}
@@ -515,69 +515,69 @@ static inline int _exec_from_json(context_t* ctx, pstd_type_instance_t* inst)
 					{
 						case JSON_MODEL_TYPE_SIGNED:
 						case JSON_MODEL_TYPE_UNSIGNED:
-							{
+						{
 
-								int64_t value = 0;
+							int64_t value = 0;
 
-								if(!cur_obj->IsInt64())
-									LOG_NOTICE("Missing integer field, using default 0");
-								else
-									value = cur_obj->GetInt64();
+							if(!cur_obj->IsInt64())
+								LOG_NOTICE("Missing integer field, using default 0");
+							else
+								value = cur_obj->GetInt64();
 
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 #	error("This doesn't work with big endian archtechture")
 #endif
-								/* In this case we must expand the sign bit */
-								if(op->type == JSON_MODEL_TYPE_SIGNED && value < 0)
-									value |= ~((1ll << (8 * op->size - 1)) - 1);
+							/* In this case we must expand the sign bit */
+							if(op->type == JSON_MODEL_TYPE_SIGNED && value < 0)
+								value |= ~((1ll << (8 * op->size - 1)) - 1);
 
-								if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, &value, op->size))
-									ERROR_RETURN_LOG(int, "Cannot write field");
-								break;
-							}
+							if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, &value, op->size))
+								ERROR_RETURN_LOG(int, "Cannot write field");
+							break;
+						}
 						case JSON_MODEL_TYPE_FLOAT:
-							{
-								double d_value = 0;
-								if(cur_obj->IsDouble())
-									d_value = cur_obj->GetDouble();
-								else if(cur_obj->IsInt64())
-									d_value = (double)cur_obj->GetInt64();
-								else
-									LOG_NOTICE("Missing double field, using default 0");
-								float  f_value = (float)d_value;
-								void* data_to_write = op->size == sizeof(double) ? (void*)&d_value : (void*)&f_value;
-								if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, data_to_write, op->size))
-									ERROR_RETURN_LOG(int, "Cannot write field");
-								break;
-							}
+						{
+							double d_value = 0;
+							if(cur_obj->IsDouble())
+								d_value = cur_obj->GetDouble();
+							else if(cur_obj->IsInt64())
+								d_value = (double)cur_obj->GetInt64();
+							else
+								LOG_NOTICE("Missing double field, using default 0");
+							float  f_value = (float)d_value;
+							void* data_to_write = op->size == sizeof(double) ? (void*)&d_value : (void*)&f_value;
+							if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, data_to_write, op->size))
+								ERROR_RETURN_LOG(int, "Cannot write field");
+							break;
+						}
 						case JSON_MODEL_TYPE_STRING:
+						{
+							const char* str = "(null)";
+							if(!cur_obj->IsString())
+								LOG_NOTICE("Missing string field, using default (null)");
+							else
+								str = cur_obj->GetString();
+							if(NULL == str) ERROR_RETURN_LOG(int, "Cannot get the string value");
+							size_t len = strlen(str);
+							pstd_string_t* pstd_str = pstd_string_new(len + 1);
+							if(NULL == pstd_str) ERROR_RETURN_LOG(int, "Cannot allocate new pstd string object");
+							if(ERROR_CODE(size_t) == pstd_string_write(pstd_str, str, len))
 							{
-								const char* str = "(null)";
-								if(!cur_obj->IsString())
-									LOG_NOTICE("Missing string field, using default (null)");
-								else
-									str = cur_obj->GetString();
-								if(NULL == str) ERROR_RETURN_LOG(int, "Cannot get the string value");
-								size_t len = strlen(str);
-								pstd_string_t* pstd_str = pstd_string_new(len + 1);
-								if(NULL == pstd_str) ERROR_RETURN_LOG(int, "Cannot allocate new pstd string object");
-								if(ERROR_CODE(size_t) == pstd_string_write(pstd_str, str, len))
-								{
-									pstd_string_free(pstd_str);
-									ERROR_RETURN_LOG(int, "Cannot write string to the pstd string object");
-								}
-
-								scope_token_t token = pstd_string_commit(pstd_str);
-								if(ERROR_CODE(scope_token_t) == token)
-								{
-									pstd_string_free(pstd_str);
-									ERROR_RETURN_LOG(int, "Cannot commit the string to the RLS");
-								}
-								/* From this point, we lose the ownership of the RLS object */
-								if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, &token, sizeof(scope_token_t)))
-									ERROR_RETURN_LOG(int, "Cannot write the RLS token to the output pipe");
-								break;
+								pstd_string_free(pstd_str);
+								ERROR_RETURN_LOG(int, "Cannot write string to the pstd string object");
 							}
+
+							scope_token_t token = pstd_string_commit(pstd_str);
+							if(ERROR_CODE(scope_token_t) == token)
+							{
+								pstd_string_free(pstd_str);
+								ERROR_RETURN_LOG(int, "Cannot commit the string to the RLS");
+							}
+							/* From this point, we lose the ownership of the RLS object */
+							if(ERROR_CODE(int) == pstd_type_instance_write(inst, op->acc, &token, sizeof(scope_token_t)))
+								ERROR_RETURN_LOG(int, "Cannot write the RLS token to the output pipe");
+							break;
+						}
 					}
 			}
 		}

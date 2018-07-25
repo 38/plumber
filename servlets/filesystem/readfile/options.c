@@ -92,7 +92,7 @@ static int _set_string_option(pstd_option_data_t data)
 			target = &options->http_err_range.filename;
 			break;
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid options: %c", data.current_option->short_opt);
+			ERROR_RETURN_LOG(int, "Invalid options: %c", data.current_option->short_opt);
 	}
 
 	if(*target != NULL) return 0;
@@ -116,7 +116,7 @@ static int _set_bool_opt(pstd_option_data_t data)
 			options->allow_range = 1;
 			break;
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid arguments");
+			ERROR_RETURN_LOG(int, "Invalid arguments");
 	}
 
 	return 0;

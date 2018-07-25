@@ -163,7 +163,7 @@ SET_MODE:
 			ctx->field = field;
 			break;
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid option");
+			ERROR_RETURN_LOG(int, "Invalid option");
 	}
 
 	return 0;
@@ -406,8 +406,8 @@ static inline int _exec(void* ctxbuf)
 			rc = _exec_regex(ctx, inst);
 			break;
 		default:
-		    LOG_ERROR("Invalid servlet mode");
-		    rc = ERROR_CODE(int);
+			LOG_ERROR("Invalid servlet mode");
+			rc = ERROR_CODE(int);
 	}
 
 	if(ERROR_CODE(int) == pstd_type_instance_free(inst))

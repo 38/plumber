@@ -80,7 +80,7 @@ static inline unsigned _get_epoll_flags(os_event_kernel_event_desc_t* kev)
 			epoll_flags = EPOLLIN | EPOLLOUT | EPOLLET;
 			break;
 		default:
-		    ERROR_RETURN_LOG(unsigned, "Invalid kernel event type");
+			ERROR_RETURN_LOG(unsigned, "Invalid kernel event type");
 	}
 	return epoll_flags;
 }
@@ -142,7 +142,7 @@ int os_event_poll_add(os_event_poll_t* poll, os_event_desc_t* desc)
 			epoll_flags = EPOLLIN | EPOLLET;
 			break;
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid event type");
+			ERROR_RETURN_LOG(int, "Invalid event type");
 	}
 
 	struct epoll_event event = {

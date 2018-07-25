@@ -703,7 +703,7 @@ int pss_comp_stmt_parse(pss_comp_t* comp, pss_comp_value_t* valbuf)
 					rc = _for_stmt(comp, seg);
 					break;
 				default:
-				    PSS_COMP_RAISE_SYN(int, comp, "Unexpected keyword");
+					PSS_COMP_RAISE_SYN(int, comp, "Unexpected keyword");
 			}
 			break;
 		case PSS_COMP_LEX_TOKEN_LBRACE:
@@ -711,8 +711,8 @@ int pss_comp_stmt_parse(pss_comp_t* comp, pss_comp_value_t* valbuf)
 				ERROR_RETURN_LOG(int, "Invalid block statement");
 			break;
 		default:
-		    if(ERROR_CODE(int) == _expr_stmt(comp, valbuf))
-			    ERROR_RETURN_LOG(int, "Invalid expression statement");
+			if(ERROR_CODE(int) == _expr_stmt(comp, valbuf))
+				ERROR_RETURN_LOG(int, "Invalid expression statement");
 	}
 
 	if(ERROR_CODE(int) == rc)

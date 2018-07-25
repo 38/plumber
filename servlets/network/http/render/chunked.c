@@ -180,13 +180,13 @@ static size_t _fetch(pstd_trans_inst_t* __restrict stream_proc, void* __restrict
 					}
 					break;
 				default:
-				    proc->chunck_size = 0;
-				    proc->current_offset = 0;
-				    proc->trailer_state = 0;
-				    proc->size_length = 0;
-				    proc->size_written = 0;
-				    proc->no_more = 0;
-				    goto EXIT;
+					proc->chunck_size = 0;
+					proc->current_offset = 0;
+					proc->trailer_state = 0;
+					proc->size_length = 0;
+					proc->size_written = 0;
+					proc->no_more = 0;
+					goto EXIT;
 			}
 		}
 	}

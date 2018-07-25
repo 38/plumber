@@ -330,7 +330,7 @@ PARSER_DONE:
 			method_code = ctx->METHOD_HEAD;
 			break;
 		default:
-		    ERROR_LOG_GOTO(ERR, "Code bug: Invalid method");
+			ERROR_LOG_GOTO(ERR, "Code bug: Invalid method");
 	}
 
 	if(state->accept_encoding.value != NULL &&

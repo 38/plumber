@@ -257,7 +257,7 @@ static inline int _parse_input(_module_context_t* ctx, FILE* fp)
 			case '\r':
 				break;
 			default:
-			    ERROR_RETURN_LOG(int, "Invalid sytax");
+				ERROR_RETURN_LOG(int, "Invalid sytax");
 		}
 	}
 
@@ -576,14 +576,14 @@ static int  _cntl(void* __restrict context, void* __restrict pipe, uint32_t opco
 	switch(opcode)
 	{
 		case MODULE_SIMULATE_CNTL_OPCODE_GET_LABEL:
-			{
-				const char** target = va_arg(va_args, char const**);
-				if(NULL == target) ERROR_RETURN_LOG(int, "Invalid arguments");
-				*target = handle->event->label;
-				return 0;
-			}
+		{
+			const char** target = va_arg(va_args, char const**);
+			if(NULL == target) ERROR_RETURN_LOG(int, "Invalid arguments");
+			*target = handle->event->label;
+			return 0;
+		}
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid opcode");
+			ERROR_RETURN_LOG(int, "Invalid opcode");
 	}
 }
 

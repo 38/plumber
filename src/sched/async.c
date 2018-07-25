@@ -895,27 +895,27 @@ static int _fake_handle_cntl(_fake_handle_t* handle, uint32_t opcode, va_list ap
 	switch(opcode)
 	{
 		case RUNTIME_API_ASYNC_CNTL_OPCODE_SET_WAIT:
-			{
-				handle->completed = 0u;
-				return 0;
-			}
+		{
+			handle->completed = 0u;
+			return 0;
+		}
 		case RUNTIME_API_ASYNC_CNTL_OPCODE_NOTIFY_WAIT:
-			{
-				handle->completed = 1u;
-				return 0;
-			}
+		{
+			handle->completed = 1u;
+			return 0;
+		}
 		case RUNTIME_API_ASYNC_CNTL_OPCODE_RETCODE:
-			{
-				int* buf = va_arg(ap, int*);
-				*buf = 0;
-				return 0;
-			}
+		{
+			int* buf = va_arg(ap, int*);
+			*buf = 0;
+			return 0;
+		}
 		case RUNTIME_API_ASYNC_CNTL_OPCODE_CANCEL:
-			{
-				return 0;
-			}
+		{
+			return 0;
+		}
 		default:
-		    LOG_ERROR("Invalid async_cntl opcode");
+			LOG_ERROR("Invalid async_cntl opcode");
 	}
 
 	return ERROR_CODE(int);
@@ -935,26 +935,26 @@ int sched_async_handle_cntl(runtime_api_async_handle_t* handle, uint32_t opcode,
 	switch(opcode)
 	{
 		case RUNTIME_API_ASYNC_CNTL_OPCODE_SET_WAIT:
-			{
-				return sched_async_handle_set_await(handle);
-			}
+		{
+			return sched_async_handle_set_await(handle);
+		}
 		case RUNTIME_API_ASYNC_CNTL_OPCODE_NOTIFY_WAIT:
-			{
-				int status_code =  va_arg(ap, int);
-				return sched_async_handle_await_complete(handle, status_code);
-			}
+		{
+			int status_code =  va_arg(ap, int);
+			return sched_async_handle_await_complete(handle, status_code);
+		}
 		case RUNTIME_API_ASYNC_CNTL_OPCODE_RETCODE:
-			{
-				int* buf = va_arg(ap, int*);
-				return sched_async_handle_status_code(handle, buf);
-			}
+		{
+			int* buf = va_arg(ap, int*);
+			return sched_async_handle_status_code(handle, buf);
+		}
 		case RUNTIME_API_ASYNC_CNTL_OPCODE_CANCEL:
-			{
-				int status_code = va_arg(ap, int);
-				return sched_async_handle_cancel(handle, status_code);
-			}
+		{
+			int status_code = va_arg(ap, int);
+			return sched_async_handle_cancel(handle, status_code);
+		}
 		default:
-		    LOG_ERROR("Invalid async_cntl opcode");
+			LOG_ERROR("Invalid async_cntl opcode");
 	}
 
 	return ERROR_CODE(int);

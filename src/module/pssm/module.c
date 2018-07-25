@@ -601,97 +601,97 @@ static int _invoke(void* __restrict ctx, uint32_t opcode, va_list args)
 			pset = va_arg(args, thread_pset_t*);
 			return _thread_local_free(pset);
 		case MODULE_PSSM_MODULE_OPCODE_REQUEST_SCOPE_ADD:
-			{
-				const runtime_api_scope_entity_t* ent = va_arg(args, const runtime_api_scope_entity_t*);
-				uint32_t* result = va_arg(args, uint32_t*);
-				return _rscope_add(ent, result);
-			}
+		{
+			const runtime_api_scope_entity_t* ent = va_arg(args, const runtime_api_scope_entity_t*);
+			uint32_t* result = va_arg(args, uint32_t*);
+			return _rscope_add(ent, result);
+		}
 		case MODULE_PSSM_MODULE_OPCODE_REQUEST_SCOPE_COPY:
-			{
-				uint32_t token = va_arg(args, uint32_t);
-				uint32_t* token_buf = va_arg(args, uint32_t*);
-				void** ptr_buf = va_arg(args, void**);
-				return _rscope_copy(token, token_buf, ptr_buf);
-			}
+		{
+			uint32_t token = va_arg(args, uint32_t);
+			uint32_t* token_buf = va_arg(args, uint32_t*);
+			void** ptr_buf = va_arg(args, void**);
+			return _rscope_copy(token, token_buf, ptr_buf);
+		}
 		case MODULE_PSSM_MODULE_OPCODE_REQUEST_SCOPE_GET:
-			{
-				uint32_t token = va_arg(args, uint32_t);
-				const void** ptr_buf = va_arg(args, const void**);
-				return _rscope_get(token, ptr_buf);
-			}
+		{
+			uint32_t token = va_arg(args, uint32_t);
+			const void** ptr_buf = va_arg(args, const void**);
+			return _rscope_get(token, ptr_buf);
+		}
 		case MODULE_PSSM_MODULE_OPCODE_ON_EXIT:
-			{
-				_on_exit_callback_t callback = va_arg(args, _on_exit_callback_t);
-				data = va_arg(args, void*);
-				return _add_on_exit_callback(callback, data);
-			}
+		{
+			_on_exit_callback_t callback = va_arg(args, _on_exit_callback_t);
+			data = va_arg(args, void*);
+			return _add_on_exit_callback(callback, data);
+		}
 		case MODULE_PSSM_MODULE_OPCODE_PAGE_ALLOCATE:
-			{
-				void** result_buf = va_arg(args, void**);
-				return _page_allocate(result_buf);
-			}
+		{
+			void** result_buf = va_arg(args, void**);
+			return _page_allocate(result_buf);
+		}
 		case MODULE_PSSM_MODULE_OPCODE_PAGE_DEALLOCATE:
-			{
-				void* page = va_arg(args, void*);
-				return _page_deallocate(page);
-			}
+		{
+			void* page = va_arg(args, void*);
+			return _page_deallocate(page);
+		}
 		case MODULE_PSSM_MODULE_OPCODE_GET_LIBCONFIG:
-			{
-				const char* name = va_arg(args, const char*);
-				int* is_numeric = va_arg(args, int*);
-				void const** value_ptr = va_arg(args, void const**);
-				return _get_libconfig(name, is_numeric, value_ptr);
-			}
+		{
+			const char* name = va_arg(args, const char*);
+			int* is_numeric = va_arg(args, int*);
+			void const** value_ptr = va_arg(args, void const**);
+			return _get_libconfig(name, is_numeric, value_ptr);
+		}
 		case MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_OPEN:
-			{
-				uint32_t token = va_arg(args, uint32_t);
-				void** ret = va_arg(args, void**);
-				if(NULL == ret)
-					ERROR_RETURN_LOG(int, "Invalid arguments");
-				if(NULL == (*ret = _rscope_stream_open(token)))
-					return ERROR_CODE(int);
-				return 0;
-			}
+		{
+			uint32_t token = va_arg(args, uint32_t);
+			void** ret = va_arg(args, void**);
+			if(NULL == ret)
+				ERROR_RETURN_LOG(int, "Invalid arguments");
+			if(NULL == (*ret = _rscope_stream_open(token)))
+				return ERROR_CODE(int);
+			return 0;
+		}
 		case MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_CLOSE:
-			{
-				sched_rscope_stream_t* stream = va_arg(args, sched_rscope_stream_t*);
-				return _rscope_stream_close(stream);
-			}
+		{
+			sched_rscope_stream_t* stream = va_arg(args, sched_rscope_stream_t*);
+			return _rscope_stream_close(stream);
+		}
 		case MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_READ:
-			{
-				sched_rscope_stream_t* stream = va_arg(args, sched_rscope_stream_t*);
-				void* buf = va_arg(args, void*);
-				size_t bufsize = va_arg(args, size_t);
-				size_t* ret = va_arg(args, size_t*);
-				if(NULL == ret)
-					ERROR_RETURN_LOG(int, "Invalid arguments");
-				if(ERROR_CODE(size_t) == (*ret = _rscope_stream_read(stream, buf, bufsize)))
-					return ERROR_CODE(int);
-				return 0;
-			}
+		{
+			sched_rscope_stream_t* stream = va_arg(args, sched_rscope_stream_t*);
+			void* buf = va_arg(args, void*);
+			size_t bufsize = va_arg(args, size_t);
+			size_t* ret = va_arg(args, size_t*);
+			if(NULL == ret)
+				ERROR_RETURN_LOG(int, "Invalid arguments");
+			if(ERROR_CODE(size_t) == (*ret = _rscope_stream_read(stream, buf, bufsize)))
+				return ERROR_CODE(int);
+			return 0;
+		}
 		case MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_EOF:
-			{
-				const sched_rscope_stream_t* stream = va_arg(args, const sched_rscope_stream_t*);
-				int* ret = va_arg(args, int*);
-				if(NULL == ret)
-					ERROR_RETURN_LOG(int, "Invalid arguments");
-				if(ERROR_CODE(int) == (*ret = _rscope_stream_eof(stream)))
-					return ERROR_CODE(int);
-				return 0;
-			}
+		{
+			const sched_rscope_stream_t* stream = va_arg(args, const sched_rscope_stream_t*);
+			int* ret = va_arg(args, int*);
+			if(NULL == ret)
+				ERROR_RETURN_LOG(int, "Invalid arguments");
+			if(ERROR_CODE(int) == (*ret = _rscope_stream_eof(stream)))
+				return ERROR_CODE(int);
+			return 0;
+		}
 		case MODULE_PSSM_MODULE_OPCODE_SCOPE_STREAM_READY_EVENT:
-			{
-				sched_rscope_stream_t* stream = va_arg(args, sched_rscope_stream_t*);
-				runtime_api_scope_ready_event_t* buf = va_arg(args, runtime_api_scope_ready_event_t*);
-				int* ret = va_arg(args, int*);
-				if(NULL == ret)
-					ERROR_RETURN_LOG(int, "Invalid arguments");
-				if(ERROR_CODE(int) == (*ret = _rscope_stream_ready_event(stream, buf)))
-					return ERROR_CODE(int);
-				return 0;
-			}
+		{
+			sched_rscope_stream_t* stream = va_arg(args, sched_rscope_stream_t*);
+			runtime_api_scope_ready_event_t* buf = va_arg(args, runtime_api_scope_ready_event_t*);
+			int* ret = va_arg(args, int*);
+			if(NULL == ret)
+				ERROR_RETURN_LOG(int, "Invalid arguments");
+			if(ERROR_CODE(int) == (*ret = _rscope_stream_ready_event(stream, buf)))
+				return ERROR_CODE(int);
+			return 0;
+		}
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid opcode 0x%x", opcode);
+			ERROR_RETURN_LOG(int, "Invalid opcode 0x%x", opcode);
 	}
 }
 

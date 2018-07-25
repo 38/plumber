@@ -81,7 +81,7 @@ static inline _buffer_t* _buffer_insert(_buffer_t* buffer, pstd_option_param_typ
 			ret->params[ret->size].strval = (const char*)value;
 			break;
 		default:
-		    ERROR_PTR_RETURN_LOG("Invalid type %d", type);
+			ERROR_PTR_RETURN_LOG("Invalid type %d", type);
 	}
 
 	ret->size ++;
@@ -180,7 +180,7 @@ static inline uint32_t _parse_argument(const char* pattern, uint32_t argc, char 
 				type = PSTD_OPTION_STRING;
 				break;
 			default:
-			    continue;
+				continue;
 		}
 		_buffer_t* rc = _buffer_insert(*buffer, type, val);
 		if(NULL == rc) ERROR_LOG_GOTO(ERR, "Cannot insert the parsed argument to the buffer");

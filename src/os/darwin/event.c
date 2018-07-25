@@ -221,7 +221,7 @@ int os_event_poll_del(os_event_poll_t* poll, int fd, int read)
 			flags = EVFILT_READ | EVFILT_WRITE;
 			break;
 		default:
-		    ERROR_RETURN_LOG(int, "Invalid read flags");
+			ERROR_RETURN_LOG(int, "Invalid read flags");
 	}
 
 	size_t i;

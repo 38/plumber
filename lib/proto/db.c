@@ -427,7 +427,7 @@ static inline proto_ref_nameref_t* _parse_name_expr(const char* field_name)
 					if(!_HEXDIG(*ptr)) goto NAD;
 					break;
 				default:
-				    PROTO_ERR_RAISE_GOTO(ERR, NAME_EXPR);
+					PROTO_ERR_RAISE_GOTO(ERR, NAME_EXPR);
 			}
 			subs_value = subs_value * subs_base + (unsigned)(_INRANGE(*ptr, '0', '9') ? *ptr - '0' : (_INRANGE(*ptr, 'A', 'F') ? *ptr - 'A' + 10 : *ptr - 'a' + 10));
 			if(ERROR_CODE(uint32_t) == subs_value) PROTO_ERR_RAISE_GOTO(ERR, NAME_EXPR);   /* we disallow define 0xffffffff, because it's error code */
@@ -619,7 +619,7 @@ static inline uint32_t _compute_name_offset(const _type_metadata_t* type_data, c
 				PROTO_ERR_RAISE_RETURN(uint32_t, FAIL);
 			break;
 		default:
-		    PROTO_ERR_RAISE_RETURN(uint32_t, FORMAT);
+			PROTO_ERR_RAISE_RETURN(uint32_t, FORMAT);
 	}
 
 	/* Then we need to handle the subscrpipts */

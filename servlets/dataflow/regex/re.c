@@ -96,7 +96,7 @@ static inline int _process_pcre_error_code(const char* msg, int code)
 		case PCRE_ERROR_NOMEMORY:
 			ERROR_RETURN_LOG(int, "%s: Out of meomry", msg);
 		default:
-		    ERROR_RETURN_LOG(int, "%s: generic error", msg);
+			ERROR_RETURN_LOG(int, "%s: generic error", msg);
 	}
 }
 

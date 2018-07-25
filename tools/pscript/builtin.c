@@ -246,26 +246,26 @@ static pss_value_t _pscript_builtin_len(pss_vm_t* vm, uint32_t argc, pss_value_t
 	switch(pss_value_ref_type(argv[0]))
 	{
 		case PSS_VALUE_REF_TYPE_DICT:
-			{
-				pss_dict_t* dict = (pss_dict_t*)pss_value_get_data(argv[0]);
-				if(NULL == dict) break;
-				uint32_t result = pss_dict_size(dict);
-				if(ERROR_CODE(uint32_t) == result) break;
-				ret.kind = PSS_VALUE_KIND_NUM;
-				ret.num = result;
-				break;
-			}
+		{
+			pss_dict_t* dict = (pss_dict_t*)pss_value_get_data(argv[0]);
+			if(NULL == dict) break;
+			uint32_t result = pss_dict_size(dict);
+			if(ERROR_CODE(uint32_t) == result) break;
+			ret.kind = PSS_VALUE_KIND_NUM;
+			ret.num = result;
+			break;
+		}
 		case PSS_VALUE_REF_TYPE_STRING:
-			{
-				const char* str = (const char*)pss_value_get_data(argv[0]);
-				if(NULL == str) break;
-				ret.kind = PSS_VALUE_KIND_NUM;
-				ret.num = (int64_t)strlen(str);
-				break;
-			}
+		{
+			const char* str = (const char*)pss_value_get_data(argv[0]);
+			if(NULL == str) break;
+			ret.kind = PSS_VALUE_KIND_NUM;
+			ret.num = (int64_t)strlen(str);
+			break;
+		}
 		default:
-		    LOG_ERROR("Type error: len fucntion doesn't support the input type");
-		    break;
+			LOG_ERROR("Type error: len fucntion doesn't support the input type");
+			break;
 	}
 	return ret;
 }
@@ -919,11 +919,11 @@ static pss_value_t _pscript_builtin_typeof(pss_vm_t* vm, uint32_t argc, pss_valu
 					result = "exotic";
 					break;
 				default:
-				    return ret;
+					return ret;
 			}
 			break;
 		default:
-		    return ret;
+			return ret;
 	}
 
 	char* s = strdup(result);
@@ -1314,8 +1314,8 @@ static pss_value_t _external_get(const char* name)
 			ret.kind = PSS_VALUE_KIND_UNDEF;
 			return ret;
 		default:
-		    ret.kind = PSS_VALUE_KIND_ERROR;
-		    ret.num  = PSS_VM_ERROR_FAILED;
+			ret.kind = PSS_VALUE_KIND_ERROR;
+			ret.num  = PSS_VM_ERROR_FAILED;
 	}
 
 	return ret;
@@ -1341,7 +1341,7 @@ static int _external_set(const char* name, pss_value_t data)
 			}
 			FALLTHROUGH("For other reference type, just ignore that");
 		default:
-		    return 0;
+			return 0;
 	}
 }
 

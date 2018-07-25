@@ -328,7 +328,7 @@ static inline int _parse_inc_dec(pss_comp_t* comp, pss_bytecode_segment_t* seg, 
 				PSS_COMP_RAISE_INT(comp, CODE);
 			break;
 		default:
-		    PSS_COMP_RAISE_INT(comp, BUG);
+			PSS_COMP_RAISE_INT(comp, BUG);
 	}
 
 	pss_comp_value_t saved = {};
@@ -362,7 +362,7 @@ static inline int _parse_inc_dec(pss_comp_t* comp, pss_bytecode_segment_t* seg, 
 				PSS_COMP_RAISE_INT(comp, CODE);
 			break;
 		default:
-		    PSS_COMP_RAISE_INT(comp, BUG);
+			PSS_COMP_RAISE_INT(comp, BUG);
 	}
 
 	if(ERROR_CODE(int) == pss_comp_value_release(comp, &term))
@@ -580,7 +580,7 @@ int pss_comp_value_parse(pss_comp_t* comp, pss_comp_value_t* buf)
 			break;
 
 		default:
-		    PSS_COMP_RAISE_SYN(int, comp, "Invalid value term");
+			PSS_COMP_RAISE_SYN(int, comp, "Invalid value term");
 	}
 
 	if(ERROR_CODE(int) == rc) ERROR_RETURN_LOG(int, "Cannot parse simple primitive");
