@@ -1021,10 +1021,12 @@ int pss_bytecode_segment_logdump(const pss_bytecode_segment_t* segment, FILE* fi
 		fprintf(file, "+Segment(%s)\n", buf);
 
 	for(i = 0; i < segment->code_table->header.size; i ++)
+	{
 		if(file == NULL)
 			LOG_INFO("| 0x%.6x %s", i, pss_bytecode_segment_inst_str(segment, i, buf, sizeof(buf)));
-	    else
-		    fprintf(file,"| 0x%.6x %s\n", i, pss_bytecode_segment_inst_str(segment, i, buf, sizeof(buf)));
+		else
+			fprintf(file,"| 0x%.6x %s\n", i, pss_bytecode_segment_inst_str(segment, i, buf, sizeof(buf)));
+	}
 	return 0;
 }
 

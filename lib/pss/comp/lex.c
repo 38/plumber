@@ -222,13 +222,15 @@ static inline pss_comp_lex_keyword_t _id_or_keyword(pss_comp_lex_t* lexer, char*
 	int warnned = 0, len = 0;
 
 	for(;_in_id_charset(_peek(lexer, 0)); _consume(lexer, 1))
+	{
 		if(size > 1)
 			*(buffer ++) = (char)_peek(lexer, 0), size --, len ++;
-	    else if(!warnned)
-	    {
-		    LOG_WARNING("identifer truncated");
-		    warnned = 1;
-	    }
+		else if(!warnned)
+		{
+			LOG_WARNING("identifer truncated");
+			warnned = 1;
+		}
+	}
 	buffer[0] = 0;
 	if(len == 0)
 	{

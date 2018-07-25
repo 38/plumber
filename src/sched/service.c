@@ -380,10 +380,12 @@ sched_service_node_id_t sched_service_buffer_add_node(sched_service_buffer_t* bu
 	else
 	{
 		for(i = 0; i < argc; i ++)
+		{
 			if(i == 0)
 				string_buffer_append(argv[i], &sbuf);
-		    else
-			    string_buffer_appendf(&sbuf, " %s", argv[i]);
+			else
+				string_buffer_appendf(&sbuf, " %s", argv[i]);
+		}
 	}
 	string_buffer_close(&sbuf);
 

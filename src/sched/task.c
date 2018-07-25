@@ -675,8 +675,10 @@ __attribute__((used)) static inline const char* _get_task_args(const _task_entry
 	int first = 1;
 
 	for(;argc; argc --, argv ++)
+	{
 		if(first) string_buffer_append(argv[0], &sb), first = 0;
-	    else string_buffer_appendf(&sb, " %s", argv[0]);
+		else string_buffer_appendf(&sb, " %s", argv[0]);
+	}
 
 	string_buffer_close(&sb);
 

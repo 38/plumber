@@ -96,24 +96,26 @@ char* pss_string_literal(const char* str, char* buf, size_t sz)
 	size_t actual_size = 0;
 	const char* this;
 	for(this = str; *this; this ++)
+	{
 		switch(*this)
-	    {
-		    case '\a':
-		    case '\b':
-		    case '\f':
-		    case '\r':
-		    case '\n':
-		    case '\t':
-		    case '\v':
-		    case '\'':
-		    case '\"':
-		    case '\?':
-		    case '\\':
-			    actual_size ++;
-			    FALLTHROUGH("For the escape char, we need an additional space for the backslash");
-		    default:
-			    actual_size ++;
-	    }
+		{
+			case '\a':
+			case '\b':
+			case '\f':
+			case '\r':
+			case '\n':
+			case '\t':
+			case '\v':
+			case '\'':
+			case '\"':
+			case '\?':
+			case '\\':
+				actual_size ++;
+				FALLTHROUGH("For the escape char, we need an additional space for the backslash");
+			default:
+				actual_size ++;
+		}
+	}
 
 	int truncate = 0;
 	if(NULL != buf)
@@ -132,21 +134,23 @@ char* pss_string_literal(const char* str, char* buf, size_t sz)
 
 #define _ESC(ch) *(buf++) = '\\'; *(buf++) = ch; break
 	for(this = str; *this; this ++)
+	{
 		switch(*this)
-	    {
-		    case '\a': _ESC('a');
-		    case '\b': _ESC('b');
-		    case '\f': _ESC('f');
-		    case '\r': _ESC('r');
-		    case '\n': _ESC('n');
-		    case '\t': _ESC('t');
-		    case '\v': _ESC('v');
-		    case '\\': _ESC('\\');
-		    case '\'': _ESC('\'');
-		    case '\"': _ESC('\"');
-		    case '\?': _ESC('\?');
-		    default: *(buf++) = *this;
-	    }
+		{
+			case '\a': _ESC('a');
+			case '\b': _ESC('b');
+			case '\f': _ESC('f');
+			case '\r': _ESC('r');
+			case '\n': _ESC('n');
+			case '\t': _ESC('t');
+			case '\v': _ESC('v');
+			case '\\': _ESC('\\');
+			case '\'': _ESC('\'');
+			case '\"': _ESC('\"');
+			case '\?': _ESC('\?');
+			default: *(buf++) = *this;
+		}
+	}
 #undef _ESC
 	buf[0] = '\"';
 	buf[1] = 0;

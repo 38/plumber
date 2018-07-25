@@ -92,8 +92,10 @@ static inline const char* _adhoc_typename(_primitive_desc_t p)
 	static char* float_name[] = {[4] = "float", [8] = "double"};
 
 	for(;result_buf[p] == NULL;)
+	{
 		if(_PD_FLOAT(p)) result_buf[p] = float_name[_PD_SIZE(p)];
-	    else snprintf(result_buf[p] = memory[p], 7, "%sint%d", _PD_SIGNED(p) ? "" : "u", _PD_SIZE(p) * 8);
+		else snprintf(result_buf[p] = memory[p], 7, "%sint%d", _PD_SIGNED(p) ? "" : "u", _PD_SIZE(p) * 8);
+	}
 
 	return result_buf[p];
 }

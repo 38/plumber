@@ -152,14 +152,14 @@ static int _get_internal_buf(void* __restrict ctx, void const** __restrict resul
 
 	if(handle->current_page != NULL)
 	{
-		 actual_size = handle->current_page->size - handle->page_offset;
+		actual_size = handle->current_page->size - handle->page_offset;
 
-		 if(actual_size == 0 && handle->current_page->next != NULL)
-		 {
-			 handle->page_offset = 0;
-			 handle->current_page = handle->current_page->next;
-			 actual_size = handle->current_page->size;
-		 }
+		if(actual_size == 0 && handle->current_page->next != NULL)
+		{
+			handle->page_offset = 0;
+			handle->current_page = handle->current_page->next;
+			actual_size = handle->current_page->size;
+		}
 
 		if(actual_size < *min_size) goto RET_EMPTY;
 

@@ -770,10 +770,12 @@ static inline uint64_t _parse_u64(const char* s)
 	uint64_t ret = 0;
 
 	for(;*s;s ++, empty = 0)
+	{
 		if(*s >= '0' && *s <= '9')
 			ret = ret * 10u + (uint64_t)(*s - '0');
-	    else
-		    return (uint64_t)-1;
+		else
+			return (uint64_t)-1;
+	}
 	return empty ? ERROR_CODE(uint64_t) : ret;
 }
 

@@ -802,10 +802,12 @@ int sched_loop_start(sched_service_t** service, int fork_twice)
 
 
 	for(ptr = _scheds; ptr != NULL; ptr = ptr->next)
+	{
 		if(_start_loop(ptr) == ERROR_CODE(int))
 			LOG_WARNING("Cannot start the scheduler thread %d", ptr->thread_id);
-	    else
-		    LOG_INFO("Scheduler thread %d is started", ptr->thread_id);
+		else
+			LOG_INFO("Scheduler thread %d is started", ptr->thread_id);
+	}
 
 	const sched_service_pipe_descriptor_t* sdesc = sched_service_to_pipe_desc(*service);
 

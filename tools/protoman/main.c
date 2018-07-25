@@ -405,7 +405,7 @@ static int do_list(char* bufptr, const program_option_t* option)
 	for(i = 0; i < num_dirent; i ++)
 	{
 		const struct dirent* ent = result[i];
-		    size_t len = strlen(ent->d_name);
+		size_t len = strlen(ent->d_name);
 		if(ent->d_type == DT_DIR)
 		{
 			if(bufptr + len > pathbuf_end - 2)

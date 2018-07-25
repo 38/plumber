@@ -101,8 +101,10 @@ int64_t lang_service_add_node(lang_service_t* service, const char* init_args)
 		int escape = 0;
 		int empty = 1;
 		for(;*ptr && !((*ptr == ' ' || *ptr == '\t') && !escape); ptr ++, empty = 0)
+		{
 			if(!escape) escape = (*ptr == '\\');
-		    else escape = 0;
+			else escape = 0;
+		}
 		if(!empty) argc ++;
 	}
 
