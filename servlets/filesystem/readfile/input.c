@@ -196,6 +196,7 @@ size_t input_ctx_read_path(const input_ctx_t* input_ctx, pstd_type_instance_t* t
 #pragma GCC diagnostic ignored "-Wstrict-overflow"
 	/* Since it's unlikely that we can have sp overflowed, thus we are able to ignore that*/
 	for(;sp >= 0;end++)
+	{
 		if(*end == '/' || *end == 0)
 		{
 			if(end - begin == 2 && begin[0] == '.' && begin[1] == '.')  /* Pop the stack when the segment is .. */
@@ -210,6 +211,7 @@ size_t input_ctx_read_path(const input_ctx_t* input_ctx, pstd_type_instance_t* t
 			else ext = NULL;
 		}
 		else if(*end == '.') ext = end + 1;
+	}
 
 	/* If we pop the stack too much, this should not be allowed, so we produce zero output */
 	if(sp < 0)

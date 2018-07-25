@@ -415,8 +415,8 @@ static inline const char* _literal(parser_state_t* state, const char* data, cons
 			_transite_state(state, _STATE_ERROR);
 			return data;
 		}
-		if(to_match[internal->sub_state] == 0)
-			_transite_state(state, si->next);
+	if(to_match[internal->sub_state] == 0)
+		_transite_state(state, si->next);
 
 	return data;
 }

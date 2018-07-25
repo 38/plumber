@@ -1212,7 +1212,7 @@ static inline int _alpn_select_protocol(SSL* ssl, const unsigned char** out, uns
 				return SSL_TLSEXT_ERR_OK;
 			}
 
-			return SSL_TLSEXT_ERR_ALERT_FATAL;
+	return SSL_TLSEXT_ERR_ALERT_FATAL;
 }
 
 /**

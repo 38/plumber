@@ -265,7 +265,7 @@ int thread_pset_free(thread_pset_t* pset)
 			rc = ERROR_CODE(int);
 		}
 
-		thread_pointer_array_t* ptr, *tmp;
+	thread_pointer_array_t* ptr, *tmp;
 	for(ptr = pset->array; ptr != NULL; )
 	{
 		tmp = ptr;
@@ -523,7 +523,7 @@ const char* thread_type_name(thread_type_t type, char* buf, size_t size)
 			first = 0;
 		}
 
-		string_buffer_append("]", &sbuf);
+	string_buffer_append("]", &sbuf);
 
 	return string_buffer_close(&sbuf);
 }

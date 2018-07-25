@@ -102,158 +102,158 @@ static inline int _service_dfs(const sched_service_t* service, size_t size, uint
 				_bitmap_flip(visited, pds[i].destination_node_id);
 				_bitmap_flip(state, pds[i].destination_node_id);
 			}
-			}
+	}
 
-			goto CLEANUP;
+	goto CLEANUP;
 
 ERR:
-		rc = ERROR_CODE(int);
+	rc = ERROR_CODE(int);
 
 CLEANUP:
 
-		if(NULL != visited) free(visited);
-		if(NULL != stack) free(stack);
+	if(NULL != visited) free(visited);
+	if(NULL != stack) free(stack);
 
-		return rc;
-	}
-	/**
-	* @brief make a new boundary array for the critical node
-	* @param service the target service
-	* @param num_nodes the number of nodes in this service graph
-	* @param cnode the critical node
-	* @param state the buffer used to store the state bits
-	* @param state_size the size of the state
-	* @return the newly created boundary object or NULL on error
-	**/
-	static inline sched_cnode_boundary_t* _boundary_new(const sched_service_t* service, size_t num_nodes, sched_service_node_id_t cnode, uint64_t* state, size_t state_size)
-	{
-		sched_service_node_id_t i;
-		uint32_t j, size;
-		const sched_service_pipe_descriptor_t* outputs;
-		sched_service_node_id_t output = sched_service_get_output_node(service);
-		if(ERROR_CODE(sched_service_node_id_t) == output) ERROR_PTR_RETURN_LOG("Cannot get the output node of the service");
+	return rc;
+}
+/**
+ * @brief make a new boundary array for the critical node
+ * @param service the target service
+ * @param num_nodes the number of nodes in this service graph
+ * @param cnode the critical node
+ * @param state the buffer used to store the state bits
+ * @param state_size the size of the state
+ * @return the newly created boundary object or NULL on error
+ **/
+static inline sched_cnode_boundary_t* _boundary_new(const sched_service_t* service, size_t num_nodes, sched_service_node_id_t cnode, uint64_t* state, size_t state_size)
+{
+	sched_service_node_id_t i;
+	uint32_t j, size;
+	const sched_service_pipe_descriptor_t* outputs;
+	sched_service_node_id_t output = sched_service_get_output_node(service);
+	if(ERROR_CODE(sched_service_node_id_t) == output) ERROR_PTR_RETURN_LOG("Cannot get the output node of the service");
 
-		memset(state, 0, state_size);
+	memset(state, 0, state_size);
 
-		/* Make two DFS, so that we can identify the cluster of this critical node */
-		if(ERROR_CODE(int) == _service_dfs(service, num_nodes, state, ERROR_CODE(sched_service_node_id_t)) ||
-		ERROR_CODE(int) == _service_dfs(service, num_nodes, state, cnode))
-			ERROR_PTR_RETURN_LOG("Cannot DFS the service graph");
+	/* Make two DFS, so that we can identify the cluster of this critical node */
+	if(ERROR_CODE(int) == _service_dfs(service, num_nodes, state, ERROR_CODE(sched_service_node_id_t)) ||
+	   ERROR_CODE(int) == _service_dfs(service, num_nodes, state, cnode))
+		ERROR_PTR_RETURN_LOG("Cannot DFS the service graph");
 
-		/* Create the new boundary list */
-		size_t capacity = SCHED_CNODE_BOUNDARY_INIT_SIZE;
-		size_t array_size = sizeof(sched_cnode_boundary_t) + sizeof(sched_cnode_edge_dest_t) * SCHED_CNODE_BOUNDARY_INIT_SIZE;
-		sched_cnode_boundary_t* ret = (sched_cnode_boundary_t*)malloc(array_size);
+	/* Create the new boundary list */
+	size_t capacity = SCHED_CNODE_BOUNDARY_INIT_SIZE;
+	size_t array_size = sizeof(sched_cnode_boundary_t) + sizeof(sched_cnode_edge_dest_t) * SCHED_CNODE_BOUNDARY_INIT_SIZE;
+	sched_cnode_boundary_t* ret = (sched_cnode_boundary_t*)malloc(array_size);
 
-		if(NULL == ret) ERROR_PTR_RETURN_LOG("Cannot allocate memory for the boundary array");
-		ret->count = 0;
+	if(NULL == ret) ERROR_PTR_RETURN_LOG("Cannot allocate memory for the boundary array");
+	ret->count = 0;
 
-		/* Check each node for the cluster mark */
-		for(i = 0; i < num_nodes; i ++)
-			if(_bitmap_get(state, i))
-			{
-				if(NULL == (outputs = sched_service_get_outgoing_pipes(service, i, &size)))
-					ERROR_LOG_GOTO(ERR, "Cannot get the outgoing pipes for service node %u", i);
-
-				for(j = 0; j < size; j ++)
-					if(!_bitmap_get(state, outputs[j].destination_node_id))
-					{
-						/* This means the edge cross the boundary of the cluster */
-						if(capacity <= ret->count)
-						{
-							LOG_DEBUG("The boundary array contains more than %zu elements, resize to %zu", capacity, capacity * 2);
-							sched_cnode_boundary_t* new = (sched_cnode_boundary_t*)realloc(ret, array_size * 2);
-							if(NULL == new) ERROR_LOG_GOTO(ERR, "Cannot resize the boundary array");
-							ret = new;
-							capacity *= 2;
-							array_size *= 2;
-						}
-
-						ret->dest[ret->count].node_id = outputs[j].destination_node_id;
-						ret->dest[ret->count].pipe_desc = outputs[j].destination_pipe_desc;
-						LOG_DEBUG("Found bound pipe for critical node cluster of servlet %u: <NID=%u, PID=%u>",
-						      cnode, ret->dest[ret->count].node_id, ret->dest[ret->count].pipe_desc);
-						ret->count ++;
-					}
-					}
-					ret->output_cancelled = (_bitmap_get(state, output) != 0);
-				return ret;
-
-ERR:
-				if(ret != NULL) free(ret);
-				return NULL;
-			}
-
-			sched_cnode_info_t* sched_cnode_analyze(const sched_service_t* service)
+	/* Check each node for the cluster mark */
+	for(i = 0; i < num_nodes; i ++)
+		if(_bitmap_get(state, i))
 		{
-			uint64_t* state = NULL;
-			size_t state_size;
-			sched_service_node_id_t nid;
-			uint32_t i;
-			if(NULL == service) ERROR_PTR_RETURN_LOG("Invalid arguments");
+			if(NULL == (outputs = sched_service_get_outgoing_pipes(service, i, &size)))
+				ERROR_LOG_GOTO(ERR, "Cannot get the outgoing pipes for service node %u", i);
 
-			size_t num_nodes = sched_service_get_num_node(service);
-			if(ERROR_CODE(size_t) == num_nodes) ERROR_PTR_RETURN_LOG("Cannot get the number of node in the service graph");
-
-			sched_cnode_info_t* ret = (sched_cnode_info_t*)calloc(1, sizeof(sched_cnode_info_t) + sizeof(sched_cnode_boundary_t*) * num_nodes);
-			if(NULL == ret) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the critical node analysis result");
-
-			state_size = sizeof(uint64_t) * ((num_nodes + 63) / 64);
-
-			state = (uint64_t*)malloc(state_size);
-			if(NULL == state) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the state array");
-
-			for(nid = 0; nid < num_nodes; nid ++)
-			{
-				const sched_service_pipe_descriptor_t* pds;
-				uint32_t flag = 1, in_deg;
-
-				if(NULL == (pds = sched_service_get_incoming_pipes(service, nid, &in_deg)))
-					ERROR_LOG_GOTO(ERR, "Cannot get the incoming pipes for node %u", nid);
-
-				/* Check if the node is a critical node based on it's in-degree */
-				if(in_deg == 0) continue;
-				sched_service_node_id_t src_node = pds[0].source_node_id;
-				for(i = 0; flag && i < in_deg; i ++)
-					flag = (src_node == pds[i].source_node_id);
-				if(!flag) continue;
-
-				sched_service_node_id_t cnode = pds[0].source_node_id;
-				if(ret->boundary[cnode] == NULL)
+			for(j = 0; j < size; j ++)
+				if(!_bitmap_get(state, outputs[j].destination_node_id))
 				{
-					LOG_DEBUG("Found critical node 0x%x", cnode);
-					if(NULL == (ret->boundary[cnode] = _boundary_new(service, num_nodes, cnode, state, state_size)))
-						ERROR_LOG_GOTO(ERR, "Cannot create boundary array for critical node %u", cnode);
+					/* This means the edge cross the boundary of the cluster */
+					if(capacity <= ret->count)
+					{
+						LOG_DEBUG("The boundary array contains more than %zu elements, resize to %zu", capacity, capacity * 2);
+						sched_cnode_boundary_t* new = (sched_cnode_boundary_t*)realloc(ret, array_size * 2);
+						if(NULL == new) ERROR_LOG_GOTO(ERR, "Cannot resize the boundary array");
+						ret = new;
+						capacity *= 2;
+						array_size *= 2;
+					}
+
+					ret->dest[ret->count].node_id = outputs[j].destination_node_id;
+					ret->dest[ret->count].pipe_desc = outputs[j].destination_pipe_desc;
+					LOG_DEBUG("Found bound pipe for critical node cluster of servlet %u: <NID=%u, PID=%u>",
+					          cnode, ret->dest[ret->count].node_id, ret->dest[ret->count].pipe_desc);
+					ret->count ++;
 				}
-			}
+		}
+	ret->output_cancelled = (_bitmap_get(state, output) != 0);
+	return ret;
 
-			ret->service = service;
-			free(state);
-
-			return ret;
 ERR:
-			for(i = 0; i < num_nodes; i ++)
-				if(ret->boundary[i] != NULL)
-					free(ret->boundary[i]);
-			free(ret);
-			if(NULL != state) free(state);
-			return NULL;
+	if(ret != NULL) free(ret);
+	return NULL;
+}
 
-		}
+sched_cnode_info_t* sched_cnode_analyze(const sched_service_t* service)
+{
+	uint64_t* state = NULL;
+	size_t state_size;
+	sched_service_node_id_t nid;
+	uint32_t i;
+	if(NULL == service) ERROR_PTR_RETURN_LOG("Invalid arguments");
 
-		int sched_cnode_info_free(sched_cnode_info_t* info)
+	size_t num_nodes = sched_service_get_num_node(service);
+	if(ERROR_CODE(size_t) == num_nodes) ERROR_PTR_RETURN_LOG("Cannot get the number of node in the service graph");
+
+	sched_cnode_info_t* ret = (sched_cnode_info_t*)calloc(1, sizeof(sched_cnode_info_t) + sizeof(sched_cnode_boundary_t*) * num_nodes);
+	if(NULL == ret) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the critical node analysis result");
+
+	state_size = sizeof(uint64_t) * ((num_nodes + 63) / 64);
+
+	state = (uint64_t*)malloc(state_size);
+	if(NULL == state) ERROR_LOG_ERRNO_GOTO(ERR, "Cannot allocate memory for the state array");
+
+	for(nid = 0; nid < num_nodes; nid ++)
+	{
+		const sched_service_pipe_descriptor_t* pds;
+		uint32_t flag = 1, in_deg;
+
+		if(NULL == (pds = sched_service_get_incoming_pipes(service, nid, &in_deg)))
+			ERROR_LOG_GOTO(ERR, "Cannot get the incoming pipes for node %u", nid);
+
+		/* Check if the node is a critical node based on it's in-degree */
+		if(in_deg == 0) continue;
+		sched_service_node_id_t src_node = pds[0].source_node_id;
+		for(i = 0; flag && i < in_deg; i ++)
+			flag = (src_node == pds[i].source_node_id);
+		if(!flag) continue;
+
+		sched_service_node_id_t cnode = pds[0].source_node_id;
+		if(ret->boundary[cnode] == NULL)
 		{
-			if(NULL == info) ERROR_RETURN_LOG(int, "Invalid arguments");
-
-			size_t i;
-			size_t size = sched_service_get_num_node(info->service);
-			if(ERROR_CODE(size_t) == size) ERROR_RETURN_LOG(int, "Cannot get the number of nodes in the service graph");
-
-			for(i = 0; i < size; i ++)
-				if(info->boundary[i] != NULL)
-					free(info->boundary[i]);
-
-			free(info);
-
-			return 0;
+			LOG_DEBUG("Found critical node 0x%x", cnode);
+			if(NULL == (ret->boundary[cnode] = _boundary_new(service, num_nodes, cnode, state, state_size)))
+				ERROR_LOG_GOTO(ERR, "Cannot create boundary array for critical node %u", cnode);
 		}
+	}
+
+	ret->service = service;
+	free(state);
+
+	return ret;
+ERR:
+	for(i = 0; i < num_nodes; i ++)
+		if(ret->boundary[i] != NULL)
+			free(ret->boundary[i]);
+	free(ret);
+	if(NULL != state) free(state);
+	return NULL;
+
+}
+
+int sched_cnode_info_free(sched_cnode_info_t* info)
+{
+	if(NULL == info) ERROR_RETURN_LOG(int, "Invalid arguments");
+
+	size_t i;
+	size_t size = sched_service_get_num_node(info->service);
+	if(ERROR_CODE(size_t) == size) ERROR_RETURN_LOG(int, "Cannot get the number of nodes in the service graph");
+
+	for(i = 0; i < size; i ++)
+		if(info->boundary[i] != NULL)
+			free(info->boundary[i]);
+
+	free(info);
+
+	return 0;
+}

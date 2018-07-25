@@ -540,9 +540,9 @@ static itc_equeue_event_mask_t _interrupt_handler(void* pl)
 				ITC_EQUEUE_EVENT_MASK_ADD(ret, ITC_EQUEUE_EVENT_TYPE_IO);
 				break;
 			}
-			if(ITC_EQUEUE_EVENT_MASK_ALLOWS(_last_mask, ITC_EQUEUE_EVENT_TYPE_IO) &&
-			!ITC_EQUEUE_EVENT_MASK_ALLOWS(ret, ITC_EQUEUE_EVENT_TYPE_IO))
-				LOG_DEBUG("All worker threads are saturated, stop accepting IO events");
+		if(ITC_EQUEUE_EVENT_MASK_ALLOWS(_last_mask, ITC_EQUEUE_EVENT_TYPE_IO) &&
+		   !ITC_EQUEUE_EVENT_MASK_ALLOWS(ret, ITC_EQUEUE_EVENT_TYPE_IO))
+			LOG_DEBUG("All worker threads are saturated, stop accepting IO events");
 	}
 
 	_last_mask = ret;

@@ -194,7 +194,7 @@ static inline const pss_bytecode_info_t* _opcode_info(pss_bytecode_opcode_t opco
 					_bytecode[i] = _bytecode[j];
 					_bytecode[j] = tmp;
 				}
-				sorted = 1;
+		sorted = 1;
 	}
 #ifdef __clang__
 	if(opcode >= PSS_BYTECODE_OPCODE_COUNT)
@@ -801,7 +801,7 @@ int pss_bytecode_segment_patch_label(pss_bytecode_segment_t* segment, pss_byteco
 			segment->code_table->inst[i].num   = (pss_bytecode_numeric_t)addr;
 		}
 
-		return 0;
+	return 0;
 }
 
 pss_bytecode_addr_t  pss_bytecode_segment_append_code(pss_bytecode_segment_t* segment, pss_bytecode_opcode_t opcode, ...)

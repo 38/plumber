@@ -885,7 +885,7 @@ static inline int _fd_io(int fd, void* buf, size_t size, _fd_io_type_t type)
 			else
 				ERROR_RETURN_LOG_ERRNO(int, "Cannot perfome IO operation on FD %d", fd);
 		}
-		return 0;
+	return 0;
 }
 
 /**

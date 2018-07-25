@@ -482,8 +482,8 @@ int sched_daemon_daemonize(int fork_twice)
 				ERROR_RETURN_LOG_ERRNO(int, "Cannot create directory %s", buf);
 		}
 
-		if((_lock_fd = open(lock_path, O_RDWR | O_CREAT, 0640)) < 0)
-			ERROR_RETURN_LOG_ERRNO(int, "Cannot create the lock file %s", lock_path);
+	if((_lock_fd = open(lock_path, O_RDWR | O_CREAT, 0640)) < 0)
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot create the lock file %s", lock_path);
 
 
 	if(lseek(_lock_fd, 0, SEEK_SET) < 0)

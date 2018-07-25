@@ -76,7 +76,7 @@ int os_event_poll_free(os_event_poll_t* poll)
 				LOG_ERROR_ERRNO("Cannot close the event pipe fd %d", poll->uenv_pipes[i].in);
 				rc = ERROR_CODE(int);
 			}
-			free(poll->uenv_pipes);
+		free(poll->uenv_pipes);
 	}
 
 	if(close(poll->kqueue_fd) < 0)

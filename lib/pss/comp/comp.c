@@ -280,13 +280,13 @@ int pss_comp_open_closure(pss_comp_t* comp, const char* id, uint32_t nargs, char
 			goto ERR;
 		}
 
-		if(NULL == (segment = pss_bytecode_segment_new((pss_bytecode_regid_t)nargs, argid)))
-		{
-			pss_comp_raise(comp, "Internal error: Cannot create code segment for the new function body");
-			goto ERR;
-		}
+	if(NULL == (segment = pss_bytecode_segment_new((pss_bytecode_regid_t)nargs, argid)))
+	{
+		pss_comp_raise(comp, "Internal error: Cannot create code segment for the new function body");
+		goto ERR;
+	}
 
-		comp->seg_stack[comp->seg_stack_top] = segment;
+	comp->seg_stack[comp->seg_stack_top] = segment;
 	if(NULL != id)
 	{
 		if(NULL == (name = comp->seg_name_stack[comp->seg_stack_top] = strdup(id)))

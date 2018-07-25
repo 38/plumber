@@ -130,7 +130,7 @@ int module_tls_dra_finalize()
 				rc = ERROR_CODE(int);
 			}
 
-			free(_small_buffer_pool);
+		free(_small_buffer_pool);
 	}
 
 	return rc;

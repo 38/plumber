@@ -158,14 +158,14 @@ static int _escape_sequence(const char* text, char* out)
 				*out = target_str[i];
 				return 0;
 			}
-			if((cur >= '0' && cur <= '7') || cur == 'x')
-			{
-				char* endp;
-				const char* startp = text + 1 + (cur == 'x');
-				*out = (char)strtol(startp, &endp, cur == 'x' ? 16 : 8);
-				return 0;
-			}
-			else return ERROR_CODE(int);
+		if((cur >= '0' && cur <= '7') || cur == 'x')
+		{
+			char* endp;
+			const char* startp = text + 1 + (cur == 'x');
+			*out = (char)strtol(startp, &endp, cur == 'x' ? 16 : 8);
+			return 0;
+		}
+		else return ERROR_CODE(int);
 	}
 	return 0;
 }

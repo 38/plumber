@@ -563,5 +563,5 @@ int mempool_objpool_set_thread_policy(mempool_objpool_t* pool, unsigned thread_m
 			pool->policy[idx] = policy;
 		}
 
-		return 0;
+	return 0;
 }

@@ -101,7 +101,7 @@ static inline const _callback_t* _lookup_callback(const char* symbol)
 			ret = ptr;
 			max_len = ret->sym_prefix_len;
 		}
-		return ret;
+	return ret;
 }
 
 lang_prop_value_t lang_prop_get(const char* symbol)

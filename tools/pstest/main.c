@@ -258,36 +258,36 @@ static void run_task(uint32_t argc, char const* const* argv)
 			task->pipes[pid] = pipe;
 		}
 
-		if(task->flags & RUNTIME_TASK_FLAG_ACTION_ASYNC)
+	if(task->flags & RUNTIME_TASK_FLAG_ACTION_ASYNC)
+	{
+
+		if(NULL == (task->async_handle = sched_async_fake_handle_new()))
 		{
-
-			if(NULL == (task->async_handle = sched_async_fake_handle_new()))
-			{
-				LOG_FATAL("Cannot create the fake async handle");
-				exit(1);
-			}
-
-			/* If this is an asnyc task, we need to create all its companions */
-			if(ERROR_CODE(int) == runtime_task_async_companions(task, &async_exec, &async_cleanup))
-			{
-				LOG_FATAL("Cannot create the companion");
-				exit(1);
-			}
-		}
-
-		if(runtime_task_start(task) < 0)
-		{
-			LOG_FATAL("Task terminates with an error code");
+			LOG_FATAL("Cannot create the fake async handle");
 			exit(1);
 		}
 
-		if(runtime_task_free(task) == ERROR_CODE(int))
+		/* If this is an asnyc task, we need to create all its companions */
+		if(ERROR_CODE(int) == runtime_task_async_companions(task, &async_exec, &async_cleanup))
 		{
-			LOG_FATAL("Cannot cleanup the task");
+			LOG_FATAL("Cannot create the companion");
 			exit(1);
 		}
+	}
 
-		task = NULL;
+	if(runtime_task_start(task) < 0)
+	{
+		LOG_FATAL("Task terminates with an error code");
+		exit(1);
+	}
+
+	if(runtime_task_free(task) == ERROR_CODE(int))
+	{
+		LOG_FATAL("Cannot cleanup the task");
+		exit(1);
+	}
+
+	task = NULL;
 
 	if(async_exec != NULL && ERROR_CODE(int) == runtime_task_start(async_exec))
 	{

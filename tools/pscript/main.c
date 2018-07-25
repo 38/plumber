@@ -384,7 +384,7 @@ static int build_system_module(void)
 				plumber_finalize();
 				properly_exit(1);
 			}
-			return module_unload_all();
+	return module_unload_all();
 }
 
 static void pscript_write_log(int level, const char* file, const char* function, int line, const char* fmt, va_list ap)

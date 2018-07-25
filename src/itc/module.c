@@ -163,7 +163,7 @@ static inline int _notify_pipe_cancelled(itc_module_pipe_t* handle)
 
 			affected->stat.i_canclled = 1;
 		}
-		return 0;
+	return 0;
 }
 
 /**

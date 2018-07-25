@@ -589,7 +589,7 @@ int sched_async_kill()
 				rc = ERROR_CODE(int);
 		}
 
-		free(_ctx.al_list);
+	free(_ctx.al_list);
 	free(_ctx.q_data);
 
 	if(ERROR_CODE(int) == mempool_objpool_free(_ctx.q_pool))

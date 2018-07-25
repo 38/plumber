@@ -431,7 +431,7 @@ int pss_dict_init()
 			}
 		}
 
-		pss_value_ref_ops_t ops = {
+	pss_value_ref_ops_t ops = {
 		.mkval = _mkval,
 		.free  = _free,
 		.tostr = _tostr

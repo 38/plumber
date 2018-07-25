@@ -79,13 +79,13 @@ def format(fp, verbose = False, color = False):
                             if stack and not stack[-1][0] and not pc and word in stack[-1][1]:
                                 stack = stack[:-1]
                             if word == "if":
-                                stack.append((1, set(["{", "~;"]), 1))
+                                stack.append((1, set(["{", "~;", "~}"]), 1))
                             elif word == "else":
-                                stack.append((0, set(["{", "~;", "if", "while", "for", "switch", "do"]), 1))
+                                stack.append((0, set(["{", "~;", "~}", "if", "while", "for", "switch", "do"]), 1))
                             elif word == "while":
-                                stack.append((1, set(["{", "~;"]), 1))
+                                stack.append((1, set(["{", "~;", "~}"]), 1))
                             elif word == "for":
-                                stack.append((1, set(["{", "~;"]), 1))
+                                stack.append((1, set(["{", "~;", "~}"]), 1))
                             elif word == "case" or word == "default":
                                 stack.append((0, set(["case", "default", "~}"]), 1))
                             if idlevel == -1:
@@ -110,6 +110,12 @@ def format(fp, verbose = False, color = False):
                         stack.append((0, set(["}"]), 1))
                     if ch not in "\t \n\r" and idlevel == -1:
                         idlevel = len(stack) - (0 if not stack else stack[-1][2])
+                    while (stack and 
+                            not stack[-1][0] and 
+                            not pc 
+                            and ("~" + ch) in stack[-1][1] and 
+                            "case" not in stack[-1][1]):
+                        stack = stack[:-1]
         if idlevel == -1:
             idlevel = 0 if not line.strip() else len(stack)
         spaces = 0
