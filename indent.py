@@ -1,17 +1,28 @@
 #!/usr/bin/python
-# The reason why I write such a script is I think the best way for the indentation is 
-# mixing spaces with tabs. A lot of people suggest that we should totally use space 
-# However, this increase the size of the source code and makes other uncomfortable 
-# with the "hard indentation". When I have a smaller screen, I need the TABSTOP become
-# smaller, however the space approach fail to do this.
-# The good way for indentation is use tabs for indentation, use space for 
-# alignment.
-# This is the tool that fix the indentation problems
+#
+# Copyright (C) 2015, 2017-2018, Hao Hou
+#
+# This is the script that correct the indentation, based on the following indentation rule:
+#
+#   a) There are two types of leading white-spaces charecters: indentation and alignment
+#   b) Indentations are the white-spaces that denotes the level of nested blocks
+#   c) Alignments are white-spaces for other purpose
+#   d) Only use <tab> for indentation and use <space> for alignment
+#
+# This rule makes the code formatting not related to the editors tab-stop setting. 
+# At the same time, for the smaller screen, we can always use a smaller tab-stop to make
+# the code compact without any layout change.
+#
+# Please make sure the code follows the indentation rule before merge by running
+# 
+#   ./indent.py
+
 import sys
 import re
 import os
+import argparse
 
-def format(fp, verbose = False):
+def format(fp, verbose = False, color = False):
     comment = False
     string  = False
     escape = False
@@ -112,8 +123,12 @@ def format(fp, verbose = False):
         new_line = "%s%s%s\n"%('\t' * idlevel, ' ' * spaces, line.strip())
         if new_line != line:
             changed = True
-            if verbose: sys.stdout.write("\033[31m-" + line.replace(' ', '_').replace('\t', '    ') + "\033[0m")
-            if verbose: sys.stdout.write("\033[32m+" + new_line.replace(' ', '_').replace('\t', '    ') + "\033[0m")
+            if color:
+                if verbose: sys.stdout.write("\033[31m-" + line.replace(' ', '_').replace('\t', '    ') + "\033[0m")
+                if verbose: sys.stdout.write("\033[32m+" + new_line.replace(' ', '_').replace('\t', '    ') + "\033[0m")
+            else:
+                if verbose: sys.stdout.write(line.replace(' ', '_').replace('\t', '    '))
+                if verbose: sys.stdout.write(new_line.replace(' ', '_').replace('\t', '    '))
         else:
             if verbose: sys.stdout.write(" " + line.replace(' ', '_').replace('\t', '    '))
         result += new_line
@@ -121,15 +136,36 @@ def format(fp, verbose = False):
 
 fn=r'.*\.(c|h|cpp|cxx|hpp|pss)$'
 ts = 4
+dry_run = False
+verbose = False
+color = False
+    
+parser = argparse.ArgumentParser(description = "Correct the indentation of source code under current working directory")
+parser.add_argument('--dry-run', action = 'store_true', dest="dry_run", help = 'Do not actually modify the file')
+parser.add_argument('--verbose', action = 'store_true', dest="verbose", help = 'Print the modified file to screen')
+parser.add_argument('--color',   action = 'store_true', dest="color"  , help = 'Show the colored output')
+parser.add_argument('--tab-stop', type = int, dest = "tabstop", metavar = "TABSTOP" ,default = 4, help = 'Set the tab-stop')
+parser.add_argument('--include', type = str, dest = "pattern", metavar = "PATTERN", default = fn, help = 'The regex that mathces all the files that should be processed')
+
+options = parser.parse_args(sys.argv[1:])
+
+if options.dry_run: dry_run = True
+if options.verbose: verbose = True
+if options.color: color = True
+fn = options.pattern
+ts = options.tabstop
 
 for root, _, files in os.walk("."):
     for f in files:
         if root.split("/")[1:][:1] == ["thirdparty"]: continue
         if not re.match(fn,f): continue
         path="%s/%s"%(root,f)
-        ch, result = format(file(path), False)
-        if ch: print("Info: file %s has been changed"%path)
-        f = file(path, "w")
-        f.write(result)
-        f.close()
+        ch, result = format(file(path), verbose, color)
+        if not dry_run:
+            if ch: print("Info: file %s has been changed"%path)
+            f = file(path, "w")
+            f.write(result)
+            f.close()
+        else:
+            if ch: print("Info: file %s would be changed"%path)
 
