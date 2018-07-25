@@ -109,7 +109,7 @@ const char* proto_ref_nameref_string(const proto_ref_nameref_t* ref, char* buf, 
  **/
 int proto_ref_nameref_append_symbol_range(proto_ref_nameref_t* ref, const char* begin, const char* end);
 
-    /**
+/**
  * @brief append a symbol segment to the name reference object
  * @param ref the name reference object
  * @param symbol the symbol we want to append

@@ -195,7 +195,7 @@ static int _cleanup(void* ctxbuf)
 	return rc;
 }
 
- __attribute__((format(printf, 3, 4)))
+__attribute__((format(printf, 3, 4)))
 static inline int _write(pstd_string_t* str, pstd_bio_t* bio, const char* fmt, ...)
 {
 	if(NULL == fmt) return 0;
