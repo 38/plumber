@@ -87,7 +87,6 @@ typedef struct {
 	} param;                /*!< The parameter of the state */
 } _state_desc_t;
 
-
 #define _GENERIC(name)                 [_STATE_##name] = {.type = _STATE_TYPE_GENERIC}
 #define _LITERAL(name, ns, lit)        [_STATE_##name] = {.type = _STATE_TYPE_LITER, .next = _STATE_##ns, .param = {.liter = {.str = lit, .size = sizeof(lit) - 1}}}
 #define _LITERAL_IC(name, ns, fs, lit) [_STATE_##name] = {\
@@ -198,7 +197,7 @@ typedef enum {
 typedef struct {
 	_state_code_t       code;       /*!< The state code */
 	int                 sub_state;  /*!< The substate */
-	_field_name_state_t fn_state;/*!< The field name state */
+	_field_name_state_t fn_state;   /*!< The field name state */
 	parser_string_t*    buffer;     /*!< The string buffer */
 	size_t              buffer_cap; /*!< The buffer capacity */
 } _state_t;
@@ -602,11 +601,13 @@ static inline const char* _field_name_init(parser_state_t* state, const char* da
 		}
 		else if(data[0] == '\r')
 		{
+			/* If we just see another \r, this means we are going to parse the body */
 			_transite_state(state, _STATE_BODY_BEGIN);
 			return data;
 		}
 		else
 		{
+			/* This means we just in some field that we do not interested in */
 			_transite_state(state, _STATE_FIELD_NOT_INST);
 			return data + 1;
 		}
@@ -663,6 +664,7 @@ static inline size_t _parse_next_buf(parser_state_t* state, const char* data, si
 		const char* ret = NULL;
 		if(type != _STATE_TYPE_GENERIC)
 		{
+			/* Handles the pre-defined sub-parser */
 			switch(type)
 			{
 				case _STATE_TYPE_LITER:
@@ -686,6 +688,7 @@ static inline size_t _parse_next_buf(parser_state_t* state, const char* data, si
 		}
 		else
 		{
+			/* Handles the generic sub-parser at this point */
 			switch(internal->code & _STATE_CODE_MASK)
 			{
 				case _STATE_URI_PATH:
