@@ -1,0 +1,11 @@
+#!/bin/bash
+SD_BASE="@CMAKE_BINARY_DIR@/servlet_docs/"
+mkdir -p ${SD_BASE}
+for doc in $(find @CMAKE_SOURCE_DIR@/servlets/ -name 'doc.md')
+do
+	SERVLET_NAME=$(dirname $(realpath --relative-to=@CMAKE_SOURCE_DIR@/servlets ${doc}))
+	NAMESPACE=$(dirname ${SERVLET_NAME})
+	mkdir -p ${SD_BASE}/${NAMESPACE}
+	echo "Building servlet doc for ${SERVLET_NAME} ..."  &> /dev/stderr
+	@PANDOC_EXECUTABLE@ -t html ${doc} > ${SD_BASE}/${SERVLET_NAME}.html
+done

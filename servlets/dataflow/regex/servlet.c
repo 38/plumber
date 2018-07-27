@@ -255,7 +255,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 			.args        = NULL
 		},
 		{
-			.long_opt    = "deliminator",
+			.long_opt    = "delim",
 			.short_opt   = 'D',
 			.pattern     = "S",
 			.description = "Set the end-of-line marker",

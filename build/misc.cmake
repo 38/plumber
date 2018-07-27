@@ -14,6 +14,8 @@ add_custom_target(distclean
 	COMMAND rm -rf tools/*/package_config.h lib/*/package_config.h install-prototype.sh Doxyfile
 	COMMAND [ `readlink -f ${CMAKE_CURRENT_BINARY_DIR}` = `readlink -f ${CMAKE_CURRENT_SOURCE_DIR}` ] || rm -rf lib tools
 	COMMAND rm -rf ${CMAKE_CURRENT_SOURCE_DIR}/vimrc
+	COMMAND rm -rf ${CMAKE_CURRENT_BINARY_DIR}/build_servlet_docs.sh
+	COMMAND rm -rf ${CMAKE_CURRENT_BINARY_DIR}/servlet_docs
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
@@ -91,3 +93,12 @@ if(NOT "${INSTALL_SCRIPTS}" STREQUAL "no")
 		install(FILES ${script_source} DESTINATION "bin" PERMISSIONS WORLD_EXECUTE OWNER_EXECUTE GROUP_EXECUTE WORLD_READ OWNER_READ GROUP_READ OWNER_WRITE)
 	endforeach(script_source ${script_to_install})
 endif(NOT "${INSTALL_SCRIPTS}" STREQUAL "no")
+
+find_program(PANDOC_EXECUTABLE "pandoc")
+
+if(NOT "${PANDOC_EXECUTABLE}" STREQUAL "PANDOC_EXECUTABLE-NOTFOUND")
+	configure_file("${CMAKE_SOURCE_DIR}/misc/build_servlet_docs.sh.in" "${CMAKE_BINARY_DIR}/build_servlet_docs.sh" @ONLY)
+	
+else(NOT "${PANDOC_EXECUTABLE}" STREQUAL "PANDOC_EXECUTABLE-NOTFOUND")
+	message("Pandoc executable not found, servlet documentation could not be built")
+endif(NOT "${PANDOC_EXECUTABLE}" STREQUAL "PANDOC_EXECUTABLE-NOTFOUND")
