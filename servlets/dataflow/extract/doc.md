@@ -21,10 +21,10 @@ dataflow/extract x
 
 ## Ports
 
-| Port Name | Type Trait                          | Direction | Decription |
-|:---------:|:-----------------------------------:|:---------:|:-----------|
-| `input`   | `$T`                                | Input     | The data we want to extract |
-| `output`  | `$T.field_name`                     | Output    | The extracted value. `field_name` is determined by the servlet init string |
+| Port Name | Type Trait       | Direction | Decription |
+|:---------:|:----------------:|:---------:|:-----------|
+| `input`   | `$T`             | Input     | The data we want to extract |
+| `output`  | `$T.field_name`  | Output    | The extracted value. `field_name` is determined by the servlet init string |
 
 ## Options
 

@@ -29,10 +29,10 @@ The `output` port should contains another `Triagnle` type which has `vertex[0].x
 
 ## Ports
 
-| Port Name | Type Trait                          | Direction | Decription |
-|:---------:|:-----------------------------------:|:---------:|:-----------|
-| `base`    | `$BASE`                             | Input     | The data we want to modify |
-| [field]   | `$M_n`                              | Input     | The value the servlet should modifiy the field to |
+| Port Name | Type Trait   | Direction | Decription |
+|:---------:|:------------:|:---------:|:-----------|
+| `base`    | `$BASE`      | Input     | The data we want to modify |
+| [field]   | `$M_n`       | Input     | The value the servlet should modifiy the field to |
 
 ## Options
 

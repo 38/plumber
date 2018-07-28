@@ -9,8 +9,8 @@ The servlet will be added automatically, so that, the first non-empty port will 
 
 ## Ports
 
-| Port Name | Type Trait                          | Direction | Decription |
-|:---------:|:-----------------------------------:|:---------:|:----------:|
+| Port Name | Type Trait    | Direction | Decription |
+|:---------:|:-------------:|:---------:|:----------:|
 |  `inN`    | `$T`  | Input     | The n-th Input |
 |  `out`    | `$T`` | Output    | The output |
 

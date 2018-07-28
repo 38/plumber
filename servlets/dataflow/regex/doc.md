@@ -17,8 +17,8 @@ For the default mode:
 
 For the raw-input mode:
 
-| Port Name | Type Trait                          | Direction | Decription |
-|:---------:|:-----------------------------------:|:---------:|:----------:|
+| Port Name | Type Trait          | Direction | Decription |
+|:---------:|:-------------------:|:---------:|:----------:|
 | `input`   | `plumber/base/Raw`  | Input     | The input string which we need to match |
 | `output`  | `plumber/base/Raw`  | Output    | The output |
 
