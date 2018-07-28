@@ -13,7 +13,7 @@ node of `dataflow/dup` will be automatically added into graph to split the dataf
 | Port Name | Type Trait                          | Direction | Decription |
 |:---------:|:-----------------------------------:|:---------:|:-----------|
 |  `in`     | `$T`  | Input     | The input to duplicate |
-|  `outN`   | `$T`` | Output    | The output ports which should contains the identical output |
+|  `outN`   | `$T`  | Output    | The output ports which should contains the identical output |
 
 # Options
 
