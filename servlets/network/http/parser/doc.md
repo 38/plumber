@@ -11,9 +11,9 @@ HTTP routing.
 | Port Name | Type Trait    | Direction | Decription |
 |:---------:|:-------------:|:---------:|:-----------|
 | `input`   | `plumber/base/Raw` | Input     | The raw HTTP Reuqest Byte Stream |
-| `protocol_data` | `plumber/std_servlet/network/http/parser/v0/ProtocolData` | The HTTP protocol releated data, which means it doesn't releated to actual server logic but the response rendering |
-| `default` | `plumber/std_servlet/network/http/parser/v0/RequestData` | The default routing output |
-| [route-name] | `plumber/std_servlet/network/http/parser/v0/RequestData` | The request data will be forwarded to the [route-name] if the routing rule matches |
+| `protocol_data` | `plumber/std_servlet/network/http/parser/v0/ProtocolData` | Output | The HTTP protocol releated data, which means it doesn't releated to actual server logic but the response rendering |
+| `default` | `plumber/std_servlet/network/http/parser/v0/RequestData` | Output | The default routing output |
+| [route-name] | `plumber/std_servlet/network/http/parser/v0/RequestData` | Output | The request data will be forwarded to the [route-name] if the routing rule matches |
 
 ## Options
 
