@@ -13,21 +13,21 @@ Once an output is activated, the data from the data input port will be forwarded
 
 For Non numeric mode:
 
-| Port Name | Type Trait                          | Direction | Decription |
-|:---------:|:-----------------------------------:|:---------:|:-----------|
+| Port Name | Type Trait  | Direction | Decription |
+|:---------:|:-----------:|:---------:|:-----------|
 |  `cond`   | `plumber/std/request_local/String`  | Input     | The condition string.|
-|  `data`   | `$TData`                            | Input     | The data input port |
-|  `outN`   | `$TData`                            | Output    | The N-th output port, activated when N-th pattern matches the condition string |
-|  `default`| `$TData`                            | Output    | The port to forward the data by default |
+|  `data`   | `$TData`  | Input     | The data input port |
+|  `outN`   | `$TData`  | Output    | The N-th output port, activated when N-th pattern matches the condition string |
+|  `default`| `$TData`  | Output    | The port to forward the data by default |
 
 For Numeric Model:
 
-| Port Name | Type Trait                          | Direction | Decription |
-|:---------:|:-----------------------------------:|:---------:|:-----------|
-|  `cond`   | `$TCond`                            | Input     | The condition string.|
-|  `data`   | `$TData`                            | Input     | The data input port |
-|  `outN`   | `$TData`                            | Output    | The N-th output port, activated when N-th pattern matches the condition string |
-|  `default`| `$TData`                            | Output    | The port to forward the data by default |
+| Port Name | Type Trait  | Direction | Decription |
+|:---------:|:-----------:|:---------:|:-----------|
+|  `cond`   | `$TCond`  | Input     | The condition string.|
+|  `data`   | `$TData`  | Input     | The data input port |
+|  `outN`   | `$TData`  | Output    | The N-th output port, activated when N-th pattern matches the condition string |
+|  `default`| `$TData`  | Output    | The port to forward the data by default |
 
 ## Options
 
