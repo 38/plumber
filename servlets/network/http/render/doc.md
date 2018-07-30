@@ -13,11 +13,11 @@ This servlet takes the structured response and generate the HTTP response that  
 
 | Port Name | Type Trait  | Direction | Decription |
 |:---------:|:-----------:|:---------:|:-----------|
-|`response`|`plumber/std_servlet/network/http/render/v0/Response`|Input| The structured response to be rendered |
-|`protoco_data`|`plumber/std_servlet/network/http/parser/v0/ProtocolData|Input| The protocol releated data, which is parsed from the HTTP request and have nothing to do with actual logic|
-|`500`| `plumber/base/Raw` | Input | The signal pipe indicates that the server has encounter an internal error. This is the error handling mechanism, please read note for details|
-|`output`| `plumber/base/Raw`|Output|The actual HTTP response the servlet has rendered |
-|`proxy`|`plumber/std_servlet/network/http/proxy/v0/Response`| Input | The reverse proxy result. This port only aviable if the servlet is configured to enable the proxy |
+|`response`|`plumber/std_servlet/network/http/render/v0/Response`| Input | The structured response to be rendered |
+|`protoco_data`|`plumber/std_servlet/network/http/parser/v0/ProtocolData` | Input | The protocol releated data, which is parsed from the HTTP request and have nothing to do with actual logic |
+|`500`| `plumber/base/Raw` | Input | The signal pipe indicates that the server has encounter an internal error. This is the error handling mechanism, please read note for details |
+|`output`| `plumber/base/Raw`| Output |The actual HTTP response the servlet has rendered |
+|`proxy`|`plumber/std_servlet/network/http/proxy/v0/Response` | Input | The reverse proxy result. This port only aviable if the servlet is configured to enable the proxy |
 
 ## Options
 
