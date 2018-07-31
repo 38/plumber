@@ -10,10 +10,10 @@ If the input matches the regular expression, foward the input to output. Otherwi
 
 For the default mode:
 
-| Port Name | Type Trait                          | Direction | Decription |
-|:---------:|:-----------------------------------:|:---------:|:----------:|
-| `input`   | `plumber/std/request_local/String`  | Input     | The input string which we need to match |
-| `output`  | `plumber/std/request_local/String`  | Output    | The output |
+| Port Name | Type Trait | Direction | Decription |
+|:---------:|:----------:|:---------:|:----------:|
+| `input`   | `plumber/std/request_local/String`  | Input  | The input string which we need to match |
+| `output`  | `plumber/std/request_local/String`  | Output | The output |
 
 For the raw-input mode:
 
