@@ -9,12 +9,29 @@
 #include <pservlet.h>
 
 /**
+ * @brief The callback function which is used as the continuation to call the va_list function
+ * @param data The callback additoinal data
+ * @param ap The valist pointer
+ * @return nothing
+ **/
+typedef void (*rust_va_list_callback_func_t)(va_list ap, void* data);
+
+/**
+ * @brief The wrapper function for rust calling a function with valist pointer
+ * @param cont The continuation function
+ * @param data The additional data pointer
+ * @return nothing
+ **/
+typedef void (*rust_va_list_wrapper_func_t)(rust_va_list_callback_func_t cont, void* data, ...);
+
+/**
  * @brief The Rust bootstrap function
  * @param argc The number of servelt init arguments
  * @param argv The servlet init argument list
+ * @param helper The va_list helper
  * @return The newly created Rust servlet object
  **/
-typedef void* (*rust_bootstrap_func_t)(uint32_t argc, char const* const* argv, const address_table_t* addr_tab);
+typedef void* (*rust_bootstrap_func_t)(uint32_t argc, char const* const* argv, const address_table_t* addr_tab, rust_va_list_wrapper_func_t helper);
 
 /**
  * @brief The Rust servlet initialization functon
@@ -85,6 +102,15 @@ typedef struct {
 	void*                               rust_obj;        /*!< The rust object for the async data */
 } async_data_t;
 
+static void _va_list_wrapper(rust_va_list_callback_func_t cont, void* data, ...)
+{
+	va_list ap;
+	va_start(ap, data);
+
+	cont(ap, data);
+
+	va_end(ap);
+}
 
 static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 {
@@ -123,7 +149,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	if(NULL == (ctx->async_cleanup_func = (rust_servlet_async_cleanup_func_t)dlsym(ctx->dl_handle, "_rs_invoke_async_cleanup")))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot find symbol _rs_invoke_async_cleanup, make sure you are loading a Rust servlet binary");
 
-	if(NULL == (ctx->rust_servlet_obj = bootstrap_func(argc - 2, argv + 2, RUNTIME_ADDRESS_TABLE_SYM)))
+	if(NULL == (ctx->rust_servlet_obj = bootstrap_func(argc - 2, argv + 2, RUNTIME_ADDRESS_TABLE_SYM, _va_list_wrapper)))
 		ERROR_LOG_GOTO(ERR, "Rust servlet bootstrap function returns an error");
 
 	return init_func(ctx->rust_servlet_obj, argc - 2, argv + 2);
