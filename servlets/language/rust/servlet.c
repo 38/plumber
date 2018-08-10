@@ -14,7 +14,7 @@
  * @param argv The servlet init argument list
  * @return The newly created Rust servlet object
  **/
-typedef void* (*rust_bootstrap_func_t)(uint32_t argc, char const* const* argv);
+typedef void* (*rust_bootstrap_func_t)(uint32_t argc, char const* const* argv, const address_table_t* addr_tab);
 
 /**
  * @brief The Rust servlet initialization functon
@@ -123,7 +123,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	if(NULL == (ctx->async_cleanup_func = (rust_servlet_async_cleanup_func_t)dlsym(ctx->dl_handle, "_rs_invoke_async_cleanup")))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot find symbol _rs_invoke_async_cleanup, make sure you are loading a Rust servlet binary");
 
-	if(NULL == (ctx->rust_servlet_obj = bootstrap_func(argc - 2, argv + 2)))
+	if(NULL == (ctx->rust_servlet_obj = bootstrap_func(argc - 2, argv + 2, RUNTIME_ADDRESS_TABLE_SYM)))
 		ERROR_LOG_GOTO(ERR, "Rust servlet bootstrap function returns an error");
 
 	return init_func(ctx->rust_servlet_obj, argc - 2, argv + 2);
