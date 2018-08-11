@@ -47,6 +47,21 @@ typedef struct {
  **/
 typedef int (*pstd_type_assertion_t)(pipe_t pipe, const char* type, void* data);
 
+/**
+ * @brief The callback function for type check has been completed done. 
+ *        This function is called when the analysis on current pipe is completed done.
+ * @detail This is useful when we want to validate the type shape of a field, because we cannot use type assertion,
+ *         since we call the type assertion before all the accessor has been resolved. 
+ *         In addition the type assertion is served as the assertion on pipe. So it's a bad idea that we check the
+ *         field information in the function.
+ *         That is why we need such a callback.
+ *         Unlike the type assertion, this callback is actually called after everything for this pipe is done. 
+ *         And the accessor layout is not allowed to change.
+ * @param data The additional data we want to pass to this function
+ * @return status code (if this function returns an error, type check would fail)
+ **/
+typedef int (*pstd_type_checked_callback_t)(pipe_t pipe, void* data);
+
 
 /**
  * @brief Create a new pipe type model object
@@ -101,6 +116,17 @@ int pstd_type_model_get_field_info(pstd_type_model_t* model, pipe_t pipe, const 
  * @return status code
  **/
 int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_assertion_t assertion, void* data);
+
+/**
+ * @brief Add a new type checked callback, which will called when the everything has been done for this pipe
+ * @details See the details in pstd_type_checked_callback_t
+ * @param model    The type model
+ * @param pipe     The target pipe descriptor
+ * @param callback The callback function
+ * @param data     The additional data we want to pass
+ * @return status code
+ **/
+int pstd_type_model_on_pipe_type_checked(pstd_type_model_t* model, pipe_t pipe, pstd_type_checked_callback_t callback, void* data);
 
 /**
  * @brief Add a directive indicates the to pipe contains a copy of from pipe when each time the servlet

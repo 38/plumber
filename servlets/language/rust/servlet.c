@@ -123,7 +123,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	ctx->rust_servlet_obj = NULL;
 
 	if(NULL == (ctx->dl_handle = dlopen(argv[1], RTLD_LAZY | RTLD_LOCAL)))
-		ERROR_RETURN_LOG(int, "Cannot open the shared object %s", argv[1]);
+		ERROR_RETURN_LOG(int, "Cannot open the shared object %s : %s", argv[1], dlerror());
 
 	rust_bootstrap_func_t bootstrap_func;
 	rust_servlet_init_func_t init_func;

@@ -48,9 +48,18 @@ typedef struct _type_assertion_t {
  **/
 typedef struct _field_req_t {
 	char*                 field;    /*!< The field expression for this field information request */
-	pstd_type_field_t*   info_buf; /*!< The buffer to return the information */
-	struct _field_req_t* next;  /*!< The next pointer in the linked list */
+	pstd_type_field_t*   info_buf;  /*!< The buffer to return the information */
+	struct _field_req_t* next;      /*!< The next pointer in the linked list */
 } _field_req_t;
+
+/**
+ * @brief Represent the list of callback function that needs to be called after the type checking is completed
+ **/
+typedef struct _type_checked_cb_t {
+	pstd_type_checked_callback_t  func;   /*!< The actual function pointer */
+	void*                         data;   /*!< The additional data for the callback */
+	struct _type_checked_cb_t*    next;   /*!< The next callback in the list */
+} _type_checked_cb_t;
 
 
 /**
@@ -73,15 +82,16 @@ typedef struct {
 	uint32_t                init:1;          /*!< If the type info has been initialized */
 	uint32_t                readonly:1;      /*!< Indicates if the type model is readonly */
 	uint32_t                reject_assert:1; /*!< Indicates if the type model should reject any new assertion */
-	pipe_t                  copy_from;     /*!< If given it indicates which pipe we need to copy data from at the begning */
-	char*                   name;          /*!< The name of the type */
-	uint32_t                full_size;     /*!< The size of the header section */
-	uint32_t                used_size;     /*!< The size of the header data we actually used */
-	size_t                  buf_begin;     /*!< The offest for buffer of the type context isntance for this pipe begins */
-	uint32_t                accessor_list; /*!< The list of accessors related to this pipe */
-	_const_t*               const_list;    /*!< The list of the constant defined by this pipe */
-	_type_assertion_t*      assertion_list;/*!< The assertion list */
-	_field_req_t*           field_list;     /*!< The field request list */
+	pipe_t                  copy_from;       /*!< If given it indicates which pipe we need to copy data from at the begning */
+	char*                   name;            /*!< The name of the type */
+	uint32_t                full_size;       /*!< The size of the header section */
+	uint32_t                used_size;       /*!< The size of the header data we actually used */
+	size_t                  buf_begin;       /*!< The offest for buffer of the type context isntance for this pipe begins */
+	uint32_t                accessor_list;   /*!< The list of accessors related to this pipe */
+	_const_t*               const_list;      /*!< The list of the constant defined by this pipe */
+	_type_assertion_t*      assertion_list;  /*!< The assertion list */
+	_field_req_t*           field_list;      /*!< The field request list */
+	_type_checked_cb_t*     checked_cb_list; /*!< The on pipe type has checked callback list */
 } _typeinfo_t;
 
 /**
@@ -336,6 +346,11 @@ static int _on_pipe_type_determined(pipe_t pipe, const char* typename, void* dat
 
 	typeinfo->init = 1u;
 
+	_type_checked_cb_t* callback;
+	for(callback = typeinfo->checked_cb_list; NULL != callback; callback = callback->next)
+		if(ERROR_CODE(int) == callback->func(pipe, callback->data))
+			ERROR_LOG_GOTO(ERR, "One of the type check finished callback returns an error status");
+
 	/* Finally we update the size info if we have some copy request */
 	{
 		runtime_api_pipe_id_t p_dst;
@@ -586,6 +601,15 @@ int pstd_type_model_free(pstd_type_model_t* model)
 				free(cur);
 			}
 
+			_type_checked_cb_t* cb;
+			for(cb = model->type_info[i].checked_cb_list; NULL != cb;)
+			{
+				_type_checked_cb_t* cur = cb;
+				cb = cb->next;
+
+				free(cur);
+			}
+
 			if(NULL != model->type_info[i].name)
 				free(model->type_info[i].name);
 		}
@@ -634,6 +658,32 @@ int pstd_type_model_assert(pstd_type_model_t* model, pipe_t pipe, pstd_type_asse
 	obj->data = data;
 	obj->next = typeinfo->assertion_list;
 	typeinfo->assertion_list = obj;
+
+	return 0;
+}
+
+int pstd_type_model_on_pipe_type_checked(pstd_type_model_t* model, pipe_t pipe, pstd_type_checked_callback_t callback, void* data)
+{
+	if(NULL == model || NULL == callback || ERROR_CODE(pipe_t) == pipe || RUNTIME_API_PIPE_IS_VIRTUAL(pipe))
+		ERROR_RETURN_LOG_ERRNO(int, "Invalid arguments");
+
+	if(ERROR_CODE(int) == _ensure_pipe_typeinfo(model, pipe))
+		ERROR_RETURN_LOG(int, "Cannot resize the typeinfo array");
+
+	_typeinfo_t* typeinfo = model->type_info + PIPE_GET_ID(pipe);
+
+	if(typeinfo->readonly)
+		ERROR_RETURN_LOG(int, "The type model is currently in readonly mode, are you trying to modify an initailized type model?");
+
+	_type_checked_cb_t* obj = (_type_checked_cb_t*)malloc(sizeof(*obj));
+
+	if(NULL == obj)
+		ERROR_RETURN_LOG_ERRNO(int, "Cannot allocate memory for the new on pipe type checked callback function");
+
+	obj->func = callback;
+	obj->data = data;
+	obj->next = typeinfo->checked_cb_list;
+	typeinfo->checked_cb_list = obj;
 
 	return 0;
 }
