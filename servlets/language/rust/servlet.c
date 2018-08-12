@@ -7,6 +7,7 @@
 #include <dlfcn.h>
 
 #include <pservlet.h>
+#include <pstd.h>
 
 /**
  * @brief The callback function which is used as the continuation to call the va_list function
@@ -38,16 +39,18 @@ typedef void* (*rust_bootstrap_func_t)(uint32_t argc, char const* const* argv, c
  * @param self The rust servlet object
  * @param argc The number of arguments
  * @param argv The argument list
+ * @param tm The type model object 
  * @return status code
  **/
-typedef int (*rust_servlet_init_func_t)(void* self, uint32_t argc, char const* const* argv);
+typedef int (*rust_servlet_init_func_t)(void* self, uint32_t argc, char const* const* argv, pstd_type_model_t* tm);
 
 /**
  * @brief The synchronous Rust servlet execute funciton
  * @param self The servlet object
+ * @param ti The type instance object
  * @return status code
  **/
-typedef int (*rust_servlet_exec_func_t)(void* self);
+typedef int (*rust_servlet_exec_func_t)(void* self, pstd_type_instance_t* ti);
 
 /**
  * @brief The asynchronous Rust servlet execute function
@@ -60,9 +63,10 @@ typedef int (*rust_servlet_cleanup_func_t)(void* self);
  * @brief The asynchronous Rust servlet task init function
  * @param self The servlet object
  * @param handle The task handle
+ * @param type_inst The type instance 
  * @return The private task data or NULL on error case
  **/
-typedef void* (*rust_servlet_async_init_func_t)(void* self, void* handle);
+typedef void* (*rust_servlet_async_init_func_t)(void* self, void* handle, pstd_type_instance_t* type_inst);
 
 /**
  * @brief The async Rust servlet task execution
@@ -77,9 +81,10 @@ typedef int (*rust_servlet_async_exec_func_t)(void* handle, void* task_data);
  * @param self The servlet object
  * @param handle The task handle
  * @param task_data The task data
+ * @param the type instance
  * @return status  code
  **/
-typedef int (*rust_servlet_async_cleanup_func_t)(void*self, void* handle, void* task_data);
+typedef int (*rust_servlet_async_cleanup_func_t)(void*self, void* handle, void* task_data, pstd_type_instance_t* type_inst);
 
 /**
  * @brief The servlet context
@@ -87,6 +92,7 @@ typedef int (*rust_servlet_async_cleanup_func_t)(void*self, void* handle, void* 
 typedef struct {
 	void*                             dl_handle;         /*!< The actual rust servlet shared object */
 	void*                             rust_servlet_obj;  /*!< The rust servlet object */
+	pstd_type_model_t*                type_model;      /*!< The actual type model object */
 	rust_servlet_exec_func_t          exec_func;         /*!< The execute function for sync servlet */
 	rust_servlet_cleanup_func_t       cleanup_func;      /*!< The cleanup callback */
 	rust_servlet_async_init_func_t    async_init_func;   /*!< The async init callback */
@@ -98,7 +104,7 @@ typedef struct {
  * @brief The async data
  **/
 typedef struct {
-	rust_servlet_async_exec_func_t      exec_func;      /*!< The exec callback */
+	rust_servlet_async_exec_func_t      exec_func;       /*!< The exec callback */
 	void*                               rust_obj;        /*!< The rust object for the async data */
 } async_data_t;
 
@@ -132,27 +138,30 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot find symbol _rs_invoke_bootstrap, make sure you are loading a rust servlet binary");
 
 	if(NULL == (init_func = (rust_servlet_init_func_t)dlsym(ctx->dl_handle, "_rs_invoke_init")))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot find symbol _rs_invoke_init, make sure you are loading a Rust servlet binary");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_init, make sure you are loading a Rust servlet binary");
 
 	if(NULL == (ctx->exec_func = (rust_servlet_exec_func_t)dlsym(ctx->dl_handle, "_rs_invoke_exec")))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot find symbol _rs_invoke_exec, make sure you are loading a Rust servlet binary");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_exec, make sure you are loading a Rust servlet binary");
 	
-	if(NULL == (ctx->cleanup_func = (rust_servlet_exec_func_t)dlsym(ctx->dl_handle, "_rs_invoke_cleanup")))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot find symbol _rs_invoke_cleanup, make sure you are loading a Rust servlet binary");
+	if(NULL == (ctx->cleanup_func = (rust_servlet_cleanup_func_t)dlsym(ctx->dl_handle, "_rs_invoke_cleanup")))
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_cleanup, make sure you are loading a Rust servlet binary");
 
 	if(NULL == (ctx->async_init_func = (rust_servlet_async_init_func_t)dlsym(ctx->dl_handle, "_rs_invoke_async_init")))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot find symbol _rs_invoke_async_init, make sure you are loading a Rust servlet binary");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_async_init, make sure you are loading a Rust servlet binary");
 	
 	if(NULL == (ctx->async_exec_func = (rust_servlet_async_exec_func_t)dlsym(ctx->dl_handle, "_rs_invoke_async_exec")))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot find symbol _rs_invoke_async_exec, make sure you are loading a Rust servlet binary");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_async_exec, make sure you are loading a Rust servlet binary");
 	
 	if(NULL == (ctx->async_cleanup_func = (rust_servlet_async_cleanup_func_t)dlsym(ctx->dl_handle, "_rs_invoke_async_cleanup")))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot find symbol _rs_invoke_async_cleanup, make sure you are loading a Rust servlet binary");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_async_cleanup, make sure you are loading a Rust servlet binary");
 
 	if(NULL == (ctx->rust_servlet_obj = bootstrap_func(argc - 2, argv + 2, RUNTIME_ADDRESS_TABLE_SYM, _va_list_wrapper)))
 		ERROR_LOG_GOTO(ERR, "Rust servlet bootstrap function returns an error");
 
-	return init_func(ctx->rust_servlet_obj, argc - 2, argv + 2);
+	if(NULL == (ctx->type_model = pstd_type_model_new()))
+		ERROR_LOG_GOTO(ERR, "Cannot create type model for the Rust servlet");
+
+	return init_func(ctx->rust_servlet_obj, argc - 2, argv + 2, ctx->type_model);
 ERR:
 	if(NULL != ctx->dl_handle) dlclose(ctx->dl_handle);
 	return ERROR_CODE(int);
@@ -162,12 +171,25 @@ static int _exec(void* ctxmem)
 {
 	context_t* ctx = (context_t*)ctxmem;
 
-	return ctx->exec_func(ctx->rust_servlet_obj);
+	pstd_type_instance_t* type_inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model);
+
+	int rc = ctx->exec_func(ctx->rust_servlet_obj, type_inst);
+
+	if(ERROR_CODE(int) == pstd_type_instance_free(type_inst))
+	{
+		LOG_ERROR("Cannot dispose the type instance for this task");
+		rc = ERROR_CODE(int);
+	}
+
+	return rc;
 }
 
 static int _cleanup(void* ctxmem)
 {
 	context_t* ctx = (context_t*)ctxmem;
+
+	if(ctx->type_model != NULL)
+		pstd_type_model_free(ctx->type_model);
 
 	if(ctx->rust_servlet_obj == NULL) return 0;
 
@@ -178,13 +200,18 @@ static int _async_setup(async_handle_t* task_handle, void* task_data, void* ctxm
 {
 	context_t* ctx = (context_t*)ctxmem;
 	async_data_t* async_data = (async_data_t*)task_data;
+	
+	pstd_type_instance_t* type_inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model);
 
-	if(NULL == (async_data->rust_obj = ctx->async_init_func(ctx->rust_servlet_obj, task_handle)))
-		ERROR_RETURN_LOG(int, "Cannot initialize the async task");
+	if(NULL == (async_data->rust_obj = ctx->async_init_func(ctx->rust_servlet_obj, task_handle, type_inst)))
+		ERROR_LOG_GOTO(ERR, "Cannot initialize the async task");
 
 	async_data->exec_func = ctx->async_exec_func;
 
-	return 0;
+	return pstd_type_instance_free(type_inst);
+ERR:
+	pstd_type_instance_free(type_inst);
+	return ERROR_CODE(int);
 }
 
 static int _async_exec(async_handle_t* task_handle, void* task_data)
@@ -198,8 +225,18 @@ static int _async_cleanup(async_handle_t* task_handle, void* task_data, void* ct
 {
 	context_t* ctx = (context_t*)ctxmem;
 	async_data_t* async_data = (async_data_t*)task_data;
+	
+	pstd_type_instance_t* type_inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model);
 
-	return ctx->async_cleanup_func(ctx->rust_servlet_obj, task_handle, async_data->rust_obj);
+	int rc = ctx->async_cleanup_func(ctx->rust_servlet_obj, task_handle, async_data->rust_obj, type_inst);
+
+	if(ERROR_CODE(int) == pstd_type_instance_free(type_inst))
+	{
+		LOG_ERROR("Cannot dispose the type instance object");
+		rc = ERROR_CODE(int);
+	}
+
+	return rc;
 }
 
 SERVLET_DEF = {
