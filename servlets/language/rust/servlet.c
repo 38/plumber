@@ -32,7 +32,7 @@ typedef void (*rust_va_list_wrapper_func_t)(rust_va_list_callback_func_t cont, v
  * @param helper The va_list helper
  * @return The newly created Rust servlet object
  **/
-typedef void* (*rust_bootstrap_func_t)(uint32_t argc, char const* const* argv, const address_table_t* addr_tab, rust_va_list_wrapper_func_t helper);
+typedef void* (*rust_bootstrap_func_t)(uint32_t argc, char const* const* argv, pstd_type_model_t* tm, const address_table_t* addr_tab, rust_va_list_wrapper_func_t helper);
 
 /**
  * @brief The Rust servlet initialization functon
@@ -42,7 +42,7 @@ typedef void* (*rust_bootstrap_func_t)(uint32_t argc, char const* const* argv, c
  * @param tm The type model object 
  * @return status code
  **/
-typedef int (*rust_servlet_init_func_t)(void* self, uint32_t argc, char const* const* argv, pstd_type_model_t* tm);
+typedef int (*rust_servlet_init_func_t)(void* self, uint32_t argc, char const* const* argv);
 
 /**
  * @brief The synchronous Rust servlet execute funciton
@@ -135,7 +135,7 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	rust_servlet_init_func_t init_func;
 
 	if(NULL == (bootstrap_func = (rust_bootstrap_func_t)dlsym(ctx->dl_handle, "_rs_invoke_bootstrap")))
-		ERROR_RETURN_LOG_ERRNO(int, "Cannot find symbol _rs_invoke_bootstrap, make sure you are loading a rust servlet binary");
+		ERROR_LOG_GOTO(ERR, "Cannot find symbol _rs_invoke_bootstrap, make sure you are loading a rust servlet binary");
 
 	if(NULL == (init_func = (rust_servlet_init_func_t)dlsym(ctx->dl_handle, "_rs_invoke_init")))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_init, make sure you are loading a Rust servlet binary");
@@ -155,13 +155,13 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	if(NULL == (ctx->async_cleanup_func = (rust_servlet_async_cleanup_func_t)dlsym(ctx->dl_handle, "_rs_invoke_async_cleanup")))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_async_cleanup, make sure you are loading a Rust servlet binary");
 
-	if(NULL == (ctx->rust_servlet_obj = bootstrap_func(argc - 2, argv + 2, RUNTIME_ADDRESS_TABLE_SYM, _va_list_wrapper)))
-		ERROR_LOG_GOTO(ERR, "Rust servlet bootstrap function returns an error");
-
 	if(NULL == (ctx->type_model = pstd_type_model_new()))
 		ERROR_LOG_GOTO(ERR, "Cannot create type model for the Rust servlet");
 
-	return init_func(ctx->rust_servlet_obj, argc - 2, argv + 2, ctx->type_model);
+	if(NULL == (ctx->rust_servlet_obj = bootstrap_func(argc - 2, argv + 2, ctx->type_model, RUNTIME_ADDRESS_TABLE_SYM, _va_list_wrapper)))
+		ERROR_LOG_GOTO(ERR, "Rust servlet bootstrap function returns an error");
+
+	return init_func(ctx->rust_servlet_obj, argc - 2, argv + 2);
 ERR:
 	if(NULL != ctx->dl_handle) dlclose(ctx->dl_handle);
 	return ERROR_CODE(int);
