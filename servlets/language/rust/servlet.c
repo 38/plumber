@@ -135,25 +135,25 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 	rust_servlet_init_func_t init_func;
 
 	if(NULL == (bootstrap_func = (rust_bootstrap_func_t)dlsym(ctx->dl_handle, "_rs_invoke_bootstrap")))
-		ERROR_LOG_GOTO(ERR, "Cannot find symbol _rs_invoke_bootstrap, make sure you are loading a rust servlet binary");
+		ERROR_LOG_GOTO(ERR, "Cannot find symbol _rs_invoke_bootstrap, make sure you are loading a rust servlet binary (dlsym: %s)", dlerror());
 
 	if(NULL == (init_func = (rust_servlet_init_func_t)dlsym(ctx->dl_handle, "_rs_invoke_init")))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_init, make sure you are loading a Rust servlet binary");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_init, make sure you are loading a Rust servlet binary (dlsym: %s)", dlerror());
 
 	if(NULL == (ctx->exec_func = (rust_servlet_exec_func_t)dlsym(ctx->dl_handle, "_rs_invoke_exec")))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_exec, make sure you are loading a Rust servlet binary");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_exec, make sure you are loading a Rust servlet binary (dlsym: %s)", dlerror());
 	
 	if(NULL == (ctx->cleanup_func = (rust_servlet_cleanup_func_t)dlsym(ctx->dl_handle, "_rs_invoke_cleanup")))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_cleanup, make sure you are loading a Rust servlet binary");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_cleanup, make sure you are loading a Rust servlet binary (dlsym: %s)", dlerror());
 
 	if(NULL == (ctx->async_init_func = (rust_servlet_async_init_func_t)dlsym(ctx->dl_handle, "_rs_invoke_async_init")))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_async_init, make sure you are loading a Rust servlet binary");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_async_init, make sure you are loading a Rust servlet binary (dlsym: %s)", dlerror());
 	
 	if(NULL == (ctx->async_exec_func = (rust_servlet_async_exec_func_t)dlsym(ctx->dl_handle, "_rs_invoke_async_exec")))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_async_exec, make sure you are loading a Rust servlet binary");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_async_exec, make sure you are loading a Rust servlet binary (dlsym: %s)", dlerror());
 	
 	if(NULL == (ctx->async_cleanup_func = (rust_servlet_async_cleanup_func_t)dlsym(ctx->dl_handle, "_rs_invoke_async_cleanup")))
-		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_async_cleanup, make sure you are loading a Rust servlet binary");
+		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_async_cleanup, make sure you are loading a Rust servlet binary (dlsym: %s)", dlerror());
 
 	if(NULL == (ctx->type_model = pstd_type_model_new()))
 		ERROR_LOG_GOTO(ERR, "Cannot create type model for the Rust servlet");

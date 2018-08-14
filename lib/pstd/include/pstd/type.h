@@ -57,6 +57,7 @@ typedef int (*pstd_type_assertion_t)(pipe_t pipe, const char* type, void* data);
  *         That is why we need such a callback.
  *         Unlike the type assertion, this callback is actually called after everything for this pipe is done. 
  *         And the accessor layout is not allowed to change.
+ * @param pipe The pipe descriptor for which the framework called the callback function.
  * @param data The additional data we want to pass to this function
  * @return status code (if this function returns an error, type check would fail)
  **/
