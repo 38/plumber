@@ -1,10 +1,10 @@
 #!/bin/zsh
 function get_file() {
 	ext=$1
-	git ls-files '*.'${ext} | grep -v "^thirdparty/.*"
+	git ls-files '*.'${ext} | grep -v "^thirdparty/.*" | grep -v "^generated/.*"
 }
 {
-	for ext in {'[ch]pp','[ch]',py,js,cmake,vim,pss,ptype}
+	for ext in {'[ch]pp','[ch]',py,js,cmake,vim,pss,ptype,rs}
 	do
 		if [ ! -z "$(get_file ${ext})" ]
 		then
@@ -39,6 +39,7 @@ awk \
 		name["vim"] = "Vim"
 		name["pss"] = "PScript"
 		name["ptype"] = "TypeDef" 
+		name["rs"] = "Rust"
 	}
 	{
 		sum += $2; 
