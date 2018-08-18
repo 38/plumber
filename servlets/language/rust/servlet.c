@@ -39,7 +39,7 @@ typedef void* (*rust_bootstrap_func_t)(uint32_t argc, char const* const* argv, p
  * @param self The rust servlet object
  * @param argc The number of arguments
  * @param argv The argument list
- * @param tm The type model object 
+ * @param tm The type model object
  * @return status code
  **/
 typedef int (*rust_servlet_init_func_t)(void* self, uint32_t argc, char const* const* argv);
@@ -63,7 +63,7 @@ typedef int (*rust_servlet_cleanup_func_t)(void* self);
  * @brief The asynchronous Rust servlet task init function
  * @param self The servlet object
  * @param handle The task handle
- * @param type_inst The type instance 
+ * @param type_inst The type instance
  * @return The private task data or NULL on error case
  **/
 typedef void* (*rust_servlet_async_init_func_t)(void* self, void* handle, pstd_type_instance_t* type_inst);
@@ -77,7 +77,7 @@ typedef void* (*rust_servlet_async_init_func_t)(void* self, void* handle, pstd_t
 typedef int (*rust_servlet_async_exec_func_t)(void* handle, void* task_data);
 
 /**
- * @brief The async Rust servlet cleanup 
+ * @brief The async Rust servlet cleanup
  * @param self The servlet object
  * @param handle The task handle
  * @param task_data The task data
@@ -120,7 +120,7 @@ static void _va_list_wrapper(rust_va_list_callback_func_t cont, void* data, ...)
 
 static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 {
-	if(argc < 2) 
+	if(argc < 2)
 		ERROR_RETURN_LOG(int, "Invalid servlet init string, expected: %s [rust_shared_object] <params>", argv[0]);
 
 	context_t* ctx = (context_t*)ctxmem;
@@ -142,16 +142,16 @@ static int _init(uint32_t argc, char const* const* argv, void* ctxmem)
 
 	if(NULL == (ctx->exec_func = (rust_servlet_exec_func_t)dlsym(ctx->dl_handle, "_rs_invoke_exec")))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_exec, make sure you are loading a Rust servlet binary (dlsym: %s)", dlerror());
-	
+
 	if(NULL == (ctx->cleanup_func = (rust_servlet_cleanup_func_t)dlsym(ctx->dl_handle, "_rs_invoke_cleanup")))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_cleanup, make sure you are loading a Rust servlet binary (dlsym: %s)", dlerror());
 
 	if(NULL == (ctx->async_init_func = (rust_servlet_async_init_func_t)dlsym(ctx->dl_handle, "_rs_invoke_async_init")))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_async_init, make sure you are loading a Rust servlet binary (dlsym: %s)", dlerror());
-	
+
 	if(NULL == (ctx->async_exec_func = (rust_servlet_async_exec_func_t)dlsym(ctx->dl_handle, "_rs_invoke_async_exec")))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_async_exec, make sure you are loading a Rust servlet binary (dlsym: %s)", dlerror());
-	
+
 	if(NULL == (ctx->async_cleanup_func = (rust_servlet_async_cleanup_func_t)dlsym(ctx->dl_handle, "_rs_invoke_async_cleanup")))
 		ERROR_LOG_ERRNO_GOTO(ERR, "Cannot find symbol _rs_invoke_async_cleanup, make sure you are loading a Rust servlet binary (dlsym: %s)", dlerror());
 
@@ -200,7 +200,7 @@ static int _async_setup(async_handle_t* task_handle, void* task_data, void* ctxm
 {
 	context_t* ctx = (context_t*)ctxmem;
 	async_data_t* async_data = (async_data_t*)task_data;
-	
+
 	pstd_type_instance_t* type_inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model);
 
 	if(NULL == (async_data->rust_obj = ctx->async_init_func(ctx->rust_servlet_obj, task_handle, type_inst)))
@@ -225,7 +225,7 @@ static int _async_cleanup(async_handle_t* task_handle, void* task_data, void* ct
 {
 	context_t* ctx = (context_t*)ctxmem;
 	async_data_t* async_data = (async_data_t*)task_data;
-	
+
 	pstd_type_instance_t* type_inst = PSTD_TYPE_INSTANCE_LOCAL_NEW(ctx->type_model);
 
 	int rc = ctx->async_cleanup_func(ctx->rust_servlet_obj, task_handle, async_data->rust_obj, type_inst);

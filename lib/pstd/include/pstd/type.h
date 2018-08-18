@@ -48,14 +48,14 @@ typedef struct {
 typedef int (*pstd_type_assertion_t)(pipe_t pipe, const char* type, void* data);
 
 /**
- * @brief The callback function for type check has been completed done. 
+ * @brief The callback function for type check has been completed done.
  *        This function is called when the analysis on current pipe is completed done.
  * @detail This is useful when we want to validate the type shape of a field, because we cannot use type assertion,
- *         since we call the type assertion before all the accessor has been resolved. 
+ *         since we call the type assertion before all the accessor has been resolved.
  *         In addition the type assertion is served as the assertion on pipe. So it's a bad idea that we check the
  *         field information in the function.
  *         That is why we need such a callback.
- *         Unlike the type assertion, this callback is actually called after everything for this pipe is done. 
+ *         Unlike the type assertion, this callback is actually called after everything for this pipe is done.
  *         And the accessor layout is not allowed to change.
  * @param pipe The pipe descriptor for which the framework called the callback function.
  * @param data The additional data we want to pass to this function
