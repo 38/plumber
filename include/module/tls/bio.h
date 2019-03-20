@@ -61,4 +61,10 @@ BIO_METHOD* module_tls_bio_method(void);
  **/
 BIO* module_tls_bio_new(module_tls_bio_context_t* context);
 
+/**
+ * @brief Cleanup the global statics initialized by the BIO
+ * @return nothing
+ **/
+void module_tls_bio_cleanup(void);
+
 #endif /* __PLUMBER_MODULE_TLS_BIO_H__ */

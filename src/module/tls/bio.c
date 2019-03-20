@@ -23,16 +23,22 @@
 #include <utils/log.h>
 #include <utils/mempool/objpool.h>
 
+#	if OPENSSL_VERSION_NUMBER < 0x10100000L
 static BIO_METHOD _method;
+#else
+static BIO_METHOD* _method;
+#	endif
 
-BIO_METHOD* module_tls_bio_method()
+static inline BIO_METHOD* _get_method(void);
+
+BIO_METHOD* module_tls_bio_method(void)
 {
-	return &_method;
+	return _get_method();
 }
 
 BIO* module_tls_bio_new(module_tls_bio_context_t* ctx)
 {
-	BIO* ret = BIO_new(&_method);
+	BIO* ret = BIO_new(_get_method());
 
 	if(NULL == ret)
 	{
@@ -40,8 +46,13 @@ BIO* module_tls_bio_new(module_tls_bio_context_t* ctx)
 		return NULL;
 	}
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	ret->ptr = ctx;
 	ret->init = 1;
+#else
+	BIO_set_data(ret, ctx);
+	BIO_set_init(ret, 1);
+#endif
 
 	return ret;
 }
@@ -58,9 +69,16 @@ static int _create(BIO* b)
 		LOG_WARNING("Invalid arguments");
 		return 0;
 	}
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	b->init = 0;
 	b->shutdown = 0;
 	b->ptr = NULL;
+#else
+	BIO_set_init(b, 0);
+	BIO_set_shutdown(b, 0);
+	BIO_set_data(b, NULL);
+#endif
+
 	LOG_DEBUG("BIO object has been created");
 
 	return 1;
@@ -78,7 +96,12 @@ static int _destroy(BIO* b)
 		LOG_WARNING("Invalid arguments");
 		return 0;
 	}
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	b->init = 0;
+#else
+	BIO_set_init(b, 0);
+#endif
 
 	LOG_DEBUG("BIO object has been destroyed");
 
@@ -99,7 +122,7 @@ static int _write(BIO* b, const char* buf, int size)
 {
 	if(NULL != b)  BIO_clear_retry_flags(b);
 
-	if(NULL == b || NULL == b->ptr || NULL == buf)
+	if(NULL == b || NULL == buf)
 	{
 		LOG_WARNING("Invalid arguments");
 		return 0;
@@ -107,7 +130,17 @@ static int _write(BIO* b, const char* buf, int size)
 
 	if(size <= 0) return 0;
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	module_tls_bio_context_t* ctx = (module_tls_bio_context_t*)b->ptr;
+#else
+	module_tls_bio_context_t* ctx = (module_tls_bio_context_t*)BIO_get_data(b);
+#endif
+
+	if(NULL == ctx)
+	{
+		LOG_WARNING("Invalid BIO Context");
+		return 0;
+	}
 
 	size_t rc;
 
@@ -165,7 +198,7 @@ static int _read(BIO* b, char* buf, int size)
 {
 	if(NULL != b)  BIO_clear_retry_flags(b);
 
-	if(NULL == b || NULL == b->ptr || NULL == buf || size <= 0)
+	if(NULL == b || NULL == buf || size <= 0)
 	{
 		LOG_WARNING("Invalid arguments");
 		return 0;
@@ -173,7 +206,17 @@ static int _read(BIO* b, char* buf, int size)
 
 	if(size <= 0) return 0;
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	module_tls_bio_context_t* ctx = (module_tls_bio_context_t*)b->ptr;
+#else
+	module_tls_bio_context_t* ctx = (module_tls_bio_context_t*)BIO_get_data(b);
+#endif
+
+	if(NULL == ctx)
+	{
+		LOG_WARNING("Invalid BIO Context");
+		return 0;
+	}
 
 	size_t rc = itc_module_pipe_read(buf, (size_t)size, ctx->pipe);
 
@@ -226,6 +269,40 @@ static long _ctrl(BIO *b, int cmd, long num, void *ptr)
 	return (cmd == BIO_CTRL_DUP || cmd == BIO_CTRL_FLUSH);
 }
 
+static inline BIO_METHOD* _get_method(void)
+{
+#	if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	if(NULL == _method)
+	{
+		_method = BIO_meth_new(MODULE_TLS_BIO_TYPE, "plumber TCP pipe wrapper");
+		if(NULL == _method)
+		{
+			LOG_ERROR("Could not create method object for TLS BIO");
+			return NULL;
+		}
+
+		BIO_meth_set_create(_method, _create);
+		BIO_meth_set_destroy(_method, _destroy);
+		BIO_meth_set_write(_method, _write);
+		BIO_meth_set_read(_method, _read);
+		BIO_meth_set_puts(_method, _puts);
+		BIO_meth_set_ctrl(_method, _ctrl);
+	}
+	return _method;
+#	else
+	return &_method;
+#	endif
+}
+
+void module_tls_bio_cleanup(void)
+{
+#	if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	if(NULL != _method)
+		BIO_meth_free(_method);
+#	endif
+}
+
+#	if OPENSSL_VERSION_NUMBER < 0x10100000L
 /**
  * @brief the BIO method used for the TCP pipe BIO
  **/
@@ -241,4 +318,5 @@ static BIO_METHOD _method = {
 	.bgets = NULL,
 	.callback_ctrl = NULL
 };
+#	endif
 #endif

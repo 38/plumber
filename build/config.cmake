@@ -39,10 +39,6 @@ constant(CONFIG_PATH \"${CMAKE_INSTALL_PREFIX}/etc/plumber\")
 constant(MODULE_TLS_ENABLED 1)
 if("${MODULE_TLS_ENABLED}" EQUAL "1")
 	find_package(OpenSSL)
-	if(NOT ("${OPENSSL_FOUND}" STREQUAL "TRUE" AND "${OPENSSL_VERSION}" MATCHES "^1\\.0\\..*$"))
-		message("OpenSSL (version <1.1.0) not found, disable the TLS support")
-		set(MODULE_TLS_ENABLED "0")
-	endif(NOT ("${OPENSSL_FOUND}" STREQUAL "TRUE" AND "${OPENSSL_VERSION}" MATCHES "^1\\.0\\..*$"))
 endif("${MODULE_TLS_ENABLED}" EQUAL "1")
 
 ##LibPlumber Configurations

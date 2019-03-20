@@ -157,6 +157,7 @@ static inline int _match(const char* a, const char* b)
 	return *b == 0;
 }
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 /**
  * @brief the lock function used by OpenSSL
  * @param mode the lock operation selector
@@ -190,6 +191,7 @@ static unsigned long _ssl_tid(void)
 
 	return buf.ret;
 }
+#endif
 
 /**
  * @brief initialize the threading callbacks for the OpenSSL
@@ -372,6 +374,7 @@ static int _cleanup(void* __restrict ctx)
 	{
 		LOG_DEBUG("Finalize the OpenSSL library");
 		_thread_finalize();
+		module_tls_bio_cleanup();
 		CRYPTO_set_locking_callback(NULL);
 		CRYPTO_set_id_callback(NULL);
 		ENGINE_cleanup();
@@ -379,8 +382,10 @@ static int _cleanup(void* __restrict ctx)
 		ERR_free_strings();
 		EVP_cleanup();
 		CRYPTO_cleanup_all_ex_data();
+#if	OPENSSL_VERSION_NUMBER < 0x10100000L
 		void* ptr = SSL_COMP_get_compression_methods();
 		if(NULL != ptr) sk_free(ptr);
+#endif
 		if(ERROR_CODE(int) == module_tls_dra_finalize())
 		{
 			LOG_WARNING("Cannot fianlize the static variables used by DRA callback object");
@@ -388,8 +393,10 @@ static int _cleanup(void* __restrict ctx)
 		}
 	}
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	/* cleanup for the dispatcher */
 	ERR_remove_state(0);
+#endif
 
 	return rc;
 }
@@ -542,7 +549,9 @@ static inline int _clean_openssl(void* thread, void* data)
 {
 	(void)thread;
 	(void)data;
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	ERR_remove_state(0);
+#endif
 
 	return 0;
 }
@@ -1138,7 +1147,14 @@ static inline int _ssl_cert_chain_append(SSL_CTX* ctx, const char* filename)
 	if(NULL == (fp = fopen(filename, "r")))
 		ERROR_RETURN_LOG_ERRNO(int, "Cannot open cert file %s", filename);
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	while(NULL != (cert = PEM_read_X509(fp, NULL, ctx->default_passwd_callback, ctx->default_passwd_callback_userdata)))
+#else
+	;
+	pem_password_cb* passwd_callback = SSL_CTX_get_default_passwd_cb(ctx);
+	void* passwd_callback_data = SSL_CTX_get_default_passwd_cb_userdata(ctx);
+	while(NULL != (cert = PEM_read_X509(fp, NULL, passwd_callback, passwd_callback_data)))
+#endif
 	{
 		if(SSL_CTX_add_extra_chain_cert(ctx, cert) <= 0)
 			ERROR_LOG_GOTO(RET, "Cannot add extra cert from file %s: %s", filename, ERR_error_string(ERR_get_error(), NULL));
@@ -1310,31 +1326,31 @@ static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* s
 	}
 	else if(strcmp(sym, "ssl2") == 0)
 	{
-		long options = SSL_CTX_get_options(context->ssl_context);
+		unsigned long options = SSL_CTX_get_options(context->ssl_context);
 		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
 		ret.num = !(options & SSL_OP_NO_SSLv2);
 	}
 	else if(strcmp(sym, "ssl3") == 0)
 	{
-		long options = SSL_CTX_get_options(context->ssl_context);
+		unsigned long options = SSL_CTX_get_options(context->ssl_context);
 		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
 		ret.num = !(options & SSL_OP_NO_SSLv3);
 	}
 	else if(strcmp(sym, "tls1") == 0)
 	{
-		long options = SSL_CTX_get_options(context->ssl_context);
+		unsigned long options = SSL_CTX_get_options(context->ssl_context);
 		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
 		ret.num = !(options & SSL_OP_NO_TLSv1);
 	}
 	else if(strcmp(sym, "tls1_1") == 0)
 	{
-		long options = SSL_CTX_get_options(context->ssl_context);
+		unsigned long options = SSL_CTX_get_options(context->ssl_context);
 		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
 		ret.num = !(options & SSL_OP_NO_TLSv1_1);
 	}
 	else if(strcmp(sym, "tls1_2") == 0)
 	{
-		long options = SSL_CTX_get_options(context->ssl_context);
+		unsigned long options = SSL_CTX_get_options(context->ssl_context);
 		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
 		ret.num = !(options & SSL_OP_NO_TLSv1_2);
 	}
@@ -1359,7 +1375,7 @@ static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_
 
 	if(value.type == ITC_MODULE_PROPERTY_TYPE_INT)
 	{
-		long options = 0;
+		unsigned long options = 0;
 		if(0);
 		_SYMBOL(_IS("async_write"))              context->async_write = (value.num != 0);
 		_SYMBOL(_IS("ssl2") && 0 == value.num)   options |= SSL_OP_NO_SSLv2;
@@ -1415,7 +1431,15 @@ static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_
 			FILE* fp = fopen(filename, "r");
 			if(NULL == fp)
 				ERROR_RETURN_LOG_ERRNO(int, "Cannot load dhparam file %s", filename);
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 			DH* dh = PEM_read_DHparams(fp, NULL, context->ssl_context->default_passwd_callback, context->ssl_context->default_passwd_callback_userdata);
+#else
+			pem_password_cb* passwd_callback = SSL_CTX_get_default_passwd_cb(context->ssl_context);
+			void* passwd_callback_data = SSL_CTX_get_default_passwd_cb_userdata(context->ssl_context);
+			DH* dh = PEM_read_DHparams(fp, NULL, passwd_callback, passwd_callback_data);
+#endif
+
 			if(NULL == dh)
 				ERROR_LOG_GOTO(DHPARAM_ERR, "Cannot read the DH params from file %s: %s", filename, ERR_error_string(ERR_get_error(), NULL));
 
