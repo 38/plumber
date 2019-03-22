@@ -1326,31 +1326,52 @@ static itc_module_property_value_t _get_prop(void* __restrict ctx, const char* s
 	}
 	else if(strcmp(sym, "ssl2") == 0)
 	{
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
 		unsigned long options = SSL_CTX_get_options(context->ssl_context);
+#else
+		long options = SSL_CTX_get_options(context->ssl_context);
+#endif
 		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
 		ret.num = !(options & SSL_OP_NO_SSLv2);
 	}
 	else if(strcmp(sym, "ssl3") == 0)
 	{
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
 		unsigned long options = SSL_CTX_get_options(context->ssl_context);
+#else
+		long options = SSL_CTX_get_options(context->ssl_context);
+#endif
 		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
 		ret.num = !(options & SSL_OP_NO_SSLv3);
 	}
 	else if(strcmp(sym, "tls1") == 0)
 	{
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
 		unsigned long options = SSL_CTX_get_options(context->ssl_context);
+#else
+		long options = SSL_CTX_get_options(context->ssl_context);
+#endif
+
 		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
 		ret.num = !(options & SSL_OP_NO_TLSv1);
 	}
 	else if(strcmp(sym, "tls1_1") == 0)
 	{
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
 		unsigned long options = SSL_CTX_get_options(context->ssl_context);
+#else
+		long options = SSL_CTX_get_options(context->ssl_context);
+#endif
 		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
 		ret.num = !(options & SSL_OP_NO_TLSv1_1);
 	}
 	else if(strcmp(sym, "tls1_2") == 0)
 	{
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
 		unsigned long options = SSL_CTX_get_options(context->ssl_context);
+#else
+		long options = SSL_CTX_get_options(context->ssl_context);
+#endif
 		ret.type = ITC_MODULE_PROPERTY_TYPE_INT;
 		ret.num = !(options & SSL_OP_NO_TLSv1_2);
 	}
@@ -1375,7 +1396,11 @@ static int _set_prop(void* __restrict ctx, const char* sym, itc_module_property_
 
 	if(value.type == ITC_MODULE_PROPERTY_TYPE_INT)
 	{
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
 		unsigned long options = 0;
+#else
+		long options = 0;
+#endif
 		if(0);
 		_SYMBOL(_IS("async_write"))              context->async_write = (value.num != 0);
 		_SYMBOL(_IS("ssl2") && 0 == value.num)   options |= SSL_OP_NO_SSLv2;
