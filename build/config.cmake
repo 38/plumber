@@ -152,8 +152,7 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/version.h.in"
 	           "${CMAKE_CURRENT_BINARY_DIR}/version.h")
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/misc/Doxyfile.in"
-               "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"	message("${OpenSSL_FOUND}")
-)
+               "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile")
 
 unset(RAPIDJSON_DIR CACHE)
 find_file(RAPIDJSON_DIR rapidjson/rapidjson.h HINTS ${CMAKE_SOURCE_DIR}/thirdparty)
