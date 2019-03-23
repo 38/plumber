@@ -39,6 +39,10 @@ constant(CONFIG_PATH \"${CMAKE_INSTALL_PREFIX}/etc/plumber\")
 constant(MODULE_TLS_ENABLED 1)
 if("${MODULE_TLS_ENABLED}" EQUAL "1")
 	find_package(OpenSSL)
+	if("${OpenSSL_FOUND}" EQUAL "FALSE")
+		message("Could not find OpenSSL, disabling the TLS Module anyway")
+		set(MODULE_TLS_ENABLED 0)
+	endif("${OpenSSL_FOUND}" EQUAL "FALSE")
 endif("${MODULE_TLS_ENABLED}" EQUAL "1")
 
 ##LibPlumber Configurations
@@ -148,7 +152,8 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/version.h.in"
 	           "${CMAKE_CURRENT_BINARY_DIR}/version.h")
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/misc/Doxyfile.in"
-               "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile")
+               "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"	message("${OpenSSL_FOUND}")
+)
 
 unset(RAPIDJSON_DIR CACHE)
 find_file(RAPIDJSON_DIR rapidjson/rapidjson.h HINTS ${CMAKE_SOURCE_DIR}/thirdparty)
